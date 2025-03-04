@@ -1,0 +1,60 @@
+.creator-dashboard {
+    padding: 20px;
+  }
+  
+  .dashboard-overview {
+    background: #f4f4f4;
+    padding: 15px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
+  
+  .dashboard-section {
+    margin-bottom: 30px;
+  }
+  
+  .dashboard-section h2 {
+    margin-bottom: 10px;
+  }
+  
+  .content-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  .content-card {
+    width: 250px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: white;
+    text-align: center;
+  }
+  
+  .content-card img {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+  }
+  
+  .btn-primary, .btn-secondary {
+    display: inline-block;
+    padding: 10px 15px;
+    margin: 10px;
+    border-radius: 5px;
+    text-decoration: none;
+  }
+  
+  .btn-primary {
+    background: #007bff;
+    color: white;
+  }
+  
+  .btn-secondary {
+    background: #28a745;
+    color: white;
+  }
+  
