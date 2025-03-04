@@ -1,0 +1,43 @@
+.podcasts-container {
+    padding: 20px;
+  }
+  
+  .search-bar {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .podcast-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  
+  .podcast-card {
+    width: 300px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: white;
+  }
+  
+  .podcast-cover {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+  }
+  
+  .podcast-info {
+    text-align: center;
+  }
+  
+  .view-details {
+    display: block;
+    margin-top: 10px;
+    text-decoration: none;
+    font-weight: bold;
+  }
+  
