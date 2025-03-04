@@ -1,0 +1,49 @@
+.profile-container {
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .profile-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 400px;
+    margin: 0 auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .profile-pic {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 10px;
+  }
+  
+  .profile-stats, .account-settings {
+    margin-top: 20px;
+    text-align: center;
+  }
+  
+  .btn-primary, .btn-secondary, .btn-danger {
+    padding: 10px 15px;
+    margin: 10px;
+    border-radius: 5px;
+    text-decoration: none;
+  }
+  
+  .btn-primary {
+    background: #007bff;
+    color: white;
+  }
+  
+  .btn-secondary {
+    background: #28a745;
+    color: white;
+  }
+  
+  .btn-danger {
+    background: red;
+    color: white;
+  }
+  
