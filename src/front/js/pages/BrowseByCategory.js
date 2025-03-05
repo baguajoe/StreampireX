@@ -12,7 +12,7 @@ const ContentByCategory = () => {
       .then((data) => setPodcasts(data))
       .catch((err) => console.error("Error fetching podcasts:", err));
 
-    fetch(process.env.BACKEND_URL + `/api/radio-stations/category/${category}`)
+    fetch(process.env.BACKEND_URL + `/api/radio/genre/${category}`)
       .then((res) => res.json())
       .then((data) => setRadioStations(data))
       .catch((err) => console.error("Error fetching radio stations:", err));
@@ -21,6 +21,8 @@ const ContentByCategory = () => {
   return (
     <div>
       <h1>🎧 Content in {category}</h1>
+      
+      {/* Podcasts Section */}
       <h2>🎙 Podcasts</h2>
       {podcasts.length === 0 ? (
         <p>No podcasts found in this category.</p>
@@ -36,15 +38,17 @@ const ContentByCategory = () => {
         </ul>
       )}
 
+      {/* Radio Stations Section */}
       <h2>📻 Radio Stations</h2>
       {radioStations.length === 0 ? (
-        <p>No radio stations found in this category.</p>
+        <p>No radio stations found in this genre.</p>
       ) : (
         <ul>
           {radioStations.map((station) => (
             <li key={station.id}>
               <h3>{station.name}</h3>
               <p>{station.description}</p>
+              <p><strong>Genre:</strong> {station.genre}</p>
             </li>
           ))}
         </ul>
