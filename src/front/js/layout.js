@@ -4,30 +4,38 @@ import ScrollToTop from "./component/scrollToTop";
 import injectContext from "./store/appContext";
 
 import { Home } from "./pages/home";
-import  PodcastPage  from "./pages/Podcasts";
-import  RadioStationPage  from "./pages/radioStations";
-import  LiveStreamPage  from "./pages/liveStreams";
-import  CreatorDashboard  from "./pages/creatorDashboard";
+import Login from "./pages/Login";
+import { Signup } from "./pages/Signup";
+import PodcastPage from "./pages/Podcasts";
+import RadioStationPage from "./pages/radioStations";
+import LiveStreamPage from "./pages/liveStreams";
+import CreatorDashboard from "./pages/creatorDashboard";
 // import  FavoritesPage  from "./pages/Favorites";
-import  ProfilePage  from "./pages/ProfilePage";
-import  BrowseByCategory  from "./pages/BrowseByCategory";
-import  PricingPlans  from "./pages/PricingPlans";
+import ProfilePage from "./pages/ProfilePage";
+import BrowseByCategory from "./pages/BrowseByCategory";
+import BrowseRadioGenres from "./pages/BrowseRadioGenres";
+import BrowsePodcastCategories from "./pages/BrowsePodcastCategories";
+import PricingPlans from "./pages/PricingPlans";
+import ArtistDashboard from "./pages/ArtistDashboard";  // ✅ Import
+import ArtistRadioStation from "./pages/ArtistRadioStation"; // ✅ Import
+import MusicLicensing from "./pages/MusicLicensing"; // ✅ Import
+import LiveConcerts from "./pages/LiveConcerts"; // ✅ Import
 // import  PaymentProcessing  from "./pages/PaymentProcessing";
 // import  FreeTrial  from "./pages/FreeTrial";
-import  MembersPage  from "./pages/MembersPage";
+import MembersPage from "./pages/MembersPage";
 // import  DigitalProducts  from "./pages/DigitalProducts";
-import  ProductPage  from "./pages/ProductPage";
-import  AdminDashboard  from "./pages/AdminDashboard";
+import ProductPage from "./pages/ProductPage";
+import AdminDashboard from "./pages/AdminDashboard";
 // import  RefundProcessing  from "./pages/RefundProcessing";
 // import  RevenueAnalytics  from "./pages/RevenueAnalytics";
-import  RoleManagement  from "./pages/RoleManagement";  // ✅ Add Role Management Page
+import RoleManagement from "./pages/RoleManagement";  // ✅ Add Role Management Page
 import { Demo } from "./pages/demo";
 import { Single } from "./pages/single";
 import { BackendURL } from "./component/backendURL";
 
 import Navbar from "./component/navbar";
 import Sidebar from "./component/sidebar";
-import {Footer} from "./component/footer";
+import { Footer } from "./component/footer";
 
 // ✅ New Imports for Missing Pages
 import BrowseProfiles from "./pages/BrowseProfile";
@@ -52,6 +60,9 @@ const Layout = () => {
                     <main className="main-content">
                         <Routes>
                             <Route path="/" element={<Home />} />
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/register" element={<Signup />} />
+
                             <Route path="/podcasts" element={<PodcastPage />} />
                             <Route path="/radio-stations" element={<RadioStationPage />} />
                             <Route path="/live-streams" element={<LiveStreamPage />} />
@@ -59,6 +70,12 @@ const Layout = () => {
                             {/* <Route path="/favorites" element={<FavoritesPage />} /> */}
                             <Route path="/profile" element={<ProfilePage />} />
                             <Route path="/category/:category" element={<BrowseByCategory />} />
+                            <Route path="/browse-podcasts" element={<BrowsePodcastCategories />} />
+                            <Route path="/radio/genres" element={<BrowseRadioGenres />} />
+                            <Route path="/artist-dashboard" element={<ArtistDashboard />} />
+                            <Route path="/artist-radio" element={<ArtistRadioStation />} />
+                            <Route path="/music-licensing" element={<MusicLicensing />} />
+                            <Route path="/live-concerts" element={<LiveConcerts />} />
                             <Route path="/pricing" element={<PricingPlans />} />
                             {/* <Route path="/payment-processing" element={<PaymentProcessing />} /> */}
                             {/* <Route path="/free-trial" element={<FreeTrial />} /> */}

@@ -1,21 +1,34 @@
-// Sidebar.js (Left Menu)
 import React from "react";
 import { Link } from "react-router-dom";
 
 const Sidebar = () => {
   return (
-    <aside className="sidebar">
-      <h2>🎙 Audio Platform</h2>
-      <nav>
-        <ul>
-          <li><Link to="/">🏠 Home</Link></li>
-          <li><Link to="/podcasts">🎧 Podcasts</Link></li>
-          <li><Link to="/radio-stations">📻 Radio Stations</Link></li>
-          <li><Link to="/live-streams">🎥 Live Streams</Link></li>
-          <li><Link to="/dashboard">🚀 Creator Dashboard</Link></li>
-        </ul>
+    <div className="d-flex flex-column bg-light" style={{ height: "100vh", width: "250px" }}>
+      <h3 className="text-center py-3">Dashboard</h3>
+      <nav className="nav flex-column px-3">
+        <Link className="nav-link" to="/home">
+          🏠 Home
+        </Link>
+        <Link className="nav-link" to="/podcasts">
+          🎙 Podcasts
+        </Link>
+        <Link className="nav-link" to="/radiostations">
+          📻 Radio Stations
+        </Link>
+        <Link className="nav-link" to="/livestream">
+          🎥 Live Streams
+        </Link>
+        <Link className="nav-link" to="/creatordashboard">
+          🚀 Creator Dashboard
+        </Link>
+
+        {/* New Radio Genre Section */}
+        <h4 className="mt-3">🎶 Radio Genres</h4>
+        <Link className="nav-link" to="/radio/genres">
+          Browse by Genre
+        </Link>
       </nav>
-    </aside>
+    </div>
   );
 };
 

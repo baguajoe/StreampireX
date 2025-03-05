@@ -262,10 +262,7 @@ def start_radio_stream():
 
     return jsonify({"message": "Live stream started", "stream": new_stream.serialize()}), 201
 
-@api.route('/radio/categories', methods=['GET'])
-def get_radio_categories():
-    categories = db.session.query(RadioStation.category).distinct().all()
-    return jsonify([category[0] for category in categories]), 200
+
 
 @api.route("/radio/like", methods=["POST"])
 @jwt_required()
@@ -612,6 +609,7 @@ def login():
         token = create_access_token(identity=user.id)
         return jsonify({"message": "Login successful", "access_token": token, "user": user.serialize()}), 200
     return jsonify({"error": "Invalid email or password"}), 401
+
 @api.route("/signup", methods=["POST"])
 def create_signup():
     email = request.json.get("email")
@@ -642,11 +640,53 @@ def get_podcasts_by_category(category):
     podcasts = Podcast.query.filter_by(category=category).all()
     return jsonify([podcast.serialize() for podcast in podcasts]), 200
 
+@api.route('/podcasts/categories', methods=['GET'])
+def get_podcast_categories():
+    categories = [
+        "Technology & Innovation", "AI & Machine Learning", "Cybersecurity & Privacy",
+        "Blockchain & Crypto", "Gadgets & Consumer Tech", "Coding & Software Development",
+        "Business & Finance", "Entrepreneurship & Startups", "Investing & Wealth Management",
+        "Marketing & Branding", "Leadership & Productivity", "E-commerce & Dropshipping",
+        "Health, Wellness & Fitness", "Mental Health & Mindfulness", "Holistic Healing & Alternative Medicine",
+        "Nutrition & Dieting", "Fitness & Bodybuilding", "Martial Arts & Self-Defense",
+        "Music, Entertainment & Pop Culture", "Music Industry & Artist Insights", "Film & TV Reviews",
+        "Hip-Hop, Rap & Urban Culture", "Comedy & Stand-Up", "Celebrity Gossip & Reality TV",
+        "Gaming & Esports", "Game Development", "Esports & Competitive Gaming", "Retro & Classic Gaming",
+        "VR & AR Gaming", "Tabletop & Board Games", "Education & Learning", "Self-Development & Personal Growth",
+        "History & Documentary Podcasts", "Language Learning", "Philosophy & Deep Thought",
+        "Science & Space Exploration", "Storytelling, Fiction & True Crime", "Audio Dramas & Fiction",
+        "True Crime & Investigative Journalism", "Supernatural & Paranormal", "Horror Podcasts",
+        "Urban Legends & Conspiracies", "News, Politics & Society", "Daily News & Global Affairs",
+        "Politics & Government", "Social Justice & Activism", "Economy & World Markets",
+        "War, Conflict & Military History", "Sports & Outdoor Adventures", "Basketball & NBA",
+        "Football & NFL", "Combat Sports & UFC", "Hiking, Camping & Survival", "Extreme Sports & Adventure",
+        "Lifestyle, Relationships & Culture", "Relationships & Dating", "Parenting & Family",
+        "Spirituality & Conscious Living", "Fashion & Style", "Food & Cooking", "Future Categories",
+        "Esoteric & Mysticism", "Pet & Animal Care", "LGBTQ+ Voices", "DIY & Home Improvement",
+        "Anime & Manga"
+    ]
+    return jsonify(categories), 200
 
-@api.route('/radio-stations/category/<string:category>', methods=['GET'])
-def get_radio_stations_by_category(category):
-    stations = RadioStation.query.filter_by(category=category).all()
-    return jsonify([station.serialize() for station in stations]), 200
+
+
+@api.route('/radio/categories', methods=['GET'])
+def get_radio_categories():
+    categories = [
+        "Top 40 & Pop Hits", "Classic Pop", "K-Pop & J-Pop", "Indie & Alternative Pop",
+        "Classic Rock", "Hard Rock & Metal", "Alternative Rock", "Punk Rock", "Grunge",
+        "Hip-Hop & Rap", "R&B & Soul", "Neo-Soul", "Old-School Hip-Hop",
+        "EDM", "House & Deep House", "Techno", "Trance", "Drum & Bass", "Dubstep", "Lo-Fi",
+        "Smooth Jazz", "Classic Jazz", "Blues & Soul Blues", "Jazz Fusion", "Swing & Big Band",
+        "Classical & Opera", "Film Scores & Soundtracks", "Instrumental & Piano Music",
+        "Reggaeton", "Salsa & Merengue", "Cumbia & Bachata", "Afrobeat",
+        "Modern Country", "Classic Country", "Americana", "Bluegrass",
+        "Reggae", "Dancehall", "Roots Reggae",
+        "50s & 60s Classics", "70s & 80s Hits", "90s & 2000s Throwbacks",
+        "Afrobeat", "Caribbean & Soca", "French Chanson", "Bollywood & Indian",
+        "Lo-Fi", "Meditation & Relaxation", "ASMR & White Noise", "Gaming OSTs", "Holiday Music"
+    ]
+    return jsonify(categories), 200
+
 
 @api.route('/members', methods=['GET'])
 @jwt_required()
@@ -878,3 +918,173 @@ def get_radio_ad_revenue(station_id):
         return jsonify({"error": "Unauthorized or station not found"}), 403
 
     return jsonify({"station_id": station_id, "ad_revenue": station.ad_revenue}), 200
+
+
+@api.route('/api/artist/store/upload', methods=['POST'])
+@jwt_required()
+def upload_artist_music():
+    user_id = get_jwt_identity()
+    data = request.json
+
+    new_song = Product(
+        creator_id=user_id,
+        title=data.get("title"),
+        description=data.get("description"),
+        image_url=data.get("cover_art"),
+        file_url=data.get("file_url"),
+        price=data.get("price"),
+        is_digital=True
+    )
+
+    db.session.add(new_song)
+    db.session.commit()
+
+    return jsonify({"message": "Music uploaded successfully!", "song": new_song.serialize()}), 201
+
+
+@api.route('/api/licensing/submit-music', methods=['POST'])
+@jwt_required()
+def submit_music_for_licensing():
+    user_id = get_jwt_identity()
+    data = request.json
+
+    new_licensing_entry = Product(
+        creator_id=user_id,
+        title=data.get("title"),
+        description=data.get("description"),
+        image_url=data.get("cover_art"),
+        file_url=data.get("file_url"),
+        price=data.get("licensing_fee"),
+        is_digital=True,
+    )
+
+    db.session.add(new_licensing_entry)
+    db.session.commit()
+
+    return jsonify({"message": "Music submitted for licensing!", "music": new_licensing_entry.serialize()}), 201
+
+@api.route('/api/licensing/marketplace', methods=['GET'])
+def get_music_licensing_marketplace():
+    music_listings = Product.query.filter_by(is_digital=True).all()
+    return jsonify([music.serialize() for music in music_listings]), 200
+
+@api.route('/api/licensing/request', methods=['POST'])
+@jwt_required()
+def request_music_license():
+    user_id = get_jwt_identity()
+    data = request.json
+
+    new_license_request = Product(
+        creator_id=data.get("artist_id"),
+        title=data.get("title"),
+        description=f"License requested by User {user_id}",
+        file_url=data.get("file_url"),
+        price=data.get("licensing_fee"),
+        is_digital=True
+    )
+
+    db.session.add(new_license_request)
+    db.session.commit()
+
+    return jsonify({"message": "License request sent!"}), 200
+
+
+# bmi and ascap
+
+@api.route('/track-play', methods=['POST'])
+@jwt_required()
+def track_play():
+    """Track each time a song is streamed"""
+    data = request.json
+    user_id = get_jwt_identity()
+    track_id = data.get("track_id")
+
+    if not track_id:
+        return jsonify({"error": "Track ID required"}), 400
+
+    new_play = StreamingHistory(
+        user_id=user_id,
+        content_id=track_id,
+        content_type="audio",
+        listened_at=datetime.utcnow()
+    )
+    db.session.add(new_play)
+    db.session.commit()
+
+    return jsonify({"message": "Play tracked successfully"}), 201
+
+
+@api.route('/generate-royalty-report', methods=['GET'])
+@jwt_required()
+def generate_royalty_report():
+    """Generate a royalty report for BMI/ASCAP"""
+    plays = db.session.query(StreamingHistory.content_id, db.func.count(StreamingHistory.id)).group_by(StreamingHistory.content_id).all()
+
+    report = [{"track_id": play[0], "play_count": play[1]} for play in plays]
+
+    return jsonify({"royalty_report": report}), 200
+
+@api.route('/calculate-royalties', methods=['POST'])
+@jwt_required()
+def calculate_royalties():
+    """Calculate and distribute royalties to artists"""
+    plays = db.session.query(
+        StreamingHistory.content_id, 
+        db.func.count(StreamingHistory.id)
+    ).group_by(StreamingHistory.content_id).all()
+
+    for play in plays:
+        track_id, play_count = play
+        track = Audio.query.get(track_id)
+        artist = track.user_id
+        
+        royalty_per_play = 0.005  # Example rate ($0.005 per play)
+        total_earnings = play_count * royalty_per_play
+        
+        # Save earnings to artist account
+        artist_user = User.query.get(artist)
+        artist_user.earnings += total_earnings
+        db.session.commit()
+
+    return jsonify({"message": "Royalties calculated and assigned."}), 200
+
+
+@api.route('/upload_track', methods=['POST'])
+@jwt_required()
+def upload_track():
+    """Allow artists to upload music with ISRC codes"""
+    user_id = get_jwt_identity()
+    data = request.json
+
+    new_track = Audio(
+        user_id=user_id,
+        title=data.get("title"),
+        file_url=data.get("file_url"),
+        isrc_code=data.get("isrc"),  # Required for licensing
+        uploaded_at=datetime.utcnow()
+    )
+    db.session.add(new_track)
+    db.session.commit()
+
+    return jsonify({"message": "Track uploaded successfully!"}), 201
+
+
+@api.route('/submit-track-licensing', methods=['POST'])
+@jwt_required()
+def submit_track_licensing():
+    """Artists submit their tracks for licensing deals"""
+    user_id = get_jwt_identity()
+    data = request.json
+    track_id = data.get("track_id")
+    price = data.get("price")
+
+    new_licensing_entry = MusicLicensing(
+        user_id=user_id,
+        track_id=track_id,
+        licensing_price=price,
+        submitted_at=datetime.utcnow()
+    )
+    db.session.add(new_licensing_entry)
+    db.session.commit()
+
+    return jsonify({"message": "Track submitted for licensing!"}), 201
