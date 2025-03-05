@@ -1,3 +1,61 @@
-/* 
-    General Styles used on every website (Don't Repeat Yourself)
-*/
+/* Main app container */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  /* Container for sidebar and main content */
+  .content-container {
+    display: flex;
+    flex: 1;
+    position: relative;
+  }
+  
+  /* Main content area */
+  .main-content {
+    flex: 1;
+    margin-left: 250px; /* Match sidebar width */
+    padding: 20px;
+    min-height: calc(100vh - 85px - 50px); /* Adjusted for 85px navbar height */
+    background-color: #fff;
+    transition: margin-left 0.3s;
+  }
+  
+  /* Navbar styling */
+  .navbar {
+    height: 85px; /* Set a fixed height for navbar */
+    width: 100%;
+    z-index: 1100; /* Higher than sidebar */
+    position: sticky;
+    top: 0;
+  }
+  
+  /* Footer styling */
+  .footer {
+    height: 50px; /* Set a fixed height for footer */
+    width: 100%;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+    }
+    
+    /* Add a toggle button for mobile */
+    .sidebar-toggle {
+      display: block;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1200;
+      padding: 10px;
+      border-radius: 50%;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+  }

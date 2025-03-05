@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import logo from "../../img/StreampireX.png"
 
 const Navbar = () => {
     const [user, setUser] = useState(null);
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
-    useEffect(() => {
-        fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
-            method: "GET",
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-        })
-            .then((res) => res.json())
-            .then((data) => setUser(data))
-            .catch((err) => console.error("Error fetching user profile:", err));
-    }, []);
+    // ** NOTE: /user/profile route does not exist YET
+    // useEffect(() => {
+    //     fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+    //         method: "GET",
+    //         headers: {
+    //             Authorization: `Bearer ${localStorage.getItem("token")}`,
+    //         },
+    //     })
+    //         .then((res) => res.json())
+    //         .then((data) => setUser(data))
+    //         .catch((err) => console.error("Error fetching user profile:", err));
+    // }, []);
 
     const toggleDropdown = () => {
         setDropdownOpen(!dropdownOpen);
@@ -29,7 +31,9 @@ const Navbar = () => {
     return (
         <nav className="navbar navbar-expand-lg bg-body-tertiary">
             <div className="container-fluid">
-                <Link className="navbar-brand" to="/">🎙 Streampire X</Link>
+                <Link className="navbar-brand" to="/">
+                <img src={logo} alt="img not available" style={{height: "68px"}}/>
+                </Link>
                 <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span className="navbar-toggler-icon"></span>
                 </button>

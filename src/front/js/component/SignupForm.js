@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 
 const SignupForm = () => {
@@ -30,7 +30,7 @@ const SignupForm = () => {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      
+
       <select
         value={role}
         onChange={(e) => setRole(e.target.value)}

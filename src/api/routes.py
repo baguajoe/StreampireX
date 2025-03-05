@@ -473,6 +473,17 @@ def get_all_profiles():
     users = User.query.all()
     return jsonify([user.serialize() for user in users]), 200
 
+@api.route('/user/profile', methods=['GET'])
+@jwt_required()
+def get_user_profile():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify(user.serialize()), 200
+
 @api.route('/api/public-podcasts', methods=['GET'])
 def get_public_podcasts():
     podcasts = Podcast.query.all()
@@ -482,6 +493,9 @@ def get_public_podcasts():
 def get_public_radio_stations():
     stations = RadioStation.query.all()
     return jsonify([station.serialize() for station in stations]), 200
+
+
+
 
 
 @api.route("/api/like", methods=["POST"])
