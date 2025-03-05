@@ -27,50 +27,75 @@ const Navbar = () => {
     };
 
     return (
-        <header className="navbar">
-            <Link to="/" className="logo">🎙 My Streaming App</Link>
-            <nav>
-                <ul>
-                    <li className="dropdown">
-                        <span>📻 Browse Radio Stations ⏷</span>
-                        <ul className="dropdown-menu">
-                            <li><Link to="/category/Technology">Technology</Link></li>
-                            <li><Link to="/category/Business">Business</Link></li>
-                            <li><Link to="/category/Health & Wellness">Health & Wellness</Link></li>
-                            <li><Link to="/category/Music">Music</Link></li>
-                            <li><Link to="/category/Education">Education</Link></li>
-                            <li><Link to="/category/Gaming">Gaming</Link></li>
-                            <li><Link to="/category/Entertainment">Entertainment</Link></li>
-                            <li><Link to="/category/News & Politics">News & Politics</Link></li>
-                        </ul>
-                    </li>
-                    <li><Link to="/favorites">⭐ Favorites</Link></li>
-                    <li><Link to="/subscriptions">💳 My Subscription</Link></li>
-                    <li><Link to="/notifications">🔔 Notifications</Link></li>
-                    <li><Link to="/settings">⚙️ Settings</Link></li>
-                    {user ? (
-                        <li className="profile-menu" onClick={toggleDropdown}>
-                            <div className="profile-link">
-                                <img src={user.profile_picture || "/default-avatar.png"} alt="Profile" className="profile-avatar" />
-                                {user.username} ⏷
-                            </div>
-                            {dropdownOpen && (
-                                <ul className="dropdown-menu">
-                                    <li><Link to="/profile">👤 View Profile</Link></li>
-                                    <li><Link to="/edit-profile">✏️ Edit Profile</Link></li>
-                                    <li><Link to="/members">📊 My Audience</Link></li>
-                                    <li><Link to="/account-settings">⚙️ Account Settings</Link></li>
-                                    <li><Link to="/marketplace">🛒 Marketplace</Link></li>
-                                    <li onClick={handleLogout}>🚪 Logout</li>
-                                </ul>
-                            )}
+        <nav className="navbar navbar-expand-lg bg-body-tertiary">
+            <div className="container-fluid">
+                <Link className="navbar-brand" to="/">🎙 Streampire X</Link>
+                <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span className="navbar-toggler-icon"></span>
+                </button>
+                <div className="collapse navbar-collapse" id="navbarSupportedContent">
+                    {/* Empty space on the left to balance the navbar */}
+                    <div className="me-auto"></div>
+
+                    {/* Centered search form */}
+                    <form className="d-flex mx-auto" role="search">
+                        <input className="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
+                        <button className="btn btn-outline-success" type="submit">Search</button>
+                    </form>
+
+                    {/* Navigation links on the right with streaming app content */}
+                    <ul className="navbar-nav ms-auto mb-2 mb-lg-0">
+                        <li className="nav-item dropdown">
+                            {/* <a className="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                📻 Browse Radio Stations
+                            </a> */}
+                            <ul className="dropdown-menu dropdown-menu-end">
+                                <li><Link className="dropdown-item" to="/category/Technology">Technology</Link></li>
+                                <li><Link className="dropdown-item" to="/category/Business">Business</Link></li>
+                                <li><Link className="dropdown-item" to="/category/Health & Wellness">Health & Wellness</Link></li>
+                                <li><Link className="dropdown-item" to="/category/Music">Music</Link></li>
+                                <li><Link className="dropdown-item" to="/category/Education">Education</Link></li>
+                                <li><Link className="dropdown-item" to="/category/Gaming">Gaming</Link></li>
+                                <li><Link className="dropdown-item" to="/category/Entertainment">Entertainment</Link></li>
+                                <li><Link className="dropdown-item" to="/category/News & Politics">News & Politics</Link></li>
+                            </ul>
                         </li>
-                    ) : (
-                        <li><Link to="/login">🔑 Login</Link></li>
-                    )}
-                </ul>
-            </nav>
-        </header>
+                        <li className="nav-item">
+                            <Link className="nav-link" to="/favorites">⭐ Favorites</Link>
+                        </li>
+                        <li className="nav-item">
+                            <Link className="nav-link" to="/subscriptions">💳 My Subscription</Link>
+                        </li>
+                        <li className="nav-item">
+                            <Link className="nav-link" to="/notifications">🔔 Notifications</Link>
+                        </li>
+                        <li className="nav-item">
+                            <Link className="nav-link" to="/settings">⚙️ Settings</Link>
+                        </li>
+                        {user ? (
+                            <li className="nav-item dropdown">
+                                <a className="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <img src={user.profile_picture || "/default-avatar.png"} alt="Profile" className="rounded-circle" style={{ width: "24px", height: "24px", marginRight: "5px" }} />
+                                    {user.username}
+                                </a>
+                                <ul className="dropdown-menu dropdown-menu-end">
+                                    <li><Link className="dropdown-item" to="/profile">👤 View Profile</Link></li>
+                                    <li><Link className="dropdown-item" to="/edit-profile">✏️ Edit Profile</Link></li>
+                                    <li><Link className="dropdown-item" to="/members">📊 My Audience</Link></li>
+                                    <li><Link className="dropdown-item" to="/account-settings">⚙️ Account Settings</Link></li>
+                                    <li><Link className="dropdown-item" to="/marketplace">🛒 Marketplace</Link></li>
+                                    <li><a className="dropdown-item" href="#" onClick={handleLogout}>🚪 Logout</a></li>
+                                </ul>
+                            </li>
+                        ) : (
+                            <li className="nav-item">
+                                <Link className="nav-link" to="/login">🔑 Login</Link>
+                            </li>
+                        )}
+                    </ul>
+                </div>
+            </div>
+        </nav>
     );
 };
 
