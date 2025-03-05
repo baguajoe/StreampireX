@@ -19,21 +19,25 @@ const Login = () => {
 
   return (
     <div>
-      <h1>Login</h1>
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button onClick={handleLogin}>Login</button>
-      <p> Please click <Link to="/register">here</Link> to sign up! </p>
+      <form onSubmit={handleLogin}>
+        <h1>Login</h1>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="username" // Add autocomplete attribute
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password" // Add autocomplete attribute
+        />
+        <button type="submit">Login</button>
+        <p> Please click <Link to="/register">here</Link> to sign up! </p>
+      </form>
     </div>
   );
 };
