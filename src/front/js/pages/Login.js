@@ -1,20 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
+import { Context } from "../store/appContext";
 import { useNavigate, Link } from 'react-router-dom';
 
 const Login = () => {
+  const { store, actions } = useContext(Context);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
-    const data = await login(email, password);
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const data = await actions.login(email, password);
     if (data.access_token) {
-      localStorage.setItem('token', data.access_token); // Store the token
       alert("Login successful!");
-      navigate('/products'); // Redirect to the products page
+      navigate('/dashboard');
     } else {
       alert('Login failed: ' + data.error);
     }
+
   };
 
   return (
@@ -27,6 +30,7 @@ const Login = () => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           autoComplete="username" // Add autocomplete attribute
+          required
         />
         <input
           type="password"
@@ -34,6 +38,7 @@ const Login = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password" // Add autocomplete attribute
+          required
         />
         <button type="submit">Login</button>
         <p> Please click <Link to="/register">here</Link> to sign up! </p>
