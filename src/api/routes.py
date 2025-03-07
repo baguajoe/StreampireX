@@ -2,7 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, Comment,Notification, PricingPlan, Role, Subscription, Product, RadioDonation 
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, Comment,Notification, PricingPlan,  Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing 
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 import stripe
@@ -468,12 +468,12 @@ def get_share_stats():
         "liveStreams": live_shares
     })
 
-@api.route('/api/profiles', methods=['GET'])
+@api.route('/profiles', methods=['GET'])
 def get_all_profiles():
     users = User.query.all()
     return jsonify([user.serialize() for user in users]), 200
 
-@api.route('/user/profile', methods=['GET'])
+@api.route("/profile", methods=["GET"])
 @jwt_required()
 def get_user_profile():
     user_id = get_jwt_identity()
@@ -484,7 +484,8 @@ def get_user_profile():
 
     return jsonify(user.serialize()), 200
 
-@api.route('/api/public-podcasts', methods=['GET'])
+
+@api.route('/public-podcasts', methods=['GET'])
 def get_public_podcasts():
     podcasts = Podcast.query.all()
     return jsonify([podcast.serialize() for podcast in podcasts]), 200
@@ -498,7 +499,7 @@ def get_public_radio_stations():
 
 
 
-@api.route("/api/like", methods=["POST"])
+@api.route("/like", methods=["POST"])
 @jwt_required()
 def like_content():
     data = request.json
@@ -525,7 +526,7 @@ def like_content():
     return jsonify({"message": "Content liked"}), 201
 
 
-@api.route("/api/favorite", methods=["POST"])
+@api.route("/favorite", methods=["POST"])
 @jwt_required()
 def add_favorite():
     data = request.json
@@ -551,20 +552,20 @@ def add_favorite():
 
     return jsonify({"message": "Added to favorites"}), 201
 
-@api.route("/api/favorites", methods=["GET"])
+@api.route("/favorites", methods=["GET"])
 @jwt_required()
 def get_favorites():
     user_id = get_jwt_identity()
     favorites = Favorite.query.filter_by(user_id=user_id).all()
     return jsonify([fav.serialize() for fav in favorites]), 200
 
-@api.route("/api/comments/<content_type>/<int:content_id>", methods=["GET"])
+@api.route("/comments/<content_type>/<int:content_id>", methods=["GET"])
 def get_comments(content_type, content_id):
     comments = Comment.query.filter_by(content_type=content_type, content_id=content_id).all()
     return jsonify([comment.serialize() for comment in comments]), 200
 
 
-@api.route("/api/comments", methods=["POST"])
+@api.route("/comments", methods=["POST"])
 @jwt_required()
 def add_comment():
     data = request.json
@@ -596,7 +597,7 @@ def add_comment():
     return jsonify({"message": "Comment added"}), 201
 
 
-@api.route("/api/notifications", methods=["GET"])
+@api.route("/notifications", methods=["GET"])
 @jwt_required()
 def get_notifications():
     user_id = get_jwt_identity()
@@ -604,7 +605,7 @@ def get_notifications():
     return jsonify([notif.serialize() for notif in notifications]), 200
 
 
-@api.route("/api/notifications/read", methods=["POST"])
+@api.route("/notifications/read", methods=["POST"])
 @jwt_required()
 def mark_notifications_as_read():
     user_id = get_jwt_identity()
@@ -612,40 +613,78 @@ def mark_notifications_as_read():
     db.session.commit()
     return jsonify({"message": "Notifications marked as read"}), 200
 
-@api.route('/auth/login', methods=['POST'])
+UPLOAD_FOLDER = "uploads"
+PROFILE_PIC_FOLDER = os.path.join(UPLOAD_FOLDER, "profile_pictures")
+TRACKS_FOLDER = os.path.join(UPLOAD_FOLDER, "sample_tracks")
+os.makedirs(PROFILE_PIC_FOLDER, exist_ok=True)
+os.makedirs(TRACKS_FOLDER, exist_ok=True)
+
+@api.route("/signup", methods=["POST"])
+def create_signup():
+    email = request.form.get("email")
+    username = request.form.get("username")
+    password = request.form.get("password")
+    role = request.form.get("role", "Listener")
+    artist_name = request.form.get("artist_name")
+    own_rights = request.form.get("own_rights")
+    industry = request.form.get("industry")
+
+    
+
+    # Check if Email Already Exists
+    if User.query.filter_by(email=email).first():
+        return jsonify({"error": "User already exists"}), 400
+
+    hashed_password = generate_password_hash(password)
+
+    # Handle Profile Picture Upload
+    profile_picture = request.files.get("profile_picture")
+    profile_pic_url = None
+    if profile_picture:
+        filename = secure_filename(profile_picture.filename)
+        file_path = os.path.join(PROFILE_PIC_FOLDER, filename)
+        profile_picture.save(file_path)
+        profile_pic_url = f"/uploads/profile_pictures/{filename}"
+
+    # Handle Sample Track Upload
+    sample_track = request.files.get("sample_track")
+    sample_track_url = None
+    if sample_track:
+        filename = secure_filename(sample_track.filename)
+        file_path = os.path.join(TRACKS_FOLDER, filename)
+        sample_track.save(file_path)
+        sample_track_url = f"/uploads/sample_tracks/{filename}"
+
+    # Create New User
+    new_user = User(
+        email=email,
+        username=username,
+        password_hash=hashed_password,
+        role=role,
+        artist_name=artist_name,
+        own_rights=own_rights,
+        industry=industry,
+        profile_picture=profile_pic_url,
+        sample_track=sample_track_url
+    )
+
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({"message": "User created successfully!"}), 201
+
+@api.route('/login', methods=['POST'])
 def login():
     data = request.json
     if not data or not data.get('email') or not data.get('password'):
         return jsonify({"error": "Missing email or password"}), 400
 
     user = User.query.filter_by(email=data['email']).first()
-    if user and check_password_hash(user.password, data['password']):
-        token = create_access_token(identity=user.id)
+    if user and check_password_hash(user.password_hash, data['password']):
+        # token = create_access_token(identity=user.id)
+        token = create_access_token(identity=str(user.id))
         return jsonify({"message": "Login successful", "access_token": token, "user": user.serialize()}), 200
     return jsonify({"error": "Invalid email or password"}), 401
-
-@api.route("/signup", methods=["POST"])
-def create_signup():
-    email = request.json.get("email")
-    password = request.json.get("password")
-    role_name = request.json.get("role", "Listener")  # Default to Listener
-
-    if User.query.filter_by(email=email).first():
-        return jsonify({"msg": "User already exists"}), 400
-
-    hashed_password = generate_password_hash(password)
-
-    # Fetch role ID
-    role = Role.query.filter_by(name=role_name).first()
-    if not role:
-        return jsonify({"error": "Invalid role provided"}), 400
-
-    new_user = User(email=email, password_hash=hashed_password, role_id=role.id, is_active=True)
-    
-    db.session.add(new_user)
-    db.session.commit()
-
-    return jsonify({"msg": "User created successfully"}), 201
 
 
 
@@ -866,21 +905,21 @@ def create_role():
 
     return jsonify({"message": "Role created successfully", "role": new_role.serialize()}), 201
 
-# @api.route('/api/radio/subscribe', methods=['POST'])
-# @jwt_required()
-# def subscribe_to_radio():
-#     user_id = get_jwt_identity()
-#     data = request.json
-#     station_id = data.get("station_id")
+@api.route('/radio/subscribe', methods=['POST'])
+@jwt_required()
+def subscribe_to_radio():
+    user_id = get_jwt_identity()
+    data = request.json
+    station_id = data.get("station_id")
 
-#     station = RadioStation.query.get(station_id)
-#     if not station or not station.is_premium:
-#         return jsonify({"error": "Invalid or non-premium station"}), 400
+    station = RadioStation.query.get(station_id)
+    if not station or not station.is_premium:
+        return jsonify({"error": "Invalid or non-premium station"}), 400
 
-#     # Check if already subscribed
-#     existing_subscription = RadioSubscription.query.filter_by(user_id=user_id, station_id=station_id).first()
-#     if existing_subscription:
-#         return jsonify({"message": "Already subscribed"}), 200
+    # Check if already subscribed
+    existing_subscription = RadioSubscription.query.filter_by(user_id=user_id, station_id=station_id).first()
+    if existing_subscription:
+        return jsonify({"message": "Already subscribed"}), 200
 
     # Stripe Payment (Mock)
     stripe_charge = stripe.PaymentIntent.create(
@@ -896,7 +935,7 @@ def create_role():
     return jsonify({"message": "Subscription successful!", "subscription": new_subscription.serialize()}), 201
 
 
-@api.route('/api/radio/donate', methods=['POST'])
+@api.route('/radio/donate', methods=['POST'])
 @jwt_required()
 def donate_to_radio():
     user_id = get_jwt_identity()
@@ -922,7 +961,7 @@ def donate_to_radio():
     return jsonify({"message": "Donation successful!", "donation": new_donation.serialize()}), 201
 
 
-@api.route('/api/radio/ad-revenue/<int:station_id>', methods=['GET'])
+@api.route('/radio/ad-revenue/<int:station_id>', methods=['GET'])
 @jwt_required()
 def get_radio_ad_revenue(station_id):
     user_id = get_jwt_identity()
@@ -934,7 +973,7 @@ def get_radio_ad_revenue(station_id):
     return jsonify({"station_id": station_id, "ad_revenue": station.ad_revenue}), 200
 
 
-@api.route('/api/artist/store/upload', methods=['POST'])
+@api.route('/artist/store/upload', methods=['POST'])
 @jwt_required()
 def upload_artist_music():
     user_id = get_jwt_identity()
@@ -956,7 +995,7 @@ def upload_artist_music():
     return jsonify({"message": "Music uploaded successfully!", "song": new_song.serialize()}), 201
 
 
-@api.route('/api/licensing/submit-music', methods=['POST'])
+@api.route('/licensing/submit-music', methods=['POST'])
 @jwt_required()
 def submit_music_for_licensing():
     user_id = get_jwt_identity()
@@ -977,30 +1016,125 @@ def submit_music_for_licensing():
 
     return jsonify({"message": "Music submitted for licensing!", "music": new_licensing_entry.serialize()}), 201
 
-@api.route('/api/licensing/marketplace', methods=['GET'])
+@api.route('/licensing/marketplace', methods=['GET'])
 def get_music_licensing_marketplace():
-    music_listings = Product.query.filter_by(is_digital=True).all()
-    return jsonify([music.serialize() for music in music_listings]), 200
+    available_tracks = MusicLicensing.query.filter_by(status="Pending").all()
+    return jsonify([track.serialize() for track in available_tracks]), 200
 
-@api.route('/api/licensing/request', methods=['POST'])
+
+@api.route('/licensing/request', methods=['POST'])
 @jwt_required()
 def request_music_license():
     user_id = get_jwt_identity()
     data = request.json
 
-    new_license_request = Product(
-        creator_id=data.get("artist_id"),
-        title=data.get("title"),
-        description=f"License requested by User {user_id}",
-        file_url=data.get("file_url"),
-        price=data.get("licensing_fee"),
-        is_digital=True
+    existing_license = MusicLicensing.query.filter_by(
+        track_id=data.get("track_id"),
+        buyer_id=user_id
+    ).first()
+
+    if existing_license:
+        return jsonify({"error": "License request already exists for this track"}), 400
+
+    new_license_request = MusicLicensing(
+        user_id=data.get("artist_id"),
+        track_id=data.get("track_id"),
+        license_type=data.get("license_type"),
+        licensing_price=data.get("licensing_fee"),
+        buyer_id=user_id,
+        status="Requested"
     )
 
     db.session.add(new_license_request)
     db.session.commit()
 
-    return jsonify({"message": "License request sent!"}), 200
+    return jsonify({"message": "License request sent!", "license_request": new_license_request.serialize()}), 200
+
+@api.route('/licensing/approve/<int:licensing_id>', methods=['POST'])
+@jwt_required()
+def approve_music_license(licensing_id):
+    licensing_entry = MusicLicensing.query.get(licensing_id)
+
+    if not licensing_entry:
+        return jsonify({"error": "License request not found"}), 404
+
+    licensing_entry.status = "Approved"
+    licensing_entry.approved_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({"message": "License approved!", "licensing": licensing_entry.serialize()}), 200
+
+
+
+@api.route('/licensing/checkout/<int:licensing_id>', methods=['POST'])
+@jwt_required()
+def create_licensing_checkout(licensing_id):
+    user_id = get_jwt_identity()
+    licensing_entry = MusicLicensing.query.get(licensing_id)
+
+    if not licensing_entry:
+        return jsonify({"error": "License entry not found"}), 404
+
+    if licensing_entry.buyer_id is not None:
+        return jsonify({"error": "This license has already been purchased"}), 400
+
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': f"{licensing_entry.license_type} License - {licensing_entry.track.title}"
+                    },
+                    'unit_amount': int(licensing_entry.licensing_price * 100),  # Convert to cents
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=f"https://yourapp.com/licensing/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url="https://yourapp.com/licensing/cancel",
+            metadata={"licensing_id": licensing_entry.id, "buyer_id": user_id}
+        )
+
+        return jsonify({"checkout_url": session.url}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/licensing/payment-success', methods=['POST'])
+def licensing_payment_success():
+    payload = request.get_json()
+    event = None
+
+    try:
+        event = stripe.Event.construct_from(payload, stripe.api_key)
+    except ValueError as e:
+        return jsonify({"error": "Invalid payload"}), 400
+
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        licensing_id = session['metadata']['licensing_id']
+        buyer_id = session['metadata']['buyer_id']
+
+        licensing_entry = MusicLicensing.query.get(licensing_id)
+
+        if licensing_entry:
+            licensing_entry.status = "Approved"
+            licensing_entry.approved_at = datetime.utcnow()
+            licensing_entry.buyer_id = buyer_id
+            licensing_entry.stripe_payment_id = session['id']
+
+            db.session.commit()
+            return jsonify({"message": "Payment recorded and license approved"}), 200
+
+    return jsonify({"error": "Unhandled event"}), 400
+
+@api.route('/licensing/my-licenses', methods=['GET'])
+@jwt_required()
+def get_my_licenses():
+    user_id = get_jwt_identity()
+    licenses = MusicLicensing.query.filter_by(buyer_id=user_id).all()
+    return jsonify([license.serialize() for license in licenses]), 200
 
 
 # bmi and ascap
@@ -1102,3 +1236,19 @@ def submit_track_licensing():
     db.session.commit()
 
     return jsonify({"message": "Track submitted for licensing!"}), 201
+
+@api.route("/user/social-links", methods=["PUT"])
+@jwt_required()
+def update_social_links():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    data = request.json
+    user.social_links = data.get("social_links", {})
+
+    db.session.commit()
+    return jsonify({"message": "Social links updated!", "social_links": user.social_links}), 200
+
