@@ -15,22 +15,69 @@ const ProfilePage = () => {
     const [followersList, setFollowersList] = useState([]);
 
     useEffect(() => {
-        fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+        console.log("hello!")
+    })
+    // useEffect(() => {
+    //     console.log("ProfilePage useEffect running");
+    //     fetch(`${process.env.BACKEND_URL}/profile`, {
+    //         method: "GET",
+    //         headers: {
+    //             Authorization: `Bearer ${localStorage.getItem("token")}`,
+    //         },
+    //     })
+    //         .then((res) => res.json())
+    //         .then((data) => {
+    //             console.log("data from profile:", data);
+    //             setUser(data);
+    //             setUpdatedProfile(data);
+    //             setFollowers(data.followers_count || 0);
+    //             setFollowing(data.following_count || 0);
+    //             setBio(data.bio || "");
+    //             setSocialLinks(data.social_links || {});
+    //         })
+    //         .catch((err) => console.error("Error fetching profile:", err));
+    // }, []);
+    useEffect(() => {
+        console.log("ProfilePage useEffect running");
+        console.log("Backend URL:", process.env.BACKEND_URL);
+        console.log("Token exists:", !!localStorage.getItem("token"));
+
+        fetch(`${process.env.BACKEND_URL}/api/profile`, {
             method: "GET",
             headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
+                "Authorization": `Bearer ${localStorage.getItem("token")}`,
+                "Content-Type": "application/json"
             },
         })
-            .then((res) => res.json())
-            .then((data) => {
-                setUser(data);
-                setUpdatedProfile(data);
-                setFollowers(data.followers_count || 0);
-                setFollowing(data.following_count || 0);
-                setBio(data.bio || "");
-                setSocialLinks(data.social_links || {});
+            .then((res) => {
+                console.log("Response status:", res.status);
+                console.log("Response headers:", [...res.headers.entries()]);
+
+                // Add more detailed error handling
+                if (!res.ok) {
+                    if (res.status === 422) {
+                        console.log("Token validation error. Try re-logging in.");
+                    }
+                    return res.text().then(text => {
+                        throw new Error(`Error ${res.status}: ${text}`);
+                    });
+                }
+                return res.text();
             })
-            .catch((err) => console.error("Error fetching profile:", err));
+            .then((text) => {
+                console.log("Raw response:", text);
+                try {
+                    const data = JSON.parse(text);
+                    console.log("data from profile:", data);
+                    setUser(data);
+                    // rest of your code
+                } catch (e) {
+                    console.error("Failed to parse JSON:", e);
+                }
+            })
+            .catch((err) => {
+                console.error("Error fetching profile:", err);
+            });
     }, []);
 
     const handleFollowToggle = () => {

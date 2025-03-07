@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 282e9cf4ffd4
+Revision ID: 3e9eddc1b814
 Revises: 
-Create Date: 2025-03-04 01:51:42.373099
+Create Date: 2025-03-05 23:07:27.168215
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '282e9cf4ffd4'
+revision = '3e9eddc1b814'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -55,9 +55,13 @@ def upgrade():
     sa.Column('email', sa.String(length=120), nullable=False),
     sa.Column('password_hash', sa.String(length=256), nullable=False),
     sa.Column('is_premium', sa.Boolean(), server_default='False', nullable=True),
-    sa.Column('role_id', sa.Integer(), nullable=True),
+    sa.Column('role', sa.String(length=50), server_default='Listener', nullable=False),
+    sa.Column('artist_name', sa.String(length=255), nullable=True),
+    sa.Column('own_rights', sa.String(length=50), nullable=True),
+    sa.Column('industry', sa.String(length=255), nullable=True),
+    sa.Column('profile_picture', sa.String(length=500), nullable=True),
+    sa.Column('sample_track', sa.String(length=500), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['role_id'], ['role.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email'),
     sa.UniqueConstraint('username')
@@ -284,6 +288,22 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('stream_key')
     )
+    op.create_table('music_licensing',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('track_id', sa.Integer(), nullable=False),
+    sa.Column('license_type', sa.String(length=100), nullable=False),
+    sa.Column('licensing_price', sa.Float(), nullable=False),
+    sa.Column('status', sa.String(length=50), nullable=True),
+    sa.Column('submitted_at', sa.DateTime(), nullable=True),
+    sa.Column('approved_at', sa.DateTime(), nullable=True),
+    sa.Column('buyer_id', sa.Integer(), nullable=True),
+    sa.Column('stripe_payment_id', sa.String(length=255), nullable=True),
+    sa.ForeignKeyConstraint(['buyer_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['track_id'], ['audio.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('playlist_audio_association',
     sa.Column('playlist_id', sa.Integer(), nullable=False),
     sa.Column('audio_id', sa.Integer(), nullable=False),
@@ -317,6 +337,18 @@ def upgrade():
     sa.ForeignKeyConstraint(['audio_id'], ['audio.id'], ),
     sa.ForeignKeyConstraint(['station_id'], ['radio_station.id'], ),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('radio_subscription',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('station_id', sa.Integer(), nullable=False),
+    sa.Column('stripe_subscription_id', sa.String(length=255), nullable=True),
+    sa.Column('start_date', sa.DateTime(), nullable=True),
+    sa.Column('end_date', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['station_id'], ['radio_station.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('stripe_subscription_id')
     )
     op.create_table('user_subscription',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -358,10 +390,12 @@ def downgrade():
     op.drop_table('live_chat')
     op.drop_table('video_playlist_video')
     op.drop_table('user_subscription')
+    op.drop_table('radio_subscription')
     op.drop_table('radio_playlist')
     op.drop_table('radio_donation')
     op.drop_table('podcast_subscription')
     op.drop_table('playlist_audio_association')
+    op.drop_table('music_licensing')
     op.drop_table('live_stream')
     op.drop_table('video_playlist')
     op.drop_table('video')

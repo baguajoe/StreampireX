@@ -10,6 +10,8 @@ from api.models import db
 from api.routes import api
 from api.admin import setup_admin
 from api.commands import setup_commands
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
+from flask_cors import CORS
 
 # from models import Person
 
@@ -18,6 +20,30 @@ static_file_dir = os.path.join(os.path.dirname(
     os.path.realpath(__file__)), '../public/')
 app = Flask(__name__)
 app.url_map.strict_slashes = False
+
+# Get the frontend URL from environment variable
+# Provide localhost as default for local development
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+# You can also add additional origins if needed
+additional_origins = []
+if os.getenv("ADDITIONAL_ORIGINS"):
+    additional_origins = os.getenv("ADDITIONAL_ORIGINS").split(",")
+
+# Combine all allowed origins
+allowed_origins = [FRONTEND_URL] + additional_origins
+
+# Configure CORS with the allowed origins
+CORS(app, resources={r"/*": {"origins": allowed_origins}}, supports_credentials=True)
+
+# For debugging during development
+if os.getenv("FLASK_DEBUG") == "1":
+    print(f"CORS enabled for origins: {allowed_origins}")
+
+# Initialize JWT
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 7*24*60*60*52
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+JWTManager(app)
 
 # database condiguration
 db_url = os.getenv("DATABASE_URL")

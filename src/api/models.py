@@ -20,28 +20,42 @@ class Role(db.Model):
         }
 
 
+from sqlalchemy.dialects.postgresql import JSON
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     is_premium = db.Column(db.Boolean, default=False, server_default="False")
-    role_id = db.Column(db.Integer, db.ForeignKey('role.id'), nullable=True)  # ✅ Role linking
-    role = db.relationship('Role', backref=db.backref('users', lazy=True))
+    role = db.Column(db.String(50), nullable=False, default="Listener", server_default="Listener")
+    artist_name = db.Column(db.String(255), nullable=True)  # For Indie Artists
+    own_rights = db.Column(db.String(50), nullable=True)  # "Yes", "No", "Some Tracks"
+    industry = db.Column(db.String(255), nullable=True)  # For Filmmakers/Game Devs
+    profile_picture = db.Column(db.String(500), nullable=True)  # Profile Image URL
+    sample_track = db.Column(db.String(500), nullable=True)  # Audio Sample URL
+    bio = db.Column(db.Text, nullable=True)  # ✅ Added Bio Field
+    social_links = db.Column(JSON, nullable=True, default={})  # ✅ Store social media links as JSON
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def generate_token(self):
-        return create_access_token(identity=self.id)
 
     def serialize(self):
         return {
             "id": self.id,
             "username": self.username,
             "email": self.email,
+            "role": self.role,
+            "artist_name": self.artist_name,
+            "own_rights": self.own_rights,
+            "industry": self.industry,
+            "profile_picture": self.profile_picture,
+            "sample_track": self.sample_track,
+            "bio": self.bio,
+            "social_links": self.social_links,  # ✅ Include social links in serialization
             "is_premium": self.is_premium,
-            "role": self.role.name if self.role else "Listener",
             "created_at": self.created_at.isoformat()
         }
+
+
 
     
 class Like(db.Model):
@@ -510,6 +524,26 @@ class RadioStation(db.Model):
         }
 
 
+class RadioSubscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
+    stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)  # Stripe subscription tracking
+    start_date = db.Column(db.DateTime, default=datetime.utcnow)
+    end_date = db.Column(db.DateTime, nullable=True)  # Expiration date
+
+    user = db.relationship('User', backref=db.backref('radio_subscriptions', lazy=True))
+    station = db.relationship('RadioStation', backref=db.backref('subscriptions', lazy=True))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "station_id": self.station_id,
+            "stripe_subscription_id": self.stripe_subscription_id,
+            "start_date": self.start_date.isoformat(),
+            "end_date": self.end_date.isoformat() if self.end_date else None
+        }
 
 
 class RadioPlaylist(db.Model):
@@ -551,6 +585,36 @@ class RadioDonation(db.Model):
         }
 
 
+
+class MusicLicensing(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Artist submitting the track
+    track_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)  # Music track being licensed
+    license_type = db.Column(db.String(100), nullable=False)  # Example: "Film", "Game", "Advertisement"
+    licensing_price = db.Column(db.Float, nullable=False)  # Price for the license
+    status = db.Column(db.String(50), default="Pending")  # Status: Pending, Approved, Rejected
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)  # Date when submitted
+    approved_at = db.Column(db.DateTime, nullable=True)  # Date when approved
+    buyer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Who purchased the license (if any)
+    stripe_payment_id = db.Column(db.String(255), nullable=True)  # Stripe transaction ID
+
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('music_licensing_submissions', lazy=True))
+    track = db.relationship('Audio', backref=db.backref('music_licensing', lazy=True))
+    buyer = db.relationship('User', foreign_keys=[buyer_id], backref=db.backref('licensed_music', lazy=True))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "track_id": self.track_id,
+            "license_type": self.license_type,
+            "licensing_price": self.licensing_price,
+            "status": self.status,
+            "submitted_at": self.submitted_at.isoformat(),
+            "approved_at": self.approved_at.isoformat() if self.approved_at else None,
+            "buyer_id": self.buyer_id,
+            "stripe_payment_id": self.stripe_payment_id
+        }
 
 
 

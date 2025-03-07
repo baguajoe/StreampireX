@@ -8,7 +8,7 @@ const Navbar = () => {
 
     // ** NOTE: /user/profile route does not exist YET
     // useEffect(() => {
-    //     fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+    //     fetch(`${process.env.BACKEND_URL}/user/profile`, {
     //         method: "GET",
     //         headers: {
     //             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -32,7 +32,7 @@ const Navbar = () => {
         <nav className="navbar navbar-expand-lg bg-body-tertiary">
             <div className="container-fluid">
                 <Link className="navbar-brand" to="/">
-                <img src={logo} alt="img not available" style={{height: "68px"}}/>
+                    <img src={logo} alt="img not available" style={{ height: "68px" }} />
                 </Link>
                 <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span className="navbar-toggler-icon"></span>
