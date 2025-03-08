@@ -6,7 +6,6 @@ import injectContext from "./store/appContext";
 import { Home } from "./pages/home";
 import Login from "./pages/Login";
 import { Signup } from "./pages/Signup";
-import PodcastPage from "./pages/Podcasts";
 import RadioStationPage from "./pages/radioStations";
 import LiveStreamPage from "./pages/liveStreams";
 import CreatorDashboard from "./pages/creatorDashboard";
@@ -20,6 +19,8 @@ import ArtistDashboard from "./pages/ArtistDashboard";  // ✅ Import
 import ArtistRadioStation from "./pages/ArtistRadioStation"; // ✅ Import
 import MusicLicensing from "./pages/MusicLicensing"; // ✅ Import
 import LiveConcerts from "./pages/LiveConcerts"; // ✅ Import
+import PodcastCreate from "./pages/PodcastCreate";
+import PodcastPage from "./pages/PodcastPage";
 // import  PaymentProcessing  from "./pages/PaymentProcessing";
 // import  FreeTrial  from "./pages/FreeTrial";
 import MembersPage from "./pages/MembersPage";
@@ -63,7 +64,7 @@ const Layout = () => {
                             <Route path="/login" element={<Login />} />
                             <Route path="/register" element={<Signup />} />
 
-                            <Route path="/podcasts" element={<PodcastPage />} />
+
                             <Route path="/radio-stations" element={<RadioStationPage />} />
                             <Route path="/live-streams" element={<LiveStreamPage />} />
                             <Route path="/dashboard" element={<CreatorDashboard />} />
@@ -75,6 +76,8 @@ const Layout = () => {
                             <Route path="/artist-dashboard" element={<ArtistDashboard />} />
                             <Route path="/artist-radio" element={<ArtistRadioStation />} />
                             <Route path="/music-licensing" element={<MusicLicensing />} />
+                            <Route path="/podcast/create" element={<PodcastCreate />} />
+                            <Route path="/podcast/page" element={<PodcastPage />} />
                             <Route path="/live-concerts" element={<LiveConcerts />} />
                             <Route path="/pricing" element={<PricingPlans />} />
                             {/* <Route path="/payment-processing" element={<PaymentProcessing />} /> */}

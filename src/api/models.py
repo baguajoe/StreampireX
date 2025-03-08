@@ -219,7 +219,7 @@ class Video(db.Model):
     duration = db.Column(db.Integer, nullable=True)  # Video length in seconds
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    user = db.relationship('User', backref=db.backref('videos', lazy=True))
+    user = db.relationship('User', backref=db.backref('user_videos', lazy=True))
 
     def serialize(self):
         return {
@@ -346,12 +346,41 @@ class Podcast(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    file_url = db.Column(db.String(500), nullable=False)
-    duration = db.Column(db.Integer, nullable=True)
+    
+    # ✅ Audio & Video Storage
+    audio_url = db.Column(db.String(500), nullable=True)  # ✅ Audio file storage
+    video_url = db.Column(db.String(500), nullable=True)  # ✅ Video file storage
+    
+    duration = db.Column(db.Integer, nullable=True)  # Duration in seconds
     cover_art_url = db.Column(db.String(500), nullable=True)
     is_premium = db.Column(db.Boolean, default=False)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
-    category = db.Column(db.String(255), nullable=False)  # ✅ NEW CATEGORY FIELD
+    
+    # ✅ Categorization & Monetization
+    category = db.Column(db.String(255), nullable=False)  # Podcast category
+    subscription_tier = db.Column(db.String(50), default="Free")  # Subscription ($5, $10, $20)
+
+    # ✅ Collaboration Feature (Multiple Hosts)
+    hosts = db.relationship("PodcastHost", backref="podcast", lazy=True)
+
+    # ✅ Engagement & Social Features
+    views = db.Column(db.Integer, default=0)  # Number of views
+    likes = db.Column(db.Integer, default=0)  # Number of likes
+    shares = db.Column(db.Integer, default=0)  # Number of shares
+
+    # ✅ AI-generated transcription for accessibility
+    transcription = db.Column(db.Text, nullable=True)
+
+    # ✅ Series & Seasons Support
+    series_name = db.Column(db.String(255), nullable=True)  # Podcast Series Name
+    season_number = db.Column(db.Integer, nullable=True)  # Season Number
+    episode_number = db.Column(db.Integer, nullable=True)  # ✅ Episode Number
+
+    # ✅ Monetization & Ads
+    ad_insertion = db.Column(db.Boolean, default=False)  # Enable Ads for Monetization
+
+    # ✅ Live Streaming Feature
+    streaming_enabled = db.Column(db.Boolean, default=False)  # Enable live podcasting
 
     user = db.relationship('User', backref=db.backref('podcasts', lazy=True))
 
@@ -361,12 +390,30 @@ class Podcast(db.Model):
             "user_id": self.user_id,
             "title": self.title,
             "description": self.description,
-            "file_url": self.file_url if not self.is_premium else "Restricted for premium users",
+            "audio_url": self.audio_url if self.audio_url else "No audio available",
+            "video_url": self.video_url if self.video_url else "No video available",
             "cover_art_url": self.cover_art_url,
             "is_premium": self.is_premium,
             "uploaded_at": self.uploaded_at.isoformat(),
-            "category": self.category  # ✅ INCLUDE CATEGORY
+            "category": self.category,
+            "subscription_tier": self.subscription_tier,
+            "views": self.views,
+            "likes": self.likes,
+            "shares": self.shares,
+            "transcription": self.transcription,
+            "series_name": self.series_name,
+            "season_number": self.season_number,
+            "episode_number": self.episode_number,
+            "ad_insertion": self.ad_insertion,
+            "streaming_enabled": self.streaming_enabled
         }
+
+    
+
+class PodcastHost(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    podcast_id = db.Column(db.Integer, db.ForeignKey('podcast.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
 
 class PricingPlan(db.Model):
