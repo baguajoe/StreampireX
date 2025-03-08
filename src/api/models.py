@@ -28,32 +28,44 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     is_premium = db.Column(db.Boolean, default=False, server_default="False")
-    role = db.Column(db.String(50), nullable=False, default="Listener", server_default="Listener")
-    artist_name = db.Column(db.String(255), nullable=True)  # For Indie Artists
-    own_rights = db.Column(db.String(50), nullable=True)  # "Yes", "No", "Some Tracks"
-    industry = db.Column(db.String(255), nullable=True)  # For Filmmakers/Game Devs
-    profile_picture = db.Column(db.String(500), nullable=True)  # Profile Image URL
-    sample_track = db.Column(db.String(500), nullable=True)  # Audio Sample URL
-    bio = db.Column(db.Text, nullable=True)  # ✅ Added Bio Field
-    social_links = db.Column(JSON, nullable=True, default={})  # ✅ Store social media links as JSON
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # ✅ New Fields for Business & Display Name
+    business_name = db.Column(db.String(255), nullable=True)
+    display_name = db.Column(db.String(255), nullable=True)
+    
+    # ✅ Profile & Cover Picture
+    profile_picture = db.Column(db.String(500), nullable=True)
+    cover_photo = db.Column(db.String(500), nullable=True)
+    
+    # ✅ Radio & Podcast Links
+    radio_station = db.Column(db.String(500), nullable=True)
+    podcast = db.Column(db.String(500), nullable=True)
+
+    # ✅ Social Media Links (Stored as JSON)
+    social_links = db.Column(db.JSON, nullable=True)
+
+    # ✅ Image Gallery (List of Image URLs)
+    gallery = db.Column(db.JSON, default=[])
+
+    # ✅ Video Gallery (List of Video URLs, Max 10)
+    videos = db.Column(db.JSON, default=[])
 
     def serialize(self):
         return {
             "id": self.id,
             "username": self.username,
             "email": self.email,
-            "role": self.role,
-            "artist_name": self.artist_name,
-            "own_rights": self.own_rights,
-            "industry": self.industry,
+            "business_name": self.business_name,
+            "display_name": self.display_name,
             "profile_picture": self.profile_picture,
-            "sample_track": self.sample_track,
-            "bio": self.bio,
-            "social_links": self.social_links,  # ✅ Include social links in serialization
-            "is_premium": self.is_premium,
-            "created_at": self.created_at.isoformat()
+            "cover_photo": self.cover_photo,
+            "radio_station": self.radio_station,
+            "podcast": self.podcast,
+            "social_links": self.social_links or {},
+            "gallery": self.gallery or [],
+            "videos": self.videos or []
         }
+
 
 
 

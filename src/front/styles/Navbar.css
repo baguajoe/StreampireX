@@ -1,0 +1,73 @@
+/* Navbar */
+.navbar {
+    background: white !important;
+    padding: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Navbar Brand Logo */
+.navbar-brand img {
+    height: 50px;
+}
+
+/* Navigation Links */
+.navbar-nav .nav-link {
+    color: #333 !important;
+    font-size: 14px;
+    padding: 10px;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+/* Hover Effect for Navigation Links */
+.navbar-nav .nav-link:hover {
+    color: #FF6600 !important;
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+    background: white;
+    border: 1px solid #ddd;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-menu .dropdown-item {
+    color: #333;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Hover Effect for Dropdown */
+.dropdown-menu .dropdown-item:hover {
+    background: #FF6600;
+    color: white;
+}
+
+/* Search Bar */
+.form-control {
+    border-radius: 5px;
+    border: 1px solid #FF6600;
+}
+
+.btn-outline-success {
+    color: #FF6600;
+    border-color: #FF6600;
+}
+
+.btn-outline-success:hover {
+    background: #FF6600;
+    color: white;
+}
+
+/* Profile Picture in Navbar */
+.navbar-nav .nav-item.dropdown a {
+    display: flex;
+    align-items: center;
+}
+
+.navbar-nav .nav-item.dropdown img {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 2px solid #FF6600;
+}
