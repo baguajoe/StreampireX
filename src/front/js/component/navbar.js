@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import logo from "../../img/StreampireX.png"
+import "../../styles/Navbar.css";
 
 const Navbar = () => {
     const [user, setUser] = useState(null);

@@ -496,9 +496,6 @@ def get_public_radio_stations():
     return jsonify([station.serialize() for station in stations]), 200
 
 
-
-
-
 @api.route("/like", methods=["POST"])
 @jwt_required()
 def like_content():
@@ -1252,3 +1249,164 @@ def update_social_links():
     db.session.commit()
     return jsonify({"message": "Social links updated!", "social_links": user.social_links}), 200
 
+
+@api.route('/user/profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    data = request.json
+
+    user.business_name = data.get("business_name", user.business_name)
+    user.display_name = data.get("display_name", user.display_name)
+    user.radio_station = data.get("radio_station", user.radio_station)
+    user.podcast = data.get("podcast", user.podcast)
+    user.bio = data.get("bio", user.bio)
+    
+    # Update social links (Ensure JSON structure)
+    if "social_links" in data:
+        user.social_links = data["social_links"]
+
+    # Update image gallery (Ensure list max 10)
+    if "gallery" in data:
+        if len(data["gallery"]) > 10:
+            return jsonify({"error": "Max 10 images allowed in gallery"}), 400
+        user.gallery = data["gallery"]
+
+    # Update video gallery (Ensure list max 10)
+    if "videos" in data:
+        if len(data["videos"]) > 10:
+            return jsonify({"error": "Max 10 videos allowed"}), 400
+        user.videos = data["videos"]
+
+    db.session.commit()
+    return jsonify({"message": "Profile updated successfully", "user": user.serialize()}), 200
+
+@api.route('/user/profile/videos/upload', methods=['POST'])
+@jwt_required()
+def upload_video():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if 'video' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    video = request.files['video']
+    filename = secure_filename(video.filename)
+    file_path = os.path.join("uploads/videos", filename)
+
+    # Limit video size (max 20MB)
+    if video.content_length > 20 * 1024 * 1024:
+        return jsonify({"error": "Video file is too large (Max 20MB)"}), 400
+
+    video.save(file_path)
+
+    # Ensure video gallery list doesn't exceed limit
+    if len(user.videos) >= 10:
+        return jsonify({"error": "Max 10 videos allowed"}), 400
+
+    user.videos.append(file_path)
+    db.session.commit()
+
+    return jsonify({"message": "Video uploaded successfully", "videos": user.videos}), 200
+
+
+@api.route('/profile/music/upload', methods=['POST'])
+@jwt_required()
+def upload_music():
+    """Allows users to upload music files to their profile."""
+    user_id = get_jwt_identity()
+    if 'audio' not in request.files:
+        return jsonify({"error": "No audio file provided"}), 400
+
+    audio = request.files['audio']
+    title = request.form.get('title', 'Untitled')
+    description = request.form.get('description', '')
+
+    filename = secure_filename(audio.filename)
+    file_path = os.path.join("uploads/music", filename)
+    audio.save(file_path)
+
+    new_audio = Audio(
+        user_id=user_id,
+        title=title,
+        description=description,
+        file_url=file_path,
+        uploaded_at=datetime.utcnow()
+    )
+
+    db.session.add(new_audio)
+    db.session.commit()
+
+    return jsonify({"message": "Music uploaded successfully!", "audio": new_audio.serialize()}), 201
+
+
+@api.route('/profile/playlists/create', methods=['POST'])
+@jwt_required()
+def create_playlist_profile():
+    """Allows users to create a playlist on their profile."""
+    user_id = get_jwt_identity()
+    data = request.json
+    name = data.get("name")
+
+    if not name:
+        return jsonify({"error": "Playlist name is required"}), 400
+
+    new_playlist = PlaylistAudio(user_id=user_id, name=name)
+    db.session.add(new_playlist)
+    db.session.commit()
+
+    return jsonify({"message": "Playlist created!", "playlist": new_playlist.serialize()}), 201
+
+
+@api.route('/profile/radio/create', methods=['POST'])
+@jwt_required()
+def create_radio_station_profile():
+    """Allows users to create a radio station."""
+    user_id = get_jwt_identity()
+    data = request.json
+    name = data.get("name")
+    description = data.get("description", "")
+
+    if not name:
+        return jsonify({"error": "Radio station name is required"}), 400
+
+    new_station = RadioStation(user_id=user_id, name=name, description=description)
+    db.session.add(new_station)
+    db.session.commit()
+
+    return jsonify({"message": "Radio station created!", "station": new_station.serialize()}), 201
+
+
+@api.route('/profile/podcasts/upload', methods=['POST'])
+@jwt_required()
+def upload_podcast_profile():
+    """Allows users to upload a podcast episode."""
+    user_id = get_jwt_identity()
+    if 'audio' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    audio = request.files['audio']
+    title = request.form.get('title', 'Untitled')
+    description = request.form.get('description', '')
+
+    filename = secure_filename(audio.filename)
+    file_path = os.path.join("uploads/podcasts", filename)
+    audio.save(file_path)
+
+    new_episode = PodcastEpisode(
+        user_id=user_id,
+        title=title,
+        description=description,
+        file_url=file_path,
+        uploaded_at=datetime.utcnow()
+    )
+
+    db.session.add(new_episode)
