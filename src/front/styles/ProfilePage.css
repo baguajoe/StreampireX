@@ -1,0 +1,212 @@
+/* General Profile Container */
+.profile-container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+}
+
+/* Profile Layout */
+.profile-layout {
+    display: flex;
+    gap: 20px;
+}
+
+/* Left Column - Profile & Favorites */
+.left-column {
+    flex: 1;
+    max-width: 300px;
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+/* Profile Card */
+.profile-card {
+    text-align: center;
+    padding: 15px;
+    background: #ffffff;
+    border-radius: 10px;
+    border: 2px solid #FF6600;
+}
+
+.profile-pic {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid #FF6600;
+}
+
+.profile-card h2 {
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Editable Bio */
+textarea {
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+/* Favorites Section */
+h3 {
+    font-size: 18px;
+    margin-top: 20px;
+    color: #333;
+}
+
+/* Middle Column - Comments */
+.middle-column {
+    flex: 2;
+    background: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+}
+
+/* Comments Section */
+.comment-box {
+    display: flex;
+    gap: 10px;
+}
+
+.comment-box textarea {
+    flex-grow: 1;
+}
+
+.comment-box button {
+    background: #FF6600;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.comment-box button:hover {
+    background: #cc5200;
+}
+
+/* Right Column - Storefront & Upload Options */
+.right-column {
+    flex: 1;
+    max-width: 300px;
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+/* Storefront Section */
+.featured-product {
+    background: #FF6600;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Icons inside buttons */
+.btn-radio::before {
+    content: "📡";
+    margin-right: 8px;
+}
+.btn-podcast::before {
+    content: "🎙️";
+    margin-right: 8px;
+}
+.btn-upload::before {
+    content: "🎵";
+    margin-right: 8px;
+}
+
+/* Buttons */
+.btn-primary {
+    background: #FF6600;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.btn-primary:hover {
+    background: #cc5200;
+}
+
+.btn-radio, .btn-podcast, .btn-upload {
+    width: 100%;
+    background-color: #004080; /* Match sidebar color */
+    color: white;
+    border: 2px solid transparent;
+    padding: 12px 16px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    margin-bottom: 10px;
+}
+
+.btn-radio:hover, .btn-podcast:hover, .btn-upload:hover {
+    background-color: #FF6600; /* Orange highlight */
+    border-color: #FFAA33; /* Lighter orange border */
+    color: white;
+}
+
+/* Button Active Click Effect */
+.btn-radio:active, .btn-podcast:active, .btn-upload:active {
+    background-color: #FF5500; /* Slightly darker orange for click effect */
+}
+
+/* Cover Photo */
+.cover-photo-container {
+    position: relative;
+    text-align: center;
+}
+
+.cover-photo {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.upload-btn {
+    background: #FF6600;
+    color: white;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
+.upload-btn:hover {
+    background: #cc5200;
+}
+
+/* Social Links */
+.social-links input {
+    width: 100%;
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    margin-bottom: 5px;
+}
+
+.social-links h3 {
+    color: #FF6600;
+}
