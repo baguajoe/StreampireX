@@ -2,16 +2,20 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, Comment,Notification, PricingPlan,  Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing 
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory,RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 import stripe
+import os
 
 
 # Initialize Stripe
 stripe.api_key = "your_stripe_secret_key"
 
 api = Blueprint('api', __name__)
+
+UPLOAD_FOLDER = "uploads/podcasts"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Allow CORS requests to this API
 CORS(api)
@@ -149,28 +153,69 @@ def download_podcast_episode(episode_id):
 @jwt_required()
 def upload_podcast():
     user_id = get_jwt_identity()
-    if 'audio' not in request.files:
-        return jsonify({"error": "No file provided"}), 400
+    user = User.query.get(user_id)
 
-    audio = request.files['audio']
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # ✅ Ensure required fields
     title = request.form.get('title', 'Untitled')
     description = request.form.get('description', '')
+    category = request.form.get('category', 'General')
+    subscription_tier = request.form.get('subscription_tier', 'Free')
+    is_premium = request.form.get('is_premium', 'false').lower() == 'true'
+    streaming_enabled = request.form.get('streaming_enabled', 'false').lower() == 'true'
 
-    filename = secure_filename(audio.filename)
-    file_path = os.path.join("uploads/podcasts", filename)
-    audio.save(file_path)
+    # ✅ Securely handle audio file
+    audio_url = None
+    if 'audio' in request.files:
+        audio = request.files['audio']
+        audio_filename = secure_filename(audio.filename)
+        audio_path = os.path.join("uploads/podcasts/audio", audio_filename)
+        audio.save(audio_path)
+        audio_url = audio_path
 
-    new_episode = PodcastEpisode(
+    # ✅ Securely handle video file
+    video_url = None
+    if 'video' in request.files:
+        video = request.files['video']
+        video_filename = secure_filename(video.filename)
+        video_path = os.path.join("uploads/podcasts/video", video_filename)
+        video.save(video_path)
+        video_url = video_path
+
+    # ✅ Securely handle cover art
+    cover_art_url = None
+    if 'cover_art' in request.files:
+        cover_art = request.files['cover_art']
+        cover_filename = secure_filename(cover_art.filename)
+        cover_path = os.path.join("uploads/podcasts/covers", cover_filename)
+        cover_art.save(cover_path)
+        cover_art_url = cover_path
+
+    # ✅ Create a new podcast entry
+    new_podcast = Podcast(
         user_id=user_id,
         title=title,
         description=description,
-        file_url=file_path,
+        category=category,
+        subscription_tier=subscription_tier,
+        is_premium=is_premium,
+        streaming_enabled=streaming_enabled,
+        audio_url=audio_url,
+        video_url=video_url,
+        cover_art_url=cover_art_url,
         uploaded_at=datetime.utcnow()
     )
-    db.session.add(new_episode)
+
+    db.session.add(new_podcast)
     db.session.commit()
 
-    return jsonify({"message": "Podcast uploaded successfully", "episode": new_episode.serialize()}), 201
+    return jsonify({
+        "message": "Podcast uploaded successfully",
+        "podcast": new_podcast.serialize()
+    }), 201
+
 
 @api.route('/podcast/<int:episode_id>', methods=['GET'])
 def get_podcast(episode_id):
@@ -1288,7 +1333,7 @@ def update_profile():
 
 @api.route('/user/profile/videos/upload', methods=['POST'])
 @jwt_required()
-def upload_video():
+def upload_profile_video():
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
 
@@ -1410,3 +1455,113 @@ def upload_podcast_profile():
     )
 
     db.session.add(new_episode)
+
+# ✅ Create Podcast
+@api.route('/podcasts/create', methods=['POST'])
+@jwt_required()
+def create_podcast():
+    """Allows users to create a podcast with title, description, cover, and subscription tier."""
+    user_id = get_jwt_identity()
+    data = request.json
+
+    new_podcast = Podcast(
+        title=data.get("title"),
+        description=data.get("description"),
+        cover_art_url=data.get("cover_art_url"),
+        user_id=user_id,  # Podcast owner
+        subscription_tier=data.get("subscription_tier", "Free")
+    )
+
+    db.session.add(new_podcast)
+    db.session.commit()
+
+    # ✅ Add user as the main host
+    host_entry = PodcastHost(podcast_id=new_podcast.id, user_id=user_id)
+    db.session.add(host_entry)
+    db.session.commit()
+
+    return jsonify({"message": "Podcast created successfully", "podcast_id": new_podcast.id}), 201
+
+# ✅ Upload Podcast Episode
+@api.route('/podcasts/upload_episode/<int:podcast_id>', methods=['POST'])
+@jwt_required()
+def upload_episode(podcast_id):
+    """Allows users to upload podcast episodes."""
+    user_id = get_jwt_identity()
+    podcast = Podcast.query.get(podcast_id)
+
+    if not podcast or podcast.user_id != user_id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    if 'audio' not in request.files:
+        return jsonify({"error": "No audio file uploaded"}), 400
+
+    audio = request.files['audio']
+    filename = secure_filename(audio.filename)
+    file_path = os.path.join(UPLOAD_FOLDER, filename)
+    audio.save(file_path)
+
+    new_episode = PodcastEpisode(
+        podcast_id=podcast_id,
+        title=request.form.get("title"),
+        description=request.form.get("description"),
+        file_url=file_path
+    )
+
+    db.session.add(new_episode)
+    db.session.commit()
+
+    return jsonify({"message": "Episode uploaded successfully", "episode_id": new_episode.id}), 201
+
+# ✅ Add Podcast Collaborator (Co-Host)
+@api.route('/podcasts/add_host/<int:podcast_id>', methods=['POST'])
+@jwt_required()
+def add_host(podcast_id):
+    """Allows podcast owner to add collaborators (co-hosts)."""
+    user_id = get_jwt_identity()
+    podcast = Podcast.query.get(podcast_id)
+
+    if not podcast or podcast.user_id != user_id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.json
+    new_host = PodcastHost(podcast_id=podcast_id, user_id=data.get("user_id"))
+
+    db.session.add(new_host)
+    db.session.commit()
+
+    return jsonify({"message": "New host added!"}), 201
+
+# ✅ Get All Podcasts
+
+# ✅ Get a Single Podcast
+@api.route('/podcasts/<int:podcast_id>', methods=['GET'])
+def get_podcast_id(podcast_id):
+    """Fetches a single podcast by ID."""
+    podcast = Podcast.query.get(podcast_id)
+    if not podcast:
+        return jsonify({"error": "Podcast not found"}), 404
+    return jsonify(podcast.serialize()), 200
+
+# ✅ Get Episodes for a Podcast
+@api.route('/podcasts/<int:podcast_id>/episodes', methods=['GET'])
+def get_podcast_episodes(podcast_id):
+    """Fetches all episodes for a given podcast."""
+    episodes = PodcastEpisode.query.filter_by(podcast_id=podcast_id).all()
+    return jsonify([episode.serialize() for episode in episodes]), 200
+
+# ✅ Subscribe to a Podcast (For Monetization)
+@api.route('/podcasts/subscribe/<int:podcast_id>', methods=['POST'])
+@jwt_required()
+def subscribe_to_paid_podcast(podcast_id):
+    """Allows users to subscribe to a paid podcast."""
+    user_id = get_jwt_identity()
+    podcast = Podcast.query.get(podcast_id)
+
+    if not podcast:
+        return jsonify({"error": "Podcast not found"}), 404
+
+    # Handle Subscription Logic (e.g., Stripe Payment)
+    # TODO: Integrate Payment Gateway (Stripe, PayPal)
+
+    return jsonify({"message": "Successfully subscribed!"}), 200
