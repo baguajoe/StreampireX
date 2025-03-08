@@ -174,35 +174,52 @@ const ProfilePage = () => {
     const [favorites, setFavorites] = useState([]);
     const [favoriteRadioStations, setFavoriteRadioStations] = useState([]);
     const [favoritePodcasts, setFavoritePodcasts] = useState([]);
+    const [isEditingName, setIsEditingName] = useState(false);
 
     const profilePicInputRef = useRef(null);
     const coverPhotoInputRef = useRef(null);
 
     useEffect(() => {
-        fetch(`${process.env.BACKEND_URL}/user/profile`, {
+        console.log("ProfilePage useEffect running");
+        console.log("Backend URL:", process.env.BACKEND_URL);
+        console.log("Token exists:", !!localStorage.getItem("token"));
+
+        fetch(`${process.env.BACKEND_URL}/api/profile`, {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${localStorage.getItem("token")}`,
                 "Content-Type": "application/json"
             },
         })
-            .then(res => res.json())
-            .then(data => {
-                setUser(data);
-                setBio(data.bio || "");
-                setDisplayName(data.display_name || "");
-                setBusinessName(data.business_name || "");
-                setSocialLinks(data.social_links || { twitter: "", facebook: "", instagram: "", linkedin: "", custom: [] });
-                setRadioStation(data.radio_station || "");
-                setPodcast(data.podcast || "");
-                setStorefrontLink(data.storefront_link || "");
-                setProducts(data.products || []);
-                setComments(data.comments || []);
-                setFavorites(data.favorites || []);
-                setFavoriteRadioStations(data.favorite_radio_stations || []);
-                setFavoritePodcasts(data.favorite_podcasts || []);
+            .then((res) => {
+                console.log("Response status:", res.status);
+                console.log("Response headers:", [...res.headers.entries()]);
+
+                // Add more detailed error handling
+                if (!res.ok) {
+                    if (res.status === 422) {
+                        console.log("Token validation error. Try re-logging in.");
+                    }
+                    return res.text().then(text => {
+                        throw new Error(`Error ${res.status}: ${text}`);
+                    });
+                }
+                return res.text();
             })
-            .catch(err => console.error("Error fetching profile:", err));
+            .then((text) => {
+                console.log("Raw response:", text);
+                try {
+                    const data = JSON.parse(text);
+                    console.log("data from profile:", data);
+                    setUser(data);
+                    // rest of your code
+                } catch (e) {
+                    console.error("Failed to parse JSON:", e);
+                }
+            })
+            .catch((err) => {
+                console.error("Error fetching profile:", err);
+            });
     }, []);
 
     const handleSaveProfile = () => {
@@ -237,6 +254,32 @@ const ProfilePage = () => {
                 <input ref={coverPhotoInputRef} type="file" style={{ display: 'none' }} />
             </div>
 
+            {/* Simple Profile Name Header */}
+            <div className="profile-name-header">
+                {!isEditingName ? (
+                    <>
+                        <span className="profile-display-name">{displayName || user.username || "Your Name"}</span>
+                        <button className="edit-name-btn" onClick={() => setIsEditingName(true)}>✏️</button>
+                    </>
+                ) : (
+                    <>
+                        <input
+                            type="text"
+                            className="name-input"
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                            autoFocus
+                        />
+                        <button
+                            className="name-save-btn"
+                            onClick={() => setIsEditingName(false)}
+                        >
+                            Save
+                        </button>
+                    </>
+                )}
+            </div>
+
             <div className="profile-layout">
                 {/* Left Column: Profile Info */}
                 <div className="left-column">
@@ -250,7 +293,7 @@ const ProfilePage = () => {
 
                         {/* Editable Bio Section */}
                         <label>📝 Bio:</label>
-                        <textarea value={bio} onChange={(e) => setBio(e.target.value)} />
+                        <textarea rows={10} value={bio} onChange={(e) => setBio(e.target.value)} />
                     </div>
 
                     {/* Favorite Profiles */}
@@ -281,8 +324,11 @@ const ProfilePage = () => {
 
                     <h3>📡 Radio & Podcast</h3>
                     <button className="btn-radio">📡 Create Radio Station</button>
+                    <Link to="/podcast/create">
                     <button className="btn-podcast">🎙️ Create Podcast</button>
+                    </Link>
                     <button className="btn-upload">🎵 Upload Music</button>
+                    
                 </div>
             </div>
 
