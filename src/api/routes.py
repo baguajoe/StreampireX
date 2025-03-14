@@ -2,7 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory,RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory,RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 import whisper  # ✅ AI Transcription Support
@@ -1148,8 +1148,16 @@ def submit_music_for_licensing():
     return jsonify({"message": "Music submitted for licensing!", "music": new_licensing_entry.serialize()}), 201
 
 @api.route('/licensing/marketplace', methods=['GET'])
+@jwt_required()
 def get_music_licensing_marketplace():
-    available_tracks = MusicLicensing.query.filter_by(status="Pending").all()
+    user_id = get_jwt_identity()
+    filter_user = request.args.get("user", default=False, type=bool)
+
+    if filter_user:
+        available_tracks = MusicLicensing.query.filter_by(user_id=user_id).all()
+    else:
+        available_tracks = MusicLicensing.query.filter_by(status="Pending").all()
+    
     return jsonify([track.serialize() for track in available_tracks]), 200
 
 
@@ -1784,4 +1792,40 @@ def delete_podcast_chapter(chapter_id):
 
     return jsonify({"message": "Chapter deleted"}), 200
 
+@api.route('/radio_submission', methods=['POST'])
+@jwt_required()
+def submit_to_radio():
+    data = request.json
+    new_submission = RadioSubmission(
+        artist_id=get_jwt_identity(),
+        track_id=data['track_id'],
+        station_name=data['station_name']
+    )
+    db.session.add(new_submission)
+    db.session.commit()
+    return jsonify({"message": "Track submitted to radio station"}), 201
 
+@api.route('/collaboration', methods=['POST'])
+@jwt_required()
+def create_collab_listing():
+    data = request.json
+    new_collab = Collaboration(
+        artist_id=get_jwt_identity(),
+        role=data['role'],
+        available=True
+    )
+    db.session.add(new_collab)
+    db.session.commit()
+    return jsonify({"message": "Collaboration listing created"}), 201
+
+@api.route('/licensing', methods=['POST'])
+@jwt_required()
+def submit_to_licensing():
+    data = request.json
+    new_licensing = LicensingOpportunity(
+        artist_id=get_jwt_identity(),
+        track_id=data['track_id']
+    )
+    db.session.add(new_licensing)
+    db.session.commit()
+    return jsonify({"message": "Track submitted for licensing"}), 201
