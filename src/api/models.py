@@ -657,6 +657,13 @@ class RadioDonation(db.Model):
             "message": self.message,
             "created_at": self.created_at.isoformat()
         }
+    
+class RadioSubmission(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, nullable=False)
+    track_id = db.Column(db.Integer, nullable=False)
+    station_name = db.Column(db.String(255), nullable=False)
+    submission_status = db.Column(db.String(50), default="Pending")
 
 
 
@@ -855,6 +862,17 @@ class Product(db.Model):
             "created_at": self.created_at.isoformat(),
         }
     
+class Collaboration(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, nullable=False)
+    role = db.Column(db.String(255), nullable=False)
+    available = db.Column(db.Boolean, default=True)
+
+class LicensingOpportunity(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, nullable=False)
+    track_id = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(50), default="Pending")
 
 
 
