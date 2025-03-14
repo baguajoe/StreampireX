@@ -2,9 +2,12 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory,RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory,RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
+import whisper  # ✅ AI Transcription Support
+import subprocess
+import moviepy
 import stripe
 import os
 
@@ -14,8 +17,22 @@ stripe.api_key = "your_stripe_secret_key"
 
 api = Blueprint('api', __name__)
 
+
+# ✅ Define upload directories
+AUDIO_UPLOAD_DIR = "uploads/podcasts/audio"
+VIDEO_UPLOAD_DIR = "uploads/podcasts/video"
+CLIP_UPLOAD_DIR = "uploads/podcasts/clips"
+COVER_UPLOAD_DIR = "uploads/podcasts/covers"
+
 UPLOAD_FOLDER = "uploads/podcasts"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(AUDIO_UPLOAD_DIR, exist_ok=True)
+os.makedirs(VIDEO_UPLOAD_DIR, exist_ok=True)
+os.makedirs(CLIP_UPLOAD_DIR, exist_ok=True)
+os.makedirs(COVER_UPLOAD_DIR, exist_ok=True)
+
+# ✅ Load Whisper AI Model Once
+whisper_model = whisper.load_model("base")
 
 # Allow CORS requests to this API
 CORS(api)
@@ -125,6 +142,24 @@ def start_stream():
 
     return jsonify({"message": "Live stream started", "stream": new_stream.serialize()}), 201
 
+@api.route('/podcast/start_live/<int:podcast_id>', methods=['POST'])
+@jwt_required()
+def start_live_podcast(podcast_id):
+    """Start a live podcast session"""
+    user_id = get_jwt_identity()
+    podcast = Podcast.query.get_or_404(podcast_id)
+
+    if podcast.user_id != user_id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    podcast.is_live = True
+    podcast.stream_url = f"https://streampirex.com/live/{podcast_id}"  # Replace with actual streaming server URL
+    db.session.commit()
+
+    socketio.emit('podcast_live', {"podcast_id": podcast_id, "stream_url": podcast.stream_url})
+    return jsonify({"message": "Live podcast started", "stream_url": podcast.stream_url}), 200
+
+
 # ---------------- LIVE CHAT ----------------
 @socketio.on('send_message')
 def handle_message(data):
@@ -152,6 +187,7 @@ def download_podcast_episode(episode_id):
 @api.route('/upload_podcast', methods=['POST'])
 @jwt_required()
 def upload_podcast():
+    """Unified route: Users can upload podcasts globally or to their profile."""
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
 
@@ -159,41 +195,86 @@ def upload_podcast():
         return jsonify({"error": "User not found"}), 404
 
     # ✅ Ensure required fields
-    title = request.form.get('title', 'Untitled')
+    title = request.form.get('title', '').strip()
+    if not title:
+        return jsonify({"error": "Title is required"}), 400
+
     description = request.form.get('description', '')
     category = request.form.get('category', 'General')
     subscription_tier = request.form.get('subscription_tier', 'Free')
     is_premium = request.form.get('is_premium', 'false').lower() == 'true'
     streaming_enabled = request.form.get('streaming_enabled', 'false').lower() == 'true'
+    is_profile_upload = request.form.get('profile_upload', 'false').lower() == 'true'
 
     # ✅ Securely handle audio file
     audio_url = None
+    audio_duration = None
     if 'audio' in request.files:
         audio = request.files['audio']
         audio_filename = secure_filename(audio.filename)
-        audio_path = os.path.join("uploads/podcasts/audio", audio_filename)
+        audio_path = os.path.join(AUDIO_UPLOAD_DIR, audio_filename)
         audio.save(audio_path)
         audio_url = audio_path
 
+        # ✅ Extract duration from audio file
+        try:
+            audio_clip = AudioFileClip(audio_path)
+            audio_duration = int(audio_clip.duration)  # Store in seconds
+            audio_clip.close()
+        except Exception as e:
+            print(f"Error extracting audio duration: {e}")
+
     # ✅ Securely handle video file
     video_url = None
+    video_duration = None
     if 'video' in request.files:
         video = request.files['video']
         video_filename = secure_filename(video.filename)
-        video_path = os.path.join("uploads/podcasts/video", video_filename)
+        video_path = os.path.join(VIDEO_UPLOAD_DIR, video_filename)
         video.save(video_path)
         video_url = video_path
+
+        # ✅ Extract duration from video file
+        try:
+            video_clip = AudioFileClip(video_path)
+            video_duration = int(video_clip.duration)  # Store in seconds
+            video_clip.close()
+        except Exception as e:
+            print(f"Error extracting video duration: {e}")
 
     # ✅ Securely handle cover art
     cover_art_url = None
     if 'cover_art' in request.files:
         cover_art = request.files['cover_art']
         cover_filename = secure_filename(cover_art.filename)
-        cover_path = os.path.join("uploads/podcasts/covers", cover_filename)
+        cover_path = os.path.join(COVER_UPLOAD_DIR, cover_filename)
         cover_art.save(cover_path)
         cover_art_url = cover_path
 
-    # ✅ Create a new podcast entry
+    # ✅ AI-Generated Transcription (Optional)
+    transcription = None
+    if audio_url:
+        try:
+            model = whisper.load_model("base")
+            result = model.transcribe(audio_url)
+            transcription = result["text"]
+        except Exception as e:
+            transcription = f"Transcription failed: {e}"
+
+    # ✅ Assign an episode number if part of a series
+    latest_episode = Podcast.query.filter_by(user_id=user_id, category=category).order_by(Podcast.episode_number.desc()).first()
+    episode_number = latest_episode.episode_number + 1 if latest_episode else 1
+
+    # ✅ Create a Stripe Product for Monetization
+    stripe_product_id = None
+    if is_premium:
+        try:
+            stripe_product = stripe.Product.create(name=title)
+            stripe_product_id = stripe_product["id"]
+        except Exception as e:
+            print(f"Stripe product creation failed: {e}")
+
+    # ✅ Create a new podcast entry (for global or profile uploads)
     new_podcast = Podcast(
         user_id=user_id,
         title=title,
@@ -205,14 +286,22 @@ def upload_podcast():
         audio_url=audio_url,
         video_url=video_url,
         cover_art_url=cover_art_url,
-        uploaded_at=datetime.utcnow()
+        uploaded_at=datetime.utcnow(),
+        transcription=transcription,
+        duration=audio_duration or video_duration,  # ✅ Store duration
+        episode_number=episode_number,  # ✅ Store episode number
+        stripe_product_id=stripe_product_id  # ✅ Store Stripe product ID
     )
 
     db.session.add(new_podcast)
     db.session.commit()
 
+    # ✅ Determine redirect URL (Global Page or Profile Page)
+    redirect_url = "/profile" if is_profile_upload else "/podcasts"
+
     return jsonify({
         "message": "Podcast uploaded successfully",
+        "redirect": redirect_url,
         "podcast": new_podcast.serialize()
     }), 201
 
@@ -1430,57 +1519,6 @@ def create_radio_station_profile():
     return jsonify({"message": "Radio station created!", "station": new_station.serialize()}), 201
 
 
-@api.route('/profile/podcasts/upload', methods=['POST'])
-@jwt_required()
-def upload_podcast_profile():
-    """Allows users to upload a podcast episode."""
-    user_id = get_jwt_identity()
-    if 'audio' not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-
-    audio = request.files['audio']
-    title = request.form.get('title', 'Untitled')
-    description = request.form.get('description', '')
-
-    filename = secure_filename(audio.filename)
-    file_path = os.path.join("uploads/podcasts", filename)
-    audio.save(file_path)
-
-    new_episode = PodcastEpisode(
-        user_id=user_id,
-        title=title,
-        description=description,
-        file_url=file_path,
-        uploaded_at=datetime.utcnow()
-    )
-
-    db.session.add(new_episode)
-
-# ✅ Create Podcast
-@api.route('/podcasts/create', methods=['POST'])
-@jwt_required()
-def create_podcast():
-    """Allows users to create a podcast with title, description, cover, and subscription tier."""
-    user_id = get_jwt_identity()
-    data = request.json
-
-    new_podcast = Podcast(
-        title=data.get("title"),
-        description=data.get("description"),
-        cover_art_url=data.get("cover_art_url"),
-        user_id=user_id,  # Podcast owner
-        subscription_tier=data.get("subscription_tier", "Free")
-    )
-
-    db.session.add(new_podcast)
-    db.session.commit()
-
-    # ✅ Add user as the main host
-    host_entry = PodcastHost(podcast_id=new_podcast.id, user_id=user_id)
-    db.session.add(host_entry)
-    db.session.commit()
-
-    return jsonify({"message": "Podcast created successfully", "podcast_id": new_podcast.id}), 201
 
 # ✅ Upload Podcast Episode
 @api.route('/podcasts/upload_episode/<int:podcast_id>', methods=['POST'])
@@ -1565,3 +1603,185 @@ def subscribe_to_paid_podcast(podcast_id):
     # TODO: Integrate Payment Gateway (Stripe, PayPal)
 
     return jsonify({"message": "Successfully subscribed!"}), 200
+
+@api.route('/transcribe_podcast/<int:podcast_id>', methods=['POST'])
+@jwt_required()
+def transcribe_podcast(podcast_id):
+    podcast = Podcast.query.get(podcast_id)
+    if not podcast or not podcast.audio_url:
+        return jsonify({"error": "Podcast audio not found"}), 404
+
+    model = whisper.load_model("base")
+    result = model.transcribe(podcast.audio_url)
+
+    podcast.transcription = result["text"]
+    db.session.commit()
+
+    return jsonify({"message": "Transcription completed", "transcription": podcast.transcription}), 200
+
+@api.route('/purchase_podcast', methods=['POST'])
+@jwt_required()
+def purchase_podcast():
+    user_id = get_jwt_identity()
+    data = request.json
+    podcast_id = data.get("podcast_id")
+    podcast = Podcast.query.get(podcast_id)
+
+    if not podcast:
+        return jsonify({"error": "Podcast not found"}), 404
+
+    if podcast.price_per_episode:
+        amount = podcast.price_per_episode
+    else:
+        return jsonify({"error": "Podcast not for sale"}), 400
+
+    # TODO: Integrate with Stripe payment
+    return jsonify({"message": "Payment processed successfully"}), 200
+
+@api.route('/podcast/clip', methods=['POST'])
+@jwt_required()
+def create_clip():
+    """Generates a short podcast clip"""
+    data = request.json
+    podcast_id = data.get("podcast_id")
+    start_time = data.get("start_time")  # in seconds
+    end_time = data.get("end_time")  # in seconds
+
+    podcast = Podcast.query.get_or_404(podcast_id)
+    if not podcast.audio_url:
+        return jsonify({"error": "No audio found for this podcast"}), 400
+
+    clip_filename = f"clip_{podcast_id}_{start_time}_{end_time}.mp3"
+    clip_path = os.path.join("uploads/podcasts/clips", clip_filename)
+
+    # ✅ Generate clip using FFmpeg
+    command = [
+        "ffmpeg",
+        "-i", podcast.audio_url,
+        "-ss", str(start_time),
+        "-to", str(end_time),
+        "-c", "copy",
+        clip_path
+    ]
+    subprocess.run(command)
+
+    return jsonify({"message": "Clip created", "clip_url": clip_path}), 200
+
+@api.route('/creator/earnings', methods=['GET'])
+@jwt_required()
+def get_creator_earnings():
+    """Fetches total earnings, revenue breakdown, and listener data for a creator."""
+    user_id = get_jwt_identity()
+    
+    earnings = db.session.query(
+        func.sum(PodcastSubscription.amount).label("total_earnings"),
+        func.count(PodcastSubscription.id).label("total_subscriptions")
+    ).filter(PodcastSubscription.creator_id == user_id).first()
+
+    return jsonify({
+        "total_earnings": earnings.total_earnings or 0,
+        "total_subscriptions": earnings.total_subscriptions or 0
+    }), 200
+
+@api.route('/podcasts/<int:podcast_id>/generate_chapters', methods=['POST'])
+@jwt_required()
+def generate_podcast_chapters(podcast_id):
+    """Automatically generates podcast chapters using AI transcription."""
+    podcast = Podcast.query.get(podcast_id)
+
+    if not podcast or not podcast.transcription:
+        return jsonify({"error": "Podcast or transcription not found"}), 404
+
+    # ✅ AI: Auto-detect topic changes in the transcript
+    transcript = podcast.transcription.split(". ")
+    chapters = []
+    current_time = 0
+
+    for i, sentence in enumerate(transcript):
+        # Simulate chapter detection based on AI (real implementation can use NLP)
+        if len(sentence) > 50:  # If sentence is long, assume it's a new topic
+            chapter = PodcastChapter(
+                podcast_id=podcast_id,
+                title=f"Chapter {i+1}: {sentence[:50]}...",  # Truncate title
+                timestamp=current_time
+            )
+            db.session.add(chapter)
+            chapters.append(chapter.serialize())
+
+        # Simulate timestamp progression (this should be based on AI in real-world use)
+        current_time += 30  # Assume each sentence lasts ~30 seconds
+
+    db.session.commit()
+
+    return jsonify({"message": "Chapters generated", "chapters": chapters}), 201
+
+@api.route('/podcasts/<int:podcast_id>/chapters', methods=['GET'])
+def get_podcast_chapters(podcast_id):
+    """Fetches all chapters for a specific podcast."""
+    chapters = PodcastChapter.query.filter_by(podcast_id=podcast_id).all()
+    return jsonify([chapter.serialize() for chapter in chapters]), 200
+
+@api.route('/podcasts/<int:podcast_id>/chapters', methods=['POST'])
+@jwt_required()
+def add_podcast_chapter(podcast_id):
+    """Allows creators to manually add a chapter to a podcast."""
+    user_id = get_jwt_identity()
+    podcast = Podcast.query.get(podcast_id)
+
+    if not podcast or podcast.user_id != user_id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.json
+    title = data.get("title")
+    timestamp = data.get("timestamp")
+
+    if not title or timestamp is None:
+        return jsonify({"error": "Title and timestamp are required"}), 400
+
+    new_chapter = PodcastChapter(
+        podcast_id=podcast_id,
+        title=title,
+        timestamp=timestamp,
+        manual_edit=True  # ✅ Marked as manually added
+    )
+
+    db.session.add(new_chapter)
+    db.session.commit()
+
+    return jsonify({"message": "Chapter added", "chapter": new_chapter.serialize()}), 201
+
+@api.route('/podcasts/chapters/<int:chapter_id>', methods=['PUT'])
+@jwt_required()
+def edit_podcast_chapter(chapter_id):
+    """Allows creators to edit an existing chapter."""
+    user_id = get_jwt_identity()
+    chapter = PodcastChapter.query.get(chapter_id)
+
+    if not chapter or chapter.podcast.user_id != user_id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.json
+    chapter.title = data.get("title", chapter.title)
+    chapter.timestamp = data.get("timestamp", chapter.timestamp)
+    chapter.manual_edit = True  # ✅ Marked as manually edited
+
+    db.session.commit()
+
+    return jsonify({"message": "Chapter updated", "chapter": chapter.serialize()}), 200
+
+@api.route('/podcasts/chapters/<int:chapter_id>', methods=['DELETE'])
+@jwt_required()
+def delete_podcast_chapter(chapter_id):
+    """Allows creators to delete a chapter."""
+    user_id = get_jwt_identity()
+    chapter = PodcastChapter.query.get(chapter_id)
+
+    if not chapter or chapter.podcast.user_id != user_id:
+        return jsonify({"error": "Unauthorized"}), 403
+
+    db.session.delete(chapter)
+    db.session.commit()
+
+    return jsonify({"message": "Chapter deleted"}), 200
+
+
