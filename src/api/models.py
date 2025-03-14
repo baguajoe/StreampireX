@@ -3,7 +3,10 @@ from flask_sqlalchemy import SQLAlchemy
 # from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token
 from datetime import datetime
+from flask_socketio import SocketIO
 import stripe
+from flask_socketio import SocketIO
+socketio = SocketIO(cors_allowed_origins="*")  # ✅ Initialize without `app`
 
 db = SQLAlchemy()
 # bcrypt = Bcrypt()
@@ -341,48 +344,52 @@ class PodcastEpisode(db.Model):
         }
 
 
+
 class Podcast(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    
+
     # ✅ Audio & Video Storage
-    audio_url = db.Column(db.String(500), nullable=True)  # ✅ Audio file storage
-    video_url = db.Column(db.String(500), nullable=True)  # ✅ Video file storage
-    
+    audio_url = db.Column(db.String(500), nullable=True)
+    video_url = db.Column(db.String(500), nullable=True)
+
     duration = db.Column(db.Integer, nullable=True)  # Duration in seconds
     cover_art_url = db.Column(db.String(500), nullable=True)
     is_premium = db.Column(db.Boolean, default=False)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # ✅ Categorization & Monetization
-    category = db.Column(db.String(255), nullable=False)  # Podcast category
-    subscription_tier = db.Column(db.String(50), default="Free")  # Subscription ($5, $10, $20)
 
-    # ✅ Collaboration Feature (Multiple Hosts)
-    hosts = db.relationship("PodcastHost", backref="podcast", lazy=True)
+    # ✅ Monetization & Stripe Integration
+    subscription_tier = db.Column(db.String(50), default="Free")
+    price_per_episode = db.Column(db.Float, nullable=True)
+    stripe_product_id = db.Column(db.String(255), nullable=True)  # ✅ Stripe product ID
 
     # ✅ Engagement & Social Features
-    views = db.Column(db.Integer, default=0)  # Number of views
-    likes = db.Column(db.Integer, default=0)  # Number of likes
-    shares = db.Column(db.Integer, default=0)  # Number of shares
-
-    # ✅ AI-generated transcription for accessibility
-    transcription = db.Column(db.Text, nullable=True)
-
-    # ✅ Series & Seasons Support
-    series_name = db.Column(db.String(255), nullable=True)  # Podcast Series Name
-    season_number = db.Column(db.Integer, nullable=True)  # Season Number
-    episode_number = db.Column(db.Integer, nullable=True)  # ✅ Episode Number
-
-    # ✅ Monetization & Ads
-    ad_insertion = db.Column(db.Boolean, default=False)  # Enable Ads for Monetization
+    views = db.Column(db.Integer, default=0)
+    likes = db.Column(db.Integer, default=0)
+    shares = db.Column(db.Integer, default=0)
 
     # ✅ Live Streaming Feature
-    streaming_enabled = db.Column(db.Boolean, default=False)  # Enable live podcasting
+    streaming_enabled = db.Column(db.Boolean, default=False)
+    live_replay_url = db.Column(db.String(500), nullable=True)
+    is_live = db.Column(db.Boolean, default=False)
+    stream_url = db.Column(db.String(500), nullable=True)
+    scheduled_time = db.Column(db.DateTime, nullable=True)
+
+    # ✅ Episode Scheduling
+    scheduled_release = db.Column(db.DateTime, nullable=True)
+    exclusive_until = db.Column(db.DateTime, nullable=True)
 
     user = db.relationship('User', backref=db.backref('podcasts', lazy=True))
+
+    # ✅ Create Stripe Product for Monetization
+    def create_stripe_product(self):
+        """Creates a Stripe product for the podcast."""
+        if not self.stripe_product_id:
+            product = stripe.Product.create(name=self.title)
+            self.stripe_product_id = product["id"]
+            db.session.commit()
 
     def serialize(self):
         return {
@@ -405,7 +412,15 @@ class Podcast(db.Model):
             "season_number": self.season_number,
             "episode_number": self.episode_number,
             "ad_insertion": self.ad_insertion,
-            "streaming_enabled": self.streaming_enabled
+            "price_per_episode": self.price_per_episode,
+            "streaming_enabled": self.streaming_enabled,
+            "live_replay_url": self.live_replay_url,
+            "is_live": self.is_live,
+            "stream_url": self.stream_url,
+            "scheduled_time": self.scheduled_time.isoformat() if self.scheduled_time else None,
+            "scheduled_release": self.scheduled_release.isoformat() if self.scheduled_release else None,
+            "exclusive_until": self.exclusive_until.isoformat() if self.exclusive_until else None,
+            "stripe_product_id": self.stripe_product_id  # ✅ Added Stripe Product ID
         }
 
     
@@ -742,13 +757,13 @@ class CreatorMembershipTier(db.Model):
             "price_yearly": self.price_yearly,
             "benefits": self.benefits.split(";") if self.benefits else []
         }
-
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    content_id = db.Column(db.Integer, nullable=False)  # Can be podcast, radio station, or live stream
+    content_id = db.Column(db.Integer, nullable=False)  # Can be podcast, radio, or live stream
     content_type = db.Column(db.String(50), nullable=False)  # "podcast", "radio", "livestream"
     text = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.Integer, nullable=True)  # ✅ Now supports timestamps for podcasts
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship("User", backref=db.backref("comments", lazy=True))
@@ -760,8 +775,30 @@ class Comment(db.Model):
             "content_id": self.content_id,
             "content_type": self.content_type,
             "text": self.text,
+            "timestamp": self.timestamp,  # ✅ Show timestamp if it exists
             "created_at": self.created_at.isoformat(),
         }
+    
+class PodcastChapter(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    podcast_id = db.Column(db.Integer, db.ForeignKey('podcast.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False)  # Chapter title
+    timestamp = db.Column(db.Integer, nullable=False)  # Start time in seconds
+    manual_edit = db.Column(db.Boolean, default=False)  # ✅ Flag for manual edits
+
+
+    podcast = db.relationship("Podcast", backref=db.backref("chapters", lazy=True))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "podcast_id": self.podcast_id,
+            "title": self.title,
+            "timestamp": self.timestamp,
+            "manual_edit": self.manual_edit
+        }
+
+
 
 
 class Notification(db.Model):
