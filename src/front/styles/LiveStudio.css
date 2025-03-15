@@ -1,0 +1,67 @@
+/* LiveStudio.css */
+.live-studio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background-color: #121212;
+    color: #fff;
+}
+
+.live-header {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.live-video {
+    width: 80%;
+    max-width: 900px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: black;
+}
+
+.live-controls {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.live-button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 1rem;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.live-button.start {
+    background-color: #e63946;
+}
+
+.live-button.stop {
+    background-color: #2a9d8f;
+}
+
+.live-chat {
+    width: 100%;
+    max-width: 600px;
+    margin-top: 20px;
+    padding: 10px;
+    background: #1e1e1e;
+    border-radius: 5px;
+}
+
+.live-chat input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    background: #2c2c2c;
+    color: #fff;
+}

@@ -2,7 +2,7 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory,RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory,RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track
 from api.utils import generate_sitemap, APIException
 from flask_cors import CORS
 import whisper  # ✅ AI Transcription Support
@@ -307,7 +307,7 @@ def upload_podcast():
 
 
 @api.route('/podcast/<int:episode_id>', methods=['GET'])
-def get_podcast(episode_id):
+def get_podcast_episode(episode_id):
     episode = PodcastEpisode.query.get(episode_id)
     if not episode:
         return jsonify({"error": "Episode not found"}), 404
@@ -1596,6 +1596,12 @@ def get_podcast_episodes(podcast_id):
     episodes = PodcastEpisode.query.filter_by(podcast_id=podcast_id).all()
     return jsonify([episode.serialize() for episode in episodes]), 200
 
+@api.route('/episodes/upcoming', methods=['GET'])
+def get_scheduled_episodes():
+    future_episodes = PodcastEpisode.query.filter(PodcastEpisode.release_date > datetime.utcnow()).all()
+    return jsonify([episode.serialize() for episode in future_episodes])
+
+
 # ✅ Subscribe to a Podcast (For Monetization)
 @api.route('/podcasts/subscribe/<int:podcast_id>', methods=['POST'])
 @jwt_required()
@@ -1829,3 +1835,72 @@ def submit_to_licensing():
     db.session.add(new_licensing)
     db.session.commit()
     return jsonify({"message": "Track submitted for licensing"}), 201
+
+@api.route("/podcast/<username>/<podcast_id>", methods=["GET"])
+def get_podcast_by_username(username, podcast_id):
+    podcast = Podcast.query.filter_by(id=podcast_id, host_username=username).first()
+    if not podcast:
+        return jsonify({"error": "Podcast not found"}), 404
+    
+    episodes = PodcastEpisode.query.filter_by(podcast_id=podcast.id).all()
+    episode_data = [{"id": ep.id, "title": ep.title, "audioUrl": ep.audio_url} for ep in episodes]
+    
+    return jsonify({
+        "title": podcast.title,
+        "host": podcast.host_username,
+        "description": podcast.description,
+        "coverImage": podcast.cover_image_url,
+        "episodes": episode_data
+    })
+
+@api.route('/create-station', methods=['POST'])
+@jwt_required()
+def create_station():
+    data = request.json
+    user_id = get_jwt_identity()
+
+    new_station = RadioStation(
+        name=data["name"],
+        owner_id=user_id,
+        genre=data["genre"],
+        description=data["description"],
+        logo_url=data["logo_url"],
+        banner_url=data["banner_url"]
+    )
+    db.session.add(new_station)
+    db.session.commit()
+
+    return jsonify({"message": "Radio station created!", "station": new_station.serialize()}), 201
+
+class ArchivedShow(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'))
+    title = db.Column(db.String(100))
+    file_path = db.Column(db.String(255))
+
+@api.route('/radio/dashboard', methods=['GET'])
+def get_radio_dashboard():
+    stations = RadioStation.query.filter_by(owner_id=request.args.get("user_id")).all()
+    return jsonify([station.serialize() for station in stations])
+
+@api.route('/podcast/dashboard', methods=['GET'])
+def get_podcast_dashboard():
+    podcasts = Podcast.query.filter_by(creator_id=request.args.get("user_id")).all()
+    return jsonify([podcast.serialize() for podcast in podcasts])
+
+@api.route('/artist/dashboard', methods=['GET'])
+def get_artist_dashboard():
+    tracks = Track.query.filter_by(artist_id=request.args.get("user_id")).all()
+    return jsonify([track.serialize() for track in tracks])
+
+@api.route('/delete_dashboard', methods=['POST'])
+def delete_dashboard():
+    user_id = request.json.get("user_id")
+    
+    # Delete all associated data
+    RadioStation.query.filter_by(owner_id=user_id).delete()
+    Podcast.query.filter_by(creator_id=user_id).delete()
+    Track.query.filter_by(artist_id=user_id).delete()
+
+    db.session.commit()
+    return jsonify({"message": "Dashboard deleted successfully."})

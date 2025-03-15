@@ -323,10 +323,17 @@ class PodcastEpisode(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    file_url = db.Column(db.String(500), nullable=False)
-    duration = db.Column(db.Integer, nullable=True)
+
+    # ✅ Storage & Metadata
+    file_url = db.Column(db.String(500), nullable=False)  # Audio File
     cover_art_url = db.Column(db.String(500), nullable=True)
-    is_premium = db.Column(db.Boolean, default=False)  # New field for premium access
+    duration = db.Column(db.Integer, nullable=True)
+
+    # ✅ Premium & Scheduling
+    is_premium = db.Column(db.Boolean, default=False)  # Paid content
+    is_published = db.Column(db.Boolean, default=False)  # Mark as live
+    release_date = db.Column(db.DateTime, nullable=True)  # Scheduled release
+
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('podcast_episodes', lazy=True))
@@ -337,33 +344,43 @@ class PodcastEpisode(db.Model):
             "user_id": self.user_id,
             "title": self.title,
             "description": self.description,
-            "file_url": self.file_url if not self.is_premium else "Restricted for premium users",
+            "file_url": self.file_url,
             "cover_art_url": self.cover_art_url,
+            "duration": self.duration,
             "is_premium": self.is_premium,
-            "uploaded_at": self.uploaded_at.isoformat(),
+            "is_published": self.is_published,
+            "release_date": self.release_date.isoformat() if self.release_date else None,
+            "uploaded_at": self.uploaded_at.isoformat()
         }
 
 
 
 class Podcast(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    host_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
 
     # ✅ Audio & Video Storage
     audio_url = db.Column(db.String(500), nullable=True)
     video_url = db.Column(db.String(500), nullable=True)
-
-    duration = db.Column(db.Integer, nullable=True)  # Duration in seconds
     cover_art_url = db.Column(db.String(500), nullable=True)
-    is_premium = db.Column(db.Boolean, default=False)
-    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # ✅ Monetization & Stripe Integration
+    monetization_type = db.Column(db.String(50), default="free")  # "free", "paid", "ad-supported"
+    price_per_episode = db.Column(db.Float, nullable=True, default=0.00)
     subscription_tier = db.Column(db.String(50), default="Free")
-    price_per_episode = db.Column(db.Float, nullable=True)
     stripe_product_id = db.Column(db.String(255), nullable=True)  # ✅ Stripe product ID
+    sponsor = db.Column(db.String(255), nullable=True)  # Optional sponsor name
+    donation_link = db.Column(db.String(255), nullable=True)
+
+    # ✅ Revenue Tracking
+    total_revenue = db.Column(db.Float, default=0.00)  # Total revenue from all sources
+    revenue_from_subscriptions = db.Column(db.Float, default=0.00)
+    revenue_from_ads = db.Column(db.Float, default=0.00)
+    revenue_from_sponsorships = db.Column(db.Float, default=0.00)
+    revenue_from_donations = db.Column(db.Float, default=0.00)
+    stripe_transaction_ids = db.Column(db.JSON, default=[])  # Store Stripe transactions as an array
 
     # ✅ Engagement & Social Features
     views = db.Column(db.Integer, default=0)
@@ -372,14 +389,22 @@ class Podcast(db.Model):
 
     # ✅ Live Streaming Feature
     streaming_enabled = db.Column(db.Boolean, default=False)
-    live_replay_url = db.Column(db.String(500), nullable=True)
     is_live = db.Column(db.Boolean, default=False)
     stream_url = db.Column(db.String(500), nullable=True)
+    live_replay_url = db.Column(db.String(500), nullable=True)
     scheduled_time = db.Column(db.DateTime, nullable=True)
 
     # ✅ Episode Scheduling
     scheduled_release = db.Column(db.DateTime, nullable=True)
     exclusive_until = db.Column(db.DateTime, nullable=True)
+
+    # ✅ Series Information
+    series_name = db.Column(db.String(255), nullable=True)
+    season_number = db.Column(db.Integer, nullable=True)
+    episode_number = db.Column(db.Integer, nullable=True)
+    ad_insertion = db.Column(db.Boolean, default=False)
+
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('podcasts', lazy=True))
 
@@ -391,37 +416,58 @@ class Podcast(db.Model):
             self.stripe_product_id = product["id"]
             db.session.commit()
 
+    # ✅ Revenue Calculation Method
+    def calculate_revenue(self):
+        """Calculates the total revenue from all sources."""
+        self.total_revenue = (
+            self.revenue_from_subscriptions +
+            self.revenue_from_ads +
+            self.revenue_from_sponsorships +
+            self.revenue_from_donations
+        )
+        db.session.commit()
+        return self.total_revenue
+
     def serialize(self):
         return {
             "id": self.id,
-            "user_id": self.user_id,
+            "host_id": self.host_id,
             "title": self.title,
             "description": self.description,
             "audio_url": self.audio_url if self.audio_url else "No audio available",
             "video_url": self.video_url if self.video_url else "No video available",
             "cover_art_url": self.cover_art_url,
-            "is_premium": self.is_premium,
-            "uploaded_at": self.uploaded_at.isoformat(),
-            "category": self.category,
+            "monetization_type": self.monetization_type,
+            "price_per_episode": self.price_per_episode,
             "subscription_tier": self.subscription_tier,
+            "stripe_product_id": self.stripe_product_id,
+            "sponsor": self.sponsor,
+            "donation_link": self.donation_link,
             "views": self.views,
             "likes": self.likes,
             "shares": self.shares,
-            "transcription": self.transcription,
+            "streaming_enabled": self.streaming_enabled,
+            "is_live": self.is_live,
+            "stream_url": self.stream_url,
+            "live_replay_url": self.live_replay_url,
+            "scheduled_time": self.scheduled_time.isoformat() if self.scheduled_time else None,
+            "scheduled_release": self.scheduled_release.isoformat() if self.scheduled_release else None,
+            "exclusive_until": self.exclusive_until.isoformat() if self.exclusive_until else None,
             "series_name": self.series_name,
             "season_number": self.season_number,
             "episode_number": self.episode_number,
             "ad_insertion": self.ad_insertion,
-            "price_per_episode": self.price_per_episode,
-            "streaming_enabled": self.streaming_enabled,
-            "live_replay_url": self.live_replay_url,
-            "is_live": self.is_live,
-            "stream_url": self.stream_url,
-            "scheduled_time": self.scheduled_time.isoformat() if self.scheduled_time else None,
-            "scheduled_release": self.scheduled_release.isoformat() if self.scheduled_release else None,
-            "exclusive_until": self.exclusive_until.isoformat() if self.exclusive_until else None,
-            "stripe_product_id": self.stripe_product_id  # ✅ Added Stripe Product ID
+            "uploaded_at": self.uploaded_at.isoformat(),
+            # ✅ Revenue Data
+            "total_revenue": self.total_revenue,
+            "revenue_from_subscriptions": self.revenue_from_subscriptions,
+            "revenue_from_ads": self.revenue_from_ads,
+            "revenue_from_sponsorships": self.revenue_from_sponsorships,
+            "revenue_from_donations": self.revenue_from_donations,
+            "stripe_transaction_ids": self.stripe_transaction_ids
         }
+
+
 
     
 
@@ -573,12 +619,16 @@ class RadioStation(db.Model):
     is_live = db.Column(db.Boolean, default=False)
     stream_url = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # ✅ NEW FIELDS
+
+    # ✅ PREMIUM & MONETIZATION
     is_premium = db.Column(db.Boolean, default=False)  # Premium stations require a subscription
     subscription_price = db.Column(db.Float, nullable=True)  # Monthly fee
     ad_revenue = db.Column(db.Float, default=0.0)  # Earnings from ad revenue
     followers_count = db.Column(db.Integer, default=0)  # Number of followers
+
+    # ✅ NEW FIELDS FOR IMAGES & MEDIA
+    logo_url = db.Column(db.String(500), nullable=True)  # Logo image URL
+    cover_image_url = db.Column(db.String(500), nullable=True)  # Cover image URL
 
     user = db.relationship('User', backref=db.backref('radio_stations', lazy=True))
 
@@ -594,9 +644,26 @@ class RadioStation(db.Model):
             "is_premium": self.is_premium,
             "subscription_price": self.subscription_price,
             "ad_revenue": self.ad_revenue,
-            "followers_count": self.followers_count
+            "followers_count": self.followers_count,
+            "logo_url": self.logo_url,
+            "cover_image_url": self.cover_image_url,
+            
         }
 
+class RadioPlaylist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
+    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
+
+    station = db.relationship('RadioStation', backref=db.backref('radio_playlists', lazy=True))
+    audio = db.relationship('Audio', backref=db.backref('radio_playlists', lazy=True))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "station_id": self.station_id,
+            "audio_id": self.audio_id,
+        }
 
 class RadioSubscription(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -620,22 +687,18 @@ class RadioSubscription(db.Model):
         }
 
 
-class RadioPlaylist(db.Model):
+
+    
+
+
+
+class Track(db.Model):
+    __tablename__ = "track"
     id = db.Column(db.Integer, primary_key=True)
-    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
-    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
-
-    station = db.relationship('RadioStation', backref=db.backref('radio_playlists', lazy=True))
-    audio = db.relationship('Audio', backref=db.backref('radio_playlists', lazy=True))
-
-    def serialize(self):
-        return {
-            "id": self.id,
-            "station_id": self.station_id,
-            "audio_id": self.audio_id,
-        }
-
-
+    radio_playlist_id = db.Column(db.Integer, db.ForeignKey("radio_playlist.id"), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    artist = db.Column(db.String(255), nullable=True)
+    file_url = db.Column(db.String(255), nullable=False)  # Audio file URL
 
 class RadioDonation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
