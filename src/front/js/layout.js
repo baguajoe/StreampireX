@@ -21,6 +21,8 @@ import MusicLicensing from "./pages/MusicLicensing"; // ✅ Import
 import LiveConcerts from "./pages/LiveConcerts"; // ✅ Import
 import PodcastCreate from "./pages/PodcastCreate";
 import PodcastPage from "./pages/PodcastPage";
+import PodcastDashboard from "./pages/PodcastDashboard";
+import CreateRadioStation from "./pages/CreateRadioStation";
 // import  PaymentProcessing  from "./pages/PaymentProcessing";
 // import  FreeTrial  from "./pages/FreeTrial";
 import MembersPage from "./pages/MembersPage";
@@ -63,6 +65,8 @@ const Layout = () => {
                             <Route path="/" element={<Home />} />
                             <Route path="/login" element={<Login />} />
                             <Route path="/register" element={<Signup />} />
+                            <Route path="/podcast-dashboard" element={<PodcastDashboard />} />
+                            <Route path="/create-radio" element={<CreateRadioStation />} />
 
 
                             <Route path="/radio-stations" element={<RadioStationPage />} />
@@ -77,7 +81,7 @@ const Layout = () => {
                             <Route path="/artist-radio" element={<ArtistRadioStation />} />
                             <Route path="/music-licensing" element={<MusicLicensing />} />
                             <Route path="/podcast/create" element={<PodcastCreate />} />
-                            <Route path="/podcast/page" element={<PodcastPage />} />
+                            <Route path="/podcasts" element={<PodcastPage />} />
                             <Route path="/live-concerts" element={<LiveConcerts />} />
                             <Route path="/pricing" element={<PricingPlans />} />
                             {/* <Route path="/payment-processing" element={<PaymentProcessing />} /> */}

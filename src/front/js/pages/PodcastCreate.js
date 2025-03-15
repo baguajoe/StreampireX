@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";  // ✅ Import useNavigate for redirection
 import "../../styles/PodcastCreate.css";
 
@@ -43,6 +43,15 @@ const PodcastCreate = () => {
         }
     };
 
+    const [categories, setCategories] = useState([]);
+
+    useEffect(() => {
+        fetch(process.env.BACKEND_URL + "/api/podcasts/categories")
+            .then((res) => res.json())
+            .then((data) => setCategories(data))
+            .catch((err) => console.error("Error fetching categories:", err));
+    }, []);
+
     return (
         <div className="podcast-create-container">
             <h1>🎙️ Create a Podcast</h1>
@@ -56,10 +65,9 @@ const PodcastCreate = () => {
             <label>📂 Category:</label>
             <select value={category} onChange={(e) => setCategory(e.target.value)}>
                 <option value="">Select a Category</option>
-                <option value="Technology">Technology</option>
-                <option value="Business">Business</option>
-                <option value="Music">Music</option>
-                <option value="Education">Education</option>
+                {categories.map((cat, index) => (
+                    <option key={index} value={cat}>{cat}</option>
+                ))}
             </select>
 
             <label>🎨 Cover Art:</label>

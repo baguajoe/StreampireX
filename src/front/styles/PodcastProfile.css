@@ -1,0 +1,31 @@
+.podcast-profile {
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
+}
+
+.podcast-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.podcast-cover {
+    width: 150px;
+    height: 150px;
+    border-radius: 10px;
+}
+
+.episode-list {
+    list-style: none;
+    padding: 0;
+}
+
+.episode {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.episode-actions button {
+    margin-right: 10px;
+}

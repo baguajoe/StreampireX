@@ -18,7 +18,7 @@ const radioStations = () => {
 
   return (
     <div className="radio-stations-container">
-      <h1>📻 Live Radio Stations</h1>
+      <h1>📻 Browse Radio Stations</h1>
 
       <input
         type="text"

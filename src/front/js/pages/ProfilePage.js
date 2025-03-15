@@ -322,13 +322,15 @@ const ProfilePage = () => {
                     <p>Visit my store: <a href={storefrontLink} target="_blank" rel="noopener noreferrer">{storefrontLink || "N/A"}</a></p>
                     {products.length > 0 && <div className="featured-product">Featured: {products[0].name}</div>}
 
-                    <h3>📡 Radio & Podcast</h3>
-                    <button className="btn-radio">📡 Create Radio Station</button>
+                    <h3>📡 Radio Station & Podcast</h3>
+                    <Link to="/create-radio">
+                        <button className="btn-radio">📡 Create Radio Station</button>
+                    </Link>
                     <Link to="/podcast/create">
-                    <button className="btn-podcast">🎙️ Create Podcast</button>
+                        <button className="btn-podcast">🎙️ Create Podcast</button>
                     </Link>
                     <button className="btn-upload">🎵 Upload Music</button>
-                    
+
                 </div>
             </div>
 
