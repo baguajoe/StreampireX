@@ -1,11 +1,21 @@
 import React, { useEffect, useState } from "react";
+import "../../styles/podcasts.css"
 
 const PodcastPage = () => {
     const [podcasts, setPodcasts] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("All");
-    const [showPremium, setShowPremium] = useState(false);
 
+    // Fetch categories from the backend
+    useEffect(() => {
+        fetch(`${process.env.BACKEND_URL}/api/podcasts/categories`)
+            .then(res => res.json())
+            .then(data => setCategories(["All", ...data]))  // Include "All" category
+            .catch(err => console.error("Error fetching categories:", err));
+    }, []);
+
+    // Fetch podcasts from the backend
     useEffect(() => {
         fetch(`${process.env.BACKEND_URL}/api/podcasts`)
             .then(res => res.json())
@@ -13,10 +23,30 @@ const PodcastPage = () => {
             .catch(err => console.error("Error fetching podcasts:", err));
     }, []);
 
+    // Filter podcasts based on search query and category
+    const filteredPodcasts = podcasts.filter(podcast =>
+        (selectedCategory === "All" || podcast.category === selectedCategory) &&
+        podcast.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return (
         <div className="podcast-page-container">
             <h1>🎧 Browse Podcasts</h1>
 
+            {/* Category Filter Bar */}
+            <div className="category-bar">
+                {categories.map((category, index) => (
+                    <button
+                        key={index}
+                        className={`category-badge ${selectedCategory === category ? "active" : ""}`}
+                        onClick={() => setSelectedCategory(category)}
+                    >
+                        {category}
+                    </button>
+                ))}
+            </div>
+
+            {/* Search Bar */}
             <input
                 type="text"
                 placeholder="Search podcasts..."
@@ -25,8 +55,9 @@ const PodcastPage = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
             />
 
+            {/* Podcast List */}
             <div className="podcast-list">
-                {podcasts.map(podcast => (
+                {filteredPodcasts.map(podcast => (
                     <div key={podcast.id} className="podcast-card">
                         <img src={podcast.cover_art_url || "/default-podcast-cover.png"} alt="Podcast Cover" className="podcast-cover" />
                         <div className="podcast-info">
