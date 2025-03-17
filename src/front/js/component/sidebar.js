@@ -60,6 +60,9 @@ const Sidebar = () => {
       <MenuItem to="/radio-stations" className={isActive("/radio-stations") ? "active" : ""}>
         📻 Radio Stations
       </MenuItem>
+      <MenuItem to="/music" className={isActive("/music") ? "active" : ""}>
+        📻 Music
+      </MenuItem>
       <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
         🎥 Live Streams
       </MenuItem>

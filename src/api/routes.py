@@ -1,15 +1,27 @@
 """
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
-from flask import Flask, request, jsonify, url_for, Blueprint
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory,RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track
+from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase
 from api.utils import generate_sitemap, APIException
+from sqlalchemy import func, desc
 from flask_cors import CORS
+from flask_apscheduler import APScheduler
+import uuid
+import ffmpeg
+import requests 
 import whisper  # ✅ AI Transcription Support
 import subprocess
-import moviepy
+# import moviepy
+from moviepy import AudioFileClip
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+
 import stripe
 import os
+from flask_socketio import SocketIO
+
+
 
 
 # Initialize Stripe
@@ -17,12 +29,16 @@ stripe.api_key = "your_stripe_secret_key"
 
 api = Blueprint('api', __name__)
 
+scheduler = APScheduler()
 
 # ✅ Define upload directories
 AUDIO_UPLOAD_DIR = "uploads/podcasts/audio"
 VIDEO_UPLOAD_DIR = "uploads/podcasts/video"
 CLIP_UPLOAD_DIR = "uploads/podcasts/clips"
 COVER_UPLOAD_DIR = "uploads/podcasts/covers"
+UPLOAD_FOLDER = "uploads/music"
+UPLOAD_FOLDER = "uploads/podcasts"
+CLIP_FOLDER = "uploads/clips"
 
 UPLOAD_FOLDER = "uploads/podcasts"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -30,6 +46,9 @@ os.makedirs(AUDIO_UPLOAD_DIR, exist_ok=True)
 os.makedirs(VIDEO_UPLOAD_DIR, exist_ok=True)
 os.makedirs(CLIP_UPLOAD_DIR, exist_ok=True)
 os.makedirs(COVER_UPLOAD_DIR, exist_ok=True)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(CLIP_FOLDER, exist_ok=True)
 
 # ✅ Load Whisper AI Model Once
 whisper_model = whisper.load_model("base")
@@ -306,12 +325,74 @@ def upload_podcast():
     }), 201
 
 
-@api.route('/podcast/<int:episode_id>', methods=['GET'])
-def get_podcast_episode(episode_id):
+@api.route('/podcast/<int:podcast_id>/episode/<int:episode_id>', methods=['GET'])
+@jwt_required()
+def get_podcast_episode(podcast_id, episode_id):
+    user_id = get_jwt_identity()
+    episode = PodcastEpisode.query.filter_by(id=episode_id, podcast_id=podcast_id).first()
+
+    if not episode:
+        return jsonify({"error": "Episode not found"}), 404
+
+    # If the episode is premium, check if user has an active subscription
+    if episode.is_premium:
+        subscription = Subscription.query.filter_by(user_id=user_id).first()
+        if not subscription or subscription.status != "active":
+            return jsonify({"error": "You need a subscription to access this episode"}), 403
+
+    return jsonify(episode.serialize()), 200
+
+@api.route('/podcast/recommendations/<int:user_id>', methods=['GET'])
+@jwt_required()
+def get_podcast_recommendations(user_id):
+    from sqlalchemy.sql import func
+
+    # Fetch the top 3 most listened-to genres by the user
+    user_genres = db.session.query(PodcastEpisode.genre, func.count(PodcastEpisode.id))\
+        .join(StreamingHistory, StreamingHistory.content_id == PodcastEpisode.id)\
+        .filter(StreamingHistory.user_id == user_id)\
+        .group_by(PodcastEpisode.genre)\
+        .order_by(func.count(PodcastEpisode.id).desc())\
+        .limit(3).all()
+
+    if not user_genres:
+        return jsonify({"message": "No recommendations available yet"}), 200
+
+    # Fetch new episodes from these genres
+    recommended_episodes = PodcastEpisode.query.filter(
+        PodcastEpisode.genre.in_([genre[0] for genre in user_genres])
+    ).order_by(PodcastEpisode.uploaded_at.desc()).limit(10).all()
+
+    return jsonify([ep.serialize() for ep in recommended_episodes]), 200
+
+@api.route('/podcast/<int:podcast_id>/episode/schedule', methods=['POST'])
+@jwt_required()
+def schedule_episode(podcast_id):
+    data = request.json
+    episode_id = data.get("episode_id")
+    release_time = data.get("release_time")  # Format: "YYYY-MM-DD HH:MM:SS"
+
     episode = PodcastEpisode.query.get(episode_id)
     if not episode:
         return jsonify({"error": "Episode not found"}), 404
-    return jsonify({"podcast_url": episode.file_url})
+
+    episode.scheduled_release = datetime.strptime(release_time, "%Y-%m-%d %H:%M:%S")
+    db.session.commit()
+
+    scheduler.add_job(
+        func=publish_episode,
+        trigger="date",
+        run_date=episode.scheduled_release,
+        args=[episode_id]
+    )
+    
+    return jsonify({"message": "Episode scheduled successfully"}), 200
+
+def publish_episode(episode_id):
+    episode = PodcastEpisode.query.get(episode_id)
+    if episode:
+        episode.is_published = True
+        db.session.commit()
 
 @api.route('/podcast/subscribe', methods=['POST'])
 @jwt_required()
@@ -366,17 +447,42 @@ def add_audio_to_radio():
 def create_radio_station():
     user_id = get_jwt_identity()
     data = request.json
-    name = data.get("name")
-    description = data.get("description", "")
 
-    if not name:
-        return jsonify({"error": "Radio station name is required"}), 400
+    new_station = RadioStation(
+        user_id=user_id,
+        name=data["name"],
+        description=data.get("description", ""),
+        is_public=data.get("is_public", True)  # ✅ Allow public/private setting
+    )
 
-    new_station = RadioStation(user_id=user_id, name=name, description=description)
     db.session.add(new_station)
     db.session.commit()
 
-    return jsonify({"message": "Radio station created", "station": new_station.serialize()}), 201
+    return jsonify({"message": "Radio Station Created!", "station": new_station.serialize()}), 201
+
+@api.route('/radio/<int:station_id>/grant-access', methods=['POST'])
+@jwt_required()
+def grant_access(station_id):
+    user_id = get_jwt_identity()
+    data = request.json
+    target_user_id = data.get("user_id")
+
+    station = RadioStation.query.get(station_id)
+
+    if not station or station.user_id != user_id:
+        return jsonify({"error": "Not authorized"}), 403
+
+    if station.is_public:
+        return jsonify({"error": "This station is already public"}), 400
+
+    user_to_add = User.query.get(target_user_id)
+    if not user_to_add:
+        return jsonify({"error": "User not found"}), 404
+
+    station.allowed_users.append(user_to_add)
+    db.session.commit()
+
+    return jsonify({"message": "Access granted to user!"}), 200
 
 
 @api.route('/radio/start_stream', methods=['POST'])
@@ -442,6 +548,29 @@ def comment_on_radio():
     db.session.commit()
 
     return jsonify({"message": "Comment added"}), 201
+
+@api.route('/radio/<int:station_id>/follow', methods=['POST'])
+@jwt_required()
+def follow_radio_station(station_id):
+    """Allows users to follow a radio station."""
+    user_id = get_jwt_identity()
+    station = RadioStation.query.get(station_id)
+
+    if not station:
+        return jsonify({"error": "Station not found"}), 404
+
+    if user_id in [u.id for u in station.allowed_users]:
+        return jsonify({"message": "Already following this station"}), 200
+
+    station.allowed_users.append(User.query.get(user_id))
+    station.followers_count += 1  # Increment follower count
+    db.session.commit()
+
+    # 🔴 Notify WebSocket Clients
+    socketio.emit(f"station-{station_id}-new-follower", {"stationId": station_id})
+
+    return jsonify({"message": "Now following this station!"}), 200
+
 
 @api.route('/radio/track-share', methods=['POST'])
 @jwt_required()
@@ -569,25 +698,91 @@ def donate_to_creator():
 
     return jsonify({"message": "Donation successful", "donation": new_donation.serialize()}), 201
 
-@api.route('/api/track-share', methods=['POST'])
+
+@api.route('/generate_clip', methods=['POST'])
+@jwt_required()
+def generate_clip():
+    """Create a short preview clip (1-3 min) from a podcast"""
+    user_id = get_jwt_identity()
+    data = request.json
+    podcast_id = data.get("podcast_id")
+    start_time = data.get("start_time")  # In seconds
+    end_time = data.get("end_time")  # In seconds
+    format_type = data.get("format", "mp4")  # mp3 or mp4
+
+    if not podcast_id or start_time is None or end_time is None:
+        return jsonify({"error": "Podcast ID, start_time, and end_time are required"}), 400
+
+    podcast = Podcast.query.get(podcast_id)
+    if not podcast:
+        return jsonify({"error": "Podcast not found"}), 404
+
+    if end_time - start_time > 180:  # 180 seconds = 3 minutes
+        return jsonify({"error": "Clip length cannot exceed 3 minutes"}), 400
+
+    clip_filename = f"clip_{uuid.uuid4()}.{format_type}"
+    clip_path = os.path.join(CLIP_FOLDER, clip_filename)
+
+    try:
+        # ✅ Extract Clip using FFmpeg
+        ffmpeg.input(podcast.audio_url, ss=start_time, to=end_time).output(clip_path).run(overwrite_output=True)
+
+        new_clip = PodcastClip(
+            podcast_id=podcast_id,
+            user_id=user_id,
+            clip_url=clip_path,
+            start_time=start_time,
+            end_time=end_time
+        )
+
+        db.session.add(new_clip)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Clip created",
+            "clip_url": f"/clips/{clip_filename}",
+            "full_episode_url": f"/podcast/{podcast_id}"  # ✅ Redirect CTA
+        }), 201
+
+    except Exception as e:
+        return jsonify({"error": f"Clip generation failed: {str(e)}"}), 500
+
+@api.route('/track_share', methods=['POST'])
 @jwt_required()
 def track_share():
-    data = request.json
+    """Track when a user shares a podcast clip"""
     user_id = get_jwt_identity()
+    data = request.json
+    clip_id = data.get("clip_id")
+    platform = data.get("platform")  # YouTube, Twitter, Instagram
 
-    new_share = ShareAnalytics(
-        user_id=user_id,
-        content_id=data['content_id'],
-        content_type=data['content_type'],
-        platform=data['platform']
-    )
+    if not clip_id or not platform:
+        return jsonify({"error": "Clip ID and platform are required"}), 400
 
+    clip = PodcastClip.query.get(clip_id)
+    if not clip:
+        return jsonify({"error": "Clip not found"}), 404
+
+    clip.shared_platform = platform
+    db.session.commit()
+
+    new_share = ShareAnalytics(user_id=user_id, content_id=clip_id, content_type="podcast_clip", platform=platform)
     db.session.add(new_share)
     db.session.commit()
 
     return jsonify({"message": "Share tracked successfully!"}), 201
 
-@api.route('/api/share-stats', methods=['GET'])
+
+# ------------------ 🎬 SERVE CLIPS ------------------
+@api.route('/clips/<filename>')
+def serve_clip(filename):
+    """Serve generated clips"""
+    return (CLIP_FOLDER, filename)
+
+if __name__ == "__main__":
+    api.run(debug=True)
+
+@api.route('/share-stats', methods=['GET'])
 @jwt_required()
 def get_share_stats():
     user_id = get_jwt_identity()
@@ -606,7 +801,7 @@ def get_share_stats():
 def get_all_profiles():
     users = User.query.all()
     return jsonify([user.serialize() for user in users]), 200
-
+send_from_directory
 @api.route("/profile", methods=["GET"])
 @jwt_required()
 def get_user_profile():
@@ -785,18 +980,24 @@ def create_signup():
         file_path = os.path.join(TRACKS_FOLDER, filename)
         sample_track.save(file_path)
         sample_track_url = f"/uploads/sample_tracks/{filename}"
+    role_exist = Role.query.filter_by(name=role).first()
+    new_role = None
+    if not role_exist:
+        new_role=Role(name=role)
+        db.session.add(new_role)
+        db.session.commit()
+        db.session.refresh(new_role)
 
     # Create New User
     new_user = User(
         email=email,
         username=username,
         password_hash=hashed_password,
-        role=role,
+        role=new_role.id if new_role else role_exist.id,
         artist_name=artist_name,
-        own_rights=own_rights,
         industry=industry,
-        profile_picture=profile_pic_url,
-        sample_track=sample_track_url
+        
+        
     )
 
     db.session.add(new_user)
@@ -1104,26 +1305,81 @@ def get_radio_ad_revenue(station_id):
     return jsonify({"station_id": station_id, "ad_revenue": station.ad_revenue}), 200
 
 
-@api.route('/artist/store/upload', methods=['POST'])
+@api.route('/profile/music/upload', methods=['POST'])
 @jwt_required()
 def upload_artist_music():
+    """Allows only artists to upload individual music tracks to their profile."""
     user_id = get_jwt_identity()
-    data = request.json
+    
+    user = User.query.get(user_id)
+    if not user or user.role != 'artist':
+        return jsonify({"error": "Only artists can upload tracks to their profile"}), 403
 
-    new_song = Product(
-        creator_id=user_id,
-        title=data.get("title"),
-        description=data.get("description"),
-        image_url=data.get("cover_art"),
-        file_url=data.get("file_url"),
-        price=data.get("price"),
-        is_digital=True
+    if 'audio' not in request.files:
+        return jsonify({"error": "No audio file provided"}), 400
+
+    audio = request.files['audio']
+    title = request.form.get('title', 'Untitled')
+    description = request.form.get('description', '')
+
+    filename = secure_filename(audio.filename)
+    file_path = os.path.join("uploads/music", filename)
+    audio.save(file_path)
+
+    new_audio = Audio(
+        user_id=user_id,
+        title=title,
+        description=description,
+        file_url=file_path,
+        uploaded_at=datetime.utcnow()
     )
 
-    db.session.add(new_song)
+    db.session.add(new_audio)
     db.session.commit()
 
-    return jsonify({"message": "Music uploaded successfully!", "song": new_song.serialize()}), 201
+    return jsonify({"message": "Music uploaded successfully!", "audio": new_audio.serialize()}), 201
+
+@api.route('/profile/dj/upload', methods=['POST'])
+@jwt_required()
+def upload_dj_mix():
+    """Allows DJs to upload a full mix as one file OR a playlist of multiple tracks."""
+    user_id = get_jwt_identity()
+
+    user = User.query.get(user_id)
+    if not user or user.role != 'dj':
+        return jsonify({"error": "Only DJs can upload mixes or playlists"}), 403
+
+    if 'audio' not in request.files:
+        return jsonify({"error": "No audio file provided"}), 400
+
+    audio_files = request.files.getlist('audio')  # Allows multiple files
+    playlist_name = request.form.get('playlist_name', 'Untitled Mix')
+    
+    playlist_tracks = []
+    for audio in audio_files:
+        filename = secure_filename(audio.filename)
+        file_path = os.path.join("uploads/dj_mixes", filename)
+        audio.save(file_path)
+
+        track = Audio(
+            user_id=user_id,
+            title=audio.filename,
+            file_url=file_path,
+            uploaded_at=datetime.utcnow()
+        )
+        db.session.add(track)
+        playlist_tracks.append(track)
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "DJ mix uploaded successfully!",
+        "playlist": {
+            "name": playlist_name,
+            "tracks": [track.serialize() for track in playlist_tracks]
+        }
+    }), 201
+
 
 
 @api.route('/licensing/submit-music', methods=['POST'])
@@ -1460,34 +1716,34 @@ def upload_profile_video():
     return jsonify({"message": "Video uploaded successfully", "videos": user.videos}), 200
 
 
-@api.route('/profile/music/upload', methods=['POST'])
-@jwt_required()
-def upload_music():
-    """Allows users to upload music files to their profile."""
-    user_id = get_jwt_identity()
-    if 'audio' not in request.files:
-        return jsonify({"error": "No audio file provided"}), 400
+# @api.route('/profile/music/upload', methods=['POST'])
+# @jwt_required()
+# def upload_music():
+#     """Allows users to upload music files to their profile."""
+#     user_id = get_jwt_identity()
+#     if 'audio' not in request.files:
+#         return jsonify({"error": "No audio file provided"}), 400
 
-    audio = request.files['audio']
-    title = request.form.get('title', 'Untitled')
-    description = request.form.get('description', '')
+#     audio = request.files['audio']
+#     title = request.form.get('title', 'Untitled')
+#     description = request.form.get('description', '')
 
-    filename = secure_filename(audio.filename)
-    file_path = os.path.join("uploads/music", filename)
-    audio.save(file_path)
+#     filename = secure_filename(audio.filename)
+#     file_path = os.path.join("uploads/music", filename)
+#     audio.save(file_path)
 
-    new_audio = Audio(
-        user_id=user_id,
-        title=title,
-        description=description,
-        file_url=file_path,
-        uploaded_at=datetime.utcnow()
-    )
+#     new_audio = Audio(
+#         user_id=user_id,
+#         title=title,
+#         description=description,
+#         file_url=file_path,
+#         uploaded_at=datetime.utcnow()
+#     )
 
-    db.session.add(new_audio)
-    db.session.commit()
+#     db.session.add(new_audio)
+#     db.session.commit()
 
-    return jsonify({"message": "Music uploaded successfully!", "audio": new_audio.serialize()}), 201
+#     return jsonify({"message": "Music uploaded successfully!", "audio": new_audio.serialize()}), 201
 
 
 @api.route('/profile/playlists/create', methods=['POST'])
@@ -1652,34 +1908,40 @@ def purchase_podcast():
     # TODO: Integrate with Stripe payment
     return jsonify({"message": "Payment processed successfully"}), 200
 
-@api.route('/podcast/clip', methods=['POST'])
+@api.route('/podcast/<int:podcast_id>/create_clip', methods=['POST'])
 @jwt_required()
-def create_clip():
-    """Generates a short podcast clip"""
+def create_clip(podcast_id):
+    """Allows users to generate clips from a podcast episode."""
+    user_id = get_jwt_identity()
     data = request.json
-    podcast_id = data.get("podcast_id")
-    start_time = data.get("start_time")  # in seconds
-    end_time = data.get("end_time")  # in seconds
+    start_time = int(data.get("start_time"))  # in seconds
+    end_time = int(data.get("end_time"))  # in seconds
+    format_type = data.get("format", "mp4")  # Default to MP4
 
-    podcast = Podcast.query.get_or_404(podcast_id)
-    if not podcast.audio_url:
-        return jsonify({"error": "No audio found for this podcast"}), 400
+    # Fetch podcast
+    podcast = Podcast.query.get(podcast_id)
+    if not podcast or not podcast.video_url:
+        return jsonify({"error": "Podcast not found or missing video"}), 404
 
-    clip_filename = f"clip_{podcast_id}_{start_time}_{end_time}.mp3"
-    clip_path = os.path.join("uploads/podcasts/clips", clip_filename)
+    # ✅ Generate clip filename
+    clip_filename = f"clip_{podcast_id}_{start_time}_{end_time}.{format_type}"
+    clip_path = os.path.join(CLIP_FOLDER, clip_filename)
 
-    # ✅ Generate clip using FFmpeg
-    command = [
-        "ffmpeg",
-        "-i", podcast.audio_url,
-        "-ss", str(start_time),
-        "-to", str(end_time),
-        "-c", "copy",
-        clip_path
-    ]
-    subprocess.run(command)
+    try:
+        # ✅ Extract video clip
+        ffmpeg_extract_subclip(podcast.video_url, start_time, end_time, targetname=clip_path)
+    except Exception as e:
+        return jsonify({"error": f"Failed to create clip: {str(e)}"}), 500
 
-    return jsonify({"message": "Clip created", "clip_url": clip_path}), 200
+    # ✅ Return clip URL with CTA link
+    clip_url = f"/clips/{clip_filename}"
+    full_episode_url = f"/podcast/{podcast_id}"
+
+    return jsonify({
+        "message": "Clip created successfully",
+        "clip_url": clip_url,
+        "cta_link": full_episode_url
+    }), 201
 
 @api.route('/creator/earnings', methods=['GET'])
 @jwt_required()
@@ -1904,3 +2166,521 @@ def delete_dashboard():
 
     db.session.commit()
     return jsonify({"message": "Dashboard deleted successfully."})
+
+@api.route('/music/upload', methods=['POST'])
+@jwt_required()
+def upload_music():
+    """Allows all users to upload music files, but they are private unless added to a station."""
+    user_id = get_jwt_identity()
+
+    if 'audio' not in request.files:
+        return jsonify({"error": "No audio file provided"}), 400
+
+    audio = request.files['audio']
+    title = request.form.get('title', 'Untitled')
+    description = request.form.get('description', '')
+
+    filename = secure_filename(audio.filename)
+    file_path = os.path.join("uploads/user_music", filename)
+    audio.save(file_path)
+
+    new_audio = Audio(
+        user_id=user_id,
+        title=title,
+        description=description,
+        file_url=file_path,
+        uploaded_at=datetime.utcnow(),
+        is_public=False  # Default to private unless added to a station
+    )
+
+    db.session.add(new_audio)
+    db.session.commit()
+
+    return jsonify({"message": "Music uploaded successfully!", "audio": new_audio.serialize()}), 201
+
+
+@api.route('/music/all', methods=['GET'])
+def get_all_music():
+    """Fetch all available music tracks."""
+    tracks = Audio.query.all()
+    return jsonify([track.serialize() for track in tracks]), 200
+
+@api.route('/music/user', methods=['GET'])
+@jwt_required()
+def get_user_music():
+    """Fetch all music uploaded by the authenticated user."""
+    user_id = get_jwt_identity()
+    tracks = Audio.query.filter_by(user_id=user_id).all()
+    return jsonify([track.serialize() for track in tracks]), 200
+
+
+@api.route('/music/delete/<int:track_id>', methods=['DELETE'])
+@jwt_required()
+def delete_music(track_id):
+    """Delete a specific music track if the user owns it."""
+    user_id = get_jwt_identity()
+    track = Audio.query.filter_by(id=track_id, user_id=user_id).first()
+
+    if not track:
+        return jsonify({"error": "Track not found or unauthorized"}), 404
+
+    db.session.delete(track)
+    db.session.commit()
+
+    return jsonify({"message": "Music track deleted successfully"}), 200
+
+
+
+@api.route('/music/playlist/add', methods=['POST'])
+@jwt_required()
+def add_music_to_playlist():
+    """Add a music track to a playlist."""
+    data = request.json
+    user_id = get_jwt_identity()
+    playlist_id = data.get("playlist_id")
+    audio_id = data.get("audio_id")
+
+    playlist = PlaylistAudio.query.filter_by(id=playlist_id, user_id=user_id).first()
+    if not playlist:
+        return jsonify({"error": "Playlist not found or unauthorized"}), 404
+
+    track = Audio.query.get(audio_id)
+    if not track:
+        return jsonify({"error": "Track not found"}), 404
+
+    playlist.audios.append(track)
+    db.session.commit()
+
+    return jsonify({"message": "Track added to playlist!", "playlist": playlist.serialize()}), 201
+
+
+@api.route('/music/playlists/user', methods=['GET'])
+@jwt_required()
+def get_user_playlists():
+    """Fetch all playlists created by the user."""
+    user_id = get_jwt_identity()
+    playlists = PlaylistAudio.query.filter_by(user_id=user_id).all()
+    return jsonify([playlist.serialize() for playlist in playlists]), 200
+
+@api.route('/music/playlist/remove', methods=['POST'])
+@jwt_required()
+def remove_music_from_playlist():
+    """Remove a music track from a playlist."""
+    data = request.json
+    user_id = get_jwt_identity()
+    playlist_id = data.get("playlist_id")
+    audio_id = data.get("audio_id")
+
+    playlist = PlaylistAudio.query.filter_by(id=playlist_id, user_id=user_id).first()
+    if not playlist:
+        return jsonify({"error": "Playlist not found or unauthorized"}), 404
+
+    track = Audio.query.get(audio_id)
+    if not track or track not in playlist.audios:
+        return jsonify({"error": "Track not found in playlist"}), 404
+
+    playlist.audios.remove(track)
+    db.session.commit()
+
+    return jsonify({"message": "Track removed from playlist!", "playlist": playlist.serialize()}), 200
+
+
+@api.route('/music/stream/<int:track_id>', methods=['GET'])
+def stream_music(track_id):
+    """Returns the URL to stream a specific music track."""
+    track = Audio.query.get(track_id)
+    if not track:
+        return jsonify({"error": "Track not found"}), 404
+
+    return jsonify({"stream_url": track.file_url}), 200
+
+
+@api.route('/radio/<int:station_id>/play', methods=['POST'])
+@jwt_required()
+def play_radio_music(station_id):
+    """Start playing music for a radio station from a playlist."""
+    user_id = get_jwt_identity()
+    station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+
+    if not station:
+        return jsonify({"error": "Station not found or unauthorized"}), 404
+
+    data = request.json
+    playlist_id = data.get("playlist_id")
+    playlist = PlaylistAudio.query.get(playlist_id)
+
+    if not playlist or playlist.user_id != user_id:
+        return jsonify({"error": "Playlist not found or unauthorized"}), 404
+
+    tracks = [{"id": track.id, "title": track.title, "stream_url": track.file_url} for track in playlist.audios]
+
+    return jsonify({
+        "message": f"Playing playlist '{playlist.name}' on '{station.name}'",
+        "tracks": tracks
+    }), 200
+
+
+# ✅ Create Indie Artist Station
+@api.route('/indie-station/create', methods=['POST'])
+@jwt_required()
+def create_indie_station():
+    user_id = get_jwt_identity()
+    data = request.json
+    station_name = data.get("name")
+
+    if not station_name:
+        return jsonify({"error": "Station name is required"}), 400
+
+    existing_station = IndieStation.query.filter_by(artist_id=user_id).first()
+    if existing_station:
+        return jsonify({"error": "Artist already has a station"}), 400
+
+    new_station = IndieStation(artist_id=user_id, name=station_name)
+    db.session.add(new_station)
+    db.session.commit()
+
+    return jsonify({"message": "Indie station created!", "station": new_station.serialize()}), 201
+
+# ✅ Get Indie Artist Station & Tracks
+@api.route('/indie-station', methods=['GET'])
+@jwt_required()
+def get_indie_station():
+    user_id = get_jwt_identity()
+    station = IndieStation.query.filter_by(artist_id=user_id).first()
+
+    if not station:
+        return jsonify({"station": None, "tracks": [], "followers": 0})
+
+    return jsonify({"station": station.serialize()}), 200
+
+# ✅ Add Track to Indie Station
+@api.route('/indie-station/add-track', methods=['POST'])
+@jwt_required()
+def add_track_to_station():
+    user_id = get_jwt_identity()
+    data = request.json
+    track_id = data.get("track_id")
+
+    station = IndieStation.query.filter_by(artist_id=user_id).first()
+    if not station:
+        return jsonify({"error": "No station found"}), 404
+
+    new_track = IndieStationTrack(station_id=station.id, track_id=track_id)
+    db.session.add(new_track)
+    db.session.commit()
+
+    return jsonify({"message": "Track added to station!", "track": new_track.serialize()}), 201
+
+# ✅ Remove Track from Indie Station
+@api.route('/indie-station/remove-track/<int:track_id>', methods=['DELETE'])
+@jwt_required()
+def remove_track_from_station(track_id):
+    user_id = get_jwt_identity()
+    station = IndieStation.query.filter_by(artist_id=user_id).first()
+
+    if not station:
+        return jsonify({"error": "No station found"}), 404
+
+    track_entry = IndieStationTrack.query.filter_by(station_id=station.id, track_id=track_id).first()
+    if not track_entry:
+        return jsonify({"error": "Track not found in station"}), 404
+
+    db.session.delete(track_entry)
+    db.session.commit()
+
+    return jsonify({"message": "Track removed from station!"}), 200
+
+
+# ✅ Follow an Indie Station
+@api.route('/indie-station/follow', methods=['POST'])
+@jwt_required()
+def follow_indie_station():
+    user_id = get_jwt_identity()
+    data = request.json
+    station_id = data.get("station_id")
+
+    existing_follow = IndieStationFollower.query.filter_by(user_id=user_id, station_id=station_id).first()
+    if existing_follow:
+        return jsonify({"message": "Already following this station"}), 200
+
+    new_follow = IndieStationFollower(user_id=user_id, station_id=station_id)
+    db.session.add(new_follow)
+    db.session.commit()
+
+    return jsonify({"message": "Successfully followed the station!"}), 201
+
+@api.route('/artist/live/start', methods=['POST'])
+@jwt_required()
+def start_live_stream():
+    """Starts a live stream, supports VR/ticketing, and notifies WebSocket clients."""
+    user_id = get_jwt_identity()
+    data = request.json
+
+    new_stream = LiveStudio(
+        user_id=user_id,
+        stream_key=f"user_{user_id}_stream",
+        title=data.get("title"),
+        description=data.get("description"),
+        is_live=True,
+        is_vr_enabled=data.get("is_vr_enabled", False),
+        vr_environment=data.get("vr_environment"),
+        is_ticketed=data.get("is_ticketed", False),
+        ticket_price=data.get("ticket_price", 0.0),
+        donation_link=data.get("donation_link"),
+        has_live_chat=data.get("has_live_chat", True)
+    )
+
+    db.session.add(new_stream)
+    db.session.commit()
+
+    # ✅ Notify Local WebSocket Clients
+    socketio.emit("live_stream_update", {"stream_id": new_stream.id, "is_live": True})
+
+    # ✅ Notify External WebSocket Server (if needed)
+    try:
+        requests.post("http://localhost:5000/live-status", json={
+            "stationId": user_id,
+            "isLive": True
+        })
+    except requests.exceptions.RequestException as e:
+        print(f"Error notifying WebSocket server: {e}")
+
+    return jsonify({"message": "Live stream started!", "stream": new_stream.serialize()}), 201
+
+
+@api.route('/artist/live/end', methods=['POST'])
+@jwt_required()
+def end_live_stream():
+    user_id = get_jwt_identity()
+
+    live_stream = LiveStudio.query.filter_by(user_id=user_id, is_live=True).first()
+    if not live_stream:
+        return jsonify({"error": "No active live stream found"}), 404
+
+    live_stream.is_live = False
+    live_stream.ended_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({"message": "Live stream ended."}), 200
+
+@api.route('/artist/live-streams', methods=['GET'])
+def get_live_streams():
+    streams = LiveStudio.query.filter_by(is_live=True).all()
+    return jsonify([stream.serialize() for stream in streams]), 200
+
+@api.route('/artist/live/buy-ticket/<int:stream_id>', methods=['POST'])
+@jwt_required()
+def buy_ticket(stream_id):
+    user_id = get_jwt_identity()
+    stream = LiveStudio.query.get(stream_id)
+
+    if not stream or not stream.is_ticketed:
+        return jsonify({"error": "Invalid or non-ticketed stream"}), 400
+
+    # Create a Stripe Checkout session
+    checkout_session = stripe.checkout.Session.create(
+        payment_method_types=['card'],
+        line_items=[{
+            'price_data': {
+                'currency': 'usd',
+                'product_data': {'name': stream.title},
+                'unit_amount': int(stream.ticket_price * 100),
+            },
+            'quantity': 1,
+        }],
+        mode='payment',
+        success_url=f"{os.getenv('FRONTEND_URL')}/success?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{os.getenv('FRONTEND_URL')}/cancel"
+    )
+
+    return jsonify({"checkout_url": checkout_session.url}), 200
+
+@api.route('/artist/live/earnings', methods=['GET'])
+@jwt_required()
+def get_live_earnings():
+    user_id = get_jwt_identity()
+    earnings = db.session.query(db.func.sum(LiveStudio.total_earnings)).filter(LiveStudio.user_id == user_id).scalar() or 0
+    return jsonify({"total_earnings": earnings}), 200
+
+@api.route('/radio/<int:station_id>/subscribe', methods=['POST'])
+@jwt_required()
+def subscribe_to_station(station_id):
+    """Handles subscription purchases for premium radio stations."""
+    user_id = get_jwt_identity()
+    station = RadioStation.query.get(station_id)
+
+    if not station or not station.is_subscription_based:
+        return jsonify({"error": "Subscription not available"}), 400
+
+    # Simulated Stripe/PayPal Payment
+    payment_successful = True  # ✅ Replace with real payment processing
+    if not payment_successful:
+        return jsonify({"error": "Payment failed"}), 402
+
+    station.allowed_users.append(User.query.get(user_id))
+    station.followers_count += 1
+    db.session.commit()
+
+    return jsonify({"message": "Subscription successful!"}), 200
+
+@socketio.on('live_status_update')
+def handle_live_status_update(data):
+    """WebSocket: Notify all clients when a station goes live/offline."""
+    station_id = data.get("stationId")
+    is_live = data.get("isLive")
+
+    station = RadioStation.query.get(station_id)
+    if station:
+        station.is_live = is_live
+        db.session.commit()
+
+        # 🔴 Broadcast live status update
+        socketio.emit(f"station-{station_id}-live-status", {"stationId": station_id, "isLive": is_live})
+
+
+
+@api.route('/radio/<int:station_id>/buy-ticket', methods=['POST'])
+@jwt_required()
+def buy_ticket_radio(station_id):
+    user_id = get_jwt_identity()
+    station = RadioStation.query.get(station_id)
+
+    if not station or not station.is_ticketed:
+        return jsonify({"error": "This station does not sell tickets."}), 400
+
+    # Charge user (Replace this with actual payment gateway integration)
+    ticket_price = station.ticket_price
+    # Process payment with Stripe/PayPal (Mocked)
+    payment_successful = True  # Assume payment is successful for now
+
+    if payment_successful:
+        new_ticket = TicketPurchase(user_id=user_id, station_id=station_id, amount_paid=ticket_price)
+        station.allowed_users.append(User.query.get(user_id))  # Grant access
+        db.session.add(new_ticket)
+        db.session.commit()
+        return jsonify({"message": "Ticket purchased successfully!"}), 200
+    else:
+        return jsonify({"error": "Payment failed."}), 400
+
+@api.route('/radio/<int:station_id>/access', methods=['GET'])
+@jwt_required()
+def check_access(station_id):
+    user_id = get_jwt_identity()
+    station = RadioStation.query.get(station_id)
+
+    if station.is_public or station.user_id == user_id:
+        return jsonify({"message": "Access granted!"}), 200
+
+    subscription = Subscription.query.filter_by(user_id=user_id, station_id=station_id, active=True).first()
+    ticket = TicketPurchase.query.filter_by(user_id=user_id, station_id=station_id).first()
+
+    if subscription or ticket:
+        return jsonify({"message": "Access granted!"}), 200
+    else:
+        return jsonify({"error": "Access denied. Subscribe or buy a ticket."}), 403
+
+@api.route('/radio/<int:station_id>/follow', methods=['POST'])
+@jwt_required()
+def follow_station(station_id):
+    """User follows a radio station and WebSocket updates followers."""
+    user_id = get_jwt_identity()
+    station = RadioStation.query.get(station_id)
+
+    if not station:
+        return jsonify({"error": "Radio station not found"}), 404
+
+    # Add follower (mocked for now)
+    station.followers_count += 1
+    db.session.commit()
+
+    # 🔵 Notify WebSocket
+    requests.post("http://localhost:5000/new-follower", json={
+        "stationId": station_id,
+        "userId": user_id
+    })
+
+    return jsonify({"message": "Followed station!", "followers": station.followers_count}), 200
+
+
+@api.route('/radio/<int:station_id>/now-playing', methods=['POST'])
+@jwt_required()
+def update_now_playing(station_id):
+    """Updates currently playing track for a station."""
+    user_id = get_jwt_identity()
+    station = RadioStation.query.get(station_id)
+
+    if not station or station.user_id != user_id:
+        return jsonify({"error": "Not authorized"}), 403
+
+    data = request.json
+    track_title = data.get("track_title")
+
+    # 🔄 Notify WebSocket
+    requests.post("http://localhost:5000/track-update", json={
+        "stationId": station_id,
+        "track": {"title": track_title}
+    })
+
+    return jsonify({"message": "Now Playing updated!"}), 200
+
+@api.route('/podcast/<int:podcast_id>/purchase', methods=['POST'])
+@jwt_required()
+def purchase_episode(podcast_id):
+    data = request.json
+    episode_id = data.get("episode_id")
+    token = data.get("stripe_token")  # From frontend
+
+    episode = PodcastEpisode.query.get(episode_id)
+    if not episode:
+        return jsonify({"error": "Episode not found"}), 404
+
+    if not episode.is_premium:
+        return jsonify({"error": "This episode is free"}), 400
+
+    charge = stripe.Charge.create(
+        amount=int(episode.price_per_episode * 100),
+        currency="usd",
+        description=f"Podcast Episode Purchase: {episode.title}",
+        source=token
+    )
+
+    return jsonify({"message": "Payment successful", "charge_id": charge.id}), 200
+
+@api.route('/recommendations/<int:user_id>', methods=['GET'])
+def recommend_content(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Get last listened podcast
+    last_listened = user.history[-1].content_id if user.history else None
+
+    if last_listened:
+        similar_podcasts = Podcast.query.filter(
+            Podcast.id != last_listened
+        ).order_by(desc(Podcast.views)).limit(5).all()
+    else:
+        similar_podcasts = Podcast.query.order_by(desc(Podcast.views)).limit(5).all()
+
+    return jsonify({
+        "recommended_podcasts": [p.serialize() for p in similar_podcasts]
+    })
+
+@api.route('/search', methods=['GET'])
+def search_content():
+    query = request.args.get('q', '')
+    content_type = request.args.get('type', '')  # "podcast" or "radio"
+
+    if not query:
+        return jsonify({"error": "No search query provided"}), 400
+
+    if content_type == "podcast":
+        results = Podcast.query.filter(Podcast.title.ilike(f"%{query}%")).all()
+        return jsonify({"podcasts": [p.serialize() for p in results]})
+    
+    elif content_type == "radio":
+        results = RadioStation.query.filter(RadioStation.name.ilike(f"%{query}%")).all()
+        return jsonify({"radio_stations": [r.serialize() for r in results]})
+    
+    return jsonify({"error": "Invalid content type"}), 400
+

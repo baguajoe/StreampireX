@@ -1,105 +1,100 @@
-import React, { useEffect, useState } from "react";
-import "../../styles/podcasts.css"
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 
-const PodcastPage = () => {
-    const [podcasts, setPodcasts] = useState([]);
-    const [categories, setCategories] = useState([]);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("All");
+const PodcastPlayer = () => {
+  const { podcast_id, episode_id } = useParams();
+  const [episode, setEpisode] = useState(null);
+  const [chapters, setChapters] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [newChapter, setNewChapter] = useState({ title: "", timestamp: 0 });
+  const [error, setError] = useState(null);
 
-    // Fetch categories from the backend
-    useEffect(() => {
-        fetch(`${process.env.BACKEND_URL}/api/podcasts/categories`)
-            .then(res => res.json())
-            .then(data => setCategories(["All", ...data]))  // Include "All" category
-            .catch(err => console.error("Error fetching categories:", err));
-    }, []);
+  useEffect(() => {
+    // Fetch episode details
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/podcast/${podcast_id}/episode/${episode_id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) setError(data.error);
+        else setEpisode(data);
+      })
+      .catch((err) => setError("Error loading episode"));
 
-    // Fetch podcasts from the backend
-    useEffect(() => {
-        fetch(`${process.env.BACKEND_URL}/api/podcasts`)
-            .then(res => res.json())
-            .then(data => setPodcasts(data))
-            .catch(err => console.error("Error fetching podcasts:", err));
-    }, []);
+    // Fetch chapters
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/podcasts/${podcast_id}/chapters`)
+      .then((res) => res.json())
+      .then((data) => setChapters(data))
+      .catch((err) => console.error("Error fetching chapters:", err));
+  }, [podcast_id, episode_id]);
 
-    // Filter podcasts based on search query and category
-    const filteredPodcasts = podcasts.filter(podcast =>
-        (selectedCategory === "All" || podcast.category === selectedCategory) &&
-        podcast.title.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+  const seekToTime = (time) => {
+    document.getElementById("podcast-audio").currentTime = time;
+  };
 
-    return (
-        <div className="podcast-page-container">
-            <h1>🎧 Browse Podcasts</h1>
+  const addChapter = async () => {
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/podcasts/${podcast_id}/chapters`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newChapter),
+    });
 
-            {/* Category Filter Bar */}
-            <div className="category-bar">
-                {categories.map((category, index) => (
-                    <button
-                        key={index}
-                        className={`category-badge ${selectedCategory === category ? "active" : ""}`}
-                        onClick={() => setSelectedCategory(category)}
-                    >
-                        {category}
-                    </button>
-                ))}
-            </div>
+    if (response.ok) {
+      const data = await response.json();
+      setChapters([...chapters, data.chapter]);
+      setNewChapter({ title: "", timestamp: 0 });
+    }
+  };
 
-            {/* Search Bar */}
-            <input
-                type="text"
-                placeholder="Search podcasts..."
-                className="search-bar"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-            />
+  if (error) return <p>{error}</p>;
+  if (!episode) return <p>Loading...</p>;
 
-            {/* Podcast List */}
-            <div className="podcast-list">
-                {filteredPodcasts.map(podcast => (
-                    <div key={podcast.id} className="podcast-card">
-                        <img src={podcast.cover_art_url || "/default-podcast-cover.png"} alt="Podcast Cover" className="podcast-cover" />
-                        <div className="podcast-info">
-                            <h3>{podcast.title}</h3>
-                            <p>{podcast.description}</p>
-                            <p><strong>Category:</strong> {podcast.category}</p>
+  return (
+    <div className="podcast-player">
+      <h2>{episode.title}</h2>
+      <audio id="podcast-audio" controls>
+        <source src={episode.file_url} type="audio/mpeg" />
+        Your browser does not support the audio element.
+      </audio>
 
-                            {podcast.video_url ? (
-                                <video controls width="100%">
-                                    <source src={podcast.video_url} type="video/mp4" />
-                                    Your browser does not support the video tag.
-                                </video>
-                            ) : (
-                                <audio controls>
-                                    <source src={podcast.audio_url} type="audio/mpeg" />
-                                    Your browser does not support the audio element.
-                                </audio>
-                            )}
+      <h3>📖 Chapters</h3>
+      <ul>
+        {chapters.map((chapter) => (
+          <li key={chapter.id} onClick={() => seekToTime(chapter.timestamp)}>
+            ⏳ {chapter.timestamp}s - {chapter.title}
+          </li>
+        ))}
+      </ul>
 
-                            {podcast.is_premium && <span className="premium-label">🔒 Premium</span>}
-
-                            <div className="transcription">
-                                <h4>📝 Transcript</h4>
-                                <p>{podcast.transcription || "Transcription not available."}</p>
-                            </div>
-
-                            <div className="comments-section">
-                                <h4>💬 Comments</h4>
-                                <textarea placeholder="Write a comment..."></textarea>
-                                <button>💬 Post</button>
-                            </div>
-
-                            <div className="podcast-actions">
-                                <button>❤️ Like</button>
-                                <button>📤 Share</button>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
+      {isEditing && (
+        <div>
+          <h3>➕ Add a Chapter</h3>
+          <input
+            type="text"
+            placeholder="Chapter title"
+            value={newChapter.title}
+            onChange={(e) => setNewChapter({ ...newChapter, title: e.target.value })}
+          />
+          <input
+            type="number"
+            placeholder="Timestamp (seconds)"
+            value={newChapter.timestamp}
+            onChange={(e) => setNewChapter({ ...newChapter, timestamp: Number(e.target.value) })}
+          />
+          <button onClick={addChapter}>✅ Save Chapter</button>
         </div>
-    );
+      )}
+
+      <button onClick={() => setIsEditing(!isEditing)}>
+        {isEditing ? "❌ Cancel Editing" : "📝 Edit Chapters"}
+      </button>
+    </div>
+  );
 };
 
-export default PodcastPage;
+export default PodcastPlayer;

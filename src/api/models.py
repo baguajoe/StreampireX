@@ -23,11 +23,11 @@ class Role(db.Model):
         }
 
 
-from sqlalchemy.dialects.postgresql import JSON
-
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
+    artist_name = db.Column(db.String(80), unique=True, nullable=False)
+    industry = db.Column(db.String(80), nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     is_premium = db.Column(db.Boolean, default=False, server_default="False")
@@ -52,11 +52,12 @@ class User(db.Model):
 
     # ✅ Video Gallery (List of Video URLs, Max 10)
     videos = db.Column(db.JSON, default=[])
-
+    role = db.Column(db.Integer, db.ForeignKey('role.id'))
     def serialize(self):
         return {
             "id": self.id,
             "username": self.username,
+            "artist_name": self.artist_name,
             "email": self.email,
             "business_name": self.business_name,
             "display_name": self.display_name,
@@ -269,7 +270,132 @@ class VideoPlaylistVideo(db.Model):
             "video_id": self.video_id,
         }
 
+# ✅ Junction Table for Private Access Control
+radio_access = db.Table(
+    'radio_access',
+    db.Column('station_id', db.Integer, db.ForeignKey('radio_station.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
+)
 
+
+
+class RadioStation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+
+    # 🔹 Public or Private
+    is_public = db.Column(db.Boolean, default=True)  # ✅ Default: Public
+    allowed_users = db.relationship('User', secondary='radio_access', backref='private_stations')
+
+    # 🔹 Monetization Features
+    is_subscription_based = db.Column(db.Boolean, default=False)  # ✅ Monthly Subscription Required?
+    subscription_price = db.Column(db.Float, nullable=True)  # ✅ Monthly Fee
+    is_ticketed = db.Column(db.Boolean, default=False)  # ✅ One-Time Ticket Required?
+    ticket_price = db.Column(db.Float, nullable=True)  # ✅ Ticket Price for Entry
+    followers_count = db.Column(db.Integer, default=0)  # ✅ Track Followers
+
+    # 🔹 Live Streaming Features
+    is_live = db.Column(db.Boolean, default=False)  # ✅ Live Status
+    stream_url = db.Column(db.String(500), nullable=True)  # ✅ Streaming URL
+
+    # 🔹 WebRTC & Interactive Features
+    is_webrtc_enabled = db.Column(db.Boolean, default=False)  # ✅ Allow Listener Calls?
+    max_listeners = db.Column(db.Integer, default=100)  # ✅ Max Concurrent Listeners
+
+    # 🔹 Station Branding
+    logo_url = db.Column(db.String(500), nullable=True)  # ✅ Station Logo
+    cover_image_url = db.Column(db.String(500), nullable=True)  # ✅ Station Cover Image
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref=db.backref('radio_stations', lazy=True))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "name": self.name,
+            "description": self.description,
+            "is_public": self.is_public,
+            "allowed_users": [user.id for user in self.allowed_users] if not self.is_public else [],
+            "is_subscription_based": self.is_subscription_based,
+            "subscription_price": self.subscription_price,
+            "is_ticketed": self.is_ticketed,
+            "ticket_price": self.ticket_price,
+            "followers_count": self.followers_count,
+            "is_live": self.is_live,
+            "stream_url": self.stream_url,
+            "is_webrtc_enabled": self.is_webrtc_enabled,
+            "max_listeners": self.max_listeners,
+            "logo_url": self.logo_url,
+            "cover_image_url": self.cover_image_url,
+            "created_at": self.created_at.isoformat()
+        }
+
+class RadioPlaylist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
+    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
+
+    station = db.relationship('RadioStation', backref=db.backref('radio_playlists', lazy=True))
+    audio = db.relationship('Audio', backref=db.backref('radio_playlists', lazy=True))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "station_id": self.station_id,
+            "audio_id": self.audio_id,
+        }
+
+class RadioSubscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
+    stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)  # Stripe subscription tracking
+    start_date = db.Column(db.DateTime, default=datetime.utcnow)
+    end_date = db.Column(db.DateTime, nullable=True)  # Expiration date
+
+    user = db.relationship('User', backref=db.backref('radio_subscriptions', lazy=True))
+    station = db.relationship('RadioStation', backref=db.backref('subscriptions', lazy=True))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "station_id": self.station_id,
+            "stripe_subscription_id": self.stripe_subscription_id,
+            "start_date": self.start_date.isoformat(),
+            "end_date": self.end_date.isoformat() if self.end_date else None
+        }
+
+class RadioDonation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    message = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('radio_donations', lazy=True))
+    station = db.relationship('RadioStation', backref=db.backref('donations', lazy=True))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "station_id": self.station_id,
+            "amount": self.amount,
+            "message": self.message,
+            "created_at": self.created_at.isoformat()
+        }
+    
+class RadioSubmission(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, nullable=False)
+    track_id = db.Column(db.Integer, nullable=False)
+    station_name = db.Column(db.String(255), nullable=False)
+    submission_status = db.Column(db.String(50), default="Pending")
 
 class LiveStream(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -299,24 +425,77 @@ class LiveStream(db.Model):
         }
 
 
-class LiveChat(db.Model):
+class LiveStudio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    stream_id = db.Column(db.Integer, db.ForeignKey('live_stream.id'), nullable=False)
-    message = db.Column(db.Text, nullable=False)
-    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    stream_key = db.Column(db.String(255), unique=True, nullable=False)  # Unique identifier for the stream
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    thumbnail_url = db.Column(db.String(500), nullable=True)  # Optional thumbnail
+    is_live = db.Column(db.Boolean, default=False)  # Indicates whether the stream is active
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    ended_at = db.Column(db.DateTime, nullable=True)
 
-    user = db.relationship('User', backref=db.backref('chat_messages', lazy=True))
-    live_stream = db.relationship('LiveStream', backref=db.backref('chat_messages', lazy=True))
+    # ✅ VR Support & Virtual Concerts
+    is_vr_enabled = db.Column(db.Boolean, default=False)  # Enable VR mode for the event
+    vr_environment = db.Column(db.String(255), nullable=True)  # Name of the VR environment (e.g., "Cyber Stage", "Neon Club")
 
+    # ✅ Ticketed Events
+    is_ticketed = db.Column(db.Boolean, default=False)  # Whether tickets are required
+    ticket_price = db.Column(db.Float, nullable=True)  # Ticket price if applicable
+    ticket_sales = db.Column(db.Integer, default=0)  # Track number of tickets sold
+    payment_provider = db.Column(db.String(50), nullable=True)  # e.g., "Stripe", "PayPal"
+
+    # ✅ Monetization
+    donation_link = db.Column(db.String(500), nullable=True)  # Link for audience donations
+    ad_revenue = db.Column(db.Float, default=0.0)  # Revenue from ads
+    total_earnings = db.Column(db.Float, default=0.0)  # Total revenue from the stream
+
+    # ✅ Live Chat & Fan Interaction
+    # has_live_chat = db.Column(db.Boolean, default=True)  # Enable chat functionality
+    # chat_messages = db.relationship('LiveChat', backref='live_studio', lazy=True)
+    chat_messages = db.relationship("LiveChat", backref="studio_chats", lazy=True)
+
+    # ✅ Merch Sales (Coming Soon)
+    merch_sales = db.Column(db.Float, default=0.0)  # Revenue from merch sales
+
+    user = db.relationship("User")
     def serialize(self):
+        """Convert model instance to JSON format."""
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "stream_id": self.stream_id,
-            "message": self.message,
-            "sent_at": self.sent_at.isoformat(),
+            "stream_key": self.stream_key,
+            "title": self.title,
+            "description": self.description,
+            "thumbnail_url": self.thumbnail_url,
+            "is_live": self.is_live,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "ended_at": self.ended_at.isoformat() if self.ended_at else None,
+            "is_vr_enabled": self.is_vr_enabled,
+            "vr_environment": self.vr_environment,
+            "is_ticketed": self.is_ticketed,
+            "ticket_price": self.ticket_price,
+            "ticket_sales": self.ticket_sales,
+            "payment_provider": self.payment_provider,
+            "donation_link": self.donation_link,
+            "ad_revenue": self.ad_revenue,
+            "total_earnings": self.total_earnings,
+            "has_live_chat": self.has_live_chat,
+            "merch_sales": self.merch_sales
         }
+
+
+class LiveChat(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    live_studio_id = db.Column(db.Integer, db.ForeignKey('live_studio.id'), nullable=False)  # Foreign Key added
+    message = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+      # ✅ Ensure it matches the new backref 'studio_chat'
+    user = db.relationship("User", backref="chat_messages")
+
 
 class PodcastEpisode(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -353,7 +532,15 @@ class PodcastEpisode(db.Model):
             "uploaded_at": self.uploaded_at.isoformat()
         }
 
-
+class PodcastClip(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    podcast_id = db.Column(db.Integer, db.ForeignKey('podcast.id'), nullable=False)
+    user_id = db.Column(db.Integer, nullable=False)
+    clip_url = db.Column(db.String(255), nullable=False)
+    start_time = db.Column(db.Integer, nullable=False)  # In seconds
+    end_time = db.Column(db.Integer, nullable=False)
+    shared_platform = db.Column(db.String(50), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Podcast(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -509,8 +696,12 @@ class Subscription(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     plan_id = db.Column(db.Integer, db.ForeignKey('pricing_plan.id'), nullable=False)  # Links to PricingPlan
     stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)  # Stripe Subscription ID
-    start_date = db.Column(db.DateTime, default=datetime.utcnow)
-    end_date = db.Column(db.DateTime, nullable=True)  # Expiration date
+    start_date = db.Column(db.DateTime, default=datetime.utcnow)  # When the subscription started
+    end_date = db.Column(db.DateTime, nullable=True)  # When the subscription expires
+    grace_period_end = db.Column(db.DateTime, nullable=True)  # Soft expiration (e.g., 7-day grace period)
+    auto_renew = db.Column(db.Boolean, default=True)  # Whether the subscription renews automatically
+    billing_cycle = db.Column(db.String(20), default="monthly")  # Monthly, yearly, etc.
+    status = db.Column(db.String(20), default="active")  # active, canceled, expired
 
     user = db.relationship('User', backref=db.backref('subscriptions', lazy=True))
     plan = db.relationship('PricingPlan', backref=db.backref('subscriptions', lazy=True))
@@ -522,9 +713,13 @@ class Subscription(db.Model):
             "plan_id": self.plan_id,
             "stripe_subscription_id": self.stripe_subscription_id,
             "start_date": self.start_date.isoformat(),
-            "end_date": self.end_date.isoformat() if self.end_date else None
+            "end_date": self.end_date.isoformat() if self.end_date else None,
+            "grace_period_end": self.grace_period_end.isoformat() if self.grace_period_end else None,
+            "auto_renew": self.auto_renew,
+            "billing_cycle": self.billing_cycle,
+            "status": self.status
         }
-
+    
 class SubscriptionPlan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)  # "Podcast Only", "Radio Only", "All Access"
@@ -570,6 +765,23 @@ class UserSubscription(db.Model):
             "end_date": self.end_date.isoformat() if self.end_date else None
         }
 
+class TicketPurchase(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
+    purchase_date = db.Column(db.DateTime, default=datetime.utcnow)
+    amount_paid = db.Column(db.Float, nullable=False)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "station_id": self.station_id,
+            "purchase_date": self.purchase_date.isoformat(),
+            "amount_paid": self.amount_paid
+        }
+
+
 
 class PodcastSubscription(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -609,89 +821,6 @@ class UserPodcast(db.Model):
         }
 
 
-
-
-class RadioStation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    name = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.Text, nullable=True)
-    is_live = db.Column(db.Boolean, default=False)
-    stream_url = db.Column(db.String(500), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # ✅ PREMIUM & MONETIZATION
-    is_premium = db.Column(db.Boolean, default=False)  # Premium stations require a subscription
-    subscription_price = db.Column(db.Float, nullable=True)  # Monthly fee
-    ad_revenue = db.Column(db.Float, default=0.0)  # Earnings from ad revenue
-    followers_count = db.Column(db.Integer, default=0)  # Number of followers
-
-    # ✅ NEW FIELDS FOR IMAGES & MEDIA
-    logo_url = db.Column(db.String(500), nullable=True)  # Logo image URL
-    cover_image_url = db.Column(db.String(500), nullable=True)  # Cover image URL
-
-    user = db.relationship('User', backref=db.backref('radio_stations', lazy=True))
-
-    def serialize(self):
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "name": self.name,
-            "description": self.description,
-            "is_live": self.is_live,
-            "stream_url": self.stream_url,
-            "created_at": self.created_at.isoformat(),
-            "is_premium": self.is_premium,
-            "subscription_price": self.subscription_price,
-            "ad_revenue": self.ad_revenue,
-            "followers_count": self.followers_count,
-            "logo_url": self.logo_url,
-            "cover_image_url": self.cover_image_url,
-            
-        }
-
-class RadioPlaylist(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
-    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
-
-    station = db.relationship('RadioStation', backref=db.backref('radio_playlists', lazy=True))
-    audio = db.relationship('Audio', backref=db.backref('radio_playlists', lazy=True))
-
-    def serialize(self):
-        return {
-            "id": self.id,
-            "station_id": self.station_id,
-            "audio_id": self.audio_id,
-        }
-
-class RadioSubscription(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
-    stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)  # Stripe subscription tracking
-    start_date = db.Column(db.DateTime, default=datetime.utcnow)
-    end_date = db.Column(db.DateTime, nullable=True)  # Expiration date
-
-    user = db.relationship('User', backref=db.backref('radio_subscriptions', lazy=True))
-    station = db.relationship('RadioStation', backref=db.backref('subscriptions', lazy=True))
-
-    def serialize(self):
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "station_id": self.station_id,
-            "stripe_subscription_id": self.stripe_subscription_id,
-            "start_date": self.start_date.isoformat(),
-            "end_date": self.end_date.isoformat() if self.end_date else None
-        }
-
-
-
-    
-
-
-
 class Track(db.Model):
     __tablename__ = "track"
     id = db.Column(db.Integer, primary_key=True)
@@ -700,35 +829,68 @@ class Track(db.Model):
     artist = db.Column(db.String(255), nullable=True)
     file_url = db.Column(db.String(255), nullable=False)  # Audio file URL
 
-class RadioDonation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
-    amount = db.Column(db.Float, nullable=False)
-    message = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    user = db.relationship('User', backref=db.backref('radio_donations', lazy=True))
-    station = db.relationship('RadioStation', backref=db.backref('donations', lazy=True))
+class Music(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Who uploaded the music
+    title = db.Column(db.String(255), nullable=False)
+    artist = db.Column(db.String(255), nullable=False)  # Artist name
+    album = db.Column(db.String(255), nullable=True)
+    genre = db.Column(db.String(100), nullable=False)  # Music category
+    file_url = db.Column(db.String(500), nullable=False)  # Audio file location
+    cover_art_url = db.Column(db.String(500), nullable=True)  # Album cover image
+    duration = db.Column(db.Integer, nullable=True)  # Duration in seconds
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # ✅ Licensing Information
+    is_licensed = db.Column(db.Boolean, default=False)  # Whether the track is available for licensing
+    license_type = db.Column(db.String(100), nullable=True)  # Example: "Commercial", "Non-Commercial"
+    licensing_price = db.Column(db.Float, nullable=True)  # Price for licensing
+    license_status = db.Column(db.String(50), default="Pending")  # Licensing status: "Pending", "Approved", "Rejected"
+    
+    # ✅ Monetization Options
+    is_premium = db.Column(db.Boolean, default=False)  # Only premium users can stream/download
+    price = db.Column(db.Float, nullable=True)  # Pay-per-download pricing
+    ad_revenue = db.Column(db.Float, default=0.0)  # Revenue from ads
+    
+    # ✅ Engagement & Analytics
+    play_count = db.Column(db.Integer, default=0)  # Total plays
+    like_count = db.Column(db.Integer, default=0)  # Total likes
+    share_count = db.Column(db.Integer, default=0)  # Total shares
+    
+    # ✅ Integration with Radio Stations & Playlists
+    radio_station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=True)  # Optional: Assigned to a radio station
+    playlist_id = db.Column(db.Integer, db.ForeignKey('playlist_audio.id'), nullable=True)  # Optional: Assigned to a playlist
+    
+    user = db.relationship('User', backref=db.backref('music', lazy=True))
+    radio_station = db.relationship('RadioStation', backref=db.backref('music', lazy=True))
+    playlist = db.relationship('PlaylistAudio', backref=db.backref('music', lazy=True))
 
     def serialize(self):
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "station_id": self.station_id,
-            "amount": self.amount,
-            "message": self.message,
-            "created_at": self.created_at.isoformat()
+            "title": self.title,
+            "artist": self.artist,
+            "album": self.album,
+            "genre": self.genre,
+            "file_url": self.file_url,
+            "cover_art_url": self.cover_art_url,
+            "duration": self.duration,
+            "uploaded_at": self.uploaded_at.isoformat(),
+            "is_licensed": self.is_licensed,
+            "license_type": self.license_type,
+            "licensing_price": self.licensing_price,
+            "license_status": self.license_status,
+            "is_premium": self.is_premium,
+            "price": self.price,
+            "ad_revenue": self.ad_revenue,
+            "play_count": self.play_count,
+            "like_count": self.like_count,
+            "share_count": self.share_count,
+            "radio_station_id": self.radio_station_id,
+            "playlist_id": self.playlist_id
         }
-    
-class RadioSubmission(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    artist_id = db.Column(db.Integer, nullable=False)
-    track_id = db.Column(db.Integer, nullable=False)
-    station_name = db.Column(db.String(255), nullable=False)
-    submission_status = db.Column(db.String(50), default="Pending")
-
-
 
 class MusicLicensing(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -937,7 +1099,121 @@ class LicensingOpportunity(db.Model):
     track_id = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(50), default="Pending")
 
+class IndieStation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    name = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    artist = db.relationship("User", backref=db.backref("indie_station", lazy=True))
+    followers = db.relationship("IndieStationFollower", backref="station", lazy=True)
+    tracks = db.relationship("IndieStationTrack", backref="station", lazy=True)
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "artist_id": self.artist_id,
+            "name": self.name,
+            "created_at": self.created_at.isoformat(),
+            "followers": len(self.followers),
+            "tracks": [track.serialize() for track in self.tracks],
+        }
 
+class IndieStationTrack(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    station_id = db.Column(db.Integer, db.ForeignKey('indie_station.id'), nullable=False)
+    track_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "track_id": self.track_id,
+            "track": Audio.query.get(self.track_id).serialize()
+        }
+
+class IndieStationFollower(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    station_id = db.Column(db.Integer, db.ForeignKey('indie_station.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+class LiveEvent(db.Model):
+    """Represents a live event for concerts, VR shows, and ticketed streams."""
+    __tablename__ = "live_event"
+
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # The artist hosting the event
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    date = db.Column(db.DateTime, nullable=False)
+    is_vr_enabled = db.Column(db.Boolean, default=False)  # Supports VR concerts
+    ticket_price = db.Column(db.Float, nullable=True)  # Ticket price if required
+    total_tickets_sold = db.Column(db.Integer, default=0)
+    stream_url = db.Column(db.String(500), nullable=True)  # URL for the live stream
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # ✅ Remove backref and just define a one-to-many relationship
+    tickets = db.relationship('EventTicket', lazy=True)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "artist_id": self.artist_id,
+            "title": self.title,
+            "description": self.description,
+            "date": self.date.isoformat(),
+            "is_vr_enabled": self.is_vr_enabled,
+            "ticket_price": self.ticket_price,
+            "total_tickets_sold": self.total_tickets_sold,
+            "stream_url": self.stream_url,
+            "created_at": self.created_at.isoformat(),
+        }
+
+class EventTicket(db.Model):
+    """Represents a ticket purchase for live events."""
+    __tablename__ = "event_ticket"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Who bought the ticket
+    event_id = db.Column(db.Integer, db.ForeignKey('live_event.id'), nullable=False)  # Which event the ticket is for
+    price_paid = db.Column(db.Float, nullable=False)
+    purchased_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # ✅ Define explicit relationship here instead of backref in LiveEvent
+    event = db.relationship('LiveEvent', lazy=True)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "event_id": self.event_id,
+            "price_paid": self.price_paid,
+            "purchased_at": self.purchased_at.isoformat(),
+        }
+
+class RadioTrack(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
+    track_id = db.Column(db.Integer, db.ForeignKey('track.id'), nullable=False)  # Linking to uploaded tracks
+    added_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "station_id": self.station_id,
+            "track_id": self.track_id,
+            "added_at": self.added_at.isoformat(),
+        }
+
+class RadioFollower(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
+    followed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "station_id": self.station_id,
+            "followed_at": self.followed_at.isoformat(),
+        }

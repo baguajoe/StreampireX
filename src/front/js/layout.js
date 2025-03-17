@@ -6,8 +6,8 @@ import injectContext from "./store/appContext";
 import { Home } from "./pages/home";
 import Login from "./pages/Login";
 import { Signup } from "./pages/Signup";
-import RadioStationPage from "./pages/radioStations";
-import LiveStreamPage from "./pages/liveStreams";
+import RadioStationPage from "./pages/RadioStations";
+import LiveStreamPage from "./pages/LiveStreams";
 import CreatorDashboard from "./pages/creatorDashboard";
 // import  FavoritesPage  from "./pages/Favorites";
 import ProfilePage from "./pages/ProfilePage";
@@ -17,7 +17,9 @@ import BrowsePodcastCategories from "./pages/BrowsePodcastCategories";
 import PricingPlans from "./pages/PricingPlans";
 import ArtistDashboard from "./pages/ArtistDashboard";  // ✅ Import
 import ArtistRadioStation from "./pages/ArtistRadioStation"; // ✅ Import
+import IndieArtistUpload from "./pages/IndieArtistUpload";
 import MusicLicensing from "./pages/MusicLicensing"; // ✅ Import
+import Music from "./pages/Music"; // ✅ Import
 import LiveConcerts from "./pages/LiveConcerts"; // ✅ Import
 import PodcastCreate from "./pages/PodcastCreate";
 import PodcastPage from "./pages/PodcastPage";
@@ -67,6 +69,7 @@ const Layout = () => {
                             <Route path="/register" element={<Signup />} />
                             <Route path="/podcast-dashboard" element={<PodcastDashboard />} />
                             <Route path="/create-radio" element={<CreateRadioStation />} />
+                            <Route path="/indie-artist-upload" element={<IndieArtistUpload />} />
 
 
                             <Route path="/radio-stations" element={<RadioStationPage />} />
@@ -80,6 +83,7 @@ const Layout = () => {
                             <Route path="/artist-dashboard" element={<ArtistDashboard />} />
                             <Route path="/artist-radio" element={<ArtistRadioStation />} />
                             <Route path="/music-licensing" element={<MusicLicensing />} />
+                            <Route path="/music" element={<Music />} />
                             <Route path="/podcast/create" element={<PodcastCreate />} />
                             <Route path="/podcasts" element={<PodcastPage />} />
                             <Route path="/live-concerts" element={<LiveConcerts />} />
