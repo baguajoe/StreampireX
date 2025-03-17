@@ -1,217 +1,214 @@
 import React, { useState, useEffect } from "react";
 
 const ArtistDashboard = () => {
-    const [trackId, setTrackId] = useState("");
-    const [radioStation, setRadioStation] = useState("");
-    const [role, setRole] = useState("");
-    const [submittedTracks, setSubmittedTracks] = useState([]);
+    const [stationName, setStationName] = useState("");
+    const [stationTracks, setStationTracks] = useState([]);
+    const [uploadedTracks, setUploadedTracks] = useState([]);
+    const [selectedTrack, setSelectedTrack] = useState(null);
+    const [followers, setFollowers] = useState(0);
+    const [earnings, setEarnings] = useState({ total: 0, merch: 0, licensing: 0, subscriptions: 0 });
     const [message, setMessage] = useState("");
-    const [collaborations, setCollaborations] = useState([]);
-    const [merchItems, setMerchItems] = useState([]);
-    const [selectedMerch, setSelectedMerch] = useState("");
-    const [tracks, setTracks] = useState([]);
-    const [earnings, setEarnings] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [stationExists, setStationExists] = useState(false);
     const [newTrack, setNewTrack] = useState(null);
+    const [newTrackTitle, setNewTrackTitle] = useState("");
+    const [uploading, setUploading] = useState(false);
 
-    // 🔹 Submit Track for Licensing
-    const submitToLicensing = async () => {
+    // ✅ Fetch All Data (Tracks, Earnings, Submissions, Merch, Station)
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                const [tracksRes, stationRes] = await Promise.all([
+                    fetch(`${process.env.BACKEND_URL}/api/artist/tracks`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }),
+                    fetch(`${process.env.BACKEND_URL}/api/indie-station`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })
+                ]);
+
+                const tracksData = await tracksRes.json();
+                const stationData = await stationRes.json();
+
+                setUploadedTracks(tracksData.tracks);
+                setEarnings(tracksData.earnings);
+
+                if (stationData.station) {
+                    setStationName(stationData.station.name);
+                    setStationTracks(stationData.tracks);
+                    setStationExists(true);
+                    setFollowers(stationData.followers || 0);
+                }
+            } catch (error) {
+                console.error("Error fetching dashboard data:", error);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
+
+    // ✅ Create a new indie artist station
+    const createStation = async () => {
+        if (!stationName.trim()) return setMessage("⚠️ Station name is required!");
+
+        setLoading(true);
         try {
-            const response = await fetch(process.env.BACKEND_URL + "/api/licensing", {
+            const response = await fetch(`${process.env.BACKEND_URL}/api/indie-station/create`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${localStorage.getItem("token")}`
                 },
-                body: JSON.stringify({ track_id: trackId })
+                body: JSON.stringify({ name: stationName })
             });
 
             const data = await response.json();
-            setMessage(data.message || "Submission successful!");
-            fetchSubmittedTracks();
+            setMessage(data.message || "📡 Indie station created!");
+            setStationExists(true);
         } catch (error) {
-            setMessage("Error submitting track.");
+            setMessage("❌ Error creating station.");
+        } finally {
+            setLoading(false);
         }
     };
 
-    // 🔹 Submit Track to Syndicated Radio
-    const submitToRadio = async () => {
+    // ✅ Add track to the station
+    const addTrackToStation = async () => {
+        if (!selectedTrack) return setMessage("⚠️ Select a track to add to your station!");
+
+        setLoading(true);
         try {
-            const response = await fetch(process.env.BACKEND_URL + "/api/radio-submission", {
+            await fetch(`${process.env.BACKEND_URL}/api/indie-station/add-track`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${localStorage.getItem("token")}`
                 },
-                body: JSON.stringify({ track_id: trackId, station: radioStation })
+                body: JSON.stringify({ track_id: selectedTrack })
             });
 
-            const data = await response.json();
-            setMessage(data.message || "Track submitted to radio!");
+            setMessage("🎵 Track added to station!");
+            setStationTracks([...stationTracks, uploadedTracks.find(t => t.id === selectedTrack)]);
         } catch (error) {
-            setMessage("Error submitting track to radio.");
+            setMessage("❌ Error adding track.");
+        } finally {
+            setLoading(false);
         }
     };
 
-    // 🔹 Create Collaboration Listing
-    const createCollaboration = async () => {
+    // ✅ Remove track from station
+    const removeTrackFromStation = async (trackId) => {
+        setLoading(true);
         try {
-            const response = await fetch(process.env.BACKEND_URL + "/api/collaboration", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`
-                },
-                body: JSON.stringify({ role })
-            });
-
-            const data = await response.json();
-            setMessage(data.message || "Collaboration listing created!");
-            fetchCollaborations();
-        } catch (error) {
-            setMessage("Error creating collaboration listing.");
-        }
-    };
-
-    // 🔹 Fetch Submitted Tracks
-    const fetchSubmittedTracks = async () => {
-        try {
-            const response = await fetch(process.env.BACKEND_URL + "/api/licensing", {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`
-                }
-            });
-
-            const data = await response.json();
-            setSubmittedTracks(data);
-        } catch (error) {
-            console.error("Error fetching submitted tracks:", error);
-        }
-    };
-
-    // 🔹 Fetch Collaborations
-    const fetchCollaborations = async () => {
-        try {
-            const response = await fetch(process.env.BACKEND_URL + "/api/collaborations", {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`
-                }
-            });
-
-            const data = await response.json();
-            setCollaborations(data);
-        } catch (error) {
-            console.error("Error fetching collaborations:", error);
-        }
-    };
-
-    // 🔹 Fetch Merch Items
-    const fetchMerch = async () => {
-        try {
-            const response = await fetch(process.env.BACKEND_URL + "/api/merch", {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`
-                }
-            });
-
-            const data = await response.json();
-            setMerchItems(data);
-        } catch (error) {
-            console.error("Error fetching merch:", error);
-        }
-    };
-
-    // 🔹 Fetch Tracks and Earnings
-    const fetchTracksAndEarnings = async () => {
-        try {
-            const response = await fetch(process.env.BACKEND_URL + "/api/artist/tracks", {
+            await fetch(`${process.env.BACKEND_URL}/api/indie-station/remove-track/${trackId}`, {
+                method: "DELETE",
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
             });
 
-            const data = await response.json();
-            setTracks(data.tracks);
-            setEarnings(data.earnings);
+            setMessage("🗑️ Track removed from station.");
+            setStationTracks(stationTracks.filter(track => track.id !== trackId));
         } catch (error) {
-            console.error("Error fetching artist tracks and earnings:", error);
+            setMessage("❌ Error removing track.");
+        } finally {
+            setLoading(false);
         }
     };
 
-    // 🔹 Upload New Track
-    const handleUpload = () => {
-        if (!newTrack) return alert("Please select a track!");
+    // ✅ Follow an Indie Station
+    const followStation = async () => {
+        setLoading(true);
+        try {
+            await fetch(`${process.env.BACKEND_URL}/api/indie-station/follow`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`
+                }
+            });
+
+            setMessage("✅ Following station!");
+            setFollowers(followers + 1);
+        } catch (error) {
+            setMessage("❌ Error following station.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ✅ Upload New Track
+    const handleUpload = async () => {
+        if (!newTrack || !newTrackTitle) return setMessage("⚠️ Please enter track title & select a file.");
+
+        setUploading(true);
+        setMessage("");
 
         const formData = new FormData();
         formData.append("audio", newTrack);
+        formData.append("title", newTrackTitle);
 
-        fetch(process.env.BACKEND_URL + "/api/artist/upload", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-            body: formData,
-        })
-            .then((res) => res.json())
-            .then(() => alert("Upload successful!"))
-            .catch((err) => console.error("Upload error:", err));
+        try {
+            await fetch(`${process.env.BACKEND_URL}/api/artist/upload`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+                body: formData,
+            });
+
+            setMessage("✅ Track uploaded successfully!");
+        } catch (error) {
+            setMessage("❌ Upload error.");
+        } finally {
+            setUploading(false);
+        }
     };
 
-    useEffect(() => {
-        fetchSubmittedTracks();
-        fetchCollaborations();
-        fetchMerch();
-        fetchTracksAndEarnings();
-    }, []);
-
     return (
-        <div className="container">
-            <h1>🎵 Artist Dashboard</h1>
-            <p>Total Earnings: ${earnings.toFixed(2)}</p>
+        <div className="dashboard-container">
+            <h1>🎤 Indie Artist Dashboard</h1>
 
-            {/* 🎵 Submit Track for Licensing */}
-            <h2>Submit Track for Licensing</h2>
-            <input type="text" placeholder="Track ID" value={trackId} onChange={(e) => setTrackId(e.target.value)} />
-            <button onClick={submitToLicensing}>Submit</button>
+            {message && <p className="message">{message}</p>}
 
-            {/* 📻 Submit to Syndicated Radio */}
-            <h2>Submit Track to Radio</h2>
-            <input type="text" placeholder="Radio Station" value={radioStation} onChange={(e) => setRadioStation(e.target.value)} />
-            <button onClick={submitToRadio}>Submit</button>
+            {/* ✅ Indie Artist Radio Station Section */}
+            <h2>📡 Your Indie Radio Station</h2>
+            {!stationExists ? (
+                <>
+                    <input type="text" placeholder="Enter Station Name" value={stationName} onChange={(e) => setStationName(e.target.value)} />
+                    <button onClick={createStation} disabled={loading}>
+                        {loading ? "⏳ Creating..." : "📡 Create Station"}
+                    </button>
+                </>
+            ) : (
+                <>
+                    <h3>{stationName}</h3>
+                    <p>👥 Followers: {followers}</p>
+                    <button onClick={followStation}>❤️ Follow Station</button>
 
-            {/* 🎤 Collaboration Marketplace */}
-            <h2>Collaboration Marketplace</h2>
-            <input type="text" placeholder="Enter your role (e.g. Producer, Songwriter)" value={role} onChange={(e) => setRole(e.target.value)} />
-            <button onClick={createCollaboration}>Create Listing</button>
+                    <h3>🎵 Tracks in your station:</h3>
+                    {stationTracks.length === 0 ? (
+                        <p>No tracks added yet.</p>
+                    ) : (
+                        <ul>
+                            {stationTracks.map(track => (
+                                <li key={track.id}>
+                                    <strong>{track.title}</strong>
+                                    <audio controls>
+                                        <source src={track.file_url} type="audio/mpeg" />
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                    <button onClick={() => removeTrackFromStation(track.id)}>🗑️ Remove</button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </>
+            )}
 
-            {/* 🏆 Playlist & Charting */}
-            <h2>Track Rankings</h2>
-            <ul>
-                {submittedTracks.length > 0 ? (
-                    submittedTracks.map((track) => (
-                        <li key={track.id}>
-                            Track ID: {track.track_id} | Status: {track.status} | Submitted: {new Date(track.submitted_at).toLocaleDateString()}
-                        </li>
-                    ))
-                ) : (
-                    <p>No tracks submitted yet.</p>
-                )}
-            </ul>
-
-            {/* 🛍️ Merch & Digital Sales */}
-            <h2>Merchandise Store</h2>
-            <select onChange={(e) => setSelectedMerch(e.target.value)}>
-                <option value="">Select Item</option>
-                {merchItems.map((item) => (
-                    <option key={item.id} value={item.id}>{item.name} - ${item.price}</option>
+            {/* ✅ Add Tracks to Indie Station */}
+            <h2>🎵 Add Tracks to Your Station</h2>
+            <select onChange={(e) => setSelectedTrack(e.target.value)} value={selectedTrack}>
+                <option value="">Select a Track</option>
+                {uploadedTracks.map(track => (
+                    <option key={track.id} value={track.id}>{track.title}</option>
                 ))}
             </select>
-            <button disabled={!selectedMerch}>Buy Now</button>
-
-            {/* 🎼 Upload New Track */}
-            <h3>Upload New Track</h3>
-            <input type="file" accept="audio/*" onChange={(e) => setNewTrack(e.target.files[0])} />
-            <button onClick={handleUpload}>Upload</button>
-
-            {message && <p>{message}</p>}
+            <button onClick={addTrackToStation} disabled={loading || !selectedTrack}>
+                {loading ? "⏳ Adding..." : "➕ Add to Station"}
+            </button>
         </div>
     );
 };
