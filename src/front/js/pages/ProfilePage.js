@@ -331,6 +331,12 @@ const ProfilePage = () => {
                     </Link>
                     <button className="btn-upload">🎵 Upload Music</button>
 
+                    {/* ✅ Indie Artist Upload Button (Uses a Link for Navigation) */}
+                    <Link to="/indie-artist-upload">
+                        <button className="btn-indie-upload">
+                            🎤 Indie Artist Upload
+                        </button>
+                    </Link>
                 </div>
             </div>
 
