@@ -1069,6 +1069,7 @@ class Product(db.Model):
     price = db.Column(db.Float, nullable=False)
     stock = db.Column(db.Integer, nullable=True)  # ✅ Only for physical products
     is_digital = db.Column(db.Boolean, default=True)  # ✅ Mark if it's a digital product
+    sales_revenue = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     creator = db.relationship('User', backref=db.backref('products', lazy=True))
@@ -1084,6 +1085,7 @@ class Product(db.Model):
             "price": self.price,
             "stock": self.stock if not self.is_digital else None,  # ✅ Only show for physical products
             "is_digital": self.is_digital,
+            "sales_revenue": self.sales_revenue,
             "created_at": self.created_at.isoformat(),
         }
     
@@ -1178,8 +1180,8 @@ class EventTicket(db.Model):
     price_paid = db.Column(db.Float, nullable=False)
     purchased_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # ✅ Define explicit relationship here instead of backref in LiveEvent
-    event = db.relationship('LiveEvent', lazy=True)
+    # ✅ Add back_populates and overlaps to fix warning
+    event = db.relationship("LiveEvent", back_populates="tickets", overlaps="tickets")
 
     def serialize(self):
         return {

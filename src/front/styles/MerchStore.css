@@ -1,0 +1,23 @@
+.merch-store {
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .product-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .product {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin: 10px;
+    width: 200px;
+  }
+  
+  .product img {
+    width: 100%;
+    height: auto;
+  }
+  

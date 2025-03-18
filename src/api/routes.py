@@ -1198,19 +1198,51 @@ def get_users():
     users = User.query.all()
     return jsonify([user.serialize() for user in users]), 200
 
-@api.route('/admin/revenue', methods=['GET'])
+from flask import jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from api.models import db, AdRevenue, CreatorDonation, Product, Track, Subscription
+from api.utils import is_admin
+
+@api.route("/revenue", methods=["GET"])
 @jwt_required()
 def get_revenue():
-    if not is_admin(get_jwt_identity()):
-        return jsonify({"error": "Unauthorized"}), 403
+    user_id = get_jwt_identity()
+    
+    # If the user is an admin, return full revenue breakdown
+    if is_admin(user_id):
+        total_ad_revenue = db.session.query(db.func.sum(AdRevenue.amount)).scalar() or 0
+        total_donations = db.session.query(db.func.sum(CreatorDonation.amount)).scalar() or 0
+        total_music_sales = db.session.query(db.func.sum(Track.sales_revenue)).scalar() or 0
+        total_merch_sales = db.session.query(db.func.sum(Product.sales_revenue)).scalar() or 0
+        total_subscriptions = db.session.query(db.func.sum(Subscription.price)).scalar() or 0
+        active_subscriptions = Subscription.query.count()
+        
+        total = total_ad_revenue + total_donations + total_music_sales + total_merch_sales + total_subscriptions
 
-    total_earnings = db.session.query(db.func.sum(Subscription.price)).scalar() or 0
-    active_subscriptions = Subscription.query.count()
+        return jsonify({
+            "total": total,
+            "ad_revenue": total_ad_revenue,
+            "donations": total_donations,
+            "music_sales": total_music_sales,
+            "merch_sales": total_merch_sales,
+            "subscription_revenue": total_subscriptions,
+            "active_subscriptions": active_subscriptions
+        }), 200
+
+    # If user is an artist, return only their revenue breakdown
+    artist_donations = db.session.query(db.func.sum(CreatorDonation.amount)).filter_by(user_id=user_id).scalar() or 0
+    artist_music_sales = db.session.query(db.func.sum(Track.sales_revenue)).filter_by(artist_id=user_id).scalar() or 0
+    artist_merch_sales = db.session.query(db.func.sum(Product.sales_revenue)).filter_by(seller_id=user_id).scalar() or 0
+
+    total_artist_revenue = artist_donations + artist_music_sales + artist_merch_sales
 
     return jsonify({
-        "total_earnings": total_earnings,
-        "active_subscriptions": active_subscriptions
+        "total": total_artist_revenue,
+        "donations": artist_donations,
+        "music_sales": artist_music_sales,
+        "merch_sales": artist_merch_sales
     }), 200
+
 
 @api.route('/roles', methods=['GET'])
 @jwt_required()
@@ -2684,3 +2716,8 @@ def search_content():
     
     return jsonify({"error": "Invalid content type"}), 400
 
+@api.route("/merch", methods=["GET"])
+@jwt_required()
+def get_merch():
+    products = Product.query.all()
+    return jsonify([product.serialize() for product in products]), 200
