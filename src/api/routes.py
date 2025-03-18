@@ -3,7 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue
 from api.utils import generate_sitemap, APIException
 from sqlalchemy import func, desc
 from flask_cors import CORS
@@ -1189,45 +1189,65 @@ def is_admin(user_id):
     user = User.query.get(user_id)
     return user and user.role and user.role.name == "Admin"
 
-
-@api.route('/admin/users', methods=['GET'])
+@api.route("/admin/users", methods=["GET"])
 @jwt_required()
 def get_users():
-    if not is_admin(get_jwt_identity()):
+    """ Fetch all users for admin panel """
+    if not is_admin():
         return jsonify({"error": "Unauthorized"}), 403
+
     users = User.query.all()
-    return jsonify([user.serialize() for user in users]), 200
+    return jsonify([user.serialize() for user in users])
 
-from flask import jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import db, AdRevenue, CreatorDonation, Product, Track, Subscription
-from api.utils import is_admin
-
-@api.route("/revenue", methods=["GET"])
+@api.route("/admin/subscriptions", methods=["GET"])
 @jwt_required()
-def get_revenue():
+def get_subscriptions():
+    """ Fetch active subscriptions """
+    if not is_admin():
+        return jsonify({"error": "Unauthorized"}), 403
+
+    subscriptions = Subscription.query.all()
+    return jsonify([sub.serialize() for sub in subscriptions])
+
+@api.route("/admin/revenue", methods=["GET"])
+@jwt_required()
+def get_admin_revenue():
+    """ Fetch total revenue data for platform admins """
     user_id = get_jwt_identity()
     
-    # If the user is an admin, return full revenue breakdown
-    if is_admin(user_id):
-        total_ad_revenue = db.session.query(db.func.sum(AdRevenue.amount)).scalar() or 0
-        total_donations = db.session.query(db.func.sum(CreatorDonation.amount)).scalar() or 0
-        total_music_sales = db.session.query(db.func.sum(Track.sales_revenue)).scalar() or 0
-        total_merch_sales = db.session.query(db.func.sum(Product.sales_revenue)).scalar() or 0
-        total_subscriptions = db.session.query(db.func.sum(Subscription.price)).scalar() or 0
-        active_subscriptions = Subscription.query.count()
-        
-        total = total_ad_revenue + total_donations + total_music_sales + total_merch_sales + total_subscriptions
+    if not is_admin(user_id):
+        return jsonify({"error": "Unauthorized"}), 403
 
-        return jsonify({
-            "total": total,
-            "ad_revenue": total_ad_revenue,
-            "donations": total_donations,
-            "music_sales": total_music_sales,
-            "merch_sales": total_merch_sales,
-            "subscription_revenue": total_subscriptions,
-            "active_subscriptions": active_subscriptions
-        }), 200
+    total_ad_revenue = db.session.query(db.func.sum(AdRevenue.amount)).scalar() or 0
+    total_donations = db.session.query(db.func.sum(CreatorDonation.amount)).scalar() or 0
+    total_music_sales = db.session.query(db.func.sum(Track.sales_revenue)).scalar() or 0
+    total_merch_sales = db.session.query(db.func.sum(Product.sales_revenue)).scalar() or 0
+    total_subscriptions = db.session.query(db.func.sum(Subscription.price)).scalar() or 0
+    active_subscriptions = Subscription.query.count()
+
+    total_revenue = (
+        total_ad_revenue + total_donations + 
+        total_music_sales + total_merch_sales + total_subscriptions
+    )
+
+    return jsonify({
+        "total_earnings": total_revenue,
+        "ad_revenue": total_ad_revenue,
+        "donations": total_donations,
+        "music_sales": total_music_sales,
+        "merch_sales": total_merch_sales,
+        "subscription_revenue": total_subscriptions,
+        "active_subscriptions": active_subscriptions
+    }), 200
+
+
+    return jsonify({
+        "total_earnings": total_artist_revenue,
+        "donations": artist_donations,
+        "music_sales": artist_music_sales,
+        "merch_sales": artist_merch_sales,
+        "subscription_earnings": artist_subscription_earnings
+    }), 200
 
     # If user is an artist, return only their revenue breakdown
     artist_donations = db.session.query(db.func.sum(CreatorDonation.amount)).filter_by(user_id=user_id).scalar() or 0
@@ -2761,21 +2781,92 @@ def track_purchase():
     db.session.commit()
     return jsonify({"message": "Purchase recorded"}), 200
 
-@api.route('/creator-revenue', methods=['GET'])
+@api.route("/creator-revenue", methods=["GET"])
 @jwt_required()
 def get_creator_revenue():
-    """Fetch total revenue for an artist/podcaster."""
+    """ Fetch revenue data for individual creators (artists & podcasters) """
     user_id = get_jwt_identity()
 
+    # Revenue streams for creators
+    artist_donations = db.session.query(db.func.sum(CreatorDonation.amount)).filter_by(user_id=user_id).scalar() or 0
+    artist_music_sales = db.session.query(db.func.sum(Track.sales_revenue)).filter_by(artist_id=user_id).scalar() or 0
+    artist_merch_sales = db.session.query(db.func.sum(Product.sales_revenue)).filter_by(seller_id=user_id).scalar() or 0
+    artist_subscription_earnings = db.session.query(db.func.sum(Subscription.price)).filter_by(creator_id=user_id).scalar() or 0
     total_analytics_revenue = db.session.query(db.func.sum(Analytics.revenue_generated)).filter_by(user_id=user_id).scalar() or 0
     total_ad_revenue = db.session.query(db.func.sum(AdRevenue.amount)).filter_by(user_id=user_id).scalar() or 0
-    total_donations = db.session.query(db.func.sum(CreatorDonation.amount)).filter_by(user_id=user_id).scalar() or 0
 
-    total_revenue = total_analytics_revenue + total_ad_revenue + total_donations
+    # Calculate total revenue
+    total_creator_revenue = (
+        artist_donations + artist_music_sales + artist_merch_sales +
+        artist_subscription_earnings + total_analytics_revenue + total_ad_revenue
+    )
 
     return jsonify({
-        "total_revenue": total_revenue,
+        "total_revenue": total_creator_revenue,
+        "donations": artist_donations,
+        "music_sales": artist_music_sales,
+        "merch_sales": artist_merch_sales,
+        "subscription_earnings": artist_subscription_earnings,
         "content_revenue": total_analytics_revenue,
-        "ad_revenue": total_ad_revenue,
-        "donations": total_donations
+        "ad_revenue": total_ad_revenue
     }), 200
+
+
+@api.route("/payout/request", methods=["POST"])
+@jwt_required()
+def request_payout():
+    """ Allow a creator to request a payout """
+    user_id = get_jwt_identity()
+    data = request.json
+    amount = data.get("amount")
+
+    # Validate payout amount
+    creator_revenue = db.session.query(db.func.sum(Revenue.amount)).filter_by(user_id=user_id).scalar() or 0
+    if amount > creator_revenue:
+        return jsonify({"error": "Insufficient funds"}), 400
+
+    new_payout = Payout(
+        user_id=user_id,
+        amount=amount,
+        status="Pending",
+        requested_at=datetime.utcnow()
+    )
+    db.session.add(new_payout)
+    db.session.commit()
+
+    return jsonify({"message": "Payout request submitted"}), 200
+
+@api.route("/payout/approve/<int:payout_id>", methods=["PUT"])
+@jwt_required()
+def approve_payout(payout_id):
+    """ Approve a payout request """
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    payout = Payout.query.get(payout_id)
+    if not payout:
+        return jsonify({"error": "Payout request not found"}), 404
+
+    payout.status = "Approved"
+    payout.processed_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({"message": "Payout approved"}), 200
+
+@api.route("/payout/reject/<int:payout_id>", methods=["PUT"])
+@jwt_required()
+def reject_payout(payout_id):
+    """ Reject a payout request """
+    user_id = get_jwt_identity()
+    if not is_admin(user_id):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    payout = Payout.query.get(payout_id)
+    if not payout:
+        return jsonify({"error": "Payout request not found"}), 404
+
+    payout.status = "Rejected"
+    db.session.commit()
+
+    return jsonify({"message": "Payout rejected"}), 200
