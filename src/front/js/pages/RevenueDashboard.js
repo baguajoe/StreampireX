@@ -1,30 +1,48 @@
+// RevenueDashboard.js
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import "../../style/RevenueDashboard.css"; // Add styles for UI
+import Chart from "chart.js/auto"; // For displaying charts
+import "../styles/RevenueDashboard.css";
 
 const RevenueDashboard = () => {
-  const [earnings, setEarnings] = useState(null);
+  const [revenue, setRevenue] = useState({
+    total_revenue: 0,
+    content_revenue: 0,
+    ad_revenue: 0,
+    donations: 0,
+  });
 
   useEffect(() => {
-    axios.get("/api/revenue")
-      .then(response => setEarnings(response.data))
-      .catch(error => console.error("Error fetching revenue data:", error));
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator-revenue`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => setRevenue(data))
+      .catch((error) => console.error("Error fetching revenue data:", error));
   }, []);
-
-  if (!earnings) return <p>Loading...</p>;
 
   return (
     <div className="revenue-dashboard">
-      <h1>Revenue Dashboard</h1>
-      <div className="summary">
-        <h3>Total Earnings: ${earnings.total}</h3>
-        <p>Ad Revenue: ${earnings.ad_revenue}</p>
-        <p>Donations: ${earnings.donations}</p>
-        <p>Music Sales: ${earnings.music_sales}</p>
-        <p>Merch Sales: ${earnings.merch_sales}</p>
-      </div>
-      <div className="chart">
-        {/* You can use Chart.js or Recharts here for a graph */}
+      <h2>💰 Revenue Dashboard</h2>
+      <div className="revenue-cards">
+        <div className="revenue-card">
+          <h3>Total Revenue</h3>
+          <p>${revenue.total_revenue.toFixed(2)}</p>
+        </div>
+        <div className="revenue-card">
+          <h3>Content Revenue</h3>
+          <p>${revenue.content_revenue.toFixed(2)}</p>
+        </div>
+        <div className="revenue-card">
+          <h3>Ad Revenue</h3>
+          <p>${revenue.ad_revenue.toFixed(2)}</p>
+        </div>
+        <div className="revenue-card">
+          <h3>Donations</h3>
+          <p>${revenue.donations.toFixed(2)}</p>
+        </div>
       </div>
     </div>
   );
