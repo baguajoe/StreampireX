@@ -1,0 +1,50 @@
+.admin-dashboard {
+    padding: 20px;
+  }
+  
+  .dashboard-cards {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+  }
+  
+  .card {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    width: 200px;
+    box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .admin-sections {
+    margin-top: 20px;
+  }
+  
+  .admin-sections h2 {
+    margin-bottom: 10px;
+  }
+  
+  .admin-sections ul {
+    list-style-type: none;
+    padding: 0;
+  }
+  
+  .admin-sections li {
+    background: #fff;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .ban-btn {
+    background: red;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 5px;
+  }
+  

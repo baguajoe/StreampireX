@@ -1243,3 +1243,39 @@ class RadioFollower(db.Model):
             "station_id": self.station_id,
             "followed_at": self.followed_at.isoformat(),
         }
+
+class Payout(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Creator requesting payout
+    amount = db.Column(db.Float, nullable=False)  # Payout amount
+    status = db.Column(db.String(20), default="Pending")  # Pending, Approved, Rejected, Processed
+    requested_at = db.Column(db.DateTime, default=datetime.utcnow)  # Time when payout was requested
+    processed_at = db.Column(db.DateTime, nullable=True)  # Time when payout was approved/processed
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "amount": self.amount,
+            "status": self.status,
+            "requested_at": self.requested_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "processed_at": self.processed_at.strftime("%Y-%m-%d %H:%M:%S") if self.processed_at else None,
+        }
+    
+class Revenue(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)  # Creator or platform revenue
+    revenue_type = db.Column(db.String(50), nullable=False)  # e.g., 'subscription', 'ad', 'music', 'donation'
+    amount = db.Column(db.Float, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref="revenues")  # Relate revenue to user
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "revenue_type": self.revenue_type,
+            "amount": self.amount,
+            "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+        }
