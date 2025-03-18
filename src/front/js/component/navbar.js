@@ -192,6 +192,7 @@ const Navbar = () => {
                                     <li><Link className="dropdown-item" to="/profile">👤 View Profile</Link></li>
                                     <li><Link className="dropdown-item" to="/edit-profile">✏️ Edit Profile</Link></li>
                                     <li><Link className="dropdown-item" to="/members">📊 My Audience</Link></li>
+                                    <li><Link className="dropdown-item" to="/admin-dashboard">⚙️ Admin Dashboard</Link></li>
                                     <li><Link className="dropdown-item" to="/account-settings">⚙️ Account Settings</Link></li>
                                     <li><Link className="dropdown-item" to="/marketplace">🛒 Marketplace</Link></li>
                                     <li className="nav-item"><Link className="nav-link" to="/analytics">📊 Analytics Dashboard</Link></li>

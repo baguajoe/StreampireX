@@ -1,62 +1,77 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import "../../styles/AdminDashboard.css";
 
 const AdminDashboard = () => {
-    const [plans, setPlans] = useState([]);
-    const [users, setUsers] = useState([]);
-    const [revenue, setRevenue] = useState({ total_earnings: 0, active_subscriptions: 0 });
+  const [users, setUsers] = useState([]);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [revenue, setRevenue] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetch(process.env.BACKEND_URL + "/api/admin/plans")
-            .then((res) => res.json())
-            .then((data) => setPlans(data))
-            .catch((err) => console.error("Error fetching plans:", err));
+  useEffect(() => {
+    fetchAdminData();
+  }, []);
 
-        fetch(process.env.BACKEND_URL + "/api/admin/users")
-            .then((res) => res.json())
-            .then((data) => setUsers(data))
-            .catch((err) => console.error("Error fetching users:", err));
+  const fetchAdminData = async () => {
+    try {
+      const usersRes = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/admin/users`);
+      const subsRes = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/admin/subscriptions`);
+      const revenueRes = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/admin/revenue`);
 
-        fetch(process.env.BACKEND_URL + "/api/admin/revenue")
-            .then((res) => res.json())
-            .then((data) => setRevenue(data))
-            .catch((err) => console.error("Error fetching revenue analytics:", err));
-    }, []);
+      setUsers(usersRes.data);
+      setSubscriptions(subsRes.data);
+      setRevenue(revenueRes.data.total_earnings);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching admin data:", error);
+      setLoading(false);
+    }
+  };
 
-    return (
-        <div className="admin-dashboard">
-            <h1>⚙️ Admin Dashboard</h1>
-
-            <section>
-                <h2>💰 Revenue Analytics</h2>
-                <p>📈 Total Earnings: ${revenue.total_earnings}</p>
-                <p>🔥 Active Subscriptions: {revenue.active_subscriptions}</p>
-            </section>
-
-            <section>
-                <h2>📊 Subscription Plans</h2>
-                {plans.map((plan) => (
-                    <div key={plan.id} className="admin-card">
-                        <h3>{plan.name}</h3>
-                        <p>💰 Monthly: ${plan.price_monthly}</p>
-                        <p>📅 Yearly: ${plan.price_yearly}</p>
-                        <button>Edit</button>
-                    </div>
-                ))}
-            </section>
-
-            <section>
-                <h2>👥 Users</h2>
-                {users.map((user) => (
-                    <div key={user.id} className="admin-card">
-                        <h3>{user.username}</h3>
-                        <p>Email: {user.email}</p>
-                        <p>Subscription: {user.is_premium ? "Premium" : "Free"}</p>
-                        <button>Ban User</button>
-                    </div>
-                ))}
-            </section>
+  return (
+    <div className="admin-dashboard">
+      <h1>Admin Dashboard</h1>
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <div className="dashboard-cards">
+          <div className="card">
+            <h3>Total Revenue</h3>
+            <p>${revenue.toFixed(2)}</p>
+          </div>
+          <div className="card">
+            <h3>Active Subscriptions</h3>
+            <p>{subscriptions.length}</p>
+          </div>
+          <div className="card">
+            <h3>Registered Users</h3>
+            <p>{users.length}</p>
+          </div>
         </div>
-    );
+      )}
+
+      <div className="admin-sections">
+        <h2>Manage Users</h2>
+        <ul>
+          {users.map((user) => (
+            <li key={user.id}>
+              {user.username} ({user.email}) - Role: {user.role}
+              <button className="ban-btn">Ban</button>
+            </li>
+          ))}
+        </ul>
+
+        <h2>Manage Subscriptions</h2>
+        <ul>
+          {subscriptions.map((sub) => (
+            <li key={sub.id}>
+              {sub.user_email} - Plan: {sub.plan_name} - Status: {sub.status}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
 };
 
 export default AdminDashboard;
