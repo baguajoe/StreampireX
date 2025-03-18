@@ -1,27 +1,25 @@
+/ MerchStore.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import "./MerchStore.css"; 
 
 const MerchStore = () => {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    axios.get("/api/merch").then(response => setProducts(response.data));
+    axios.get("/api/merch")
+      .then((res) => setProducts(res.data))
+      .catch((err) => console.error(err));
   }, []);
 
   return (
-    <div className="merch-store">
-      <h1>Merch Store</h1>
-      <div className="product-list">
-        {products.map((product) => (
-          <div key={product.id} className="product">
-            <img src={product.image_url} alt={product.name} />
-            <h3>{product.name}</h3>
-            <p>${product.price}</p>
-            <button>Add to Cart</button>
-          </div>
-        ))}
-      </div>
+    <div>
+      <h2>Merch Store</h2>
+      {products.map((product) => (
+        <div key={product.id}>
+          <h3>{product.name}</h3>
+          <p>Price: ${product.price}</p>
+        </div>
+      ))}
     </div>
   );
 };

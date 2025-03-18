@@ -25,6 +25,11 @@ import PodcastCreate from "./pages/PodcastCreate";
 import PodcastPage from "./pages/PodcastPage";
 import PodcastDashboard from "./pages/PodcastDashboard";
 import CreateRadioStation from "./pages/CreateRadioStation";
+import AnalyticsDashboard from "./pages/AnalyticsDashboard";
+import LicensingMarketplace from "./pages/LicensingMarketplace";
+import PremiumContent from "./pages/PremiumContent";
+import RevenueDashboard from "./pages/RevenueDashboard";
+import MerchStore from "./pages/MerchStore";
 // import  PaymentProcessing  from "./pages/PaymentProcessing";
 // import  FreeTrial  from "./pages/FreeTrial";
 import MembersPage from "./pages/MembersPage";
@@ -70,6 +75,11 @@ const Layout = () => {
                             <Route path="/podcast-dashboard" element={<PodcastDashboard />} />
                             <Route path="/create-radio" element={<CreateRadioStation />} />
                             <Route path="/indie-artist-upload" element={<IndieArtistUpload />} />
+                            <Route path="/analytics" element={<AnalyticsDashboard />} />
+                            <Route path="/licenses" element={<LicensingMarketplace />} />
+                            <Route path="/premium-content" element={<PremiumContent />} />
+                            <Route path="/revenue" element={<RevenueDashboard />} />
+                            <Route path="/merch" element={<MerchStore />} />
 
 
                             <Route path="/radio-stations" element={<RadioStationPage />} />

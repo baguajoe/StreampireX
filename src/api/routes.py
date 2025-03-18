@@ -3,7 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics
 from api.utils import generate_sitemap, APIException
 from sqlalchemy import func, desc
 from flask_cors import CORS
@@ -1566,28 +1566,6 @@ def get_my_licenses():
 
 # bmi and ascap
 
-@api.route('/track-play', methods=['POST'])
-@jwt_required()
-def track_play():
-    """Track each time a song is streamed"""
-    data = request.json
-    user_id = get_jwt_identity()
-    track_id = data.get("track_id")
-
-    if not track_id:
-        return jsonify({"error": "Track ID required"}), 400
-
-    new_play = StreamingHistory(
-        user_id=user_id,
-        content_id=track_id,
-        content_type="audio",
-        listened_at=datetime.utcnow()
-    )
-    db.session.add(new_play)
-    db.session.commit()
-
-    return jsonify({"message": "Play tracked successfully"}), 201
-
 
 @api.route('/generate-royalty-report', methods=['GET'])
 @jwt_required()
@@ -2721,3 +2699,83 @@ def search_content():
 def get_merch():
     products = Product.query.all()
     return jsonify([product.serialize() for product in products]), 200
+
+
+
+# 📊 Fetch Analytics Data
+@api.route('/analytics', methods=['GET'])
+@jwt_required()
+def get_analytics():
+    user_id = get_jwt_identity()
+    analytics_data = Analytics.query.filter_by(user_id=user_id).all()
+
+    return jsonify([data.serialize() for data in analytics_data]), 200
+
+@api.route('/track-play', methods=['POST'])
+@jwt_required()
+def track_play():
+    data = request.json
+    user_id = get_jwt_identity()
+
+    existing_analytics = Analytics.query.filter_by(
+        user_id=user_id, content_id=data["content_id"], content_type=data["content_type"]
+    ).first()
+
+    if existing_analytics:
+        existing_analytics.play_count += 1
+    else:
+        new_analytics = Analytics(
+            user_id=user_id,
+            content_id=data["content_id"],
+            content_type=data["content_type"],
+            play_count=1,
+        )
+        db.session.add(new_analytics)
+
+    db.session.commit()
+    return jsonify({"message": "Play recorded"}), 200
+
+@api.route('/track-purchase', methods=['POST'])
+@jwt_required()
+def track_purchase():
+    data = request.json
+    user_id = get_jwt_identity()
+
+    existing_analytics = Analytics.query.filter_by(
+        user_id=user_id, content_id=data["content_id"], content_type=data["content_type"]
+    ).first()
+
+    if existing_analytics:
+        existing_analytics.purchase_count += 1
+        existing_analytics.revenue_generated += data["amount"]
+    else:
+        new_analytics = Analytics(
+            user_id=user_id,
+            content_id=data["content_id"],
+            content_type=data["content_type"],
+            purchase_count=1,
+            revenue_generated=data["amount"],
+        )
+        db.session.add(new_analytics)
+
+    db.session.commit()
+    return jsonify({"message": "Purchase recorded"}), 200
+
+@api.route('/creator-revenue', methods=['GET'])
+@jwt_required()
+def get_creator_revenue():
+    """Fetch total revenue for an artist/podcaster."""
+    user_id = get_jwt_identity()
+
+    total_analytics_revenue = db.session.query(db.func.sum(Analytics.revenue_generated)).filter_by(user_id=user_id).scalar() or 0
+    total_ad_revenue = db.session.query(db.func.sum(AdRevenue.amount)).filter_by(user_id=user_id).scalar() or 0
+    total_donations = db.session.query(db.func.sum(CreatorDonation.amount)).filter_by(user_id=user_id).scalar() or 0
+
+    total_revenue = total_analytics_revenue + total_ad_revenue + total_donations
+
+    return jsonify({
+        "total_revenue": total_revenue,
+        "content_revenue": total_analytics_revenue,
+        "ad_revenue": total_ad_revenue,
+        "donations": total_donations
+    }), 200

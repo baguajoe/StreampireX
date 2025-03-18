@@ -110,7 +110,27 @@ class Favorite(db.Model):
             "created_at": self.created_at.isoformat(),
         }
 
+class Analytics(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content_type = db.Column(db.String(50), nullable=False)  # 'podcast', 'music', 'video', etc.
+    content_id = db.Column(db.Integer, nullable=False)  # ID of the item (track, podcast, etc.)
+    play_count = db.Column(db.Integer, default=0)
+    purchase_count = db.Column(db.Integer, default=0)
+    revenue_generated = db.Column(db.Float, default=0.0)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "content_type": self.content_type,
+            "content_id": self.content_id,
+            "play_count": self.play_count,
+            "purchase_count": self.purchase_count,
+            "revenue_generated": self.revenue_generated,
+            "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        }
 
 class ShareAnalytics(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -130,6 +150,10 @@ class ShareAnalytics(db.Model):
             "shared_at": self.shared_at.isoformat(),
         }
 
+    @staticmethod
+    def get_shared_data(user_id):
+        """ Fetch all shared analytics for a given user """
+        return ShareAnalytics.query.filter_by(user_id=user_id).all()
 
 
 playlist_audio_association = db.Table(
