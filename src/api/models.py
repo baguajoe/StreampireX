@@ -31,6 +31,7 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     is_premium = db.Column(db.Boolean, default=False, server_default="False")
+    avatar_url = db.Column(db.String(500))  # <-- add this line
     
     # ✅ New Fields for Business & Display Name
     business_name = db.Column(db.String(255), nullable=True)

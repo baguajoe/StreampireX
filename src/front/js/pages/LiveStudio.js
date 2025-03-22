@@ -1,28 +1,80 @@
+import React, { useEffect, useRef, useState } from "react";
+import * as mpHolistic from "@mediapipe/holistic";
+import { Camera } from "@mediapipe/camera_utils";
+
 const LiveStudio = ({ isOpen, onClose }) => {
     const [isLive, setIsLive] = useState(false);
     const [micOn, setMicOn] = useState(true);
     const [cameraOn, setCameraOn] = useState(true);
     const videoRef = useRef(null);
-    let stream = null;  // Store media stream
+    const mediaPipeCameraRef = useRef(null);
+    let stream = null;
 
     const constraints = { audio: true, video: true };
 
+    // 🧠 Handle results from MediaPipe Holistic
+    const onHolisticResults = (results) => {
+        if (results.poseLandmarks) {
+            console.log("🧍 Pose Landmarks:", results.poseLandmarks);
+        }
+        if (results.leftHandLandmarks) {
+            console.log("🖐️ Left Hand:", results.leftHandLandmarks);
+        }
+        if (results.rightHandLandmarks) {
+            console.log("✋ Right Hand:", results.rightHandLandmarks);
+        }
+        if (results.faceLandmarks) {
+            console.log("🙂 Face Landmarks:", results.faceLandmarks);
+        }
+    };
+
+    // 🔁 Setup Holistic pipeline
+    const setupHolisticTracking = () => {
+        const holistic = new mpHolistic.Holistic({
+            locateFile: (file) =>
+                `https://cdn.jsdelivr.net/npm/@mediapipe/holistic/${file}`
+        });
+
+        holistic.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            enableSegmentation: false,
+            refineFaceLandmarks: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+
+        holistic.onResults(onHolisticResults);
+
+        mediaPipeCameraRef.current = new Camera(videoRef.current, {
+            onFrame: async () => {
+                await holistic.send({ image: videoRef.current });
+            },
+            width: 640,
+            height: 480
+        });
+
+        mediaPipeCameraRef.current.start();
+    };
+
+    // 🎥 Get mic and camera, then launch Holistic
     const getMicAndCamera = async () => {
         try {
             stream = await navigator.mediaDevices.getUserMedia(constraints);
-            console.log("Access granted:", stream);
+            console.log("✅ Media access granted:", stream);
 
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
                 videoRef.current.play();
+                setupHolisticTracking(); // 🧠 Start MediaPipe Holistic
             }
         } catch (error) {
-            console.log("User denied access to constraints", error);
+            console.error("🚫 Media access error:", error);
         }
     };
 
     const startLiveStream = async () => {
-        await getMicAndCamera();  // Ensure camera/mic is granted before streaming
+        await getMicAndCamera();
         setIsLive(true);
 
         try {
@@ -39,16 +91,19 @@ const LiveStudio = ({ isOpen, onClose }) => {
             });
 
             if (!response.ok) throw new Error("Failed to start live stream");
-            console.log("🎥 Live Stream Started");
+            console.log("🎥 Live stream started");
         } catch (error) {
-            console.error("Error starting live stream:", error);
+            console.error("❌ Error starting live stream:", error);
         }
     };
 
     const endLiveStream = async () => {
         setIsLive(false);
         if (stream) {
-            stream.getTracks().forEach(track => track.stop());  // Stop all media tracks
+            stream.getTracks().forEach(track => track.stop());
+            if (mediaPipeCameraRef.current) {
+                mediaPipeCameraRef.current.stop();
+            }
         }
 
         try {
@@ -58,10 +113,10 @@ const LiveStudio = ({ isOpen, onClose }) => {
             });
 
             if (!response.ok) throw new Error("Failed to end live stream");
-            console.log("⛔ Live Stream Ended");
+            console.log("⛔ Live stream ended");
             onClose();
         } catch (error) {
-            console.error("Error ending live stream:", error);
+            console.error("❌ Error ending live stream:", error);
         }
     };
 
@@ -74,7 +129,15 @@ const LiveStudio = ({ isOpen, onClose }) => {
                 <h2>🎙️ Live Studio</h2>
 
                 <div className="video-preview">
-                    <video ref={videoRef} id="video" autoPlay playsInline></video>
+                    <video
+                        ref={videoRef}
+                        id="video"
+                        autoPlay
+                        playsInline
+                        muted
+                        width="640"
+                        height="480"
+                    ></video>
                 </div>
 
                 <div className="controls">

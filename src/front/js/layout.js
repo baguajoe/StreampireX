@@ -98,6 +98,10 @@ const Layout = () => {
                             <Route path="/podcasts" element={<PodcastPage />} />
                             <Route path="/live-concerts" element={<LiveConcerts />} />
                             <Route path="/pricing" element={<PricingPlans />} />
+                            <Route path="/create-avatar" element={<CreateAvatar />} />
+                            
+                            <Route path="/avatar-creator" element={<AvatarCreation />} />
+
                             {/* <Route path="/payment-processing" element={<PaymentProcessing />} /> */}
                             {/* <Route path="/free-trial" element={<FreeTrial />} /> */}
                             <Route path="/members" element={<MembersPage />} />
