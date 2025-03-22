@@ -3,7 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment
 from api.utils import generate_sitemap, APIException
 from sqlalchemy import func, desc
 from flask_cors import CORS
@@ -2925,3 +2925,175 @@ def get_profile():
         "avatar_url": user.avatar_url
     }), 200
 
+# Flask example
+@api.route("/vr-events/create", methods=["POST"])
+@jwt_required()
+def create_vr_event():
+    # Artist creates a new event
+    pass
+
+@api.route("/vr-events/<event_id>/join", methods=["GET"])
+@jwt_required()
+def join_vr_event(event_id):
+    # Check if user has paid
+    pass
+
+@api.route("/create-payment-intent", methods=["POST"])
+@jwt_required()
+def create_payment():
+    try:
+        data = request.get_json()
+        user_id = get_jwt_identity()
+        amount = data.get("amount", 999)
+
+        intent = stripe.PaymentIntent.create(
+            amount=amount,
+            currency="usd",
+            automatic_payment_methods={"enabled": True},
+        )
+
+        # Save initial record
+        new_payment = Payment(
+            user_id=user_id,
+            amount=amount,
+            payment_intent_id=intent.id,
+            status="pending"
+        )
+        db.session.add(new_payment)
+        db.session.commit()
+
+        return jsonify({"clientSecret": intent.client_secret})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@api.route("/free-trial", methods=["POST"])
+@jwt_required()
+def activate_free_trial():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if user.is_on_trial:
+        return jsonify({"message": "Trial already activated"}), 400
+
+    trial_days = 7
+    now = datetime.utcnow()
+    user.is_on_trial = True
+    user.trial_start_date = now
+    user.trial_end_date = now + timedelta(days=trial_days)
+
+    db.session.commit()
+    return jsonify({"message": f"Free trial activated for {trial_days} days."}), 200
+
+@api.route("/free-trial-status", methods=["GET"])
+@jwt_required()
+def trial_status():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    trial_active = False
+    now = datetime.utcnow()
+
+    if user.is_on_trial and user.trial_end_date and user.trial_end_date > now:
+        trial_active = True
+    elif user.is_on_trial and user.trial_end_date and user.trial_end_date <= now:
+        # Auto-deactivate trial if expired
+        user.is_on_trial = False
+        db.session.commit()
+
+    return jsonify({
+        "is_on_trial": user.is_on_trial,
+        "trial_active": trial_active,
+        "trial_ends": user.trial_end_date.strftime("%Y-%m-%d") if user.trial_end_date else None
+    }), 200
+
+@api.route("/digital-products", methods=["GET"])
+def list_digital_products():
+    products = Product.query.filter_by(is_digital=True).all()
+    return jsonify([product.serialize() for product in products]), 200
+
+@api.route("/download/<int:product_id>", methods=["GET"])
+@jwt_required()
+def download_digital_product(product_id):
+    user_id = get_jwt_identity()
+    product = Product.query.get(product_id)
+
+    if not product or not product.is_digital:
+        return jsonify({"message": "Product not found or not downloadable"}), 404
+
+    # 🔐 Check purchase (assuming Purchase model exists)
+    purchase = Purchase.query.filter_by(user_id=user_id, product_id=product.id).first()
+    if not purchase:
+        return jsonify({"message": "Access denied. You must purchase this product."}), 403
+
+    # Local file (or return signed S3 URL)
+    filepath = os.path.join("uploads/products", product.file_url)
+    return send_file(filepath, as_attachment=True)
+
+@api.route("/refund/request", methods=["POST"])
+@jwt_required()
+def request_refund():
+    user_id = get_jwt_identity()
+    data = request.json
+
+    refund = RefundRequest(
+        user_id=user_id,
+        product_id=data["product_id"],
+        reason=data.get("reason", "")
+    )
+
+    db.session.add(refund)
+    db.session.commit()
+    return jsonify({"msg": "Refund request submitted"}), 201
+
+@api.route("/refunds", methods=["GET"])
+@jwt_required()
+def get_refunds():
+    # Optional: Check admin privileges here
+    refunds = RefundRequest.query.all()
+    return jsonify([r.serialize() for r in refunds]), 200
+
+@api.route("/refunds/<int:refund_id>", methods=["PUT"])
+@jwt_required()
+def update_refund(refund_id):
+    # Optional: Check admin privileges
+    data = request.json
+    refund = RefundRequest.query.get(refund_id)
+
+    if not refund:
+        return jsonify({"msg": "Refund not found"}), 404
+
+    refund.status = data["status"]  # "Approved" or "Rejected"
+    refund.reviewed_at = datetime.utcnow()
+
+    db.session.commit()
+    return jsonify({"msg": f"Refund {refund.status}"}), 200
+
+@api.route('/revenue-analytics', methods=['GET'])
+@jwt_required()
+def get_revenue_analytics():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    # Filter by creator if needed
+    is_admin = user.role == "admin"
+    filters = (Product.creator_id == user_id,) if not is_admin else ()
+
+    total_revenue = db.session.query(func.sum(Product.sales_revenue)).filter(*filters).scalar() or 0
+    total_products = Product.query.filter(*filters).count()
+    total_orders = db.session.query(Order).filter(*filters).count()
+
+    # Optional: Revenue by month
+    revenue_by_month = db.session.query(
+        func.date_trunc('month', Order.created_at).label('month'),
+        func.sum(Order.amount)
+    ).filter(*filters).group_by('month').order_by('month').all()
+
+    return jsonify({
+        "total_revenue": round(total_revenue, 2),
+        "total_products": total_products,
+        "total_orders": total_orders,
+        "revenue_by_month": [
+            {"month": str(month), "amount": float(amount)} for month, amount in revenue_by_month
+        ]
+    }), 200
