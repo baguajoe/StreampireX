@@ -1212,34 +1212,42 @@ def get_subscriptions():
 @api.route("/admin/revenue", methods=["GET"])
 @jwt_required()
 def get_admin_revenue():
-    """ Fetch total revenue data for platform admins """
+    """Fetch total revenue data for platform admins or artists"""
     user_id = get_jwt_identity()
     
-    if not is_admin(user_id):
-        return jsonify({"error": "Unauthorized"}), 403
+    if is_admin(user_id):
+        # Admin revenue breakdown
+        total_ad_revenue = db.session.query(db.func.sum(AdRevenue.amount)).scalar() or 0
+        total_donations = db.session.query(db.func.sum(CreatorDonation.amount)).scalar() or 0
+        total_music_sales = db.session.query(db.func.sum(Track.sales_revenue)).scalar() or 0
+        total_merch_sales = db.session.query(db.func.sum(Product.sales_revenue)).scalar() or 0
+        total_subscriptions = db.session.query(db.func.sum(Subscription.price)).scalar() or 0
+        active_subscriptions = Subscription.query.count()
 
-    total_ad_revenue = db.session.query(db.func.sum(AdRevenue.amount)).scalar() or 0
-    total_donations = db.session.query(db.func.sum(CreatorDonation.amount)).scalar() or 0
-    total_music_sales = db.session.query(db.func.sum(Track.sales_revenue)).scalar() or 0
-    total_merch_sales = db.session.query(db.func.sum(Product.sales_revenue)).scalar() or 0
-    total_subscriptions = db.session.query(db.func.sum(Subscription.price)).scalar() or 0
-    active_subscriptions = Subscription.query.count()
+        total_revenue = (
+            total_ad_revenue + total_donations + 
+            total_music_sales + total_merch_sales + total_subscriptions
+        )
 
-    total_revenue = (
-        total_ad_revenue + total_donations + 
-        total_music_sales + total_merch_sales + total_subscriptions
+        return jsonify({
+            "total_earnings": total_revenue,
+            "ad_revenue": total_ad_revenue,
+            "donations": total_donations,
+            "music_sales": total_music_sales,
+            "merch_sales": total_merch_sales,
+            "subscription_revenue": total_subscriptions,
+            "active_subscriptions": active_subscriptions
+        }), 200
+
+    # If user is an artist, return only their revenue breakdown
+    artist_donations = db.session.query(db.func.sum(CreatorDonation.amount)).filter_by(user_id=user_id).scalar() or 0
+    artist_music_sales = db.session.query(db.func.sum(Track.sales_revenue)).filter_by(artist_id=user_id).scalar() or 0
+    artist_merch_sales = db.session.query(db.func.sum(Product.sales_revenue)).filter_by(seller_id=user_id).scalar() or 0
+    artist_subscription_earnings = db.session.query(db.func.sum(Subscription.price)).filter_by(user_id=user_id).scalar() or 0
+
+    total_artist_revenue = (
+        artist_donations + artist_music_sales + artist_merch_sales + artist_subscription_earnings
     )
-
-    return jsonify({
-        "total_earnings": total_revenue,
-        "ad_revenue": total_ad_revenue,
-        "donations": total_donations,
-        "music_sales": total_music_sales,
-        "merch_sales": total_merch_sales,
-        "subscription_revenue": total_subscriptions,
-        "active_subscriptions": active_subscriptions
-    }), 200
-
 
     return jsonify({
         "total_earnings": total_artist_revenue,
@@ -1249,19 +1257,6 @@ def get_admin_revenue():
         "subscription_earnings": artist_subscription_earnings
     }), 200
 
-    # If user is an artist, return only their revenue breakdown
-    artist_donations = db.session.query(db.func.sum(CreatorDonation.amount)).filter_by(user_id=user_id).scalar() or 0
-    artist_music_sales = db.session.query(db.func.sum(Track.sales_revenue)).filter_by(artist_id=user_id).scalar() or 0
-    artist_merch_sales = db.session.query(db.func.sum(Product.sales_revenue)).filter_by(seller_id=user_id).scalar() or 0
-
-    total_artist_revenue = artist_donations + artist_music_sales + artist_merch_sales
-
-    return jsonify({
-        "total": total_artist_revenue,
-        "donations": artist_donations,
-        "music_sales": artist_music_sales,
-        "merch_sales": artist_merch_sales
-    }), 200
 
 
 @api.route('/roles', methods=['GET'])
@@ -2870,3 +2865,63 @@ def reject_payout(payout_id):
     db.session.commit()
 
     return jsonify({"message": "Payout rejected"}), 200
+
+
+# === BACKEND ===
+# File: /api/routes/user.py
+
+user_api = Blueprint("user_api", __name__)
+
+@api.route("/save-avatar", methods=["POST"])
+@jwt_required()
+def save_avatar():
+    """
+    Save the avatar URL to the user's profile.
+    This route expects a JSON payload like: { "avatar_url": "https://..." }
+    """
+    data = request.get_json()
+    avatar_url = data.get("avatar_url")
+
+    if not avatar_url:
+        return jsonify({ "error": "No avatar URL provided" }), 400
+
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({ "error": "User not found" }), 404
+
+    user.avatar_url = avatar_url
+    db.session.commit()
+
+    return jsonify({
+        "message": "Avatar URL saved successfully.",
+        "avatar_url": avatar_url
+    }), 200
+
+
+@api.route("get-avatar", methods=["GET"])
+@jwt_required()
+def get_avatar():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user or not user.avatar_url:
+        return jsonify({ "avatar_url": None }), 404
+
+    return jsonify({ "avatar_url": user.avatar_url }), 200
+
+@api.route("/artist/profile", methods=["GET"])
+@jwt_required()
+def get_profile():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({ "error": "User not found" }), 404
+
+    return jsonify({
+        "username": user.username,
+        "avatar_url": user.avatar_url
+    }), 200
+
