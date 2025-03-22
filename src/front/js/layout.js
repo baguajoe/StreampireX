@@ -9,7 +9,7 @@ import { Signup } from "./pages/Signup";
 import RadioStationPage from "./pages/RadioStations";
 import LiveStreamPage from "./pages/LiveStreams";
 import CreatorDashboard from "./pages/creatorDashboard";
-// import  FavoritesPage  from "./pages/Favorites";
+import  FavoritesPage  from "./pages/Favorites";
 import ProfilePage from "./pages/ProfilePage";
 import BrowseByCategory from "./pages/BrowseByCategory";
 import BrowseRadioGenres from "./pages/BrowseRadioGenres";
@@ -30,14 +30,16 @@ import LicensingMarketplace from "./pages/LicensingMarketplace";
 import PremiumContent from "./pages/PremiumContent";
 import RevenueDashboard from "./pages/RevenueDashboard";
 import MerchStore from "./pages/MerchStore";
-// import  PaymentProcessing  from "./pages/PaymentProcessing";
-// import  FreeTrial  from "./pages/FreeTrial";
+import CreateAvatar from "./pages/CreateAvatar";
+import AvatarCreation from "./pages/AvatarCreation";
+import  PaymentProcessing  from "./pages/PaymentProcessing";
+import  FreeTrial  from "./pages/FreeTrial";
 import MembersPage from "./pages/MembersPage";
-// import  DigitalProducts  from "./pages/DigitalProducts";
+import  DigitalProducts  from "./pages/DigitalProducts";
 import ProductPage from "./pages/ProductPage";
 import AdminDashboard from "./pages/AdminDashboard";
-// import  RefundProcessing  from "./pages/RefundProcessing";
-// import  RevenueAnalytics  from "./pages/RevenueAnalytics";
+import  RefundProcessing  from "./pages/RefundProcessing";
+import  RevenueAnalytics  from "./pages/RevenueAnalytics";
 import RoleManagement from "./pages/RoleManagement";  // ✅ Add Role Management Page
 import { Demo } from "./pages/demo";
 import { Single } from "./pages/single";
@@ -85,7 +87,7 @@ const Layout = () => {
                             <Route path="/radio-stations" element={<RadioStationPage />} />
                             <Route path="/live-streams" element={<LiveStreamPage />} />
                             <Route path="/dashboard" element={<CreatorDashboard />} />
-                            {/* <Route path="/favorites" element={<FavoritesPage />} /> */}
+                            <Route path="/favorites" element={<FavoritesPage />} />
                             <Route path="/profile" element={<ProfilePage />} />
                             <Route path="/category/:category" element={<BrowseByCategory />} />
                             <Route path="/browse-podcasts" element={<BrowsePodcastCategories />} />
@@ -102,14 +104,14 @@ const Layout = () => {
                             
                             <Route path="/avatar-creator" element={<AvatarCreation />} />
 
-                            {/* <Route path="/payment-processing" element={<PaymentProcessing />} /> */}
-                            {/* <Route path="/free-trial" element={<FreeTrial />} /> */}
+                            <Route path="/payment-processing" element={<PaymentProcessing />} />
+                            <Route path="/free-trial" element={<FreeTrial />} />
                             <Route path="/members" element={<MembersPage />} />
-                            {/* <Route path="/digital-products" element={<DigitalProducts />} /> */}
+                            <Route path="/digital-products" element={<DigitalProducts />} />
                             <Route path="/marketplace" element={<ProductPage />} />
                             <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                            {/* <Route path="/refund-processing" element={<RefundProcessing />} /> */}
-                            {/* <Route path="/revenue-analytics" element={<RevenueAnalytics />} /> */}
+                            <Route path="/refund-processing" element={<RefundProcessing />} />
+                            <Route path="/revenue-analytics" element={<RevenueAnalytics />} />
                             <Route path="/role-management" element={<RoleManagement />} />  {/* ✅ Add Role Management route */}
                             <Route path="/demo" element={<Demo />} />
                             <Route path="/single/:theid" element={<Single />} />

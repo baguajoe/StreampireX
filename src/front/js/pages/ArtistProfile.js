@@ -1,54 +1,55 @@
-// 📁 /src/pages/ArtistProfile.js
+// src/front/js/pages/ArtistProfile.js
 
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { getToken } from "../../utils/auth";
 
 const ArtistProfile = () => {
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [username, setUsername] = useState("");
-  const navigate = useNavigate();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch artist profile from backend
-    fetch("http://localhost:5000/api/artist/profile", {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("/api/artist/profile", {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch profile");
+
+        const data = await res.json();
+        setProfile(data);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching artist profile", error);
+        setLoading(false);
       }
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setAvatarUrl(data.avatar_url);
-        setUsername(data.username);
-      })
-      .catch((err) => console.error("Error loading profile", err));
+    };
+
+    fetchProfile();
   }, []);
 
-  return (
-    <div className="artist-profile">
-      <h2>🎤 Welcome, {username}</h2>
+  if (loading) return <div>Loading profile...</div>;
+  if (!profile) return <div>No profile found.</div>;
 
-      {avatarUrl ? (
-        <div>
-          <h4>Your Avatar:</h4>
-          <model-viewer
-            src={avatarUrl}
-            alt="Your Avatar"
-            auto-rotate
-            camera-controls
-            style={{ width: "300px", height: "400px" }}
-          />
-        </div>
+  return (
+    <div className="p-6 max-w-xl mx-auto bg-white shadow-md rounded-lg text-center">
+      <h2 className="text-2xl font-semibold mb-4">{profile.username}'s Profile</h2>
+      
+      {profile.avatar_url ? (
+        <img
+          src={profile.avatar_url}
+          alt="Artist Avatar"
+          className="w-32 h-32 rounded-full mx-auto mb-4 object-cover"
+        />
       ) : (
-        <p>You haven't created an avatar yet.</p>
+        <div className="w-32 h-32 rounded-full mx-auto bg-gray-200 mb-4 flex items-center justify-center">
+          <span className="text-gray-500">No Avatar</span>
+        </div>
       )}
 
-      <button
-        className="btn"
-        onClick={() => navigate("/create-avatar")}
-        style={{ marginTop: "20px" }}
-      >
-        🎭 {avatarUrl ? "Update Your Avatar" : "Create Your Avatar"}
-      </button>
+      <p className="text-gray-600">More profile info coming soon...</p>
     </div>
   );
 };

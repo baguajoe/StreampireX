@@ -32,6 +32,9 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     is_premium = db.Column(db.Boolean, default=False, server_default="False")
     avatar_url = db.Column(db.String(500))  # <-- add this line
+    is_on_trial = db.Column(db.Boolean, default=False)
+    trial_start_date = db.Column(db.DateTime, nullable=True)
+    trial_end_date = db.Column(db.DateTime, nullable=True)
     
     # ✅ New Fields for Business & Display Name
     business_name = db.Column(db.String(255), nullable=True)
@@ -68,7 +71,10 @@ class User(db.Model):
             "podcast": self.podcast,
             "social_links": self.social_links or {},
             "gallery": self.gallery or [],
-            "videos": self.videos or []
+            "videos": self.videos or [],
+            "is_on_trial": self.is_on_trial,
+            "trial_start_date": self.trial_start_date.strftime("%Y-%m-%d") if self.trial_start_date else None,
+            "trial_end_date": self.trial_end_date.strftime("%Y-%m-%d") if self.trial_end_date else None
         }
 
 
@@ -1263,6 +1269,25 @@ class Payout(db.Model):
             "processed_at": self.processed_at.strftime("%Y-%m-%d %H:%M:%S") if self.processed_at else None,
         }
     
+# models.py
+class Payment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    amount = db.Column(db.Integer)
+    payment_intent_id = db.Column(db.String(120), unique=True)
+    status = db.Column(db.String(50))  # e.g., 'succeeded'
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "amount": self.amount,
+            "payment_intent_id": self.payment_intent_id,
+            "status": self.status,
+            "timestamp": self.timestamp.isoformat(),
+        }
+
+    
 class Revenue(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)  # Creator or platform revenue
@@ -1280,3 +1305,91 @@ class Revenue(db.Model):
             "amount": self.amount,
             "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
         }
+    
+# models/listening_party.py
+
+class ListeningParty(db.Model):
+    __tablename__ = 'listening_party'
+
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('artist.id'), nullable=False)
+    album_name = db.Column(db.String(255), nullable=False)
+    start_time = db.Column(db.DateTime, nullable=False)
+    ticket_price = db.Column(db.Float, default=0.0)
+    is_active = db.Column(db.Boolean, default=True)
+    vr_room_url = db.Column(db.String(512))
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    attendees = db.relationship('ListeningPartyAttendee', backref='party', lazy=True)
+
+class ListeningPartyAttendee(db.Model):
+    __tablename__ = 'listening_party_attendee'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    party_id = db.Column(db.Integer, db.ForeignKey('listening_party.id'), nullable=False)
+    payment_status = db.Column(db.String(50), default='paid')  # or 'pending', 'refunded'
+    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Album(db.Model):
+    __tablename__ = 'album'
+
+    id = db.Column(db.Integer, primary_key=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('artist.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    release_date = db.Column(db.Date)
+    cover_art_url = db.Column(db.String(255))
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Artist(db.Model):
+    __tablename__ = 'artist'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    avatar_url = db.Column(db.String(255))
+
+    albums = db.relationship('Album', backref='artist', lazy=True)
+    listening_parties = db.relationship('ListeningParty', backref='artist', lazy=True)
+
+class Purchase(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    purchased_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def serialize(self):
+        return {
+            "user_id": self.user_id,
+            "product_id": self.product_id,
+            "purchased_at": self.purchased_at.isoformat(),
+        }
+
+class RefundRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id"), nullable=False)
+    reason = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), default="Pending")  # Pending, Approved, Rejected, Refunded
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "product_id": self.product_id,
+            "reason": self.reason,
+            "status": self.status,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "reviewed_at": self.reviewed_at.strftime("%Y-%m-%d %H:%M:%S") if self.reviewed_at else None
+        }
+    
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id"), nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
