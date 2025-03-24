@@ -1,11 +1,12 @@
 """
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
-from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory
+from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty
 from api.utils import generate_sitemap, APIException
 from sqlalchemy import func, desc
+from datetime import timedelta  # for trial logic or date math
 from flask_cors import CORS
 from flask_apscheduler import APScheduler
 import uuid
@@ -28,6 +29,8 @@ from flask_socketio import SocketIO
 stripe.api_key = "your_stripe_secret_key"
 
 api = Blueprint('api', __name__)
+
+marketplace = Blueprint('marketplace', __name__)
 
 scheduler = APScheduler()
 
@@ -1128,6 +1131,89 @@ def upload_product():
     db.session.commit()
 
     return jsonify({"message": "Product uploaded successfully", "product": new_product.serialize()}), 201
+
+@api.route('/products', methods=['GET'])
+def get_products():
+    try:
+        products = Product.query.all()  # Fetch all products from the database
+        result = []
+        for product in products:
+            result.append({
+                'id': product.id,
+                'title': product.title,
+                'description': product.description,
+                'price': product.price,
+                'image_url': product.image_url,
+                'creator_id': product.creator_id  # Assuming each product is linked to a creator/store
+            })
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api.route('/products/<int:id>', methods=['GET'])
+def get_product(id):
+    try:
+        product = Product.query.get(id)
+        if product:
+            return jsonify(product.serialize()), 200
+        return jsonify({"message": "Product not found"}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api.route('/products', methods=['POST'])
+def create_product():
+    try:
+        data = request.get_json()
+        new_product = Product(
+            creator_id=data['creator_id'],
+            title=data['title'],
+            description=data.get('description'),
+            image_url=data['image_url'],
+            file_url=data.get('file_url'),
+            price=data['price'],
+            stock=data.get('stock'),
+            is_digital=data['is_digital']
+        )
+        db.session.add(new_product)
+        db.session.commit()
+        return jsonify(new_product.serialize()), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api.route('/products/<int:id>', methods=['PUT'])
+def update_product(id):
+    try:
+        product = Product.query.get(id)
+        if not product:
+            return jsonify({"message": "Product not found"}), 404
+        
+        data = request.get_json()
+        product.title = data.get('title', product.title)
+        product.description = data.get('description', product.description)
+        product.image_url = data.get('image_url', product.image_url)
+        product.file_url = data.get('file_url', product.file_url)
+        product.price = data.get('price', product.price)
+        product.stock = data.get('stock', product.stock)
+        product.is_digital = data.get('is_digital', product.is_digital)
+
+        db.session.commit()
+        return jsonify(product.serialize()), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api.route('/products/<int:id>', methods=['DELETE'])
+def delete_product(id):
+    try:
+        product = Product.query.get(id)
+        if not product:
+            return jsonify({"message": "Product not found"}), 404
+        
+        db.session.delete(product)
+        db.session.commit()
+        return jsonify({"message": "Product deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 
 @api.route('/products/buy/<int:product_id>', methods=['POST'])
@@ -3097,3 +3183,38 @@ def get_revenue_analytics():
             {"month": str(month), "amount": float(amount)} for month, amount in revenue_by_month
         ]
     }), 200
+
+# Function to start recording a stream
+def start_recording(stream_url, output_path):
+    try:
+        # Run ffmpeg command to record the stream
+        cmd = [
+            'ffmpeg', 
+            '-i', stream_url,  # input stream URL
+            '-c', 'copy',      # copy video/audio codec
+            '-f', 'flv',       # output format (flv)
+            output_path        # output file path
+        ]
+        subprocess.Popen(cmd)  # Run the command asynchronously
+        print(f"Recording started for {stream_url}")
+    except Exception as e:
+        print(f"Error starting recording: {e}")
+
+# Route to start recording
+@api.route('/start-recording', methods=['POST'])
+def start_recording_route():
+    # Replace these with actual stream URL and output file path
+    stream_url = "rtmp://your-server/live/streamkey"
+    output_path = "/path/to/save/stream.flv"  # Change this to your desired path
+    
+    start_recording(stream_url, output_path)
+    return jsonify({"message": "Recording started"}), 200
+
+# Route to stop recording (you could implement this to stop the process)
+@api.route('/stop-recording', methods=['POST'])
+def stop_recording_route():
+    # Implement logic to kill the ffmpeg process if needed (not implemented here)
+    return jsonify({"message": "Recording stopped"}), 200
+
+if __name__ == "__main__":
+    api.run(debug=True)
