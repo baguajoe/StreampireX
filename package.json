@@ -82,6 +82,7 @@
 		"@readyplayerme/react-avatar-creator": "^0.5.0",
 		"axios": "^1.8.3",
 		"chart.js": "^4.4.8",
+		"hls.js": "^1.5.20",
 		"i18next": "^24.2.3",
 		"i18next-browser-languagedetector": "^8.0.4",
 		"i18next-http-backend": "^3.0.2",
