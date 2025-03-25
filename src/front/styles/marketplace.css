@@ -47,3 +47,27 @@
     background-color: #0056b3;
   }
   
+  .upload-form {
+    display: flex;
+    flex-direction: column;
+    max-width: 500px;
+    margin-bottom: 2rem;
+  }
+  
+  .upload-form input,
+  .upload-form textarea {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+  
+  .upload-form button {
+    background: #1e90ff;
+    color: white;
+    border: none;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    border-radius: 6px;
+    font-weight: bold;
+  }
+  

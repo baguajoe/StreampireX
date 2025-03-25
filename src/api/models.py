@@ -38,6 +38,8 @@ class User(db.Model):
     is_on_trial = db.Column(db.Boolean, default=False)
     trial_start_date = db.Column(db.DateTime, nullable=True)
     trial_end_date = db.Column(db.DateTime, nullable=True)
+    vr_tickets = db.relationship('VRAccessTicket', backref='user', lazy=True)
+    ticket_purchases = db.relationship('TicketPurchase', backref='user', lazy=True)
 
     business_name = db.Column(db.String(255), nullable=True)
     display_name = db.Column(db.String(255), nullable=True)
@@ -354,6 +356,8 @@ class RadioStation(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('radio_stations', lazy=True))
+    ticket_purchases = db.relationship('TicketPurchase', backref='station', lazy=True)
+
 
     def serialize(self):
         return {
@@ -859,6 +863,7 @@ class UserPodcast(db.Model):
     description = db.Column(db.Text, nullable=True)
     cover_art_url = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+  
 
     user = db.relationship('User', backref=db.backref('user_podcasts', lazy=True))
 
@@ -1184,6 +1189,8 @@ class LiveEvent(db.Model):
     total_tickets_sold = db.Column(db.Integer, default=0)
     stream_url = db.Column(db.String(500), nullable=True)  # URL for the live stream
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    vr_access_tickets = db.relationship('VRAccessTicket', backref='event', lazy=True)
+
 
     # ✅ Remove backref and just define a one-to-many relationship
     tickets = db.relationship('EventTicket', lazy=True)
@@ -1499,3 +1506,9 @@ class FavoritePage(db.Model):
             "page_id": self.page_id,
             "created_at": self.created_at.isoformat()
         }
+
+class VRAccessTicket(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    event_id = db.Column(db.Integer, db.ForeignKey('live_event.id'))
+    is_verified = db.Column(db.Boolean, default=False)

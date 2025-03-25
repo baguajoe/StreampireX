@@ -5,6 +5,7 @@ import PodcastOverview from '../component/PodcastOverview';
 import RecentEpisodes from '../component/RecentEpisodes';
 import MonetizationAnalytics from '../component/MonetizationAnalytics';
 import AudienceInteraction from '../component/AudienceInteraction';
+import ScheduleEpisodeForm from '../component/ScheduleEpisodeForm';
 import '../../styles/PodcastDashboard.css';  // Assuming you have a CSS file for custom styles
 
 const PodcastDashboard = () => {
@@ -82,6 +83,7 @@ const PodcastDashboard = () => {
                             <Link to={`/podcasts/${podcast.id}/edit`} className="btn-edit">
                                 Edit
                             </Link>
+                            <ScheduleEpisodeForm podcastId={podcast.id} />
                         </div>
                     ))}
                 </div>

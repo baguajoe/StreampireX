@@ -24,6 +24,7 @@ flask-socketio = "*"
 stripe = "*"
 flask-mail = "*"
 flask-caching = "*"
+feedparser = "*"
 
 [requires]
 python_version = "3.10"

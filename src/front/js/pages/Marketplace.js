@@ -1,55 +1,59 @@
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import "../../styles/marketplace.css"; // You can style it as you prefer
+// MarketplaceFinalization.js
 
-const MarketplacePage = () => {
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const Marketplace = () => {
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-  // Fetch products for radio stations, podcast creators, and artists
   useEffect(() => {
-    setLoading(true);
     fetch(`${process.env.BACKEND_URL}/api/marketplace/products`)
-      .then((response) => response.json())
-      .then((data) => {
-        setProducts(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError("Error fetching products: " + err.message);
-        setLoading(false);
-      });
+      .then(res => res.json())
+      .then(data => setProducts(data))
+      .catch(err => console.error('Error fetching products:', err));
   }, []);
 
-  // Render marketplace items
-  if (loading) return <p>Loading marketplace...</p>;
-  if (error) return <p>{error}</p>;
+  const handleCheckout = async (productId) => {
+    try {
+      const res = await fetch(`${process.env.BACKEND_URL}/api/marketplace/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem("token")
+        },
+        body: JSON.stringify({ product_id: productId })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        window.location.href = data.checkout_url;
+      } else {
+        alert("Checkout Error: " + data.error);
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
+    }
+  };
 
   return (
     <div className="marketplace-container">
-      <h1>Marketplace</h1>
-      <p>Browse exclusive merchandise from artists, radio stations, and podcast creators.</p>
-
-      <div className="marketplace-items">
-        {products.length > 0 ? (
-          products.map((product) => (
-            <div key={product.id} className="marketplace-item">
-              <img src={product.image_url} alt={product.title} className="product-image" />
-              <h4>{product.title}</h4>
-              <p>{product.description}</p>
-              <p className="price">${product.price}</p>
-              <Link to={`/store/${product.artist_id}`} className="btn btn-primary">
-                View Store
-              </Link>
-            </div>
-          ))
-        ) : (
-          <p>No merchandise available.</p>
-        )}
+      <h1>🛍 Artist Merch Store</h1>
+      <div className="product-grid">
+        {products.map((product) => (
+          <div key={product.id} className="product-card">
+            <img src={product.image_url} alt={product.name} className="product-image" />
+            <h3>{product.name}</h3>
+            <p>{product.description}</p>
+            <p><strong>${product.price}</strong></p>
+            <button onClick={() => handleCheckout(product.id)}>
+              {product.is_digital ? 'Download Now' : 'Buy Now'}
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
 };
 
-export default MarketplacePage;
+export default Marketplace;
