@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import PollComponent from "../components/PollComponent";
-import LiveVideoPlayer from "../components/LiveVideoPlayer";
+import PollComponent from "../component/PollComponent";
+import LiveVideoPlayer from "../component/LiveVideoPlayer";
 
 const LiveStreams = () => {
   const [liveStreams, setLiveStreams] = useState([]);

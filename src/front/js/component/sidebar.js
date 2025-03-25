@@ -51,50 +51,94 @@ const Sidebar = () => {
   return (
     <SidebarContainer className="sidebar">
       <SidebarHeader>🎙️ Podcast</SidebarHeader>
-      <MenuItem to="/home" className={isActive("/home") ? "active" : ""}>
+
+      {/* Primary Navigation Items */}
+      <MenuItem to="/" className={isActive("/") ? "active" : ""}>
         🏠 Home
       </MenuItem>
-      <MenuItem to="/podcasts" className={isActive("/podcasts") ? "active" : ""}>
-        🎙 Podcasts
+      <MenuItem to="/login" className={isActive("/login") ? "active" : ""}>
+        🔑 Login
       </MenuItem>
-      <MenuItem to="/radio-stations" className={isActive("/radio-stations") ? "active" : ""}>
-        📻 Radio Stations
+      <MenuItem to="/register" className={isActive("/register") ? "active" : ""}>
+        📝 Signup
       </MenuItem>
-      <MenuItem to="/music" className={isActive("/music") ? "active" : ""}>
-        📻 Music
+      <MenuItem to="/profile" className={isActive("/profile") ? "active" : ""}>
+        👤 Profile
+      </MenuItem>
+      <MenuItem to="/favorites" className={isActive("/favorites") ? "active" : ""}>
+        ⭐ Favorites
+      </MenuItem>
+
+      {/* Secondary Navigation Items in Dropdown */}
+      <SectionHeader>📱 More</SectionHeader>
+      <MenuItem to="/notifications" className={isActive("/notifications") ? "active" : ""}>
+        🔔 Notifications
+      </MenuItem>
+      <MenuItem to="/pricing" className={isActive("/pricing") ? "active" : ""}>
+        💳 Pricing Plans
+      </MenuItem>
+      <MenuItem to="/search" className={isActive("/search") ? "active" : ""}>
+        🔍 Search
+      </MenuItem>
+      <MenuItem to="/marketplace" className={isActive("/marketplace") ? "active" : ""}>
+        🛒 Marketplace
+      </MenuItem>
+      <MenuItem to="/payout-request" className={isActive("/payout-request") ? "active" : ""}>
+        💵 Payout Request
+      </MenuItem>
+      <MenuItem to="/settings" className={isActive("/settings") ? "active" : ""}>
+        ⚙️ Account Settings
+      </MenuItem>
+      <MenuItem to="/trending" className={isActive("/trending") ? "active" : ""}>
+        📈 Trending
+      </MenuItem>
+
+      {/* Live Streams */}
+      <SectionHeader>🎥 Live Streams</SectionHeader>
+      <MenuItem to="/live-studio" className={isActive("/live-studio") ? "active" : ""}>
+        🎥 Live Studio
       </MenuItem>
       <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
         🎥 Live Streams
       </MenuItem>
-      <MenuItem to="/podcast-dashboard" className={isActive("/dashboard") ? "active" : ""}>
-        🚀 Podcast Dashboard
-      </MenuItem>
-      <MenuItem to="/podcast-dashboard" className={isActive("/dashboard") ? "active" : ""}>
-        🚀 RadioStation Dashboard
-      </MenuItem>
-      <MenuItem to="/podcast-dashboard" className={isActive("/dashboard") ? "active" : ""}>
-        🚀 Artist Dashboard
-      </MenuItem>
-      <MenuItem to="/analytics" className={isActive("/analytics") ? "active" : ""}>
-        📊 Analytics
-      </MenuItem>
-      <MenuItem to="/monetization" className={isActive("/monetization") ? "active" : ""}>
-        💰 Monetization
-      </MenuItem>
-      <MenuItem to="/settings" className={isActive("/settings") ? "active" : ""}>
-        ⚙️ Settings
+      <MenuItem to="/live-concerts" className={isActive("/live-concerts") ? "active" : ""}>
+        🎶 Live Concerts
       </MenuItem>
       
-      {/* Radio Genres Section */}
-      <SectionHeader>🎶 Radio Genres</SectionHeader>
-      <MenuItem to="/radio/genres" className={isActive("/radio/genres") ? "active" : ""}>
-        Browse by Genres
+
+      {/* Other Items */}
+      <MenuItem to="/merch-store" className={isActive("/merch-store") ? "active" : ""}>
+        🛍️ Merch Store
+      </MenuItem>
+      <MenuItem to="/podcast-dashboard" className={isActive("/podcast-dashboard") ? "active" : ""}>
+        📊 Podcast Dashboard
+      </MenuItem>
+      <MenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>
+        🎙️ Create Podcast
       </MenuItem>
 
-       {/* Podcast Genre Section */}
-       <SectionHeader>🎶 Podcast Genres</SectionHeader>
+      {/* Optional Extra Section for Podcasts */}
+      <SectionHeader>🎧 Podcasts</SectionHeader>
       <MenuItem to="/browse-podcasts" className={isActive("/browse-podcasts") ? "active" : ""}>
-        Browse by Genres
+        Browse Podcasts
+      </MenuItem>
+
+      {/* Optional Extra Section for Radio Stations */}
+      <SectionHeader>📻 Radio Stations</SectionHeader>
+      <MenuItem to="/browse-radio-stations" className={isActive("/browse-radio-stations") ? "active" : ""}>
+        Browse Radio Stations
+      </MenuItem>
+
+      {/* Optional Extra Section for Music */}
+      <SectionHeader>🎶 Music</SectionHeader>
+      <MenuItem to="/music" className={isActive("/music") ? "active" : ""}>
+        Music
+      </MenuItem>
+
+      {/* Optional Extra Section for Licensing */}
+      <SectionHeader>📜 Licensing</SectionHeader>
+      <MenuItem to="/music-licensing" className={isActive("/music-licensing") ? "active" : ""}>
+        Music Licensing
       </MenuItem>
     </SidebarContainer>
   );

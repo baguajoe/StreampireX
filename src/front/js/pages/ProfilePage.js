@@ -323,13 +323,12 @@ const ProfilePage = () => {
                     {products.length > 0 && <div className="featured-product">Featured: {products[0].name}</div>}
 
                     <h3>📡 Radio Station & Podcast</h3>
-                    <Link to="/create-radio">
-                        <button className="btn-radio">📡 Create Radio Station</button>
-                    </Link>
                     <Link to="/podcast/create">
                         <button className="btn-podcast">🎙️ Create Podcast</button>
                     </Link>
-                    <button className="btn-upload">🎵 Upload Music</button>
+                    <Link to="/create-radio">
+                        <button className="btn-radio">📡 Create Radio Station</button>
+                    </Link>
 
                     {/* ✅ Indie Artist Upload Button (Uses a Link for Navigation) */}
                     <Link to="/indie-artist-upload">
