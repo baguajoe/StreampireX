@@ -1,45 +1,30 @@
-import React, { useEffect, useState } from "react";
+// 📦 Marketplace.js - page.js
+import React, { useEffect, useState } from 'react';
+import MarketplaceProductList from '../component/MarketplaceProductList';
+import ProductUploadForm from '../component/ProductUploadForm';
+import '../../styles/Marketplace.css';
 
-const MembersPage = () => {
-    const [members, setMembers] = useState([]);
-    const [analytics, setAnalytics] = useState({ subscribers: 0, likes: 0, comments: 0, earnings: 0 });
+const Marketplace = () => {
+  const [products, setProducts] = useState([]);
 
-    useEffect(() => {
-        fetch(process.env.BACKEND_URL + "/api/members", {
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        })
-            .then((res) => res.json())
-            .then((data) => {
-                setMembers(data.members);
-                setAnalytics(data.analytics);
-            })
-            .catch((err) => console.error("Error fetching members:", err));
-    }, []);
+  useEffect(() => {
+    fetch(`${process.env.BACKEND_URL}/api/marketplace/products`)
+      .then((res) => res.json())
+      .then((data) => setProducts(data))
+      .catch((err) => console.error('Error loading products:', err));
+  }, []);
 
-    return (
-        <div className="members-dashboard">
-            <h1>📊 My Audience</h1>
-            
-            <div className="analytics">
-                <h2>📈 Analytics</h2>
-                <p>👥 Subscribers: {analytics.subscribers}</p>
-                <p>❤️ Total Likes: {analytics.likes}</p>
-                <p>💬 Comments: {analytics.comments}</p>
-                <p>💰 Total Earnings: ${analytics.earnings}</p>
-            </div>
+  return (
+    <div className="marketplace-container">
+      <h1>🛍 Marketplace</h1>
 
-            <h2>👥 Members</h2>
-            <ul>
-                {members.map((member) => (
-                    <li key={member.id}>
-                        <p><strong>{member.username}</strong></p>
-                        <p>Email: {member.email}</p>
-                        <p>Joined: {new Date(member.joined_at).toLocaleDateString()}</p>
-                    </li>
-                ))}
-            </ul>
-        </div>
-    );
+      {/* 🔼 Product Upload Form for Creators */}
+      <ProductUploadForm onUpload={() => window.location.reload()} />
+
+      {/* 🛒 Product Listings */}
+      <MarketplaceProductList products={products} />
+    </div>
+  );
 };
 
-export default MembersPage;
+export default Marketplace;
