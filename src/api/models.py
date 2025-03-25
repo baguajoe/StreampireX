@@ -1201,6 +1201,8 @@ class LiveEvent(db.Model):
             "created_at": self.created_at.isoformat(),
         }
 
+
+
 class EventTicket(db.Model):
     """Represents a ticket purchase for live events."""
     __tablename__ = "event_ticket"
@@ -1393,3 +1395,25 @@ class Order(db.Model):
     buyer_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Engagement(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content_id = db.Column(db.Integer, nullable=False)
+    views = db.Column(db.Integer)
+    plays = db.Column(db.Integer)
+    # Add more fields as needed
+    
+class Earnings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    podcast_id = db.Column(db.Integer, nullable=False)
+    total = db.Column(db.Float)
+    adRevenue = db.Column(db.Float)
+    subscriptionRevenue = db.Column(db.Float)
+    donationRevenue = db.Column(db.Float)
+    # Add more fields as needed
+
+class Popularity(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    podcast_id = db.Column(db.Integer, nullable=False)
+    popularity_score = db.Column(db.Integer)
+    # Add more fields as needed

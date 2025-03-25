@@ -3,12 +3,13 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty
-from api.utils import generate_sitemap, APIException
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent
+from api.utils import generate_sitemap, APIException, send_email
 from sqlalchemy import func, desc
 from datetime import timedelta  # for trial logic or date math
 from flask_cors import CORS
 from flask_apscheduler import APScheduler
+from sqlalchemy.orm.exc import NoResultFound
 import uuid
 import ffmpeg
 import requests 
@@ -150,19 +151,127 @@ def start_stream():
     data = request.json
     title = data.get("title", "Live Stream")
     description = data.get("description", "")
+    station_id = data.get("station_id")  # Optional for radio stations
 
-    new_stream = LiveStream(
-        user_id=user_id,
-        stream_key=f"user_{user_id}_stream",
-        title=title,
-        description=description,
-        is_live=True,
-        started_at=datetime.utcnow()
-    )
+    # If station_id is provided, handle it as a radio stream
+    if station_id:
+        station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+        if not station:
+            return jsonify({"error": "Station not found or unauthorized"}), 403
+
+        # Create a live stream for the radio station
+        new_stream = LiveStream(
+            station_id=station_id,
+            stream_key=f"user_{user_id}_stream",
+            is_live=True
+        )
+    else:
+        # Create a live stream for the user
+        new_stream = LiveStream(
+            user_id=user_id,
+            stream_key=f"user_{user_id}_stream",
+            title=title,
+            description=description,
+            is_live=True,
+            started_at=datetime.utcnow()
+        )
+
     db.session.add(new_stream)
     db.session.commit()
 
     return jsonify({"message": "Live stream started", "stream": new_stream.serialize()}), 201
+
+@api.route('/stop_stream', methods=['POST'])
+@jwt_required()
+def stop_stream():
+    user_id = get_jwt_identity()
+    stream_id = request.json.get("stream_id")
+
+    # Find the stream in the database
+    stream = LiveStream.query.filter_by(id=stream_id, user_id=user_id, is_live=True).first()
+
+    if stream:
+        stream.is_live = False
+        stream.ended_at = datetime.utcnow()  # Mark when the stream ends
+        db.session.commit()
+
+        return jsonify({"message": "Live stream stopped", "stream": stream.serialize()}), 200
+    else:
+        return jsonify({"message": "Stream not found or already stopped"}), 404
+
+@api.route('/update_stream', methods=['PUT'])
+@jwt_required()
+def update_stream():
+    user_id = get_jwt_identity()
+    data = request.json
+    stream_id = data.get("stream_id")
+    title = data.get("title")
+    description = data.get("description")
+
+    stream = LiveStream.query.filter_by(id=stream_id, user_id=user_id).first()
+
+    if stream:
+        stream.title = title
+        stream.description = description
+        db.session.commit()
+
+        return jsonify({"message": "Stream updated", "stream": stream.serialize()}), 200
+    else:
+        return jsonify({"message": "Stream not found"}), 404
+    
+# Example of stream scheduling route in Flask
+@api.route('/streams/schedule', methods=['POST'])
+@jwt_required()
+def schedule_stream():
+    data = request.get_json()
+    title = data.get("title")
+    description = data.get("description")
+    stream_time = data.get("stream_time")  # DateTime of when the stream should start
+    
+    # Save scheduled stream to database
+    scheduled_stream = LiveStream(
+        user_id=get_jwt_identity(),
+        title=title,
+        description=description,
+        stream_time=stream_time,
+        is_scheduled=True
+    )
+    
+    db.session.add(scheduled_stream)
+    db.session.commit()
+
+    return jsonify({"message": "Stream scheduled successfully", "scheduled_stream": scheduled_stream.serialize()}), 201
+
+# Flask route for saving a stream to a user's profile
+@api.route('/streams/save', methods=['POST'])
+@jwt_required()
+def save_stream():
+    """Save a stream to the user's profile"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    # Ensure stream_id is passed
+    stream_id = data.get("stream_id")
+    if not stream_id:
+        return jsonify({"error": "Stream ID is required"}), 400
+
+    # Retrieve the stream from the database
+    stream = LiveStream.query.get(stream_id)
+    if not stream:
+        return jsonify({"error": "Stream not found"}), 404
+
+    # Save the stream for the user
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Assuming you have a many-to-many relationship table `saved_streams`
+    user.saved_streams.append(stream)
+    db.session.commit()
+
+    return jsonify({"message": "Stream saved to profile"}), 200
+
+
 
 @api.route('/podcast/start_live/<int:podcast_id>', methods=['POST'])
 @jwt_required()
@@ -486,25 +595,6 @@ def grant_access(station_id):
     db.session.commit()
 
     return jsonify({"message": "Access granted to user!"}), 200
-
-
-@api.route('/radio/start_stream', methods=['POST'])
-@jwt_required()
-def start_radio_stream():
-    user_id = get_jwt_identity()
-    data = request.json
-    station_id = data.get("station_id")
-
-    station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
-    if not station:
-        return jsonify({"error": "Station not found or unauthorized"}), 403
-
-    new_stream = LiveStream(station_id=station_id, stream_key=f"user_{user_id}_stream", is_live=True)
-    db.session.add(new_stream)
-    db.session.commit()
-
-    return jsonify({"message": "Live stream started", "stream": new_stream.serialize()}), 201
-
 
 
 @api.route("/radio/like", methods=["POST"])
@@ -3218,3 +3308,137 @@ def stop_recording_route():
 
 if __name__ == "__main__":
     api.run(debug=True)
+
+@api.route('/engagement/<content_id>', methods=['GET'])
+def get_engagement(content_id):
+    try:
+        engagement_data = get_engagement_data(content_id)
+        return jsonify(engagement_data), 200
+    except NoResultFound:
+        return jsonify({"error": "No engagement data found for this content ID"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+def get_engagement_data(content_id):
+    """
+    Retrieve engagement data for a specific content item.
+    
+    Args:
+        content_id (int): The ID of the content to retrieve engagement data for.
+    
+    Returns:
+        dict: A dictionary containing engagement metrics.
+    """
+    engagement = Engagement.query.filter_by(content_id=content_id).first()
+    
+    if not engagement:
+        raise NoResultFound(f"No engagement data found for content ID {content_id}")
+    
+    return {
+        "content_id": engagement.content_id,
+        "views": engagement.views,
+        "plays": engagement.plays
+    }
+
+@api.route('/earnings/<podcast_id>', methods=['GET'])
+def get_earnings(podcast_id):
+    try:
+        earnings_data = get_earnings_data(podcast_id)  # Fetch earnings data from DB
+        return jsonify(earnings_data), 200
+    except NoResultFound:
+        return jsonify({"error": "No earnings data found for this podcast ID"}), 404  # Not found error
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500  # Internal server error
+
+def get_earnings_data(podcast_id):
+    """
+    Retrieve earnings data for a specific podcast.
+    
+    Args:
+        podcast_id (int): The ID of the podcast to retrieve earnings for.
+    
+    Returns:
+        dict: A dictionary containing earnings breakdown.
+    """
+    earnings = Earnings.query.filter_by(podcast_id=podcast_id).first()
+    
+    if not earnings:
+        raise ValueError(f"No earnings data found for podcast ID {podcast_id}")
+    
+    return {
+        "podcast_id": earnings.podcast_id,
+        "total_earnings": earnings.total,
+        "ad_revenue": earnings.adRevenue,
+        "subscription_revenue": earnings.subscriptionRevenue,
+        "donation_revenue": earnings.donationRevenue
+    }
+
+@api.route('/popularity/<podcast_id>', methods=['GET'])
+def get_popularity(podcast_id):
+    try:
+        popularity_data = get_popularity_data(podcast_id)  # Fetch popularity data from DB
+        return jsonify(popularity_data), 200
+    except NoResultFound:
+        return jsonify({"error": "No popularity data found for this podcast ID"}), 404  # Not found error
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500  # Internal server error
+
+def get_popularity_data(podcast_id):
+    """
+    Retrieve popularity data for a specific podcast.
+    
+    Args:
+        podcast_id (int): The ID of the podcast to retrieve popularity data for.
+    
+    Returns:
+        dict: A dictionary containing popularity metrics.
+    """
+    popularity = Popularity.query.filter_by(podcast_id=podcast_id).first()
+    
+    if not popularity:
+        raise ValueError(f"No popularity data found for podcast ID {podcast_id}")
+    
+    return {
+        "podcast_id": popularity.podcast_id,
+        "popularity_score": popularity.popularity_score
+    }
+
+
+# Example Flask routes
+
+# Create Event and Generate Ticket URL
+
+@api.route('/live-events', methods=['POST'])
+@jwt_required()
+def create_live_event():
+    data = request.get_json()
+    new_event = LiveEvent(
+        artist_id=get_jwt_identity(),  # The current user (artist)
+        title=data['title'],
+        description=data.get('description'),
+        date=data['date'],
+        is_vr_enabled=data.get('is_vr_enabled', False),
+        ticket_price=data.get('ticket_price'),
+        stream_url=data.get('stream_url')
+    )
+    db.session.add(new_event)
+    db.session.commit()
+
+    # Generate a unique URL for the event
+    event_url = f"/live-events/{new_event.id}/ticket"
+    return jsonify({"event_url": event_url}), 201 
+
+# Invite Friends (Generate Unique Invite Link)
+@api.route('/events/invite', methods=['POST'])
+@jwt_required()
+def send_invite():
+    data = request.get_json()
+    invite_url = f"/event/{data['event_id']}/join"
+    
+    # Send invite to friend's email
+    send_email(data['email'], "Join My Event", f"Click the link to join the event: {invite_url}")
+    
+    return jsonify({"message": "Invite sent!"}), 200
+
+
+

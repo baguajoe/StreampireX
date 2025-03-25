@@ -1,37 +1,11 @@
-import React, { useState, useEffect } from "react";
-import styled from "styled-components";
-import { Link } from "react-router-dom";
-import Sidebar from "../component/sidebar";
-import PodcastOverview from "../component/PodcastOverview";
-import RecentEpisodes from "../component/RecentEpisodes";
-import MonetizationAnalytics from "../component/MonetizationAnalytics";
-import AudienceInteraction from "../component/AudienceInteraction";
-
-const DashboardContainer = styled.div`
-  display: flex;
-  height: 100vh;
-  background: #121212;
-  color: white;
-`;
-
-const Content = styled.div`
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-`;
-
-const PodcastList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-`;
-
-const PodcastCard = styled.div`
-  background: #222;
-  padding: 15px;
-  border-radius: 8px;
-  width: 300px;
-`;
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import Sidebar from '../component/sidebar';
+import PodcastOverview from '../component/PodcastOverview';
+import RecentEpisodes from '../component/RecentEpisodes';
+import MonetizationAnalytics from '../component/MonetizationAnalytics';
+import AudienceInteraction from '../component/AudienceInteraction';
+import '../styles/PodcastDashboard.css';  // Assuming you have a CSS file for custom styles
 
 const PodcastDashboard = () => {
     const [podcasts, setPodcasts] = useState([]);
@@ -42,14 +16,14 @@ const PodcastDashboard = () => {
 
     useEffect(() => {
         fetch(`${process.env.BACKEND_URL}/api/user/podcasts`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         })
             .then((res) => res.json())
             .then((data) => {
                 setPodcasts(data);
                 setLoading(false);
             })
-            .catch((error) => console.error("Error fetching podcasts:", error));
+            .catch((error) => console.error('Error fetching podcasts:', error));
     }, []);
 
     const loadEpisodes = (podcastId) => {
@@ -57,27 +31,27 @@ const PodcastDashboard = () => {
         fetch(`${process.env.BACKEND_URL}/api/podcasts/${podcastId}/episodes`)
             .then((res) => res.json())
             .then((data) => setEpisodes(data))
-            .catch((error) => console.error("Error fetching episodes:", error));
+            .catch((error) => console.error('Error fetching episodes:', error));
     };
 
     const deletePodcast = (podcastId) => {
-        if (!window.confirm("Are you sure you want to delete this podcast?")) return;
+        if (!window.confirm('Are you sure you want to delete this podcast?')) return;
         fetch(`${process.env.BACKEND_URL}/api/podcasts/${podcastId}`, {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         })
-            .then(() => setPodcasts(podcasts.filter(p => p.id !== podcastId)))
-            .catch(error => console.error("Error deleting podcast:", error));
+            .then(() => setPodcasts(podcasts.filter((p) => p.id !== podcastId)))
+            .catch((error) => console.error('Error deleting podcast:', error));
     };
 
     if (loading) return <p>Loading your podcasts...</p>;
 
     return (
-        <DashboardContainer>
+        <div className="dashboard-container">
             <Sidebar />
-            <Content>
+            <div className="content">
                 <h1>🎙 Podcast Dashboard</h1>
-                
+
                 {/* 🎥 Live Studio Access */}
                 <div className="live-studio">
                     <h2>Go Live</h2>
@@ -91,18 +65,26 @@ const PodcastDashboard = () => {
 
                 {/* 🎧 Podcast List */}
                 <h2>Your Podcasts</h2>
-                <PodcastList>
+                <div className="podcast-list">
                     {podcasts.map((podcast) => (
-                        <PodcastCard key={podcast.id}>
-                            <img src={podcast.cover_art_url} alt={podcast.title} className="podcast-cover" />
+                        <div key={podcast.id} className="podcast-card">
+                            <img
+                                src={podcast.cover_art_url}
+                                alt={podcast.title}
+                                className="podcast-cover"
+                            />
                             <h3>{podcast.title}</h3>
                             <p>{podcast.description}</p>
                             <button onClick={() => loadEpisodes(podcast.id)}>View Episodes</button>
-                            <button onClick={() => deletePodcast(podcast.id)} className="btn-delete">Delete</button>
-                            <Link to={`/podcasts/${podcast.id}/edit`} className="btn-edit">Edit</Link>
-                        </PodcastCard>
+                            <button onClick={() => deletePodcast(podcast.id)} className="btn-delete">
+                                Delete
+                            </button>
+                            <Link to={`/podcasts/${podcast.id}/edit`} className="btn-edit">
+                                Edit
+                            </Link>
+                        </div>
                     ))}
-                </PodcastList>
+                </div>
 
                 {/* 🎵 Episodes List */}
                 {selectedPodcast && (
@@ -132,8 +114,8 @@ const PodcastDashboard = () => {
                         <button className="btn-create">➕ Create New Podcast</button>
                     </Link>
                 </div>
-            </Content>
-        </DashboardContainer>
+            </div>
+        </div>
     );
 };
 
