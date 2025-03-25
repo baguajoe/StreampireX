@@ -3,7 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, AdRevenue, Stream
 from api.utils import generate_sitemap, APIException, send_email
 from sqlalchemy import func, desc
 from datetime import timedelta  # for trial logic or date math
@@ -762,7 +762,7 @@ def cancel_subscription():
 
 @api.route('/creator/ad_revenue', methods=['GET'])
 @jwt_required()
-def get_ad_revenue():
+def get_creator_ad_revenue():
     user_id = get_jwt_identity()
     revenue = AdRevenue.query.filter_by(creator_id=user_id).all()
     return jsonify([r.serialize() for r in revenue]), 200
@@ -3247,26 +3247,34 @@ def update_refund(refund_id):
     db.session.commit()
     return jsonify({"msg": f"Refund {refund.status}"}), 200
 
-@api.route('/revenue-analytics', methods=['GET'])
+@api.route("/revenue-analytics", methods=["GET"])
 @jwt_required()
 def get_revenue_analytics():
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
 
-    # Filter by creator if needed
-    is_admin = user.role == "admin"
+    # Check if the user is an admin
+    is_admin = user.role == 'admin'
+
+    # If not admin, filter by creator_id; if admin, no filtering
     filters = (Product.creator_id == user_id,) if not is_admin else ()
 
+    # Calculate total revenue
     total_revenue = db.session.query(func.sum(Product.sales_revenue)).filter(*filters).scalar() or 0
+
+    # Calculate total products sold
     total_products = Product.query.filter(*filters).count()
+
+    # Calculate total orders
     total_orders = db.session.query(Order).filter(*filters).count()
 
-    # Optional: Revenue by month
+    # Optional: Revenue by month (only available for admin or for the creator's own data)
     revenue_by_month = db.session.query(
         func.date_trunc('month', Order.created_at).label('month'),
         func.sum(Order.amount)
     ).filter(*filters).group_by('month').order_by('month').all()
 
+    # Return the data as a JSON response
     return jsonify({
         "total_revenue": round(total_revenue, 2),
         "total_products": total_products,
@@ -3442,5 +3450,54 @@ def send_invite():
     
     return jsonify({"message": "Invite sent!"}), 200
 
+# --- Tip Jar ---
+@api.route('/api/tips/send', methods=['POST'])
+@jwt_required()
+def send_tip():
+    data = request.get_json()
+    sender_id = get_jwt_identity()
+    recipient_id = data.get('creator_id')
+    amount = data.get('amount')
 
+    if not amount or amount <= 0:
+        return jsonify({'error': 'Invalid amount'}), 400
+
+    tip = Tip(sender_id=sender_id, recipient_id=recipient_id, amount=amount)
+    db.session.add(tip)
+    db.session.commit()
+    return jsonify({'message': 'Tip sent successfully'}), 200
+
+@api.route('/api/tips/history', methods=['GET'])
+@jwt_required()
+def tip_history():
+    user_id = get_jwt_identity()
+    tips = Tip.query.filter_by(sender_id=user_id).all()
+    return jsonify([{'id': t.id, 'amount': t.amount, 'to': t.recipient_id} for t in tips])
+
+# --- Ad Revenue ---
+@api.route('/api/creator/ad-earnings', methods=['GET'])
+@jwt_required()
+def ad_earnings():
+    user_id = get_jwt_identity()
+    earnings = AdRevenue.query.filter_by(creator_id=user_id).all()
+    total = sum([e.amount for e in earnings])
+    return jsonify({'total_ad_revenue': total})
+
+# --- Creator Analytics ---
+@api.route('/api/analytics/creator/<int:creator_id>', methods=['GET'])
+def creator_analytics(creator_id):
+    total_streams = Stream.query.filter_by(creator_id=creator_id).count()
+    total_earnings = sum([p.amount for p in Purchase.query.filter_by(creator_id=creator_id).all()])
+    return jsonify({
+        'total_streams': total_streams,
+        'total_earnings': total_earnings
+    })
+
+# --- Engagement ---
+@api.route('/api/analytics/engagement/<int:content_id>', methods=['GET'])
+def content_engagement(content_id):
+    likes = 120  # Replace with real query
+    shares = 30
+    comments = 45
+    return jsonify({'likes': likes, 'shares': shares, 'comments': comments})
 
