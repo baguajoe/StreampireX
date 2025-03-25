@@ -721,25 +721,49 @@ def subscribe():
     data = request.json
     plan_id = data.get("plan_id")
 
+    if not plan_id:
+        return jsonify({"error": "Missing plan_id"}), 400
+
     plan = SubscriptionPlan.query.get(plan_id)
     if not plan:
         return jsonify({"error": "Plan not found"}), 404
 
-    # Create a Stripe checkout session
-    session = stripe.checkout.Session.create(
-        payment_method_types=['card'],
-        line_items=[{
-            'price_data': {
-                'currency': 'usd',
-                'product_data': {'name': plan.name},
-                'unit_amount': int(plan.price_monthly * 100),
-            },
-            'quantity': 1,
-        }],
-        mode='subscription',
-        success_url="https://yourapp.com/success",
-        cancel_url="https://yourapp.com/cancel",
-    )
+    try:
+        # Create Stripe Checkout Session
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': plan.name
+                    },
+                    'unit_amount': int(plan.price_monthly * 100),  # Stripe uses cents
+                    'recurring': {
+                        'interval': 'month'
+                    }
+                },
+                'quantity': 1
+            }],
+            mode='subscription',
+            success_url='https://yourapp.com/success?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url='https://yourapp.com/cancel'
+        )
+
+        # Optionally, log intent (you can insert a pending subscription record here)
+        new_sub = UserSubscription(
+            user_id=user_id,
+            plan_id=plan.id,
+            stripe_subscription_id=None,  # Will be updated via webhook
+            start_date=datetime.utcnow()
+        )
+        db.session.add(new_sub)
+        db.session.commit()
+
+        return jsonify({"checkout_url": session.url}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
     return jsonify({"checkout_url": session.url}), 200
 
@@ -1156,6 +1180,7 @@ def get_podcast_categories():
         "Anime & Manga"
     ]
     return jsonify(categories), 200
+
 
 
 
