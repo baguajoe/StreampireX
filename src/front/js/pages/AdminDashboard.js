@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import EngagementGraph from "../components/EngagementGraph"; // Import the EngagementGraph component
-import MonetizationAnalytics from "../components/MonetizationAnalytics"; // Assuming you have this for earnings report
-import PopularityRanking from "../components/PopularityRanking"; // A new component for popularity ranking
+import EngagementGraph from "../component/EngagementGraph"; // Import the EngagementGraph component
+import MonetizationAnalytics from "../component/MonetizationAnalytics"; // Assuming you have this for earnings report
+import PopularityRanking from "../component/PopularityRanking"; // A new component for popularity ranking
 import "../../styles/AdminDashboard.css";
 
 const AdminDashboard = () => {

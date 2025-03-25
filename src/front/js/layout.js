@@ -9,7 +9,7 @@ import { Signup } from "./pages/Signup";
 import RadioStationPage from "./pages/RadioStations";
 import LiveStreamPage from "./pages/LiveStreams";
 import CreatorDashboard from "./pages/creatorDashboard";
-import  FavoritesPage  from "./pages/Favorites";
+import  FavoritePage  from "./pages/FavoritePage";
 import ProfilePage from "./pages/ProfilePage";
 import BrowseByCategory from "./pages/BrowseByCategory";
 import BrowseRadioGenres from "./pages/BrowseRadioGenres";
@@ -26,12 +26,12 @@ import PodcastPage from "./pages/PodcastPage";
 import PodcastDashboard from "./pages/PodcastDashboard";
 import CreateRadioStation from "./pages/CreateRadioStation";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
-import LicensingMarketplace from "./pages/LicensingMarketplace";
+import Marketplace from "./pages/Marketplace";  // Correct import for Marketplace.js
+import LicensingMarketplace from "./pages/LicensingMarketplace"; 
 import PremiumContent from "./pages/PremiumContent";
 import RevenueDashboard from "./pages/RevenueDashboard";
 import MerchStore from "./pages/MerchStore";
-import CreateAvatar from "./pages/CreateAvatar";
-import AvatarCreation from "./pages/AvatarCreation";
+import AvatarCreation from './component/AvatarCreation';
 import  PaymentProcessing  from "./pages/PaymentProcessing";
 import  FreeTrial  from "./pages/FreeTrial";
 import MembersPage from "./pages/MembersPage";
@@ -78,6 +78,7 @@ const Layout = () => {
                             <Route path="/create-radio" element={<CreateRadioStation />} />
                             <Route path="/indie-artist-upload" element={<IndieArtistUpload />} />
                             <Route path="/analytics" element={<AnalyticsDashboard />} />
+                            <Route path="/marketplace" element={<Marketplace />} />
                             <Route path="/licenses" element={<LicensingMarketplace />} />
                             <Route path="/premium-content" element={<PremiumContent />} />
                             <Route path="/revenue" element={<RevenueDashboard />} />
@@ -87,7 +88,7 @@ const Layout = () => {
                             <Route path="/radio-stations" element={<RadioStationPage />} />
                             <Route path="/live-streams" element={<LiveStreamPage />} />
                             <Route path="/dashboard" element={<CreatorDashboard />} />
-                            <Route path="/favorites" element={<FavoritesPage />} />
+                            <Route path="/favorite-page" element={<FavoritePage />} />
                             <Route path="/profile" element={<ProfilePage />} />
                             <Route path="/category/:category" element={<BrowseByCategory />} />
                             <Route path="/browse-podcasts" element={<BrowsePodcastCategories />} />
@@ -100,10 +101,7 @@ const Layout = () => {
                             <Route path="/podcasts" element={<PodcastPage />} />
                             <Route path="/live-concerts" element={<LiveConcerts />} />
                             <Route path="/pricing" element={<PricingPlans />} />
-                            <Route path="/create-avatar" element={<CreateAvatar />} />
-                            
-                            <Route path="/avatar-creator" element={<AvatarCreation />} />
-
+                            <Route path="/avatar-creation" element={<AvatarCreation />} />
                             <Route path="/payment-processing" element={<PaymentProcessing />} />
                             <Route path="/free-trial" element={<FreeTrial />} />
                             <Route path="/members" element={<MembersPage />} />

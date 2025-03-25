@@ -1,7 +1,7 @@
 // RevenueDashboard.js
 import React, { useEffect, useState } from "react";
 import Chart from "chart.js/auto"; // For displaying charts
-import "../styles/RevenueDashboard.css";
+import "../../styles/RevenueDashboard.css";
 
 const RevenueDashboard = () => {
   const [revenue, setRevenue] = useState({
