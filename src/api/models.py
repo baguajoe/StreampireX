@@ -1484,3 +1484,18 @@ class Share(db.Model):
             "shared_at": self.shared_at.isoformat()
         }
 
+class FavoritePage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    page_type = db.Column(db.String(50))  # e.g., "podcast", "radio", etc.
+    page_id = db.Column(db.Integer)       # the ID of the page being favorited
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "page_type": self.page_type,
+            "page_id": self.page_id,
+            "created_at": self.created_at.isoformat()
+        }

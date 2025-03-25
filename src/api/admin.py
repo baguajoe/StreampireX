@@ -1,7 +1,7 @@
   
 import os
 from flask_admin import Admin
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio 
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, PricingPlan, Subscription, FavoritePage 
 from flask_admin.contrib.sqla import ModelView
 
 def setup_admin(app):
@@ -30,6 +30,9 @@ def setup_admin(app):
     admin.add_view(ModelView(VideoPlaylistVideo, db.session))
     admin.add_view(ModelView(Audio, db.session))
     admin.add_view(ModelView(PlaylistAudio, db.session))
+    admin.add_view(ModelView(PricingPlan, db.session))
+    admin.add_view(ModelView(Subscription, db.session))
+    admin.add_view(ModelView(FavoritePage, db.session))
 
 
 

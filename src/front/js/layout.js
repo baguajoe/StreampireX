@@ -11,7 +11,6 @@ import LiveStreamPage from "./pages/LiveStreams";
 import CreatorDashboard from "./pages/creatorDashboard";
 import  FavoritePage  from "./pages/FavoritePage";
 import ProfilePage from "./pages/ProfilePage";
-import BrowseByCategory from "./pages/BrowseByCategory";
 import BrowseRadioGenres from "./pages/BrowseRadioGenres";
 import BrowsePodcastCategories from "./pages/BrowsePodcastCategories";
 import PricingPlans from "./pages/PricingPlans";
@@ -93,7 +92,6 @@ const Layout = () => {
                             <Route path="/dashboard" element={<CreatorDashboard />} />
                             <Route path="/favorite-page" element={<FavoritePage />} />
                             <Route path="/profile" element={<ProfilePage />} />
-                            <Route path="/category/:category" element={<BrowseByCategory />} />
                             <Route path="/browse-podcasts" element={<BrowsePodcastCategories />} />
                             <Route path="/radio/genres" element={<BrowseRadioGenres />} />
                             <Route path="/artist-dashboard" element={<ArtistDashboard />} />
