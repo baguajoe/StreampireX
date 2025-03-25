@@ -3027,28 +3027,6 @@ def update_now_playing(station_id):
 
     return jsonify({"message": "Now Playing updated!"}), 200
 
-@api.route('/podcast/<int:podcast_id>/purchase', methods=['POST'])
-@jwt_required()
-def purchase_episode(podcast_id):
-    data = request.json
-    episode_id = data.get("episode_id")
-    token = data.get("stripe_token")  # From frontend
-
-    episode = PodcastEpisode.query.get(episode_id)
-    if not episode:
-        return jsonify({"error": "Episode not found"}), 404
-
-    if not episode.is_premium:
-        return jsonify({"error": "This episode is free"}), 400
-
-    charge = stripe.Charge.create(
-        amount=int(episode.price_per_episode * 100),
-        currency="usd",
-        description=f"Podcast Episode Purchase: {episode.title}",
-        source=token
-    )
-
-    return jsonify({"message": "Payment successful", "charge_id": charge.id}), 200
 
 @api.route('/recommendations/<int:user_id>', methods=['GET'])
 def recommend_content(user_id):
@@ -3779,5 +3757,75 @@ def purchase_vr_ticket():
     db.session.commit()
 
     return jsonify({"message": "🎟️ VR ticket purchased successfully"}), 200
+
+@api.route('/api/episodes/<int:episode_id>', methods=['GET'])
+def get_episode(episode_id):
+    episode = PodcastEpisode.query.get(episode_id)
+    if not episode:
+        return jsonify({"error": "Episode not found"}), 404
+
+    return jsonify(episode.serialize()), 200
+
+@api.route('/api/episodes/<int:episode_id>/access', methods=['GET'])
+@jwt_required()
+def check_episode_access(episode_id):
+    user_id = get_jwt_identity()
+    episode = PodcastEpisode.query.get(episode_id)
+
+    if not episode:
+        return jsonify({"error": "Episode not found"}), 404
+
+    if not episode.is_premium:
+        return jsonify({"access": True}), 200
+
+    purchase = Purchase.query.filter_by(user_id=user_id, product_id=episode.id).first()
+    access_granted = purchase is not None
+
+    return jsonify({"access": access_granted}), 200
+
+@api.route('/podcast/<int:podcast_id>/purchase', methods=['POST'])
+@jwt_required()
+def purchase_episode(podcast_id):
+    user_id = get_jwt_identity()
+    data = request.json
+    episode_id = data.get("episode_id")
+
+    episode = PodcastEpisode.query.get(episode_id)
+    if not episode:
+        return jsonify({"error": "Episode not found"}), 404
+
+    if not episode.is_premium:
+        return jsonify({"error": "This episode is free"}), 400
+
+    # Create a Stripe Checkout session
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': episode.title
+                    },
+                    'unit_amount': int(episode.price_per_episode * 100),
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=f"{os.getenv('FRONTEND_URL')}/episode-success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{os.getenv('FRONTEND_URL')}/cancel"
+        )
+
+        # Optionally log a pending purchase here if needed
+        # e.g. store episode_id, user_id, status='pending', session.id
+
+        return jsonify({
+            "checkout_session_id": session.id,
+            "checkout_url": session.url
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 
