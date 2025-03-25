@@ -1,7 +1,10 @@
+// src/pages/RadioStationDashboard.js
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Sidebar from "../component/sidebar";
 import MonetizationAnalytics from "../component/MonetizationAnalytics";
+import StartStopLiveStream from "../component/StartStopLiveStream"; // Import the new component
 import "../styles/dashboard.css"; // Ensure you have styles for better UI
 
 const RadioStationDashboard = () => {
@@ -42,14 +45,14 @@ const RadioStationDashboard = () => {
       });
   };
 
-  const startLiveStream = async () => {
+  const startLiveStream = async (stationId) => {
     const response = await fetch(`${process.env.BACKEND_URL}/api/radio/station/start-stream`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ station_id: selectedStation }),
+      body: JSON.stringify({ station_id: stationId }),
     });
 
     if (response.ok) {
@@ -58,14 +61,14 @@ const RadioStationDashboard = () => {
     }
   };
 
-  const stopLiveStream = async () => {
+  const stopLiveStream = async (stationId) => {
     const response = await fetch(`${process.env.BACKEND_URL}/api/radio/station/stop-stream`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ station_id: selectedStation }),
+      body: JSON.stringify({ station_id: stationId }),
     });
 
     if (response.ok) {
@@ -163,11 +166,12 @@ const RadioStationDashboard = () => {
 
             {/* 🎙️ Live Streaming Controls */}
             <h2>🎙️ Live Streaming</h2>
-            {isLive ? (
-              <button className="btn-stop" onClick={stopLiveStream}>⏹ Stop Live Stream</button>
-            ) : (
-              <button className="btn-live" onClick={startLiveStream}>📡 Start Live Stream</button>
-            )}
+            <StartStopLiveStream
+              isLive={isLive}
+              stationId={selectedStation}
+              onStart={startLiveStream}
+              onStop={stopLiveStream}
+            />
 
             {/* ➕ Add New Station */}
             <Link to="/create-radio">

@@ -1,6 +1,9 @@
-from flask import jsonify, url_for
+from flask import jsonify, url_for, current_app
 from flask_jwt_extended import get_jwt_identity
+from flask_mail import Mail, Message
 from api.models import User
+
+mail = None  # We will initialize this in the create_app function
 
 class APIException(Exception):
     status_code = 400
@@ -50,3 +53,26 @@ def is_admin(user_id=None):
 
     user = User.query.get(user_id)
     return user and user.role == "admin"
+
+def send_email(recipient, subject, body):
+    """
+    Send an email using Flask-Mail.
+
+    Args:
+        recipient (str): The email address of the recipient.
+        subject (str): The subject of the email.
+        body (str): The body/content of the email.
+    """
+    global mail  # Declare 'mail' as global before using it.
+
+    try:
+        # Initialize 'mail' if it hasn't been done yet
+        if not mail:
+            mail = Mail(current_app)  # Initialize mail with the app context
+
+        msg = Message(subject, recipients=[recipient])
+        msg.body = body
+        mail.send(msg)
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        raise ValueError("Failed to send email.")
