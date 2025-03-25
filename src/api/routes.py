@@ -1,9 +1,9 @@
 """
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
-from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file
+from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, AdRevenue, Stream, Share, RadioFollower
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, AdRevenue, Stream, Share, RadioFollower, VRAccessTicket
 from api.utils import generate_sitemap, APIException, send_email
 from sqlalchemy import func, desc
 from datetime import timedelta  # for trial logic or date math
@@ -12,9 +12,13 @@ from flask_apscheduler import APScheduler
 from sqlalchemy.orm.exc import NoResultFound
 import uuid
 import ffmpeg
+import feedparser
 import requests 
 import whisper  # ✅ AI Transcription Support
 import subprocess
+import xml.etree.ElementTree as ET
+
+
 # import moviepy
 from moviepy import AudioFileClip
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
@@ -23,6 +27,11 @@ import stripe
 import os
 from flask_socketio import SocketIO
 from flask_caching import Cache  # Assuming Flask-Caching is set up
+from apscheduler.schedulers.background import BackgroundScheduler
+
+scheduler = BackgroundScheduler()
+scheduler.start()
+
 
 # Initialize caching somewhere in your app setup
 
@@ -30,8 +39,18 @@ app = Flask(__name__)
 cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
 cache.init_app(app)
 
+scheduler = BackgroundScheduler()
+scheduler.start()
 
+# somewhere in your config or routes.py
+import cloudinary
+import cloudinary.uploader
 
+cloudinary.config(
+    cloud_name="your-cloud-name",
+    api_key="your-api-key",
+    api_secret="your-api-secret"
+)
 
 
 # Initialize Stripe
@@ -485,6 +504,11 @@ def get_podcast_recommendations(user_id):
 
     return jsonify([ep.serialize() for ep in recommended_episodes]), 200
 
+
+
+
+
+# ✅ Schedule Episode for Future Release
 @api.route('/podcast/<int:podcast_id>/episode/schedule', methods=['POST'])
 @jwt_required()
 def schedule_episode(podcast_id):
@@ -496,23 +520,99 @@ def schedule_episode(podcast_id):
     if not episode:
         return jsonify({"error": "Episode not found"}), 404
 
-    episode.scheduled_release = datetime.strptime(release_time, "%Y-%m-%d %H:%M:%S")
+    try:
+        scheduled_dt = datetime.strptime(release_time, "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return jsonify({"error": "Invalid datetime format"}), 400
+
+    episode.scheduled_release = scheduled_dt
     db.session.commit()
 
     scheduler.add_job(
         func=publish_episode,
         trigger="date",
-        run_date=episode.scheduled_release,
-        args=[episode_id]
+        run_date=scheduled_dt,
+        args=[episode_id],
+        id=f"publish_episode_{episode_id}"
     )
-    
+
     return jsonify({"message": "Episode scheduled successfully"}), 200
 
 def publish_episode(episode_id):
     episode = PodcastEpisode.query.get(episode_id)
-    if episode:
+    if episode and not episode.is_published:
         episode.is_published = True
         db.session.commit()
+
+
+# ✅ RSS Export for Podcast
+@api.route('/podcast/<int:podcast_id>/rss', methods=['GET'])
+def export_rss(podcast_id):
+    podcast = Podcast.query.get(podcast_id)
+    if not podcast:
+        return jsonify({"error": "Podcast not found"}), 404
+
+    rss = ET.Element("rss", version="2.0")
+    channel = ET.SubElement(rss, "channel")
+    ET.SubElement(channel, "title").text = podcast.title
+    ET.SubElement(channel, "description").text = podcast.description or ""
+
+    for episode in podcast.episodes:
+        item = ET.SubElement(channel, "item")
+        ET.SubElement(item, "title").text = episode.title
+        ET.SubElement(item, "description").text = episode.description or ""
+        ET.SubElement(item, "pubDate").text = episode.created_at.strftime("%a, %d %b %Y %H:%M:%S +0000")
+        ET.SubElement(item, "enclosure", url=episode.file_url, type="audio/mpeg")
+
+    xml_str = ET.tostring(rss, encoding='utf-8')
+    return Response(xml_str, mimetype='application/xml')
+
+
+# ✅ RSS Import to Create Episodes
+@api.route('/podcast/<int:podcast_id>/rss/import', methods=['POST'])
+@jwt_required()
+def import_rss(podcast_id):
+    data = request.json
+    rss_url = data.get("rss_url")
+    feed = feedparser.parse(rss_url)
+
+    for entry in feed.entries:
+        new_episode = PodcastEpisode(
+            podcast_id=podcast_id,
+            title=entry.title,
+            description=getattr(entry, 'description', ''),
+            file_url=entry.enclosures[0].href if entry.enclosures else None,
+            is_published=True,
+            created_at=datetime.utcnow()
+        )
+        db.session.add(new_episode)
+    db.session.commit()
+
+    return jsonify({"message": "RSS imported successfully"}), 200
+
+
+
+# ✅ Unified Ticket Verification for VR Listening Room
+@api.route('/vr/listening-room/<int:event_id>/verify', methods=['GET', 'POST'])
+@jwt_required()
+def verify_ticket(event_id):
+    user_id = get_jwt_identity()
+
+    # Use the unified VRAccessTicket model
+    ticket = VRAccessTicket.query.filter_by(user_id=user_id, event_id=event_id).first()
+
+    if not ticket:
+        return jsonify({"access": False, "error": "No valid ticket found"}), 403
+
+    # Optional: flag the ticket as verified
+    if not ticket.is_verified:
+        ticket.is_verified = True
+        db.session.commit()
+
+    return jsonify({
+        "access": True,
+        "avatar_url": ticket.user.avatar_url if ticket.user else None
+    }), 200
 
 @api.route('/podcast/subscribe', methods=['POST'])
 @jwt_required()
@@ -1237,27 +1337,64 @@ def get_members():
         }
     }), 200
 
-@api.route('/products/upload', methods=['POST'])
+api.route('/api/products/upload', methods=['POST'])
 @jwt_required()
 def upload_product():
     user_id = get_jwt_identity()
-    data = request.json
+    user = User.query.get(user_id)
 
-    new_product = Product(
-        creator_id=user_id,
-        title=data.get("title"),
-        description=data.get("description"),
-        image_url=data.get("image_url"),
-        file_url=data.get("file_url") if data.get("is_digital") else None,
-        price=data.get("price"),
-        stock=data.get("stock") if not data.get("is_digital") else None,
-        is_digital=data.get("is_digital")
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Try both form and JSON fields
+    if request.content_type and "application/json" in request.content_type:
+        data = request.get_json()
+        title = data.get("title")
+        description = data.get("description")
+        price = data.get("price")
+        is_digital = data.get("is_digital", False)
+        stock = data.get("stock")
+        file_url = data.get("file_url")
+        image_url = data.get("image_url")  # Assume already uploaded externally
+    else:
+        title = request.form.get("title")
+        description = request.form.get("description")
+        price = request.form.get("price")
+        is_digital = request.form.get("is_digital") == "true"
+        stock = request.form.get("stock")
+        file_url = request.form.get("file_url")
+        image_file = request.files.get("image")
+
+        # Upload image if present
+        if image_file:
+            try:
+                uploaded = cloudinary.uploader.upload(image_file)
+                image_url = uploaded.get("secure_url")
+            except Exception as e:
+                return jsonify({"error": "Image upload failed", "details": str(e)}), 500
+        else:
+            image_url = None
+
+    # Basic field validation
+    if not title or not price or not image_url:
+        return jsonify({"error": "Missing required fields (title, price, image)"}), 400
+
+    product = Product(
+        creator_id=user.id,
+        title=title,
+        description=description,
+        image_url=image_url,
+        file_url=file_url if is_digital else None,
+        price=float(price),
+        stock=int(stock) if not is_digital and stock else None,
+        is_digital=is_digital,
+        created_at=datetime.utcnow()
     )
 
-    db.session.add(new_product)
+    db.session.add(product)
     db.session.commit()
 
-    return jsonify({"message": "Product uploaded successfully", "product": new_product.serialize()}), 201
+    return jsonify({"message": "✅ Product uploaded successfully", "product": product.serialize()}), 201
 
 @api.route('/products', methods=['GET'])
 def get_products():
@@ -1276,6 +1413,35 @@ def get_products():
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ✅ Create Stripe checkout session for a product
+@api.route('/marketplace/checkout', methods=['POST'])
+@jwt_required()
+def create_checkout():
+    data = request.json
+    product_id = data.get("product_id")
+    product = Product.query.get(product_id)
+
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+
+    session = stripe.checkout.Session.create(
+        payment_method_types=['card'],
+        line_items=[{
+            'price_data': {
+                'currency': 'usd',
+                'product_data': {'name': product.name},
+                'unit_amount': int(product.price * 100),
+            },
+            'quantity': 1,
+        }],
+        mode='payment',
+        success_url='https://yourdomain.com/success',
+        cancel_url='https://yourdomain.com/cancel',
+    )
+
+    return jsonify({"checkout_url": session.url}), 200
+
 
 @api.route('/products/<int:id>', methods=['GET'])
 def get_product(id):
@@ -2903,24 +3069,37 @@ def recommend_content(user_id):
     return jsonify({
         "recommended_podcasts": [p.serialize() for p in similar_podcasts]
     })
-
 @api.route('/search', methods=['GET'])
 def search_content():
-    query = request.args.get('q', '')
-    content_type = request.args.get('type', '')  # "podcast" or "radio"
+    query = request.args.get('q', '').strip()
+    content_type = request.args.get('type', '').lower()  # "podcast" or "radio"
+    sort = request.args.get('sort', '').lower()          # "latest", "popular"
 
     if not query:
         return jsonify({"error": "No search query provided"}), 400
 
     if content_type == "podcast":
-        results = Podcast.query.filter(Podcast.title.ilike(f"%{query}%")).all()
-        return jsonify({"podcasts": [p.serialize() for p in results]})
-    
+        results = Podcast.query.filter(Podcast.title.ilike(f"%{query}%"))
+        
+        if sort == "latest":
+            results = results.order_by(Podcast.created_at.desc())
+        elif sort == "popular":
+            results = results.order_by(Podcast.subscriber_count.desc())
+
+        return jsonify({"podcasts": [p.serialize() for p in results.all()]}), 200
+
     elif content_type == "radio":
-        results = RadioStation.query.filter(RadioStation.name.ilike(f"%{query}%")).all()
-        return jsonify({"radio_stations": [r.serialize() for r in results]})
-    
-    return jsonify({"error": "Invalid content type"}), 400
+        results = RadioStation.query.filter(RadioStation.name.ilike(f"%{query}%"))
+        
+        if sort == "latest":
+            results = results.order_by(RadioStation.created_at.desc())
+        elif sort == "popular":
+            results = results.order_by(RadioStation.followers_count.desc())
+
+        return jsonify({"radio_stations": [r.serialize() for r in results.all()]}), 200
+
+    return jsonify({"error": "Invalid content type. Use 'podcast' or 'radio'."}), 400
+
 
 @api.route("/merch", methods=["GET"])
 @jwt_required()
@@ -3578,3 +3757,27 @@ def get_station_followers(station_id):
     ]
 
     return jsonify({"followers": followers, "total": len(followers)}), 200
+
+
+@api.route('/vr/ticket/purchase', methods=['POST'])
+@jwt_required()
+def purchase_vr_ticket():
+    user_id = get_jwt_identity()
+    data = request.json
+    event_id = data.get("event_id")
+
+    if not event_id:
+        return jsonify({"error": "Event ID is required"}), 400
+
+    # Prevent duplicate purchase
+    existing = VRAccessTicket.query.filter_by(user_id=user_id, event_id=event_id).first()
+    if existing:
+        return jsonify({"message": "Ticket already exists"}), 200
+
+    ticket = VRAccessTicket(user_id=user_id, event_id=event_id, is_verified=True)
+    db.session.add(ticket)
+    db.session.commit()
+
+    return jsonify({"message": "🎟️ VR ticket purchased successfully"}), 200
+
+
