@@ -980,27 +980,7 @@ class CreatorDonation(db.Model):
             "message": self.message,
             "created_at": self.created_at.isoformat()
         }
-
-# Ad Revenue Sharing
-class AdRevenue(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    revenue_amount = db.Column(db.Float, nullable=False)
-    period = db.Column(db.String(50), nullable=False)  # e.g., "January 2025"
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    creator = db.relationship('User', backref=db.backref('ad_revenue', lazy=True))
-
-    def serialize(self):
-        return {
-            "id": self.id,
-            "creator_id": self.creator_id,
-            "revenue_amount": self.revenue_amount,
-            "period": self.period,
-            "created_at": self.created_at.isoformat()
-        }
     
-
 # Initialize Stripe
 stripe.api_key = "your_stripe_secret_key"
 
@@ -1360,17 +1340,30 @@ class Artist(db.Model):
     albums = db.relationship('Album', backref='artist', lazy=True)
     listening_parties = db.relationship('ListeningParty', backref='artist', lazy=True)
 
+
 class Purchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
     purchased_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='purchases')
+    product = db.relationship('Product', backref='purchases')
+
+    def __repr__(self):
+        return f"<Purchase by user {self.user_id} for product {self.product_id} costing ${self.amount}>"
 
     def serialize(self):
         return {
+            "id": self.id,
             "user_id": self.user_id,
             "product_id": self.product_id,
-            "purchased_at": self.purchased_at.isoformat(),
+            "amount": self.amount,
+            "purchased_at": self.purchased_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "user": self.user.username if self.user else None,
+            "product": self.product.name if self.product else None
         }
 
 class RefundRequest(db.Model):
@@ -1421,3 +1414,42 @@ class Popularity(db.Model):
     podcast_id = db.Column(db.Integer, nullable=False)
     popularity_score = db.Column(db.Integer)
     # Add more fields as needed
+
+class Tip(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_tips')
+    recipient = db.relationship('User', foreign_keys=[recipient_id], backref='received_tips')
+
+    def __repr__(self):
+        return f"<Tip from {self.sender_id} to {self.recipient_id} of ${self.amount}>"
+
+# Ad Revenue Model
+class AdRevenue(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    source = db.Column(db.String(255), nullable=True)  # e.g., ad network
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    creator = db.relationship('User', backref='ad_revenue')
+
+    def __repr__(self):
+        return f"<AdRevenue for creator {self.creator_id}: ${self.amount}>"
+    
+# Stream Model
+class Stream(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    stream_url = db.Column(db.String(500), nullable=False)
+    views = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    creator = db.relationship('User', backref='streams')
+
+    def __repr__(self):
+        return f"<Stream for creator {self.creator_id} with {self.views} views>"
