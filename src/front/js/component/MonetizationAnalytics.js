@@ -1,20 +1,25 @@
-import React from "react";
-import styled from "styled-components";
+import React, { useState, useEffect } from 'react';
 
-const MonetizationContainer = styled.div`
-  background: #222;
-  padding: 20px;
-  border-radius: 10px;
-  margin-top: 20px;
-`;
+const MonetizationAnalytics = ({ podcastId }) => {
+    const [earnings, setEarnings] = useState(null);
 
-const MonetizationAnalytics = () => {
-  return (
-    <MonetizationContainer>
-      <h3>💰 Monetization</h3>
-      <p>Earnings: $5,230 | Subscribers: 12,450</p>
-    </MonetizationContainer>
-  );
+    useEffect(() => {
+      fetch(`${process.env.BACKEND_URL}/api/earnings/${podcastId}`)
+            .then(res => res.json())
+            .then(data => setEarnings(data))
+            .catch(err => console.error("Error fetching earnings data:", err));
+    }, [podcastId]);
+
+    if (!earnings) return <p>Loading earnings...</p>;
+
+    return (
+        <div>
+            <h3>Total Earnings: ${earnings.total}</h3>
+            <p>Ad Revenue: ${earnings.adRevenue}</p>
+            <p>Subscription Revenue: ${earnings.subscriptionRevenue}</p>
+            <p>Donation Revenue: ${earnings.donationRevenue}</p>
+        </div>
+    );
 };
 
 export default MonetizationAnalytics;

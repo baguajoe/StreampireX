@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import EngagementGraph from "../components/EngagementGraph"; // Import the EngagementGraph component
+import MonetizationAnalytics from "../components/MonetizationAnalytics"; // Assuming you have this for earnings report
+import PopularityRanking from "../components/PopularityRanking"; // A new component for popularity ranking
 import "../../styles/AdminDashboard.css";
 
 const AdminDashboard = () => {
@@ -69,6 +72,17 @@ const AdminDashboard = () => {
             </li>
           ))}
         </ul>
+
+        <h2>Content Analytics</h2>
+        {/* Engagement Graph Component */}
+        <EngagementGraph contentId="podcast_1" />  {/* Pass the content ID for podcasts or radio stations */}
+        
+        {/* Earnings Report */}
+        <MonetizationAnalytics earnings={revenue} />
+
+        <h2>Content Popularity</h2>
+        {/* Popularity Ranking Component */}
+        <PopularityRanking />
       </div>
     </div>
   );
