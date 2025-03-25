@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import "../../styles/CategoriesBar.css"; // ✅ Make sure this file exists!
 
 const BrowsePodcastCategories = () => {
   const [categories, setCategories] = useState([]);
@@ -12,19 +13,19 @@ const BrowsePodcastCategories = () => {
   }, []);
 
   return (
-    <div>
-      <h1>🎧 Podcast Categories</h1>
-      <ul>
+    <div className="categories-wrapper">
+      <h1 className="categories-heading">🎧 Podcast Categories</h1>
+      <div className="categories-scroll">
         {categories.length > 0 ? (
           categories.map((category, index) => (
-            <li key={index}>
-              <Link to={`/category/${category}`}>{category}</Link>
-            </li>
+            <Link key={index} to={`/category/${category}`} className="category-pill">
+              {category}
+            </Link>
           ))
         ) : (
           <p>Loading categories...</p>
         )}
-      </ul>
+      </div>
     </div>
   );
 };
