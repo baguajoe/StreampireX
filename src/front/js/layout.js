@@ -40,6 +40,8 @@ import ProductPage from "./pages/ProductPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import  RefundProcessing  from "./pages/RefundProcessing";
 import  RevenueAnalytics  from "./pages/RevenueAnalytics";
+import CreatorAnalytics from "./pages/CreatorAnalytics"; // Adjust the path if necessary
+
 import RoleManagement from "./pages/RoleManagement";  // ✅ Add Role Management Page
 import { Demo } from "./pages/demo";
 import { Single } from "./pages/single";
@@ -83,6 +85,7 @@ const Layout = () => {
                             <Route path="/premium-content" element={<PremiumContent />} />
                             <Route path="/revenue" element={<RevenueDashboard />} />
                             <Route path="/merch" element={<MerchStore />} />
+                            <Route path="/creator/analytics/:creatorId" element={<CreatorAnalytics />} />
 
 
                             <Route path="/radio-stations" element={<RadioStationPage />} />
