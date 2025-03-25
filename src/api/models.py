@@ -34,35 +34,28 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     is_premium = db.Column(db.Boolean, default=False, server_default="False")
-    avatar_url = db.Column(db.String(500))  # <-- add this line
+    avatar_url = db.Column(db.String(500))
     is_on_trial = db.Column(db.Boolean, default=False)
     trial_start_date = db.Column(db.DateTime, nullable=True)
     trial_end_date = db.Column(db.DateTime, nullable=True)
 
-    # New Fields for Business & Display Name
     business_name = db.Column(db.String(255), nullable=True)
     display_name = db.Column(db.String(255), nullable=True)
 
-    # Profile & Cover Picture
     profile_picture = db.Column(db.String(500), nullable=True)
     cover_photo = db.Column(db.String(500), nullable=True)
 
-    # Radio & Podcast Links
     radio_station = db.Column(db.String(500), nullable=True)
     podcast = db.Column(db.String(500), nullable=True)
 
-    # Social Media Links (Stored as JSON)
     social_links = db.Column(db.JSON, nullable=True)
-
-    # Image Gallery (List of Image URLs)
     gallery = db.Column(db.JSON, default=[])
-
-    # Video Gallery (List of Video URLs, Max 10)
     videos = db.Column(db.JSON, default=[])
 
-    # Foreign Key for Role
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
-    role = relationship("Role", backref="users")  # reference to the Role model
+    role = relationship("Role", backref="users")
+
+    radio_follows = db.relationship('RadioFollower', backref='follower_user', lazy='dynamic')
 
     def serialize(self):
         return {
@@ -82,7 +75,7 @@ class User(db.Model):
             "is_on_trial": self.is_on_trial,
             "trial_start_date": self.trial_start_date.strftime("%Y-%m-%d") if self.trial_start_date else None,
             "trial_end_date": self.trial_end_date.strftime("%Y-%m-%d") if self.trial_end_date else None,
-            "role": self.role.name if self.role else None  # Include role name if role exists
+            "role": self.role.name if self.role else None
         }
 
 class Like(db.Model):
@@ -314,36 +307,52 @@ radio_access = db.Table(
 
 
 
+
+class RadioFollower(db.Model):
+    __tablename__ = 'radio_followers'
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), primary_key=True)
+    followed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('radio_follower_entries', lazy='dynamic'))
+    station = db.relationship('RadioStation', backref=db.backref('radio_follower_entries', lazy='dynamic'))
+
+    def serialize(self):
+        return {
+            "user_id": self.user_id,
+            "station_id": self.station_id,
+            "followed_at": self.followed_at.isoformat()
+        }
+
+
+
 class RadioStation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
 
-    # 🔹 Public or Private
-    is_public = db.Column(db.Boolean, default=True)  # ✅ Default: Public
+    is_public = db.Column(db.Boolean, default=True)
     allowed_users = db.relationship('User', secondary='radio_access', backref='private_stations')
 
-    # 🔹 Monetization Features
-    is_subscription_based = db.Column(db.Boolean, default=False)  # ✅ Monthly Subscription Required?
-    subscription_price = db.Column(db.Float, nullable=True)  # ✅ Monthly Fee
-    is_ticketed = db.Column(db.Boolean, default=False)  # ✅ One-Time Ticket Required?
-    ticket_price = db.Column(db.Float, nullable=True)  # ✅ Ticket Price for Entry
-    followers_count = db.Column(db.Integer, default=0)  # ✅ Track Followers
+    is_subscription_based = db.Column(db.Boolean, default=False)
+    subscription_price = db.Column(db.Float, nullable=True)
+    is_ticketed = db.Column(db.Boolean, default=False)
+    ticket_price = db.Column(db.Float, nullable=True)
 
-    # 🔹 Live Streaming Features
-    is_live = db.Column(db.Boolean, default=False)  # ✅ Live Status
-    stream_url = db.Column(db.String(500), nullable=True)  # ✅ Streaming URL
+    is_live = db.Column(db.Boolean, default=False)
+    stream_url = db.Column(db.String(500), nullable=True)
 
-    # 🔹 WebRTC & Interactive Features
-    is_webrtc_enabled = db.Column(db.Boolean, default=False)  # ✅ Allow Listener Calls?
-    max_listeners = db.Column(db.Integer, default=100)  # ✅ Max Concurrent Listeners
+    is_webrtc_enabled = db.Column(db.Boolean, default=False)
+    max_listeners = db.Column(db.Integer, default=100)
 
-    # 🔹 Station Branding
-    logo_url = db.Column(db.String(500), nullable=True)  # ✅ Station Logo
-    cover_image_url = db.Column(db.String(500), nullable=True)  # ✅ Station Cover Image
+    logo_url = db.Column(db.String(500), nullable=True)
+    cover_image_url = db.Column(db.String(500), nullable=True)
 
+    followers_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
     user = db.relationship('User', backref=db.backref('radio_stations', lazy=True))
 
     def serialize(self):
@@ -367,6 +376,12 @@ class RadioStation(db.Model):
             "cover_image_url": self.cover_image_url,
             "created_at": self.created_at.isoformat()
         }
+
+    @property
+    def followers(self):
+        return [entry.user for entry in self.radio_follower_entries]
+
+
 
 class RadioPlaylist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -788,6 +803,8 @@ class UserSubscription(db.Model):
     user = db.relationship('User', backref=db.backref('user_subscriptions', lazy=True))
     plan = db.relationship('SubscriptionPlan', backref=db.backref('user_subscriptions', lazy=True))
     station = db.relationship('RadioStation', backref=db.backref('station_subscriptions', lazy=True))
+
+    
 
     def serialize(self):
         return {
@@ -1223,19 +1240,6 @@ class RadioTrack(db.Model):
             "added_at": self.added_at.isoformat(),
         }
 
-class RadioFollower(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
-    followed_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def serialize(self):
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "station_id": self.station_id,
-            "followed_at": self.followed_at.isoformat(),
-        }
 
 class Payout(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1453,3 +1457,30 @@ class Stream(db.Model):
 
     def __repr__(self):
         return f"<Stream for creator {self.creator_id} with {self.views} views>"
+
+
+# models/share.py or models.py
+class Share(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Polymorphic reference — remove ForeignKey
+    content_id = db.Column(db.Integer, nullable=False)  
+    content_type = db.Column(db.String(50), nullable=False)  # "podcast", "radio", "livestream"
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    platform = db.Column(db.String(50), nullable=False)
+    shared_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref=db.backref("shares", lazy=True))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "content_id": self.content_id,
+            "content_type": self.content_type,
+            "user_id": self.user_id,
+            "platform": self.platform,
+            "shared_at": self.shared_at.isoformat()
+        }
+
