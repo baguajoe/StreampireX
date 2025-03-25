@@ -893,12 +893,14 @@ def get_share_stats():
 @api.route('/profiles', methods=['GET'])
 def get_all_profiles():
     users = User.query.all()
+    # Ensure that user.serialize() is correct for your User model
     return jsonify([user.serialize() for user in users]), 200
-send_from_directory
+
+# Route to get the logged-in user's profile
 @api.route("/profile", methods=["GET"])
 @jwt_required()
 def get_user_profile():
-    user_id = get_jwt_identity()
+    user_id = get_jwt_identity()  # Get the current user's ID from the JWT token
     user = User.query.get(user_id)
 
     if not user:

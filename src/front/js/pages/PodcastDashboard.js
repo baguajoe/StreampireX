@@ -5,7 +5,7 @@ import PodcastOverview from '../component/PodcastOverview';
 import RecentEpisodes from '../component/RecentEpisodes';
 import MonetizationAnalytics from '../component/MonetizationAnalytics';
 import AudienceInteraction from '../component/AudienceInteraction';
-import '../styles/PodcastDashboard.css';  // Assuming you have a CSS file for custom styles
+import '../../styles/PodcastDashboard.css';  // Assuming you have a CSS file for custom styles
 
 const PodcastDashboard = () => {
     const [podcasts, setPodcasts] = useState([]);

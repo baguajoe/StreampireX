@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import create_access_token
 from datetime import datetime
 from flask_socketio import SocketIO
+from sqlalchemy.orm import relationship  # Add this line to import relationship
 import stripe
 from flask_socketio import SocketIO
 socketio = SocketIO(cors_allowed_origins="*")  # ✅ Initialize without `app`
@@ -12,6 +13,8 @@ db = SQLAlchemy()
 # bcrypt = Bcrypt()
 
 
+
+# Role Model
 class Role(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)  # "Admin", "Creator", "Listener", "Radio DJ", "Podcaster"
@@ -22,7 +25,7 @@ class Role(db.Model):
             "name": self.name
         }
 
-
+# User Model
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -35,28 +38,32 @@ class User(db.Model):
     is_on_trial = db.Column(db.Boolean, default=False)
     trial_start_date = db.Column(db.DateTime, nullable=True)
     trial_end_date = db.Column(db.DateTime, nullable=True)
-    
-    # ✅ New Fields for Business & Display Name
+
+    # New Fields for Business & Display Name
     business_name = db.Column(db.String(255), nullable=True)
     display_name = db.Column(db.String(255), nullable=True)
-    
-    # ✅ Profile & Cover Picture
+
+    # Profile & Cover Picture
     profile_picture = db.Column(db.String(500), nullable=True)
     cover_photo = db.Column(db.String(500), nullable=True)
-    
-    # ✅ Radio & Podcast Links
+
+    # Radio & Podcast Links
     radio_station = db.Column(db.String(500), nullable=True)
     podcast = db.Column(db.String(500), nullable=True)
 
-    # ✅ Social Media Links (Stored as JSON)
+    # Social Media Links (Stored as JSON)
     social_links = db.Column(db.JSON, nullable=True)
 
-    # ✅ Image Gallery (List of Image URLs)
+    # Image Gallery (List of Image URLs)
     gallery = db.Column(db.JSON, default=[])
 
-    # ✅ Video Gallery (List of Video URLs, Max 10)
+    # Video Gallery (List of Video URLs, Max 10)
     videos = db.Column(db.JSON, default=[])
-    role = db.Column(db.Integer, db.ForeignKey('role.id'))
+
+    # Foreign Key for Role
+    role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
+    role = relationship("Role", backref="users")  # reference to the Role model
+
     def serialize(self):
         return {
             "id": self.id,
@@ -74,13 +81,10 @@ class User(db.Model):
             "videos": self.videos or [],
             "is_on_trial": self.is_on_trial,
             "trial_start_date": self.trial_start_date.strftime("%Y-%m-%d") if self.trial_start_date else None,
-            "trial_end_date": self.trial_end_date.strftime("%Y-%m-%d") if self.trial_end_date else None
+            "trial_end_date": self.trial_end_date.strftime("%Y-%m-%d") if self.trial_end_date else None,
+            "role": self.role.name if self.role else None  # Include role name if role exists
         }
 
-
-
-
-    
 class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)

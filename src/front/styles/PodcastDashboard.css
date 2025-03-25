@@ -1,0 +1,109 @@
+/* General Dashboard Styles */
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    background-color: #f9f9f9;
+  }
+  
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  .dashboard-header button {
+    padding: 10px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .dashboard-header button:hover {
+    background-color: #45a049;
+  }
+  
+  /* Podcast List */
+  .podcast-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: space-between;
+  }
+  
+  .podcast-card {
+    width: 30%;
+    background-color: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+  }
+  
+  .podcast-card:hover {
+    transform: translateY(-10px);
+  }
+  
+  .podcast-card img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  
+  .podcast-card h3 {
+    font-size: 1.5rem;
+    color: #333;
+    margin-top: 10px;
+  }
+  
+  .podcast-card p {
+    color: #666;
+    font-size: 1rem;
+    margin-top: 5px;
+  }
+  
+  .podcast-card button {
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  
+  .podcast-card button:hover {
+    background-color: #1976D2;
+  }
+  
+  /* Episode Section */
+  .episode-section {
+    margin-top: 40px;
+  }
+  
+  .episode-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .episode-item {
+    background-color: #f4f4f4;  /* Light gray background */
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+  }
+  
+  .episode-item:hover {
+    transform: translateY(-5px);
+  }

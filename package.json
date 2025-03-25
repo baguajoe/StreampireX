@@ -80,6 +80,8 @@
 		"@mediapipe/holistic": "^0.5.1675471629",
 		"@mediapipe/pose": "^0.5.1675469404",
 		"@readyplayerme/react-avatar-creator": "^0.5.0",
+		"@stripe/react-stripe-js": "^3.5.1",
+		"@stripe/stripe-js": "^6.1.0",
 		"axios": "^1.8.3",
 		"chart.js": "^4.4.8",
 		"hls.js": "^1.5.20",
@@ -94,6 +96,8 @@
 		"react-polyfills": "0.0.1",
 		"react-router-dom": "^6.30.0",
 		"react-swipeable": "^7.0.2",
+		"recharts": "^2.15.1",
+		"socket.io-client": "^4.8.1",
 		"styled-components": "^6.1.15"
 	}
 }
