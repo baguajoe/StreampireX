@@ -3,7 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, AdRevenue, Stream
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, AdRevenue, Stream, Share, RadioFollower
 from api.utils import generate_sitemap, APIException, send_email
 from sqlalchemy import func, desc
 from datetime import timedelta  # for trial logic or date math
@@ -22,6 +22,14 @@ from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 import stripe
 import os
 from flask_socketio import SocketIO
+from flask_caching import Cache  # Assuming Flask-Caching is set up
+
+# Initialize caching somewhere in your app setup
+
+app = Flask(__name__)
+cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
+cache.init_app(app)
+
 
 
 
@@ -572,31 +580,6 @@ def create_radio_station():
 
     return jsonify({"message": "Radio Station Created!", "station": new_station.serialize()}), 201
 
-@api.route('/radio/<int:station_id>/grant-access', methods=['POST'])
-@jwt_required()
-def grant_access(station_id):
-    user_id = get_jwt_identity()
-    data = request.json
-    target_user_id = data.get("user_id")
-
-    station = RadioStation.query.get(station_id)
-
-    if not station or station.user_id != user_id:
-        return jsonify({"error": "Not authorized"}), 403
-
-    if station.is_public:
-        return jsonify({"error": "This station is already public"}), 400
-
-    user_to_add = User.query.get(target_user_id)
-    if not user_to_add:
-        return jsonify({"error": "User not found"}), 404
-
-    station.allowed_users.append(user_to_add)
-    db.session.commit()
-
-    return jsonify({"message": "Access granted to user!"}), 200
-
-
 @api.route("/radio/like", methods=["POST"])
 @jwt_required()
 def like_radio_station():
@@ -642,27 +625,54 @@ def comment_on_radio():
 
     return jsonify({"message": "Comment added"}), 201
 
-@api.route('/radio/<int:station_id>/follow', methods=['POST'])
+@api.route('/radio/<int:station_id>/follow-or-grant', methods=['POST'])
 @jwt_required()
-def follow_radio_station(station_id):
-    """Allows users to follow a radio station."""
+def follow_or_grant(station_id):
+    """
+    If public: lets user follow a radio station.
+    If private: allows owner to grant access to another user.
+    """
     user_id = get_jwt_identity()
-    station = RadioStation.query.get(station_id)
+    data = request.get_json() or {}
 
+    station = RadioStation.query.get(station_id)
     if not station:
         return jsonify({"error": "Station not found"}), 404
 
-    if user_id in [u.id for u in station.allowed_users]:
-        return jsonify({"message": "Already following this station"}), 200
+    # Scenario 1: Public Station - Follow
+    if station.is_public:
+        if user_id in [u.id for u in station.allowed_users]:
+            return jsonify({"message": "Already following this station"}), 200
 
-    station.allowed_users.append(User.query.get(user_id))
-    station.followers_count += 1  # Increment follower count
+        station.allowed_users.append(User.query.get(user_id))
+        station.followers_count += 1
+        db.session.commit()
+
+        socketio.emit(f"station-{station_id}-new-follower", {"stationId": station_id})
+        return jsonify({"message": "Now following this public station!"}), 200
+
+    # Scenario 2: Private Station - Grant access to another user
+    if station.user_id != user_id:
+        return jsonify({"error": "Not authorized to grant access"}), 403
+
+    target_user_id = data.get("user_id")
+    if not target_user_id:
+        return jsonify({"error": "Missing user_id in request for private station"}), 400
+
+    user_to_add = User.query.get(target_user_id)
+    if not user_to_add:
+        return jsonify({"error": "User not found"}), 404
+
+    if user_to_add in station.allowed_users:
+        return jsonify({"message": "User already has access to this private station"}), 200
+
+    station.allowed_users.append(user_to_add)
+    station.followers_count += 1
     db.session.commit()
 
-    # 🔴 Notify WebSocket Clients
-    socketio.emit(f"station-{station_id}-new-follower", {"stationId": station_id})
+    socketio.emit(f"station-{station_id}-new-follower", {"stationId": station_id, "granted_to": target_user_id})
+    return jsonify({"message": "Access granted to private station!"}), 200
 
-    return jsonify({"message": "Now following this station!"}), 200
 
 
 @api.route('/radio/track-share', methods=['POST'])
@@ -3319,36 +3329,39 @@ def stop_recording_route():
 if __name__ == "__main__":
     api.run(debug=True)
 
-@api.route('/engagement/<content_id>', methods=['GET'])
-def get_engagement(content_id):
+@api.route('/engagement/<int:content_id>', methods=['GET'])
+@jwt_required(optional=True)  # Optional authentication
+@cache.cached(timeout=60, query_string=True)  # Cache response for 60s per content_id
+def get_full_engagement(content_id):
     try:
-        engagement_data = get_engagement_data(content_id)
-        return jsonify(engagement_data), 200
+        engagement = Engagement.query.filter_by(content_id=content_id).first()
+        if not engagement:
+            raise NoResultFound(f"No engagement data found for content ID {content_id}")
+
+        # 🔍 Replace these with real queries from your Like, Share, Comment models
+        likes = Like.query.filter_by(content_id=content_id).count()
+        shares = Share.query.filter_by(content_id=content_id).count()
+        comments = Comment.query.filter_by(content_id=content_id).count()
+
+        return jsonify({
+            "content_id": engagement.content_id,
+            "views": engagement.views,
+            "plays": engagement.plays,
+            "likes": likes,
+            "shares": shares,
+            "comments": comments
+        }), 200
+
     except NoResultFound:
         return jsonify({"error": "No engagement data found for this content ID"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-def get_engagement_data(content_id):
-    """
-    Retrieve engagement data for a specific content item.
-    
-    Args:
-        content_id (int): The ID of the content to retrieve engagement data for.
-    
-    Returns:
-        dict: A dictionary containing engagement metrics.
-    """
-    engagement = Engagement.query.filter_by(content_id=content_id).first()
-    
-    if not engagement:
-        raise NoResultFound(f"No engagement data found for content ID {content_id}")
-    
-    return {
-        "content_id": engagement.content_id,
-        "views": engagement.views,
-        "plays": engagement.plays
-    }
+    except NoResultFound:
+        return jsonify({"error": "No engagement data found for this content ID"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @api.route('/earnings/<podcast_id>', methods=['GET'])
 def get_earnings(podcast_id):
@@ -3493,11 +3506,50 @@ def creator_analytics(creator_id):
         'total_earnings': total_earnings
     })
 
-# --- Engagement ---
-@api.route('/api/analytics/engagement/<int:content_id>', methods=['GET'])
-def content_engagement(content_id):
-    likes = 120  # Replace with real query
-    shares = 30
-    comments = 45
-    return jsonify({'likes': likes, 'shares': shares, 'comments': comments})
+@api.route('/radio/<int:station_id>/follow', methods=['POST'])
+@jwt_required()
+def follow_radio_station(station_id):
+    user_id = get_jwt_identity()
+    existing = RadioFollower.query.filter_by(user_id=user_id, station_id=station_id).first()
 
+    if existing:
+        return jsonify({"message": "Already following this station"}), 200
+
+    follow = RadioFollower(user_id=user_id, station_id=station_id)
+    db.session.add(follow)
+
+    # Optional: Increment station's follower count
+    station = RadioStation.query.get(station_id)
+    if station:
+        station.followers_count += 1
+
+    db.session.commit()
+
+    socketio.emit(f"station-{station_id}-new-follower", {"stationId": station_id})
+    return jsonify({"message": "Now following this station!"}), 200
+
+@api.route('/radio/<int:station_id>/followers', methods=['GET'])
+@jwt_required()
+def get_station_followers(station_id):
+    station = RadioStation.query.get(station_id)
+    if not station:
+        return jsonify({"error": "Station not found"}), 404
+
+    # Raw SQL join to access timestamp in association table
+    results = db.session.execute(
+        """
+        SELECT u.id, u.username, rf.followed_at
+        FROM user u
+        JOIN radio_followers rf ON u.id = rf.user_id
+        WHERE rf.station_id = :station_id
+        ORDER BY rf.followed_at DESC
+        """,
+        {"station_id": station_id}
+    ).fetchall()
+
+    followers = [
+        {"user_id": row[0], "username": row[1], "followed_at": row[2].strftime('%Y-%m-%d %H:%M:%S')}
+        for row in results
+    ]
+
+    return jsonify({"followers": followers, "total": len(followers)}), 200

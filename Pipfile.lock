@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "47aa290a6f1343a990314001a2c69017b4499cb1e5e21c294d9c98f2d7645d41"
+            "sha256": "9484789fa8cc214a98c38b308c1c419feb2985663b80b4b25d69823d420b9127"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -39,6 +39,14 @@
             ],
             "markers": "python_version >= '3.9'",
             "version": "==1.9.0"
+        },
+        "cachelib": {
+            "hashes": [
+                "sha256:209d8996e3c57595bee274ff97116d1d73c4980b2fd9a34c7846cd07fd2e1a48",
+                "sha256:8c8019e53b6302967d4e8329a504acf75e7bc46130291d30188a6e4e58162516"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==0.13.0"
         },
         "certifi": {
             "hashes": [
@@ -177,6 +185,14 @@
             ],
             "index": "pypi",
             "version": "==1.6.1"
+        },
+        "flask-caching": {
+            "hashes": [
+                "sha256:65d7fd1b4eebf810f844de7de6258254b3248296ee429bdcb3f741bcbf7b98c9",
+                "sha256:d3efcf600e5925ea5a2fcb810f13b341ae984f5b52c00e9d9070392f3ca10761"
+            ],
+            "index": "pypi",
+            "version": "==2.3.1"
         },
         "flask-cors": {
             "hashes": [
