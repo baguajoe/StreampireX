@@ -1,9 +1,39 @@
+# utils.py
+
 from flask import jsonify, url_for, current_app
 from flask_jwt_extended import get_jwt_identity
 from flask_mail import Mail, Message
 from api.models import User
 
-mail = None  # We will initialize this in the create_app function
+def calculate_split(amount, revenue_type):
+    """
+    Calculate the platform cut and creator earnings based on the amount and revenue type.
+
+    Args:
+    - amount (float): The total amount of revenue generated.
+    - revenue_type (str): The type of revenue ("ad_revenue", "tip_jar", "live_tickets", "subscription", etc.)
+
+    Returns:
+    - dict: A dictionary containing the platform cut and creator earnings.
+    """
+    # Define revenue splits for different types of revenue
+    splits = {
+        "ad_revenue": 0.15,  # 15% platform cut for ad revenue
+        "tip_jar": 0.10,     # 10% platform cut for tip jar
+        "live_tickets": 0.20,  # 20% platform cut for live tickets
+        "subscription": 0.25  # 25% platform cut for subscription revenue
+    }
+
+    # Default to a 15% platform cut if no specific type is matched
+    platform_cut_percentage = splits.get(revenue_type, 0.15)
+    platform_cut = amount * platform_cut_percentage
+    creator_earnings = amount - platform_cut
+
+    return {
+        "platform_cut": platform_cut,
+        "creator_earnings": creator_earnings
+    }
+
 
 class APIException(Exception):
     status_code = 400
