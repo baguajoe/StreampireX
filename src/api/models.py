@@ -1512,3 +1512,9 @@ class VRAccessTicket(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     event_id = db.Column(db.Integer, db.ForeignKey('live_event.id'))
     is_verified = db.Column(db.Boolean, default=False)
+
+class PodcastPurchase(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    episode_id = db.Column(db.Integer, db.ForeignKey('podcast_episode.id'))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
