@@ -3,7 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, AdRevenue, Stream, Share, RadioFollower, VRAccessTicket
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, AdRevenue, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase
 from api.utils import generate_sitemap, APIException, send_email
 from sqlalchemy import func, desc
 from datetime import timedelta  # for trial logic or date math
@@ -3767,65 +3767,66 @@ def get_episode(episode_id):
     return jsonify(episode.serialize()), 200
 
 @api.route('/api/episodes/<int:episode_id>/access', methods=['GET'])
-@jwt_required()
+@jwt_required(optional=True)
 def check_episode_access(episode_id):
-    user_id = get_jwt_identity()
     episode = PodcastEpisode.query.get(episode_id)
-
+    
     if not episode:
         return jsonify({"error": "Episode not found"}), 404
 
+    # Always grant access if it's not premium
     if not episode.is_premium:
         return jsonify({"access": True}), 200
 
-    purchase = Purchase.query.filter_by(user_id=user_id, product_id=episode.id).first()
+    # If not logged in, no access to premium content
+    user_id = get_jwt_identity()
+    if not user_id:
+        return jsonify({"access": False}), 200
+
+    # Check purchase record
+    purchase = PodcastPurchase.query.filter_by(user_id=user_id, episode_id=episode_id).first()
     access_granted = purchase is not None
 
     return jsonify({"access": access_granted}), 200
+
 
 @api.route('/podcast/<int:podcast_id>/purchase', methods=['POST'])
 @jwt_required()
 def purchase_episode(podcast_id):
     user_id = get_jwt_identity()
-    data = request.json
+    data = request.get_json()
     episode_id = data.get("episode_id")
 
     episode = PodcastEpisode.query.get(episode_id)
-    if not episode:
+    if not episode or episode.podcast_id != podcast_id:
         return jsonify({"error": "Episode not found"}), 404
 
     if not episode.is_premium:
         return jsonify({"error": "This episode is free"}), 400
 
-    # Create a Stripe Checkout session
     try:
-        session = stripe.checkout.Session.create(
+        checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
                     'currency': 'usd',
                     'product_data': {
-                        'name': episode.title
+                        'name': f"{episode.title} - Podcast Episode"
                     },
                     'unit_amount': int(episode.price_per_episode * 100),
                 },
                 'quantity': 1,
             }],
             mode='payment',
-            success_url=f"{os.getenv('FRONTEND_URL')}/episode-success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{os.getenv('FRONTEND_URL')}/cancel"
+            success_url=f"{os.getenv('FRONTEND_URL')}/podcast/thank-you?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{os.getenv('FRONTEND_URL')}/podcast/cancel",
         )
 
-        # Optionally log a pending purchase here if needed
-        # e.g. store episode_id, user_id, status='pending', session.id
-
-        return jsonify({
-            "checkout_session_id": session.id,
-            "checkout_url": session.url
-        }), 200
+        return jsonify({"checkout_url": checkout_session.url}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 
