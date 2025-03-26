@@ -5,6 +5,17 @@ from src.app import app  # Ensure this initializes Flask app & db
 with app.app_context():
     plans = [
         PricingPlan(
+            name="Free",
+            price_monthly=0.00,
+            price_yearly=0.00,
+            trial_days=0,
+            includes_podcasts=False,
+            includes_radio=False,
+            includes_digital_sales=False,
+            includes_merch_sales=False,
+            created_at=datetime.utcnow()
+        ),
+        PricingPlan(
             name="Starter",
             price_monthly=9.99,
             price_yearly=99.99,

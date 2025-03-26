@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
 import "chart.js/auto";
+import EarningsPage from "./EarningsPage"; // Import the EarningsPage component
 
 const CreatorDashboard = () => {
   const [profile, setProfile] = useState({ username: "", email: "", profile_picture: "", subscription: "Free" });
@@ -80,6 +81,9 @@ const CreatorDashboard = () => {
         <p>Email: {profile.email}</p>
         <p>Subscription: {profile.subscription}</p>
       </div>
+
+      {/* Earnings Page */}
+      <EarningsPage />
 
       <h2>📊 Share Analytics</h2>
       <Bar

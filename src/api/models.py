@@ -729,20 +729,27 @@ class PricingPlan(db.Model):
     includes_digital_sales = db.Column(db.Boolean, default=False)  # ✅ Sell Digital Products
     includes_merch_sales = db.Column(db.Boolean, default=False)  # ✅ Sell Physical Products
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    includes_live_events = db.Column(db.Boolean, default=False)
+    includes_tip_jar = db.Column(db.Boolean, default=False)
+    includes_ad_revenue = db.Column(db.Boolean, default=False)
+
 
     def serialize(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "price_monthly": self.price_monthly,
-            "price_yearly": self.price_yearly,
-            "trial_days": self.trial_days,
-            "includes_podcasts": self.includes_podcasts,
-            "includes_radio": self.includes_radio,
-            "includes_digital_sales": self.includes_digital_sales,
-            "includes_merch_sales": self.includes_merch_sales,
-            "created_at": self.created_at.isoformat()
-        }
+         return {
+        "id": self.id,
+        "name": self.name,
+        "price_monthly": self.price_monthly,
+        "price_yearly": self.price_yearly,
+        "trial_days": self.trial_days,
+        "includes_podcasts": self.includes_podcasts,
+        "includes_radio": self.includes_radio,
+        "includes_digital_sales": self.includes_digital_sales,
+        "includes_merch_sales": self.includes_merch_sales,
+        "includes_live_events": self.includes_live_events,
+        "includes_tip_jar": self.includes_tip_jar,
+        "includes_ad_revenue": self.includes_ad_revenue,
+        "created_at": self.created_at.isoformat()
+    }
 
 
 class Subscription(db.Model):
@@ -898,6 +905,12 @@ class Music(db.Model):
     cover_art_url = db.Column(db.String(500), nullable=True)  # Album cover image
     duration = db.Column(db.Integer, nullable=True)  # Duration in seconds
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_premium = db.Column(db.Boolean, default=False)
+    price = db.Column(db.Float, nullable=True)
+
+    platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
+    creator_earnings = db.Column(db.Float)            # 85% automatically calculated
+
 
     # ✅ Licensing Information
     is_licensed = db.Column(db.Boolean, default=False)  # Whether the track is available for licensing
@@ -948,6 +961,88 @@ class Music(db.Model):
             "radio_station_id": self.radio_station_id,
             "playlist_id": self.playlist_id
         }
+    
+class MusicPurchase(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    music_id = db.Column(db.Integer, db.ForeignKey('music.id'), nullable=False)
+    amount_paid = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "music_id": self.music_id,
+            "amount_paid": self.amount_paid,
+            "created_at": self.created_at.isoformat()
+        }
+
+class MusicEarnings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    music_id = db.Column(db.Integer, db.ForeignKey('music.id'), nullable=False)
+    earnings = db.Column(db.Float, default=0.0)
+    payout_triggered = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    music = db.relationship('Music', backref='earnings')
+    user = db.relationship('User', backref='earnings')
+
+    def calculate_royalties(self, play_count, royalty_per_play):
+        self.earnings += play_count * royalty_per_play
+        db.session.commit()
+
+    def trigger_payout(self):
+        if self.earnings >= 50:  # Threshold for payout
+            # Trigger payout logic (Stripe, PayPal, Bank transfer)
+            # Here you would use an API like PayPal or Stripe to send payment
+            self.payout_triggered = True
+            self.earnings = 0  # Reset earnings after payout
+            db.session.commit()
+            return "Payout processed"
+        return "Earnings below payout threshold"
+class MusicUsage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    music_id = db.Column(db.Integer, db.ForeignKey('music.id'), nullable=False)
+    play_count = db.Column(db.Integer, default=0)
+    download_count = db.Column(db.Integer, default=0)
+    revenue_generated = db.Column(db.Float, default=0.0)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    music = db.relationship('Music', backref=db.backref('usage_data', lazy=True))
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "music_id": self.music_id,
+            "play_count": self.play_count,
+            "download_count": self.download_count,
+            "revenue_generated": self.revenue_generated,
+            "timestamp": self.timestamp.isoformat(),
+        }
+
+class MusicInteraction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Who interacted with the content
+    music_id = db.Column(db.Integer, db.ForeignKey('music.id'), nullable=False)  # Music track
+    play_count = db.Column(db.Integer, default=0)  # Number of plays
+    download_count = db.Column(db.Integer, default=0)  # Number of downloads
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)  # When this interaction occurred
+
+    user = db.relationship('User', backref=db.backref('music_interactions', lazy=True))
+    music = db.relationship('Music', backref=db.backref('interactions', lazy=True))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "music_id": self.music_id,
+            "play_count": self.play_count,
+            "download_count": self.download_count,
+            "timestamp": self.timestamp.isoformat(),
+        }
+
 
 class MusicLicensing(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -992,6 +1087,9 @@ class CreatorDonation(db.Model):
 
     creator = db.relationship('User', foreign_keys=[creator_id], backref=db.backref('donations_received', lazy=True))
     supporter = db.relationship('User', foreign_keys=[supporter_id], backref=db.backref('donations_made', lazy=True))
+    platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
+    creator_earnings = db.Column(db.Float)            # 85% automatically calculated
+
 
     def serialize(self):
         return {
@@ -1108,6 +1206,9 @@ class Product(db.Model):
     is_digital = db.Column(db.Boolean, default=True)  # ✅ Mark if it's a digital product
     sales_revenue = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
+    creator_earnings = db.Column(db.Float)            # 85% automatically calculated
+
 
     creator = db.relationship('User', backref=db.backref('products', lazy=True))
 
@@ -1220,6 +1321,9 @@ class EventTicket(db.Model):
     event_id = db.Column(db.Integer, db.ForeignKey('live_event.id'), nullable=False)  # Which event the ticket is for
     price_paid = db.Column(db.Float, nullable=False)
     purchased_at = db.Column(db.DateTime, default=datetime.utcnow)
+    platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
+    creator_earnings = db.Column(db.Float)            # 85% automatically calculated
+
 
     # ✅ Add back_populates and overlaps to fix warning
     event = db.relationship("LiveEvent", back_populates="tickets", overlaps="tickets")
@@ -1291,6 +1395,9 @@ class Revenue(db.Model):
     revenue_type = db.Column(db.String(50), nullable=False)  # e.g., 'subscription', 'ad', 'music', 'donation'
     amount = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
+    creator_earnings = db.Column(db.Float)            # 85% automatically calculated
+
 
     user = db.relationship("User", backref="revenues")  # Relate revenue to user
 
@@ -1358,6 +1465,9 @@ class Purchase(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     purchased_at = db.Column(db.DateTime, default=datetime.utcnow)
+    platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
+    creator_earnings = db.Column(db.Float)            # 85% automatically calculated
+
     
     # Relationships
     user = db.relationship('User', backref='purchases')
@@ -1432,6 +1542,9 @@ class Tip(db.Model):
     recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
+    creator_earnings = db.Column(db.Float)            # 85% automatically calculated
+
 
     sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_tips')
     recipient = db.relationship('User', foreign_keys=[recipient_id], backref='received_tips')
@@ -1518,3 +1631,6 @@ class PodcastPurchase(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     episode_id = db.Column(db.Integer, db.ForeignKey('podcast_episode.id'))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
+    creator_earnings = db.Column(db.Float)            # 85% automatically calculated
+

@@ -3,13 +3,19 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, AdRevenue, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase
+from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, AdRevenue, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction
 from api.utils import generate_sitemap, APIException, send_email
 from sqlalchemy import func, desc
 from datetime import timedelta  # for trial logic or date math
 from flask_cors import CORS
 from flask_apscheduler import APScheduler
 from sqlalchemy.orm.exc import NoResultFound
+from api.subscription_utils import get_user_plan, plan_required
+from api.revenue_split import calculate_split, calculate_ad_revenue
+from api.reports_utils import generate_monthly_report
+
+
+
 import uuid
 import ffmpeg
 import feedparser
@@ -1518,33 +1524,52 @@ def buy_product(product_id):
     if not product:
         return jsonify({"error": "Product not found"}), 404
 
-    # Check stock for physical products
     if not product.is_digital and product.stock <= 0:
         return jsonify({"error": "Out of stock"}), 400
 
-    # Apply platform fee (same as digital products)
-    platform_fee = 3.5  # 3.5% fee
-    final_payout = product.price - (product.price * platform_fee / 100)
+    # ✅ Use your platform-wide split for merch
+    amount = product.price
+    split = calculate_split(amount, "merch")
 
-    # Simulate Payment (Replace with actual Stripe/PayPal processing)
-    payment_successful = True  
+    # Simulate payment logic
+    payment_successful = True
 
     if payment_successful:
-        # Reduce stock for physical products
+        # Save the purchase (optional)
+        new_purchase = Purchase(
+            user_id=user_id,
+            product_id=product.id,
+            amount=amount,
+            purchased_at=datetime.utcnow()
+        )
+        db.session.add(new_purchase)
+
+        # Optionally: Record split in Revenue table
+        revenue = Revenue(
+            user_id=product.creator_id,
+            revenue_type="merch",
+            amount=split["creator_earnings"],
+            platform_cut=split["platform_cut"],
+            creator_earnings=split["creator_earnings"]
+        )
+        db.session.add(revenue)
+
         if not product.is_digital:
             product.stock -= 1
-            db.session.commit()
+
+        db.session.commit()
 
         return jsonify({
-            "message": "Purchase successful!",
-            "original_price": product.price,
-            "platform_fee": f"{platform_fee}%",
-            "final_payout": final_payout,
+            "message": "✅ Purchase successful!",
+            "amount": amount,
+            "platform_cut": split["platform_cut"],
+            "creator_earnings": split["creator_earnings"],
             "download_link": product.file_url if product.is_digital else None,
             "shipping_required": not product.is_digital
         }), 200
     else:
         return jsonify({"error": "Payment failed"}), 400
+
     
 @api.route('/subscription-plans', methods=['GET'])
 def get_subscription_plans():
@@ -1553,8 +1578,9 @@ def get_subscription_plans():
 
 @api.route('/pricing-plans', methods=['GET'])
 def get_pricing_plans():
-    plans = PricingPlan.query.all()
+    plans = PricingPlan.query.order_by(PricingPlan.price_monthly.asc()).all()
     return jsonify([plan.serialize() for plan in plans]), 200
+
 
 @api.route('/admin/plans', methods=['GET'])
 @jwt_required()
@@ -2350,18 +2376,27 @@ def create_clip(podcast_id):
 @api.route('/creator/earnings', methods=['GET'])
 @jwt_required()
 def get_creator_earnings():
-    """Fetches total earnings, revenue breakdown, and listener data for a creator."""
     user_id = get_jwt_identity()
-    
-    earnings = db.session.query(
-        func.sum(PodcastSubscription.amount).label("total_earnings"),
-        func.count(PodcastSubscription.id).label("total_subscriptions")
-    ).filter(PodcastSubscription.creator_id == user_id).first()
+
+    # Calculate total earnings for the creator
+    total_earnings = db.session.query(func.sum(Revenue.amount))\
+        .filter(Revenue.user_id == user_id).scalar() or 0
+
+    # Calculate earnings breakdown by revenue type
+    breakdown = db.session.query(
+        Revenue.revenue_type,
+        func.sum(Revenue.amount)
+    ).filter(Revenue.user_id == user_id)\
+     .group_by(Revenue.revenue_type).all()
+
+    # Structure the breakdown in a dictionary for better readability
+    revenue_breakdown = {rtype: float(amount) for rtype, amount in breakdown}
 
     return jsonify({
-        "total_earnings": earnings.total_earnings or 0,
-        "total_subscriptions": earnings.total_subscriptions or 0
+        "total_earnings": total_earnings,
+        "breakdown": revenue_breakdown
     }), 200
+
 
 @api.route('/podcasts/<int:podcast_id>/generate_chapters', methods=['POST'])
 @jwt_required()
@@ -2698,6 +2733,39 @@ def stream_music(track_id):
 
     return jsonify({"stream_url": track.file_url}), 200
 
+@api.route('/music/<int:track_id>/purchase', methods=['POST'])
+@jwt_required()
+def purchase_music(track_id):
+    user_id = get_jwt_identity()
+    track = Music.query.get(track_id)
+
+    if not track or not track.is_premium:
+        return jsonify({"error": "Track not for sale"}), 400
+
+    amount = track.price or 0.0
+
+    # ✅ Revenue Split
+    split = calculate_split(amount, "music")
+
+    # ✅ Log Revenue
+    revenue = Revenue(
+        user_id=track.user_id,
+        revenue_type="music",
+        amount=split["creator_earnings"],
+        platform_cut=split["platform_cut"],
+        creator_earnings=split["creator_earnings"]
+    )
+    db.session.add(revenue)
+    db.session.commit()
+
+    # ⚠️ Replace this with real Stripe checkout flow later
+    return jsonify({
+        "message": "✅ Music purchased!",
+        "platform_cut": split["platform_cut"],
+        "creator_earnings": split["creator_earnings"],
+        "download_url": track.file_url
+    }), 200
+
 
 @api.route('/radio/<int:station_id>/play', methods=['POST'])
 @jwt_required()
@@ -2813,12 +2881,14 @@ def follow_indie_station():
 
     return jsonify({"message": "Successfully followed the station!"}), 201
 
+# ✅ Start Live Stream (with Plan Check + Full Features + WebSocket Notify)
 @api.route('/artist/live/start', methods=['POST'])
 @jwt_required()
+@plan_required("includes_live_events")
 def start_live_stream():
     """Starts a live stream, supports VR/ticketing, and notifies WebSocket clients."""
     user_id = get_jwt_identity()
-    data = request.json
+    data = request.get_json()
 
     new_stream = LiveStudio(
         user_id=user_id,
@@ -2831,7 +2901,8 @@ def start_live_stream():
         is_ticketed=data.get("is_ticketed", False),
         ticket_price=data.get("ticket_price", 0.0),
         donation_link=data.get("donation_link"),
-        has_live_chat=data.get("has_live_chat", True)
+        has_live_chat=data.get("has_live_chat", True),
+        created_at=datetime.utcnow()
     )
 
     db.session.add(new_stream)
@@ -2840,7 +2911,7 @@ def start_live_stream():
     # ✅ Notify Local WebSocket Clients
     socketio.emit("live_stream_update", {"stream_id": new_stream.id, "is_live": True})
 
-    # ✅ Notify External WebSocket Server (if needed)
+    # ✅ Notify External WebSocket Server
     try:
         requests.post("http://localhost:5000/live-status", json={
             "stationId": user_id,
@@ -2849,7 +2920,8 @@ def start_live_stream():
     except requests.exceptions.RequestException as e:
         print(f"Error notifying WebSocket server: {e}")
 
-    return jsonify({"message": "Live stream started!", "stream": new_stream.serialize()}), 201
+    return jsonify({"message": "📡 Live stream started!", "stream": new_stream.serialize()}), 201
+
 
 
 @api.route('/artist/live/end', methods=['POST'])
@@ -2916,16 +2988,42 @@ def subscribe_to_station(station_id):
     if not station or not station.is_subscription_based:
         return jsonify({"error": "Subscription not available"}), 400
 
+    # Determine amount
+    amount = station.subscription_price or 0.0
+    if amount <= 0:
+        return jsonify({"error": "Invalid subscription price"}), 400
+
     # Simulated Stripe/PayPal Payment
     payment_successful = True  # ✅ Replace with real payment processing
+
     if not payment_successful:
         return jsonify({"error": "Payment failed"}), 402
 
+    # ✅ Add user to allowed list
     station.allowed_users.append(User.query.get(user_id))
     station.followers_count += 1
+
+    # ✅ Calculate revenue split
+    split = calculate_split(amount, "subscription")
+
+    # ✅ Record revenue for the station owner
+    revenue = Revenue(
+        user_id=station.user_id,  # Creator of the station
+        revenue_type="subscription",
+        amount=split["creator_earnings"],
+        platform_cut=split["platform_cut"],
+        creator_earnings=split["creator_earnings"]
+    )
+    db.session.add(revenue)
+
     db.session.commit()
 
-    return jsonify({"message": "Subscription successful!"}), 200
+    return jsonify({
+        "message": "✅ Subscription successful!",
+        "amount": amount,
+        "platform_cut": split["platform_cut"],
+        "creator_earnings": split["creator_earnings"]
+    }), 200
 
 @socketio.on('live_status_update')
 def handle_live_status_update(data):
@@ -2952,19 +3050,43 @@ def buy_ticket_radio(station_id):
     if not station or not station.is_ticketed:
         return jsonify({"error": "This station does not sell tickets."}), 400
 
-    # Charge user (Replace this with actual payment gateway integration)
-    ticket_price = station.ticket_price
-    # Process payment with Stripe/PayPal (Mocked)
-    payment_successful = True  # Assume payment is successful for now
+    ticket_price = station.ticket_price or 0.0
+    if ticket_price <= 0:
+        return jsonify({"error": "Invalid ticket price."}), 400
 
-    if payment_successful:
-        new_ticket = TicketPurchase(user_id=user_id, station_id=station_id, amount_paid=ticket_price)
-        station.allowed_users.append(User.query.get(user_id))  # Grant access
-        db.session.add(new_ticket)
-        db.session.commit()
-        return jsonify({"message": "Ticket purchased successfully!"}), 200
-    else:
+    # Simulated payment logic
+    payment_successful = True  # Replace with Stripe/PayPal later
+
+    if not payment_successful:
         return jsonify({"error": "Payment failed."}), 400
+
+    # ✅ Grant access to user
+    station.allowed_users.append(User.query.get(user_id))
+
+    # ✅ Log ticket purchase
+    new_ticket = TicketPurchase(user_id=user_id, station_id=station_id, amount_paid=ticket_price)
+    db.session.add(new_ticket)
+
+    # ✅ Apply revenue split logic
+    split = calculate_split(ticket_price, "event")
+
+    revenue = Revenue(
+        user_id=station.user_id,
+        revenue_type="event",
+        amount=split["creator_earnings"],
+        platform_cut=split["platform_cut"],
+        creator_earnings=split["creator_earnings"]
+    )
+    db.session.add(revenue)
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "🎫 Ticket purchased successfully!",
+        "amount": ticket_price,
+        "platform_cut": split["platform_cut"],
+        "creator_earnings": split["creator_earnings"]
+    }), 200
 
 @api.route('/radio/<int:station_id>/access', methods=['GET'])
 @jwt_required()
@@ -3079,11 +3201,41 @@ def search_content():
     return jsonify({"error": "Invalid content type. Use 'podcast' or 'radio'."}), 400
 
 
-@api.route("/merch", methods=["GET"])
+@api.route("/merch/purchase", methods=["POST"])
 @jwt_required()
-def get_merch():
-    products = Product.query.all()
-    return jsonify([product.serialize() for product in products]), 200
+def purchase_merch():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    product_id = data.get("product_id")
+    amount = data.get("amount")
+
+    product = Product.query.get(product_id)
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+
+    # 🧮 Apply revenue split
+    split = calculate_split(amount, "merch")
+    platform_cut = split["platform_cut"]
+    creator_earnings = split["creator_earnings"]
+
+    purchase = Purchase(
+        user_id=user_id,
+        product_id=product_id,
+        amount=amount,
+        purchased_at=datetime.utcnow(),
+        platform_cut=platform_cut,
+        creator_earnings=creator_earnings
+    )
+
+    db.session.add(purchase)
+    db.session.commit()
+
+    return jsonify({
+        "message": "✅ Merch purchase successful",
+        "platform_cut": platform_cut,
+        "creator_earnings": creator_earnings
+    }), 201
 
 
 
@@ -3747,16 +3899,47 @@ def purchase_vr_ticket():
     if not event_id:
         return jsonify({"error": "Event ID is required"}), 400
 
-    # Prevent duplicate purchase
+    # Check event
+    event = LiveEvent.query.get(event_id)
+    if not event:
+        return jsonify({"error": "Event not found"}), 404
+
+    # Check for duplicate ticket
     existing = VRAccessTicket.query.filter_by(user_id=user_id, event_id=event_id).first()
     if existing:
-        return jsonify({"message": "Ticket already exists"}), 200
+        return jsonify({"message": "🎫 Ticket already exists"}), 200
 
+    ticket_price = event.ticket_price or 0.0
+    if ticket_price <= 0:
+        return jsonify({"error": "This event is free or not properly priced"}), 400
+
+    # Simulated payment (replace with Stripe/PayPal later)
+    payment_successful = True
+    if not payment_successful:
+        return jsonify({"error": "Payment failed"}), 400
+
+    # ✅ Grant access & save ticket
     ticket = VRAccessTicket(user_id=user_id, event_id=event_id, is_verified=True)
     db.session.add(ticket)
+
+    # ✅ Revenue split calculation
+    split = calculate_split(ticket_price, "event")
+    revenue = Revenue(
+        user_id=event.artist_id,
+        revenue_type="event",
+        amount=split["creator_earnings"],
+        platform_cut=split["platform_cut"],
+        creator_earnings=split["creator_earnings"]
+    )
+    db.session.add(revenue)
+
     db.session.commit()
 
-    return jsonify({"message": "🎟️ VR ticket purchased successfully"}), 200
+    return jsonify({
+        "message": "🎟️ VR ticket purchased successfully",
+        "platform_cut": split["platform_cut"],
+        "creator_earnings": split["creator_earnings"]
+    }), 200
 
 @api.route('/api/episodes/<int:episode_id>', methods=['GET'])
 def get_episode(episode_id):
@@ -3804,6 +3987,33 @@ def purchase_episode(podcast_id):
     if not episode.is_premium:
         return jsonify({"error": "This episode is free"}), 400
 
+    # Get podcast for creator ID
+    podcast = Podcast.query.get(podcast_id)
+    if not podcast:
+        return jsonify({"error": "Podcast not found"}), 404
+
+    price = episode.price_per_episode or 0.0
+
+    # ✅ Calculate revenue split
+    split = calculate_split(price, "podcast")
+
+    # ✅ Save revenue tracking now (Stripe webhook will confirm actual payment later)
+    revenue = Revenue(
+        user_id=podcast.host_id,
+        revenue_type="podcast",
+        amount=split["creator_earnings"],
+        platform_cut=split["platform_cut"],
+        creator_earnings=split["creator_earnings"]
+    )
+    db.session.add(revenue)
+
+    # ✅ Optional: Track purchase (can later be validated via webhook)
+    purchase = PodcastPurchase(user_id=user_id, episode_id=episode.id)
+    db.session.add(purchase)
+
+    db.session.commit()
+
+    # ✅ Stripe Checkout Setup
     try:
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
@@ -3813,7 +4023,7 @@ def purchase_episode(podcast_id):
                     'product_data': {
                         'name': f"{episode.title} - Podcast Episode"
                     },
-                    'unit_amount': int(episode.price_per_episode * 100),
+                    'unit_amount': int(price * 100),  # Stripe expects cents
                 },
                 'quantity': 1,
             }],
@@ -3822,11 +4032,118 @@ def purchase_episode(podcast_id):
             cancel_url=f"{os.getenv('FRONTEND_URL')}/podcast/cancel",
         )
 
-        return jsonify({"checkout_url": checkout_session.url}), 200
+        return jsonify({
+            "checkout_url": checkout_session.url,
+            "platform_cut": split["platform_cut"],
+            "creator_earnings": split["creator_earnings"]
+        }), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+# ✅ Upload Merch
+@api.route('/api/products/upload', methods=['POST'])
+@jwt_required()
+@plan_required("includes_merch_sales")
+def upload_merch():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    product = Product(
+        creator_id=user_id,
+        title=data["title"],
+        description=data.get("description"),
+        image_url=data["image_url"],
+        price=float(data["price"]),
+        stock=int(data.get("stock", 0)),
+        is_digital=False,
+        created_at=datetime.utcnow()
+    )
+    db.session.add(product)
+    db.session.commit()
+    return jsonify({"message": "🛍️ Merch uploaded", "product": product.serialize()}), 201
+
+
+# ✅ Create Podcast
+@api.route('/api/podcasts/create', methods=['POST'])
+@jwt_required()
+@plan_required("includes_podcasts")
+def create_podcast():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    podcast = Podcast(
+        user_id=user_id,
+        title=data["title"],
+        description=data.get("description"),
+        cover_image=data.get("cover_image"),
+        created_at=datetime.utcnow()
+    )
+    db.session.add(podcast)
+    db.session.commit()
+    return jsonify({"message": "🎙️ Podcast created", "podcast": podcast.serialize()}), 201
 
 
 
+# ✅ Enable Ad Revenue
+@api.route('/api/ad-revenue/enable', methods=['POST'])
+@jwt_required()
+@plan_required("includes_ad_revenue")
+def enable_ad_revenue():
+    user_id = get_jwt_identity()
 
+    ad_rev = AdRevenue.query.filter_by(user_id=user_id).first()
+    if ad_rev:
+        ad_rev.enabled = True
+    else:
+        ad_rev = AdRevenue(user_id=user_id, enabled=True, amount=0)
+
+    db.session.add(ad_rev)
+    db.session.commit()
+    return jsonify({"message": "📺 Ad revenue enabled!"}), 200
+
+from api.reports_utils import generate_monthly_report
+
+@api.route('/generate-report', methods=['GET'])
+@jwt_required()
+def generate_report():
+    report_data = generate_monthly_report()
+    return jsonify(report_data), 200
+
+@api.route('/ad-revenue', methods=['POST'])
+@jwt_required()
+def handle_ad_revenue():
+    user_id = get_jwt_identity()  # Get the logged-in user's ID
+    data = request.get_json()
+    ad_amount = data.get("ad_amount")  # Amount of ad revenue generated
+
+    if not ad_amount:
+        return jsonify({"error": "Ad amount is required"}), 400
+
+    # Calculate the ad revenue split and record it in the database
+    split = calculate_ad_revenue(ad_amount, user_id)
+
+    return jsonify({
+        "message": "Ad revenue processed successfully!",
+        "platform_cut": split["platform_cut"],
+        "creator_earnings": split["creator_earnings"]
+    }), 200
+
+@api.route('/live-ticket/purchase', methods=['POST'])
+@jwt_required()
+def purchase_live_ticket():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    ticket_amount = data.get("ticket_amount")
+
+    if not ticket_amount:
+        return jsonify({"error": "Ticket amount is required"}), 400
+
+    split = calculate_split(ticket_amount, "live_ticketing")
+
+    # Add logic to store the split in your database or payment processing system
+    return jsonify({
+        "message": "Ticket purchase successful!",
+        "platform_cut": split["platform_cut"],
+        "creator_earnings": split["creator_earnings"]
+    }), 200
