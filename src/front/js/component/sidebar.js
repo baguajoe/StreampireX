@@ -47,8 +47,19 @@ const Sidebar = () => {
       <MenuItem to="/favorites" className={isActive("/favorites") ? "active" : ""}>⭐ Favorites</MenuItem>
       <MenuItem to="/comments" className={isActive("/comments") ? "active" : ""}>💬 Comments</MenuItem>
 
+      <SectionHeader>📊 Dashboards</SectionHeader>
+      <MenuItem to="/creator/analytics/:creatorId" className={isActive("/creator/analytics/:creatorId") ? "active" : ""}>👨‍🎤 Creator Analytics</MenuItem>
+      <MenuItem to="/admin-dashboard" className={isActive("/admin-dashboard") ? "active" : ""}>🛠 Admin Dashboard</MenuItem>
+      <MenuItem to="/analytics" className={isActive("/analytics") ? "active" : ""}>📈 Analytics</MenuItem>
+      <MenuItem to="/revenue" className={isActive("/revenue") ? "active" : ""}>💰 Revenue</MenuItem>
+      <MenuItem to="/revenue-analytics" className={isActive("/revenue-analytics") ? "active" : ""}>📊 Revenue Analytics</MenuItem>
+      <MenuItem to="/podcast-dashboard" className={isActive("/podcast-dashboard") ? "active" : ""}>🎧 Podcast Dashboard</MenuItem>
+      <MenuItem to="/artist-dashboard" className={isActive("/artist-dashboard") ? "active" : ""}>🎤 Artist Dashboard</MenuItem>
+      <MenuItem to="/vr-dashboard" className={isActive("/vr-dashboard") ? "active" : ""}>🕶️ VR Dashboard</MenuItem>
+      <MenuItem to="/radio-dashboard" className={isActive("/radio-dashboard") ? "active" : ""}>📻 Radio Dashboard</MenuItem>
+      <MenuItem to="/stream-tools" className={isActive("/stream-tools") ? "active" : ""}>🛠️ Stream Tools</MenuItem>
+
       <SectionHeader>🎧 Podcasts</SectionHeader>
-      <MenuItem to="/podcast-dashboard" className={isActive("/podcast-dashboard") ? "active" : ""}>📊 Dashboard</MenuItem>
       <MenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>🎙️ Create Podcast</MenuItem>
       <MenuItem to="/browse-podcasts" className={isActive("/browse-podcasts") ? "active" : ""}>🎧 Browse Podcasts</MenuItem>
       <MenuItem to="/podcasts" className={isActive("/podcasts") ? "active" : ""}>🎧 All Podcasts</MenuItem>
@@ -71,13 +82,6 @@ const Sidebar = () => {
       <MenuItem to="/live-studio" className={isActive("/live-studio") ? "active" : ""}>🎥 Live Studio</MenuItem>
       <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>📡 Live Streams</MenuItem>
       <MenuItem to="/live-concerts" className={isActive("/live-concerts") ? "active" : ""}>🎶 Live Concerts</MenuItem>
-
-      <SectionHeader>📊 Analytics</SectionHeader>
-      <MenuItem to="/analytics" className={isActive("/analytics") ? "active" : ""}>📈 Analytics</MenuItem>
-      <MenuItem to="/creator/analytics/:creatorId" className={isActive("/creator/analytics/:creatorId") ? "active" : ""}>👨‍🎤 Creator Analytics</MenuItem>
-      <MenuItem to="/admin-dashboard" className={isActive("/admin-dashboard") ? "active" : ""}>🛠 Admin Dashboard</MenuItem>
-      <MenuItem to="/revenue" className={isActive("/revenue") ? "active" : ""}>💰 Revenue</MenuItem>
-      <MenuItem to="/revenue-analytics" className={isActive("/revenue-analytics") ? "active" : ""}>📊 Revenue Analytics</MenuItem>
 
       <SectionHeader>💸 Monetization</SectionHeader>
       <MenuItem to="/payout-request" className={isActive("/payout-request") ? "active" : ""}>💵 Payout</MenuItem>

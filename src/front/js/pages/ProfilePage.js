@@ -52,18 +52,12 @@ const ProfilePage = () => {
                 setSocialLinks(data.social_links || {});
                 setStorefrontLink(data.storefront_link || "");
                 setUseAvatar(data.use_avatar || false);
+                setRadioStation(data.radio_station || "");
+                setPodcast(data.podcast || "");
+                setVideos(data.videos || [])
             })
             .catch((err) => alert("Error fetching profile."));
     }, []);
-
-    useEffect(() => {
-        if (user?.id) {
-            fetch(`${process.env.BACKEND_URL}/api/user/${user.id}/videos`)
-                .then((res) => res.json())
-                .then((data) => setVideos(data))
-                .catch((err) => alert("Failed to load videos."));
-        }
-    }, [user]);
 
     const handleToggleAvatar = async () => {
         const newValue = !useAvatar;
@@ -93,6 +87,39 @@ const ProfilePage = () => {
         if (e.target.files.length > 0) {
             setCoverPhoto(URL.createObjectURL(e.target.files[0]));
             setCoverPhotoName(e.target.files[0].name);
+        }
+    };
+
+    const handleSaveProfile = async () => {
+        const payload = {
+            display_name: displayName,
+            business_name: businessName,
+            bio: bio,
+            social_links: socialLinks,
+            radio_station: radioStation,
+            podcast: podcast,
+            videos: videos,
+        };
+
+        try {
+            const response = await fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                alert("✅ Profile saved successfully!");
+                setUser(result.user);
+            } else {
+                alert(result.error || "Failed to update profile.");
+            }
+        } catch (error) {
+            alert("An error occurred while saving profile.");
         }
     };
 
@@ -247,22 +274,35 @@ const ProfilePage = () => {
                 </div>
 
                 <div className="right-column">
+                    {/* 🎛️ Quick Actions - moved to top */}
+                    <div className="quick-actions">
+                        <h3>🎛️ Quick Actions</h3>
+                        <Link to="/podcast/create">
+                            <button className="btn-podcast">🎙️ Create Podcast</button>
+                        </Link>
+                        <Link to="/create-radio">
+                            <button className="btn-radio">📡 Create Radio Station</button>
+                        </Link>
+                        <Link to="/indie-artist-upload">
+                            <button className="btn-indie-upload">🎤 Indie Artist Upload</button>
+                        </Link>
+                    </div>
+
+                    {/* 🛍️ Storefront Section */}
                     <h3>🛍️ Storefront</h3>
-                    <p>Visit my store: <a href={storefrontLink} target="_blank" rel="noopener noreferrer">{storefrontLink || "N/A"}</a></p>
-                    {products.length > 0 && <div className="featured-product">Featured: {products[0].name}</div>}
-
-                    <h3>📡 Radio Station & Podcast</h3>
-                    <Link to="/podcast/create">
-                        <button className="btn-podcast">🎙️ Create Podcast</button>
-                    </Link>
-                    <Link to="/create-radio">
-                        <button className="btn-radio">📡 Create Radio Station</button>
-                    </Link>
-
-                    <Link to="/indie-artist-upload">
-                        <button className="btn-indie-upload">🎤 Indie Artist Upload</button>
-                    </Link>
+                    <p>
+                        Visit my store:{" "}
+                        <a href={storefrontLink} target="_blank" rel="noopener noreferrer">
+                            {storefrontLink || "N/A"}
+                        </a>
+                    </p>
+                    {products.length > 0 && (
+                        <div className="featured-product">
+                            Featured: {products[0].name}
+                        </div>
+                    )}
                 </div>
+
             </div>
 
             <button onClick={() => alert("Saved!")} className="btn-primary">💾 Save Profile</button>
