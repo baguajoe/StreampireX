@@ -60,6 +60,7 @@ import Voting from "./pages/Voting";
 import VRDashboard from "./pages/VRDashboard";
 import WebRTCPage from "./pages/WebRTCPage";
 import AuthRoute from "./component/AuthRoute";
+import RadioStationDashboard from "./pages/RadioStationDashboard";
 
 
 
@@ -80,6 +81,8 @@ import TrendingPage from "./pages/TrendingPage";
 import CommentsPage from "./pages/CommentsPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import ChartPage from "./component/chart";
+import StreamTools from "./pages/StreamTools";
+
 
 const Layout = () => {
     const basename = process.env.BASENAME || "";
@@ -126,6 +129,7 @@ const Layout = () => {
                             <Route path="/vr-dashboard" element={<VRDashboard />} />
                             <Route path="/webrtc" element={<WebRTCPage />} />
                             <Route path="/chatmodal" element={<ChatModal />} />
+                            <Route path="/radio-dashboard" element={<RadioStationDashboard />} />
 
 
 
@@ -156,6 +160,7 @@ const Layout = () => {
                             <Route path="/role-management" element={<RoleManagement />} />  {/* ✅ Add Role Management route */}
                             <Route path="/demo" element={<Demo />} />
                             <Route path="/single/:theid" element={<Single />} />
+                            <Route path="/stream-tools" element={<StreamTools />} />
 
                             {/* ✅ Added Missing Routes */}
                             <Route path="/browse-profiles" element={<BrowseProfiles />} />

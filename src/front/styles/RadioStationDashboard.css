@@ -1,0 +1,81 @@
+/* RadioStationDashboard.css */
+
+.dashboard-container {
+    display: flex;
+    flex-direction: row;
+    min-height: 100vh;
+    background-color: #f9f9f9;
+  }
+  
+  .content {
+    flex: 1;
+    padding: 2rem;
+    background: #fff;
+    border-left: 1px solid #e0e0e0;
+  }
+  
+  .content h1, h2 {
+    color: #222;
+    margin-bottom: 1rem;
+  }
+  
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  ul li {
+    background: #f1f1f1;
+    border: 1px solid #ddd;
+    margin-bottom: 10px;
+    padding: 10px 15px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  button {
+    background-color: #004080;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 10px;
+  }
+  
+  button:hover {
+    background-color: #0059b3;
+  }
+  
+  .btn-delete {
+    background-color: #cc0000;
+  }
+  
+  .btn-delete:hover {
+    background-color: #a30000;
+  }
+  
+  .btn-create {
+    margin-top: 1rem;
+    background-color: #ff6600;
+  }
+  
+  .btn-create:hover {
+    background-color: #e65c00;
+  }
+  
+  select {
+    padding: 8px;
+    margin-top: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  select + button {
+    margin-left: 10px;
+    margin-top: 1rem;
+  }
+  

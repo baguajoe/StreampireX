@@ -1,0 +1,77 @@
+.vr-dashboard {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+  }
+  
+  .dashboard-title {
+    margin-bottom: 20px;
+    font-size: 32px;
+    font-weight: bold;
+    color: #FF6600;
+    text-align: center;
+  }
+  
+  .vr-section {
+    background: #f5f5f5;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    color: #333;
+  }
+  
+  .vr-section h2 {
+    color: #FF6600;
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+  
+  .vr-section ul {
+    list-style: none;
+    padding-left: 0;
+  }
+  
+  .vr-section li {
+    background: #fff;
+    margin-bottom: 10px;
+    padding: 10px 15px;
+    border-radius: 5px;
+    border-left: 4px solid #FF6600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .vr-section li h3 {
+    margin: 0 0 5px 0;
+    color: #004080;
+  }
+  
+  .vr-section li p {
+    margin: 0;
+    font-size: 14px;
+    color: #555;
+  }
+  
+  .btn-create-event {
+    background: #004080;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    font-size: 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+  }
+  
+  .btn-create-event:hover {
+    background: #FF6600;
+  }
+  
+  .btn-create-event:active {
+    background-color: #cc5200;
+  }
+  

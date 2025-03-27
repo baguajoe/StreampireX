@@ -1265,7 +1265,7 @@ def create_signup():
         email=email,
         username=username,
         password_hash=hashed_password,
-        role=new_role.id if new_role else role_exist.id,
+        role_id=new_role.id if new_role else role_exist.id,
         artist_name=artist_name,
         industry=industry,
         
@@ -2125,32 +2125,61 @@ def update_profile():
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    data = request.json
+    data = request.form
 
     user.business_name = data.get("business_name", user.business_name)
     user.display_name = data.get("display_name", user.display_name)
     user.radio_station = data.get("radio_station", user.radio_station)
     user.podcast = data.get("podcast", user.podcast)
     user.bio = data.get("bio", user.bio)
-    
-    # Update social links (Ensure JSON structure)
+
+    # Handle JSON fields (e.g. social_links) passed as strings
     if "social_links" in data:
-        user.social_links = data["social_links"]
+        try:
+            user.social_links = json.loads(data["social_links"])
+        except Exception:
+            return jsonify({"error": "Invalid social_links JSON"}), 400
 
-    # Update image gallery (Ensure list max 10)
-    if "gallery" in data:
-        if len(data["gallery"]) > 10:
-            return jsonify({"error": "Max 10 images allowed in gallery"}), 400
-        user.gallery = data["gallery"]
-
-    # Update video gallery (Ensure list max 10)
+    # Handle videos and gallery if present
     if "videos" in data:
-        if len(data["videos"]) > 10:
-            return jsonify({"error": "Max 10 videos allowed"}), 400
-        user.videos = data["videos"]
+        try:
+            videos = json.loads(data["videos"])
+            if len(videos) > 10:
+                return jsonify({"error": "Max 10 videos allowed"}), 400
+            user.videos = videos
+        except Exception:
+            return jsonify({"error": "Invalid videos format"}), 400
+
+    if "gallery" in data:
+        try:
+            gallery = json.loads(data["gallery"])
+            if len(gallery) > 10:
+                return jsonify({"error": "Max 10 images allowed"}), 400
+            user.gallery = gallery
+        except Exception:
+            return jsonify({"error": "Invalid gallery format"}), 400
+
+    # 📸 Handle profile picture upload
+    if "profile_picture" in request.files:
+        pic = request.files["profile_picture"]
+        if pic.filename != "":
+            filename = secure_filename(pic.filename)
+            pic_path = os.path.join("uploads/profile_pics", filename)
+            pic.save(pic_path)
+            user.profile_picture = pic_path
+
+    # 🖼️ Handle cover photo upload
+    if "cover_photo" in request.files:
+        cover = request.files["cover_photo"]
+        if cover.filename != "":
+            filename = secure_filename(cover.filename)
+            cover_path = os.path.join("uploads/cover_photos", filename)
+            cover.save(cover_path)
+            user.cover_photo = cover_path
 
     db.session.commit()
     return jsonify({"message": "Profile updated successfully", "user": user.serialize()}), 200
+
 
 @api.route('/user/profile/videos/upload', methods=['POST'])
 @jwt_required()
@@ -4471,3 +4500,9 @@ def user_settings():
 
     db.session.commit()
     return jsonify({"msg": "Settings updated"}), 200
+
+@api.route("/user/stream-key", methods=["GET"])
+@jwt_required()
+def get_stream_key():
+    user = User.query.get(get_jwt_identity())
+    return jsonify({ "stream_key": user.stream_key or generate_stream_key() })

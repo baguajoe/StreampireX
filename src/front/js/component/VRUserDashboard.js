@@ -1,4 +1,4 @@
-// src/components/VRUserDashboard.js
+
 
 import React, { useState, useEffect } from 'react';
 // import VRCreateEvent from './VRCreateEvent';  // Import the new VR event component
