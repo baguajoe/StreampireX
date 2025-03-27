@@ -3,7 +3,8 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import  db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier,CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video,VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast,ShareAnalytics, Like, Favorite, Comment, Notification, PricingPlan,Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, LiveStream, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio, PodcastClip, TicketPurchase, Analytics, ShareAnalytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, AdRevenue, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction
+
 from api.utils import generate_sitemap, APIException, send_email
 from sqlalchemy import func, desc
 from datetime import timedelta  # for trial logic or date math
@@ -26,8 +27,10 @@ import xml.etree.ElementTree as ET
 
 
 # import moviepy
-from moviepy import AudioFileClip
+from moviepy import AudioFileClip, VideoFileClip
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+
+
 
 import stripe
 import os
@@ -110,6 +113,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure upload directory exists
 @jwt_required()
 def upload_video():
     user_id = get_jwt_identity()
+    user = User.query.get(user_id)
 
     if 'video' not in request.files:
         return jsonify({"error": "No file provided"}), 400
@@ -125,6 +129,38 @@ def upload_video():
     file_path = os.path.join(UPLOAD_FOLDER, filename)
     video.save(file_path)
 
+    # ✅ Enforce duration limit based on role
+    try:
+        clip = VideoFileClip(file_path)
+        duration = clip.duration  # in seconds
+        clip.close()
+
+        if user.role == 'Free' and duration > 120:
+            os.remove(file_path)
+            return jsonify({"error": "Free users can only upload videos up to 2 minutes."}), 403
+        elif user.role in ['Pro', 'Premium'] and duration > 1200:
+            os.remove(file_path)
+            return jsonify({"error": "Video too long for Pro/Premium tier."}), 403
+    except Exception as e:
+        os.remove(file_path)
+        return jsonify({"error": f"Error processing video: {str(e)}"}), 500
+
+    # Save video
+    new_video = Video(
+        user_id=user_id,
+        title=title,
+        description=description,
+        file_url=file_path,
+        uploaded_at=datetime.utcnow()
+    )
+    db.session.add(new_video)
+    db.session.commit()
+
+    return jsonify({"message": "Video uploaded successfully", "video": new_video.serialize()}), 201
+
+    clip.close()
+
+    # ✅ Save to database
     new_video = Video(
         user_id=user_id,
         title=title,
@@ -1307,6 +1343,7 @@ def get_radio_categories():
         "Lo-Fi", "Meditation & Relaxation", "ASMR & White Noise", "Gaming OSTs", "Holiday Music"
     ]
     return jsonify(categories), 200
+
 
 
 @api.route('/members', methods=['GET'])
@@ -4147,3 +4184,154 @@ def purchase_live_ticket():
         "platform_cut": split["platform_cut"],
         "creator_earnings": split["creator_earnings"]
     }), 200
+
+from flask import request
+import stripe
+
+# Setup Stripe API
+stripe.api_key = 'your_stripe_secret_key'
+
+@api.route('/webhook', methods=['POST'])
+def stripe_webhook():
+    payload = request.get_data(as_text=True)
+    sig_header = request.headers.get('Stripe-Signature')
+    endpoint_secret = 'your_stripe_endpoint_secret'
+
+    event = None
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+    except ValueError as e:
+        return 'Invalid payload', 400
+    except stripe.error.SignatureVerificationError as e:
+        return 'Signature verification failed', 400
+
+    # Handle the event based on type
+    if event['type'] == 'invoice.payment_succeeded':
+        invoice = event['data']['object']  # Contains a stripe.Invoice object
+        user_id = invoice['customer']  # Assuming 'customer' matches your user ID
+        amount_paid = invoice['amount_paid'] / 100  # Convert to dollars
+
+        # Find the user's podcast subscription and update revenue
+        subscription = Subscription.query.filter_by(user_id=user_id).first()
+        if subscription:
+            podcast = Podcast.query.get(subscription.podcast_id)
+            podcast.revenue_from_subscriptions += amount_paid  # Update podcast revenue
+            podcast.calculate_revenue()  # Recalculate total revenue
+            db.session.commit()
+
+    return '', 200
+
+
+@api.route('/api/radio/genres', methods=['GET'])
+def get_radio_genres():
+    url = "https://www.radio-browser.info/webservice/json/stations"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        stations = response.json()
+
+        # Extract unique genres from the stations list
+        genres = set()
+        for station in stations:
+            if 'genre' in station and station['genre']:
+                genre_list = station['genre'].split(',')  # Some genres might be comma-separated
+                for genre in genre_list:
+                    genres.add(genre.strip())  # Clean and add genre
+
+        return jsonify(list(genres))  # Return unique genres as a list
+    else:
+        return jsonify({"error": "Failed to fetch data from Radio Browser API"}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+@api.route('/radio-stations/<genre>', methods=['GET'])
+def get_radio_stations_by_genre(genre):
+    url = f"https://www.radio-browser.info/webservice/json/stations/bygenre/{genre}"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        stations = response.json()
+        return jsonify(stations)
+    else:
+        return jsonify({"error": "Failed to fetch stations for this genre"}), 500
+
+@api.route('/delete_video/<int:video_id>', methods=['DELETE'])
+@jwt_required()
+def delete_video(video_id):
+    user_id = get_jwt_identity()
+    video = Video.query.filter_by(id=video_id, user_id=user_id).first()
+
+    if not video:
+        return jsonify({"error": "Video not found or not authorized"}), 404
+
+    try:
+        # Remove video file from disk
+        if os.path.exists(video.file_url):
+            os.remove(video.file_url)
+
+        # Delete from database
+        db.session.delete(video)
+        db.session.commit()
+        return jsonify({"message": "Video deleted successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/update_video_title/<int:video_id>', methods=['PUT'])
+@jwt_required()
+def update_video_title(video_id):
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    video = Video.query.filter_by(id=video_id, user_id=user_id).first()
+    if not video:
+        return jsonify({"error": "Video not found or not authorized"}), 404
+
+    video.title = data.get('title', video.title)
+    db.session.commit()
+
+    return jsonify({"message": "Title updated", "video": video.serialize()}), 200
+
+@api.route('/video/<int:video_id>/like', methods=['POST'])
+@jwt_required()
+def like_video(video_id):
+    video = Video.query.get_or_404(video_id)
+    video.likes += 1
+    db.session.commit()
+    return jsonify(video.serialize())
+
+@api.route('/video/<int:video_id>/comment', methods=['POST'])
+@jwt_required()
+def comment_video(video_id):
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    comment = Comment(
+        user_id=user_id,
+        video_id=video_id,
+        content_id=video_id,
+        content_type="video",
+        text=data.get("text")
+    )
+    db.session.add(comment)
+    db.session.commit()
+    return jsonify(Video.query.get(video_id).serialize())
+
+@api.route('/video/<int:video_id>/favorite', methods=['POST'])
+@jwt_required()
+def favorite_video(video_id):
+    user_id = get_jwt_identity()
+    favorite = Favorite.query.filter_by(user_id=user_id, content_id=video_id, content_type="video").first()
+    if favorite:
+        db.session.delete(favorite)
+        db.session.commit()
+        return jsonify({"message": "Removed from favorites"})
+    else:
+        new_fav = Favorite(user_id=user_id, content_id=video_id, content_type="video")
+        db.session.add(new_fav)
+        db.session.commit()
+        return jsonify({"message": "Added to favorites"})
+

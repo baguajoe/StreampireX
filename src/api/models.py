@@ -1,16 +1,15 @@
-
 from flask_sqlalchemy import SQLAlchemy
-# from flask_bcrypt import Bcrypt
+from flask_socketio import SocketIO
 from flask_jwt_extended import create_access_token
+from sqlalchemy.orm import relationship
 from datetime import datetime
-from flask_socketio import SocketIO
-from sqlalchemy.orm import relationship  # Add this line to import relationship
-import stripe
-from flask_socketio import SocketIO
-socketio = SocketIO(cors_allowed_origins="*")  # ✅ Initialize without `app`
 
+import stripe
+
+
+# ✅ This is fine here
+socketio = SocketIO(cors_allowed_origins="*")
 db = SQLAlchemy()
-# bcrypt = Bcrypt()
 
 
 
@@ -101,20 +100,42 @@ class Like(db.Model):
 class Favorite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    content_id = db.Column(db.Integer, nullable=False)  # Can be podcast, radio station, or live stream
-    content_type = db.Column(db.String(50), nullable=False)  # "podcast", "radio", "livestream"
+    video_id = db.Column(db.Integer, db.ForeignKey("video.id"), nullable=True)  # ✅ Required for relationship
+    content_id = db.Column(db.Integer, nullable=True)  # Optional if still supporting other types
+    content_type = db.Column(db.String(50), nullable=True)  # e.g., "podcast", "radio", etc.
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship("User", backref=db.backref("favorites", lazy=True))
+    video = db.relationship("Video", backref=db.backref("favorites", lazy=True))  # ✅ Now works with video_id
 
     def serialize(self):
         return {
             "id": self.id,
             "user_id": self.user_id,
+            "video_id": self.video_id,
             "content_id": self.content_id,
             "content_type": self.content_type,
             "created_at": self.created_at.isoformat(),
         }
+
+
+class FavoritePage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    page_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # user whose page is being favorited
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('favorite_pages', lazy='dynamic'))
+    page_user = db.relationship('User', foreign_keys=[page_user_id])
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "page_user_id": self.page_user_id,
+            "created_at": self.created_at.isoformat(),
+        }
+
 
 class Analytics(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -248,12 +269,14 @@ class Video(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    file_url = db.Column(db.String(500), nullable=False)  # Stored video file location
-    thumbnail_url = db.Column(db.String(500), nullable=True)  # Optional thumbnail
-    duration = db.Column(db.Integer, nullable=True)  # Video length in seconds
+    file_url = db.Column(db.String(500), nullable=False)
+    thumbnail_url = db.Column(db.String(500), nullable=True)
+    duration = db.Column(db.Integer, nullable=True)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+    likes = db.Column(db.Integer, default=0)
+
     user = db.relationship('User', backref=db.backref('user_videos', lazy=True))
+    video_favorites = db.relationship("Favorite", back_populates="video")  # ✅ matches Favorite.video
 
     def serialize(self):
         return {
@@ -265,7 +288,11 @@ class Video(db.Model):
             "thumbnail_url": self.thumbnail_url,
             "duration": self.duration,
             "uploaded_at": self.uploaded_at.isoformat(),
+            "likes": self.likes
         }
+
+
+
 
 
 class VideoPlaylist(db.Model):
@@ -557,19 +584,38 @@ class PodcastEpisode(db.Model):
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
 
-    # ✅ Storage & Metadata
-    file_url = db.Column(db.String(500), nullable=False)  # Audio File
+    # Storage & Metadata
+    file_url = db.Column(db.String(500), nullable=False)  # Audio File URL
     cover_art_url = db.Column(db.String(500), nullable=True)
     duration = db.Column(db.Integer, nullable=True)
 
-    # ✅ Premium & Scheduling
+    # Monetization & Subscription
     is_premium = db.Column(db.Boolean, default=False)  # Paid content
     is_published = db.Column(db.Boolean, default=False)  # Mark as live
     release_date = db.Column(db.DateTime, nullable=True)  # Scheduled release
 
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Revenue Tracking for episodes
+    total_revenue = db.Column(db.Float, default=0.00)
+    revenue_from_ads = db.Column(db.Float, default=0.00)
+    revenue_from_subscriptions = db.Column(db.Float, default=0.00)
+
+    # Earnings Split Fields
+    platform_cut = db.Column(db.Float, default=0.15)  # 15% platform cut by default
+    creator_earnings = db.Column(db.Float, default=0.85)  # 85% for the creator by default
+
     user = db.relationship('User', backref=db.backref('podcast_episodes', lazy=True))
+
+    # Method to calculate revenue for episodes
+    def calculate_episode_revenue(self):
+        """Calculates the total revenue for the episode from ads and subscriptions."""
+        self.total_revenue = (
+            self.revenue_from_ads +
+            self.revenue_from_subscriptions
+        )
+        db.session.commit()
+        return self.total_revenue
 
     def serialize(self):
         return {
@@ -583,8 +629,15 @@ class PodcastEpisode(db.Model):
             "is_premium": self.is_premium,
             "is_published": self.is_published,
             "release_date": self.release_date.isoformat() if self.release_date else None,
-            "uploaded_at": self.uploaded_at.isoformat()
+            "uploaded_at": self.uploaded_at.isoformat(),
+            # Revenue Data
+            "total_revenue": self.total_revenue,
+            "revenue_from_ads": self.revenue_from_ads,
+            "revenue_from_subscriptions": self.revenue_from_subscriptions,
+            "creator_earnings": self.creator_earnings,
+            "platform_cut": self.platform_cut
         }
+
 
 class PodcastClip(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -601,45 +654,49 @@ class Podcast(db.Model):
     host_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
-
-    # ✅ Audio & Video Storage
+    
+    # Storage & Metadata
     audio_url = db.Column(db.String(500), nullable=True)
     video_url = db.Column(db.String(500), nullable=True)
     cover_art_url = db.Column(db.String(500), nullable=True)
 
-    # ✅ Monetization & Stripe Integration
+    # Monetization & Stripe Integration
     monetization_type = db.Column(db.String(50), default="free")  # "free", "paid", "ad-supported"
     price_per_episode = db.Column(db.Float, nullable=True, default=0.00)
     subscription_tier = db.Column(db.String(50), default="Free")
-    stripe_product_id = db.Column(db.String(255), nullable=True)  # ✅ Stripe product ID
+    stripe_product_id = db.Column(db.String(255), nullable=True)  # Stripe product ID
     sponsor = db.Column(db.String(255), nullable=True)  # Optional sponsor name
     donation_link = db.Column(db.String(255), nullable=True)
 
-    # ✅ Revenue Tracking
+    # Revenue Tracking
     total_revenue = db.Column(db.Float, default=0.00)  # Total revenue from all sources
     revenue_from_subscriptions = db.Column(db.Float, default=0.00)
     revenue_from_ads = db.Column(db.Float, default=0.00)
     revenue_from_sponsorships = db.Column(db.Float, default=0.00)
     revenue_from_donations = db.Column(db.Float, default=0.00)
     stripe_transaction_ids = db.Column(db.JSON, default=[])  # Store Stripe transactions as an array
-
-    # ✅ Engagement & Social Features
+    
+    # Earnings Split Fields
+    platform_cut = db.Column(db.Float, default=0.15)  # 15% platform cut by default
+    creator_earnings = db.Column(db.Float, default=0.85)  # 85% for the creator by default
+    
+    # Engagement & Social Features
     views = db.Column(db.Integer, default=0)
     likes = db.Column(db.Integer, default=0)
     shares = db.Column(db.Integer, default=0)
 
-    # ✅ Live Streaming Feature
+    # Live Streaming Feature
     streaming_enabled = db.Column(db.Boolean, default=False)
     is_live = db.Column(db.Boolean, default=False)
     stream_url = db.Column(db.String(500), nullable=True)
     live_replay_url = db.Column(db.String(500), nullable=True)
     scheduled_time = db.Column(db.DateTime, nullable=True)
 
-    # ✅ Episode Scheduling
+    # Episode Scheduling
     scheduled_release = db.Column(db.DateTime, nullable=True)
     exclusive_until = db.Column(db.DateTime, nullable=True)
 
-    # ✅ Series Information
+    # Series Information
     series_name = db.Column(db.String(255), nullable=True)
     season_number = db.Column(db.Integer, nullable=True)
     episode_number = db.Column(db.Integer, nullable=True)
@@ -649,15 +706,7 @@ class Podcast(db.Model):
 
     user = db.relationship('User', backref=db.backref('podcasts', lazy=True))
 
-    # ✅ Create Stripe Product for Monetization
-    def create_stripe_product(self):
-        """Creates a Stripe product for the podcast."""
-        if not self.stripe_product_id:
-            product = stripe.Product.create(name=self.title)
-            self.stripe_product_id = product["id"]
-            db.session.commit()
-
-    # ✅ Revenue Calculation Method
+    # Method to calculate revenue for podcasts
     def calculate_revenue(self):
         """Calculates the total revenue from all sources."""
         self.total_revenue = (
@@ -698,17 +747,40 @@ class Podcast(db.Model):
             "season_number": self.season_number,
             "episode_number": self.episode_number,
             "ad_insertion": self.ad_insertion,
-            "uploaded_at": self.uploaded_at.isoformat(),
-            # ✅ Revenue Data
+            # Revenue Data
             "total_revenue": self.total_revenue,
             "revenue_from_subscriptions": self.revenue_from_subscriptions,
             "revenue_from_ads": self.revenue_from_ads,
             "revenue_from_sponsorships": self.revenue_from_sponsorships,
             "revenue_from_donations": self.revenue_from_donations,
-            "stripe_transaction_ids": self.stripe_transaction_ids
+            "stripe_transaction_ids": self.stripe_transaction_ids,
+            "creator_earnings": self.creator_earnings,
+            "platform_cut": self.platform_cut
         }
 
 
+
+# Assuming you have a model for tracking podcast plays (or similar)
+
+class PodcastEpisodeInteraction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    episode_id = db.Column(db.Integer, db.ForeignKey('podcast_episode.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    play_count = db.Column(db.Integer, default=1)  # Increase this count with each play
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    episode = db.relationship('PodcastEpisode', backref='interactions')
+    user = db.relationship('User', backref='podcast_interactions')
+
+    def update_ad_revenue(self):
+        """ Update ad revenue based on number of plays. """
+        ad_rate_per_play = 0.05  # Example: $0.05 per play
+        ad_revenue = self.play_count * ad_rate_per_play
+
+        episode = self.episode
+        episode.revenue_from_ads += ad_revenue  # Update ad revenue for the episode
+        episode.calculate_episode_revenue()  # Recalculate the total revenue for the episode
+        db.session.commit()
 
     
 
@@ -763,9 +835,17 @@ class Subscription(db.Model):
     auto_renew = db.Column(db.Boolean, default=True)  # Whether the subscription renews automatically
     billing_cycle = db.Column(db.String(20), default="monthly")  # Monthly, yearly, etc.
     status = db.Column(db.String(20), default="active")  # active, canceled, expired
+    platform_cut = db.Column(db.Float, default=0.15)  # 15% platform cut
+    creator_earnings = db.Column(db.Float)  # 85% earnings for the creator
 
     user = db.relationship('User', backref=db.backref('subscriptions', lazy=True))
     plan = db.relationship('PricingPlan', backref=db.backref('subscriptions', lazy=True))
+
+    def calculate_earnings(self):
+        """Calculate creator earnings based on subscription price."""
+        # Example: Calculate creator's earnings from the monthly plan
+        self.creator_earnings = self.plan.price_monthly * (1 - self.platform_cut)
+        db.session.commit()
 
     def serialize(self):
         return {
@@ -778,17 +858,28 @@ class Subscription(db.Model):
             "grace_period_end": self.grace_period_end.isoformat() if self.grace_period_end else None,
             "auto_renew": self.auto_renew,
             "billing_cycle": self.billing_cycle,
-            "status": self.status
+            "status": self.status,
+            "platform_cut": self.platform_cut,
+            "creator_earnings": self.creator_earnings,
         }
-    
+
 class SubscriptionPlan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)  # "Podcast Only", "Radio Only", "All Access"
     price_monthly = db.Column(db.Float, nullable=False)
     price_yearly = db.Column(db.Float, nullable=False)
     features = db.Column(db.Text, nullable=True)  # List of features
-    includes_podcasts = db.Column(db.Boolean, default=False)  # ✅ New field
-    includes_radio = db.Column(db.Boolean, default=False)  # ✅ New field
+    includes_podcasts = db.Column(db.Boolean, default=False)  # Whether the plan includes podcasts
+    includes_radio = db.Column(db.Boolean, default=False)  # Whether the plan includes radio
+
+    # New fields to handle creator earnings and platform cut
+    platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
+    creator_earnings = db.Column(db.Float)  # Automatically calculated earnings for creator
+
+    def calculate_creator_earnings(self):
+        """Calculate creator earnings from the price of the plan."""
+        self.creator_earnings = self.price_monthly * (1 - self.platform_cut)
+        db.session.commit()
 
     def serialize(self):
         return {
@@ -799,7 +890,10 @@ class SubscriptionPlan(db.Model):
             "features": self.features.split(";") if self.features else [],
             "includes_podcasts": self.includes_podcasts,
             "includes_radio": self.includes_radio,
+            "platform_cut": self.platform_cut,
+            "creator_earnings": self.creator_earnings,
         }
+
 
 
 class UserSubscription(db.Model):
@@ -1075,8 +1169,6 @@ class MusicLicensing(db.Model):
         }
 
 
-
-# One-Time Donations
 class CreatorDonation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -1087,9 +1179,20 @@ class CreatorDonation(db.Model):
 
     creator = db.relationship('User', foreign_keys=[creator_id], backref=db.backref('donations_received', lazy=True))
     supporter = db.relationship('User', foreign_keys=[supporter_id], backref=db.backref('donations_made', lazy=True))
+
     platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
     creator_earnings = db.Column(db.Float)            # 85% automatically calculated
 
+    def update_donation_revenue(self):
+        """Update donation revenue for the creator, including platform cut and creator earnings."""
+        # Calculate platform cut and creator earnings
+        platform_revenue = self.amount * self.platform_cut
+        self.creator_earnings = self.amount - platform_revenue
+
+        # Update creator's donation revenue (adding the creator's earnings after platform cut)
+        self.creator.revenue_from_donations += self.creator_earnings
+        self.creator.calculate_revenue()  # Recalculate total revenue
+        db.session.commit()
 
     def serialize(self):
         return {
@@ -1098,8 +1201,11 @@ class CreatorDonation(db.Model):
             "supporter_id": self.supporter_id,
             "amount": self.amount,
             "message": self.message,
-            "created_at": self.created_at.isoformat()
+            "created_at": self.created_at.isoformat(),
+            "platform_cut": self.platform_cut,
+            "creator_earnings": self.creator_earnings,
         }
+
     
 # Initialize Stripe
 stripe.api_key = "your_stripe_secret_key"
@@ -1127,11 +1233,13 @@ class CreatorMembershipTier(db.Model):
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    content_id = db.Column(db.Integer, nullable=False)  # Can be podcast, radio, or live stream
-    content_type = db.Column(db.String(50), nullable=False)  # "podcast", "radio", "livestream"
+    content_id = db.Column(db.Integer, nullable=False)  # For flexibility: podcast, radio, etc.
+    content_type = db.Column(db.String(50), nullable=False)  # "podcast", "radio", "livestream", "video"
     text = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.Integer, nullable=True)  # ✅ Now supports timestamps for podcasts
+    timestamp = db.Column(db.Integer, nullable=True)  # For podcast/video timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    video_id = db.Column(db.Integer, db.ForeignKey('video.id'))  # Optional: for reverse lookup
 
     user = db.relationship("User", backref=db.backref("comments", lazy=True))
 
@@ -1141,10 +1249,12 @@ class Comment(db.Model):
             "user_id": self.user_id,
             "content_id": self.content_id,
             "content_type": self.content_type,
+            "video_id": self.video_id,
             "text": self.text,
-            "timestamp": self.timestamp,  # ✅ Show timestamp if it exists
+            "timestamp": self.timestamp,
             "created_at": self.created_at.isoformat(),
         }
+
     
 class PodcastChapter(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1290,11 +1400,18 @@ class LiveEvent(db.Model):
     total_tickets_sold = db.Column(db.Integer, default=0)
     stream_url = db.Column(db.String(500), nullable=True)  # URL for the live stream
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    platform_cut = db.Column(db.Float, default=0.15)  # 15% platform cut by default
+    creator_earnings = db.Column(db.Float)  # 85% earnings automatically calculated
+
+    artist = db.relationship('User', backref=db.backref('live_events', lazy=True))
     vr_access_tickets = db.relationship('VRAccessTicket', backref='event', lazy=True)
+    tickets = db.relationship('EventTicket', back_populates="event")
 
-
-    # ✅ Remove backref and just define a one-to-many relationship
-    tickets = db.relationship('EventTicket', lazy=True)
+    def calculate_revenue(self):
+        """Calculate creator earnings for live events."""
+        if self.ticket_price:
+            self.creator_earnings = self.ticket_price * (1 - self.platform_cut) * self.total_tickets_sold
+        db.session.commit()
 
     def serialize(self):
         return {
@@ -1308,8 +1425,9 @@ class LiveEvent(db.Model):
             "total_tickets_sold": self.total_tickets_sold,
             "stream_url": self.stream_url,
             "created_at": self.created_at.isoformat(),
+            "platform_cut": self.platform_cut,
+            "creator_earnings": self.creator_earnings,
         }
-
 
 
 class EventTicket(db.Model):
@@ -1320,13 +1438,17 @@ class EventTicket(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Who bought the ticket
     event_id = db.Column(db.Integer, db.ForeignKey('live_event.id'), nullable=False)  # Which event the ticket is for
     price_paid = db.Column(db.Float, nullable=False)
-    purchased_at = db.Column(db.DateTime, default=datetime.utcnow)
     platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
     creator_earnings = db.Column(db.Float)            # 85% automatically calculated
+    purchased_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Relationship with LiveEvent
+    event = db.relationship("LiveEvent", back_populates="tickets")
 
-    # ✅ Add back_populates and overlaps to fix warning
-    event = db.relationship("LiveEvent", back_populates="tickets", overlaps="tickets")
+    def calculate_revenue(self):
+        """Calculate creator earnings for event ticket sales."""
+        self.creator_earnings = self.price_paid * (1 - self.platform_cut)
+        db.session.commit()
 
     def serialize(self):
         return {
@@ -1334,8 +1456,11 @@ class EventTicket(db.Model):
             "user_id": self.user_id,
             "event_id": self.event_id,
             "price_paid": self.price_paid,
+            "creator_earnings": self.creator_earnings,
+            "platform_cut": self.platform_cut,
             "purchased_at": self.purchased_at.isoformat(),
         }
+
 
 class RadioTrack(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -1391,15 +1516,19 @@ class Payment(db.Model):
     
 class Revenue(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)  # Creator or platform revenue
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Creator or platform revenue
     revenue_type = db.Column(db.String(50), nullable=False)  # e.g., 'subscription', 'ad', 'music', 'donation'
     amount = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
     creator_earnings = db.Column(db.Float)            # 85% automatically calculated
 
+    user = db.relationship("User", backref="revenues")
 
-    user = db.relationship("User", backref="revenues")  # Relate revenue to user
+    def calculate_revenue(self):
+        """Calculate and update creator earnings based on revenue type."""
+        self.creator_earnings = self.amount * (1 - self.platform_cut)  # Subtract platform cut from total revenue
+        db.session.commit()
 
     def serialize(self):
         return {
@@ -1407,8 +1536,11 @@ class Revenue(db.Model):
             "user_id": self.user_id,
             "revenue_type": self.revenue_type,
             "amount": self.amount,
-            "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            "creator_earnings": self.creator_earnings,
+            "platform_cut": self.platform_cut,
+            "timestamp": self.timestamp.isoformat(),
         }
+
     
 # models/listening_party.py
 
@@ -1603,22 +1735,8 @@ class Share(db.Model):
             "platform": self.platform,
             "shared_at": self.shared_at.isoformat()
         }
+    
 
-class FavoritePage(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    page_type = db.Column(db.String(50))  # e.g., "podcast", "radio", etc.
-    page_id = db.Column(db.Integer)       # the ID of the page being favorited
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def serialize(self):
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "page_type": self.page_type,
-            "page_id": self.page_id,
-            "created_at": self.created_at.isoformat()
-        }
 
 class VRAccessTicket(db.Model):
     id = db.Column(db.Integer, primary_key=True)
