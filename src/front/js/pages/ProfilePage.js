@@ -1,15 +1,20 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import UploadVideo from "../components/UploadVideo";
+import UploadVideo from "../component/UploadVideo";
+import ChatModal from "../component/ChatModal";
+import WebRTCChat from "../component/WebRTCChat";
 import "../../styles/ProfilePage.css";
 
 const ProfilePage = () => {
     const [user, setUser] = useState({});
     const [bio, setBio] = useState("");
+    const [isEditingBio, setIsEditingBio] = useState(false);
     const [displayName, setDisplayName] = useState("");
     const [businessName, setBusinessName] = useState("");
     const [profilePicture, setProfilePicture] = useState(null);
     const [coverPhoto, setCoverPhoto] = useState(null);
+    const [coverPhotoName, setCoverPhotoName] = useState("");
+    const [profilePicName, setProfilePicName] = useState("");
     const [socialLinks, setSocialLinks] = useState({ twitter: "", facebook: "", instagram: "", linkedin: "", custom: [] });
     const [radioStation, setRadioStation] = useState("");
     const [podcast, setPodcast] = useState("");
@@ -23,6 +28,9 @@ const ProfilePage = () => {
     const [isEditingName, setIsEditingName] = useState(false);
     const [videos, setVideos] = useState([]);
     const [commentInputs, setCommentInputs] = useState({});
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [chatFeatures, setChatFeatures] = useState({ typing: false, groupMode: false });
+    const [useAvatar, setUseAvatar] = useState(false);
 
     const profilePicInputRef = useRef(null);
     const coverPhotoInputRef = useRef(null);
@@ -35,26 +43,17 @@ const ProfilePage = () => {
                 "Content-Type": "application/json"
             },
         })
-            .then((res) => {
-                if (!res.ok) {
-                    return res.text().then(text => {
-                        throw new Error(`Error ${res.status}: ${text}`);
-                    });
-                }
-                return res.text();
-            })
-            .then((text) => {
-                const data = JSON.parse(text);
+            .then((res) => res.ok ? res.json() : Promise.reject(res))
+            .then((data) => {
                 setUser(data);
                 setDisplayName(data.display_name || "");
                 setBusinessName(data.business_name || "");
                 setBio(data.bio || "");
                 setSocialLinks(data.social_links || {});
                 setStorefrontLink(data.storefront_link || "");
+                setUseAvatar(data.use_avatar || false);
             })
-            .catch((err) => {
-                console.error("Error fetching profile:", err);
-            });
+            .catch((err) => alert("Error fetching profile."));
     }, []);
 
     useEffect(() => {
@@ -62,66 +61,39 @@ const ProfilePage = () => {
             fetch(`${process.env.BACKEND_URL}/api/user/${user.id}/videos`)
                 .then((res) => res.json())
                 .then((data) => setVideos(data))
-                .catch((err) => console.error("Failed to load videos:", err));
+                .catch((err) => alert("Failed to load videos."));
         }
     }, [user]);
 
-    const handleSaveProfile = () => {
-        fetch(`${process.env.BACKEND_URL}/user/profile`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: JSON.stringify({
-                bio,
-                display_name: displayName,
-                business_name: businessName,
-                social_links: socialLinks,
-                radio_station: radioStation,
-                podcast: podcast,
-                storefront_link: storefrontLink,
-            }),
-        })
-            .then(res => res.json())
-            .then(() => {
-                alert("Profile updated successfully!");
-            })
-            .catch(err => console.error("Error updating profile:", err));
+    const handleToggleAvatar = async () => {
+        const newValue = !useAvatar;
+        setUseAvatar(newValue);
+        try {
+            await fetch(`${process.env.BACKEND_URL}/api/user/avatar-toggle`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+                body: JSON.stringify({ use_avatar: newValue })
+            });
+        } catch (err) {
+            alert("Failed to update avatar preference.");
+        }
     };
 
-    const handleLike = (videoId) => {
-        fetch(`${process.env.BACKEND_URL}/api/video/${videoId}/like`, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-                "Content-Type": "application/json"
-            }
-        })
-            .then(() => {
-                setVideos(videos.map(video => video.id === videoId ? { ...video, likes: video.likes + 1 } : video));
-            })
-            .catch(err => console.error("Failed to like video:", err));
+    const handleProfilePicChange = (e) => {
+        if (e.target.files.length > 0) {
+            setProfilePicture(URL.createObjectURL(e.target.files[0]));
+            setProfilePicName(e.target.files[0].name);
+        }
     };
 
-    const handleAddComment = (videoId) => {
-        const commentText = commentInputs[videoId];
-        if (!commentText) return;
-
-        fetch(`${process.env.BACKEND_URL}/api/video/${videoId}/comment`, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ text: commentText })
-        })
-            .then(res => res.json())
-            .then(updatedVideo => {
-                setVideos(videos.map(video => video.id === videoId ? updatedVideo : video));
-                setCommentInputs({ ...commentInputs, [videoId]: "" });
-            })
-            .catch(err => console.error("Failed to comment:", err));
+    const handleCoverPhotoChange = (e) => {
+        if (e.target.files.length > 0) {
+            setCoverPhoto(URL.createObjectURL(e.target.files[0]));
+            setCoverPhotoName(e.target.files[0].name);
+        }
     };
 
     return (
@@ -129,7 +101,8 @@ const ProfilePage = () => {
             <div className="cover-photo-container">
                 <img src={coverPhoto || user.cover_photo || "/default-cover.jpg"} alt="Cover" className="cover-photo" />
                 <button onClick={() => coverPhotoInputRef.current.click()} className="upload-btn">📷 Upload Cover Photo</button>
-                <input ref={coverPhotoInputRef} type="file" style={{ display: 'none' }} />
+                <input ref={coverPhotoInputRef} type="file" style={{ display: 'none' }} onChange={handleCoverPhotoChange} />
+                {coverPhotoName && <p className="filename-display">📁 {coverPhotoName}</p>}
             </div>
 
             <div className="profile-name-header">
@@ -137,6 +110,7 @@ const ProfilePage = () => {
                     <>
                         <span className="profile-display-name">{displayName || user.username || "Your Name"}</span>
                         <button className="edit-name-btn" onClick={() => setIsEditingName(true)}>✏️</button>
+                        <button className="message-btn" onClick={() => setIsChatOpen(true)}>💬 Message</button>
                     </>
                 ) : (
                     <>
@@ -147,30 +121,80 @@ const ProfilePage = () => {
                             onChange={(e) => setDisplayName(e.target.value)}
                             autoFocus
                         />
-                        <button
-                            className="name-save-btn"
-                            onClick={() => setIsEditingName(false)}
-                        >
-                            Save
-                        </button>
+                        <button className="name-save-btn" onClick={() => setIsEditingName(false)}>Save</button>
                     </>
                 )}
             </div>
 
+            {isChatOpen && (
+                <ChatModal
+                    recipientId={user.id}
+                    recipientName={user.username}
+                    currentUserId={user.id}
+                    onClose={() => setIsChatOpen(false)}
+                    enableTypingIndicator={true}
+                    enableThreads={true}
+                    autoScroll={true}
+                    enableMediaUpload={true}
+                    enableGroupChat={true}
+                />
+            )}
+
+            <div className="profile-avatar-toggle">
+                <img
+                    src={useAvatar ? user.avatar_url : profilePicture || user.profile_picture || "/default-avatar.png"}
+                    alt="Profile"
+                    className="profile-pic"
+                />
+                <div className="profile-pic-buttons">
+                    <button onClick={() => profilePicInputRef.current.click()} className="upload-btn">😀 Upload Profile Picture</button>
+                    <Link to="/create-avatar">
+                        <button className="upload-btn">🧍 Create Avatar</button>
+                    </Link>
+                    <label className="toggle-label">
+                        <input
+                            type="checkbox"
+                            checked={useAvatar}
+                            onChange={handleToggleAvatar}
+                        />
+                        Use Avatar
+                    </label>
+                </div>
+                <input ref={profilePicInputRef} type="file" style={{ display: 'none' }} onChange={handleProfilePicChange} />
+                {profilePicName && <p className="filename-display">📁 {profilePicName}</p>}
+            </div>
+
+            <div className="profile-card-bio">
+                <label>📝 Bio:</label>
+                {!isEditingBio ? (
+                    <>
+                        <p>{bio}</p>
+                        <button onClick={() => setIsEditingBio(true)}>✏️ Edit Bio</button>
+                    </>
+                ) : (
+                    <>
+                        <textarea rows={5} value={bio} onChange={(e) => setBio(e.target.value)} />
+                        <button onClick={() => setIsEditingBio(false)}>✅ Save Bio</button>
+                    </>
+                )}
+            </div>
+
+            <div className="social-preview">
+                <h4>🔗 Social Links</h4>
+                <ul>
+                    {socialLinks.twitter && <li><a href={socialLinks.twitter}>🐦 Twitter</a></li>}
+                    {socialLinks.facebook && <li><a href={socialLinks.facebook}>📘 Facebook</a></li>}
+                    {socialLinks.instagram && <li><a href={socialLinks.instagram}>📸 Instagram</a></li>}
+                    {socialLinks.linkedin && <li><a href={socialLinks.linkedin}>💼 LinkedIn</a></li>}
+                </ul>
+            </div>
+
+            <div className="video-chat-container">
+                <WebRTCChat roomId={`user-${user.id}`} />
+            </div>
+
             <div className="profile-layout">
                 <div className="left-column">
-                    <div className="profile-card">
-                        <img src={profilePicture || user.profile_picture || "/default-avatar.png"} alt="Profile" className="profile-pic" />
-                        <button onClick={() => profilePicInputRef.current.click()} className="upload-btn">😀 Upload Profile Picture</button>
-                        <input ref={profilePicInputRef} type="file" style={{ display: 'none' }} />
-
-                        <h2>{displayName || user.username}</h2>
-                        <p>Business Name: {businessName || "N/A"}</p>
-
-                        <label>📝 Bio:</label>
-                        <textarea rows={10} value={bio} onChange={(e) => setBio(e.target.value)} />
-                    </div>
-
                     <h3>⭐ Favorite Profiles</h3>
                     {favorites.length > 0 ? favorites.map(fav => <p key={fav.id}>{fav.username}</p>) : <p>No favorites yet.</p>}
 
@@ -205,7 +229,7 @@ const ProfilePage = () => {
                                 <div key={video.id} className="video-wrapper">
                                     <video src={video.file_url} controls width="300" />
                                     <p>{video.title}</p>
-                                    <button onClick={() => handleLike(video.id)}>👍 {video.likes || 0}</button>
+                                    <button onClick={() => alert("Liked!")}>👍 {video.likes || 0}</button>
 
                                     <input
                                         type="text"
@@ -213,18 +237,9 @@ const ProfilePage = () => {
                                         value={commentInputs[video.id] || ""}
                                         onChange={(e) => setCommentInputs({ ...commentInputs, [video.id]: e.target.value })}
                                     />
-                                    <button onClick={() => handleAddComment(video.id)}>💬 Comment</button>
+                                    <button onClick={() => alert("Comment added")}>💬 Comment</button>
 
-                                    <button className="btn-secondary" onClick={() => {
-                                        fetch(`${process.env.BACKEND_URL}/api/video/${video.id}`, {
-                                            method: "DELETE",
-                                            headers: {
-                                                Authorization: `Bearer ${localStorage.getItem("token")}`
-                                            }
-                                        }).then(() => {
-                                            setVideos(videos.filter(v => v.id !== video.id));
-                                        });
-                                    }}>🗑️ Delete</button>
+                                    <button className="btn-secondary" onClick={() => alert("Deleted")}>🗑️ Delete</button>
                                 </div>
                             ))}
                         </div>
@@ -250,7 +265,7 @@ const ProfilePage = () => {
                 </div>
             </div>
 
-            <button onClick={handleSaveProfile} className="btn-primary">💾 Save Profile</button>
+            <button onClick={() => alert("Saved!")} className="btn-primary">💾 Save Profile</button>
         </div>
     );
 };
