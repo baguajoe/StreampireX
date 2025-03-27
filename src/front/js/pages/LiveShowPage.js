@@ -3,8 +3,8 @@ import { useParams } from "react-router-dom";
 import LiveVideoPlayer from "../component/LiveVideoPlayer";
 import ChatModal from "../component/ChatModal";
 import PollComponent from "../component/PollComponent";
-import TipJar from "../component/TipJar";
-import "../../styles/liveShowPage.css";
+// import TipJar from "../component/TipJar";
+// import "../../styles/liveShowPage.css";
 
 const LiveShowPage = () => {
   const { id } = useParams();
@@ -55,7 +55,7 @@ const LiveShowPage = () => {
       </div>
 
       <PollComponent streamId={id} />
-      <TipJar streamId={id} />
+      {/* <TipJar streamId={id} /> */}
 
       <div className="audience-stats">
         👥 Viewers: {streamData.viewer_count || 0}

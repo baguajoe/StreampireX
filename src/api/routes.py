@@ -4445,3 +4445,29 @@ def get_chat_history():
         'mediaUrl': m.media_url
     } for m in messages])
 
+@api.route('/user/settings', methods=['GET', 'PUT'])
+@jwt_required()
+def user_settings():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if request.method == 'GET':
+        return jsonify({
+            "enableChat": user.enable_chat,
+            "useAvatar": user.use_avatar,
+            "enableNotifications": user.enable_notifications,
+            "emailNotifications": user.email_notifications,
+            "darkMode": user.dark_mode,
+            "profileVisibility": user.profile_visibility
+        })
+
+    data = request.get_json()
+    user.enable_chat = data.get("enableChat", user.enable_chat)
+    user.use_avatar = data.get("useAvatar", user.use_avatar)
+    user.enable_notifications = data.get("enableNotifications", user.enable_notifications)
+    user.email_notifications = data.get("emailNotifications", user.email_notifications)
+    user.dark_mode = data.get("darkMode", user.dark_mode)
+    user.profile_visibility = data.get("profileVisibility", user.profile_visibility)
+
+    db.session.commit()
+    return jsonify({"msg": "Settings updated"}), 200

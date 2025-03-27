@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
 import "chart.js/auto";
-import EarningsPage from "./EarningsPage"; // Import the EarningsPage component
+import EarningsPage from "../component/EarningsPage.js"; // Import the EarningsPage component
 
 const CreatorDashboard = () => {
   const [profile, setProfile] = useState({ username: "", email: "", profile_picture: "", subscription: "Free" });

@@ -1,5 +1,5 @@
 import React from "react";
-import StripeCheckout from "react-stripe-checkout";
+// import StripeCheckout from "react-stripe-checkout";
 
 const EpisodePage = ({ episode }) => {
     const handlePurchase = (token) => {
@@ -15,7 +15,7 @@ const EpisodePage = ({ episode }) => {
     return (
         <div>
             <h1>{episode.title}</h1>
-            {episode.is_premium && (
+            {/* {episode.is_premium && (
                 <StripeCheckout
                     stripeKey="your_stripe_public_key"
                     token={handlePurchase}
@@ -23,7 +23,7 @@ const EpisodePage = ({ episode }) => {
                     name="Buy Episode"
                     description={episode.title}
                 />
-            )}
+            )} */}
         </div>
     );
 };

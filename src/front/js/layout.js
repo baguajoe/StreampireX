@@ -9,7 +9,7 @@ import { Signup } from "./pages/Signup";
 import RadioStationPage from "./pages/RadioStations";
 import LiveStreamPage from "./pages/LiveStreams";
 import CreatorDashboard from "./pages/creatorDashboard";
-import  FavoritePage  from "./pages/FavoritePage";
+import FavoritePage from "./pages/FavoritePage";
 import ProfilePage from "./pages/ProfilePage";
 import BrowseRadioGenres from "./pages/BrowseRadioGenres";
 import BrowsePodcastCategories from "./pages/BrowsePodcastCategories";
@@ -26,20 +26,40 @@ import PodcastDashboard from "./pages/PodcastDashboard";
 import CreateRadioStation from "./pages/CreateRadioStation";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import Marketplace from "./pages/Marketplace";  // Correct import for Marketplace.js
-import LicensingMarketplace from "./pages/LicensingMarketplace"; 
+import LicensingMarketplace from "./pages/LicensingMarketplace";
 import PremiumContent from "./pages/PremiumContent";
 import RevenueDashboard from "./pages/RevenueDashboard";
 import MerchStore from "./pages/MerchStore";
 import AvatarCreation from './component/AvatarCreation';
-import  PaymentProcessing  from "./pages/PaymentProcessing";
-import  FreeTrial  from "./pages/FreeTrial";
+import PaymentProcessing from "./pages/PaymentProcessing";
+import FreeTrial from "./pages/FreeTrial";
 import MembersPage from "./pages/MembersPage";
-import  DigitalProducts  from "./pages/DigitalProducts";
+import DigitalProducts from "./pages/DigitalProducts";
 import ProductPage from "./pages/ProductPage";
 import AdminDashboard from "./pages/AdminDashboard";
-import  RefundProcessing  from "./pages/RefundProcessing";
-import  RevenueAnalytics  from "./pages/RevenueAnalytics";
+import RefundProcessing from "./pages/RefundProcessing";
+import RevenueAnalytics from "./pages/RevenueAnalytics";
 import CreatorAnalytics from "./pages/CreatorAnalytics"; // Adjust the path if necessary
+import SettingsPage from "./pages/SettingsPage";
+import ArtistProfile from "./pages/ArtistProfile";
+import Chat from "./pages/Chat";
+import ChatModal from "./component/ChatModal";
+import Checkout from "./pages/Checkout";
+import CollaborationMarketPlace from "./pages/CollaborationMarketPlace";
+import CreateAvatarPage from "./pages/CreateAvatarPage";
+import EpisodePage from "./pages/EpisodePage";
+import LandingPage from "./pages/LandingPage";
+import LiveShowPage from "./pages/LiveShowPage";
+import LiveStudio from "./pages/LiveStudio";
+import PodcastEpisodePage from "./pages/PodcastEpisodePage";
+import PodcastProfile from "./pages/PodcastProfile";
+import ProductCheckout from "./pages/ProductCheckout";
+import StorefrontPage from "./pages/StorefrontPage";
+import UploadMusic from "./pages/UploadMusic";
+import Voting from "./pages/Voting";
+import VRDashboard from "./pages/VRDashboard";
+import WebRTCPage from "./pages/WebRTCPage";
+
 
 import RoleManagement from "./pages/RoleManagement";  // ✅ Add Role Management Page
 import { Demo } from "./pages/demo";
@@ -85,6 +105,26 @@ const Layout = () => {
                             <Route path="/revenue" element={<RevenueDashboard />} />
                             <Route path="/merch" element={<MerchStore />} />
                             <Route path="/creator/analytics/:creatorId" element={<CreatorAnalytics />} />
+                            <Route path="/settings" element={<SettingsPage />} />
+                            <Route path="/artist-profile/:id" element={<ArtistProfile />} />
+                            <Route path="/chat" element={<Chat />} />
+                            <Route path="/checkout" element={<Checkout />} />
+                            <Route path="/collaboration" element={<CollaborationMarketPlace />} />
+                            <Route path="/create-avatar" element={<CreateAvatarPage />} />
+                            <Route path="/episode/:id" element={<EpisodePage />} />
+                            <Route path="/landing" element={<LandingPage />} />
+                            <Route path="/live-show/:id" element={<LiveShowPage />} />
+                            <Route path="/studio" element={<LiveStudio />} />
+                            <Route path="/podcast/episode/:id" element={<PodcastEpisodePage />} />
+                            <Route path="/podcast/profile/:id" element={<PodcastProfile />} />
+                            <Route path="/product-checkout" element={<ProductCheckout />} />
+                            <Route path="/storefront" element={<StorefrontPage />} />
+                            <Route path="/upload-music" element={<UploadMusic />} />
+                            <Route path="/voting" element={<Voting />} />
+                            <Route path="/vr-dashboard" element={<VRDashboard />} />
+                            <Route path="/webrtc" element={<WebRTCPage />} />
+                            <Route path="/chatmodal" element={<ChatModal />} />
+
 
 
                             <Route path="/radio-stations" element={<RadioStationPage />} />

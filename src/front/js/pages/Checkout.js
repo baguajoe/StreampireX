@@ -1,19 +1,19 @@
 import React from "react";
-import { useCart } from "../context/CartContext";
+// import { useCart } from "../context/CartContext";
 import "../../styles/Checkout.css";
 
 const Checkout = () => {
-  const { cart, clearCart } = useCart();
+  // const { cart, clearCart } = useCart();
 
   const handleCheckout = () => {
     alert("Proceeding to payment...");
-    clearCart();
+    // clearCart();
   };
 
   return (
     <div className="checkout">
       <h1>Checkout</h1>
-      {cart.length === 0 ? <p>No items in cart</p> : (
+      {/* {cart.length === 0 ? <p>No items in cart</p> : (
         <div>
           {cart.map((item, index) => (
             <div key={index}>
@@ -22,7 +22,7 @@ const Checkout = () => {
           ))}
           <button onClick={handleCheckout}>Pay Now</button>
         </div>
-      )}
+      )} */}
     </div>
   );
 };

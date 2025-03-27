@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import MarketplaceProductList from '../component/MarketplaceProductList';
 import ProductUploadForm from '../component/ProductUploadForm';
-import '../../styles/Marketplace.css';
+// import '../../styles/Marketplace.css';
 
 const Marketplace = () => {
   const [products, setProducts] = useState([]);

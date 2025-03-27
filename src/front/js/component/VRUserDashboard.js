@@ -1,7 +1,7 @@
 // src/components/VRUserDashboard.js
 
 import React, { useState, useEffect } from 'react';
-import VRCreateEvent from './VRCreateEvent';  // Import the new VR event component
+// import VRCreateEvent from './VRCreateEvent';  // Import the new VR event component
 
 const VRUserDashboard = () => {
   const [events, setEvents] = useState([]);
@@ -20,7 +20,7 @@ const VRUserDashboard = () => {
   return (
     <div className="user-dashboard">
       <h2>Upcoming VR Events</h2>
-      <VRCreateEvent onCreate={handleCreateEvent} />
+      {/* <VRCreateEvent onCreate={handleCreateEvent} /> */}
       <ul>
         {events.map((event) => (
           <li key={event.id}>
