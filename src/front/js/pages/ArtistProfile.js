@@ -1,9 +1,10 @@
 // src/front/js/pages/ArtistProfile.js
 
-import React, { useEffect, useState } from "react";
-import { getToken } from "../../utils/auth";
+import React, { useContext, useEffect, useState } from "react";
+import { Context } from "../store/appContext";
 
 const ArtistProfile = () => {
+  const {store}=useContext(Context)
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -12,7 +13,7 @@ const ArtistProfile = () => {
       try {
         const res = await fetch("/api/artist/profile", {
           headers: {
-            Authorization: `Bearer ${getToken()}`,
+            Authorization: `Bearer ${store.token}`,
           },
         });
 

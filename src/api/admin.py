@@ -1,7 +1,6 @@
-  
 import os
 from flask_admin import Admin
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, PricingPlan, Subscription, FavoritePage 
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, PricingPlan, Subscription, FavoritePage, Product, RefundRequest, Revenue, Payment, Order, Notification, Comment, Message, Conversation, Group, ChatMessage, ShareAnalytics, Like, Tip, Engagement, Earnings, Popularity, Podcast, PodcastHost, PodcastChapter, PodcastPurchase, PodcastClip, RadioDonation, RadioFollower, RadioSubmission, Role, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, TicketPurchase, VRAccessTicket, Music, Track, LicensingOpportunity, MusicLicensing, Collaboration, Artist, Album, ListeningParty, ListeningPartyAttendee, Stream
 from flask_admin.contrib.sqla import ModelView
 
 def setup_admin(app):
@@ -9,8 +8,6 @@ def setup_admin(app):
     app.config['FLASK_ADMIN_SWATCH'] = 'cerulean'
     admin = Admin(app, name='4Geeks Admin', template_mode='bootstrap3')
 
-    
-    # Add your models here, for example this is how we add a the User model to the admin
     # Register models in Flask-Admin
     admin.add_view(ModelView(User, db.session))
     admin.add_view(ModelView(PodcastEpisode, db.session))
@@ -33,8 +30,45 @@ def setup_admin(app):
     admin.add_view(ModelView(PricingPlan, db.session))
     admin.add_view(ModelView(Subscription, db.session))
     admin.add_view(ModelView(FavoritePage, db.session))
-
-
-
-    # You can duplicate that line to add mew models
-    # admin.add_view(ModelView(YourModelName, db.session))
+    admin.add_view(ModelView(Product, db.session))
+    admin.add_view(ModelView(RefundRequest, db.session))
+    admin.add_view(ModelView(Revenue, db.session))
+    admin.add_view(ModelView(Payment, db.session))
+    admin.add_view(ModelView(Order, db.session))
+    admin.add_view(ModelView(Notification, db.session))
+    admin.add_view(ModelView(Comment, db.session))
+    admin.add_view(ModelView(Message, db.session))
+    admin.add_view(ModelView(Conversation, db.session))
+    admin.add_view(ModelView(Group, db.session))
+    admin.add_view(ModelView(ChatMessage, db.session))
+    admin.add_view(ModelView(ShareAnalytics, db.session))
+    admin.add_view(ModelView(Like, db.session))
+    admin.add_view(ModelView(Tip, db.session))
+    admin.add_view(ModelView(Engagement, db.session))
+    admin.add_view(ModelView(Earnings, db.session))
+    admin.add_view(ModelView(Popularity, db.session))
+    admin.add_view(ModelView(Podcast, db.session))
+    admin.add_view(ModelView(PodcastHost, db.session))
+    admin.add_view(ModelView(PodcastChapter, db.session))
+    admin.add_view(ModelView(PodcastPurchase, db.session))
+    admin.add_view(ModelView(PodcastClip, db.session))
+    admin.add_view(ModelView(RadioDonation, db.session))
+    admin.add_view(ModelView(RadioFollower, db.session))
+    admin.add_view(ModelView(RadioSubmission, db.session))
+    admin.add_view(ModelView(Role, db.session))
+    admin.add_view(ModelView(IndieStation, db.session))
+    admin.add_view(ModelView(IndieStationTrack, db.session))
+    admin.add_view(ModelView(IndieStationFollower, db.session))
+    admin.add_view(ModelView(EventTicket, db.session))
+    admin.add_view(ModelView(TicketPurchase, db.session))
+    admin.add_view(ModelView(VRAccessTicket, db.session))
+    admin.add_view(ModelView(Music, db.session))
+    admin.add_view(ModelView(Track, db.session))
+    admin.add_view(ModelView(LicensingOpportunity, db.session))
+    admin.add_view(ModelView(MusicLicensing, db.session))
+    admin.add_view(ModelView(Collaboration, db.session))
+    admin.add_view(ModelView(Artist, db.session))
+    admin.add_view(ModelView(Album, db.session))
+    admin.add_view(ModelView(ListeningParty, db.session))
+    admin.add_view(ModelView(ListeningPartyAttendee, db.session))
+    admin.add_view(ModelView(Stream, db.session))
