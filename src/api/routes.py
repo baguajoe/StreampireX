@@ -3,7 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, ChatMessage
 
 from api.utils import generate_sitemap, APIException, send_email
 from sqlalchemy import func, desc
@@ -41,6 +41,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 scheduler = BackgroundScheduler()
 scheduler.start()
 
+chat_api = Blueprint('chat_api', __name__)
 
 # Initialize caching somewhere in your app setup
 
@@ -4334,4 +4335,113 @@ def favorite_video(video_id):
         db.session.add(new_fav)
         db.session.commit()
         return jsonify({"message": "Added to favorites"})
+
+@api.route('/messages/conversation/<int:recipient_id>', methods=['POST'])
+@jwt_required()
+def start_or_get_conversation(recipient_id):
+    user_id = get_jwt_identity()
+
+    conversation = Conversation.query.filter(
+        ((Conversation.user1_id == user_id) & (Conversation.user2_id == recipient_id)) |
+        ((Conversation.user1_id == recipient_id) & (Conversation.user2_id == user_id))
+    ).first()
+
+    if not conversation:
+        conversation = Conversation(user1_id=user_id, user2_id=recipient_id)
+        db.session.add(conversation)
+        db.session.commit()
+
+    return jsonify({"conversation_id": conversation.id}), 200
+
+
+@api.route('/messages/send', methods=['POST'])
+@jwt_required()
+def send_message():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    conversation_id = data.get("conversation_id")
+    content = data.get("content")
+
+    message = Message(
+        conversation_id=conversation_id,
+        sender_id=user_id,
+        content=content
+    )
+    db.session.add(message)
+    db.session.commit()
+
+    # 🔄 Optional: emit WebSocket update here
+
+    return jsonify({"message": "Message sent"}), 201
+
+
+@api.route('/messages/<int:conversation_id>', methods=['GET'])
+@jwt_required()
+def get_messages(conversation_id):
+    messages = Message.query.filter_by(conversation_id=conversation_id).order_by(Message.timestamp.asc()).all()
+    return jsonify([{
+        "id": m.id,
+        "sender_id": m.sender_id,
+        "content": m.content,
+        "timestamp": m.timestamp.isoformat(),
+        "is_read": m.is_read
+    } for m in messages]), 200
+
+
+@api.route('/conversations', methods=['GET'])
+@jwt_required()
+def get_conversations():
+    user_id = get_jwt_identity()
+
+    conversations = Conversation.query.filter(
+        (Conversation.user1_id == user_id) | (Conversation.user2_id == user_id)
+    ).order_by(Conversation.created_at.desc()).all()
+
+    result = []
+    for convo in conversations:
+        partner_id = convo.user2_id if convo.user1_id == user_id else convo.user1_id
+        partner = User.query.get(partner_id)
+        result.append({
+            "conversation_id": convo.id,
+            "with_user_id": partner.id,
+            "with_username": partner.username,
+            "created_at": convo.created_at.isoformat()
+        })
+
+    return jsonify(result), 200
+
+
+@api.route('/chat/send', methods=['POST'])
+@jwt_required()
+def send_chat_message():
+    data = request.get_json()
+    user_id = get_jwt_identity()
+
+    new_message = ChatMessage(
+        room=data['room'],
+        sender_id=user_id,
+        recipient_id=data['to'],
+        text=data['text'],
+        timestamp=datetime.utcnow(),
+        media_url=data.get('mediaUrl')
+    )
+    db.session.add(new_message)
+    db.session.commit()
+
+    return jsonify({"message": "Message saved successfully."}), 201
+
+
+@api.route('/chat/history', methods=['GET'])
+@jwt_required()
+def get_chat_history():
+    room = request.args.get('room')
+    messages = ChatMessage.query.filter_by(room=room).order_by(ChatMessage.timestamp.asc()).all()
+
+    return jsonify([{
+        'from': m.sender_id,
+        'to': m.recipient_id,
+        'text': m.text,
+        'timestamp': m.timestamp.isoformat(),
+        'mediaUrl': m.media_url
+    } for m in messages])
 
