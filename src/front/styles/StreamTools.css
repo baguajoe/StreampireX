@@ -1,0 +1,157 @@
+/* StreamTools.css */
+
+.stream-tools-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+    font-family: 'Arial', sans-serif;
+  }
+  
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #FF6600;
+  }
+  
+  .live-indicator {
+    color: red;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .stream-section {
+    margin-bottom: 2rem;
+  }
+  
+  .stream-timer {
+    font-size: 2rem;
+    color: #333;
+    font-weight: bold;
+    background: #f9f9f9;
+    padding: 8px 16px;
+    display: inline-block;
+    border-radius: 8px;
+  }
+  
+  .audio-meter {
+    height: 20px;
+    background: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+  }
+  
+  .audio-bar {
+    height: 100%;
+    background: linear-gradient(to right, #00b8d4, #0088cc);
+    transition: width 0.3s ease-in-out;
+  }
+  
+  .stream-mode-toggle {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .stream-mode-toggle label {
+    cursor: pointer;
+    padding: 10px 16px;
+    border-radius: 6px;
+    background: #f0f0f0;
+    font-weight: 500;
+    transition: background 0.3s;
+    border: 2px solid transparent;
+  }
+  
+  .stream-mode-toggle label.selected {
+    background: #FF6600;
+    color: #fff;
+    border-color: #FF9944;
+  }
+  
+  .stream-key-box {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border: 2px dashed #FF6600;
+    background: #fff3e6;
+    border-radius: 8px;
+  }
+  
+  .stream-key-box input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    margin-bottom: 0.5rem;
+    border-radius: 6px;
+    background-color: #fdfdfd;
+    color: #333;
+  }
+  
+  .copy-btn {
+    padding: 8px 12px;
+    background-color: #004080;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 0.5rem;
+  }
+  
+  .copy-btn:hover {
+    background-color: #0066aa;
+  }
+  
+  .stream-controls {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+  }
+  
+  .start-btn,
+  .stop-btn {
+    flex: 1;
+    margin: 0 10px;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  
+  .start-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+  }
+  
+  .start-btn:hover {
+    background-color: #218838;
+  }
+  
+  .stop-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+  }
+  
+  .stop-btn:hover {
+    background-color: #c82333;
+  }
+  
+  @media (max-width: 600px) {
+    .stream-controls {
+      flex-direction: column;
+    }
+  
+    .start-btn,
+    .stop-btn {
+      margin: 10px 0;
+    }
+  }
+  

@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import Sidebar from "../component/sidebar";
 import MonetizationAnalytics from "../component/MonetizationAnalytics";
 import StartStopLiveStream from "../component/StartStopLiveStream"; // Import the new component
-import "../styles/dashboard.css"; // Ensure you have styles for better UI
+import "../../styles/RadioStationDashboard.css"; // Ensure you have styles for better UI
 
 const RadioStationDashboard = () => {
   const [stations, setStations] = useState([]);
