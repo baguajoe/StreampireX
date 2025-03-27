@@ -59,6 +59,8 @@ import UploadMusic from "./pages/UploadMusic";
 import Voting from "./pages/Voting";
 import VRDashboard from "./pages/VRDashboard";
 import WebRTCPage from "./pages/WebRTCPage";
+import AuthRoute from "./component/AuthRoute";
+
 
 
 import RoleManagement from "./pages/RoleManagement";  // ✅ Add Role Management Page
@@ -148,7 +150,7 @@ const Layout = () => {
                             <Route path="/members" element={<MembersPage />} />
                             <Route path="/digital-products" element={<DigitalProducts />} />
                             <Route path="/marketplace" element={<ProductPage />} />
-                            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                            <Route path="/admin-dashboard" element={<AuthRoute roles={["admin"]}><AdminDashboard /></AuthRoute>} />
                             <Route path="/refund-processing" element={<RefundProcessing />} />
                             <Route path="/revenue-analytics" element={<RevenueAnalytics />} />
                             <Route path="/role-management" element={<RoleManagement />} />  {/* ✅ Add Role Management route */}
