@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import EngagementGraph from "../component/EngagementGraph"; // Import the EngagementGraph component
-import MonetizationAnalytics from "../component/MonetizationAnalytics"; // Assuming you have this for earnings report
-import PopularityRanking from "../component/PopularityRanking"; // A new component for popularity ranking
+import EngagementGraph from "../component/EngagementGraph";
+import MonetizationAnalytics from "../component/MonetizationAnalytics";
+import PopularityRanking from "../component/PopularityRanking";
 import "../../styles/AdminDashboard.css";
 
 const AdminDashboard = () => {
@@ -17,13 +17,17 @@ const AdminDashboard = () => {
 
   const fetchAdminData = async () => {
     try {
-      const usersRes = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/admin/users`);
-      const subsRes = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/admin/subscriptions`);
-      const revenueRes = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/admin/revenue`);
+      const usersRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/admin/users`);
+      const subsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/admin/subscriptions`);
+      const revenueRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/admin/revenue`);
 
-      setUsers(usersRes.data);
-      setSubscriptions(subsRes.data);
-      setRevenue(revenueRes.data.total_earnings);
+      const usersData = await usersRes.json();
+      const subsData = await subsRes.json();
+      const revenueData = await revenueRes.json();
+
+      setUsers(usersData);
+      setSubscriptions(subsData);
+      setRevenue(revenueData.total_earnings);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching admin data:", error);
@@ -74,15 +78,18 @@ const AdminDashboard = () => {
         </ul>
 
         <h2>Content Analytics</h2>
-        {/* Engagement Graph Component */}
-        <EngagementGraph contentId="podcast_1" />  {/* Pass the content ID for podcasts or radio stations */}
-        
-        {/* Earnings Report */}
+        <EngagementGraph contentId="podcast_1" />
         <MonetizationAnalytics earnings={revenue} />
 
         <h2>Content Popularity</h2>
-        {/* Popularity Ranking Component */}
         <PopularityRanking />
+      </div>
+
+      <div className="admin-actions">
+        <h2>Platform Settings</h2>
+        <Link to="/admin/settings">
+          <button className="settings-btn">⚙️ Manage Platform Settings</button>
+        </Link>
       </div>
     </div>
   );
