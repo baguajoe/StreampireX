@@ -54,7 +54,7 @@ const ProfilePage = () => {
                 setUseAvatar(data.use_avatar || false);
                 setRadioStation(data.radio_station || "");
                 setPodcast(data.podcast || "");
-                setVideos(data.videos || [])
+                setVideos(data.videos || []);
             })
             .catch((err) => alert("Error fetching profile."));
     }, []);
@@ -136,6 +136,8 @@ const ProfilePage = () => {
             radio_station: radioStation,
             podcast: podcast,
             videos: videos,
+            profile_picture: profilePicture,  // Add profile picture URL
+            cover_photo: coverPhoto,          // Add cover photo URL
         };
 
         try {
@@ -145,13 +147,13 @@ const ProfilePage = () => {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${localStorage.getItem("token")}`,
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
             });
 
             const result = await response.json();
             if (response.ok) {
                 alert("✅ Profile saved successfully!");
-                setUser(result.user);
+                setUser(result.user);  // Update the user state with the new data
             } else {
                 alert(result.error || "Failed to update profile.");
             }
@@ -166,13 +168,7 @@ const ProfilePage = () => {
                 <label htmlFor="video-upload">🎥 Upload Video:</label>
                 <input type="file" id="video-upload" accept="video/*" onChange={handleVideoUpload} />
             </div>
-            {/* Full JSX returned below... */}
-        </div>
-    );
-};
 
-    return (
-        <div className="profile-container">
             <div className="cover-photo-container">
                 <img src={coverPhoto || user.cover_photo || "/default-cover.jpg"} alt="Cover" className="cover-photo" />
                 <button onClick={() => coverPhotoInputRef.current.click()} className="upload-btn">📷 Upload Cover Photo</button>
@@ -350,11 +346,11 @@ const ProfilePage = () => {
                         </div>
                     )}
                 </div>
-
             </div>
 
             <button onClick={() => alert("Saved!")} className="btn-primary">💾 Save Profile</button>
         </div>
     );
+};
 
 export default ProfilePage;
