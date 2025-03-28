@@ -1,9 +1,16 @@
 """
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
+
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, ChatMessage
+import cloudinary.uploader
+import json
+import os
+
+
+
 
 from api.utils import generate_sitemap, APIException, send_email
 from sqlalchemy import func, desc
@@ -110,6 +117,7 @@ UPLOAD_FOLDER = 'uploads/videos'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure upload directory exists
 
 # ---------------- VIDEO UPLOAD ----------------
+
 @api.route('/upload_video', methods=['POST'])
 @jwt_required()
 def upload_video():
@@ -117,7 +125,7 @@ def upload_video():
     user = User.query.get(user_id)
 
     if 'video' not in request.files:
-        return jsonify({"error": "No file provided"}), 400
+        return jsonify({"error": "No video file provided"}), 400
 
     video = request.files['video']
     title = request.form.get('title', 'Untitled')
@@ -126,53 +134,40 @@ def upload_video():
     if video.filename == '':
         return jsonify({"error": "No selected file"}), 400
 
-    filename = secure_filename(video.filename)
-    file_path = os.path.join(UPLOAD_FOLDER, filename)
-    video.save(file_path)
-
-    # ✅ Enforce duration limit based on role
     try:
-        clip = VideoFileClip(file_path)
-        duration = clip.duration  # in seconds
-        clip.close()
+        # ✅ Upload to Cloudinary
+        upload_result = cloudinary.uploader.upload_large(
+            video,
+            resource_type="video",
+            folder="user_videos",
+            public_id=secure_filename(video.filename).split('.')[0],
+            overwrite=True
+        )
 
+        video_url = upload_result.get("secure_url")
+        duration = upload_result.get("duration", 0)
+
+        # ✅ Enforce duration limits by user role
         if user.role == 'Free' and duration > 120:
-            os.remove(file_path)
             return jsonify({"error": "Free users can only upload videos up to 2 minutes."}), 403
         elif user.role in ['Pro', 'Premium'] and duration > 1200:
-            os.remove(file_path)
             return jsonify({"error": "Video too long for Pro/Premium tier."}), 403
+
+        # ✅ Save to DB
+        new_video = Video(
+            user_id=user_id,
+            title=title,
+            description=description,
+            file_url=video_url,
+            uploaded_at=datetime.utcnow()
+        )
+        db.session.add(new_video)
+        db.session.commit()
+
+        return jsonify({"message": "Video uploaded to Cloudinary!", "video": new_video.serialize()}), 201
+
     except Exception as e:
-        os.remove(file_path)
-        return jsonify({"error": f"Error processing video: {str(e)}"}), 500
-
-    # Save video
-    new_video = Video(
-        user_id=user_id,
-        title=title,
-        description=description,
-        file_url=file_path,
-        uploaded_at=datetime.utcnow()
-    )
-    db.session.add(new_video)
-    db.session.commit()
-
-    return jsonify({"message": "Video uploaded successfully", "video": new_video.serialize()}), 201
-
-    clip.close()
-
-    # ✅ Save to database
-    new_video = Video(
-        user_id=user_id,
-        title=title,
-        description=description,
-        file_url=file_path,
-        uploaded_at=datetime.utcnow()
-    )
-    db.session.add(new_video)
-    db.session.commit()
-
-    return jsonify({"message": "Video uploaded successfully", "video": new_video.serialize()}), 201
+        return jsonify({"error": str(e)}), 500
 
 # ---------------- GET VIDEOS ----------------
 @api.route('/videos', methods=['GET'])
@@ -4506,3 +4501,23 @@ def user_settings():
 def get_stream_key():
     user = User.query.get(get_jwt_identity())
     return jsonify({ "stream_key": user.stream_key or generate_stream_key() })
+
+@api.route('/upload/profile-picture', methods=['POST'])
+@jwt_required()
+def upload_profile_picture():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if 'image' not in request.files:
+        return jsonify({"error": "No image file provided"}), 400
+
+    file = request.files['image']
+    result = cloudinary.uploader.upload(file)
+
+    user.profile_picture = result['secure_url']
+    db.session.commit()
+
+    return jsonify({"message": "Profile picture uploaded", "url": result['secure_url']}), 200
