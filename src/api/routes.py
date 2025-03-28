@@ -4528,6 +4528,7 @@ def upload_profile_picture():
     return jsonify({"message": "Profile picture uploaded", "url": result['secure_url']}), 200
 
 @api.route('/create-avatar', methods=['POST'])
+@jwt_required()
 def create_avatar():
     # Check if an image was uploaded
     if 'image' not in request.files:
@@ -4544,9 +4545,18 @@ def create_avatar():
     
     # Check if avatar URL was generated
     if avatar_url:
+        # Get the current user
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if user:
+            user.avatar_url = avatar_url  # Save the avatar URL in the user model
+            db.session.commit()
+
         return jsonify({"avatar_url": avatar_url}), 201  # Successfully created the avatar
     else:
         return jsonify({"error": "Failed to create avatar"}), 500  # Error in avatar creation
+
 
 
 
@@ -4605,3 +4615,26 @@ def upload_avatar():
     return jsonify({"avatar_url": avatar_url}), 201
 
 
+@api.route('/user/profile', methods=['PUT'])
+@jwt_required()
+def update_user_profile():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    data = request.get_json()
+    user.display_name = data.get("display_name", user.display_name)
+    user.business_name = data.get("business_name", user.business_name)
+    user.bio = data.get("bio", user.bio)
+    user.social_links = data.get("social_links", user.social_links)
+    user.radio_station = data.get("radio_station", user.radio_station)
+    user.podcast = data.get("podcast", user.podcast)
+    user.videos = data.get("videos", user.videos)
+    user.profile_picture = data.get("profile_picture", user.profile_picture)
+    user.cover_photo = data.get("cover_photo", user.cover_photo)
+
+    db.session.commit()
+
+    return jsonify({"message": "Profile updated successfully", "user": user.serialize()}), 200
