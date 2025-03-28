@@ -77,9 +77,10 @@ class User(db.Model):
             "is_on_trial": self.is_on_trial,
             "trial_start_date": self.trial_start_date.strftime("%Y-%m-%d") if self.trial_start_date else None,
             "trial_end_date": self.trial_end_date.strftime("%Y-%m-%d") if self.trial_end_date else None,
-            "role": self.role.name if self.role else None
+            "role": self.role.name if self.role else None,
+            "avatar_url": self.avatar_url  # Added missing comma here
         }
-
+    
 class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
