@@ -11,6 +11,8 @@ import os
 
 
 
+from api.avatar_service import process_image_and_create_avatar
+
 
 from api.utils import generate_sitemap, APIException, send_email
 from sqlalchemy import func, desc
@@ -3467,14 +3469,15 @@ def save_avatar():
     avatar_url = data.get("avatar_url")
 
     if not avatar_url:
-        return jsonify({ "error": "No avatar URL provided" }), 400
+        return jsonify({"error": "No avatar URL provided"}), 400
 
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
 
     if not user:
-        return jsonify({ "error": "User not found" }), 404
+        return jsonify({"error": "User not found"}), 404
 
+    # Save avatar_url to the user's profile
     user.avatar_url = avatar_url
     db.session.commit()
 
@@ -3482,6 +3485,8 @@ def save_avatar():
         "message": "Avatar URL saved successfully.",
         "avatar_url": avatar_url
     }), 200
+
+
 
 
 @api.route("get-avatar", methods=["GET"])
@@ -4521,3 +4526,82 @@ def upload_profile_picture():
     db.session.commit()
 
     return jsonify({"message": "Profile picture uploaded", "url": result['secure_url']}), 200
+
+@api.route('/create-avatar', methods=['POST'])
+def create_avatar():
+    # Check if an image was uploaded
+    if 'image' not in request.files:
+        return jsonify({"error": "No image uploaded"}), 400
+    
+    file = request.files['image']
+    file_path = os.path.join('uploads', file.filename)
+
+    # Save the uploaded image
+    file.save(file_path)
+
+    # Call the avatar generation function to process the image and create the avatar
+    avatar_url = process_image_and_create_avatar(file_path)
+    
+    # Check if avatar URL was generated
+    if avatar_url:
+        return jsonify({"avatar_url": avatar_url}), 201  # Successfully created the avatar
+    else:
+        return jsonify({"error": "Failed to create avatar"}), 500  # Error in avatar creation
+
+
+
+@api.route('/delete-avatar', methods=['DELETE'])
+def delete_avatar():
+    user_id = get_jwt_identity()  # Assuming the user is authenticated via JWT
+
+    # Retrieve the user's avatar URL or file path from the database
+    avatar_url = get_user_avatar(user_id)
+
+    if not avatar_url:
+        return jsonify({"error": "Avatar not found"}), 404
+
+    # Remove the avatar from the database
+    delete_avatar_from_user_profile(user_id)
+
+    # Optionally delete the avatar file if it's stored locally
+    avatar_filename = os.path.basename(avatar_url)
+    avatar_file_path = os.path.join('uploads', avatar_filename)
+
+    if os.path.exists(avatar_file_path):
+        os.remove(avatar_file_path)
+
+    return jsonify({"message": "Avatar deleted successfully"}), 200
+
+def get_user_avatar(user_id):
+    # Retrieve the avatar URL from the database based on user_id
+    # Example return value: '/uploads/avatars/user_avatar.png'
+    pass
+
+def delete_avatar_from_user_profile(user_id):
+    # Remove the avatar reference from the user's profile in the database
+    pass
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
+@api.route('/upload-avatar', methods=['POST'])
+def upload_avatar():
+    if 'image' not in request.files:
+        return jsonify({"error": "No image provided"}), 400
+
+    image = request.files['image']
+    if image.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    filename = secure_filename(image.filename)
+    file_path = os.path.join('uploads', filename)
+    image.save(file_path)
+
+    # Call the process_image_and_create_avatar function to generate the avatar
+    avatar_url = process_image_and_create_avatar(file_path)
+
+    return jsonify({"avatar_url": avatar_url}), 201
+
+

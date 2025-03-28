@@ -11,4 +11,16 @@
     border-radius: 12px;
     overflow: hidden;
   }
-  
+
+  /* Add to your CSS */
+.btn-danger {
+  background-color: red;
+  color: white;
+  padding: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-danger:hover {
+  background-color: darkred;
+}
