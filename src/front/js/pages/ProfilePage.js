@@ -76,10 +76,47 @@ const ProfilePage = () => {
         }
     };
 
-    const handleProfilePicChange = (e) => {
-        if (e.target.files.length > 0) {
-            setProfilePicture(URL.createObjectURL(e.target.files[0]));
-            setProfilePicName(e.target.files[0].name);
+    const handleProfilePicChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("image", file);
+
+        try {
+            const res = await fetch(`${process.env.BACKEND_URL}/upload/profile-picture`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`
+                },
+                body: formData,
+            });
+
+            const data = await res.json();
+            setUser((prev) => ({ ...prev, profile_picture: data.url }));
+        } catch (err) {
+            alert("❌ Failed to upload profile picture");
+        }
+    };
+
+    const handleVideoUpload = async (e) => {
+        const file = e.target.files[0];
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", "your_unsigned_preset");
+
+        try {
+            const res = await fetch("https://api.cloudinary.com/v1_1/dli7r0d7s/video/upload", {
+                method: "POST",
+                body: formData,
+            });
+            const data = await res.json();
+            console.log("Uploaded video URL:", data.secure_url);
+            setVideos(prev => [...prev, { file_url: data.secure_url, title: file.name }]);
+
+        } catch (err) {
+            alert("Video upload failed.");
+            console.error(err);
         }
     };
 
@@ -122,6 +159,17 @@ const ProfilePage = () => {
             alert("An error occurred while saving profile.");
         }
     };
+
+    return (
+        <div className="profile-container">
+            <div className="video-upload-field">
+                <label htmlFor="video-upload">🎥 Upload Video:</label>
+                <input type="file" id="video-upload" accept="video/*" onChange={handleVideoUpload} />
+            </div>
+            {/* Full JSX returned below... */}
+        </div>
+    );
+};
 
     return (
         <div className="profile-container">
@@ -308,6 +356,5 @@ const ProfilePage = () => {
             <button onClick={() => alert("Saved!")} className="btn-primary">💾 Save Profile</button>
         </div>
     );
-};
 
 export default ProfilePage;
