@@ -1,47 +1,79 @@
-import React from 'react';
-import { AvatarCreator } from '@readyplayerme/react-avatar-creator';
-import { useNavigate } from 'react-router-dom';
-import "../../styles/createAvatarPage.css"; // Optional CSS for styling
+// src/pages/CreateAvatar.js
 
-const CreateAvatarPage = () => {
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
+const CreateAvatar = () => {
   const navigate = useNavigate();
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleAvatarExported = async (url) => {
+  // Assuming the avatar URL is passed through the state or context
+  useEffect(() => {
+    const url = localStorage.getItem("avatar_url");
+    if (url) {
+      setAvatarUrl(url);
+    }
+  }, []);
+
+  // Handle saving avatar to the user's profile
+  const handleSaveAvatar = async () => {
+    if (!avatarUrl) return alert("No avatar to save!");
+
+    setIsSaving(true);
     try {
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(`${process.env.BACKEND_URL}/api/save-avatar`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ avatar_url: url })
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to save avatar");
-      }
-
-      navigate("/profile");
+      const token = localStorage.getItem("access_token");
+      await axios.post(
+        `${process.env.REACT_APP_API_URL}/save-avatar`,
+        { avatar_url: avatarUrl },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      navigate("/profile"); // Navigate to profile page after saving avatar
     } catch (error) {
-      console.error("Error saving avatar:", error);
+      alert("Error saving avatar:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle deleting the avatar
+  const handleDeleteAvatar = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      await axios.delete(`${process.env.REACT_APP_API_URL}/delete-avatar`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setAvatarUrl(null); // Clear the avatar URL from the state
+      alert("Avatar deleted successfully.");
+      navigate("/profile"); // Redirect to profile page or another page
+    } catch (error) {
+      alert("Error deleting avatar:", error);
     }
   };
 
   return (
     <div className="create-avatar-container">
-      <h2>🧍 Customize Your Avatar</h2>
-      <p>Create an avatar using your selfie or start from scratch.</p>
-      <div className="avatar-creator-wrapper">
-        <AvatarCreator
-          subdomain="your-subdomain" // Replace with your Ready Player Me subdomain
-          onAvatarExported={handleAvatarExported}
-          style={{ width: '100%', height: '100%' }}
-        />
+      <h2>Your 3D Avatar</h2>
+      <div className="avatar-display">
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="3D Avatar" />
+        ) : (
+          <p>No avatar created yet!</p>
+        )}
       </div>
+      <button onClick={handleSaveAvatar} disabled={isSaving}>
+        {isSaving ? "Saving Avatar..." : "Save Avatar"}
+      </button>
+
+      {/* Add the Delete Avatar button */}
+      {avatarUrl && (
+        <button onClick={handleDeleteAvatar} className="btn-danger">
+          Delete Avatar
+        </button>
+      )}
     </div>
   );
 };
 
-export default CreateAvatarPage;
+export default CreateAvatar;
