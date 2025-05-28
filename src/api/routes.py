@@ -2122,13 +2122,14 @@ def update_profile():
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    data = request.form
+    data = request.json
 
     user.business_name = data.get("business_name", user.business_name)
     user.display_name = data.get("display_name", user.display_name)
     user.radio_station = data.get("radio_station", user.radio_station)
     user.podcast = data.get("podcast", user.podcast)
     user.bio = data.get("bio", user.bio)
+    
 
     # Handle JSON fields (e.g. social_links) passed as strings
     if "social_links" in data:
@@ -2161,9 +2162,11 @@ def update_profile():
         pic = request.files["profile_picture"]
         if pic.filename != "":
             filename = secure_filename(pic.filename)
-            pic_path = os.path.join("uploads/profile_pics", filename)
+            print(filename)
+            pic_path = os.path.dirname(os.path.join("uploads/profile_pics", filename))
+            print(pic_path)
             pic.save(pic_path)
-            user.profile_picture = pic_path
+            user.profile_picture = pic_path + "/" + filename
 
     # 🖼️ Handle cover photo upload
     if "cover_photo" in request.files:
@@ -2175,6 +2178,7 @@ def update_profile():
             user.cover_photo = cover_path
 
     db.session.commit()
+    db.session.refresh(user)
     return jsonify({"message": "Profile updated successfully", "user": user.serialize()}), 200
 
 
@@ -4507,26 +4511,6 @@ def get_stream_key():
     user = User.query.get(get_jwt_identity())
     return jsonify({ "stream_key": user.stream_key or generate_stream_key() })
 
-@api.route('/upload/profile-picture', methods=['POST'])
-@jwt_required()
-def upload_profile_picture():
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    if 'image' not in request.files:
-        return jsonify({"error": "No image file provided"}), 400
-
-    file = request.files['image']
-    result = cloudinary.uploader.upload(file)
-
-    user.profile_picture = result['secure_url']
-    db.session.commit()
-
-    return jsonify({"message": "Profile picture uploaded", "url": result['secure_url']}), 200
-
 @api.route('/create-avatar', methods=['POST'])
 @jwt_required()
 def create_avatar():
@@ -4542,7 +4526,7 @@ def create_avatar():
 
     # Call the avatar generation function to process the image and create the avatar
     avatar_url = process_image_and_create_avatar(file_path)
-    
+
     # Check if avatar URL was generated
     if avatar_url:
         # Get the current user
@@ -4550,12 +4534,37 @@ def create_avatar():
         user = User.query.get(user_id)
 
         if user:
-            user.avatar_url = avatar_url  # Save the avatar URL in the user model
+            # Save the avatar URL to the user profile in the database
+            user.avatar_url = avatar_url
             db.session.commit()
 
         return jsonify({"avatar_url": avatar_url}), 201  # Successfully created the avatar
     else:
         return jsonify({"error": "Failed to create avatar"}), 500  # Error in avatar creation
+
+def process_image_and_create_avatar(image_path):
+    """
+    This function processes the image, potentially calling an avatar generation service
+    like Deep3D, and returns the avatar URL.
+    You need to replace this with your actual avatar generation logic.
+
+    Args:
+        image_path (str): The file path to the uploaded image.
+
+    Returns:
+        str: The URL of the created avatar.
+    """
+    # For example, here you would integrate Deep3D or other avatar generation services.
+    try:
+        # Example: Call Deep3D API (or other services) to process the image
+        # For now, let's assume the avatar creation returns a URL
+        avatar_url = "https://example.com/avatars/generated_avatar.png"  # Replace with real avatar URL from the service
+
+        return avatar_url
+    except Exception as e:
+        print(f"Error creating avatar: {str(e)}")
+        return None
+
 
 
 

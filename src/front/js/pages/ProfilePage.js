@@ -81,11 +81,11 @@ const ProfilePage = () => {
         if (!file) return;
 
         const formData = new FormData();
-        formData.append("image", file);
+        formData.append("profile_picture", file);
 
         try {
-            const res = await fetch(`${process.env.BACKEND_URL}/upload/profile-picture`, {
-                method: "POST",
+            const res = await fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+                method: "PUT",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("token")}`
                 },
@@ -96,6 +96,13 @@ const ProfilePage = () => {
             setUser((prev) => ({ ...prev, profile_picture: data.url }));
         } catch (err) {
             alert("❌ Failed to upload profile picture");
+        }
+    };
+
+    const handleCoverPhotoChange = (e) => {
+        if (e.target.files.length > 0) {
+            setCoverPhoto(URL.createObjectURL(e.target.files[0]));
+            setCoverPhotoName(e.target.files[0].name);
         }
     };
 
@@ -120,24 +127,24 @@ const ProfilePage = () => {
         }
     };
 
-    const handleCoverPhotoChange = (e) => {
-        if (e.target.files.length > 0) {
-            setCoverPhoto(URL.createObjectURL(e.target.files[0]));
-            setCoverPhotoName(e.target.files[0].name);
-        }
-    };
-
     const handleSaveProfile = async () => {
         const payload = {
-            display_name: displayName,
-            business_name: businessName,
-            bio: bio,
-            social_links: socialLinks,
-            radio_station: radioStation,
-            podcast: podcast,
-            videos: videos,
-            profile_picture: profilePicture,  // Add profile picture URL
-            cover_photo: coverPhoto,          // Add cover photo URL
+            // strings: trim and check non-empty
+            ...(displayName?.trim() && { display_name: displayName }),
+            ...(businessName?.trim() && { business_name: businessName }),
+            ...(bio?.trim() && { bio }),
+
+            // arrays: check length > 0
+            ...(Array.isArray(socialLinks) && socialLinks.length > 0 && { social_links: socialLinks }),
+            ...(Array.isArray(videos) && videos.length > 0 && { videos }),
+
+            // objects (non-array): check has any own keys
+            ...(podcast && !Array.isArray(podcast) && Object.keys(podcast).length > 0 && { podcast }),
+
+            // simple values (truthy only)
+            ...(radioStation?.trim() && { radio_station: radioStation }),
+            ...(profilePicture && { profile_picture: profilePicture }),
+            ...(coverPhoto && { cover_photo: coverPhoto }),
         };
 
         try {
@@ -164,11 +171,6 @@ const ProfilePage = () => {
 
     return (
         <div className="profile-container">
-            <div className="video-upload-field">
-                <label htmlFor="video-upload">🎥 Upload Video:</label>
-                <input type="file" id="video-upload" accept="video/*" onChange={handleVideoUpload} />
-            </div>
-
             <div className="cover-photo-container">
                 <img src={coverPhoto || user.cover_photo || "/default-cover.jpg"} alt="Cover" className="cover-photo" />
                 <button onClick={() => coverPhotoInputRef.current.click()} className="upload-btn">📷 Upload Cover Photo</button>
@@ -219,17 +221,7 @@ const ProfilePage = () => {
                 />
                 <div className="profile-pic-buttons">
                     <button onClick={() => profilePicInputRef.current.click()} className="upload-btn">😀 Upload Profile Picture</button>
-                    <Link to="/create-avatar">
-                        <button className="upload-btn">🧍 Create Avatar</button>
-                    </Link>
-                    <label className="toggle-label">
-                        <input
-                            type="checkbox"
-                            checked={useAvatar}
-                            onChange={handleToggleAvatar}
-                        />
-                        Use Avatar
-                    </label>
+
                 </div>
                 <input ref={profilePicInputRef} type="file" style={{ display: 'none' }} onChange={handleProfilePicChange} />
                 {profilePicName && <p className="filename-display">📁 {profilePicName}</p>}
@@ -245,7 +237,7 @@ const ProfilePage = () => {
                 ) : (
                     <>
                         <textarea rows={5} value={bio} onChange={(e) => setBio(e.target.value)} />
-                        <button onClick={() => setIsEditingBio(false)}>✅ Save Bio</button>
+                        <button onClick={() => { setIsEditingBio(false); handleSaveProfile() }}>✅ Save Bio</button>
                     </>
                 )}
             </div>
@@ -274,6 +266,11 @@ const ProfilePage = () => {
 
                     <h3>🎙️ Favorite Podcasts</h3>
                     {favoritePodcasts.length > 0 ? favoritePodcasts.map(podcast => <p key={podcast.id}>{podcast.title}</p>) : <p>No saved podcasts.</p>}
+                    <div className="video-upload-field">
+                        <label htmlFor="video-upload">🎥 Upload Video:</label>
+                        <input type="file" id="video-upload" accept="video/*" onChange={handleVideoUpload} />
+                    </div>
+
                 </div>
 
                 <div className="middle-column">
