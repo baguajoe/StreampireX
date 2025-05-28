@@ -29,7 +29,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     artist_name = db.Column(db.String(80), unique=True, nullable=True)
-    bio = db.Column(db.String(80), nullable=True)
+    bio = db.Column(db.String(500), nullable=True)
     industry = db.Column(db.String(80), nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
@@ -64,6 +64,7 @@ class User(db.Model):
             "id": self.id,
             "username": self.username,
             "artist_name": self.artist_name,
+            "bio": self.bio,
             "email": self.email,
             "business_name": self.business_name,
             "display_name": self.display_name,
