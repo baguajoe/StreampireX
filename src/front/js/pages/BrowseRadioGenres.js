@@ -1,30 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import '../../styles/BrowseGenres.css';
 
 const BrowseRadioGenres = () => {
   const [genres, setGenres] = useState([]);
 
   useEffect(() => {
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/categories`)
-      .then((res) => res.json())
-      .then((data) => setGenres(data))
-      .catch((err) => console.error("Error fetching radio categories:", err));
+    setGenres([
+      "Lo-Fi", "Jazz", "Reggae", "Electronic", "Talk Radio", "Rock", "Hip Hop",
+      "Classical", "Indie", "Ambient", "Soul", "R&B", "Funk", "Country",
+      "Latin", "Afrobeats", "K-Pop", "Pop", "House", "Techno", "Dubstep",
+      "News", "Sports", "Spiritual"
+    ]);
   }, []);
 
   return (
-    <div>
-      <h1>🎶 Browse Radio Stations by Genre</h1>
-      {genres.length === 0 ? (
-        <p>Loading genres...</p>
-      ) : (
-        <ul>
-          {genres.map((genre, index) => (
-            <li key={index}>
-              <Link to={`/radio/genre/${genre}`}>{genre}</Link>
-            </li>
-          ))}
-        </ul>
-      )}
+    <div className="genre-bar-container">
+      <h2 className="genre-bar-heading">🎧 Radio Categories</h2>
+      <div className="genre-bar-scroll">
+        {genres.map((genre, index) => (
+          <Link
+            to={`/radio/genre/${encodeURIComponent(genre)}`}
+            key={index}
+            className="genre-pill-button"
+          >
+            {genre}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 };
