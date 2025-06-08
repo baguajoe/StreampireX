@@ -4,6 +4,8 @@ import UploadVideo from "../component/UploadVideo";
 import ChatModal from "../component/ChatModal";
 import WebRTCChat from "../component/WebRTCChat";
 import "../../styles/ProfilePage.css";
+import lady1 from "../../img/lady1.png"
+import campfire from "../../img/campfire.png"
 
 const ProfilePage = () => {
     const [user, setUser] = useState({});
@@ -31,6 +33,14 @@ const ProfilePage = () => {
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [chatFeatures, setChatFeatures] = useState({ typing: false, groupMode: false });
     const [useAvatar, setUseAvatar] = useState(false);
+    const [posts, setPosts] = useState([]); // user-created posts
+    const [postContent, setPostContent] = useState("");
+    const [postImage, setPostImage] = useState(null);
+    const [postComments, setPostComments] = useState({}); // { postId: [comments] }
+    const [newCommentText, setNewCommentText] = useState({}); // { postId: comment }
+    const [justSaved, setJustSaved] = useState(false);
+
+
 
     const profilePicInputRef = useRef(null);
     const coverPhotoInputRef = useRef(null);
@@ -160,10 +170,13 @@ const ProfilePage = () => {
             const result = await response.json();
             if (response.ok) {
                 alert("✅ Profile saved successfully!");
-                setUser(result.user);  // Update the user state with the new data
+                setUser(result.user);
+                setJustSaved(true);
+                setTimeout(() => setJustSaved(false), 3000); // hide save button after 3s
             } else {
                 alert(result.error || "Failed to update profile.");
             }
+
         } catch (error) {
             alert("An error occurred while saving profile.");
         }
@@ -171,33 +184,15 @@ const ProfilePage = () => {
 
     return (
         <div className="profile-container">
-            <div className="cover-photo-container">
-                <img src={coverPhoto || user.cover_photo || "/default-cover.jpg"} alt="Cover" className="cover-photo" />
+            <div className="cover-photo-container ">
+                <img src={coverPhoto || user.cover_photo || campfire} alt="Cover" className="cover-photo" />
                 <button onClick={() => coverPhotoInputRef.current.click()} className="upload-btn">📷 Upload Cover Photo</button>
                 <input ref={coverPhotoInputRef} type="file" style={{ display: 'none' }} onChange={handleCoverPhotoChange} />
                 {coverPhotoName && <p className="filename-display">📁 {coverPhotoName}</p>}
             </div>
 
-            <div className="profile-name-header">
-                {!isEditingName ? (
-                    <>
-                        <span className="profile-display-name">{displayName || user.username || "Your Name"}</span>
-                        <button className="edit-name-btn" onClick={() => setIsEditingName(true)}>✏️</button>
-                        <button className="message-btn" onClick={() => setIsChatOpen(true)}>💬 Message</button>
-                    </>
-                ) : (
-                    <>
-                        <input
-                            type="text"
-                            className="name-input"
-                            value={displayName}
-                            onChange={(e) => setDisplayName(e.target.value)}
-                            autoFocus
-                        />
-                        <button className="name-save-btn" onClick={() => setIsEditingName(false)}>Save</button>
-                    </>
-                )}
-            </div>
+
+
 
             {isChatOpen && (
                 <ChatModal
@@ -213,18 +208,43 @@ const ProfilePage = () => {
                 />
             )}
 
-            <div className="profile-avatar-toggle">
+            <div className="profile-avatar-toggle-horizontal">
                 <img
-                    src={useAvatar ? user.avatar_url : profilePicture || user.profile_picture || "/default-avatar.png"}
+                    src={useAvatar ? user.avatar_url : profilePicture || user.profile_picture || lady1}
                     alt="Profile"
                     className="profile-pic"
                 />
-                <div className="profile-pic-buttons">
-                    <button onClick={() => profilePicInputRef.current.click()} className="upload-btn">😀 Upload Profile Picture</button>
-
+                <div className="profile-name-inline">
+                    <p className="profile-name-label">
+                        {displayName || user.username || "Your Name"}
+                    </p>
+                    <button onClick={() => profilePicInputRef.current.click()} className="upload-btn">
+                        😀 Upload Profile Picture
+                    </button>
                 </div>
-                <input ref={profilePicInputRef} type="file" style={{ display: 'none' }} onChange={handleProfilePicChange} />
-                {profilePicName && <p className="filename-display">📁 {profilePicName}</p>}
+                <div className="profile-name-header ms-auto">
+                    {!isEditingName ? (
+                        <div className="name-and-actions">
+                            <div className="name-actions">
+                                <button className="edit-name-btn small-btn" onClick={() => setIsEditingName(true)}>✏️</button>
+                                <button className="message-btn small-btn" onClick={() => setIsChatOpen(true)}>💬</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="edit-name-input">
+                            <input
+                                type="text"
+                                className="name-input"
+                                value={displayName}
+                                onChange={(e) => setDisplayName(e.target.value)}
+                                autoFocus
+                            />
+                            <button className="name-save-btn" onClick={() => setIsEditingName(false)}>Save</button>
+                        </div>
+                    )}
+                </div>
+
+
             </div>
 
             <div className="profile-card-bio">
@@ -242,7 +262,7 @@ const ProfilePage = () => {
                 )}
             </div>
 
-            <div className="social-preview">
+            <div className="social-links">
                 <h4>🔗 Social Links</h4>
                 <ul>
                     {socialLinks.twitter && <li><a href={socialLinks.twitter}>🐦 Twitter</a></li>}
@@ -252,32 +272,128 @@ const ProfilePage = () => {
                 </ul>
             </div>
 
-            <div className="video-chat-container">
-                <WebRTCChat roomId={`user-${user.id}`} />
-            </div>
 
             <div className="profile-layout">
                 <div className="left-column">
                     <h3>⭐ Favorite Profiles</h3>
-                    {favorites.length > 0 ? favorites.map(fav => <p key={fav.id}>{fav.username}</p>) : <p>No favorites yet.</p>}
+                    <div className="favorite-item">
+                        <img src="/static/images/profile1.png" alt="Zenmaster" className="favorite-avatar" />
+                        <div>
+                            <strong>@zenmaster</strong>
+                            <p>“Grateful for the community 🙏”</p>
+                        </div>
+                    </div>
+
+                    <div className="favorite-item">
+                        <img src="/static/images/profile2.png" alt="Fit Jay" className="favorite-avatar" />
+                        <div>
+                            <strong>@fit_jay</strong>
+                            <p>“Morning flow complete ✅”</p>
+                        </div>
+                    </div>
 
                     <h3>📡 Favorite Radio Stations</h3>
-                    {favoriteRadioStations.length > 0 ? favoriteRadioStations.map(station => <p key={station.id}>{station.name}</p>) : <p>No saved stations.</p>}
+                    <div className="favorite-item">
+                        <img src="/static/images/radio1.png" alt="LoFi Lounge" className="favorite-avatar" />
+                        <div>
+                            <strong>LoFi Lounge</strong>
+                            <p>Chill beats 24/7</p>
+                        </div>
+                    </div>
+
+                    <div className="favorite-item">
+                        <img src="/static/images/radio2.png" alt="JazzHub" className="favorite-avatar" />
+                        <div>
+                            <strong>JazzHub</strong>
+                            <p>Smooth jazz and more 🎷</p>
+                        </div>
+                    </div>
 
                     <h3>🎙️ Favorite Podcasts</h3>
-                    {favoritePodcasts.length > 0 ? favoritePodcasts.map(podcast => <p key={podcast.id}>{podcast.title}</p>) : <p>No saved podcasts.</p>}
-                    <div className="video-upload-field">
-                        <label htmlFor="video-upload">🎥 Upload Video:</label>
-                        <input type="file" id="video-upload" accept="video/*" onChange={handleVideoUpload} />
+                    <div className="favorite-item">
+                        <img src="/static/images/podcast1.png" alt="The Energy Reset" className="favorite-avatar" />
+                        <div>
+                            <strong>The Energy Reset</strong>
+                            <p>“How to ground yourself”</p>
+                        </div>
                     </div>
+
+                    <div className="favorite-item">
+                        <img src="/static/images/podcast2.png" alt="ChiCast" className="favorite-avatar" />
+                        <div>
+                            <strong>ChiCast</strong>
+                            <p>“Breathwork for busy lives”</p>
+                        </div>
+                    </div>
+
 
                 </div>
 
                 <div className="middle-column">
-                    <h3>💬 Comments</h3>
-                    <textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Write a comment..." />
-                    <button className="btn-primary">💬 Post</button>
-                    <ul>{comments.map(comment => <li key={comment.id}>{comment.text}</li>)}</ul>
+                    <h3>📝 Create a Post</h3>
+                    <textarea
+                        value={postContent}
+                        onChange={(e) => setPostContent(e.target.value)}
+                        placeholder="Write something..."
+                    />
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setPostImage(e.target.files[0])}
+                    />
+                    <button
+                        onClick={() => {
+                            const newPost = {
+                                id: Date.now(), // Use backend ID if available
+                                content: postContent,
+                                image: postImage ? URL.createObjectURL(postImage) : null,
+                                comments: [],
+                            };
+                            setPosts([newPost, ...posts]);
+                            setPostContent("");
+                            setPostImage(null);
+                        }}
+                    >
+                        📤 Post
+                    </button>
+
+                    {posts.map((post) => (
+                        <div key={post.id} className="post-card">
+                            <p>{post.content}</p>
+                            {post.image && (
+                                <img src={post.image} alt="Post" className="post-image" />
+                            )}
+
+                            <h5>💬 Comments</h5>
+                            <ul>
+                                {(postComments[post.id] || []).map((comment, idx) => (
+                                    <li key={idx}>{comment}</li>
+                                ))}
+                            </ul>
+                            <input
+                                type="text"
+                                placeholder="Write a comment..."
+                                value={newCommentText[post.id] || ""}
+                                onChange={(e) =>
+                                    setNewCommentText({ ...newCommentText, [post.id]: e.target.value })
+                                }
+                            />
+                            <button
+                                onClick={() => {
+                                    const comment = newCommentText[post.id]?.trim();
+                                    if (!comment) return;
+                                    setPostComments({
+                                        ...postComments,
+                                        [post.id]: [...(postComments[post.id] || []), comment],
+                                    });
+                                    setNewCommentText({ ...newCommentText, [post.id]: "" });
+                                }}
+                            >
+                                💬 Reply
+                            </button>
+                        </div>
+                    ))}
+
 
                     {user?.role && ["Pro", "Premium", "Free"].includes(user.role) && (
                         <div className="upload-video-section">
@@ -327,6 +443,7 @@ const ProfilePage = () => {
                         <Link to="/indie-artist-upload">
                             <button className="btn-indie-upload">🎤 Indie Artist Upload</button>
                         </Link>
+                        <WebRTCChat></WebRTCChat>
                     </div>
 
                     {/* 🛍️ Storefront Section */}
@@ -343,10 +460,16 @@ const ProfilePage = () => {
                         </div>
                     )}
                 </div>
-            </div>
+            </div> {/* End of profile-layout */}
 
-            <button onClick={() => alert("Saved!")} className="btn-primary">💾 Save Profile</button>
+            {!justSaved && (
+                <button onClick={handleSaveProfile} className="btn-primary">
+                    💾 Save Profile
+                </button>
+            )}
+            {/* End of profile-container */}
         </div>
+
     );
 };
 
