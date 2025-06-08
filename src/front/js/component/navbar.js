@@ -34,7 +34,7 @@ const Navbar = () => {
 
       <ul className="navbar-nav ms-auto">
         <li className="nav-item"><Link className="nav-link" to="/">🏠 Home</Link></li>
-        <li className="nav-item"><Link className="nav-link" to="/browse-podcasts">🎙️ Browse Podcasts</Link></li>
+        <li className="nav-item"><Link className="nav-link" to="/browse-podcast-categories">🎙️ Browse Podcast Categories</Link></li>
         <li className="nav-item"><Link className="nav-link" to="/browse-radio-stations">📻 Browse Radio Stations</Link></li>
         <li className="nav-item"><Link className="nav-link" to="/live-streams">📡 Live Streams</Link></li>
 

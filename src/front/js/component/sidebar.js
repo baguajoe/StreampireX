@@ -51,7 +51,8 @@ const Sidebar = () => {
 
       <SectionHeader>🎧 Podcasts</SectionHeader>
       <MenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>🎙️ Create Podcast</MenuItem>
-      <MenuItem to="/browse-podcasts" className={isActive("/browse-podcasts") ? "active" : ""}>🎧 Browse Podcasts</MenuItem>
+      <MenuItem to="/browse-podcast-categories" className={isActive("/browse-podcast-categories") ? "active" : ""}>🎧 Browse Podcast Categories</MenuItem>
+
       <MenuItem to="/podcasts" className={isActive("/podcasts") ? "active" : ""}>📁 All Podcasts</MenuItem>
 
       <SectionHeader>📻 Radio Stations</SectionHeader>
