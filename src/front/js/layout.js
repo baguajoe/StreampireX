@@ -10,7 +10,7 @@ import { Signup } from "./pages/Signup";
 import PodcastDashboard from "./pages/PodcastDashboard";
 import PodcastCreate from "./pages/PodcastCreate";
 import PodcastPage from "./pages/PodcastPage";
-import BrowsePodcasts from "./pages/BrowsePodcasts";
+import BrowsePodcastCategories from "./pages/BrowsePodcastCategories";
 import PodcastEpisodePage from "./pages/PodcastEpisodePage";
 import PodcastProfile from "./pages/PodcastProfile";
 
@@ -61,7 +61,7 @@ const Layout = () => {
               <Route path="/podcast-dashboard" element={<PodcastDashboard />} />
               <Route path="/podcast-create" element={<PodcastCreate />} />
               <Route path="/podcasts" element={<PodcastPage />} />
-              <Route path="/browse-podcasts" element={<BrowsePodcasts />} />
+              <Route path="/browse-podcast-categories" element={<BrowsePodcastCategories />} />
               <Route path="/podcast/episode/:id" element={<PodcastEpisodePage />} />
               <Route path="/podcast/profile/:username/:podcastId" element={<PodcastProfile />} />
 
