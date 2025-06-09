@@ -1,8 +1,9 @@
 /* Navbar */
 .navbar {
     background: white !important;
-    padding: 10px;
+    padding: 12px 20px;
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    border-bottom: 3px solid #FF6600; /* Orange border */
 }
 
 /* Navbar Brand Logo */

@@ -13,7 +13,7 @@ const Login = () => {
     const data = await actions.login(email, password);
     if (data.access_token) {
       alert("Login successful!");
-      navigate('/dashboard');
+      navigate('/profile');
     } else {
       alert('Login failed: ' + data.error);
     }
