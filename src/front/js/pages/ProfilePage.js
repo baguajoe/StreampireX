@@ -6,6 +6,14 @@ import WebRTCChat from "../component/WebRTCChat";
 import "../../styles/ProfilePage.css";
 import lady1 from "../../img/lady1.png"
 import campfire from "../../img/campfire.png"
+import lofiLounge from "../../img/lofi_lounge.png";
+import jazzHub from "../../img/jazzhub.png";
+import energyReset from "../../img/energy_reset.png";
+import chiCast from "../../img/chicast.png";
+import zenmaster from "../../img/zenmaster.png";
+import fitjay from "../../img/fit_jay.png";
+
+
 
 const ProfilePage = () => {
     const [user, setUser] = useState({});
@@ -39,6 +47,7 @@ const ProfilePage = () => {
     const [postComments, setPostComments] = useState({}); // { postId: [comments] }
     const [newCommentText, setNewCommentText] = useState({}); // { postId: comment }
     const [justSaved, setJustSaved] = useState(false);
+    const [currentMood, setCurrentMood] = useState("😌 Chill"); // NEW: Mood state
 
 
 
@@ -58,7 +67,7 @@ const ProfilePage = () => {
                 setUser(data);
                 setDisplayName(data.display_name || "");
                 setBusinessName(data.business_name || "");
-                setBio(data.bio || "");
+                setBio(data.bio || "Susan Smith is a software developer with a passion for holistic healing and music. She blends tech and wellness to build meaningful tools that inspire growth and creativity. When she's not coding, she's producing beats or guiding meditation sessions.");
                 setSocialLinks(data.social_links || {});
                 setStorefrontLink(data.storefront_link || "");
                 setUseAvatar(data.use_avatar || false);
@@ -191,9 +200,6 @@ const ProfilePage = () => {
                 {coverPhotoName && <p className="filename-display">📁 {coverPhotoName}</p>}
             </div>
 
-
-
-
             {isChatOpen && (
                 <ChatModal
                     recipientId={user.id}
@@ -222,7 +228,7 @@ const ProfilePage = () => {
                         😀 Upload Profile Picture
                     </button>
                 </div>
-                <div className="profile-name-header ms-auto">
+                <div className="profile-name-header">
                     {!isEditingName ? (
                         <div className="name-and-actions">
                             <div className="name-actions">
@@ -243,58 +249,164 @@ const ProfilePage = () => {
                         </div>
                     )}
                 </div>
-
-
             </div>
 
-            <div className="profile-card-bio">
-                <label>📝 Bio:</label>
-                {!isEditingBio ? (
-                    <>
-                        <p>{bio}</p>
-                        <button onClick={() => setIsEditingBio(true)}>✏️ Edit Bio</button>
-                    </>
-                ) : (
-                    <>
-                        <textarea rows={5} value={bio} onChange={(e) => setBio(e.target.value)} />
-                        <button onClick={() => { setIsEditingBio(false); handleSaveProfile() }}>✅ Save Bio</button>
-                    </>
-                )}
+            {/* NEW: Bio, Quick Stats, and Mood Selector Row */}
+
+
+            {/* Bio and Quick Stats Row */}
+
+            {/* Bio and Quick Stats Row */}
+            <div className="profile-header-flex">
+                {/* Bio Block */}
+                <div className="profile-card-bio">
+                    <label>📝 Bio:</label>
+                    {!isEditingBio ? (
+                        <>
+                            <p>{bio}</p>
+                            <button onClick={() => setIsEditingBio(true)}>✏️ Edit Bio</button>
+                        </>
+                    ) : (
+                        <>
+                            <textarea rows={5} value={bio} onChange={(e) => setBio(e.target.value)} />
+                            <button onClick={() => { setIsEditingBio(false); handleSaveProfile(); }}>✅ Save Bio</button>
+                        </>
+                    )}
+                </div>
+
+                {/* Quick Stats */}
+                <div className="profile-stats-card">
+                    <h4>📊 Quick Stats</h4>
+                    <ul className="profile-stats-list">
+                        <li>📊 Streams: <strong>158</strong></li>
+                        <li>🎧 Podcasts: <strong>12</strong></li>
+                        <li>📻 Stations: <strong>5</strong></li>
+                        <li>⭐ Followers: <strong>623</strong></li>
+                    </ul>
+                </div>
+
+                {/* MOVE THE MOOD SECTION HERE - INSIDE THE SAME FLEX CONTAINER */}
+                <div className="mood-section">
+                    <div className="mood-card">
+                        <h4>🎨 Current Mood</h4>
+                        <div className="mood-selector">
+                            <button
+                                className={`mood-btn ${currentMood === "😌 Chill" ? "active" : ""}`}
+                                onClick={() => setCurrentMood("😌 Chill")}
+                            >
+                                😌 Chill
+                            </button>
+                            <button
+                                className={`mood-btn ${currentMood === "🎵 Creative" ? "active" : ""}`}
+                                onClick={() => setCurrentMood("🎵 Creative")}
+                            >
+                                🎵 Creative
+                            </button>
+                            <button
+                                className={`mood-btn ${currentMood === "🔥 Energetic" ? "active" : ""}`}
+                                onClick={() => setCurrentMood("🔥 Energetic")}
+                            >
+                                🔥 Energetic
+                            </button>
+                            <button
+                                className={`mood-btn ${currentMood === "🧘 Zen" ? "active" : ""}`}
+                                onClick={() => setCurrentMood("🧘 Zen")}
+                            >
+                                🧘 Zen
+                            </button>
+                            <button
+                                className={`mood-btn ${currentMood === "🎸 Jamming" ? "active" : ""}`}
+                                onClick={() => setCurrentMood("🎸 Jamming")}
+                            >
+                                🎸 Jamming
+                            </button>
+                            <button
+                                className={`mood-btn ${currentMood === "📚 Focused" ? "active" : ""}`}
+                                onClick={() => setCurrentMood("📚 Focused")}
+                            >
+                                📚 Focused
+                            </button>
+                        </div>
+                        <div className="current-mood-display">
+                            <p>Currently: <strong>{currentMood}</strong></p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
+
+            // Delete this entire block:
+            {/* 
+
+*/}
+            {/* Social Links */}
             <div className="social-links">
                 <h4>🔗 Social Links</h4>
-                <ul>
-                    {socialLinks.twitter && <li><a href={socialLinks.twitter}>🐦 Twitter</a></li>}
-                    {socialLinks.facebook && <li><a href={socialLinks.facebook}>📘 Facebook</a></li>}
-                    {socialLinks.instagram && <li><a href={socialLinks.instagram}>📸 Instagram</a></li>}
-                    {socialLinks.linkedin && <li><a href={socialLinks.linkedin}>💼 LinkedIn</a></li>}
-                </ul>
-            </div>
+                <div className="social-links-grid">
+                    <a href="https://twitter.com/susansmith_dev" target="_blank" rel="noopener noreferrer" className="social-link">
+                        <span className="social-icon">🐦</span>
+                        <div className="social-info">
+                            <strong>@susansmith_dev</strong>
+                            <p>Follow for tech & wellness tips</p>
+                        </div>
+                    </a>
 
+                    <a href="https://instagram.com/susan.mindful.codes" target="_blank" rel="noopener noreferrer" className="social-link">
+                        <span className="social-icon">📸</span>
+                        <div className="social-info">
+                            <strong>@susan.mindful.codes</strong>
+                            <p>Daily meditation & coding journey</p>
+                        </div>
+                    </a>
+
+                    <a href="https://linkedin.com/in/susansmith-developer" target="_blank" rel="noopener noreferrer" className="social-link">
+                        <span className="social-icon">💼</span>
+                        <div className="social-info">
+                            <strong>Susan Smith</strong>
+                            <p>Senior Full Stack Developer</p>
+                        </div>
+                    </a>
+
+                    <a href="https://youtube.com/c/CodeAndCalm" target="_blank" rel="noopener noreferrer" className="social-link">
+                        <span className="social-icon">📺</span>
+                        <div className="social-info">
+                            <strong>Code & Calm</strong>
+                            <p>Programming tutorials & mindfulness</p>
+                        </div>
+                    </a>
+
+                    <a href="https://github.com/susansmith-dev" target="_blank" rel="noopener noreferrer" className="social-link">
+                        <span className="social-icon">💻</span>
+                        <div className="social-info">
+                            <strong>susansmith-dev</strong>
+                            <p>Open source wellness tools</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
 
             <div className="profile-layout">
                 <div className="left-column">
                     <h3>⭐ Favorite Profiles</h3>
                     <div className="favorite-item">
-                        <img src="/static/images/profile1.png" alt="Zenmaster" className="favorite-avatar" />
+                        <img src={zenmaster} alt="Zen Master" className="favorite-avatar" />
                         <div>
                             <strong>@zenmaster</strong>
-                            <p>“Grateful for the community 🙏”</p>
+                            <p>"Grateful for the community 🙏"</p>
                         </div>
                     </div>
 
                     <div className="favorite-item">
-                        <img src="/static/images/profile2.png" alt="Fit Jay" className="favorite-avatar" />
+                        <img src={fitjay} alt="Fit Jay" className="favorite-avatar" />
                         <div>
                             <strong>@fit_jay</strong>
-                            <p>“Morning flow complete ✅”</p>
+                            <p>"Morning flow complete ✅"</p>
                         </div>
                     </div>
 
                     <h3>📡 Favorite Radio Stations</h3>
                     <div className="favorite-item">
-                        <img src="/static/images/radio1.png" alt="LoFi Lounge" className="favorite-avatar" />
+                        <img src={lofiLounge} alt="LoFi Lounge" className="favorite-avatar" />
                         <div>
                             <strong>LoFi Lounge</strong>
                             <p>Chill beats 24/7</p>
@@ -302,7 +414,7 @@ const ProfilePage = () => {
                     </div>
 
                     <div className="favorite-item">
-                        <img src="/static/images/radio2.png" alt="JazzHub" className="favorite-avatar" />
+                        <img src={jazzHub} alt="Jazz Hub" className="favorite-avatar" />
                         <div>
                             <strong>JazzHub</strong>
                             <p>Smooth jazz and more 🎷</p>
@@ -311,22 +423,20 @@ const ProfilePage = () => {
 
                     <h3>🎙️ Favorite Podcasts</h3>
                     <div className="favorite-item">
-                        <img src="/static/images/podcast1.png" alt="The Energy Reset" className="favorite-avatar" />
+                        <img src={energyReset} alt="Energy Reset" className="favorite-avatar" />
                         <div>
                             <strong>The Energy Reset</strong>
-                            <p>“How to ground yourself”</p>
+                            <p>"How to ground yourself"</p>
                         </div>
                     </div>
 
                     <div className="favorite-item">
-                        <img src="/static/images/podcast2.png" alt="ChiCast" className="favorite-avatar" />
+                        <img src={chiCast} alt="Chi Cast" className="favorite-avatar" />
                         <div>
                             <strong>ChiCast</strong>
-                            <p>“Breathwork for busy lives”</p>
+                            <p>"Breathwork for busy lives"</p>
                         </div>
                     </div>
-
-
                 </div>
 
                 <div className="middle-column">
@@ -344,7 +454,7 @@ const ProfilePage = () => {
                     <button
                         onClick={() => {
                             const newPost = {
-                                id: Date.now(), // Use backend ID if available
+                                id: Date.now(),
                                 content: postContent,
                                 image: postImage ? URL.createObjectURL(postImage) : null,
                                 comments: [],
@@ -394,7 +504,6 @@ const ProfilePage = () => {
                         </div>
                     ))}
 
-
                     {user?.role && ["Pro", "Premium", "Free"].includes(user.role) && (
                         <div className="upload-video-section">
                             <h3>🎬 Upload a Video</h3>
@@ -431,7 +540,6 @@ const ProfilePage = () => {
                 </div>
 
                 <div className="right-column">
-                    {/* 🎛️ Quick Actions - moved to top */}
                     <div className="quick-actions">
                         <h3>🎛️ Quick Actions</h3>
                         <Link to="/podcast/create">
@@ -446,7 +554,6 @@ const ProfilePage = () => {
                         <WebRTCChat></WebRTCChat>
                     </div>
 
-                    {/* 🛍️ Storefront Section */}
                     <h3>🛍️ Storefront</h3>
                     <p>
                         Visit my store:{" "}
@@ -460,16 +567,14 @@ const ProfilePage = () => {
                         </div>
                     )}
                 </div>
-            </div> {/* End of profile-layout */}
+            </div>
 
             {!justSaved && (
                 <button onClick={handleSaveProfile} className="btn-primary">
                     💾 Save Profile
                 </button>
             )}
-            {/* End of profile-container */}
         </div>
-
     );
 };
 
