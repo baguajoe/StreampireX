@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import "../../styles/CategoriesBar.css";
+
 import podcast1 from "../../img/podcast1.png";
 import podcast2 from "../../img/podcast2.png";
 import podcast3 from "../../img/podcast3.png";
@@ -8,12 +9,16 @@ import podcast4 from "../../img/podcast4.png";
 import podcast5 from "../../img/podcast5.png";
 import podcast6 from "../../img/podcast6.png";
 
+// Utility to create slugs from category names
+const slugify = (str) =>
+  str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
 const BrowsePodcastCategories = () => {
   const [categories, setCategories] = useState([]);
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    fetch(process.env.BACKEND_URL + "/api/podcasts/categories")
+    fetch(`${process.env.BACKEND_URL}/api/podcasts/categories`)
       .then((res) => res.json())
       .then((data) => setCategories(data))
       .catch((err) => console.error("Error fetching categories:", err));
@@ -49,7 +54,7 @@ const BrowsePodcastCategories = () => {
     {
       title: "Laugh Track Live",
       desc: "Fresh comedy from new voices.",
-      label: "Trend",
+      label: "Trending",
       image: podcast4,
     },
     {
@@ -85,12 +90,18 @@ const BrowsePodcastCategories = () => {
   return (
     <div className="categories-wrapper">
       <h1 className="categories-heading">🎧 Podcast Categories</h1>
+
+      {/* Horizontal Scrollable Categories */}
       <div className="category-nav">
         <button onClick={scrollLeft} className="scroll-button">‹</button>
         <div className="categories-scroll" ref={scrollRef}>
           {categories.length > 0 ? (
             categories.map((category, index) => (
-              <Link key={index} to={`/category/${category}`} className="category-pill">
+              <Link
+                key={index}
+                to={`/podcast-category/${slugify(category)}`}
+                className="category-pill"
+              >
                 {category}
               </Link>
             ))
@@ -101,16 +112,12 @@ const BrowsePodcastCategories = () => {
         <button onClick={scrollRight} className="scroll-button">›</button>
       </div>
 
-      {/* 👥 Creators for You */}
+      {/* 👥 Featured Creators */}
       <h2 className="section-title">👥 Creators for You</h2>
       <div className="podcast-scroll-row">
         {samplePodcasts.map((podcast, i) => (
           <div key={i} className="podcast-card">
-            <img
-              src={podcast.image}
-              alt="Podcast cover"
-              className="podcast-img"
-            />
+            <img src={podcast.image} alt={podcast.title} className="podcast-img" />
             <h3 className="podcast-title">{podcast.title}</h3>
             <span className="podcast-label">{podcast.label}</span>
             <p className="podcast-desc">{podcast.desc}</p>
@@ -118,7 +125,7 @@ const BrowsePodcastCategories = () => {
         ))}
       </div>
 
-      {/* Horizontal Carousels */}
+      {/* Highlighted Sections */}
       {renderSection("🆕 New on StreampireX")}
       {renderSection("🔥 Top Streamers")}
       {renderSection("🌟 Popular This Week")}
