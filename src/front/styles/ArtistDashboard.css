@@ -1,0 +1,94 @@
+.artist-dashboard {
+  padding: 30px;
+  max-width: 900px;
+  margin: 0 auto;
+  color: #1e293b;
+  font-family: 'Inter', sans-serif;
+  background-color: #ffffff;
+}
+
+.artist-dashboard h1 {
+  font-size: 2rem;
+  margin-bottom: 25px;
+  color: #0f172a;
+}
+
+.artist-section {
+  background: #f8fafc;
+  padding: 20px 30px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.artist-section h2 {
+  font-size: 1.3rem;
+  color: #0f172a;
+  margin-bottom: 10px;
+}
+
+.station-form input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 10px;
+  border: 1px solid #cbd5e1;
+}
+
+.station-form button,
+.add-track-form button {
+  margin-top: 10px;
+  padding: 10px 16px;
+  background-color: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.station-form button:disabled,
+.add-track-form button:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.station-info {
+  margin-bottom: 15px;
+}
+
+.track-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+}
+
+.track-list li {
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+}
+
+.track-list audio {
+  display: block;
+  margin: 8px 0;
+}
+
+.empty-state {
+  font-style: italic;
+  color: #64748b;
+}
+
+.add-track-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.add-track-form select {
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #cbd5e1;
+}

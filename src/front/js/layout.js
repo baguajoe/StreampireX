@@ -13,12 +13,18 @@ import PodcastPage from "./pages/PodcastPage";
 import BrowsePodcastCategories from "./pages/BrowsePodcastCategories";
 import PodcastEpisodePage from "./pages/PodcastEpisodePage";
 import PodcastProfile from "./pages/PodcastProfile";
+import PodcastCategoryPage from "./pages/PodcastCategoryPage";
+
 
 import RadioStationDashboard from "./pages/RadioStationDashboard";
 import RadioStationPage from "./pages/RadioStations";
 import CreateRadioStation from "./pages/CreateRadioStation";
 import BrowseRadioStations from "./pages/BrowseRadioStations";
 import ArtistRadioStation from "./pages/ArtistRadioStation";
+import CreatorDashboard from "./pages/CreatorDashboard"; // ✅ adjust path if needed
+
+
+
 
 import ArtistDashboard from "./pages/ArtistDashboard";
 import UploadMusic from "./pages/UploadMusic";
@@ -33,6 +39,8 @@ import { Footer } from "./component/footer";
 import Navbar from "./component/navbar";
 import Sidebar from "./component/sidebar";
 import { BackendURL } from "./component/backendURL";
+import ListenerDashboard from "./pages/ListenerDashboard";
+import AdminDashboard from "./pages/AdminDashboard"; // ✅ Confirm this import path
 
 // ✅ Live Streaming Pages
 import LiveStudio from "./pages/LiveStudio";
@@ -64,6 +72,10 @@ const Layout = () => {
               <Route path="/browse-podcast-categories" element={<BrowsePodcastCategories />} />
               <Route path="/podcast/episode/:id" element={<PodcastEpisodePage />} />
               <Route path="/podcast/profile/:username/:podcastId" element={<PodcastProfile />} />
+              <Route path="/podcast-category/:category" element={<PodcastCategoryPage />} />
+              <Route path="/creator-dashboard" element={<CreatorDashboard />} />
+
+
 
               {/* 📻 Radio Stations */}
               <Route path="/radio-dashboard" element={<RadioStationDashboard />} />
@@ -77,6 +89,8 @@ const Layout = () => {
               <Route path="/upload-music" element={<UploadMusic />} />
               <Route path="/search" element={<SearchArtists />} />
               <Route path="/artist-profile/:id" element={<ArtistProfile />} />
+              <Route path="/listener-dashboard" element={<ListenerDashboard />} />
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
 
               {/* 📺 Live Streaming */}
               <Route path="/studio" element={<LiveStudio />} />

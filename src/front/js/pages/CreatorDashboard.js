@@ -3,6 +3,9 @@ import { Link } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
 import "chart.js/auto";
 import EarningsPage from "../component/EarningsPage.js"; // Import the EarningsPage component
+import "../../styles/CreatorDashboard.css"; // ✅ Custom styles for this page
+import MikeYauncy from "../../img/Mike Yauncy.png";
+
 
 const CreatorDashboard = () => {
   const [profile, setProfile] = useState({ username: "", email: "", profile_picture: "", subscription: "Free" });
@@ -76,8 +79,13 @@ const CreatorDashboard = () => {
       <h1>🚀 Creator Dashboard</h1>
 
       <div className="profile-overview">
-        <img src={profile.profile_picture || "/default-avatar.png"} alt="Profile" className="profile-pic" />
-        <h2>{profile.username}</h2>
+        <img
+          src={profile.profile_picture ? profile.profile_picture : MikeYauncy}
+          alt="Creator Profile"
+          className="profile-pic"
+        />
+
+        <h2>{profile.username || "Mike Yauncy"}</h2>
         <p>Email: {profile.email}</p>
         <p>Subscription: {profile.subscription}</p>
       </div>
