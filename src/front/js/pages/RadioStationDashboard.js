@@ -21,13 +21,20 @@ const RadioStationDashboard = () => {
     fetch(`${process.env.BACKEND_URL}/api/user/radio-stations`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch radio stations");
+        return res.json();
+      })
       .then((data) => {
         setStations(data);
         setLoading(false);
       })
-      .catch((error) => console.error("Error fetching radio stations:", error));
+      .catch((error) => {
+        console.error("Error fetching radio stations:", error);
+        setLoading(false); // ✅ Ensure loading ends even if fetch fails
+      });
   }, []);
+
 
   const loadStationDetails = (stationId) => {
     setSelectedStation(stationId);
@@ -135,15 +142,24 @@ const RadioStationDashboard = () => {
 
         {/* 🎙 Your Radio Stations */}
         <h2>Your Stations</h2>
-        <ul>
-          {stations.map((station) => (
-            <li key={station.id}>
-              <strong>{station.name}</strong>
-              <button onClick={() => loadStationDetails(station.id)}>View</button>
-              <button onClick={() => deleteStation(station.id)} className="btn-delete">Delete</button>
-            </li>
-          ))}
-        </ul>
+        {stations.length === 0 ? (
+          <div className="empty-placeholder">
+            <p>🚫 You don't have any radio stations yet.</p>
+            <Link to="/create-radio">
+              <button className="btn-create">➕ Create Your First Station</button>
+            </Link>
+          </div>
+        ) : (
+          <ul>
+            {stations.map((station) => (
+              <li key={station.id}>
+                <strong>{station.name}</strong>
+                <button onClick={() => loadStationDetails(station.id)}>View</button>
+                <button onClick={() => deleteStation(station.id)} className="btn-delete">Delete</button>
+              </li>
+            ))}
+          </ul>
+        )}
 
         {/* 🎵 Manage Station Tracks */}
         {selectedStation && (

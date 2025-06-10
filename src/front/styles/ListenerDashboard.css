@@ -1,0 +1,150 @@
+.listener-dashboard {
+  padding: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+  color: #1e293b; /* dark text for light background */
+  font-family: 'Inter', sans-serif;
+  background-color: #ffffff;
+}
+
+.listener-dashboard h1 {
+  font-size: 2rem;
+  margin-bottom: 25px;
+  color: #0f172a;
+}
+
+.profile-section {
+  background: #f1f5f9; /* light gray box */
+  padding: 20px 30px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+.profile-section img {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #3b82f6;
+}
+
+.profile-info h2 {
+  margin: 0 0 8px;
+  font-size: 1.3rem;
+  color: #0f172a;
+}
+
+.profile-info p {
+  margin: 3px 0;
+  color: #334155;
+  font-size: 0.95rem;
+}
+
+.dashboard-section h3 {
+  font-size: 1.3rem;
+  margin-top: 35px;
+  margin-bottom: 10px;
+  color: #ca8a04;
+}
+
+.dashboard-section .empty-state {
+  color: #64748b;
+  font-style: italic;
+  padding-left: 28px;
+}
+
+
+.content-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.content-card {
+  background: #0f172a;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  color: #e2e8f0;
+  transition: 0.2s ease;
+}
+
+.content-card:hover {
+  background: #1e293b;
+  transform: translateY(-2px);
+}
+
+.content-card h4 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.content-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+@media (max-width: 600px) {
+  .profile-section {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-section img {
+    margin-bottom: 12px;
+  }
+}
+
+
+/* Fix missing .profile-info class if not already in JSX */
+.profile-info {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Improve Link styling inside cards */
+.content-card a {
+  color: #38bdf8;
+  text-decoration: none;
+  font-size: 0.85rem;
+  display: inline-block;
+  margin-top: 8px;
+}
+
+.content-card a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive image in cards */
+.content-card img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background-color: #1e293b;
+}
+
+/* Fallback for avatars or content images not loading */
+img[alt="Avatar"],
+img[alt="Podcast cover"],
+img[alt="Artist image"] {
+  background-color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Loading or empty state spacing */
+.loading-text,
+.empty-state {
+  margin: 15px 0;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: #64748b;
+}

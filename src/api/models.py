@@ -1794,3 +1794,11 @@ class Group(db.Model):
     name = db.Column(db.String(100), nullable=False)
     members = db.relationship('User', secondary=group_members, backref='groups')
 
+# models.py
+
+class UserPodcastFollow(db.Model):
+    __tablename__ = 'user_podcast_follow'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    podcast_id = db.Column(db.Integer, db.ForeignKey('podcast.id'))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)

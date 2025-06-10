@@ -57,4 +57,12 @@
     background: #28a745;
     color: white;
   }
-  
+
+  .creator-profile-img {
+  width: 120px;
+  height: 120px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 2px solid #0f172a;
+  margin-bottom: 16px;
+}
