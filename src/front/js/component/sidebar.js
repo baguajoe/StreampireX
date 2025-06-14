@@ -56,8 +56,7 @@ const Sidebar = () => {
       <MenuItem to="/artist-dashboard" className={isActive("/artist-dashboard") ? "active" : ""}>🎤 Artist Dashboard</MenuItem>
       <MenuItem to="/podcast-dashboard" className={isActive("/podcast-dashboard") ? "active" : ""}>🎧 Podcast Dashboard</MenuItem>
       <MenuItem to="/radio-dashboard" className={isActive("/radio-dashboard") ? "active" : ""}>📻 Radio Dashboard</MenuItem>
-      <MenuItem to="/listener-dashboard" className={isActive("/listener-dashboard") ? "active" : ""}>🎧 Listener Dashboard</MenuItem>
-      <MenuItem to="/admin-dashboard" className={isActive("/admin-dashboard") ? "active" : ""}>📈 Admin Dashboard</MenuItem>
+    
 
 
       {/* Podcasts */}
