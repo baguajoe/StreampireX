@@ -39,8 +39,6 @@ import { Footer } from "./component/footer";
 import Navbar from "./component/navbar";
 import Sidebar from "./component/sidebar";
 import { BackendURL } from "./component/backendURL";
-import ListenerDashboard from "./pages/ListenerDashboard";
-import AdminDashboard from "./pages/AdminDashboard"; // ✅ Confirm this import path
 
 // ✅ Live Streaming Pages
 import LiveStudio from "./pages/LiveStudio";
@@ -89,8 +87,6 @@ const Layout = () => {
               <Route path="/upload-music" element={<UploadMusic />} />
               <Route path="/search" element={<SearchArtists />} />
               <Route path="/artist-profile/:id" element={<ArtistProfile />} />
-              <Route path="/listener-dashboard" element={<ListenerDashboard />} />
-              <Route path="/admin-dashboard" element={<AdminDashboard />} />
 
               {/* 📺 Live Streaming */}
               <Route path="/studio" element={<LiveStudio />} />

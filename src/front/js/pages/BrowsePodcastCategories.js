@@ -15,6 +15,7 @@ const slugify = (str) =>
 
 const BrowsePodcastCategories = () => {
   const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -37,55 +38,68 @@ const BrowsePodcastCategories = () => {
       title: "Cold Cases Uncovered",
       desc: "Exploring the dark corners of justice.",
       label: "New",
+      category: "True Crime & Investigative Journalism",
       image: podcast1,
     },
     {
       title: "Celebrity Circuit",
       desc: "Daily pop culture recaps & drama.",
       label: "Popular",
+      category: "Celebrity Gossip & Reality TV",
       image: podcast2,
     },
     {
       title: "Brush & Beyond",
       desc: "Unlock your artistic side.",
       label: "Trending",
+      category: "Education & Learning",
       image: podcast3,
     },
     {
       title: "Laugh Track Live",
       desc: "Fresh comedy from new voices.",
       label: "Trending",
+      category: "Comedy & Stand-Up",
       image: podcast4,
     },
     {
       title: "Dice & Destiny",
       desc: "Your go-to RPG campaign companion.",
       label: "Top 10",
+      category: "Tabletop & Board Games",
       image: podcast5,
     },
     {
       title: "Binge Breakdown",
       desc: "Reviews, reactions, and recaps.",
       label: "Popular",
+      category: "Film & TV Reviews",
       image: podcast6,
     },
   ];
 
-  const renderSection = (title) => (
-    <div className="podcast-section">
-      <h2 className="section-title">{title}</h2>
-      <div className="podcast-scroll-row">
-        {samplePodcasts.map((podcast, index) => (
-          <div key={index} className="podcast-card">
-            <img src={podcast.image} alt={podcast.title} className="podcast-img" />
-            <h3 className="podcast-title">{podcast.title}</h3>
-            <span className="podcast-label">{podcast.label}</span>
-            <p className="podcast-desc">{podcast.desc}</p>
-          </div>
-        ))}
+  // ✅ Main renderSection function with filtering logic inside
+  const renderSection = (title, filterCategory) => {
+    const filteredPodcasts = filterCategory 
+      ? samplePodcasts.filter(podcast => podcast.category === filterCategory)
+      : samplePodcasts;
+
+    return (
+      <div className="podcast-section">
+        <h2 className="section-title">{title}</h2>
+        <div className="podcast-scroll-row">
+          {filteredPodcasts.map((podcast, index) => (
+            <div key={index} className="podcast-card">
+              <img src={podcast.image} alt={podcast.title} className="podcast-img" />
+              <h3 className="podcast-title">{podcast.title}</h3>
+              <span className="podcast-label">{podcast.label}</span>
+              <p className="podcast-desc">{podcast.desc}</p>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="categories-wrapper">
@@ -97,13 +111,13 @@ const BrowsePodcastCategories = () => {
         <div className="categories-scroll" ref={scrollRef}>
           {categories.length > 0 ? (
             categories.map((category, index) => (
-              <Link
+              <div
                 key={index}
-                to={`/podcast-category/${slugify(category)}`}
-                className="category-pill"
+                onClick={() => setSelectedCategory(category)}  // ✅ fixed case-sensitive typo here
+                className={`category-pill ${selectedCategory === category ? "active" : ""}`}
               >
                 {category}
-              </Link>
+              </div>
             ))
           ) : (
             <p>Loading categories...</p>
@@ -112,23 +126,16 @@ const BrowsePodcastCategories = () => {
         <button onClick={scrollRight} className="scroll-button">›</button>
       </div>
 
-      {/* 👥 Featured Creators */}
-      <h2 className="section-title">👥 Creators for You</h2>
-      <div className="podcast-scroll-row">
-        {samplePodcasts.map((podcast, i) => (
-          <div key={i} className="podcast-card">
-            <img src={podcast.image} alt={podcast.title} className="podcast-img" />
-            <h3 className="podcast-title">{podcast.title}</h3>
-            <span className="podcast-label">{podcast.label}</span>
-            <p className="podcast-desc">{podcast.desc}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Highlighted Sections */}
-      {renderSection("🆕 New on StreampireX")}
-      {renderSection("🔥 Top Streamers")}
-      {renderSection("🌟 Popular This Week")}
+      {/* Show filtered section */}
+      {selectedCategory ? (
+        renderSection(`🎯 ${selectedCategory}`, selectedCategory)
+      ) : (
+        <>
+          {renderSection("🆕 New on StreampireX")}
+          {renderSection("🔥 Top Streamers")}
+          {renderSection("🌟 Popular This Week")}
+        </>
+      )}
     </div>
   );
 };
