@@ -4,7 +4,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, ChatMessage
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, ChatMessage, UserSettings
 import cloudinary.uploader
 import json
 import os
@@ -4647,3 +4647,74 @@ def update_user_profile():
     db.session.commit()
 
     return jsonify({"message": "Profile updated successfully", "user": user.serialize()}), 200
+
+# GET SETTINGS
+@api.route('/api/user/settings', methods=['GET'])
+@jwt_required()
+def get_settings():
+    user_id = get_jwt_identity()
+    settings = UserSettings.query.filter_by(user_id=user_id).first()
+    if not settings:
+        settings = UserSettings(user_id=user_id)
+        db.session.add(settings)
+        db.session.commit()
+    return jsonify(settings.to_dict())
+
+# UPDATE SETTINGS
+@api.route('/api/user/settings', methods=['PUT'])
+@jwt_required()
+def update_settings():
+    user_id = get_jwt_identity()
+    data = request.json
+    settings = UserSettings.query.filter_by(user_id=user_id).first()
+    if not settings:
+        settings = UserSettings(user_id=user_id)
+        db.session.add(settings)
+
+    for key, value in data.items():
+        if hasattr(settings, key):
+            setattr(settings, key, value)
+    db.session.commit()
+    return jsonify(settings.to_dict())
+
+@api.route("/api/messages/send", methods=["POST"])
+@jwt_required()
+def send_dm():
+    data = request.json
+    sender_id = get_jwt_identity()
+    recipient_id = data.get("recipient_id")
+    text = data.get("text")
+    
+    # Generate deterministic room name
+    room = f"user_{min(sender_id, recipient_id)}_{max(sender_id, recipient_id)}"
+
+    message = Message(
+        room=room,
+        sender_id=sender_id,
+        recipient_id=recipient_id,
+        text=text
+    )
+    db.session.add(message)
+    db.session.commit()
+
+    return jsonify({"message": "Message sent", "id": message.id}), 200
+
+@api.route("/api/messages/<int:recipient_id>", methods=["GET"])
+@jwt_required()
+def get_dm(recipient_id):
+    current_user = get_jwt_identity()
+    room = f"user_{min(current_user, recipient_id)}_{max(current_user, recipient_id)}"
+
+    messages = Message.query.filter_by(room=room).order_by(Message.created_at.asc()).all()
+    return jsonify([
+        {
+            "id": m.id,
+            "sender_id": m.sender_id,
+            "recipient_id": m.recipient_id,
+            "text": m.text,
+            "created_at": m.created_at.isoformat(),
+            "is_read": m.is_read
+        }
+        for m in messages
+    ])
+

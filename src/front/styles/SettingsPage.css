@@ -1,0 +1,101 @@
+/* SettingsPage.css */
+
+.settings-page {
+  max-width: 900px;
+  margin: 50px auto;
+  padding: 40px;
+  background-color: #1c1c1c;
+  border-radius: 20px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.4);
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+}
+
+.settings-page h1 {
+  font-size: 32px;
+  margin-bottom: 40px;
+  text-align: center;
+  color: #ff4f70;
+}
+
+.settings-page h2 {
+  font-size: 22px;
+  margin-top: 40px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 8px;
+  color: #ffd166;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 15px 0;
+  padding: 12px 20px;
+  background-color: #2a2a2a;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.setting-item:hover {
+  background-color: #333333;
+}
+
+.setting-item label {
+  font-size: 16px;
+  flex: 1;
+  color: #ccc;
+}
+
+.setting-item input[type="checkbox"] {
+  transform: scale(1.4);
+  cursor: pointer;
+}
+
+.setting-item select {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: none;
+  background-color: #444;
+  color: #fff;
+  font-size: 15px;
+}
+
+.setting-item span {
+  font-weight: bold;
+  color: #ccc;
+  margin-right: 10px;
+}
+
+.setting-item button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ff4f70, #ff9966);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.setting-item button:hover {
+  transform: scale(1.05);
+}
+
+.delete-button {
+  background: linear-gradient(135deg, #ff0000, #ff5f5f);
+}
+
+@media (max-width: 600px) {
+  .settings-page {
+    padding: 20px;
+  }
+  .setting-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .setting-item label {
+    margin-bottom: 8px;
+  }
+}

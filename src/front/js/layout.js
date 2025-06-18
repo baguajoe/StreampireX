@@ -22,6 +22,8 @@ import CreateRadioStation from "./pages/CreateRadioStation";
 import BrowseRadioStations from "./pages/BrowseRadioStations";
 import ArtistRadioStation from "./pages/ArtistRadioStation";
 import CreatorDashboard from "./pages/CreatorDashboard"; // ✅ adjust path if needed
+import FavoritesPage from "./pages/FavoritesPage";
+
 
 
 
@@ -72,6 +74,8 @@ const Layout = () => {
               <Route path="/podcast/profile/:username/:podcastId" element={<PodcastProfile />} />
               <Route path="/podcast-category/:category" element={<PodcastCategoryPage />} />
               <Route path="/creator-dashboard" element={<CreatorDashboard />} />
+              <Route path="/favorites" element={<FavoritesPage />} />
+
 
 
 
@@ -80,7 +84,6 @@ const Layout = () => {
               <Route path="/radio-stations" element={<RadioStationPage />} />
               <Route path="/create-radio" element={<CreateRadioStation />} />
               <Route path="/browse-radio-stations" element={<BrowseRadioStations />} />
-              <Route path="/artist-radio" element={<ArtistRadioStation />} />
 
               {/* 🎤 Indie Artists */}
               <Route path="/artist-dashboard" element={<ArtistDashboard />} />
@@ -97,7 +100,6 @@ const Layout = () => {
               {/* 👤 User */}
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/notifications" element={<NotificationsPage />} />
 
               {/* 💰 Monetization */}
               <Route path="/payout-request" element={<PayoutRequest />} />

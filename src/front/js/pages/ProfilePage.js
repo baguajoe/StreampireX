@@ -15,6 +15,8 @@ import fitjay from "../../img/fit_jay.png";
 
 
 
+
+
 const ProfilePage = () => {
     const [user, setUser] = useState({});
     const [bio, setBio] = useState("");
@@ -48,6 +50,9 @@ const ProfilePage = () => {
     const [newCommentText, setNewCommentText] = useState({}); // { postId: comment }
     const [justSaved, setJustSaved] = useState(false);
     const [currentMood, setCurrentMood] = useState("😌 Chill"); // NEW: Mood state
+    const loggedInUserId = parseInt(localStorage.getItem("user_id"));
+    const loggedInUsername = localStorage.getItem("username"); // optional
+
 
 
 
@@ -202,9 +207,9 @@ const ProfilePage = () => {
 
             {isChatOpen && (
                 <ChatModal
-                    recipientId={user.id}
-                    recipientName={user.username}
-                    currentUserId={user.id}
+                    recipientId={user.id} // the person whose profile you're viewing
+                    recipientName={user.display_name || user.username}
+                    currentUserId={loggedInUserId} // YOU (tt2)
                     onClose={() => setIsChatOpen(false)}
                     enableTypingIndicator={true}
                     enableThreads={true}
@@ -233,7 +238,12 @@ const ProfilePage = () => {
                         <div className="name-and-actions">
                             <div className="name-actions">
                                 <button className="edit-name-btn small-btn" onClick={() => setIsEditingName(true)}>✏️</button>
-                                <button className="message-btn small-btn" onClick={() => setIsChatOpen(true)}>💬</button>
+                                {user.id !== loggedInUserId && (
+                                    <button className="message-btn small-btn" onClick={() => setIsChatOpen(true)}>
+                                        💬
+                                    </button>
+                                )}
+
                             </div>
                         </div>
                     ) : (
@@ -335,7 +345,6 @@ const ProfilePage = () => {
             </div>
 
 
-            // Delete this entire block:
             {/* 
 
 */}
@@ -387,7 +396,10 @@ const ProfilePage = () => {
 
             <div className="profile-layout">
                 <div className="left-column">
-                    <h3>⭐ Favorite Profiles</h3>
+                    <h3>
+                        ⭐ <Link to="/favorites">Favorite Profiles</Link>
+                    </h3>
+
                     <div className="favorite-item">
                         <img src={zenmaster} alt="Zen Master" className="favorite-avatar" />
                         <div>
@@ -404,7 +416,7 @@ const ProfilePage = () => {
                         </div>
                     </div>
 
-                    <h3>📡 Favorite Radio Stations</h3>
+                    <h3>📡 <Link to="/favorites">Favorite Radio Stations</Link></h3>
                     <div className="favorite-item">
                         <img src={lofiLounge} alt="LoFi Lounge" className="favorite-avatar" />
                         <div>
@@ -421,7 +433,7 @@ const ProfilePage = () => {
                         </div>
                     </div>
 
-                    <h3>🎙️ Favorite Podcasts</h3>
+                    <h3>🎙️ <Link to="/favorites">Favorite Podcasts</Link></h3>
                     <div className="favorite-item">
                         <img src={energyReset} alt="Energy Reset" className="favorite-avatar" />
                         <div>

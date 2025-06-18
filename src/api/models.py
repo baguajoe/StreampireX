@@ -82,6 +82,25 @@ class User(db.Model):
             "avatar_url": self.avatar_url  # Added missing comma here
         }
     
+class UserSettings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True)
+    enableChat = db.Column(db.Boolean, default=True)
+    useAvatar = db.Column(db.Boolean, default=False)
+    enableNotifications = db.Column(db.Boolean, default=True)
+    emailNotifications = db.Column(db.Boolean, default=True)
+    darkMode = db.Column(db.Boolean, default=False)
+    profileVisibility = db.Column(db.String(50), default="public")
+    subscriptionPlan = db.Column(db.String(50), default="Free Plan")
+    twoFactorEnabled = db.Column(db.Boolean, default=False)
+    payoutMethod = db.Column(db.String(50), default="")
+    defaultStreamQuality = db.Column(db.String(20), default="high")
+    defaultVRRoom = db.Column(db.String(50), default="Main Hall")
+
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
+    
 class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
