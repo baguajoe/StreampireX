@@ -708,3 +708,89 @@ h3 {
     min-height: 45px;
   }
 }
+
+/* ---------- Favorites Tabs ---------- */
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tabs button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 5px;
+  background: #eee;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s ease;
+}
+
+.tabs button.active {
+  background: #FF6600;
+  color: white;
+}
+
+/* ---------- Search Bar ---------- */
+.search-bar {
+  margin-bottom: 20px;
+}
+
+.search-bar input {
+  width: 100%;
+  max-width: 400px;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+/* ---------- Favorites Grid ---------- */
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+/* ---------- Generic Card ---------- */
+.favorite-card {
+  padding: 15px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease;
+}
+
+.favorite-card:hover {
+  transform: translateY(-3px);
+}
+
+/* ---------- Images Inside Cards ---------- */
+.favorite-card img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 50%;
+  margin-bottom: 10px;
+}
+
+/* ---------- Uploaded Image Style ---------- */
+.uploaded-image {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  margin-bottom: 10px;
+}
+
+/* ---------- Video Style in Card ---------- */
+.favorite-card video {
+  width: 100%;
+  max-width: 300px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
