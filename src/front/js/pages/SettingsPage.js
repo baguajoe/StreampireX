@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-// import "../../styles/SettingsPage.css";
+import "../../styles/SettingsPage.css";
 
 const SettingsPage = () => {
   const [settings, setSettings] = useState({
@@ -8,7 +8,12 @@ const SettingsPage = () => {
     enableNotifications: true,
     emailNotifications: true,
     darkMode: false,
-    profileVisibility: "public"
+    profileVisibility: "public",
+    subscriptionPlan: "Free Plan",
+    twoFactorEnabled: false,
+    payoutMethod: "",
+    defaultStreamQuality: "high",
+    defaultVRRoom: "Main Hall",
   });
 
   useEffect(() => {
@@ -28,8 +33,8 @@ const SettingsPage = () => {
     saveSettings(updated);
   };
 
-  const handleVisibilityChange = (e) => {
-    const updated = { ...settings, profileVisibility: e.target.value };
+  const handleChange = (key, value) => {
+    const updated = { ...settings, [key]: value };
     setSettings(updated);
     saveSettings(updated);
   };
@@ -45,12 +50,71 @@ const SettingsPage = () => {
     }).catch((err) => console.error("Failed to save settings:", err));
   };
 
+  const handleUpgrade = () => {
+    // Redirect to Stripe billing portal or subscription page
+    window.location.href = "/billing";
+  };
+
+  const handleDeleteAccount = () => {
+    if (window.confirm("Are you sure you want to permanently delete your account?")) {
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/delete-account`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+        .then(() => {
+          localStorage.removeItem("token");
+          window.location.href = "/";
+        })
+        .catch((err) => console.error("Account deletion failed:", err));
+    }
+  };
+
   return (
     <div className="settings-page">
       <h1>⚙️ Account Settings</h1>
 
+      {/* ACCOUNT SECTION */}
+      <h2>👤 Account Info</h2>
       <div className="setting-item">
-        <label>💬 Enable Chat</label>
+        <label>Subscription Plan</label>
+        <span>{settings.subscriptionPlan}</span>
+        <button onClick={handleUpgrade}>Manage</button>
+      </div>
+
+      <div className="setting-item">
+        <label>Two-Factor Authentication</label>
+        <input
+          type="checkbox"
+          checked={settings.twoFactorEnabled}
+          onChange={() => handleToggle("twoFactorEnabled")}
+        />
+      </div>
+
+      <div className="setting-item">
+        <label>Delete Account</label>
+        <button className="delete-button" onClick={handleDeleteAccount}>Delete</button>
+      </div>
+
+      {/* PRIVACY SECTION */}
+      <h2>🔒 Privacy & Security</h2>
+      <div className="setting-item">
+        <label>Profile Visibility</label>
+        <select
+          value={settings.profileVisibility}
+          onChange={(e) => handleChange("profileVisibility", e.target.value)}
+        >
+          <option value="public">Public</option>
+          <option value="followers">Followers Only</option>
+          <option value="private">Private</option>
+        </select>
+      </div>
+
+      {/* NOTIFICATIONS */}
+      <h2>🔔 Notifications</h2>
+      <div className="setting-item">
+        <label>Enable Chat</label>
         <input
           type="checkbox"
           checked={settings.enableChat}
@@ -59,7 +123,7 @@ const SettingsPage = () => {
       </div>
 
       <div className="setting-item">
-        <label>🔔 Enable Site Notifications</label>
+        <label>Site Notifications</label>
         <input
           type="checkbox"
           checked={settings.enableNotifications}
@@ -68,7 +132,7 @@ const SettingsPage = () => {
       </div>
 
       <div className="setting-item">
-        <label>🔔 Email Notifications</label>
+        <label>Email Notifications</label>
         <input
           type="checkbox"
           checked={settings.emailNotifications}
@@ -76,34 +140,55 @@ const SettingsPage = () => {
         />
       </div>
 
+      {/* STREAMING PREFERENCES */}
+      <h2>🎙️ Streaming Preferences</h2>
       <div className="setting-item">
-        <label>🧍 Use Avatar</label>
-        <input
-          type="checkbox"
-          checked={settings.useAvatar}
-          onChange={() => handleToggle("useAvatar")}
-        />
+        <label>Default Stream Quality</label>
+        <select
+          value={settings.defaultStreamQuality}
+          onChange={(e) => handleChange("defaultStreamQuality", e.target.value)}
+        >
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
       </div>
 
       <div className="setting-item">
-        <label>🎨 Dark Mode</label>
+        <label>Default VR Room</label>
+        <select
+          value={settings.defaultVRRoom}
+          onChange={(e) => handleChange("defaultVRRoom", e.target.value)}
+        >
+          <option value="Main Hall">Main Hall</option>
+          <option value="Studio A">Studio A</option>
+          <option value="Indie Lounge">Indie Lounge</option>
+        </select>
+      </div>
+
+      {/* CREATOR SETTINGS */}
+      <h2>💰 Creator / Payout Settings</h2>
+      <div className="setting-item">
+        <label>Payout Method</label>
+        <select
+          value={settings.payoutMethod}
+          onChange={(e) => handleChange("payoutMethod", e.target.value)}
+        >
+          <option value="">Select</option>
+          <option value="stripe">Stripe</option>
+          <option value="paypal">PayPal</option>
+        </select>
+      </div>
+
+      {/* APPEARANCE */}
+      <h2>🎨 Appearance</h2>
+      <div className="setting-item">
+        <label>Dark Mode</label>
         <input
           type="checkbox"
           checked={settings.darkMode}
           onChange={() => handleToggle("darkMode")}
         />
-      </div>
-
-      <div className="setting-item">
-        <label>🔒 Profile Visibility</label>
-        <select
-          value={settings.profileVisibility}
-          onChange={handleVisibilityChange}
-        >
-          <option value="public">Public</option>
-          <option value="followers">Followers Only</option>
-          <option value="private">Private</option>
-        </select>
       </div>
     </div>
   );

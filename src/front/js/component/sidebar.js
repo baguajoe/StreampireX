@@ -48,7 +48,6 @@ const Sidebar = () => {
       <SectionHeader>👤 User & Account</SectionHeader>
       <MenuItem to="/profile" className={isActive("/profile") ? "active" : ""}>👤 Profile</MenuItem>
       <MenuItem to="/settings" className={isActive("/settings") ? "active" : ""}>⚙️ Settings</MenuItem>
-      <MenuItem to="/notifications" className={isActive("/notifications") ? "active" : ""}>🔔 Notifications</MenuItem>
 
       {/* Dashboards */}
       <SectionHeader>📊 Dashboards</SectionHeader>
@@ -69,7 +68,6 @@ const Sidebar = () => {
       <SectionHeader>📻 Radio Stations</SectionHeader>
       <MenuItem to="/browse-radio-stations" className={isActive("/browse-radio-stations") ? "active" : ""}>📻 Browse Stations</MenuItem>
       <MenuItem to="/create-radio" className={isActive("/create-radio") ? "active" : ""}>➕ Create Station</MenuItem>
-      <MenuItem to="/artist-radio" className={isActive("/artist-radio") ? "active" : ""}>🎤 Artist Radio</MenuItem>
 
       {/* Indie Artists */}
       <SectionHeader>🎤 Indie Artists</SectionHeader>
