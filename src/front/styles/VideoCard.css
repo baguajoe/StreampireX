@@ -1,0 +1,9 @@
+.category-scroll-bar {
+  display: flex;
+  overflow-x: auto;
+  padding: 1rem;
+  gap: 0.6rem;
+}
+.category-scroll-bar::-webkit-scrollbar {
+  display: none;
+}

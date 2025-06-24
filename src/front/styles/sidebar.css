@@ -1,16 +1,18 @@
 /* Main Sidebar Container */
 .sidebar {
-  width: 250px;
-  height: 100vh;
-  background-color: #004080; /* Medium Dark Blue */
-  position: fixed;
-  top: 0;
-  left: 0;
-  overflow-y: auto;
-  z-index: 1000;
-  padding-top: 85px; /* Space for navbar */
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    width: 250px;
+    height: 100vh;
+    background-color: #004080;
+    position: fixed;
+    top: 45px;
+    left: 0;
+    overflow-y: auto;
+    z-index: 1000;
+    padding-top: 60px; /* Match navbar height */
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
+
+
 
 /* Sidebar Header */
 .sidebar h3 {

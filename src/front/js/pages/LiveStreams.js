@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import PollComponent from "../component/PollComponent";
 import LiveVideoPlayer from "../component/LiveVideoPlayer";
-import "../../styles/liveStream.css"; // Import the stylesheet in your component file
+import PollComponent from "../component/PollComponent";
+import "../../styles/liveStream.css"; // ensure styles are set here
 
+const categories = [
+  "All", "Live DJs", "Talk Shows", "Gaming", "Education", "Fitness", "Yoga", "Music",
+  "Meditation", "Tech", "Motivation", "Wellness", "Business", "Art", "Comedy", "News"
+];
 
 const LiveStreams = () => {
   const [liveStreams, setLiveStreams] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -15,17 +20,12 @@ const LiveStreams = () => {
     const fetchLiveStreams = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${process.env.BACKEND_URL}/api/live-streams`);
-        
-        if (!response.ok) {
-          throw new Error(`Server responded with status: ${response.status}`);
-        }
-        
-        const data = await response.json();
+        const res = await fetch(`${process.env.BACKEND_URL}/api/artist/live-streams`);
+        const data = await res.json();
         setLiveStreams(data);
-        setLoading(false);
       } catch (err) {
-        setError(`Error fetching live streams: ${err.message}`);
+        setError("⚠️ Failed to load live streams. Please try again later.");
+      } finally {
         setLoading(false);
       }
     };
@@ -34,50 +34,63 @@ const LiveStreams = () => {
   }, []);
 
   const filteredStreams = liveStreams.filter((stream) =>
+    (selectedCategory === "All" || stream.category === selectedCategory) &&
     stream.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (loading) return <div className="loading-container">Loading live streams...</div>;
-  if (error) return <div className="error-container">{error}</div>;
-
   return (
-    <div className="live-streams-container">
-      <h1>🎥 Live Streams</h1>
+    <div className="live-streams-wrapper">
+      <h2 className="section-title">📺 Live Streams</h2>
 
       <input
         type="text"
         placeholder="Search live streams..."
-        className="search-bar"
+        className="search-input"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        aria-label="Search live streams"
       />
 
-      <div className="live-stream-list">
-        {filteredStreams.length > 0 ? (
-          filteredStreams.map((stream) => (
+      <div className="category-scroll">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            className={`category-btn ${selectedCategory === cat ? "active" : ""}`}
+            onClick={() => setSelectedCategory(cat)}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="status-message">⏳ Loading...</div>
+      ) : error ? (
+        <div className="status-message error">{error}</div>
+      ) : filteredStreams.length === 0 ? (
+        <div className="status-message">No live streams available in this category.</div>
+      ) : (
+        <div className="live-stream-grid">
+          {filteredStreams.map((stream) => (
             <div key={stream.id} className="live-stream-card">
-              <h2>{stream.title}</h2>
+              <h3>{stream.title}</h3>
               <p>{stream.description}</p>
               {stream.is_live ? (
                 stream.stream_url ? (
                   <LiveVideoPlayer streamUrl={stream.stream_url} />
                 ) : (
-                  <p className="stream-unavailable">Stream URL unavailable</p>
+                  <p>⚠️ Stream unavailable</p>
                 )
               ) : (
-                <p className="offline">🔴 Offline</p>
+                <p>🔴 Offline</p>
               )}
-              <Link to={`/live-streams/${stream.id}`} className="view-details">
-                Watch Stream →
+              <Link to={`/live-streams/${stream.id}`} className="view-link">
+                Watch Now →
               </Link>
               {stream.is_live && <PollComponent streamId={stream.id} />}
             </div>
-          ))
-        ) : (
-          <p className="no-streams">No live streams available.</p>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
