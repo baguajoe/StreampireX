@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";  // ✅ Import useNavigate for redirection
+import { useNavigate } from "react-router-dom";
 import "../../styles/PodcastCreate.css";
 
 const PodcastCreate = () => {
@@ -13,6 +13,16 @@ const PodcastCreate = () => {
     const [subscriptionTier, setSubscriptionTier] = useState("Free");
     const [streamingEnabled, setStreamingEnabled] = useState(false);
     const [scheduledRelease, setScheduledRelease] = useState("");
+    const [categories, setCategories] = useState([]);
+
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        fetch(`${process.env.BACKEND_URL}/api/podcasts/categories`)
+            .then((res) => res.json())
+            .then((data) => setCategories(data))
+            .catch((err) => console.error("Error fetching categories:", err));
+    }, []);
 
     const handleUpload = async () => {
         const formData = new FormData();
@@ -27,30 +37,28 @@ const PodcastCreate = () => {
         formData.append("streaming_enabled", streamingEnabled);
         formData.append("scheduled_release", scheduledRelease);
 
-        const response = await fetch(`${process.env.BACKEND_URL}/upload_podcast`, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: formData,
-        });
+        try {
+            const response = await fetch(`${process.env.BACKEND_URL}/upload_podcast`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+                body: formData,
+            });
 
-        const data = await response.json();
-        if (response.ok) {
-            alert("Podcast uploaded successfully!");
-        } else {
-            alert(`Error: ${data.error}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                alert("✅ Podcast uploaded successfully!");
+                navigate("/podcasts");
+            } else {
+                alert(`❌ Error: ${data.error}`);
+            }
+        } catch (err) {
+            console.error("Upload failed:", err);
+            alert("An unexpected error occurred.");
         }
     };
-
-    const [categories, setCategories] = useState([]);
-
-    useEffect(() => {
-        fetch(process.env.BACKEND_URL + "/api/podcasts/categories")
-            .then((res) => res.json())
-            .then((data) => setCategories(data))
-            .catch((err) => console.error("Error fetching categories:", err));
-    }, []);
 
     return (
         <div className="podcast-create-container">
@@ -65,8 +73,8 @@ const PodcastCreate = () => {
             <label>📂 Category:</label>
             <select value={category} onChange={(e) => setCategory(e.target.value)}>
                 <option value="">Select a Category</option>
-                {categories.map((cat, index) => (
-                    <option key={index} value={cat}>{cat}</option>
+                {categories.map((cat) => (
+                    <option key={cat.id} value={cat.slug}>{cat.name}</option>
                 ))}
             </select>
 
@@ -80,10 +88,18 @@ const PodcastCreate = () => {
             <input type="file" accept="video/*" onChange={(e) => setVideoFile(e.target.files[0])} />
 
             <label>🔴 Enable Live Podcast Streaming:</label>
-            <input type="checkbox" checked={streamingEnabled} onChange={() => setStreamingEnabled(!streamingEnabled)} />
+            <input
+                type="checkbox"
+                checked={streamingEnabled}
+                onChange={() => setStreamingEnabled(!streamingEnabled)}
+            />
 
             <label>📅 Schedule Release:</label>
-            <input type="datetime-local" value={scheduledRelease} onChange={(e) => setScheduledRelease(e.target.value)} />
+            <input
+                type="datetime-local"
+                value={scheduledRelease}
+                onChange={(e) => setScheduledRelease(e.target.value)}
+            />
 
             <label>💰 Monetization:</label>
             <select value={subscriptionTier} onChange={(e) => setSubscriptionTier(e.target.value)}>
@@ -93,7 +109,9 @@ const PodcastCreate = () => {
                 <option value="20">Tier 3 - $20/month</option>
             </select>
 
-            <button onClick={handleUpload} className="btn-primary">📤 Upload Podcast</button>
+            <button onClick={handleUpload} className="btn-primary">
+                📤 Upload Podcast
+            </button>
         </div>
     );
 };
