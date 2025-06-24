@@ -1,0 +1,84 @@
+.upload-music-page {
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
+	min-height: 100vh;
+	background-color: #f4f5f7;
+	padding: 3rem 1rem 4rem;
+}
+
+.upload-music-card {
+	background: white;
+	padding: 2.5rem 2rem;
+	border-radius: 20px;
+	box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
+	width: 100%;
+	max-width: 800px;
+	text-align: left;
+	display: flex;
+	flex-direction: column;
+	gap: 1.2rem;
+}
+
+.upload-music-card h2 {
+	text-align: center;
+	font-size: 1.6rem;
+	font-weight: 700;
+	color: #5c27fe;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.upload-music-card label {
+	font-weight: 600;
+	color: #333;
+	font-size: 0.95rem;
+	margin-bottom: 0.1rem;
+}
+
+.upload-music-card input,
+.upload-music-card textarea,
+.upload-music-card select {
+	padding: 0.7rem 1rem;
+	font-size: 1rem;
+	border-radius: 12px;
+	border: 1px solid #ddd;
+	width: 100%;
+	background: #f8f9fb;
+	box-sizing: border-box;
+	transition: border 0.2s;
+}
+
+.upload-music-card input:focus,
+.upload-music-card textarea:focus,
+.upload-music-card select:focus {
+	border-color: #5c27fe;
+	outline: none;
+}
+
+.upload-btn {
+	margin-top: 1rem;
+	padding: 0.8rem;
+	background: linear-gradient(to right, #6a4ff4, #7e5bef);
+	color: white;
+	border: none;
+	border-radius: 14px;
+	cursor: pointer;
+	font-weight: 600;
+	font-size: 1rem;
+	transition: background 0.2s ease;
+	box-shadow: 0 4px 12px rgba(108, 61, 255, 0.3);
+}
+
+.upload-btn:hover {
+	background: #5a42d1;
+}
+
+.upload-message {
+	color: #1f883d;
+	text-align: center;
+	font-weight: 500;
+}
