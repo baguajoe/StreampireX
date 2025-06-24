@@ -4,7 +4,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, ChatMessage, UserSettings
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, ChatMessage, UserSettings, TrackRelease, Release, Collaborator, Category
 import cloudinary.uploader
 import json
 import os
@@ -23,6 +23,14 @@ from sqlalchemy.orm.exc import NoResultFound
 from api.subscription_utils import get_user_plan, plan_required
 from api.revenue_split import calculate_split, calculate_ad_revenue
 from api.reports_utils import generate_monthly_report
+from api.utils.revelator_api import submit_release_to_revelator
+from rq import Queue
+from redis import Redis
+from api.utils.tasks import send_release_to_revelator
+from api.extensions import csrf  # ✅ Assuming you initialized csrf there
+
+
+
 
 
 
@@ -174,8 +182,357 @@ def upload_video():
 # ---------------- GET VIDEOS ----------------
 @api.route('/videos', methods=['GET'])
 def get_videos():
-    videos = Video.query.all()
-    return jsonify([video.serialize() for video in videos]), 200
+    # Get query parameters for filtering and search
+    search = request.args.get('search', '').strip()
+    category = request.args.get('category', 'All')
+    sort_by = request.args.get('sort_by', 'newest')
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 20))
+    
+    # Start with your existing base query
+    query = Video.query.filter_by(is_public=True)
+    
+    # Add search functionality
+    if search:
+        # Search in title, description, and uploader name
+        search_filter = or_(
+            Video.title.ilike(f'%{search}%'),
+            Video.description.ilike(f'%{search}%') if hasattr(Video, 'description') else False,
+            User.display_name.ilike(f'%{search}%'),
+            User.username.ilike(f'%{search}%')
+        )
+        query = query.join(User).filter(search_filter)
+    
+    # Add category filtering (if you have categories)
+    if category and category != 'All':
+        if hasattr(Video, 'category_id'):
+            category_obj = Category.query.filter_by(name=category).first()
+            if category_obj:
+                query = query.filter(Video.category_id == category_obj.id)
+    
+    # Add sorting options
+    if sort_by == 'newest':
+        query = query.order_by(desc(Video.created_at))
+    elif sort_by == 'oldest':
+        query = query.order_by(asc(Video.created_at))
+    elif sort_by == 'popular':
+        # If you have views field, otherwise use likes
+        if hasattr(Video, 'views'):
+            query = query.order_by(desc(Video.views))
+        else:
+            query = query.order_by(desc(Video.likes))
+    elif sort_by == 'most_liked':
+        query = query.order_by(desc(Video.likes))
+    else:
+        # Default to newest
+        query = query.order_by(desc(Video.created_at))
+    
+    # Add pagination
+    paginated_videos = query.paginate(
+        page=page, 
+        per_page=per_page, 
+        error_out=False
+    )
+    
+    # Enhanced video serialization
+    videos_data = []
+    for v in paginated_videos.items:
+        video_data = {
+            "id": v.id,
+            "title": v.title,
+            "file_url": v.file_url,
+            "likes": v.likes,
+            "created_at": v.created_at.isoformat(),
+            "uploader_id": v.user_id,
+            "uploader_name": v.user.display_name or v.user.username,
+            
+            # Add these fields if they exist in your model
+            "description": getattr(v, 'description', None),
+            "thumbnail_url": getattr(v, 'thumbnail_url', None),
+            "duration": getattr(v, 'duration', None),
+            "views": getattr(v, 'views', 0),
+            "comments_count": getattr(v, 'comments_count', 0),
+            
+            # Add uploader avatar if available
+            "uploader_avatar": getattr(v.user, 'profile_picture', None) or getattr(v.user, 'avatar_url', None),
+            
+            # Add category if available
+            "category": v.category.name if hasattr(v, 'category') and v.category else "Other"
+        }
+        videos_data.append(video_data)
+    
+    # Return enhanced response with pagination info
+    return jsonify({
+        "videos": videos_data,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": paginated_videos.total,
+            "pages": paginated_videos.pages,
+            "has_next": paginated_videos.has_next,
+            "has_prev": paginated_videos.has_prev
+        },
+        "filters": {
+            "search": search,
+            "category": category,
+            "sort_by": sort_by
+        }
+    }), 200  
+
+@api.route('/videos/categories', methods=['GET'])
+def get_video_categories():
+    """Get all video categories with counts"""
+    
+    # If you don't have categories yet, return comprehensive hardcoded ones
+    if not hasattr(Video, 'category_id'):
+        # Comprehensive video categories
+        categories = [
+            {"id": 0, "name": "All", "video_count": Video.query.filter_by(is_public=True).count()},
+            
+            # Music & Audio
+            {"id": 1, "name": "Music", "video_count": 0},
+            {"id": 2, "name": "Podcasts", "video_count": 0},
+            {"id": 3, "name": "Live Concerts", "video_count": 0},
+            {"id": 4, "name": "Music Videos", "video_count": 0},
+            {"id": 5, "name": "DJ Sets", "video_count": 0},
+            {"id": 6, "name": "Karaoke", "video_count": 0},
+            
+            # Health & Wellness
+            {"id": 7, "name": "Meditation", "video_count": 0},
+            {"id": 8, "name": "Yoga", "video_count": 0},
+            {"id": 9, "name": "Fitness", "video_count": 0},
+            {"id": 10, "name": "Mental Health", "video_count": 0},
+            {"id": 11, "name": "Nutrition", "video_count": 0},
+            {"id": 12, "name": "Sleep & Relaxation", "video_count": 0},
+            
+            # Education & Learning
+            {"id": 13, "name": "Education", "video_count": 0},
+            {"id": 14, "name": "Tutorials", "video_count": 0},
+            {"id": 15, "name": "Language Learning", "video_count": 0},
+            {"id": 16, "name": "Science", "video_count": 0},
+            {"id": 17, "name": "History", "video_count": 0},
+            {"id": 18, "name": "Philosophy", "video_count": 0},
+            
+            # Technology
+            {"id": 19, "name": "Tech", "video_count": 0},
+            {"id": 20, "name": "Programming", "video_count": 0},
+            {"id": 21, "name": "AI & Machine Learning", "video_count": 0},
+            {"id": 22, "name": "Web Development", "video_count": 0},
+            {"id": 23, "name": "Mobile Apps", "video_count": 0},
+            {"id": 24, "name": "Cybersecurity", "video_count": 0},
+            
+            # Entertainment
+            {"id": 25, "name": "Comedy", "video_count": 0},
+            {"id": 26, "name": "Movies & TV", "video_count": 0},
+            {"id": 27, "name": "Anime & Manga", "video_count": 0},
+            {"id": 28, "name": "Celebrity News", "video_count": 0},
+            {"id": 29, "name": "Reactions", "video_count": 0},
+            {"id": 30, "name": "Memes", "video_count": 0},
+            
+            # Gaming
+            {"id": 31, "name": "Gaming", "video_count": 0},
+            {"id": 32, "name": "Game Reviews", "video_count": 0},
+            {"id": 33, "name": "Esports", "video_count": 0},
+            {"id": 34, "name": "Game Development", "video_count": 0},
+            {"id": 35, "name": "Streaming Highlights", "video_count": 0},
+            
+            # Lifestyle
+            {"id": 36, "name": "Lifestyle", "video_count": 0},
+            {"id": 37, "name": "Fashion", "video_count": 0},
+            {"id": 38, "name": "Beauty", "video_count": 0},
+            {"id": 39, "name": "Travel", "video_count": 0},
+            {"id": 40, "name": "Food & Cooking", "video_count": 0},
+            {"id": 41, "name": "Home & Garden", "video_count": 0},
+            {"id": 42, "name": "Parenting", "video_count": 0},
+            {"id": 43, "name": "Relationships", "video_count": 0},
+            
+            # Creative Arts
+            {"id": 44, "name": "Art", "video_count": 0},
+            {"id": 45, "name": "Photography", "video_count": 0},
+            {"id": 46, "name": "Design", "video_count": 0},
+            {"id": 47, "name": "Writing", "video_count": 0},
+            {"id": 48, "name": "Crafts & DIY", "video_count": 0},
+            {"id": 49, "name": "Architecture", "video_count": 0},
+            
+            # Business & Finance
+            {"id": 50, "name": "Business", "video_count": 0},
+            {"id": 51, "name": "Entrepreneurship", "video_count": 0},
+            {"id": 52, "name": "Investing", "video_count": 0},
+            {"id": 53, "name": "Cryptocurrency", "video_count": 0},
+            {"id": 54, "name": "Marketing", "video_count": 0},
+            {"id": 55, "name": "Personal Finance", "video_count": 0},
+            
+            # Sports & Activities
+            {"id": 56, "name": "Sports", "video_count": 0},
+            {"id": 57, "name": "Basketball", "video_count": 0},
+            {"id": 58, "name": "Football", "video_count": 0},
+            {"id": 59, "name": "Soccer", "video_count": 0},
+            {"id": 60, "name": "Extreme Sports", "video_count": 0},
+            {"id": 61, "name": "Martial Arts", "video_count": 0},
+            
+            # News & Politics
+            {"id": 62, "name": "News", "video_count": 0},
+            {"id": 63, "name": "Politics", "video_count": 0},
+            {"id": 64, "name": "Current Events", "video_count": 0},
+            {"id": 65, "name": "Documentary", "video_count": 0},
+            
+            # Spirituality & Personal Growth
+            {"id": 66, "name": "Spirituality", "video_count": 0},
+            {"id": 67, "name": "Personal Development", "video_count": 0},
+            {"id": 68, "name": "Motivation", "video_count": 0},
+            {"id": 69, "name": "Life Coaching", "video_count": 0},
+            
+            # Automotive
+            {"id": 70, "name": "Cars & Automotive", "video_count": 0},
+            {"id": 71, "name": "Car Reviews", "video_count": 0},
+            {"id": 72, "name": "Motorcycles", "video_count": 0},
+            
+            # Animals & Nature
+            {"id": 73, "name": "Animals", "video_count": 0},
+            {"id": 74, "name": "Pets", "video_count": 0},
+            {"id": 75, "name": "Nature", "video_count": 0},
+            {"id": 76, "name": "Wildlife", "video_count": 0},
+            
+            # Kids & Family
+            {"id": 77, "name": "Kids & Family", "video_count": 0},
+            {"id": 78, "name": "Educational Kids", "video_count": 0},
+            {"id": 79, "name": "Family Activities", "video_count": 0},
+            
+            # Special Interest
+            {"id": 80, "name": "True Crime", "video_count": 0},
+            {"id": 81, "name": "Conspiracy Theories", "video_count": 0},
+            {"id": 82, "name": "Paranormal", "video_count": 0},
+            {"id": 83, "name": "Space & Astronomy", "video_count": 0},
+            {"id": 84, "name": "Mathematics", "video_count": 0},
+            {"id": 85, "name": "Book Reviews", "video_count": 0},
+            
+            # Miscellaneous
+            {"id": 86, "name": "ASMR", "video_count": 0},
+            {"id": 87, "name": "Unboxing", "video_count": 0},
+            {"id": 88, "name": "Product Reviews", "video_count": 0},
+            {"id": 89, "name": "Challenges", "video_count": 0},
+            {"id": 90, "name": "Vlogs", "video_count": 0},
+            {"id": 91, "name": "Other", "video_count": 0}
+        ]
+        return jsonify({"categories": categories}), 200
+    
+    # If you have categories table, use this:
+    try:
+        categories = Category.query.all()
+        categories_data = []
+        
+        # Add "All" category
+        total_videos = Video.query.filter_by(is_public=True).count()
+        categories_data.append({
+            "id": 0,
+            "name": "All",
+            "video_count": total_videos
+        })
+        
+        # Add other categories
+        for category in categories:
+            video_count = Video.query.filter_by(
+                category_id=category.id,
+                is_public=True
+            ).count()
+            
+            categories_data.append({
+                "id": category.id,
+                "name": category.name,
+                "video_count": video_count
+            })
+        
+        return jsonify({"categories": categories_data}), 200
+    
+    except Exception as e:
+        # Fallback to hardcoded categories if Category model doesn't exist
+        categories = [
+            {"id": 0, "name": "All", "video_count": Video.query.filter_by(is_public=True).count()},
+            {"id": 1, "name": "Music", "video_count": 0},
+            {"id": 2, "name": "Podcasts", "video_count": 0},
+            {"id": 3, "name": "Meditation", "video_count": 0},
+            {"id": 4, "name": "Fitness", "video_count": 0},
+            {"id": 5, "name": "Education", "video_count": 0},
+            {"id": 6, "name": "Entertainment", "video_count": 0},
+            {"id": 7, "name": "Gaming", "video_count": 0},
+            {"id": 8, "name": "Tech", "video_count": 0},
+            {"id": 9, "name": "Art", "video_count": 0},
+            {"id": 10, "name": "Other", "video_count": 0}
+        ]
+        return jsonify({"categories": categories}), 200
+
+# STEP 3: Add like functionality
+@api.route('/videos/<int:video_id>/like', methods=['POST'])
+@jwt_required()  # Assuming you're using JWT
+def like_video(video_id):
+    """Like or unlike a video"""
+    from flask_jwt_extended import get_jwt_identity
+    
+    user_id = get_jwt_identity()
+    video = Video.query.get_or_404(video_id)
+    
+    # Simple like system (you can enhance this later with a separate likes table)
+    # For now, we'll just increment/decrement the likes count
+    # You could add a user_likes table to track who liked what
+    
+    # This is a simplified version - you'd want to track user likes properly
+    video.likes += 1
+    db.session.commit()
+    
+    return jsonify({
+        "likes": video.likes,
+        "message": "Video liked successfully"
+    }), 200
+
+# STEP 4: Add view tracking
+@api.route('/videos/<int:video_id>/view', methods=['POST'])
+def record_video_view(video_id):
+    """Record a video view"""
+    video = Video.query.get_or_404(video_id)
+    
+    # If you have a views field, increment it
+    if hasattr(video, 'views'):
+        video.views += 1
+        db.session.commit()
+        
+        return jsonify({
+            "views": video.views,
+            "message": "View recorded"
+        }), 200
+    
+    return jsonify({"message": "View tracking not available"}), 200
+
+# STEP 5: Get trending videos
+@api.route('/videos/trending', methods=['GET'])
+def get_trending_videos():
+    """Get trending videos based on likes and recent uploads"""
+    from datetime import datetime, timedelta
+    
+    # Get videos from last 7 days, sorted by engagement
+    week_ago = datetime.utcnow() - timedelta(days=7)
+    
+    trending_videos = Video.query.filter(
+        Video.created_at >= week_ago,
+        Video.is_public == True
+    ).order_by(desc(Video.likes)).limit(10).all()
+    
+    videos_data = []
+    for v in trending_videos:
+        videos_data.append({
+            "id": v.id,
+            "title": v.title,
+            "file_url": v.file_url,
+            "likes": v.likes,
+            "created_at": v.created_at.isoformat(),
+            "uploader_id": v.user_id,
+            "uploader_name": v.user.display_name or v.user.username,
+            "uploader_avatar": getattr(v.user, 'profile_picture', None) or getattr(v.user, 'avatar_url', None),
+            "views": getattr(v, 'views', 0)
+        })
+    
+    return jsonify({"trending_videos": videos_data}), 200 
+
+
 
 # ---------------- PLAYLIST MANAGEMENT ----------------
 @api.route('/create_playlist', methods=['POST'])
@@ -1296,30 +1653,144 @@ def get_podcasts_by_category(category):
 
 @api.route('/podcasts/categories', methods=['GET'])
 def get_podcast_categories():
-    categories = [
-        "Technology & Innovation", "AI & Machine Learning", "Cybersecurity & Privacy",
-        "Blockchain & Crypto", "Gadgets & Consumer Tech", "Coding & Software Development",
-        "Business & Finance", "Entrepreneurship & Startups", "Investing & Wealth Management",
-        "Marketing & Branding", "Leadership & Productivity", "E-commerce & Dropshipping",
-        "Health, Wellness & Fitness", "Mental Health & Mindfulness", "Holistic Healing & Alternative Medicine",
-        "Nutrition & Dieting", "Fitness & Bodybuilding", "Martial Arts & Self-Defense",
-        "Music, Entertainment & Pop Culture", "Music Industry & Artist Insights", "Film & TV Reviews",
-        "Hip-Hop, Rap & Urban Culture", "Comedy & Stand-Up", "Celebrity Gossip & Reality TV",
-        "Gaming & Esports", "Game Development", "Esports & Competitive Gaming", "Retro & Classic Gaming",
-        "VR & AR Gaming", "Tabletop & Board Games", "Education & Learning", "Self-Development & Personal Growth",
-        "History & Documentary Podcasts", "Language Learning", "Philosophy & Deep Thought",
-        "Science & Space Exploration", "Storytelling, Fiction & True Crime", "Audio Dramas & Fiction",
-        "True Crime & Investigative Journalism", "Supernatural & Paranormal", "Horror Podcasts",
-        "Urban Legends & Conspiracies", "News, Politics & Society", "Daily News & Global Affairs",
-        "Politics & Government", "Social Justice & Activism", "Economy & World Markets",
-        "War, Conflict & Military History", "Sports & Outdoor Adventures", "Basketball & NBA",
-        "Football & NFL", "Combat Sports & UFC", "Hiking, Camping & Survival", "Extreme Sports & Adventure",
-        "Lifestyle, Relationships & Culture", "Relationships & Dating", "Parenting & Family",
-        "Spirituality & Conscious Living", "Fashion & Style", "Food & Cooking", "Future Categories",
-        "Esoteric & Mysticism", "Pet & Animal Care", "LGBTQ+ Voices", "DIY & Home Improvement",
-        "Anime & Manga"
+    try:
+        # Try to get from database first
+        categories = Category.query.filter_by(is_active=True).order_by(Category.sort_order, Category.name).all()
+        
+        if categories:
+            return jsonify([cat.serialize() for cat in categories]), 200
+        
+        # Fallback to hardcoded list if database is empty
+        categories_list = [
+            {
+                "id": 1,
+                "name": "True Crime & Investigative Journalism",
+                "slug": "true-crime-investigative-journalism",
+                "description": "Deep dives into criminal cases and investigative stories",
+                "icon": "🔍",
+                "color": "#8B0000"
+            },
+            {
+                "id": 2,
+                "name": "Celebrity Gossip & Reality TV",
+                "slug": "celebrity-gossip-reality-tv",
+                "description": "Latest celebrity news and reality TV discussions",
+                "icon": "⭐",
+                "color": "#FF6B6B"
+            },
+            {
+                "id": 3,
+                "name": "Education & Learning",
+                "slug": "education-learning",
+                "description": "Educational content and skill development",
+                "icon": "📚",
+                "color": "#4ECDC4"
+            },
+            {
+                "id": 4,
+                "name": "Comedy & Stand-Up",
+                "slug": "comedy-stand-up",
+                "description": "Humor, comedy shows, and stand-up performances",
+                "icon": "😂",
+                "color": "#FFE66D"
+            },
+            {
+                "id": 5,
+                "name": "Tabletop & Board Games",
+                "slug": "tabletop-board-games",
+                "description": "Board games, RPGs, and tabletop gaming",
+                "icon": "🎲",
+                "color": "#95E1D3"
+            },
+            {
+                "id": 6,
+                "name": "Film & TV Reviews",
+                "slug": "film-tv-reviews",
+                "description": "Movie and TV show reviews and analysis",
+                "icon": "🎬",
+                "color": "#A8E6CF"
+            },
+            {
+                "id": 7,
+                "name": "Technology & Innovation",
+                "slug": "technology-innovation",
+                "description": "Latest in tech, AI, and innovation",
+                "icon": "💻",
+                "color": "#88D8B0"
+            },
+            {
+                "id": 8,
+                "name": "Health & Wellness",
+                "slug": "health-wellness",
+                "description": "Health tips, wellness, and mental health",
+                "icon": "🏥",
+                "color": "#FFEAA7"
+            },
+            {
+                "id": 9,
+                "name": "Business & Finance",
+                "slug": "business-finance",
+                "description": "Business insights and financial advice",
+                "icon": "💼",
+                "color": "#DDA0DD"
+            },
+            {
+                "id": 10,
+                "name": "Sports & Recreation",
+                "slug": "sports-recreation",
+                "description": "Sports analysis and recreational activities",
+                "icon": "⚽",
+                "color": "#98D8C8"
+            }
+        ]
+        
+        return jsonify(categories_list), 200
+        
+    except Exception as e:
+        print(f"Error in get_podcast_categories: {str(e)}")
+        # Return minimal fallback in case of any error
+        fallback_categories = [
+            {"id": 1, "name": "True Crime & Investigative Journalism", "slug": "true-crime"},
+            {"id": 2, "name": "Celebrity Gossip & Reality TV", "slug": "celebrity-gossip"},
+            {"id": 3, "name": "Education & Learning", "slug": "education"},
+            {"id": 4, "name": "Comedy & Stand-Up", "slug": "comedy"},
+            {"id": 5, "name": "Tabletop & Board Games", "slug": "tabletop-games"},
+            {"id": 6, "name": "Film & TV Reviews", "slug": "film-tv-reviews"}
+        ]
+        return jsonify(fallback_categories), 200
+
+# Helper function to populate database with initial categories
+def seed_categories():
+    """Run this once to populate your database with initial categories"""
+    categories_data = [
+        {"name": "True Crime & Investigative Journalism", "icon": "🔍", "color": "#8B0000"},
+        {"name": "Celebrity Gossip & Reality TV", "icon": "⭐", "color": "#FF6B6B"},
+        {"name": "Education & Learning", "icon": "📚", "color": "#4ECDC4"},
+        {"name": "Comedy & Stand-Up", "icon": "😂", "color": "#FFE66D"},
+        {"name": "Tabletop & Board Games", "icon": "🎲", "color": "#95E1D3"},
+        {"name": "Film & TV Reviews", "icon": "🎬", "color": "#A8E6CF"},
+        {"name": "Technology & Innovation", "icon": "💻", "color": "#88D8B0"},
+        {"name": "Health & Wellness", "icon": "🏥", "color": "#FFEAA7"},
+        {"name": "Business & Finance", "icon": "💼", "color": "#DDA0DD"},
+        {"name": "Sports & Recreation", "icon": "⚽", "color": "#98D8C8"}
     ]
-    return jsonify(categories), 200
+    
+    for cat_data in categories_data:
+        slug = cat_data["name"].lower().replace("&", "and").replace(" ", "-").replace("--", "-")
+        
+        existing = Category.query.filter_by(slug=slug).first()
+        if not existing:
+            category = Category(
+                name=cat_data["name"],
+                slug=slug,
+                icon=cat_data["icon"],
+                color=cat_data["color"],
+                is_active=True
+            )
+            db.session.add(category)
+    
+    db.session.commit()
+    print("Categories seeded successfully!")
 
 
 
@@ -2995,17 +3466,36 @@ def start_live_stream():
 @api.route('/artist/live/end', methods=['POST'])
 @jwt_required()
 def end_live_stream():
+    """Ends the user's current live stream and notifies clients."""
     user_id = get_jwt_identity()
 
+    # Find active stream for user
     live_stream = LiveStudio.query.filter_by(user_id=user_id, is_live=True).first()
     if not live_stream:
         return jsonify({"error": "No active live stream found"}), 404
 
+    # Update stream status
     live_stream.is_live = False
     live_stream.ended_at = datetime.utcnow()
     db.session.commit()
 
-    return jsonify({"message": "Live stream ended."}), 200
+    # Notify WebSocket clients
+    socketio.emit("live_stream_update", {
+        "stream_id": live_stream.id,
+        "is_live": False
+    })
+
+    # Notify external status server
+    try:
+        requests.post("http://localhost:5000/live-status", json={
+            "stationId": user_id,
+            "isLive": False
+        })
+    except requests.exceptions.RequestException as e:
+        print(f"Error notifying WebSocket server: {e}")
+
+    return jsonify({"message": "📴 Live stream ended."}), 200
+
 
 @api.route('/artist/live-streams', methods=['GET'])
 def get_live_streams():
@@ -3038,6 +3528,31 @@ def buy_ticket(stream_id):
     )
 
     return jsonify({"checkout_url": checkout_session.url}), 200
+
+@api.route('/api/artist/live-streams', methods=['GET'])
+@jwt_required()
+def get_my_live_streams():
+    user_id = get_jwt_identity()
+    streams = LiveStudio.query.filter_by(user_id=user_id).all()
+    return jsonify([s.serialize() for s in streams]), 200
+
+@api.route('/artist/live/history', methods=['GET'])
+@jwt_required()
+def get_live_history():
+    """Returns a list of all past live streams for the authenticated artist."""
+    user_id = get_jwt_identity()
+
+    # Query only streams that have ended
+    history = LiveStudio.query.filter_by(user_id=user_id).filter(LiveStudio.is_live == False).order_by(LiveStudio.ended_at.desc()).all()
+
+    return jsonify([stream.serialize() for stream in history]), 200
+
+@api.route('/artist/live-streams', methods=['GET'])
+@jwt_required(optional=True)
+def get_all_live_streams():
+    streams = LiveStudio.query.filter_by(is_live=True).all()
+    return jsonify([s.serialize() for s in streams]), 200
+
 
 @api.route('/artist/live/earnings', methods=['GET'])
 @jwt_required()
@@ -4330,13 +4845,6 @@ def update_video_title(video_id):
 
     return jsonify({"message": "Title updated", "video": video.serialize()}), 200
 
-@api.route('/video/<int:video_id>/like', methods=['POST'])
-@jwt_required()
-def like_video(video_id):
-    video = Video.query.get_or_404(video_id)
-    video.likes += 1
-    db.session.commit()
-    return jsonify(video.serialize())
 
 @api.route('/video/<int:video_id>/comment', methods=['POST'])
 @jwt_required()
@@ -4718,3 +5226,580 @@ def get_dm(recipient_id):
         for m in messages
     ])
 
+@api.route('/user/earnings', methods=['GET'])
+@jwt_required()
+def get_user_earnings():
+    user_id = get_jwt_identity()
+
+    # Sum up all earnings
+    total_earned = db.session.query(func.sum(Revenue.amount))\
+        .filter(Revenue.user_id == user_id).scalar() or 0
+
+    # Sum up all paid out
+    total_paid_out = db.session.query(func.sum(Payout.amount))\
+        .filter(Payout.user_id == user_id).scalar() or 0
+
+    # Group breakdown (optional)
+    breakdown = db.session.query(
+        Revenue.revenue_type,
+        func.sum(Revenue.amount)
+    ).filter(Revenue.user_id == user_id)\
+     .group_by(Revenue.revenue_type).all()
+
+    revenue_breakdown = {rtype: float(amount) for rtype, amount in breakdown}
+
+    return jsonify({
+        "total_earned": total_earned,
+        "total_paid_out": total_paid_out,
+        "available_balance": total_earned - total_paid_out,
+        "breakdown": revenue_breakdown
+    }), 200
+
+
+@api.route('/api/send-payment', methods=['POST'])
+@jwt_required()
+def send_payment():
+    sender_id = get_jwt_identity()
+    data = request.get_json()
+
+    amount = float(data.get("amount"))
+    method = data.get("method")
+    recipient_id = data.get("recipient_id")
+    recipient_email = data.get("recipient_email")
+
+    # Resolve recipient by ID or email
+    recipient = None
+    if recipient_id:
+        recipient = db.session.get(User, int(recipient_id))
+    elif recipient_email:
+        recipient = User.query.filter_by(email=recipient_email).first()
+
+    if not recipient:
+        return jsonify({"error": "Recipient not found"}), 404
+
+    # Save or trigger payment
+    new_payment = Payment(sender_id=sender_id, recipient_id=recipient.id, amount=amount)
+    db.session.add(new_payment)
+    db.session.commit()
+
+    return jsonify({"message": f"✅ Sent ${amount} to {recipient.username or recipient.email}!"}), 200
+
+@api.route('/api/submit-track', methods=['POST'])
+def submit_track():
+    try:
+        title = request.form.get('title')
+        artist_name = request.form.get('artistName')
+        genre = request.form.get('genre')
+        release_date = request.form.get('releaseDate')
+        is_explicit = request.form.get('isExplicit') == 'true'
+        terms_agreed = request.form.get('termsAgreed') == 'true'
+
+        if not terms_agreed:
+            return jsonify({"error": "You must agree to terms of distribution."}), 400
+
+        audio_file = request.files['audioFile']
+        cover_art = request.files['coverArt']
+
+        audio_filename = secure_filename(audio_file.filename)
+        cover_filename = secure_filename(cover_art.filename)
+
+        audio_path = os.path.join(UPLOAD_FOLDER, audio_filename)
+        cover_path = os.path.join(UPLOAD_FOLDER, cover_filename)
+
+        audio_file.save(audio_path)
+        cover_art.save(cover_path)
+
+        new_release = TrackRelease(
+            user_id=1,  # TODO: Replace with dynamic user from auth
+            title=title,
+            genre=genre,
+            release_date=datetime.strptime(release_date, '%Y-%m-%d') if release_date else None,
+            cover_url=cover_path,
+            audio_url=audio_path,
+            is_explicit=is_explicit,
+            status='pending'
+        )
+
+        db.session.add(new_release)
+        db.session.commit()
+
+        # Optional: Send to Revelator API here
+        # response = submit_release_to_revelator(new_release)
+
+        return jsonify({"message": "Track submitted", "track_id": new_release.id}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/api/my-releases', methods=['GET'])
+@jwt_required()
+def get_my_releases():
+    try:
+        user_id = get_jwt_identity()
+        releases = TrackRelease.query.filter_by(user_id=user_id).all()
+
+        return jsonify([r.serialize() for r in releases]), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/api/track/<int:track_id>', methods=['GET'])
+@jwt_required()
+def get_track_details(track_id):
+    try:
+        track = TrackRelease.query.get(track_id)
+        if not track:
+            return jsonify({"error": "Track not found"}), 404
+
+        return jsonify(track.serialize()), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500 
+    
+@api.route('/api/tracks/user', methods=['GET'])
+@jwt_required()
+def get_user_tracks():
+    try:
+        user_id = get_jwt_identity()
+        tracks = TrackRelease.query.filter_by(user_id=user_id).order_by(TrackRelease.created_at.desc()).all()
+
+        return jsonify([track.serialize() for track in tracks]), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@api.route('/api/admin/tracks', methods=['GET'])
+@jwt_required()
+def get_all_tracks_admin():
+    user_id = get_jwt_identity()
+    admin_user = User.query.get(user_id)
+
+    if not admin_user or admin_user.role != 'admin':
+        return jsonify({"error": "Admin access required"}), 403
+
+    search = request.args.get('search', '').strip().lower()
+    status = request.args.get('status')
+    page = int(request.args.get('page', 1))
+    limit = int(request.args.get('limit', 20))
+
+    query = TrackRelease.query
+
+    if search:
+        query = query.filter(TrackRelease.title.ilike(f"%{search}%"))
+
+    if status:
+        query = query.filter_by(status=status)
+
+    paginated = query.order_by(TrackRelease.created_at.desc()).paginate(page=page, per_page=limit, error_out=False)
+
+    results = []
+    for track in paginated.items:
+        artist = User.query.get(track.user_id)
+        track_data = track.serialize()
+        track_data['artist_name'] = artist.username if artist else "Unknown"
+        results.append(track_data)
+
+    return jsonify({
+        "total": paginated.total,
+        "page": page,
+        "pages": paginated.pages,
+        "tracks": results
+    }), 200
+
+@api.route('/api/create-release', methods=['POST'])
+@jwt_required()
+def create_release():
+    import uuid  # ✅ Make sure this is at the top of your file if not already
+
+    user_id = get_jwt_identity()
+    title = request.form.get('title')
+    genre = request.form.get('genre')
+    release_date = request.form.get('release_date')
+    explicit = request.form.get('explicit') == 'true'
+    track_id = request.form.get('track_id')
+    cover_art = request.files.get('cover_art')
+
+    # ✅ Validate required fields
+    if not all([title, genre, release_date, track_id, cover_art]):
+        return jsonify({"error": "All fields are required."}), 400
+
+    # ✅ Track ownership check
+    track = Track.query.get(track_id)
+    if not track or track.user_id != user_id:
+        return jsonify({"error": "Invalid or unauthorized track ID."}), 403
+
+    # ✅ Validate file extension
+    ext = os.path.splitext(cover_art.filename)[1].lower()
+    if ext not in ['.jpg', '.jpeg', '.png']:
+        return jsonify({"error": "Cover art must be .jpg, .jpeg, or .png"}), 400
+
+    # ✅ Save cover art with unique name
+    unique_name = f"{uuid.uuid4().hex}_{secure_filename(cover_art.filename)}"
+    cover_path = os.path.join("static/uploads/covers", unique_name)
+    os.makedirs(os.path.dirname(cover_path), exist_ok=True)
+    cover_art.save(cover_path)
+    cover_url = f"/{cover_path}"
+
+    # ✅ Save release to DB
+    new_release = Release(
+        user_id=user_id,
+        title=title,
+        genre=genre,
+        release_date=release_date,
+        explicit=explicit,
+        cover_art_url=cover_url,
+        track_id=track_id
+    )
+    db.session.add(new_release)
+    db.session.commit()
+
+    # ✅ Prepare payload for Revelator
+    payload = {
+        "title": title,
+        "genre": genre,
+        "release_date": release_date,
+        "explicit": explicit,
+        "audio_url": track.file_url,
+        "cover_url": cover_url,
+        "track_id": track_id,
+        "artist_name": track.artist_name or "Unknown Artist"
+    }
+
+    # ✅ Queue Revelator submission task
+    try:
+        q = Queue(connection=Redis())
+        q.enqueue(send_release_to_revelator, new_release.id, json.loads(json.dumps(payload, default=str)))
+    except Exception as e:
+        return jsonify({"error": f"Release saved but failed to queue submission: {str(e)}"}), 500
+
+    return jsonify({"message": "✅ Release saved and submission enqueued!"}), 201
+
+
+
+@api.route('/api/webhook/revelator', methods=['POST'])
+@csrf.exempt  # ✅ Important if CSRF is enforced
+def revelator_webhook():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid or missing JSON"}), 400
+
+        external_id = data.get("external_id")
+        status = data.get("status")  # e.g., "delivered", "failed", "in_review"
+        platform = data.get("platform")  # optional
+        platform_url = data.get("platform_url")  # optional
+
+        if not external_id or not status:
+            return jsonify({"error": "Missing external_id or status"}), 400
+
+        release = Release.query.filter_by(external_id=external_id).first()
+        if not release:
+            return jsonify({"error": "Release not found"}), 404
+
+        # ✅ Update status field (you may need to add these fields in your model)
+        release.status = status
+        if platform and platform_url:
+            if not release.platform_links:
+                release.platform_links = {}
+            release.platform_links[platform] = platform_url
+
+        db.session.commit()
+        return jsonify({"message": "✅ Webhook received and processed"}), 200
+
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+@api.route('/api/add-collaborator', methods=['POST'])
+@jwt_required()
+def add_collaborator():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    if not data or 'collaborators' not in data or 'track_id' not in data:
+        return jsonify({"error": "Missing track ID or collaborator data"}), 400
+
+    track_id = data['track_id']
+    collaborators = data['collaborators']
+
+    # Validate ownership
+    track = Track.query.get(track_id)
+    if not track or track.user_id != user_id:
+        return jsonify({"error": "Invalid or unauthorized track ID"}), 403
+
+    try:
+        # Optional: delete old collaborators before saving new ones
+        Collaborator.query.filter_by(track_id=track_id).delete()
+
+        for entry in collaborators:
+            name = entry.get('name')
+            role = entry.get('role')
+            percentage = entry.get('percentage')
+
+            if not all([name, role, percentage]):
+                continue
+
+            new_collaborator = Collaborator(
+                track_id=track_id,
+                name=name,
+                role=role,
+                percentage=float(percentage)
+            )
+            db.session.add(new_collaborator)
+
+        db.session.commit()
+        return jsonify({"message": "✅ Collaborators saved"}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to save collaborators: {str(e)}"}), 500
+
+
+
+@api.route('/api/upload-lyrics', methods=['POST'])
+@jwt_required()
+def upload_lyrics():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    track_id = data.get("track_id")
+    lyrics = data.get("lyrics")
+
+    if not all([track_id, lyrics]):
+        return jsonify({"error": "Missing track ID or lyrics"}), 400
+
+    track = Track.query.get(track_id)
+    if not track or track.user_id != user_id:
+        return jsonify({"error": "Unauthorized or invalid track"}), 403
+
+    track.lyrics = lyrics
+    db.session.commit()
+    return jsonify({"message": "Lyrics saved"}), 200
+# ✅ In routes.py
+@api.route('/api/create-album', methods=['POST'])
+@jwt_required()
+def create_album():
+    user_id = get_jwt_identity()
+    title = request.form.get('title')
+    genre = request.form.get('genre')
+    release_date = request.form.get('release_date')
+    cover_art = request.files.get('cover_art')
+
+    # Validate required fields
+    if not all([title, genre, release_date, cover_art]):
+        return jsonify({"error": "All fields are required"}), 400
+
+    # Validate cover image file extension
+    ext = os.path.splitext(cover_art.filename)[1].lower()
+    if ext not in ['.jpg', '.jpeg', '.png']:
+        return jsonify({"error": "Cover art must be .jpg, .jpeg, or .png"}), 400
+
+    # Save cover image
+    unique_name = f"{uuid.uuid4().hex}_{secure_filename(cover_art.filename)}"
+    cover_path = os.path.join("static/uploads/album_covers", unique_name)
+    os.makedirs(os.path.dirname(cover_path), exist_ok=True)
+    cover_art.save(cover_path)
+    cover_url = f"/{cover_path}"
+
+    # Create album record
+    album = Album(
+        user_id=user_id,
+        title=title,
+        genre=genre,
+        release_date=datetime.strptime(release_date, "%Y-%m-%d"),
+        cover_art_url=cover_url
+    )
+    db.session.add(album)
+    db.session.commit()
+
+    return jsonify({"message": "✅ Album created", "album_id": album.id}), 201
+
+    # ✅ Save cover art with unique name
+    from uuid import uuid4
+    filename = f"{uuid4().hex}_{secure_filename(cover_art.filename)}"
+    cover_path = os.path.join("static/uploads/album_covers", filename)
+    os.makedirs(os.path.dirname(cover_path), exist_ok=True)
+    cover_art.save(cover_path)
+    cover_url = f"/{cover_path}"
+
+    # ✅ Save album
+    album = Album(
+        user_id=user_id,
+        title=title,
+        genre=genre,
+        release_date=release_date,
+        cover_art_url=cover_url
+    )
+    db.session.add(album)
+    db.session.commit()
+
+    return jsonify({"message": "✅ Album created!", "album_id": album.id}), 201
+
+    # handle metadata, save cover, associate user
+
+@api.route('/api/album/<int:album_id>/add-track', methods=['POST'])
+@jwt_required()
+def add_track_to_album(album_id):
+    """Add a track to an album"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    track_id = data.get("track_id")
+
+    if not track_id:
+        return jsonify({"error": "Track ID is required"}), 400
+
+    # Validate album ownership
+    album = Album.query.get(album_id)
+    if not album or album.user_id != user_id:
+        return jsonify({"error": "Album not found or unauthorized"}), 403
+
+    # Validate track ownership
+    track = Track.query.get(track_id)
+    if not track or track.user_id != user_id:
+        return jsonify({"error": "Track not found or unauthorized"}), 403
+
+    # Check if track is already in an album
+    if track.album_id and track.album_id != album_id:
+        return jsonify({"error": "Track is already in another album"}), 409
+
+    # Add track to album
+    track.album_id = album_id
+    db.session.commit()
+
+    return jsonify({"message": "✅ Track added to album"}), 200
+
+
+@api.route('/api/album/<int:album_id>/remove-track', methods=['POST'])
+@jwt_required()
+def remove_track_from_album(album_id):
+    """Remove a track from an album"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    track_id = data.get("track_id")
+
+    if not track_id:
+        return jsonify({"error": "Track ID is required"}), 400
+
+    # Validate album ownership
+    album = Album.query.get(album_id)
+    if not album or album.user_id != user_id:
+        return jsonify({"error": "Album not found or unauthorized"}), 403
+
+    # Validate track ownership and that it's in this album
+    track = Track.query.get(track_id)
+    if not track or track.user_id != user_id:
+        return jsonify({"error": "Track not found or unauthorized"}), 403
+    
+    if track.album_id != album_id:
+        return jsonify({"error": "Track is not in this album"}), 400
+
+    # Remove track from album
+    track.album_id = None
+    db.session.commit()
+
+    return jsonify({"message": "Track removed from album"}), 200
+
+
+@api.route('/api/album/<int:album_id>', methods=['GET'])
+@jwt_required()
+def get_album_detail(album_id):
+    """Get album details with all tracks"""
+    user_id = get_jwt_identity()
+    album = Album.query.get(album_id)
+
+    if not album or album.user_id != user_id:
+        return jsonify({"error": "Album not found or unauthorized"}), 403
+
+    tracks = Track.query.filter_by(album_id=album_id).order_by(Track.created_at).all()
+
+    return jsonify({
+        "album": album.serialize(),
+        "tracks": [t.serialize() for t in tracks]
+    }), 200
+
+
+@api.route('/api/my-albums', methods=['GET'])
+@jwt_required()
+def get_my_albums():
+    """Get all albums for the current user"""
+    user_id = get_jwt_identity()
+    albums = Album.query.filter_by(user_id=user_id).order_by(Album.created_at.desc()).all()
+    return jsonify([a.serialize() for a in albums]), 200
+
+
+@api.route('/api/track/<int:track_id>/edit', methods=['PUT'])
+@jwt_required()
+def edit_track(track_id):
+    """Edit track details (title, genre, description, etc.)"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    track = Track.query.get(track_id)
+    if not track or track.user_id != user_id:
+        return jsonify({"error": "Track not found or unauthorized"}), 403
+
+    # Update only if new values are provided
+    if "title" in data:
+        if not data["title"]:
+            return jsonify({"error": "Title cannot be empty"}), 400
+        track.title = data["title"]
+
+    if "genre" in data:
+        track.genre = data["genre"]
+
+    if "description" in data:
+        track.description = data["description"]
+
+    if "is_explicit" in data:
+        track.is_explicit = data["is_explicit"]
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "✅ Track updated successfully",
+        "track": track.serialize()
+    }), 200
+
+
+
+@api.route('/api/tracks/unassigned', methods=['GET'])
+@jwt_required()
+def get_unassigned_tracks():
+    """Get all tracks that are not assigned to any album"""
+    user_id = get_jwt_identity()
+    tracks = Track.query.filter_by(user_id=user_id, album_id=None).order_by(Track.created_at.desc()).all()
+    return jsonify([t.serialize() for t in tracks]), 200
+
+
+@api.route('/api/user/top-track', methods=['GET'])
+@jwt_required()
+def get_top_track():
+    user_id = get_jwt_identity()
+    top_track = Track.query.filter_by(user_id=user_id).order_by(Track.play_count.desc()).first()
+
+    if not top_track:
+        return jsonify({"message": "No tracks found"}), 404
+
+    return jsonify({
+        "id": top_track.id,
+        "title": top_track.title,
+        "play_count": top_track.play_count,
+        "file_url": top_track.file_url
+    }), 200
+
+@api.route('/api/user/earnings-history', methods=['GET'])
+@jwt_required()
+def get_earnings_history():
+    user_id = get_jwt_identity()
+
+    # Sample: daily earnings for last 30 days
+    results = db.session.execute("""
+        SELECT DATE(created_at) AS day, SUM(amount) as total
+        FROM earnings
+        WHERE user_id = :user_id
+        GROUP BY day
+        ORDER BY day DESC
+        LIMIT 30
+    """, {"user_id": user_id})
+
+    earnings = [{"day": str(row.day), "total": float(row.total)} for row in results]
+    return jsonify({"earnings": earnings})

@@ -3,6 +3,7 @@ from flask_socketio import SocketIO
 from flask_jwt_extended import create_access_token
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from sqlalchemy.dialects.postgresql import JSON
 
 import stripe
 
@@ -26,6 +27,8 @@ class Role(db.Model):
 
 # User Model
 class User(db.Model):
+    __tablename__ = 'user'
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     artist_name = db.Column(db.String(80), unique=True, nullable=True)
@@ -35,9 +38,11 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     is_premium = db.Column(db.Boolean, default=False, server_default="False")
     avatar_url = db.Column(db.String(500))
+
     is_on_trial = db.Column(db.Boolean, default=False)
     trial_start_date = db.Column(db.DateTime, nullable=True)
     trial_end_date = db.Column(db.DateTime, nullable=True)
+
     vr_tickets = db.relationship('VRAccessTicket', backref='user', lazy=True)
     ticket_purchases = db.relationship('TicketPurchase', backref='user', lazy=True)
 
@@ -55,9 +60,10 @@ class User(db.Model):
     videos = db.Column(db.JSON, default=[])
 
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
-    role = relationship("Role", backref="users")
+    role = db.relationship("Role", backref="users")
 
-    radio_follows = db.relationship('RadioFollower', backref='follower_user', lazy='dynamic')
+    # ✅ Fixed: Use the correct attribute name for back_populates
+    radio_follows = db.relationship('RadioFollower', back_populates='user', lazy='dynamic')
 
     def serialize(self):
         return {
@@ -79,8 +85,9 @@ class User(db.Model):
             "trial_start_date": self.trial_start_date.strftime("%Y-%m-%d") if self.trial_start_date else None,
             "trial_end_date": self.trial_end_date.strftime("%Y-%m-%d") if self.trial_end_date else None,
             "role": self.role.name if self.role else None,
-            "avatar_url": self.avatar_url  # Added missing comma here
+            "avatar_url": self.avatar_url
         }
+
     
 class UserSettings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -122,13 +129,13 @@ class Like(db.Model):
 class Favorite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    video_id = db.Column(db.Integer, db.ForeignKey("video.id"), nullable=True)  # ✅ Required for relationship
-    content_id = db.Column(db.Integer, nullable=True)  # Optional if still supporting other types
-    content_type = db.Column(db.String(50), nullable=True)  # e.g., "podcast", "radio", etc.
+    video_id = db.Column(db.Integer, db.ForeignKey("video.id"), nullable=True)
+    content_id = db.Column(db.Integer, nullable=True)
+    content_type = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship("User", backref=db.backref("favorites", lazy=True))
-    video = db.relationship("Video", backref=db.backref("favorites", lazy=True))  # ✅ Now works with video_id
+    video = db.relationship("Video", back_populates="video_favorites")  # ✅ use back_populates
 
     def serialize(self):
         return {
@@ -139,6 +146,7 @@ class Favorite(db.Model):
             "content_type": self.content_type,
             "created_at": self.created_at.isoformat(),
         }
+
 
 
 class FavoritePage(db.Model):
@@ -286,7 +294,175 @@ class StreamingHistory(db.Model):
         }
 
 
+# Enhanced Video Model Updates for better browsing experience
+
+# 1. Update your existing Video model with these additional fields:
 class Video(db.Model):
+    __tablename__ = 'video'
+
+    # Primary key
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Foreign keys
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    
+    # Basic video information
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    file_url = db.Column(db.String(500), nullable=False)
+    thumbnail_url = db.Column(db.String(500), nullable=True)
+    duration = db.Column(db.Integer, nullable=True)
+    
+    # Timestamps
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Engagement metrics
+    likes = db.Column(db.Integer, default=0)
+    views = db.Column(db.Integer, default=0)
+    comments_count = db.Column(db.Integer, default=0)
+    shares_count = db.Column(db.Integer, default=0)
+    
+    # Content organization
+    tags = db.Column(db.JSON, default=[])
+    
+    # Access control
+    is_public = db.Column(db.Boolean, default=True)
+    is_premium = db.Column(db.Boolean, default=False)
+    price = db.Column(db.Float, nullable=True)
+    
+    # SEO and metadata
+    video_slug = db.Column(db.String(255), unique=True)
+    keywords = db.Column(db.Text, nullable=True)
+    
+    # Technical specifications
+    resolution = db.Column(db.String(20), nullable=True)
+    file_size = db.Column(db.BigInteger, nullable=True)
+    codec = db.Column(db.String(50), nullable=True)
+    
+    # Analytics
+    average_watch_time = db.Column(db.Integer, default=0)
+    completion_rate = db.Column(db.Float, default=0.0)
+    
+    # Status fields
+    status = db.Column(db.String(50), default="active")
+    processing_status = db.Column(db.String(50), default="completed")
+    
+    # ✅ Relationships with proper back_populates and overlaps handling
+    category = db.relationship('Category', backref='videos')
+    user = db.relationship('User', backref=db.backref('user_videos', lazy=True))
+    
+    video_favorites = db.relationship(
+        "Favorite", 
+        back_populates="video",
+        overlaps="favorites"  # ✅ Fixes SQLAlchemy warning
+    )
+    
+    video_likes = db.relationship(
+        "VideoLike", 
+        back_populates="video", 
+        lazy=True
+    )
+    
+    video_comments = db.relationship(
+        "Comment",
+        foreign_keys="Comment.video_id",
+        back_populates="video",
+        lazy=True,
+        cascade="all, delete-orphan",
+        overlaps="comments"  # ✅ Silences SQLAlchemy warning
+    )
+    
+    video_views = db.relationship(
+        "VideoView", 
+        back_populates="video", 
+        lazy=True
+    )
+
+    def serialize(self):
+        """Serialize video data for JSON responses"""
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "title": self.title,
+            "description": self.description,
+            "file_url": self.file_url,
+            "thumbnail_url": self.thumbnail_url,
+            "duration": self.duration,
+            "uploaded_at": self.uploaded_at.isoformat() if self.uploaded_at else None,
+            "likes": self.likes,
+            "views": self.views,
+            "comments_count": self.comments_count,
+            "shares_count": self.shares_count,
+            "category": self.category.name if self.category else None,
+            "category_id": self.category_id,
+            "tags": self.tags or [],
+            "is_public": self.is_public,
+            "is_premium": self.is_premium,
+            "price": self.price,
+            "video_slug": self.video_slug,
+            "keywords": self.keywords,
+            "resolution": self.resolution,
+            "file_size": self.file_size,
+            "codec": self.codec,
+            "status": self.status,
+            "processing_status": self.processing_status,
+            "uploader_name": self.user.display_name or self.user.username if self.user else "Unknown",
+            "uploader_avatar": self.user.profile_picture or self.user.avatar_url if self.user else None,
+            "average_watch_time": self.average_watch_time,
+            "completion_rate": self.completion_rate
+        }
+
+    def __repr__(self):
+        return f'<Video {self.id}: {self.title}>'
+
+    @property
+    def is_processing(self):
+        """Check if video is still being processed"""
+        return self.processing_status in ['pending', 'processing']
+
+    @property
+    def is_ready(self):
+        """Check if video is ready for viewing"""
+        return self.processing_status == 'completed' and self.status == 'active'
+
+    def increment_views(self):
+        """Increment view count"""
+        self.views += 1
+        db.session.commit()
+
+    def increment_likes(self):
+        """Increment like count"""
+        self.likes += 1
+        db.session.commit()
+
+    def decrement_likes(self):
+        """Decrement like count"""
+        if self.likes > 0:
+            self.likes -= 1
+            db.session.commit()
+
+    def update_comments_count(self):
+        """Update comments count based on actual comments"""
+        self.comments_count = len(self.video_comments)
+        db.session.commit()
+
+    def get_formatted_duration(self):
+        """Get duration in MM:SS format"""
+        if not self.duration:
+            return "0:00"
+        
+        minutes = self.duration // 60
+        seconds = self.duration % 60
+        return f"{minutes}:{seconds:02d}"
+
+    def get_file_size_mb(self):
+        """Get file size in MB"""
+        if not self.file_size:
+            return 0
+        return round(self.file_size / (1024 * 1024), 2)
+    __tablename__ = 'video'
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
@@ -294,11 +470,56 @@ class Video(db.Model):
     file_url = db.Column(db.String(500), nullable=False)
     thumbnail_url = db.Column(db.String(500), nullable=True)
     duration = db.Column(db.Integer, nullable=True)
+
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
     likes = db.Column(db.Integer, default=0)
+    views = db.Column(db.Integer, default=0)
 
+    comments_count = db.Column(db.Integer, default=0)
+    shares_count = db.Column(db.Integer, default=0)
+
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    tags = db.Column(db.JSON, default=[])
+
+    is_public = db.Column(db.Boolean, default=True)
+    is_premium = db.Column(db.Boolean, default=False)
+    price = db.Column(db.Float, nullable=True)
+
+    video_slug = db.Column(db.String(255), unique=True)
+    keywords = db.Column(db.Text, nullable=True)
+
+    resolution = db.Column(db.String(20), nullable=True)
+    file_size = db.Column(db.BigInteger, nullable=True)
+    codec = db.Column(db.String(50), nullable=True)
+
+    average_watch_time = db.Column(db.Integer, default=0)
+    completion_rate = db.Column(db.Float, default=0.0)
+
+    status = db.Column(db.String(50), default="active")
+    processing_status = db.Column(db.String(50), default="completed")
+
+    # ✅ Relationships
+    category = db.relationship('Category', backref='videos')
     user = db.relationship('User', backref=db.backref('user_videos', lazy=True))
-    video_favorites = db.relationship("Favorite", back_populates="video")  # ✅ matches Favorite.video
+
+    # In your Video model
+    video_favorites = db.relationship(
+    "Favorite", 
+    back_populates="video",
+    overlaps="favorites"  # Add this line
+)
+    video_likes = db.relationship("VideoLike", back_populates="video", lazy=True)
+    
+    video_comments = db.relationship(
+        "Comment",
+        foreign_keys="Comment.video_id",
+        back_populates="video",
+        lazy=True,
+        cascade="all, delete-orphan",
+        overlaps="comments"  # 👈 silences SQLAlchemy warning
+    )
+
+    video_views = db.relationship("VideoView", back_populates="video", lazy=True)
 
     def serialize(self):
         return {
@@ -310,12 +531,147 @@ class Video(db.Model):
             "thumbnail_url": self.thumbnail_url,
             "duration": self.duration,
             "uploaded_at": self.uploaded_at.isoformat(),
-            "likes": self.likes
+            "likes": self.likes,
+            "views": self.views,
+            "comments_count": self.comments_count,
+            "shares_count": self.shares_count,
+            "category": self.category.name if self.category else None,
+            "category_id": self.category_id,
+            "tags": self.tags or [],
+            "is_public": self.is_public,
+            "is_premium": self.is_premium,
+            "price": self.price,
+            "video_slug": self.video_slug,
+            "resolution": self.resolution,
+            "status": self.status,
+            "processing_status": self.processing_status,
+            "uploader_name": self.user.display_name or self.user.username if self.user else "Unknown",
+            "uploader_avatar": self.user.profile_picture or self.user.avatar_url if self.user else None,
+            "average_watch_time": self.average_watch_time,
+            "completion_rate": self.completion_rate
         }
 
 
+# 2. Create a VideoLike model for better like tracking
+class VideoLike(db.Model):
+    __tablename__ = 'video_likes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    video_id = db.Column(db.Integer, db.ForeignKey('video.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Ensure one like per user per video
+    __table_args__ = (db.UniqueConstraint('user_id', 'video_id', name='unique_user_video_like'),)
+    
+    user = db.relationship('User', backref='video_likes')
+    video = db.relationship('Video', back_populates='video_likes')
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "video_id": self.video_id,
+            "created_at": self.created_at.isoformat()
+        }
 
+# 3. Create a VideoView model for analytics
+class VideoView(db.Model):
+    __tablename__ = 'video_views'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Anonymous views allowed
+    video_id = db.Column(db.Integer, db.ForeignKey('video.id'), nullable=False)
+    ip_address = db.Column(db.String(45), nullable=True)  # For anonymous tracking
+    watch_time = db.Column(db.Integer, default=0)  # Seconds watched
+    completed = db.Column(db.Boolean, default=False)  # Did they watch to the end?
+    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref='video_views')
+    video = db.relationship('Video', back_populates='video_views')
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "video_id": self.video_id,
+            "watch_time": self.watch_time,
+            "completed": self.completed,
+            "viewed_at": self.viewed_at.isoformat()
+        }
 
+# 4. Update Category model with better fields
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    slug = db.Column(db.String(100), unique=True, nullable=False)  # URL-friendly
+    description = db.Column(db.Text, nullable=True)
+    icon = db.Column(db.String(50), nullable=True)  # Emoji or icon class
+    color = db.Column(db.String(7), nullable=True)  # Hex color for UI
+    is_active = db.Column(db.Boolean, default=True)
+    sort_order = db.Column(db.Integer, default=0)  # For custom ordering
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "slug": self.slug,
+            "description": self.description,
+            "icon": self.icon,
+            "color": self.color,
+            "is_active": self.is_active,
+            "podcast_count": len(self.podcasts) if hasattr(self, 'podcasts') else 0
+        }
+
+# 5. Create VideoTag model for better tagging
+class VideoTag(db.Model):
+    __tablename__ = 'video_tags'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    video_id = db.Column(db.Integer, db.ForeignKey('video.id'), nullable=False)
+    tag_name = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    video = db.relationship('Video', backref='tag_associations')
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "video_id": self.video_id,
+            "tag_name": self.tag_name
+        }
+
+# 6. Update Comment model to properly link to videos
+# (Update your existing Comment model with this relationship)
+# Add this to your existing Comment model:
+# video = db.relationship('Video', foreign_keys='Comment.video_id', back_populates='video_comments')
+
+# 7. Seed default categories
+def seed_video_categories():
+    """Run this to populate default video categories"""
+    default_categories = [
+        {"name": "Music", "slug": "music", "icon": "🎵", "color": "#FF6B6B"},
+        {"name": "Podcasts", "slug": "podcasts", "icon": "🎙️", "color": "#4ECDC4"},
+        {"name": "Meditation", "slug": "meditation", "icon": "🧘", "color": "#45B7D1"},
+        {"name": "Fitness", "slug": "fitness", "icon": "💪", "color": "#96CEB4"},
+        {"name": "Education", "slug": "education", "icon": "📚", "color": "#FFEAA7"},
+        {"name": "Entertainment", "slug": "entertainment", "icon": "🎭", "color": "#DDA0DD"},
+        {"name": "Gaming", "slug": "gaming", "icon": "🎮", "color": "#98D8C8"},
+        {"name": "Tech", "slug": "tech", "icon": "💻", "color": "#74B9FF"},
+        {"name": "Art", "slug": "art", "icon": "🎨", "color": "#FD79A8"},
+        {"name": "Other", "slug": "other", "icon": "📁", "color": "#636E72"}
+    ]
+    
+    for cat_data in default_categories:
+        existing = Category.query.filter_by(slug=cat_data["slug"]).first()
+        if not existing:
+            category = Category(**cat_data)
+            db.session.add(category)
+    
+    db.session.commit()
+    print("✅ Video categories seeded successfully!")
+  
 
 class VideoPlaylist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -366,8 +722,8 @@ class RadioFollower(db.Model):
     station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), primary_key=True)
     followed_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    user = db.relationship('User', backref=db.backref('radio_follower_entries', lazy='dynamic'))
-    station = db.relationship('RadioStation', backref=db.backref('radio_follower_entries', lazy='dynamic'))
+    user = db.relationship('User', back_populates='radio_follows')
+    station = db.relationship('RadioStation', back_populates='radio_follower_entries')
 
     def serialize(self):
         return {
@@ -375,6 +731,7 @@ class RadioFollower(db.Model):
             "station_id": self.station_id,
             "followed_at": self.followed_at.isoformat()
         }
+
 
 
 
@@ -401,6 +758,7 @@ class RadioStation(db.Model):
     logo_url = db.Column(db.String(500), nullable=True)
     cover_image_url = db.Column(db.String(500), nullable=True)
 
+    radio_follower_entries = db.relationship('RadioFollower', back_populates='station', lazy='dynamic')
     followers_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -555,8 +913,7 @@ class LiveStudio(db.Model):
     total_earnings = db.Column(db.Float, default=0.0)  # Total revenue from the stream
 
     # ✅ Live Chat & Fan Interaction
-    # has_live_chat = db.Column(db.Boolean, default=True)  # Enable chat functionality
-    # chat_messages = db.relationship('LiveChat', backref='live_studio', lazy=True)
+    has_live_chat = db.Column(db.Boolean, default=True)  # Enable chat functionality
     chat_messages = db.relationship("LiveChat", backref="studio_chats", lazy=True)
 
     # ✅ Merch Sales (Coming Soon)
@@ -1002,12 +1359,18 @@ class UserPodcast(db.Model):
 
 
 class Track(db.Model):
-    __tablename__ = "track"
     id = db.Column(db.Integer, primary_key=True)
-    radio_playlist_id = db.Column(db.Integer, db.ForeignKey("radio_playlist.id"), nullable=False)
-    title = db.Column(db.String(255), nullable=False)
-    artist = db.Column(db.String(255), nullable=True)
-    file_url = db.Column(db.String(255), nullable=False)  # Audio file URL
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(150), nullable=False)
+    file_url = db.Column(db.String(500), nullable=False)
+    artist_name = db.Column(db.String(150), nullable=True)
+    genre = db.Column(db.String(100), nullable=True)
+    is_explicit = db.Column(db.Boolean, default=False)
+    lyrics = db.Column(db.Text, nullable=True)  # ✅ Add this line
+    isrc = db.Column(db.String(50), nullable=True)
+    album_id = db.Column(db.Integer, db.ForeignKey('album.id'), nullable=True)
+
+
 
 
 class Music(db.Model):
@@ -1253,15 +1616,24 @@ class CreatorMembershipTier(db.Model):
             "benefits": self.benefits.split(";") if self.benefits else []
         }
 class Comment(db.Model):
+    __tablename__ = 'comment'
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    content_id = db.Column(db.Integer, nullable=False)  # For flexibility: podcast, radio, etc.
-    content_type = db.Column(db.String(50), nullable=False)  # "podcast", "radio", "livestream", "video"
+    content_id = db.Column(db.Integer, nullable=False)
+    content_type = db.Column(db.String(50), nullable=False)
     text = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.Integer, nullable=True)  # For podcast/video timestamps
+    timestamp = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    video_id = db.Column(db.Integer, db.ForeignKey('video.id'))  # Optional: for reverse lookup
+    video_id = db.Column(db.Integer, db.ForeignKey('video.id'))
+
+    # ✅ Match this to the property name in Video
+    video = db.relationship(
+        'Video',
+        back_populates='video_comments',
+        overlaps="comments"
+    )
 
     user = db.relationship("User", backref=db.backref("comments", lazy=True))
 
@@ -1276,6 +1648,7 @@ class Comment(db.Model):
             "timestamp": self.timestamp,
             "created_at": self.created_at.isoformat(),
         }
+
 
     
 class PodcastChapter(db.Model):
@@ -1591,26 +1964,39 @@ class ListeningPartyAttendee(db.Model):
     payment_status = db.Column(db.String(50), default='paid')  # or 'pending', 'refunded'
     joined_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+# ✅ In models.py
 class Album(db.Model):
-    __tablename__ = 'album'
-
     id = db.Column(db.Integer, primary_key=True)
-    artist_id = db.Column(db.Integer, db.ForeignKey('artist.id'), nullable=False)
-    title = db.Column(db.String(255), nullable=False)
-    release_date = db.Column(db.Date)
-    cover_art_url = db.Column(db.String(255))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(150), nullable=False)
+    genre = db.Column(db.String(80), nullable=False)
+    release_date = db.Column(db.String(20), nullable=False)
+    cover_art_url = db.Column(db.String(255), nullable=True)
+    artist_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # ✅ FIXED: Specify which foreign key to use for each relationship
+    user = db.relationship("User", foreign_keys=[user_id], backref="albums")
+    artist = db.relationship("User", foreign_keys=[artist_id], backref="artist_albums")
+    tracks = db.relationship("Track", backref="album", lazy=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Artist(db.Model):
+    """If you don't actually need the Artist.albums relationship"""
     __tablename__ = 'artist'
-
+    
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    avatar_url = db.Column(db.String(255))
-
-    albums = db.relationship('Album', backref='artist', lazy=True)
-    listening_parties = db.relationship('ListeningParty', backref='artist', lazy=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    bio = db.Column(db.Text)
+    
+    # ✅ REMOVE the problematic albums relationship
+    # albums = db.relationship("Album", ...)  # REMOVE THIS LINE
+    
+    user = db.relationship("User", backref="artist_profile")
+    
+    def get_albums(self):
+        """Get albums by querying through user relationship"""
+        return self.user.albums
 
 
 class Purchase(db.Model):
@@ -1821,3 +2207,75 @@ class UserPodcastFollow(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     podcast_id = db.Column(db.Integer, db.ForeignKey('podcast.id'))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+class TrackRelease(db.Model):
+    __tablename__ = 'track_releases'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(120), nullable=False)
+    genre = db.Column(db.String(50))
+    release_date = db.Column(db.Date)
+    cover_url = db.Column(db.String(250))
+    audio_url = db.Column(db.String(250))
+    is_explicit = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(50), default='pending')  # 'pending', 'live', 'rejected', etc.
+    platform_links = db.Column(JSON, nullable=True)  # Example: {"spotify": "...", "apple": "..."}
+    external_id = db.Column(db.String(120))  # ID returned from Revelator
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "genre": self.genre,
+            "release_date": self.release_date.strftime('%Y-%m-%d') if self.release_date else None,
+            "cover_url": self.cover_url,
+            "audio_url": self.audio_url,
+            "is_explicit": self.is_explicit,
+            "status": self.status,
+            "platform_links": self.platform_links,
+            "external_id": self.external_id,
+            "created_at": self.created_at.isoformat()
+        }
+
+class Release(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    title = db.Column(db.String(150))
+    genre = db.Column(db.String(80))
+    release_date = db.Column(db.String(20))
+    explicit = db.Column(db.Boolean, default=False)
+    track_id = db.Column(db.Integer)
+    cover_art_url = db.Column(db.String(255))
+    external_id = db.Column(db.String(120))  # Revelator response tracking ID
+    delivery_status = db.Column(db.String(50), default="pending")  # e.g. delivered, rejected
+    delivery_message = db.Column(db.Text, nullable=True)  # optional error or info message
+    status = db.Column(db.String)
+    platform_links = db.Column(db.JSON)
+    upc = db.Column(db.String(50), nullable=True)
+
+
+# Track
+lyrics_text = db.Column(db.Text)
+isrc_code = db.Column(db.String(20))
+
+# Release
+upc_code = db.Column(db.String(20))
+
+# New Table
+class Collaborator(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    track_id = db.Column(db.Integer, db.ForeignKey('track.id'), nullable=False)
+    name = db.Column(db.String(120), nullable=False)
+    role = db.Column(db.String(120))
+    percentage = db.Column(db.Float)
+
+    track = db.relationship('Track', backref=db.backref('collaborators', lazy=True))
+
+class AlbumTrack(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    album_id = db.Column(db.Integer, db.ForeignKey('album.id'), nullable=False)
+    track_id = db.Column(db.Integer, db.ForeignKey('track.id'), nullable=False)
+
+

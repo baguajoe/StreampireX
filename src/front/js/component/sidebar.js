@@ -44,10 +44,8 @@ const Sidebar = () => {
 
   return (
     <SidebarContainer className="sidebar">
-      {/* User Section */}
-      <SectionHeader>👤 User & Account</SectionHeader>
-      <MenuItem to="/profile" className={isActive("/profile") ? "active" : ""}>👤 Profile</MenuItem>
-      <MenuItem to="/settings" className={isActive("/settings") ? "active" : ""}>⚙️ Settings</MenuItem>
+
+
 
       {/* Dashboards */}
       <SectionHeader>📊 Dashboards</SectionHeader>
@@ -55,14 +53,22 @@ const Sidebar = () => {
       <MenuItem to="/artist-dashboard" className={isActive("/artist-dashboard") ? "active" : ""}>🎤 Artist Dashboard</MenuItem>
       <MenuItem to="/podcast-dashboard" className={isActive("/podcast-dashboard") ? "active" : ""}>🎧 Podcast Dashboard</MenuItem>
       <MenuItem to="/radio-dashboard" className={isActive("/radio-dashboard") ? "active" : ""}>📻 Radio Dashboard</MenuItem>
-    
+
+      <SectionHeader>👤 User </SectionHeader>
+      <MenuItem to="/profile" className={isActive("/profile") ? "active" : ""}>👤 Profile</MenuItem>
+
 
 
       {/* Podcasts */}
       <SectionHeader>🎧 Podcasts</SectionHeader>
       <MenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>🎙️ Create Podcast</MenuItem>
       <MenuItem to="/browse-podcast-categories" className={isActive("/browse-podcast-categories") ? "active" : ""}>🎧 Browse Categories</MenuItem>
-      <MenuItem to="/podcasts" className={isActive("/podcasts") ? "active" : ""}>📁 All Podcasts</MenuItem>
+
+      {/* Videos */}
+      <SectionHeader>🎬 Videos</SectionHeader>
+      <MenuItem to="/videos" className={isActive("/videos") ? "active" : ""}>
+        🎞️ Browse Videos
+      </MenuItem>
 
       {/* Radio */}
       <SectionHeader>📻 Radio Stations</SectionHeader>
@@ -76,13 +82,14 @@ const Sidebar = () => {
 
       {/* Live Streaming */}
       <SectionHeader>🎥 Live Streaming</SectionHeader>
-      <MenuItem to="/studio" className={isActive("/studio") ? "active" : ""}>🎥 Live Studio</MenuItem>
       <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>📡 Live Streams</MenuItem>
       <MenuItem to="/live-concerts" className={isActive("/live-concerts") ? "active" : ""}>🎶 Live Concerts</MenuItem>
 
-      {/* Monetization */}
-      <SectionHeader>💰 Monetization</SectionHeader>
-      <MenuItem to="/payout-request" className={isActive("/payout-request") ? "active" : ""}>💵 Payout Request</MenuItem>
+      {/* User Section */}
+      <SectionHeader>👤 Account</SectionHeader>
+      <MenuItem to="/settings" className={isActive("/settings") ? "active" : ""}>⚙️ Settings</MenuItem>
+
+
     </SidebarContainer>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "../../styles/SettingsPage.css";
+import PayoutRequest from "../component/PayoutRequest"; // ✅ Import payout request
 
 const SettingsPage = () => {
   const [settings, setSettings] = useState({
@@ -16,7 +17,10 @@ const SettingsPage = () => {
     defaultVRRoom: "Main Hall",
   });
 
+  const [availableBalance, setAvailableBalance] = useState(0); // ✅ Balance state
+
   useEffect(() => {
+    // Fetch user settings
     fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/settings`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -25,6 +29,16 @@ const SettingsPage = () => {
       .then((res) => res.json())
       .then((data) => setSettings((prev) => ({ ...prev, ...data })))
       .catch((err) => console.error("Error loading settings:", err));
+
+    // Fetch earnings for payout balance
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/earnings`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => setAvailableBalance(data.available_balance || 0))
+      .catch((err) => console.error("Error loading earnings:", err));
   }, []);
 
   const handleToggle = (key) => {
@@ -51,7 +65,6 @@ const SettingsPage = () => {
   };
 
   const handleUpgrade = () => {
-    // Redirect to Stripe billing portal or subscription page
     window.location.href = "/billing";
   };
 
@@ -178,6 +191,16 @@ const SettingsPage = () => {
           <option value="stripe">Stripe</option>
           <option value="paypal">PayPal</option>
         </select>
+      </div>
+
+      <div className="setting-item">
+        <label>Available for Payout</label>
+        <span>${availableBalance.toFixed(2)}</span>
+      </div>
+
+      <div className="setting-item">
+        <PayoutRequest balance={availableBalance} method={settings.payoutMethod} />
+
       </div>
 
       {/* APPEARANCE */}

@@ -9,28 +9,63 @@ import podcast4 from "../../img/podcast4.png";
 import podcast5 from "../../img/podcast5.png";
 import podcast6 from "../../img/podcast6.png";
 
-// Utility to create slugs from category names
-const slugify = (str) =>
-  str.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-
 const BrowsePodcastCategories = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const scrollRef = useRef(null);
 
+  const fallbackCategories = [
+    { name: "True Crime & Investigative Journalism" },
+    { name: "Celebrity Gossip & Reality TV" },
+    { name: "Education & Learning" },
+    { name: "Comedy & Stand-Up" },
+    { name: "Tabletop & Board Games" },
+    { name: "Film & TV Reviews" },
+    { name: "Technology & Science" },
+    { name: "Health & Wellness" },
+    { name: "Business & Finance" },
+    { name: "Sports & Recreation" },
+  ];
+
   useEffect(() => {
-    fetch(`${process.env.BACKEND_URL}/api/podcasts/categories`)
-      .then((res) => res.json())
-      .then((data) => setCategories(data))
-      .catch((err) => console.error("Error fetching categories:", err));
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001';
+        const response = await fetch(`${backendUrl}/api/podcasts/categories`);
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+        const data = await response.json();
+
+        if (Array.isArray(data) && data.length > 0) {
+          setCategories(data);
+        } else {
+          console.warn("Using fallback categories");
+          setCategories(fallbackCategories);
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        setError(err.message);
+        setCategories(fallbackCategories);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCategories();
   }, []);
 
   const scrollLeft = () => {
-    scrollRef.current.scrollLeft -= 200;
+    if (scrollRef.current) scrollRef.current.scrollLeft -= 200;
   };
 
   const scrollRight = () => {
-    scrollRef.current.scrollLeft += 200;
+    if (scrollRef.current) scrollRef.current.scrollLeft += 200;
   };
 
   const samplePodcasts = [
@@ -78,11 +113,19 @@ const BrowsePodcastCategories = () => {
     },
   ];
 
-  // ✅ Main renderSection function with filtering logic inside
   const renderSection = (title, filterCategory) => {
-    const filteredPodcasts = filterCategory 
-      ? samplePodcasts.filter(podcast => podcast.category === filterCategory)
+    const filteredPodcasts = filterCategory
+      ? samplePodcasts.filter(p => p.category === filterCategory)
       : samplePodcasts;
+
+    if (filteredPodcasts.length === 0) {
+      return (
+        <div className="podcast-section">
+          <h2 className="section-title">{title}</h2>
+          <p className="no-podcasts">No podcasts found in this category.</p>
+        </div>
+      );
+    }
 
     return (
       <div className="podcast-section">
@@ -105,28 +148,34 @@ const BrowsePodcastCategories = () => {
     <div className="categories-wrapper">
       <h1 className="categories-heading">🎧 Podcast Categories</h1>
 
-      {/* Horizontal Scrollable Categories */}
+      {error && (
+        <div className="error-message" style={{ background: "#fee", border: "1px solid #fcc", padding: "10px", borderRadius: "5px", margin: "10px 0", color: "#c33" }}>
+          ⚠️ Could not load categories from server. Using default categories.
+        </div>
+      )}
+
       <div className="category-nav">
         <button onClick={scrollLeft} className="scroll-button">‹</button>
         <div className="categories-scroll" ref={scrollRef}>
-          {categories.length > 0 ? (
+          {loading ? (
+            <div className="loading-spinner">Loading categories...</div>
+          ) : categories.length > 0 ? (
             categories.map((category, index) => (
               <div
                 key={index}
-                onClick={() => setSelectedCategory(category)}  // ✅ fixed case-sensitive typo here
-                className={`category-pill ${selectedCategory === category ? "active" : ""}`}
+                onClick={() => setSelectedCategory(category.name)}
+                className={`category-pill ${selectedCategory === category.name ? "active" : ""}`}
               >
-                {category}
+                {category.name}
               </div>
             ))
           ) : (
-            <p>Loading categories...</p>
+            <p>No categories available</p>
           )}
         </div>
         <button onClick={scrollRight} className="scroll-button">›</button>
       </div>
 
-      {/* Show filtered section */}
       {selectedCategory ? (
         renderSection(`🎯 ${selectedCategory}`, selectedCategory)
       ) : (

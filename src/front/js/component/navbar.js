@@ -33,21 +33,39 @@ const Navbar = () => {
       </Link>
 
       <ul className="navbar-nav ms-auto">
-        <li className="nav-item"><Link className="nav-link" to="/">🏠 Home</Link></li>
-        <li className="nav-item"><Link className="nav-link" to="/browse-podcast-categories">🎙️ Browse Podcast Categories</Link></li>
-        <li className="nav-item"><Link className="nav-link" to="/browse-radio-stations">📻 Browse Radio Stations</Link></li>
-        <li className="nav-item"><Link className="nav-link" to="/live-streams">📡 Live Streams</Link></li>
+        <li className="nav-item">
+          <Link className="nav-link" to="/">🏠 Home</Link>
+        </li>
+        <li className="nav-item">
+          <Link className="nav-link" to="/browse-podcast-categories">🎙️ Browse Podcast Categories</Link>
+        </li>
+        <li className="nav-item">
+          <Link className="nav-link" to="/videos">📹 Browse Videos</Link> {/* ✅ Fixed route path */}
+        </li>
+        <li className="nav-item">
+          <Link className="nav-link" to="/browse-radio-stations">📻 Browse Radio Stations</Link>
+        </li>
+        <li className="nav-item">
+          <Link className="nav-link" to="/live-streams">📡 Live Streams</Link>
+        </li>
 
-        {!user && (
+        {!user ? (
           <>
-            <li className="nav-item"><Link className="nav-link" to="/login">🔑 Login</Link></li>
-            <li className="nav-item"><Link className="nav-link" to="/register">📝 Signup</Link></li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/login">🔑 Login</Link>
+            </li>
+            <li className="nav-item">
+              <Link className="nav-link" to="/register">📝 Signup</Link>
+            </li>
           </>
-        )}
-
-        {user && (
+        ) : (
           <li className="nav-item dropdown">
-            <a className="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+            <a
+              className="nav-link dropdown-toggle"
+              href="#"
+              role="button"
+              data-bs-toggle="dropdown"
+            >
               <img
                 src={user.profile_picture || "/default-avatar.png"}
                 alt="Avatar"
@@ -57,10 +75,18 @@ const Navbar = () => {
               {user.username}
             </a>
             <ul className="dropdown-menu dropdown-menu-end">
-              <li><Link className="dropdown-item" to="/profile">👤 My Profile</Link></li>
-              <li><Link className="dropdown-item" to="/settings">⚙️ Settings</Link></li>
-              <li><Link className="dropdown-item" to="/notifications">🔔 Notifications</Link></li>
-              <li><button className="dropdown-item" onClick={handleLogout}>🚪 Logout</button></li>
+              <li>
+                <Link className="dropdown-item" to="/profile">👤 My Profile</Link>
+              </li>
+              <li>
+                <Link className="dropdown-item" to="/settings">⚙️ Settings</Link>
+              </li>
+              <li>
+                <Link className="dropdown-item" to="/notifications">🔔 Notifications</Link>
+              </li>
+              <li>
+                <button className="dropdown-item" onClick={handleLogout}>🚪 Logout</button>
+              </li>
             </ul>
           </li>
         )}

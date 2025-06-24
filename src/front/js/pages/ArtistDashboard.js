@@ -1,174 +1,178 @@
-import React, { useState, useEffect } from "react";
-import "../../styles/ArtistDashboard.css";
+import React, { useState, useEffect } from 'react';
+import '../../styles/ArtistDashboard.css';
+import { FaDollarSign, FaUserFriends, FaMusic, FaHeart, FaBroadcastTower, FaUpload, FaGuitar, FaVideo, FaPlayCircle } from 'react-icons/fa';
+
+// Required component imports
+import LiveStudio from "../component/LiveStudio";
+import TrackUploadForm from "../component/TrackUploadForm";
+import TermsAgreementModal from "../component/TermsAgreementModal";
+import AlbumCard from "../component/AlbumCard";
+import EditTrackForm from "../component/EditTrackForm";
+import EditAlbumForm from "../component/EditAlbumForm";
 
 const ArtistDashboard = () => {
-    const [stationName, setStationName] = useState("");
-    const [stationTracks, setStationTracks] = useState([]);
-    const [uploadedTracks, setUploadedTracks] = useState([]);
-    const [selectedTrack, setSelectedTrack] = useState(null);
-    const [followers, setFollowers] = useState(0);
-    const [earnings, setEarnings] = useState({ total: 0, merch: 0, licensing: 0, subscriptions: 0 });
-    const [message, setMessage] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [stationExists, setStationExists] = useState(false);
+  const [trackTitle, setTrackTitle] = useState('');
+  const [genre, setGenre] = useState('');
+  const [audioFile, setAudioFile] = useState(null);
+  const [explicit, setExplicit] = useState(false);
+  const [genres, setGenres] = useState([]);
 
-    useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                const [tracksRes, stationRes] = await Promise.all([
-                    fetch(`${process.env.BACKEND_URL}/api/artist/tracks`, {
-                        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-                    }),
-                    fetch(`${process.env.BACKEND_URL}/api/indie-station`, {
-                        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-                    })
-                ]);
+  const [selectedTrack, setSelectedTrack] = useState("");
+  const [studioOpen, setStudioOpen] = useState(false);
+  const [showVideoDistributionInfo, setShowVideoDistributionInfo] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [trackBeingEdited, setTrackBeingEdited] = useState(null);
+  const [albumBeingEdited, setAlbumBeingEdited] = useState(null);
+  const [showAlbumCreator, setShowAlbumCreator] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-                const tracksData = await tracksRes.json();
-                const stationData = await stationRes.json();
+  useEffect(() => {
+    fetch(`${process.env.BACKEND_URL}/api/categories`)
+      .then(res => res.json())
+      .then(data => setGenres(data))
+      .catch(err => setErrorMessage("Error fetching genres."));
+  }, []);
 
-                setUploadedTracks(tracksData.tracks);
-                setEarnings(tracksData.earnings);
+  const handleAudioUpload = async () => {
+    if (!trackTitle || !genre || !audioFile) {
+      setErrorMessage("Please fill in all fields before uploading.");
+      return;
+    }
+    setErrorMessage('');
 
-                if (stationData.station) {
-                    setStationName(stationData.station.name);
-                    setStationTracks(stationData.tracks);
-                    setStationExists(true);
-                    setFollowers(stationData.followers || 0);
-                }
-            } catch (error) {
-                console.error("Error fetching dashboard data:", error);
-            }
-        };
+    const formData = new FormData();
+    formData.append("title", trackTitle);
+    formData.append("genre", genre);
+    formData.append("audio", audioFile);
+    formData.append("explicit", explicit);
 
-        fetchDashboardData();
-    }, []);
+    try {
+      const res = await fetch(`${process.env.BACKEND_URL}/api/upload-track`, {
+        method: "POST",
+        body: formData,
+      });
 
-    const addTrackToStation = async () => {
-        if (!selectedTrack) return setMessage("⚠️ Select a track to add to your station!");
+      const data = await res.json();
+      if (res.ok) {
+        alert("Upload successful!");
+        setTrackTitle('');
+        setGenre('');
+        setAudioFile(null);
+        setExplicit(false);
+      } else {
+        setErrorMessage(data.error || "Upload failed.");
+      }
+    } catch (err) {
+      setErrorMessage("Server error during upload.");
+    }
+  };
 
-        setLoading(true);
-        try {
-            await fetch(`${process.env.BACKEND_URL}/api/indie-station/add-track`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`
-                },
-                body: JSON.stringify({ track_id: selectedTrack })
-            });
+  const handleVideoUpload = () => {
+    alert('Video distribution triggered!');
+  };
 
-            setMessage("🎵 Track added to station!");
-            setStationTracks([...stationTracks, uploadedTracks.find(t => t.id === selectedTrack)]);
-        } catch (error) {
-            setMessage("❌ Error adding track.");
-        } finally {
-            setLoading(false);
-        }
-    };
+  return (
+    <div className="artist-dashboard">
+      <h1><FaMusic /> Artist Dashboard</h1>
 
-    const removeTrackFromStation = async (trackId) => {
-        setLoading(true);
-        try {
-            await fetch(`${process.env.BACKEND_URL}/api/indie-station/remove-track/${trackId}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-            });
-
-            setMessage("🗑️ Track removed from station.");
-            setStationTracks(stationTracks.filter(track => track.id !== trackId));
-        } catch (error) {
-            setMessage("❌ Error removing track.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const followStation = async () => {
-        setLoading(true);
-        try {
-            await fetch(`${process.env.BACKEND_URL}/api/indie-station/follow`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`
-                }
-            });
-
-            setMessage("✅ Following station!");
-            setFollowers(followers + 1);
-        } catch (error) {
-            setMessage("❌ Error following station.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="artist-dashboard">
-            <h1>🎤 Artist Dashboard</h1>
-            {message && <p className="message-box">{message}</p>}
-
-            <div className="artist-section">
-                <h2>📊 Summary</h2>
-                <div className="station-info"><strong>Station:</strong> {stationExists ? stationName : "N/A"}</div>
-                <div className="station-info"><strong>Followers:</strong> {followers}</div>
-                <div className="station-info"><strong>Uploaded Tracks:</strong> {uploadedTracks.length}</div>
-                <div className="station-info"><strong>Total Earnings:</strong> ${earnings.total.toFixed(2)}</div>
-            </div>
-
-            <div className="artist-section">
-                <h2>🎧 Tracks in Station</h2>
-                {stationTracks.length === 0 ? (
-                    <p className="empty-state">No tracks added yet.</p>
-                ) : (
-                    <ul className="track-list">
-                        {stationTracks.map(track => (
-                            <li key={track.id}>
-                                <strong>{track.title}</strong>
-                                <audio controls>
-                                    <source src={track.file_url} type="audio/mpeg" />
-                                </audio>
-                                <button onClick={() => removeTrackFromStation(track.id)}>🗑️ Remove</button>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-
-            <div className="artist-section add-track-form">
-                <h2>➕ Add Track to Station</h2>
-                <select onChange={(e) => setSelectedTrack(e.target.value)} value={selectedTrack}>
-                    <option value="">Select a Track</option>
-                    {uploadedTracks.map(track => (
-                        <option key={track.id} value={track.id}>{track.title}</option>
-                    ))}
-                </select>
-                <button onClick={addTrackToStation} disabled={!selectedTrack || loading}>
-                    {loading ? "Adding..." : "Add to Station"}
-                </button>
-            </div>
-
-            <div className="artist-section">
-                <h2>💰 Earnings Breakdown</h2>
-                <ul>
-                    <li>🛍️ Merch: ${earnings.merch.toFixed(2)}</li>
-                    <li>🎼 Licensing: ${earnings.licensing.toFixed(2)}</li>
-                    <li>🎫 Subscriptions: ${earnings.subscriptions.toFixed(2)}</li>
-                </ul>
-            </div>
-
-            <div className="artist-section">
-                <h2>🛠️ Artist Tools</h2>
-                <ul>
-                    <li><a href="/upload">Upload New Track</a></li>
-                    <li><a href="/manage-merch">Manage Merchandise</a></li>
-                    <li><a href="/stats">Track Stats</a></li>
-                    <li><a href="/payout">Request Payout</a></li>
-                </ul>
-            </div>
+      <div className="stats-row">
+        <div className="stat-card">
+          <h3><FaDollarSign /> Total Earnings</h3>
+          <p>$0.00</p>
         </div>
-    );
+        <div className="stat-card">
+          <h3><FaUserFriends /> Followers</h3>
+          <p>0</p>
+        </div>
+        <div className="stat-card">
+          <h3><FaMusic /> Uploaded Tracks</h3>
+          <p>0</p>
+        </div>
+        <div className="stat-card">
+          <h3><FaHeart /> Total Engagement</h3>
+          <p>0</p>
+        </div>
+      </div>
+
+      <div className="artist-section">
+        <h2><FaBroadcastTower /> Quick Actions</h2>
+        <button className="video-upload-btn" onClick={() => setStudioOpen(true)}><FaBroadcastTower /> Open Live Studio</button>
+        <button className="video-info-btn"><FaUpload /> Upload Lyrics</button>
+      </div>
+
+      <div className="music-distribution-center">
+        <h2><FaGuitar /> Music Distribution</h2>
+        <p>Get your music on Spotify, Apple Music, YouTube Music, Amazon Music & 100+ platforms!</p>
+        <div className="video-actions">
+          <button className="music-upload-btn"><FaUpload /> Upload Music</button>
+          <button className="music-info-btn">How Distribution Works</button>
+        </div>
+      </div>
+
+      <div className="artist-section">
+        <h2><FaUpload /> Upload Music</h2>
+        {errorMessage && <p className="error-message">{errorMessage}</p>}
+        <div className="add-track-form">
+          <input type="text" placeholder="Title" value={trackTitle} onChange={(e) => setTrackTitle(e.target.value)} />
+
+          <select value={genre} onChange={(e) => setGenre(e.target.value)}>
+            <option value="">Select Genre</option>
+            {genres.map((g) => (
+              <option key={g.id} value={g.name}>{g.name}</option>
+            ))}
+          </select>
+
+          <input type="file" accept="audio/*" onChange={(e) => setAudioFile(e.target.files[0])} />
+          <label>
+            <input type="checkbox" checked={explicit} onChange={() => setExplicit(!explicit)} /> Explicit Lyrics
+          </label>
+          <button onClick={handleAudioUpload}>Upload</button>
+        </div>
+      </div>
+
+      <div className="video-distribution-center">
+        <h2><FaVideo /> Music Video Distribution</h2>
+        <p>Distribute music videos, lyric videos, and visual content to video platforms!</p>
+        <div className="distribution-option">
+          <h4><FaUpload /> Upload & Distribute Music Videos</h4>
+          <p>Get your music videos on YouTube, Vevo, Facebook, Instagram, TikTok & more.</p>
+          <ul>
+            <li>🎯 TikTok • Vevo • Facebook • Instagram • Triller • Snapchat</li>
+            <li>🧠 Monetization enabled • Global placement • ID & Analytics tracking</li>
+          </ul>
+          <div className="video-actions">
+            <button className="video-upload-btn" onClick={handleVideoUpload}><FaUpload /> Upload & Distribute Video</button>
+            <button className="video-info-btn">📘 Video Requirements & Info</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="artist-section">
+        <h2><FaPlayCircle /> Upload Music Video</h2>
+        <form className="add-track-form">
+          <input type="text" placeholder="Title" required />
+          <input type="text" placeholder="Director / Producer" required />
+          <input type="file" />
+          <label>
+            <input type="checkbox" /> Explicit Content
+          </label>
+          <button type="submit">Upload Video</button>
+        </form>
+      </div>
+
+      <div className="artist-section">
+        <h2><FaBroadcastTower /> Your Indie Station</h2>
+        <p>You don’t have an indie station yet.</p>
+        <button className="video-upload-btn">➕ Create Station</button>
+      </div>
+
+      {studioOpen && <LiveStudio onClose={() => setStudioOpen(false)} />}
+      {showTermsModal && <TermsAgreementModal onClose={() => setShowTermsModal(false)} />}
+      {trackBeingEdited && <EditTrackForm track={trackBeingEdited} onClose={() => setTrackBeingEdited(null)} />}
+      {albumBeingEdited && <EditAlbumForm album={albumBeingEdited} onClose={() => setAlbumBeingEdited(null)} />}
+      {showAlbumCreator && <AlbumCard onClose={() => setShowAlbumCreator(false)} />}
+    </div>
+  );
 };
 
 export default ArtistDashboard;

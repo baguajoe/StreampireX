@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
 
-const socket = io.connect("http://localhost:5000"); // Replace with production endpoint
+const socket = io.connect("http://localhost:5000"); // Replace with your production endpoint
 
 const WebRTCChat = ({ roomId, userId, userName }) => {
   const localVideoRef = useRef(null);
@@ -57,6 +57,8 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
       }
     };
 
+    remoteVideoRef.current.srcObject = remoteStream;
+
     return pc;
   };
 
@@ -73,6 +75,20 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       socket.emit("offer", { offer, roomId });
+
+      // Register the live stream in the backend
+      await fetch(`${process.env.BACKEND_URL}/api/artist/live/start`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          title: "Live from Profile",
+          description: `${userName} is streaming live now!`,
+          stream_url: roomId,
+        }),
+      });
     } catch (error) {
       console.error("Media error:", error);
     }
