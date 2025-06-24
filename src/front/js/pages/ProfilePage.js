@@ -563,8 +563,16 @@ const ProfilePage = () => {
                         <Link to="/indie-artist-upload">
                             <button className="btn-indie-upload">🎤 Indie Artist Upload</button>
                         </Link>
-                        <WebRTCChat></WebRTCChat>
+
+                        {user?.id && (
+                            <WebRTCChat
+                                roomId={`user-${user.id}`}
+                                userId={user.id}
+                                userName={user.display_name || user.username || "Anonymous"}
+                            />
+                        )}
                     </div>
+
 
                     <h3>🛍️ Storefront</h3>
                     <p>

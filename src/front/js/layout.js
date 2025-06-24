@@ -14,19 +14,15 @@ import BrowsePodcastCategories from "./pages/BrowsePodcastCategories";
 import PodcastEpisodePage from "./pages/PodcastEpisodePage";
 import PodcastProfile from "./pages/PodcastProfile";
 import PodcastCategoryPage from "./pages/PodcastCategoryPage";
-
+import BrowseVideosPage from "./pages/BrowseVideosPage";
 
 import RadioStationDashboard from "./pages/RadioStationDashboard";
 import RadioStationPage from "./pages/RadioStations";
 import CreateRadioStation from "./pages/CreateRadioStation";
 import BrowseRadioStations from "./pages/BrowseRadioStations";
 import ArtistRadioStation from "./pages/ArtistRadioStation";
-import CreatorDashboard from "./pages/CreatorDashboard"; // ✅ adjust path if needed
+import CreatorDashboard from "./pages/CreatorDashboard";
 import FavoritesPage from "./pages/FavoritesPage";
-
-
-
-
 
 import ArtistDashboard from "./pages/ArtistDashboard";
 import UploadMusic from "./pages/UploadMusic";
@@ -36,17 +32,36 @@ import ArtistProfile from "./pages/ArtistProfile";
 import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
-import PayoutRequest from "./pages/PayoutRequest";
 import { Footer } from "./component/footer";
 import Navbar from "./component/navbar";
 import Sidebar from "./component/sidebar";
 import { BackendURL } from "./component/backendURL";
+import CreateReleasePage from "./pages/CreateReleasePage";
+import LyricsUploadPage from "./pages/LyricsUploadPage";
 
 // ✅ Live Streaming Pages
-import LiveStudio from "./pages/LiveStudio";
 import LiveStreamPage from "./pages/LiveStreams";
 import LiveConcerts from "./pages/LiveConcerts";
 import LiveShowPage from "./pages/LiveShowPage";
+
+// ✅ FIXED: Add missing component imports
+import ReleaseList from "./pages/ReleaseList";
+
+// ✅ TEMPORARY: Create placeholder components for missing pages
+// You can create these actual components later
+const CollaboratorSplitPage = () => (
+  <div className="page-container">
+    <h1>Collaborator Split Management</h1>
+    <p>This page is under development. You can manage collaborator revenue splits here.</p>
+  </div>
+);
+
+const AlbumDetailPage = () => (
+  <div className="page-container">
+    <h1>Album Details</h1>
+    <p>This page is under development. Album details will be displayed here.</p>
+  </div>
+);
 
 const Layout = () => {
   const basename = process.env.BASENAME || "";
@@ -75,9 +90,17 @@ const Layout = () => {
               <Route path="/podcast-category/:category" element={<PodcastCategoryPage />} />
               <Route path="/creator-dashboard" element={<CreatorDashboard />} />
               <Route path="/favorites" element={<FavoritesPage />} />
-
-
-
+              <Route path="/videos" element={<BrowseVideosPage />} />
+              <Route path="/create-release" element={<CreateReleasePage />} />
+              
+              {/* ✅ FIXED: Now ReleaseList is properly imported */}
+              <Route path="/releases" element={<ReleaseList />} />
+              
+              <Route path="/upload-lyrics" element={<LyricsUploadPage />} />
+              
+              {/* ✅ FIXED: Added placeholder components */}
+              <Route path="/collaborator-splits" element={<CollaboratorSplitPage />} />
+              <Route path="/album/:albumId" element={<AlbumDetailPage />} />
 
               {/* 📻 Radio Stations */}
               <Route path="/radio-dashboard" element={<RadioStationDashboard />} />
@@ -92,7 +115,6 @@ const Layout = () => {
               <Route path="/artist-profile/:id" element={<ArtistProfile />} />
 
               {/* 📺 Live Streaming */}
-              <Route path="/studio" element={<LiveStudio />} />
               <Route path="/live-streams" element={<LiveStreamPage />} />
               <Route path="/live-concerts" element={<LiveConcerts />} />
               <Route path="/live-show/:id" element={<LiveShowPage />} />
@@ -102,7 +124,6 @@ const Layout = () => {
               <Route path="/settings" element={<SettingsPage />} />
 
               {/* 💰 Monetization */}
-              <Route path="/payout-request" element={<PayoutRequest />} />
 
               {/* 404 */}
               <Route path="*" element={<h1>Not found!</h1>} />

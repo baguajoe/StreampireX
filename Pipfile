@@ -26,6 +26,10 @@ flask-mail = "*"
 flask-caching = "*"
 feedparser = "*"
 mxnet-cu112 = "*"
+pydub = "*"
+redis = "*"
+rq = "*"
+flask-wtf = "*"
 
 [requires]
 python_version = "3.10"
