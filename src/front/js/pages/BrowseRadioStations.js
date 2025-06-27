@@ -37,6 +37,7 @@ const BrowseRadioStations = () => {
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [apiCallSuccessful, setApiCallSuccessful] = useState(false); // NEW: Track if API call was successful
 
   const featuredStations = [
     { id: "static1", name: "LoFi Dreams", genre: "Lo-Fi", description: "Relaxing lo-fi beats.", image: LofiDreamsImg },
@@ -64,16 +65,43 @@ const BrowseRadioStations = () => {
       try {
         setLoading(true);
         setError(null);
+        setApiCallSuccessful(false); // Reset success flag
 
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001';
+        console.log("Fetching from:", `${backendUrl}/api/radio-stations`);
+        
         const response = await fetch(`${backendUrl}/api/radio-stations`);
+        console.log("Response status:", response.status, "OK:", response.ok);
 
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
 
         const data = await response.json();
-        setAllStations(Array.isArray(data) ? data : []);
+        console.log("Received data:", data);
+
+        // Mark API call as successful since we got here without throwing
+        setApiCallSuccessful(true);
+
+        // Handle different response formats gracefully
+        if (Array.isArray(data)) {
+          setAllStations(data);
+          console.log(`✅ Loaded ${data.length} stations from API`);
+        } else if (data && Array.isArray(data.stations)) {
+          setAllStations(data.stations);
+          console.log(`✅ Loaded ${data.stations.length} stations from data.stations`);
+        } else {
+          // API returned data but not in expected format - still successful
+          console.log("✅ API successful but unexpected format, using featured stations only");
+          setAllStations([]);
+        }
+
+        // Always clear error on successful API call
+        setError(null);
+
       } catch (err) {
-        console.error("Error loading stations:", err);
+        console.error("❌ API call failed:", err);
+        setApiCallSuccessful(false);
         setError(err.message);
         setAllStations([]);
       } finally {
@@ -124,10 +152,10 @@ const BrowseRadioStations = () => {
                 key={station.id}
                 className="podcast-card"
               >
-                <img 
-                  src={station.image || station.cover_art_url} 
-                  alt={station.name} 
-                  className="podcast-img" 
+                <img
+                  src={station.image || station.cover_art_url}
+                  alt={station.name}
+                  className="podcast-img"
                 />
                 <h3 className="podcast-title">{station.name}</h3>
                 <span className="podcast-label">{station.genre}</span>
@@ -144,7 +172,8 @@ const BrowseRadioStations = () => {
     <div className="categories-wrapper">
       <h1 className="categories-heading">📡 Browse Radio Stations</h1>
 
-      {error && (
+      {/* FIXED: Only show error if API call actually failed AND there's an error */}
+      {error && !apiCallSuccessful && (
         <div className="error-message" style={{
           background: "#fee",
           border: "1px solid #fcc",
@@ -153,10 +182,10 @@ const BrowseRadioStations = () => {
           margin: "10px 0",
           color: "#c33"
         }}>
-          ⚠️ Could not load radio stations from server. Showing featured stations only.
+          ⚠️ Could not load radio stations from server: {error}
         </div>
       )}
-
+      
       <div className="category-nav">
         <button onClick={scrollLeft} className="scroll-button">‹</button>
         <div className="categories-scroll" ref={scrollRef}>

@@ -26,7 +26,7 @@ class Role(db.Model):
         }
 
 # User Model
-class User(db.Model):
+
     __tablename__ = 'user'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -107,7 +107,7 @@ class UserSettings(db.Model):
     def to_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
-    
+    class User(db.Model):
 class Like(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
