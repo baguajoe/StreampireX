@@ -16,10 +16,10 @@ const ProfilePage = () => {
     const [followingList, setFollowingList] = useState([]);
 
     useEffect(() => {
-        fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+        fetch(`https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev/api/user/profile`, {
             method: "GET",
             headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
+                Authorization: `Bearer ${localStorage.getItem("access_token")}`,
             },
         })
             .then((res) => res.json())
