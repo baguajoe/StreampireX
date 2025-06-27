@@ -1201,6 +1201,17 @@ def get_all_radio_stations():
     stations = RadioStation.query.all()
     return jsonify([station.serialize() for station in stations]), 200
 
+
+
+@api.route('/api/radio-stations', methods=['GET'])
+def get_public_radio_stations():
+    """Public endpoint to get all radio stations without authentication"""
+    try:
+        stations = RadioStation.query.all()
+        return jsonify([station.serialize() for station in stations]), 200
+    except Exception as e:
+        return jsonify({"error": "Failed to fetch radio stations"}), 500
+
 @api.route('/api/radio-stations/<int:id>', methods=['GET'])
 def get_radio_station_detail(id):
     station = RadioStation.query.get(id)
@@ -1472,10 +1483,10 @@ def get_public_podcasts():
     podcasts = Podcast.query.all()
     return jsonify([podcast.serialize() for podcast in podcasts]), 200
 
-@api.route('/api/public-radio-stations', methods=['GET'])
-def get_public_radio_stations():
-    stations = RadioStation.query.all()
-    return jsonify([station.serialize() for station in stations]), 200
+# @api.route('/api/public-radio-stations', methods=['GET'])
+# def get_public_radio_stations():
+#     stations = RadioStation.query.all()
+#     return jsonify([station.serialize() for station in stations]), 200
 
 
 @api.route("/like", methods=["POST"])
