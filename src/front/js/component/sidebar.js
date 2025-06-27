@@ -55,6 +55,9 @@ const Sidebar = () => {
       <MenuItem to="/radio-dashboard" className={isActive("/radio-dashboard") ? "active" : ""}>📻 Radio Dashboard</MenuItem>
 
       <SectionHeader>👤 User </SectionHeader>
+      <MenuItem to="/home-feed" className={isActive("/home-feed") ? "active" : ""}>
+        🏠 Home Feed
+      </MenuItem>
       <MenuItem to="/profile" className={isActive("/profile") ? "active" : ""}>👤 Profile</MenuItem>
 
 

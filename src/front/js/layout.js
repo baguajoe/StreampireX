@@ -9,12 +9,14 @@ import { Signup } from "./pages/Signup";
 
 import PodcastDashboard from "./pages/PodcastDashboard";
 import PodcastCreate from "./pages/PodcastCreate";
-import PodcastPage from "./pages/PodcastPage";
+import PodcastPage from "./pages/PodcastDetailPage";
 import BrowsePodcastCategories from "./pages/BrowsePodcastCategories";
 import PodcastEpisodePage from "./pages/PodcastEpisodePage";
 import PodcastProfile from "./pages/PodcastProfile";
 import PodcastCategoryPage from "./pages/PodcastCategoryPage";
 import BrowseVideosPage from "./pages/BrowseVideosPage";
+import HomeFeed from "./pages/HomeFeed";
+import RadioStationDetailPage from "./component/RadioStationDetailPage";
 
 import RadioStationDashboard from "./pages/RadioStationDashboard";
 import RadioStationPage from "./pages/RadioStations";
@@ -38,11 +40,16 @@ import Sidebar from "./component/sidebar";
 import { BackendURL } from "./component/backendURL";
 import CreateReleasePage from "./pages/CreateReleasePage";
 import LyricsUploadPage from "./pages/LyricsUploadPage";
+import PodcastDetailPage from "./pages/PodcastDetailPage";
+
 
 // ✅ Live Streaming Pages
 import LiveStreamPage from "./pages/LiveStreams";
 import LiveConcerts from "./pages/LiveConcerts";
 import LiveShowPage from "./pages/LiveShowPage";
+import LabelDashboard from "./pages/LabelDashboard";
+
+
 
 // ✅ FIXED: Add missing component imports
 import ReleaseList from "./pages/ReleaseList";
@@ -92,6 +99,14 @@ const Layout = () => {
               <Route path="/favorites" element={<FavoritesPage />} />
               <Route path="/videos" element={<BrowseVideosPage />} />
               <Route path="/create-release" element={<CreateReleasePage />} />
+              <Route path="/home-feed" element={<HomeFeed />} />
+              <Route path="/label-dashboard" element={<LabelDashboard />} />
+              <Route path="/podcast/:podcast_id" element={<PodcastDetailPage />} />
+              <Route path="/radio/station/:id/:type" element={<RadioStationDetailPage />} />
+
+
+
+
               
               {/* ✅ FIXED: Now ReleaseList is properly imported */}
               <Route path="/releases" element={<ReleaseList />} />

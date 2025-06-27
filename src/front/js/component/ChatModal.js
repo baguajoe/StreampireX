@@ -2,7 +2,11 @@ import React, { useEffect, useState, useRef } from "react";
 import io from "socket.io-client";
 import "../../styles/ChatModal.css";
 
-const socket = io(process.env.BACKEND_URL || "http://localhost:5000");
+const socket = io(process.env.BACKEND_URL || "https://your-backend-url", {
+    transports: ["websocket"],
+    withCredentials: true
+});
+
 
 const ChatModal = ({
     recipientId,

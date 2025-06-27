@@ -1,0 +1,51 @@
+.radio-detail-container {
+  max-width: 1000px;
+  margin: auto;
+  padding: 2rem;
+}
+
+.radio-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.cover-image {
+  width: 300px;
+  height: auto;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.radio-info {
+  flex: 1;
+}
+
+.logo {
+  width: 100px;
+  margin-top: 1rem;
+}
+
+.stream-section {
+  margin: 2rem 0;
+}
+
+.actions {
+  margin-bottom: 2rem;
+}
+
+.actions button {
+  margin-right: 1rem;
+  padding: 0.5rem 1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.playlist-section,
+.submission-section {
+  margin-top: 2rem;
+  background: #f6f6f6;
+  padding: 1rem;
+  border-radius: 8px;
+}
