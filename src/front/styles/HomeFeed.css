@@ -1,0 +1,22 @@
+.home-feed-container {
+  padding: 20px;
+  max-width: 800px;
+  margin: auto;
+}
+
+.feed-card {
+  background-color: #121212;
+  border: 1px solid #333;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(0, 255, 100, 0.2);
+}
+
+.feed-card video,
+.feed-card img,
+.feed-card audio {
+  margin-top: 10px;
+  border-radius: 8px;
+}

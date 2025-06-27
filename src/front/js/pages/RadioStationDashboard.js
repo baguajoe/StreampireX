@@ -1,47 +1,45 @@
-// src/pages/RadioStationDashboard.js
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Sidebar from "../component/sidebar";
 import MonetizationAnalytics from "../component/MonetizationAnalytics";
-import StartStopLiveStream from "../component/StartStopLiveStream"; // Import the new component
-import "../../styles/RadioStationDashboard.css"; // Ensure you have styles for better UI
+import StartStopLiveStream from "../component/StartStopLiveStream";
+import "../../styles/RadioStationDashboard.css";
 
 const RadioStationDashboard = () => {
   const [stations, setStations] = useState([]);
-  const [selectedStation, setSelectedStation] = useState(null);
   const [tracks, setTracks] = useState([]);
+  const [uploadedTracks, setUploadedTracks] = useState([]);
+  const [selectedStation, setSelectedStation] = useState(null);
+  const [selectedTrack, setSelectedTrack] = useState("");
   const [earnings, setEarnings] = useState(0);
   const [followers, setFollowers] = useState(0);
   const [isLive, setIsLive] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [selectedTrack, setSelectedTrack] = useState("");
 
   useEffect(() => {
     fetch(`${process.env.BACKEND_URL}/api/user/radio-stations`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch radio stations");
-        return res.json();
-      })
-      .then((data) => {
-        setStations(data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error("Error fetching radio stations:", error);
-        setLoading(false); // ✅ Ensure loading ends even if fetch fails
-      });
-  }, []);
+      .then((res) => res.json())
+      .then(setStations)
+      .catch(console.error);
 
+    fetch(`${process.env.BACKEND_URL}/api/user/uploaded-tracks`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+    })
+      .then((res) => res.json())
+      .then(setUploadedTracks)
+      .catch(console.error);
+
+    setLoading(false);
+  }, []);
 
   const loadStationDetails = (stationId) => {
     setSelectedStation(stationId);
 
     fetch(`${process.env.BACKEND_URL}/api/radio/station/${stationId}/tracks`)
       .then((res) => res.json())
-      .then((data) => setTracks(data));
+      .then(setTracks);
 
     fetch(`${process.env.BACKEND_URL}/api/radio/station/${stationId}/analytics`)
       .then((res) => res.json())
@@ -52,42 +50,10 @@ const RadioStationDashboard = () => {
       });
   };
 
-  const startLiveStream = async (stationId) => {
-    const response = await fetch(`${process.env.BACKEND_URL}/api/radio/station/start-stream`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ station_id: stationId }),
-    });
-
-    if (response.ok) {
-      setIsLive(true);
-      alert("🎙️ Live stream started!");
-    }
-  };
-
-  const stopLiveStream = async (stationId) => {
-    const response = await fetch(`${process.env.BACKEND_URL}/api/radio/station/stop-stream`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ station_id: stationId }),
-    });
-
-    if (response.ok) {
-      setIsLive(false);
-      alert("⏹ Live stream stopped!");
-    }
-  };
-
   const addTrackToStation = async () => {
-    if (!selectedTrack) return alert("⚠️ Select a track first!");
+    if (!selectedTrack) return alert("Select a track first.");
 
-    const response = await fetch(`${process.env.BACKEND_URL}/api/radio/station/${selectedStation}/add-track`, {
+    await fetch(`${process.env.BACKEND_URL}/api/radio/station/${selectedStation}/add-track`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -96,57 +62,22 @@ const RadioStationDashboard = () => {
       body: JSON.stringify({ track_id: selectedTrack }),
     });
 
-    if (response.ok) {
-      alert("✅ Track added to station!");
-      loadStationDetails(selectedStation);
-    }
+    loadStationDetails(selectedStation);
   };
-
-  const removeTrackFromStation = async (trackId) => {
-    const response = await fetch(`${process.env.BACKEND_URL}/api/radio/station/${selectedStation}/remove-track/${trackId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-
-    if (response.ok) {
-      alert("🗑️ Track removed!");
-      loadStationDetails(selectedStation);
-    }
-  };
-
-  const deleteStation = async (stationId) => {
-    if (!window.confirm("⚠️ Are you sure you want to delete this station?")) return;
-
-    const response = await fetch(`${process.env.BACKEND_URL}/api/radio/station/${stationId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-
-    if (response.ok) {
-      alert("🗑️ Radio station deleted!");
-      setStations(stations.filter((s) => s.id !== stationId));
-      setSelectedStation(null);
-    }
-  };
-
-  if (loading) return <p>⏳ Loading your radio stations...</p>;
 
   return (
     <div className="dashboard-container">
       <Sidebar />
       <div className="content">
         <h1>📻 Radio Station Dashboard</h1>
-
-        {/* 💰 Earnings & Followers */}
         <MonetizationAnalytics earnings={earnings} followers={followers} />
 
-        {/* 🎙 Your Radio Stations */}
         <h2>Your Stations</h2>
         {stations.length === 0 ? (
-          <div className="empty-placeholder">
-            <p>🚫 You don't have any radio stations yet.</p>
+          <div>
+            <p>No stations yet.</p>
             <Link to="/create-radio">
-              <button className="btn-create">➕ Create Your First Station</button>
+              <button className="btn-create">➕ Create Station</button>
             </Link>
           </div>
         ) : (
@@ -155,44 +86,43 @@ const RadioStationDashboard = () => {
               <li key={station.id}>
                 <strong>{station.name}</strong>
                 <button onClick={() => loadStationDetails(station.id)}>View</button>
-                <button onClick={() => deleteStation(station.id)} className="btn-delete">Delete</button>
               </li>
             ))}
           </ul>
         )}
 
-        {/* 🎵 Manage Station Tracks */}
         {selectedStation && (
           <>
             <h2>🎵 Station Tracks</h2>
             <ul>
               {tracks.map((track) => (
                 <li key={track.id}>
-                  {track.title}
-                  <button onClick={() => removeTrackFromStation(track.id)}>🗑️ Remove</button>
+                  <p>{track.title}</p>
+                  <audio controls src={track.file_url}></audio>
+                  {track.cover_url && <img src={track.cover_url} alt="cover" width="50" />}
                 </li>
               ))}
             </ul>
 
-            <select onChange={(e) => setSelectedTrack(e.target.value)} value={selectedTrack}>
-              <option value="">Select a Track</option>
-              {/* TODO: Fetch and list user’s uploaded tracks here */}
+            <h3>Add a Track</h3>
+            <select value={selectedTrack} onChange={(e) => setSelectedTrack(e.target.value)}>
+              <option value="">-- Select your uploaded track --</option>
+              {uploadedTracks.map((t) => (
+                <option key={t.id} value={t.id}>{t.title}</option>
+              ))}
             </select>
-            <button onClick={addTrackToStation}>➕ Add Track</button>
+            <button onClick={addTrackToStation}>Add</button>
 
-            {/* 🎙️ Live Streaming Controls */}
             <h2>🎙️ Live Streaming</h2>
             <StartStopLiveStream
               isLive={isLive}
               stationId={selectedStation}
-              onStart={startLiveStream}
-              onStop={stopLiveStream}
+              onStart={() => startLiveStream(selectedStation)}
+              onStop={() => stopLiveStream(selectedStation)}
             />
 
-            {/* ➕ Add New Station */}
-            <Link to="/create-radio">
-              <button className="btn-create">➕ Create New Station</button>
-            </Link>
+            <h3>🔗 Public Station Link:</h3>
+            <p><a href={`/radio/${selectedStation}`}>streampirex.com/radio/{selectedStation}</a></p>
           </>
         )}
       </div>

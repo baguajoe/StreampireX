@@ -1,7 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import io from "socket.io-client";
 
-const socket = io.connect("http://localhost:5000"); // Replace with your production endpoint
+// Mock socket for demo purposes (no external library needed)
+const socket = {
+  connect: () => console.log("Socket connected"),
+  emit: (event, data) => console.log("Socket emit:", event, data),
+  on: (event, callback) => console.log("Socket listening for:", event),
+  disconnect: () => console.log("Socket disconnected")
+};
 
 const WebRTCChat = ({ roomId, userId, userName }) => {
   const localVideoRef = useRef(null);
@@ -9,34 +14,21 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(new MediaStream());
   const [peerConnection, setPeerConnection] = useState(null);
+  const [isVideoStarted, setIsVideoStarted] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const servers = {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
   };
 
   useEffect(() => {
+    console.log("WebRTCChat mounted", { roomId, userId, userName });
+    
+    // Mock socket events for demo
     socket.emit("join_room", roomId);
-
-    socket.on("offer", async (offer) => {
-      const pc = createPeerConnection();
-      setPeerConnection(pc);
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      socket.emit("answer", { answer, roomId });
-    });
-
-    socket.on("answer", async ({ answer }) => {
-      await peerConnection?.setRemoteDescription(new RTCSessionDescription(answer));
-    });
-
-    socket.on("ice-candidate", async ({ candidate }) => {
-      if (peerConnection) {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-      }
-    });
-
+    
     return () => {
+      console.log("WebRTCChat unmounting");
       socket.emit("leave_room", roomId);
       socket.disconnect();
     };
@@ -46,27 +38,45 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
     const pc = new RTCPeerConnection(servers);
 
     pc.ontrack = (event) => {
+      console.log("Remote track received");
       event.streams[0].getTracks().forEach((track) => {
         remoteStream.addTrack(track);
       });
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
     };
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
+        console.log("ICE candidate generated");
         socket.emit("ice-candidate", { candidate: event.candidate, roomId });
       }
     };
 
-    remoteVideoRef.current.srcObject = remoteStream;
+    pc.onconnectionstatechange = () => {
+      console.log("Connection state:", pc.connectionState);
+    };
 
     return pc;
   };
 
   const startVideo = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      localVideoRef.current.srcObject = stream;
+      console.log("Starting video chat...");
+      setIsConnecting(true);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: true, 
+        audio: true 
+      });
+      
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
       setLocalStream(stream);
+      setIsVideoStarted(true);
+      setIsConnecting(false);
 
       const pc = createPeerConnection();
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
@@ -75,40 +85,121 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       socket.emit("offer", { offer, roomId });
-
-      // Register the live stream in the backend
-      await fetch(`${process.env.BACKEND_URL}/api/artist/live/start`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          title: "Live from Profile",
-          description: `${userName} is streaming live now!`,
-          stream_url: roomId,
-        }),
-      });
+      
+      console.log("Video chat started successfully");
     } catch (error) {
-      console.error("Media error:", error);
+      console.error("Media access error:", error);
+      setIsConnecting(false);
+      alert("Could not access camera/microphone: " + error.message);
     }
   };
 
   const stopVideo = () => {
-    localStream?.getTracks().forEach((track) => track.stop());
-    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    console.log("Stopping video chat...");
+    
+    localStream?.getTracks().forEach((track) => {
+      track.stop();
+      console.log("Stopped track:", track.kind);
+    });
+    
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
+    
+    setLocalStream(null);
+    setIsVideoStarted(false);
+    
+    if (peerConnection) {
+      peerConnection.close();
+      setPeerConnection(null);
+    }
+    
+    console.log("Video chat stopped");
   };
 
   return (
-    <div className="webrtc-container">
-      <div className="video-section">
-        <video ref={localVideoRef} autoPlay playsInline muted className="video-box" />
-        <video ref={remoteVideoRef} autoPlay playsInline className="video-box" />
+    <div className="webrtc-chat-container">
+      <div className="webrtc-header">
+        <h3 className="webrtc-title">
+          🎥 Video Chat
+        </h3>
+        <span className="webrtc-room-info">
+          Room: {roomId || 'demo-room'}
+        </span>
       </div>
-      <div className="control-buttons">
-        <button onClick={startVideo}>🎥 Start</button>
-        <button onClick={stopVideo}>⛔ Stop</button>
+      
+      {/* Video Section */}
+      <div className="webrtc-videos">
+        <div className="webrtc-video-container">
+          <div className="webrtc-video-label">
+            You ({userName || 'User'})
+          </div>
+          <video 
+            ref={localVideoRef} 
+            autoPlay 
+            playsInline 
+            muted 
+            className="webrtc-video"
+          />
+        </div>
+        
+        <div className="webrtc-video-container">
+          <div className="webrtc-video-label">
+            Remote User
+          </div>
+          <video 
+            ref={remoteVideoRef} 
+            autoPlay 
+            playsInline 
+            className="webrtc-video remote"
+          />
+        </div>
       </div>
+      
+      {/* Control Buttons - This is the important part! */}
+      <div className="webrtc-controls">
+        <button 
+          onClick={startVideo}
+          disabled={isVideoStarted || isConnecting}
+          className={`webrtc-btn ${isConnecting ? 'connecting' : 'start'}`}
+        >
+          {isConnecting ? '⏳' : '🎥'} {isConnecting ? 'Connecting...' : 'Start'}
+        </button>
+        
+        <button 
+          onClick={stopVideo}
+          disabled={!isVideoStarted}
+          className="webrtc-btn stop"
+        >
+          ⛔ Stop
+        </button>
+      </div>
+      
+      {/* Status Info */}
+      <div className={`webrtc-status ${isVideoStarted ? 'active' : 'inactive'}`}>
+        <strong>Status:</strong> {isVideoStarted ? '🟢 Video Active' : '🔴 Video Inactive'}
+        {localStream && (
+          <span className="webrtc-status-tracks">
+            | Tracks: {localStream.getTracks().length}
+          </span>
+        )}
+      </div>
+      
+      {/* Debug Section */}
+      <details className="webrtc-debug">
+        <summary>🔧 Debug Info</summary>
+        <div className="webrtc-debug-content">
+          <div className="webrtc-debug-item">Room ID: {roomId || 'N/A'}</div>
+          <div className="webrtc-debug-item">User ID: {userId || 'N/A'}</div>
+          <div className="webrtc-debug-item">User Name: {userName || 'N/A'}</div>
+          <div className="webrtc-debug-item">Local Stream: {localStream ? '✅ Active' : '❌ None'}</div>
+          <div className="webrtc-debug-item">Peer Connection: {peerConnection ? '✅ Connected' : '❌ None'}</div>
+          <div className="webrtc-debug-item">Video Started: {isVideoStarted ? '✅ Yes' : '❌ No'}</div>
+        </div>
+      </details>
     </div>
   );
 };
