@@ -15,7 +15,7 @@ from api.avatar_service import process_image_and_create_avatar
 
 
 from api.utils import generate_sitemap, APIException, send_email
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, or_, and_, asc
 from datetime import timedelta  # for trial logic or date math
 from flask_cors import CORS
 from flask_apscheduler import APScheduler
@@ -741,8 +741,7 @@ def download_podcast_episode(episode_id):
 @api.route('/upload_podcast', methods=['POST'])
 @jwt_required()
 def upload_podcast():
-    from moviepy.editor import AudioFileClip, VideoFileClip
-    import whisper
+    
 
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
@@ -1469,13 +1468,28 @@ def get_all_profiles():
 @api.route("/user/profile", methods=["GET"])
 @jwt_required()
 def get_user_profile():
-    user_id = get_jwt_identity()  # Get the current user's ID from the JWT token
-    user = User.query.get(user_id)
+    """Get the logged-in user's profile data"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
 
-    if not user:
-        return jsonify({"error": "User not found"}), 404
+        if not user:
+            return jsonify({
+                "error": "User not found",
+                "success": False
+            }), 404
 
-    return jsonify(user.serialize()), 200
+        return jsonify({
+            "success": True,
+            "user": user.serialize(),
+            "message": "Profile retrieved successfully"
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to retrieve profile: {str(e)}",
+            "success": False
+        }), 500
 
 
 @api.route('/public-podcasts', methods=['GET'])
@@ -5063,6 +5077,10 @@ def user_settings():
 
     db.session.commit()
     return jsonify({"msg": "Settings updated"}), 200
+
+def generate_stream_key():
+    """Generate a unique stream key"""
+    return str(uuid.uuid4())
 
 @api.route("/user/stream-key", methods=["GET"])
 @jwt_required()
