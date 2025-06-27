@@ -29,6 +29,8 @@ pydub = "*"
 redis = "*"
 rq = "*"
 flask-wtf = "*"
+flask-jwt-extended = "*"
+moviepy = "*"
 
 [requires]
 python_version = "3.10"
