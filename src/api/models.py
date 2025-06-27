@@ -2279,3 +2279,39 @@ class AlbumTrack(db.Model):
     track_id = db.Column(db.Integer, db.ForeignKey('track.id'), nullable=False)
 
 
+class Post(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255))
+    content = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "content": self.content,
+            "created_at": self.created_at.isoformat()
+        }
+
+class Follow(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    follower_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    followed_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    follower = db.relationship('User', foreign_keys=[follower_id])
+    followed = db.relationship('User', foreign_keys=[followed_id])
+
+class Label(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "created_at": self.created_at.isoformat(),
+        }
+

@@ -1,0 +1,311 @@
+/* WebRTC Chat Component Styles - Add this to ProfilePage.css */
+
+.webrtc-chat-container {
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 15px;
+  background-color: #f9f9f9;
+  margin-bottom: 20px;
+  min-height: 300px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.webrtc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.webrtc-title {
+  margin: 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.webrtc-room-info {
+  font-size: 12px;
+  color: #666;
+  background-color: #e8f4fd;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+/* Video Section */
+.webrtc-videos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.webrtc-video-container {
+  position: relative;
+}
+
+.webrtc-video-label {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #555;
+  display: block;
+}
+
+.webrtc-video {
+  width: 100%;
+  height: 120px;
+  background-color: #000;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  object-fit: cover;
+  display: block;
+}
+
+.webrtc-video.remote {
+  background-color: #222;
+}
+
+/* Control Buttons - THE IMPORTANT PART! */
+.webrtc-controls {
+  display: flex !important;
+  gap: 8px;
+  justify-content: center;
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  margin-top: 10px;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+.webrtc-btn {
+  padding: 8px 16px !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  border: none !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-width: 80px !important;
+  justify-content: center !important;
+  text-align: center !important;
+  transition: background-color 0.3s ease !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  z-index: 11 !important;
+}
+
+.webrtc-btn.start {
+  background-color: #4CAF50 !important;
+  color: white !important;
+}
+
+.webrtc-btn.start:hover:not(:disabled) {
+  background-color: #45a049 !important;
+}
+
+.webrtc-btn.stop {
+  background-color: #f44336 !important;
+  color: white !important;
+}
+
+.webrtc-btn.stop:hover:not(:disabled) {
+  background-color: #da190b !important;
+}
+
+.webrtc-btn:disabled {
+  background-color: #ccc !important;
+  cursor: not-allowed !important;
+  opacity: 0.7 !important;
+}
+
+.webrtc-btn.connecting {
+  background-color: #ff9800 !important;
+  color: white !important;
+}
+
+/* Status Info */
+.webrtc-status {
+  margin-top: 10px;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.webrtc-status.active {
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+}
+
+.webrtc-status.inactive {
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+}
+
+.webrtc-status-tracks {
+  margin-left: 10px;
+  color: #666;
+}
+
+/* Debug Section */
+.webrtc-debug {
+  margin-top: 10px;
+}
+
+.webrtc-debug summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: #666;
+  user-select: none;
+}
+
+.webrtc-debug-content {
+  margin-top: 8px;
+  padding: 8px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  line-height: 1.4;
+}
+
+.webrtc-debug-item {
+  margin-bottom: 4px;
+}
+
+/* Override any parent styles that might hide the buttons */
+.right-column .webrtc-controls,
+.right-column .webrtc-controls *,
+.quick-actions .webrtc-controls,
+.quick-actions .webrtc-controls * {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 999 !important;
+  overflow: visible !important;
+  height: auto !important;
+  width: auto !important;
+}
+
+/* Ensure buttons are always visible in the right column */
+.right-column .webrtc-btn {
+  background-color: #4CAF50 !important;
+  color: white !important;
+  padding: 8px 16px !important;
+  margin: 2px !important;
+  border: 2px solid #333 !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 9999 !important;
+}
+
+.right-column .webrtc-btn.stop {
+  background-color: #f44336 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .webrtc-videos {
+    grid-template-columns: 1fr;
+  }
+  
+  .webrtc-video {
+    height: 150px;
+  }
+  
+  .webrtc-controls {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .webrtc-btn {
+    width: 100% !important;
+    min-width: auto !important;
+  }
+}
+
+/* Force visibility - nuclear option */
+.webrtc-chat-container * {
+  box-sizing: border-box;
+}
+
+.webrtc-controls button {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 10000 !important;
+  background: #4CAF50 !important;
+  color: white !important;
+  border: 2px solid #000 !important;
+  padding: 10px 15px !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  border-radius: 6px !important;
+  margin: 5px !important;
+}
+
+/* Additional overrides for common CSS frameworks */
+.webrtc-controls button[disabled] {
+  background: #ccc !important;
+  cursor: not-allowed !important;
+}
+
+.webrtc-controls .webrtc-btn:nth-child(2) {
+  background: #f44336 !important;
+}
+
+.webrtc-controls .webrtc-btn:nth-child(2):disabled {
+  background: #ccc !important;
+}
+
+/* Ensure container doesn't collapse */
+.quick-actions {
+  min-height: auto;
+  overflow: visible;
+}
+
+.right-column {
+  overflow: visible;
+}
+
+/* Make sure WebRTC container is always visible */
+.webrtc-chat-container {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Final fallback for button visibility */
+button[class*="webrtc"] {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background: #4CAF50 !important;
+  color: white !important;
+  border: 1px solid #333 !important;
+  padding: 8px 16px !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+}

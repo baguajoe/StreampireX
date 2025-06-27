@@ -4,6 +4,7 @@ import UploadVideo from "../component/UploadVideo";
 import ChatModal from "../component/ChatModal";
 import WebRTCChat from "../component/WebRTCChat";
 import "../../styles/ProfilePage.css";
+import "../../styles/WebRTC.css";
 import lady1 from "../../img/lady1.png"
 import campfire from "../../img/campfire.png"
 import lofiLounge from "../../img/lofi_lounge.png";
@@ -12,10 +13,6 @@ import energyReset from "../../img/energy_reset.png";
 import chiCast from "../../img/chicast.png";
 import zenmaster from "../../img/zenmaster.png";
 import fitjay from "../../img/fit_jay.png";
-
-
-
-
 
 const ProfilePage = () => {
     const [user, setUser] = useState({});
@@ -49,39 +46,66 @@ const ProfilePage = () => {
     const [postComments, setPostComments] = useState({}); // { postId: [comments] }
     const [newCommentText, setNewCommentText] = useState({}); // { postId: comment }
     const [justSaved, setJustSaved] = useState(false);
-    const [currentMood, setCurrentMood] = useState("😌 Chill"); // NEW: Mood state
-    const loggedInUserId = parseInt(localStorage.getItem("user_id"));
-    const loggedInUsername = localStorage.getItem("username"); // optional
-
-
-
+    const [currentMood, setCurrentMood] = useState("😌 Chill");
+    
+    const loggedInUserId = parseInt(localStorage.getItem("user_id")) || 1; // fallback to 1
+    const loggedInUsername = localStorage.getItem("username");
 
     const profilePicInputRef = useRef(null);
     const coverPhotoInputRef = useRef(null);
 
     useEffect(() => {
-        fetch(`${process.env.BACKEND_URL}/api/profile`, {
+        fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${localStorage.getItem("token")}`,
                 "Content-Type": "application/json"
             },
         })
-            .then((res) => res.ok ? res.json() : Promise.reject(res))
-            .then((data) => {
-                setUser(data);
-                setDisplayName(data.display_name || "");
-                setBusinessName(data.business_name || "");
-                setBio(data.bio || "Susan Smith is a software developer with a passion for holistic healing and music. She blends tech and wellness to build meaningful tools that inspire growth and creativity. When she's not coding, she's producing beats or guiding meditation sessions.");
-                setSocialLinks(data.social_links || {});
-                setStorefrontLink(data.storefront_link || "");
-                setUseAvatar(data.use_avatar || false);
-                setRadioStation(data.radio_station || "");
-                setPodcast(data.podcast || "");
-                setVideos(data.videos || []);
+            .then(async (res) => {
+                const text = await res.text();
+                try {
+                    const data = JSON.parse(text);
+                    
+                    // Ensure we have at least an id
+                    if (!data.id && loggedInUserId) {
+                        data.id = loggedInUserId;
+                    }
+                    
+                    setUser(data);
+                    
+                    // Set other states from the response
+                    if (data.bio) setBio(data.bio);
+                    if (data.display_name) setDisplayName(data.display_name);
+                    if (data.business_name) setBusinessName(data.business_name);
+                    if (data.use_avatar !== undefined) setUseAvatar(data.use_avatar);
+                    
+                } catch (e) {
+                    console.error("Failed to parse JSON:", text);
+                    
+                    // Fallback: use localStorage data
+                    if (loggedInUserId) {
+                        setUser({ 
+                            id: loggedInUserId, 
+                            username: loggedInUsername || `user_${loggedInUserId}`,
+                            display_name: loggedInUsername || `User ${loggedInUserId}`
+                        });
+                    }
+                }
             })
-            .catch((err) => alert("Error fetching profile."));
-    }, []);
+            .catch((err) => {
+                console.error("Fetch profile error:", err);
+                
+                // Fallback: use localStorage data
+                if (loggedInUserId) {
+                    setUser({ 
+                        id: loggedInUserId, 
+                        username: loggedInUsername || `user_${loggedInUserId}`,
+                        display_name: loggedInUsername || `User ${loggedInUserId}`
+                    });
+                }
+            });
+    }, [loggedInUserId, loggedInUsername]);
 
     const handleToggleAvatar = async () => {
         const newValue = !useAvatar;
@@ -196,6 +220,16 @@ const ProfilePage = () => {
         }
     };
 
+    // Get effective user ID for WebRTC (fallback to localStorage if API fails)
+    const effectiveUserId = user?.id || loggedInUserId;
+    const effectiveUserName = user?.display_name || user?.username || loggedInUsername || `User ${effectiveUserId}`;
+
+    console.log("ProfilePage render - effectiveUserId:", effectiveUserId);
+    console.log("ProfilePage render - condition check:", !!effectiveUserId);
+    console.log("ProfilePage render - user object:", user);
+    console.log("ProfilePage render - loggedInUserId:", loggedInUserId);
+
+
     return (
         <div className="profile-container">
             <div className="cover-photo-container ">
@@ -207,9 +241,9 @@ const ProfilePage = () => {
 
             {isChatOpen && (
                 <ChatModal
-                    recipientId={user.id} // the person whose profile you're viewing
+                    recipientId={user.id}
                     recipientName={user.display_name || user.username}
-                    currentUserId={loggedInUserId} // YOU (tt2)
+                    currentUserId={loggedInUserId}
                     onClose={() => setIsChatOpen(false)}
                     enableTypingIndicator={true}
                     enableThreads={true}
@@ -243,7 +277,6 @@ const ProfilePage = () => {
                                         💬
                                     </button>
                                 )}
-
                             </div>
                         </div>
                     ) : (
@@ -260,11 +293,6 @@ const ProfilePage = () => {
                     )}
                 </div>
             </div>
-
-            {/* NEW: Bio, Quick Stats, and Mood Selector Row */}
-
-
-            {/* Bio and Quick Stats Row */}
 
             {/* Bio and Quick Stats Row */}
             <div className="profile-header-flex">
@@ -295,7 +323,7 @@ const ProfilePage = () => {
                     </ul>
                 </div>
 
-                {/* MOVE THE MOOD SECTION HERE - INSIDE THE SAME FLEX CONTAINER */}
+                {/* Mood Section */}
                 <div className="mood-section">
                     <div className="mood-card">
                         <h4>🎨 Current Mood</h4>
@@ -344,10 +372,6 @@ const ProfilePage = () => {
                 </div>
             </div>
 
-
-            {/* 
-
-*/}
             {/* Social Links */}
             <div className="social-links">
                 <h4>🔗 Social Links</h4>
@@ -564,15 +588,15 @@ const ProfilePage = () => {
                             <button className="btn-indie-upload">🎤 Indie Artist Upload</button>
                         </Link>
 
-                        {user?.id && (
+                        {/* Clean WebRTC Component */}
+                        {effectiveUserId && (
                             <WebRTCChat
-                                roomId={`user-${user.id}`}
-                                userId={user.id}
-                                userName={user.display_name || user.username || "Anonymous"}
+                                roomId={`user-${effectiveUserId}`}
+                                userId={effectiveUserId}
+                                userName={effectiveUserName}
                             />
                         )}
                     </div>
-
 
                     <h3>🛍️ Storefront</h3>
                     <p>

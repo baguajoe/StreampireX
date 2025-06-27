@@ -1,23 +1,20 @@
 import React, { useEffect, useState, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import "../../styles/BrowseStations.css";
 
-// Existing imports
+// Static images
 import LofiDreamsImg from "../../img/LofiDreams.png";
 import JazzLoungeImg from "../../img/JazzLounge.png";
 import TalkNationImg from "../../img/TalkNation.png";
 import ElectricVibesImg from "../../img/ElectricVibes.png";
 import ReggaeRootzImg from "../../img/ReggaeRootz.png";
 import MorningClassicalImg from "../../img/MorningClassical.png";
-
-// Top Stations imports
 import PopPulseImg from "../../img/PopPulse.png";
 import RockRumbleImg from "../../img/RockRumble.png";
 import UrbanSoulImg from "../../img/UrbanSoul.png";
 import ChillHopCafeImg from "../../img/ChillHopCafe.png";
 import CosmicJazzImg from "../../img/CosmicJazz.png";
 import LoFiTempleImg from "../../img/LofiTemple.png";
-
-// Top Artists imports
 import TheSynthLordsImg from "../../img/TheSynthLords.png";
 import VelvetEchoImg from "../../img/VelvetEcho.png";
 import DJNovaImg from "../../img/DJNova.png";
@@ -27,6 +24,7 @@ import ZaraMoonlightImg from "../../img/ZaraMoonlight.png";
 
 const BrowseRadioStations = () => {
   const scrollRef = useRef(null);
+  const navigate = useNavigate();
 
   const [genres] = useState([
     "Lo-Fi", "Jazz", "Reggae", "Electronic", "Talk Radio", "Rock", "Hip Hop",
@@ -37,77 +35,144 @@ const BrowseRadioStations = () => {
 
   const [allStations, setAllStations] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const featuredStations = [
+    { id: "static1", name: "LoFi Dreams", genre: "Lo-Fi", description: "Relaxing lo-fi beats.", image: LofiDreamsImg },
+    { id: "static2", name: "Jazz Lounge", genre: "Jazz", description: "Smooth & classy jazz.", image: JazzLoungeImg },
+    { id: "static3", name: "Talk Nation", genre: "Talk Radio", description: "News and discussions.", image: TalkNationImg },
+    { id: "static4", name: "Electric Vibes", genre: "Electronic", description: "Club and synth mixes.", image: ElectricVibesImg },
+    { id: "static5", name: "Reggae Rootz", genre: "Reggae", description: "Island rhythms and roots.", image: ReggaeRootzImg },
+    { id: "static6", name: "Morning Classical", genre: "Classical", description: "Uplifting orchestral works.", image: MorningClassicalImg },
+    { id: "static7", name: "Pop Pulse", genre: "Pop", description: "Top charting hits.", image: PopPulseImg },
+    { id: "static8", name: "Rock Rumble", genre: "Rock", description: "Hard-hitting rock classics.", image: RockRumbleImg },
+    { id: "static9", name: "Urban Soul", genre: "Soul", description: "Silky vocals & slow grooves.", image: UrbanSoulImg },
+    { id: "static10", name: "Chill Hop Cafe", genre: "Hip Hop", description: "Instrumental hip hop.", image: ChillHopCafeImg },
+    { id: "static11", name: "Cosmic Jazz", genre: "Jazz", description: "Out-of-this-world improvisation.", image: CosmicJazzImg },
+    { id: "static12", name: "LoFi Temple", genre: "Lo-Fi", description: "Zen and mellow beats.", image: LoFiTempleImg },
+    { id: "static13", name: "The Synth Lords", genre: "Electronic", description: "Retro synthwave duos.", image: TheSynthLordsImg },
+    { id: "static14", name: "Velvet Echo", genre: "Soul", description: "Smooth vocal powerhouse.", image: VelvetEchoImg },
+    { id: "static15", name: "DJ Nova", genre: "House", description: "Galactic EDM grooves.", image: DJNovaImg },
+    { id: "static16", name: "The Groove Mechanics", genre: "Funk", description: "Bass-heavy funkadelics.", image: TheGrooveMechanicsImg },
+    { id: "static17", name: "Indigo Rain", genre: "Indie", description: "Dreamy alternative sounds.", image: IndigoRainImg },
+    { id: "static18", name: "Zara Moonlight", genre: "Pop", description: "Chart-topping solo artist.", image: ZaraMoonlightImg }
+  ];
 
   useEffect(() => {
-    // Combine all into one list
-    const combinedStations = [
-      // New Stations
-      { name: "LoFi Dreams", genre: "Lo-Fi", description: "Relaxing lo-fi beats.", image: LofiDreamsImg },
-      { name: "Jazz Lounge", genre: "Jazz", description: "Smooth & classy jazz.", image: JazzLoungeImg },
-      { name: "Talk Nation", genre: "Talk Radio", description: "News and discussions.", image: TalkNationImg },
-      { name: "Electric Vibes", genre: "Electronic", description: "Club and synth mixes.", image: ElectricVibesImg },
-      { name: "Reggae Rootz", genre: "Reggae", description: "Island rhythms and roots.", image: ReggaeRootzImg },
-      { name: "Morning Classical", genre: "Classical", description: "Uplifting orchestral works.", image: MorningClassicalImg },
+    const fetchRadioStations = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      // Top Stations
-      { name: "Pop Pulse", genre: "Pop", description: "Top charting hits.", image: PopPulseImg },
-      { name: "Rock Rumble", genre: "Rock", description: "Hard-hitting rock classics.", image: RockRumbleImg },
-      { name: "Urban Soul", genre: "Soul", description: "Silky vocals & slow grooves.", image: UrbanSoulImg },
-      { name: "Chill Hop Cafe", genre: "Hip Hop", description: "Instrumental hip hop.", image: ChillHopCafeImg },
-      { name: "Cosmic Jazz", genre: "Jazz", description: "Out-of-this-world improvisation.", image: CosmicJazzImg },
-      { name: "LoFi Temple", genre: "Lo-Fi", description: "Zen and mellow beats.", image: LoFiTempleImg },
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+        const response = await fetch(`${backendUrl}/api/radio-stations`);
 
-      // Top Artists
-      { name: "The Synth Lords", genre: "Electronic", description: "Retro synthwave duos.", image: TheSynthLordsImg },
-      { name: "Velvet Echo", genre: "Soul", description: "Smooth vocal powerhouse.", image: VelvetEchoImg },
-      { name: "DJ Nova", genre: "House", description: "Galactic EDM grooves.", image: DJNovaImg },
-      { name: "The Groove Mechanics", genre: "Funk", description: "Bass-heavy funkadelics.", image: TheGrooveMechanicsImg },
-      { name: "Indigo Rain", genre: "Indie", description: "Dreamy alternative sounds.", image: IndigoRainImg },
-      { name: "Zara Moonlight", genre: "Pop", description: "Chart-topping solo artist.", image: ZaraMoonlightImg }
-    ];
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-    setAllStations(combinedStations);
+        const data = await response.json();
+        setAllStations(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Error loading stations:", err);
+        setError(err.message);
+        setAllStations([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRadioStations();
   }, []);
 
-  const scrollLeft = () => scrollRef.current.scrollLeft -= 200;
-  const scrollRight = () => scrollRef.current.scrollLeft += 200;
+  const scrollLeft = () => {
+    if (scrollRef.current) scrollRef.current.scrollLeft -= 200;
+  };
 
-  const renderSection = (title, filteredList) => (
-    <div className="podcast-section">
-      <h2 className="section-title">{title}</h2>
-      <div className="podcast-scroll-row">
-        {filteredList.map((station, index) => (
-          <div key={index} className="podcast-card">
-            <img src={station.image} alt={station.name} className="podcast-img" />
-            <h3 className="podcast-title">{station.name}</h3>
-            <span className="podcast-label">{station.genre}</span>
-            <p className="podcast-desc">{station.description}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  const scrollRight = () => {
+    if (scrollRef.current) scrollRef.current.scrollLeft += 200;
+  };
+
+  const mergedStations = [...featuredStations, ...allStations];
 
   const filteredStations = selectedGenre
-    ? allStations.filter(station => station.genre === selectedGenre)
-    : allStations;
+    ? mergedStations.filter(station => station.genre === selectedGenre)
+    : mergedStations;
+
+  const renderSection = (title, list) => {
+    if (list.length === 0) {
+      return (
+        <div className="podcast-section">
+          <h2 className="section-title">{title}</h2>
+          <p className="no-stations">No radio stations found in this category.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="podcast-section">
+        <h2 className="section-title">{title}</h2>
+        <div className="podcast-scroll-row">
+          {list.map((station) => {
+            const isStatic = station.id?.startsWith("static");
+            const linkPath = isStatic
+              ? `/radio/station/${station.id}/static`
+              : `/radio/station/${station.id}/dynamic`;
+
+            return (
+              <Link
+                to={linkPath}
+                key={station.id}
+                className="podcast-card"
+              >
+                <img 
+                  src={station.image || station.cover_art_url} 
+                  alt={station.name} 
+                  className="podcast-img" 
+                />
+                <h3 className="podcast-title">{station.name}</h3>
+                <span className="podcast-label">{station.genre}</span>
+                <p className="podcast-desc">{station.description}</p>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="categories-wrapper">
-      <h1 className="categories-heading">🎵 Radio Genres</h1>
+      <h1 className="categories-heading">📡 Browse Radio Stations</h1>
+
+      {error && (
+        <div className="error-message" style={{
+          background: "#fee",
+          border: "1px solid #fcc",
+          padding: "10px",
+          borderRadius: "5px",
+          margin: "10px 0",
+          color: "#c33"
+        }}>
+          ⚠️ Could not load radio stations from server. Showing featured stations only.
+        </div>
+      )}
 
       <div className="category-nav">
         <button onClick={scrollLeft} className="scroll-button">‹</button>
         <div className="categories-scroll" ref={scrollRef}>
-          {genres.map((g, index) => (
-            <div
-              key={index}
-              onClick={() => setSelectedGenre(g)}
-              className={`category-pill ${selectedGenre === g ? "active" : ""}`}
-            >
-              {g}
-            </div>
-          ))}
+          {loading ? (
+            <div className="loading-spinner">Loading genres...</div>
+          ) : (
+            genres.map((g, i) => (
+              <div
+                key={i}
+                onClick={() => setSelectedGenre(g)}
+                className={`category-pill ${selectedGenre === g ? "active" : ""}`}
+              >
+                {g}
+              </div>
+            ))
+          )}
         </div>
         <button onClick={scrollRight} className="scroll-button">›</button>
       </div>
@@ -116,9 +181,10 @@ const BrowseRadioStations = () => {
         renderSection(`🎯 ${selectedGenre} Stations`, filteredStations)
       ) : (
         <>
-          {renderSection("🆕 New This Week", allStations.slice(0, 6))}
-          {renderSection("📻 Top Radio Stations", allStations.slice(6, 12))}
-          {renderSection("🌟 Top Artists", allStations.slice(12))}
+          {renderSection("🆕 Featured Stations", featuredStations.slice(0, 6))}
+          {renderSection("📻 Top Radio Stations", featuredStations.slice(6, 12))}
+          {renderSection("🌟 Popular Artists", featuredStations.slice(12))}
+          {allStations.length > 0 && renderSection("🌐 Live Stations", allStations)}
         </>
       )}
     </div>

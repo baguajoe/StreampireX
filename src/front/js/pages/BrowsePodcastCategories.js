@@ -70,6 +70,7 @@ const BrowsePodcastCategories = () => {
 
   const samplePodcasts = [
     {
+      id: 101,
       title: "Cold Cases Uncovered",
       desc: "Exploring the dark corners of justice.",
       label: "New",
@@ -77,6 +78,7 @@ const BrowsePodcastCategories = () => {
       image: podcast1,
     },
     {
+      id: 102,
       title: "Celebrity Circuit",
       desc: "Daily pop culture recaps & drama.",
       label: "Popular",
@@ -84,6 +86,7 @@ const BrowsePodcastCategories = () => {
       image: podcast2,
     },
     {
+      id: 103,
       title: "Brush & Beyond",
       desc: "Unlock your artistic side.",
       label: "Trending",
@@ -91,6 +94,7 @@ const BrowsePodcastCategories = () => {
       image: podcast3,
     },
     {
+      id: 104,
       title: "Laugh Track Live",
       desc: "Fresh comedy from new voices.",
       label: "Trending",
@@ -98,6 +102,7 @@ const BrowsePodcastCategories = () => {
       image: podcast4,
     },
     {
+      id: 105,
       title: "Dice & Destiny",
       desc: "Your go-to RPG campaign companion.",
       label: "Top 10",
@@ -105,6 +110,7 @@ const BrowsePodcastCategories = () => {
       image: podcast5,
     },
     {
+      id: 106,
       title: "Binge Breakdown",
       desc: "Reviews, reactions, and recaps.",
       label: "Popular",
@@ -131,13 +137,17 @@ const BrowsePodcastCategories = () => {
       <div className="podcast-section">
         <h2 className="section-title">{title}</h2>
         <div className="podcast-scroll-row">
-          {filteredPodcasts.map((podcast, index) => (
-            <div key={index} className="podcast-card">
+          {filteredPodcasts.map((podcast) => (
+            <Link
+              to={`/podcast/${podcast.id}`}
+              key={podcast.id}
+              className="podcast-card"
+            >
               <img src={podcast.image} alt={podcast.title} className="podcast-img" />
               <h3 className="podcast-title">{podcast.title}</h3>
               <span className="podcast-label">{podcast.label}</span>
               <p className="podcast-desc">{podcast.desc}</p>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

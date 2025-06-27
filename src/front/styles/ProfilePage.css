@@ -794,3 +794,85 @@ h3 {
   border-radius: 8px;
   margin-bottom: 10px;
 }
+
+
+
+/* Fix for Save Profile Button - make it less intrusive */
+.btn-primary {
+  background: #007bff !important; /* Change from orange to blue */
+  color: white !important;
+  padding: 10px 16px !important; /* Smaller padding */
+  border: none !important;
+  cursor: pointer !important;
+  border-radius: 6px !important;
+  font-size: 14px !important; /* Smaller font */
+  margin: 15px auto !important; /* Less margin */
+  display: block !important;
+  width: auto !important; /* Don't make it full width */
+  transition: background 0.2s ease !important;
+}
+
+.btn-primary:hover {
+  background: #0056b3 !important;
+}
+
+/* Alternative: If you want to keep orange but make it smaller */
+.btn-primary-orange {
+  background: #FF6600 !important;
+  color: white !important;
+  padding: 8px 16px !important;
+  border: none !important;
+  cursor: pointer !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  margin: 10px auto !important;
+  display: inline-block !important;
+  transition: background 0.2s ease !important;
+}
+
+.btn-primary-orange:hover {
+  background: #cc5200 !important;
+}
+
+/* Make sure right column doesn't hide anything */
+.right-column {
+  flex: 1;
+  max-width: 300px;
+  background: #f5f5f5;
+  padding: 15px;
+  border-radius: 10px;
+  overflow: visible !important; /* Make sure nothing is hidden */
+}
+
+.quick-actions {
+  overflow: visible !important; /* Make sure nothing is hidden */
+}
+
+.quick-actions > * {
+  margin-bottom: 15px !important; /* Add spacing between items */
+}
+
+/* Ensure all buttons in right column are visible */
+.right-column button {
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* Override any potential hiding rules */
+.right-column .webrtc-controls,
+.right-column .webrtc-controls button {
+  display: flex !important;
+  visibility: visible !important;
+}  
+
+/* Emergency button visibility fix */
+* [class*="webrtc"] {
+  display: block !important;
+  visibility: visible !important;
+}
+
+.right-column button {
+  display: inline-block !important;
+  visibility: visible !important;
+}  
+

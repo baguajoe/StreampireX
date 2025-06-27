@@ -4,7 +4,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, ChatMessage, UserSettings, TrackRelease, Release, Collaborator, Category
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, ChatMessage, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label
 import cloudinary.uploader
 import json
 import os
@@ -27,7 +27,6 @@ from api.utils.revelator_api import submit_release_to_revelator
 from rq import Queue
 from redis import Redis
 from api.utils.tasks import send_release_to_revelator
-from api.extensions import csrf  # ✅ Assuming you initialized csrf there
 
 
 
@@ -742,26 +741,30 @@ def download_podcast_episode(episode_id):
 @api.route('/upload_podcast', methods=['POST'])
 @jwt_required()
 def upload_podcast():
-    """Unified route: Users can upload podcasts globally or to their profile."""
+    from moviepy.editor import AudioFileClip, VideoFileClip
+    import whisper
+
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
-
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    # ✅ Ensure required fields
     title = request.form.get('title', '').strip()
     if not title:
         return jsonify({"error": "Title is required"}), 400
 
+    # Form fields
     description = request.form.get('description', '')
     category = request.form.get('category', 'General')
     subscription_tier = request.form.get('subscription_tier', 'Free')
     is_premium = request.form.get('is_premium', 'false').lower() == 'true'
     streaming_enabled = request.form.get('streaming_enabled', 'false').lower() == 'true'
     is_profile_upload = request.form.get('profile_upload', 'false').lower() == 'true'
+    scheduled_release = request.form.get('scheduled_release')
+    series_name = request.form.get('series_name')
+    season_number = request.form.get('season_number')
 
-    # ✅ Securely handle audio file
+    # Handle audio file
     audio_url = None
     audio_duration = None
     if 'audio' in request.files:
@@ -770,16 +773,14 @@ def upload_podcast():
         audio_path = os.path.join(AUDIO_UPLOAD_DIR, audio_filename)
         audio.save(audio_path)
         audio_url = audio_path
-
-        # ✅ Extract duration from audio file
         try:
             audio_clip = AudioFileClip(audio_path)
-            audio_duration = int(audio_clip.duration)  # Store in seconds
+            audio_duration = int(audio_clip.duration)
             audio_clip.close()
         except Exception as e:
-            print(f"Error extracting audio duration: {e}")
+            print(f"Audio duration error: {e}")
 
-    # ✅ Securely handle video file
+    # Handle video file
     video_url = None
     video_duration = None
     if 'video' in request.files:
@@ -788,77 +789,79 @@ def upload_podcast():
         video_path = os.path.join(VIDEO_UPLOAD_DIR, video_filename)
         video.save(video_path)
         video_url = video_path
-
-        # ✅ Extract duration from video file
         try:
-            video_clip = AudioFileClip(video_path)
-            video_duration = int(video_clip.duration)  # Store in seconds
+            video_clip = VideoFileClip(video_path)
+            video_duration = int(video_clip.duration)
             video_clip.close()
         except Exception as e:
-            print(f"Error extracting video duration: {e}")
+            print(f"Video duration error: {e}")
 
-    # ✅ Securely handle cover art
+    # Cover art
     cover_art_url = None
     if 'cover_art' in request.files:
-        cover_art = request.files['cover_art']
-        cover_filename = secure_filename(cover_art.filename)
+        cover = request.files['cover_art']
+        cover_filename = secure_filename(cover.filename)
         cover_path = os.path.join(COVER_UPLOAD_DIR, cover_filename)
-        cover_art.save(cover_path)
+        cover.save(cover_path)
         cover_art_url = cover_path
 
-    # ✅ AI-Generated Transcription (Optional)
+    # Optional transcription (audio only)
     transcription = None
     if audio_url:
         try:
             model = whisper.load_model("base")
             result = model.transcribe(audio_url)
-            transcription = result["text"]
+            transcription = result.get("text", "")
         except Exception as e:
-            transcription = f"Transcription failed: {e}"
+            print(f"Transcription error: {e}")
+            transcription = None
 
-    # ✅ Assign an episode number if part of a series
-    latest_episode = Podcast.query.filter_by(user_id=user_id, category=category).order_by(Podcast.episode_number.desc()).first()
-    episode_number = latest_episode.episode_number + 1 if latest_episode else 1
+    # Determine episode number
+    latest = Podcast.query.filter_by(host_id=user_id, series_name=series_name)\
+        .order_by(Podcast.episode_number.desc()).first()
+    episode_number = latest.episode_number + 1 if latest else 1
 
-    # ✅ Create a Stripe Product for Monetization
+    # Stripe product
     stripe_product_id = None
     if is_premium:
         try:
             stripe_product = stripe.Product.create(name=title)
             stripe_product_id = stripe_product["id"]
         except Exception as e:
-            print(f"Stripe product creation failed: {e}")
+            print(f"Stripe error: {e}")
 
-    # ✅ Create a new podcast entry (for global or profile uploads)
+    # Save to DB
     new_podcast = Podcast(
-        user_id=user_id,
+        host_id=user_id,
         title=title,
         description=description,
         category=category,
         subscription_tier=subscription_tier,
-        is_premium=is_premium,
+        monetization_type="paid" if is_premium else "free",
+        is_live=False,
         streaming_enabled=streaming_enabled,
         audio_url=audio_url,
         video_url=video_url,
         cover_art_url=cover_art_url,
         uploaded_at=datetime.utcnow(),
         transcription=transcription,
-        duration=audio_duration or video_duration,  # ✅ Store duration
-        episode_number=episode_number,  # ✅ Store episode number
-        stripe_product_id=stripe_product_id  # ✅ Store Stripe product ID
+        duration=audio_duration or video_duration,
+        episode_number=episode_number,
+        stripe_product_id=stripe_product_id,
+        scheduled_release=datetime.fromisoformat(scheduled_release) if scheduled_release else None,
+        series_name=series_name,
+        season_number=int(season_number) if season_number else None
     )
 
     db.session.add(new_podcast)
     db.session.commit()
 
-    # ✅ Determine redirect URL (Global Page or Profile Page)
-    redirect_url = "/profile" if is_profile_upload else "/podcasts"
-
     return jsonify({
-        "message": "Podcast uploaded successfully",
-        "redirect": redirect_url,
+        "message": "✅ Podcast uploaded successfully!",
+        "redirect": "/profile" if is_profile_upload else "/podcasts",
         "podcast": new_podcast.serialize()
     }), 201
+
 
 
 @api.route('/podcast/<int:podcast_id>/episode/<int:episode_id>', methods=['GET'])
@@ -1198,6 +1201,30 @@ def get_all_radio_stations():
     stations = RadioStation.query.all()
     return jsonify([station.serialize() for station in stations]), 200
 
+@api.route('/api/radio-stations/<int:id>', methods=['GET'])
+def get_radio_station_detail(id):
+    station = RadioStation.query.get(id)
+    if not station:
+        return jsonify({"error": "Station not found"}), 404
+    return jsonify(station.serialize()), 200
+
+@api.route("/api/radio-station/<int:station_id>/playlist", methods=["GET"])
+def get_radio_station_playlist(station_id):
+    station = RadioStation.query.get_or_404(station_id)
+    playlist_entries = RadioPlaylist.query.filter_by(station_id=station.id).all()
+    result = []
+    for entry in playlist_entries:
+        audio = entry.audio
+        result.append({
+            "id": audio.id,
+            "title": audio.title,
+            "artist_name": audio.artist_name,
+            "audio_url": audio.file_url
+        })
+    return jsonify(result), 200
+
+
+
 @api.route('/admin/radio-stations/<int:station_id>', methods=['DELETE'])
 @jwt_required()
 def delete_radio_station(station_id):
@@ -1428,7 +1455,7 @@ def get_all_profiles():
     return jsonify([user.serialize() for user in users]), 200
 
 # Route to get the logged-in user's profile
-@api.route("/profile", methods=["GET"])
+@api.route("/user/profile", methods=["GET"])
 @jwt_required()
 def get_user_profile():
     user_id = get_jwt_identity()  # Get the current user's ID from the JWT token
@@ -1633,16 +1660,29 @@ def create_signup():
 
 @api.route('/login', methods=['POST'])
 def login():
-    data = request.json
+    data = request.get_json()
+    
     if not data or not data.get('email') or not data.get('password'):
         return jsonify({"error": "Missing email or password"}), 400
 
     user = User.query.filter_by(email=data['email']).first()
+    
     if user and check_password_hash(user.password_hash, data['password']):
-        # token = create_access_token(identity=user.id)
-        token = create_access_token(identity=str(user.id))
-        return jsonify({"message": "Login successful", "access_token": token, "user": user.serialize()}), 200
+        access_token = create_access_token(identity=user.id)
+        return jsonify({
+            "message": "Login successful",
+            "access_token": access_token,
+            "user": user.serialize()
+        }), 200
+
     return jsonify({"error": "Invalid email or password"}), 401
+
+@api.route('/protected', methods=['GET'])
+@jwt_required()
+def protected():
+    user_id = get_jwt_identity()
+    return jsonify({"user_id": user_id}), 200
+
 
 
 
@@ -2815,11 +2855,11 @@ def get_podcast_id(podcast_id):
     return jsonify(podcast.serialize()), 200
 
 # ✅ Get Episodes for a Podcast
-@api.route('/podcasts/<int:podcast_id>/episodes', methods=['GET'])
-def get_podcast_episodes(podcast_id):
-    """Fetches all episodes for a given podcast."""
-    episodes = PodcastEpisode.query.filter_by(podcast_id=podcast_id).all()
-    return jsonify([episode.serialize() for episode in episodes]), 200
+# @api.route('/podcasts/<int:podcast_id>/episodes', methods=['GET'])
+# def get_podcast_episodes(podcast_id):
+#     """Fetches all episodes for a given podcast."""
+#     episodes = PodcastEpisode.query.filter_by(podcast_id=podcast_id).all()
+#     return jsonify([episode.serialize() for episode in episodes]), 200
 
 @api.route('/episodes/upcoming', methods=['GET'])
 def get_scheduled_episodes():
@@ -5474,88 +5514,6 @@ def create_release():
 
     return jsonify({"message": "✅ Release saved and submission enqueued!"}), 201
 
-
-
-@api.route('/api/webhook/revelator', methods=['POST'])
-@csrf.exempt  # ✅ Important if CSRF is enforced
-def revelator_webhook():
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "Invalid or missing JSON"}), 400
-
-        external_id = data.get("external_id")
-        status = data.get("status")  # e.g., "delivered", "failed", "in_review"
-        platform = data.get("platform")  # optional
-        platform_url = data.get("platform_url")  # optional
-
-        if not external_id or not status:
-            return jsonify({"error": "Missing external_id or status"}), 400
-
-        release = Release.query.filter_by(external_id=external_id).first()
-        if not release:
-            return jsonify({"error": "Release not found"}), 404
-
-        # ✅ Update status field (you may need to add these fields in your model)
-        release.status = status
-        if platform and platform_url:
-            if not release.platform_links:
-                release.platform_links = {}
-            release.platform_links[platform] = platform_url
-
-        db.session.commit()
-        return jsonify({"message": "✅ Webhook received and processed"}), 200
-
-    except Exception as e:
-        print(f"Webhook error: {e}")
-        return jsonify({"error": "Internal server error"}), 500
-
-@api.route('/api/add-collaborator', methods=['POST'])
-@jwt_required()
-def add_collaborator():
-    user_id = get_jwt_identity()
-    data = request.get_json()
-
-    if not data or 'collaborators' not in data or 'track_id' not in data:
-        return jsonify({"error": "Missing track ID or collaborator data"}), 400
-
-    track_id = data['track_id']
-    collaborators = data['collaborators']
-
-    # Validate ownership
-    track = Track.query.get(track_id)
-    if not track or track.user_id != user_id:
-        return jsonify({"error": "Invalid or unauthorized track ID"}), 403
-
-    try:
-        # Optional: delete old collaborators before saving new ones
-        Collaborator.query.filter_by(track_id=track_id).delete()
-
-        for entry in collaborators:
-            name = entry.get('name')
-            role = entry.get('role')
-            percentage = entry.get('percentage')
-
-            if not all([name, role, percentage]):
-                continue
-
-            new_collaborator = Collaborator(
-                track_id=track_id,
-                name=name,
-                role=role,
-                percentage=float(percentage)
-            )
-            db.session.add(new_collaborator)
-
-        db.session.commit()
-        return jsonify({"message": "✅ Collaborators saved"}), 201
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Failed to save collaborators: {str(e)}"}), 500
-
-
-
 @api.route('/api/upload-lyrics', methods=['POST'])
 @jwt_required()
 def upload_lyrics():
@@ -5803,3 +5761,177 @@ def get_earnings_history():
 
     earnings = [{"day": str(row.day), "total": float(row.total)} for row in results]
     return jsonify({"earnings": earnings})
+
+@api.route("/home-feed", methods=["GET"])
+@jwt_required()
+def home_feed():
+    user_id = get_jwt_identity()
+
+    # Get followed user IDs
+    followed_ids = db.session.query(Follow.followed_id).filter_by(follower_id=user_id).subquery()
+
+    # Optionally include the user's own posts
+    all_ids = db.session.query(User.id).filter(
+        (User.id == user_id) | (User.id.in_(followed_ids))
+    ).subquery()
+
+    # Fetch posts from followed users (and yourself), newest first
+    posts = (
+        Post.query.filter(Post.author_id.in_(all_ids))
+        .order_by(Post.created_at.desc())
+        .limit(50)
+        .all()
+    )
+
+    return jsonify([post.serialize() for post in posts]), 200
+
+@api.route("/label-dashboard", methods=["GET"])
+@jwt_required()
+def label_dashboard():
+    user_id = get_jwt_identity()
+
+    # Verify the user is a label
+    label_user = User.query.get(user_id)
+    if not label_user or label_user.role != "Label":
+        return jsonify({"error": "Not authorized as a label."}), 403
+
+    # Get the Label account
+    label = Label.query.filter_by(owner_id=user_id).first()
+    if not label:
+        return jsonify({"error": "Label not found."}), 404
+
+    # Get associated artists
+    artists = User.query.filter_by(label_id=label.id).all()
+
+    return jsonify({
+        "label": {
+            "id": label.id,
+            "name": label.name,
+        },
+        "artists": [
+            {
+                "id": artist.id,
+                "username": artist.username,
+                "display_name": artist.display_name,
+                "bio": artist.bio,
+                "profile_picture": artist.profile_picture,
+            } for artist in artists
+        ]
+    })
+
+@api.route("/add-artist", methods=["POST"])
+@jwt_required()
+def add_artist():
+    user_id = get_jwt_identity()
+    label = Label.query.filter_by(owner_id=user_id).first()
+    if not label:
+        return jsonify({"error": "Label account not found"}), 404
+
+    data = request.get_json()
+    artist_username = data.get("username")
+
+    artist = User.query.filter_by(username=artist_username).first()
+    if not artist:
+        return jsonify({"error": "Artist not found"}), 404
+
+    if artist.label_id == label.id:
+        return jsonify({"error": "Artist already added to label"}), 400
+
+    artist.label_id = label.id
+    db.session.commit()
+
+    return jsonify({"message": "Artist added successfully"})
+
+
+
+@api.route("/api/podcast/<int:podcast_id>", methods=["GET"])
+def get_podcast_detail(podcast_id):
+    try:
+        podcast = Podcast.query.get(podcast_id)
+        if not podcast:
+            return jsonify({"error": "Podcast not found"}), 404
+        return jsonify(podcast.serialize()), 200
+    except Exception as e:
+        print(f"[ERROR] Failed to load podcast {podcast_id}: {str(e)}")
+        return jsonify({"error": "Failed to load podcast details."}), 500
+
+
+@api.route("/api/podcast/<int:podcast_id>/episodes", methods=["GET"])
+def get_podcast_episodes(podcast_id):
+    try:
+        episodes = PodcastEpisode.query.filter_by(podcast_id=podcast_id).all()
+        return jsonify([ep.serialize() for ep in episodes]), 200
+    except Exception as e:
+        print(f"[ERROR] Failed to fetch episodes for podcast {podcast_id}: {str(e)}")
+        return jsonify({"error": "Failed to load episodes."}), 500
+
+
+
+def seed_sample_podcasts():
+    sample_podcasts = [
+        {
+            "id": 101,
+            "title": "Cold Cases Uncovered",
+            "description": "Exploring the dark corners of justice.",
+            "category": "True Crime & Investigative Journalism",
+            "cover_image_url": "https://via.placeholder.com/300x300?text=Cold+Cases",
+        },
+        {
+            "id": 102,
+            "title": "Celebrity Circuit",
+            "description": "Daily pop culture recaps & drama.",
+            "category": "Celebrity Gossip & Reality TV",
+            "cover_image_url": "https://via.placeholder.com/300x300?text=Celebrity+Circuit",
+        },
+        {
+            "id": 103,
+            "title": "Brush & Beyond",
+            "description": "Unlock your artistic side.",
+            "category": "Education & Learning",
+            "cover_image_url": "https://via.placeholder.com/300x300?text=Brush+Beyond",
+        }
+    ]
+
+    for pod in sample_podcasts:
+        existing = Podcast.query.get(pod["id"])
+        if not existing:
+            new_podcast = Podcast(
+                id=pod["id"],
+                title=pod["title"],
+                description=pod["description"],
+                category=pod["category"],
+                cover_image_url=pod["cover_image_url"],
+                created_at=datetime.utcnow()
+            )
+            db.session.add(new_podcast)
+
+            # Add a test episode
+            episode = PodcastEpisode(
+                podcast_id=pod["id"],
+                title=f"{pod['title']} – Pilot Episode",
+                description="A sneak peek into the first episode.",
+                file_url="https://example.com/audio/sample.mp3",
+                is_published=True,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(episode)
+
+    db.session.commit()@app.route('/seed/sample_podcasts')
+def seed_sample_podcasts_route():
+    seed_sample_podcasts()
+    return "Sample podcasts seeded"
+
+    print("✅ Sample podcasts seeded successfully.")  
+
+@api.route('/seed/sample_podcasts')
+def seed_sample_podcasts_route():
+    seed_sample_podcasts()
+    return "Sample podcasts seeded"
+
+@api.route('/seed/sample_podcasts', methods=['GET'])
+def trigger_sample_seed():
+    seed_sample_podcasts()
+    return jsonify({"message": "Sample podcasts seeded"}), 200
+
+
+
