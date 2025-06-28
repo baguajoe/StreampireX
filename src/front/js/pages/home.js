@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import { Link } from "react-router-dom";
 import { Context } from "../store/appContext";
-import heroImage from "../../img/rigo-baby.jpg";
+import heroImage from "../../img/guitarguy.png";
 import "../../styles/home.css";
 
 const Home = () => {
