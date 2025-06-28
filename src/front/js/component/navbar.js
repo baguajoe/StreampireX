@@ -10,7 +10,7 @@ const Navbar = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+      fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())

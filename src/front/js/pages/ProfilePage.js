@@ -36,6 +36,7 @@ const ProfilePage = () => {
     const [favoritePodcasts, setFavoritePodcasts] = useState([]);
     const [isEditingName, setIsEditingName] = useState(false);
     const [videos, setVideos] = useState([]);
+    const [images, setImages] = useState([]);
     const [commentInputs, setCommentInputs] = useState({});
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [chatFeatures, setChatFeatures] = useState({ typing: false, groupMode: false });
@@ -55,30 +56,64 @@ const ProfilePage = () => {
     const coverPhotoInputRef = useRef(null);
 
     useEffect(() => {
-        fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+        const token = localStorage.getItem("token");
+        
+        console.log("ProfilePage - Token check:", token ? "Token found" : "No token found");
+        console.log("ProfilePage - All localStorage keys:", Object.keys(localStorage));
+        
+        if (!token) {
+            console.warn("No token found - using fallback user data");
+            // Fallback: use localStorage data
+            if (loggedInUserId) {
+                setUser({ 
+                    id: loggedInUserId, 
+                    username: loggedInUsername || `user_${loggedInUserId}`,
+                    display_name: loggedInUsername || `User ${loggedInUserId}`
+                });
+            }
+            return;
+        }
+
+        console.log("Making API call to fetch profile...");
+        fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/profile`, {
             method: "GET",
             headers: {
-                "Authorization": `Bearer ${localStorage.getItem("token")}`,
+                "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json"
             },
         })
             .then(async (res) => {
+                console.log("ProfilePage API Response status:", res.status);
+                
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    console.error("ProfilePage API Error:", res.status, errorText);
+                    throw new Error(`API Error: ${res.status}`);
+                }
+                
                 const text = await res.text();
                 try {
                     const data = JSON.parse(text);
+                    console.log("ProfilePage - Profile data received:", data);
+                    
+                    // ✅ Handle both response formats
+                    const userData = data.user || data; // Handle {user: ...} or direct user data
                     
                     // Ensure we have at least an id
-                    if (!data.id && loggedInUserId) {
-                        data.id = loggedInUserId;
+                    if (!userData.id && loggedInUserId) {
+                        userData.id = loggedInUserId;
                     }
                     
-                    setUser(data);
+                    setUser(userData);
                     
                     // Set other states from the response
-                    if (data.bio) setBio(data.bio);
-                    if (data.display_name) setDisplayName(data.display_name);
-                    if (data.business_name) setBusinessName(data.business_name);
-                    if (data.use_avatar !== undefined) setUseAvatar(data.use_avatar);
+                    if (userData.bio) setBio(userData.bio);
+                    if (userData.display_name) setDisplayName(userData.display_name);
+                    if (userData.business_name) setBusinessName(userData.business_name);
+                    if (userData.use_avatar !== undefined) setUseAvatar(userData.use_avatar);
+                    if (userData.videos) setVideos(userData.videos);
+                    if (userData.images) setImages(userData.images);
+                    if (userData.gallery && !userData.images) setImages(userData.gallery); // fallback
                     
                 } catch (e) {
                     console.error("Failed to parse JSON:", text);
@@ -111,15 +146,19 @@ const ProfilePage = () => {
         const newValue = !useAvatar;
         setUseAvatar(newValue);
         try {
-            await fetch(`${process.env.BACKEND_URL}/api/user/avatar-toggle`, {
+            const token = localStorage.getItem("token");
+            if (!token) return;
+            
+            await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/avatar-toggle`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    "Authorization": `Bearer ${token}`,
                 },
                 body: JSON.stringify({ use_avatar: newValue })
             });
         } catch (err) {
+            console.error("Failed to update avatar preference:", err);
             alert("Failed to update avatar preference.");
         }
     };
@@ -128,21 +167,33 @@ const ProfilePage = () => {
         const file = e.target.files[0];
         if (!file) return;
 
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("Please log in to upload profile picture");
+            return;
+        }
+
         const formData = new FormData();
         formData.append("profile_picture", file);
 
         try {
-            const res = await fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+            const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/profile`, {
                 method: "PUT",
                 headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`
+                    "Authorization": `Bearer ${token}`
                 },
                 body: formData,
             });
 
+            if (!res.ok) {
+                throw new Error(`Upload failed: ${res.status}`);
+            }
+
             const data = await res.json();
             setUser((prev) => ({ ...prev, profile_picture: data.url }));
+            alert("✅ Profile picture updated successfully!");
         } catch (err) {
+            console.error("Profile picture upload error:", err);
             alert("❌ Failed to upload profile picture");
         }
     };
@@ -156,26 +207,79 @@ const ProfilePage = () => {
 
     const handleVideoUpload = async (e) => {
         const file = e.target.files[0];
+        if (!file) return;
+        
         const formData = new FormData();
         formData.append("file", file);
         formData.append("upload_preset", "your_unsigned_preset");
 
         try {
+            console.log("Uploading video to Cloudinary...");
             const res = await fetch("https://api.cloudinary.com/v1_1/dli7r0d7s/video/upload", {
                 method: "POST",
                 body: formData,
             });
+            
+            if (!res.ok) {
+                throw new Error(`Upload failed: ${res.status}`);
+            }
+            
             const data = await res.json();
             console.log("Uploaded video URL:", data.secure_url);
-            setVideos(prev => [...prev, { file_url: data.secure_url, title: file.name }]);
+            
+            const newVideo = { file_url: data.secure_url, title: file.name };
+            setVideos(prev => [...prev, newVideo]);
+
+            // Save to backend
+            await updateUserMedia('videos', [...videos, newVideo]);
 
         } catch (err) {
-            alert("Video upload failed.");
-            console.error(err);
+            console.error("Video upload error:", err);
+            alert(`Video upload failed: ${err.message}`);
+        }
+    };
+
+    // ✅ Helper function to update backend media
+    const updateUserMedia = async (mediaType, mediaArray) => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            console.error("No token found for backend update");
+            return;
+        }
+
+        try {
+            console.log(`Updating ${mediaType} in backend...`);
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/profile`, {
+                method: "PUT",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    [mediaType]: mediaArray
+                }),
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Failed to update ${mediaType}:`, response.status, errorText);
+                throw new Error(`Backend update failed: ${response.status}`);
+            }
+            
+            console.log(`${mediaType} updated successfully in backend`);
+        } catch (err) {
+            console.error(`Failed to update ${mediaType}:`, err);
+            alert(`Warning: File uploaded to cloud but failed to save to profile: ${err.message}`);
         }
     };
 
     const handleSaveProfile = async () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("Please log in to save profile");
+            return;
+        }
+
         const payload = {
             // strings: trim and check non-empty
             ...(displayName?.trim() && { display_name: displayName }),
@@ -185,6 +289,7 @@ const ProfilePage = () => {
             // arrays: check length > 0
             ...(Array.isArray(socialLinks) && socialLinks.length > 0 && { social_links: socialLinks }),
             ...(Array.isArray(videos) && videos.length > 0 && { videos }),
+            ...(Array.isArray(images) && images.length > 0 && { images }),
 
             // objects (non-array): check has any own keys
             ...(podcast && !Array.isArray(podcast) && Object.keys(podcast).length > 0 && { podcast }),
@@ -196,27 +301,36 @@ const ProfilePage = () => {
         };
 
         try {
-            const response = await fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+            console.log("Saving profile with payload:", payload);
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/profile`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    "Authorization": `Bearer ${token}`,
                 },
                 body: JSON.stringify(payload),
             });
 
-            const result = await response.json();
-            if (response.ok) {
-                alert("✅ Profile saved successfully!");
-                setUser(result.user);
-                setJustSaved(true);
-                setTimeout(() => setJustSaved(false), 3000); // hide save button after 3s
-            } else {
-                alert(result.error || "Failed to update profile.");
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("Save profile error:", response.status, errorText);
+                throw new Error(`Save failed: ${response.status}`);
             }
 
+            const result = await response.json();
+            console.log("Profile saved successfully:", result);
+            alert("✅ Profile saved successfully!");
+            
+            if (result.user) {
+                setUser(result.user);
+            }
+            
+            setJustSaved(true);
+            setTimeout(() => setJustSaved(false), 3000); // hide save button after 3s
+
         } catch (error) {
-            alert("An error occurred while saving profile.");
+            console.error("Save profile error:", error);
+            alert(`An error occurred while saving profile: ${error.message}`);
         }
     };
 
@@ -228,7 +342,6 @@ const ProfilePage = () => {
     console.log("ProfilePage render - condition check:", !!effectiveUserId);
     console.log("ProfilePage render - user object:", user);
     console.log("ProfilePage render - loggedInUserId:", loggedInUserId);
-
 
     return (
         <div className="profile-container">
@@ -266,6 +379,7 @@ const ProfilePage = () => {
                     <button onClick={() => profilePicInputRef.current.click()} className="upload-btn">
                         😀 Upload Profile Picture
                     </button>
+                    <input ref={profilePicInputRef} type="file" style={{ display: 'none' }} onChange={handleProfilePicChange} />
                 </div>
                 <div className="profile-name-header">
                     {!isEditingName ? (
@@ -544,18 +658,30 @@ const ProfilePage = () => {
                         <div className="upload-video-section">
                             <h3>🎬 Upload a Video</h3>
                             <UploadVideo currentUser={user} onUpload={() => {
-                                fetch(`${process.env.BACKEND_URL}/api/user/${user.id}/videos`)
-                                    .then((res) => res.json())
-                                    .then((data) => setVideos(data));
+                                const token = localStorage.getItem("token");
+                                if (token && user.id) {
+                                    fetch(`${process.env.BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/${user.id}/videos`, {
+                                        headers: { Authorization: `Bearer ${token}` }
+                                    })
+                                        .then((res) => res.json())
+                                        .then((data) => setVideos(data))
+                                        .catch(err => console.error("Error fetching videos:", err));
+                                }
                             }} />
                         </div>
                     )}
 
+                    {/* Manual Video Upload */}
+                    <div className="manual-upload-section">
+                        <h3>🎬 Quick Video Upload</h3>
+                        <input type="file" accept="video/*" onChange={handleVideoUpload} />
+                    </div>
+
                     {videos.length > 0 && (
                         <div className="uploaded-videos">
                             <h4>📹 Your Uploaded Videos</h4>
-                            {videos.map(video => (
-                                <div key={video.id} className="video-wrapper">
+                            {videos.map((video, index) => (
+                                <div key={video.id || index} className="video-wrapper">
                                     <video src={video.file_url} controls width="300" />
                                     <p>{video.title}</p>
                                     <button onClick={() => alert("Liked!")}>👍 {video.likes || 0}</button>
@@ -563,14 +689,35 @@ const ProfilePage = () => {
                                     <input
                                         type="text"
                                         placeholder="Add a comment"
-                                        value={commentInputs[video.id] || ""}
-                                        onChange={(e) => setCommentInputs({ ...commentInputs, [video.id]: e.target.value })}
+                                        value={commentInputs[video.id || index] || ""}
+                                        onChange={(e) => setCommentInputs({ 
+                                            ...commentInputs, 
+                                            [video.id || index]: e.target.value 
+                                        })}
                                     />
                                     <button onClick={() => alert("Comment added")}>💬 Comment</button>
 
-                                    <button className="btn-secondary" onClick={() => alert("Deleted")}>🗑️ Delete</button>
+                                    <button className="btn-secondary" onClick={() => {
+                                        setVideos(prev => prev.filter((_, i) => i !== index));
+                                        alert("Video removed from list");
+                                    }}>🗑️ Remove</button>
                                 </div>
                             ))}
+                        </div>
+                    )}
+
+                    {/* Images Section */}
+                    {images.length > 0 && (
+                        <div className="uploaded-images">
+                            <h4>🖼️ Your Images</h4>
+                            <div className="images-grid">
+                                {images.map((image, index) => (
+                                    <div key={image.id || index} className="image-wrapper">
+                                        <img src={image.file_url} alt={image.title} style={{ width: "200px", borderRadius: "6px" }} />
+                                        <p>{image.title}</p>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>

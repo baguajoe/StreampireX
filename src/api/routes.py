@@ -1202,7 +1202,7 @@ def get_all_radio_stations():
 
 
 
-@api.route('/api/radio-stations', methods=['GET'])
+@api.route('/radio-stations', methods=['GET'])
 def get_public_radio_stations():
     """Public endpoint to get all radio stations without authentication"""
     try:
@@ -1211,14 +1211,14 @@ def get_public_radio_stations():
     except Exception as e:
         return jsonify({"error": "Failed to fetch radio stations"}), 500
 
-@api.route('/api/radio-stations/<int:id>', methods=['GET'])
+@api.route('/radio-stations/<int:id>', methods=['GET'])
 def get_radio_station_detail(id):
     station = RadioStation.query.get(id)
     if not station:
         return jsonify({"error": "Station not found"}), 404
     return jsonify(station.serialize()), 200
 
-@api.route("/api/radio-station/<int:station_id>/playlist", methods=["GET"])
+@api.route("/radio-station/<int:station_id>/playlist", methods=["GET"])
 def get_radio_station_playlist(station_id):
     station = RadioStation.query.get_or_404(station_id)
     playlist_entries = RadioPlaylist.query.filter_by(station_id=station.id).all()
@@ -1465,31 +1465,7 @@ def get_all_profiles():
     return jsonify([user.serialize() for user in users]), 200
 
 # Route to get the logged-in user's profile
-@api.route("/user/profile", methods=["GET"])
-@jwt_required()
-def get_user_profile():
-    """Get the logged-in user's profile data"""
-    try:
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
 
-        if not user:
-            return jsonify({
-                "error": "User not found",
-                "success": False
-            }), 404
-
-        return jsonify({
-            "success": True,
-            "user": user.serialize(),
-            "message": "Profile retrieved successfully"
-        }), 200
-
-    except Exception as e:
-        return jsonify({
-            "error": f"Failed to retrieve profile: {str(e)}",
-            "success": False
-        }), 500
 
 
 @api.route('/public-podcasts', methods=['GET'])
@@ -1693,7 +1669,7 @@ def login():
     user = User.query.filter_by(email=data['email']).first()
     
     if user and check_password_hash(user.password_hash, data['password']):
-        access_token = create_access_token(identity=user.id)
+        access_token = create_access_token(identity=str(user.id))
         return jsonify({
             "message": "Login successful",
             "access_token": access_token,
@@ -2649,105 +2625,7 @@ def update_social_links():
     return jsonify({"message": "Social links updated!", "social_links": user.social_links}), 200
 
 
-@api.route('/user/profile', methods=['PUT'])
-@jwt_required()
-def update_profile():
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
 
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    data = request.json
-
-    user.business_name = data.get("business_name", user.business_name)
-    user.display_name = data.get("display_name", user.display_name)
-    user.radio_station = data.get("radio_station", user.radio_station)
-    user.podcast = data.get("podcast", user.podcast)
-    user.bio = data.get("bio", user.bio)
-    
-
-    # Handle JSON fields (e.g. social_links) passed as strings
-    if "social_links" in data:
-        try:
-            user.social_links = json.loads(data["social_links"])
-        except Exception:
-            return jsonify({"error": "Invalid social_links JSON"}), 400
-
-    # Handle videos and gallery if present
-    if "videos" in data:
-        try:
-            videos = json.loads(data["videos"])
-            if len(videos) > 10:
-                return jsonify({"error": "Max 10 videos allowed"}), 400
-            user.videos = videos
-        except Exception:
-            return jsonify({"error": "Invalid videos format"}), 400
-
-    if "gallery" in data:
-        try:
-            gallery = json.loads(data["gallery"])
-            if len(gallery) > 10:
-                return jsonify({"error": "Max 10 images allowed"}), 400
-            user.gallery = gallery
-        except Exception:
-            return jsonify({"error": "Invalid gallery format"}), 400
-
-    # 📸 Handle profile picture upload
-    if "profile_picture" in request.files:
-        pic = request.files["profile_picture"]
-        if pic.filename != "":
-            filename = secure_filename(pic.filename)
-            print(filename)
-            pic_path = os.path.dirname(os.path.join("uploads/profile_pics", filename))
-            print(pic_path)
-            pic.save(pic_path)
-            user.profile_picture = pic_path + "/" + filename
-
-    # 🖼️ Handle cover photo upload
-    if "cover_photo" in request.files:
-        cover = request.files["cover_photo"]
-        if cover.filename != "":
-            filename = secure_filename(cover.filename)
-            cover_path = os.path.join("uploads/cover_photos", filename)
-            cover.save(cover_path)
-            user.cover_photo = cover_path
-
-    db.session.commit()
-    db.session.refresh(user)
-    return jsonify({"message": "Profile updated successfully", "user": user.serialize()}), 200
-
-
-@api.route('/user/profile/videos/upload', methods=['POST'])
-@jwt_required()
-def upload_profile_video():
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    if 'video' not in request.files:
-        return jsonify({"error": "No file provided"}), 400
-
-    video = request.files['video']
-    filename = secure_filename(video.filename)
-    file_path = os.path.join("uploads/videos", filename)
-
-    # Limit video size (max 20MB)
-    if video.content_length > 20 * 1024 * 1024:
-        return jsonify({"error": "Video file is too large (Max 20MB)"}), 400
-
-    video.save(file_path)
-
-    # Ensure video gallery list doesn't exceed limit
-    if len(user.videos) >= 10:
-        return jsonify({"error": "Max 10 videos allowed"}), 400
-
-    user.videos.append(file_path)
-    db.session.commit()
-
-    return jsonify({"message": "Video uploaded successfully", "videos": user.videos}), 200
 
 
 # @api.route('/profile/music/upload', methods=['POST'])
@@ -5201,41 +5079,174 @@ def upload_avatar():
     return jsonify({"avatar_url": avatar_url}), 201
 
 
+
+@api.route("/user/profile", methods=["GET"])
+@jwt_required()
+def get_user_profile():
+    """Get the logged-in user's profile data"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # ✅ Return user data directly (not wrapped in "user" key)
+        return jsonify(user.serialize()), 200
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to retrieve profile: {str(e)}"
+        }), 500
+
+
 @api.route('/user/profile', methods=['PUT'])
 @jwt_required()
 def update_user_profile():
+    """Update user profile - handles both JSON and FormData"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Handle both JSON and FormData
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+        
+        # Update basic fields
+        if "display_name" in data:
+            user.display_name = data["display_name"]
+        if "business_name" in data:
+            user.business_name = data["business_name"]
+        if "bio" in data:
+            user.bio = data["bio"]
+        if "radio_station" in data:
+            user.radio_station = data["radio_station"]
+        if "podcast" in data:
+            user.podcast = data["podcast"]
+        
+        # Handle JSON fields
+        if "social_links" in data:
+            try:
+                if isinstance(data["social_links"], str):
+                    user.social_links = json.loads(data["social_links"])
+                else:
+                    user.social_links = data["social_links"]
+            except:
+                return jsonify({"error": "Invalid social_links format"}), 400
+        
+        # Handle videos
+        if "videos" in data:
+            try:
+                if isinstance(data["videos"], str):
+                    videos = json.loads(data["videos"])
+                else:
+                    videos = data["videos"]
+                
+                if len(videos) > 10:
+                    return jsonify({"error": "Max 10 videos allowed"}), 400
+                user.videos = videos
+            except:
+                return jsonify({"error": "Invalid videos format"}), 400
+        
+        # Handle images/gallery
+        if "images" in data:
+            try:
+                if isinstance(data["images"], str):
+                    images = json.loads(data["images"])
+                else:
+                    images = data["images"]
+                
+                if len(images) > 10:
+                    return jsonify({"error": "Max 10 images allowed"}), 400
+                    
+                # Update both images and gallery fields
+                user.images = images
+                user.gallery = images  # Keep both for compatibility
+            except:
+                return jsonify({"error": "Invalid images format"}), 400
+        
+        # Handle file uploads
+        if "profile_picture" in request.files:
+            pic = request.files["profile_picture"]
+            if pic.filename != "":
+                filename = secure_filename(pic.filename)
+                pic_dir = "uploads/profile_pics"
+                os.makedirs(pic_dir, exist_ok=True)
+                pic_path = os.path.join(pic_dir, filename)
+                pic.save(pic_path)
+                user.profile_picture = pic_path
+        
+        if "cover_photo" in request.files:
+            cover = request.files["cover_photo"]
+            if cover.filename != "":
+                filename = secure_filename(cover.filename)
+                cover_dir = "uploads/cover_photos"
+                os.makedirs(cover_dir, exist_ok=True)
+                cover_path = os.path.join(cover_dir, filename)
+                cover.save(cover_path)
+                user.cover_photo = cover_path
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Profile updated successfully", 
+            "user": user.serialize()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to update profile: {str(e)}"}), 500
+
+
+# Keep your video upload endpoint as is
+@api.route('/user/profile/videos/upload', methods=['POST'])
+@jwt_required()
+def upload_profile_video():
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
-
+    
     if not user:
         return jsonify({"error": "User not found"}), 404
-
-    data = request.get_json()
-    user.display_name = data.get("display_name", user.display_name)
-    user.business_name = data.get("business_name", user.business_name)
-    user.bio = data.get("bio", user.bio)
-    user.social_links = data.get("social_links", user.social_links)
-    user.radio_station = data.get("radio_station", user.radio_station)
-    user.podcast = data.get("podcast", user.podcast)
-    user.videos = data.get("videos", user.videos)
-    user.profile_picture = data.get("profile_picture", user.profile_picture)
-    user.cover_photo = data.get("cover_photo", user.cover_photo)
-
+    
+    if 'video' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    
+    video = request.files['video']
+    filename = secure_filename(video.filename)
+    
+    # Create uploads directory if it doesn't exist
+    upload_dir = "uploads/videos"
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, filename)
+    
+    # Limit video size (max 20MB)
+    if video.content_length and video.content_length > 20 * 1024 * 1024:
+        return jsonify({"error": "Video file is too large (Max 20MB)"}), 400
+    
+    video.save(file_path)
+    
+    # Ensure video gallery list doesn't exceed limit
+    if len(user.videos or []) >= 10:
+        return jsonify({"error": "Max 10 videos allowed"}), 400
+    
+    if not user.videos:
+        user.videos = []
+    
+    user.videos.append({
+        "file_url": file_path,
+        "title": filename
+    })
+    
     db.session.commit()
-
-    return jsonify({"message": "Profile updated successfully", "user": user.serialize()}), 200
-
-# GET SETTINGS
-@api.route('/api/user/settings', methods=['GET'])
-@jwt_required()
-def get_settings():
-    user_id = get_jwt_identity()
-    settings = UserSettings.query.filter_by(user_id=user_id).first()
-    if not settings:
-        settings = UserSettings(user_id=user_id)
-        db.session.add(settings)
-        db.session.commit()
-    return jsonify(settings.to_dict())
+    
+    return jsonify({
+        "message": "Video uploaded successfully", 
+        "videos": user.videos
+    }), 200
 
 # UPDATE SETTINGS
 @api.route('/api/user/settings', methods=['PUT'])
