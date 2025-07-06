@@ -24,6 +24,32 @@ class Role(db.Model):
             "id": self.id,
             "name": self.name
         }
+    
+class Squad(db.Model):
+    __tablename__ = "squad"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    description = db.Column(db.Text)
+    invite_code = db.Column(db.String(20), unique=True)
+    platform_tags = db.Column(db.ARRAY(db.String))
+    members = db.relationship("User", back_populates="squad", foreign_keys="User.squad_id")
+     # ✅ ADD THIS: Squad streams relationship
+    streams = db.relationship("Stream", back_populates="squad", foreign_keys="Stream.squad_id")
+
+
+    # ✅ REMOVE FOREIGN KEY - JUST STORE THE ID
+    creator_id = db.Column(db.Integer, nullable=True)  # No ForeignKey constraint
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "invite_code": self.invite_code,
+            "platform_tags": self.platform_tags or [],
+            "creator_id": self.creator_id,
+        }
 
 # User Model
 class User(db.Model):
@@ -39,30 +65,44 @@ class User(db.Model):
     is_premium = db.Column(db.Boolean, default=False, server_default="False")
     avatar_url = db.Column(db.String(500))
 
+    # ✅ Gamer Features
+    is_gamer = db.Column(db.Boolean, default=False)
+    gamer_tags = db.Column(db.JSON, default={})  # e.g., {"psn": "ShadowWolf", "xbox": "NoScopeKing"}
+    favorite_games = db.Column(db.ARRAY(db.String), default=[])
+    gamer_rank = db.Column(db.String(50), default="Casual")
+    squad_id = db.Column(db.Integer, db.ForeignKey("squad.id"))
+
+    # 🔄 Relationships
+    squad = db.relationship("Squad", back_populates="members", foreign_keys=[squad_id])
+    streams = db.relationship("Stream", back_populates="user", foreign_keys="Stream.creator_id", lazy=True)
+
+    # ✅ Trials
     is_on_trial = db.Column(db.Boolean, default=False)
     trial_start_date = db.Column(db.DateTime, nullable=True)
     trial_end_date = db.Column(db.DateTime, nullable=True)
 
+    # 💳 Access & Purchases
     vr_tickets = db.relationship('VRAccessTicket', backref='user', lazy=True)
     ticket_purchases = db.relationship('TicketPurchase', backref='user', lazy=True)
 
+    # 🧑‍💼 Business Info
     business_name = db.Column(db.String(255), nullable=True)
     display_name = db.Column(db.String(255), nullable=True)
 
+    # 📸 Media
     profile_picture = db.Column(db.String(500), nullable=True)
     cover_photo = db.Column(db.String(500), nullable=True)
-
     radio_station = db.Column(db.String(500), nullable=True)
     podcast = db.Column(db.String(500), nullable=True)
-
     social_links = db.Column(db.JSON, nullable=True)
     gallery = db.Column(db.JSON, default=[])
     videos = db.Column(db.JSON, default=[])
 
+    # 🛂 Role
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
     role = db.relationship("Role", backref="users")
 
-    # ✅ Fixed: Use the correct attribute name for back_populates
+    # 📻 Followers
     radio_follows = db.relationship('RadioFollower', back_populates='user', lazy='dynamic')
 
     def serialize(self):
@@ -85,7 +125,12 @@ class User(db.Model):
             "trial_start_date": self.trial_start_date.strftime("%Y-%m-%d") if self.trial_start_date else None,
             "trial_end_date": self.trial_end_date.strftime("%Y-%m-%d") if self.trial_end_date else None,
             "role": self.role.name if self.role else None,
-            "avatar_url": self.avatar_url
+            "avatar_url": self.avatar_url,
+            "is_gamer": self.is_gamer,
+            "gamer_tags": self.gamer_tags or {},
+            "favorite_games": self.favorite_games or [],
+            "gamer_rank": self.gamer_rank or "Casual",
+            "squad_id": self.squad_id,
         }
 
     
@@ -276,10 +321,14 @@ class PlaylistAudio(db.Model):
 
 
 class StreamingHistory(db.Model):
+    __tablename__ = 'streaming_history'
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    content_id = db.Column(db.Integer, nullable=False)  # Can be audio or podcast
-    content_type = db.Column(db.String(50), nullable=False)  # 'audio' or 'podcast'
+
+    content_id = db.Column(db.Integer, nullable=False)  # Audio, podcast, or stream
+    content_type = db.Column(db.String(50), nullable=False)  # 'audio', 'podcast', 'stream'
+    
     listened_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('history', lazy=True))
@@ -949,7 +998,7 @@ class LiveStudio(db.Model):
 class LiveChat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    live_studio_id = db.Column(db.Integer, db.ForeignKey('live_studio.id'), nullable=False)  # Foreign Key added
+    live_studio_id = db.Column(db.Integer, db.ForeignKey('live_studio.id'), nullable=True)  # Foreign Key added
     message = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -2107,16 +2156,42 @@ class AdRevenue(db.Model):
     
 # Stream Model
 class Stream(db.Model):
+    __tablename__ = "stream"
+
     id = db.Column(db.Integer, primary_key=True)
+
+    # 🔗 Linked to a User (creator)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship("User", back_populates="streams", foreign_keys=[creator_id])
+
+    # 🔗 Optional: linked to a Squad
+    squad_id = db.Column(db.Integer, db.ForeignKey('squad.id'), nullable=True)
+    squad = db.relationship("Squad", back_populates="streams", foreign_keys=[squad_id])
+
+    # 📺 Stream metadata
     stream_url = db.Column(db.String(500), nullable=False)
+    platform = db.Column(db.String(50))  # e.g., "Twitch", "Kick", "StreampireX"
+    title = db.Column(db.String(150), nullable=True)
+
     views = db.Column(db.Integer, default=0)
+    is_live = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    creator = db.relationship('User', backref='streams')
-
     def __repr__(self):
-        return f"<Stream for creator {self.creator_id} with {self.views} views>"
+        return f"<Stream {self.id} by user {self.creator_id} on {self.platform}>"
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "creator_id": self.creator_id,
+            "squad_id": self.squad_id,
+            "stream_url": self.stream_url,
+            "platform": self.platform,
+            "title": self.title,
+            "is_live": self.is_live,
+            "views": self.views,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M")
+        }
 
 
 # models/share.py or models.py
@@ -2315,3 +2390,11 @@ class Label(db.Model):
             "created_at": self.created_at.isoformat(),
         }
 
+
+    
+class Game(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+    supports_crossplay = db.Column(db.Boolean)
+    platforms = db.Column(db.ARRAY(db.String))  # ["PS5", "Xbox", "PC"]
+    genre = db.Column(db.String)

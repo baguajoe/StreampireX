@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import styled from "styled-components";
 import "../../styles/sidebar.css";
@@ -18,6 +18,7 @@ const SectionHeader = styled.h4`
   padding-left: 15px;
   font-weight: bold;
   text-transform: uppercase;
+  cursor: pointer;
 `;
 
 const MenuItem = styled(Link)`
@@ -38,15 +39,24 @@ const MenuItem = styled(Link)`
   }
 `;
 
-const Sidebar = () => {
+const Sidebar = ({ user }) => {
   const location = useLocation();
-  const isActive = (path) => location.pathname.startsWith(path.replace(/:\w+/g, ""));
+  const isActive = (path) =>
+    location.pathname.startsWith(path.replace(/:\w+/g, ""));
+
+  const [showGamerSection, setShowGamerSection] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar_gamer_expanded");
+    if (saved) setShowGamerSection(saved === "true");
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("sidebar_gamer_expanded", showGamerSection);
+  }, [showGamerSection]);
 
   return (
     <SidebarContainer className="sidebar">
-
-
-
       {/* Dashboards */}
       <SectionHeader>📊 Dashboards</SectionHeader>
       <MenuItem to="/creator-dashboard" className={isActive("/creator-dashboard") ? "active" : ""}>🚀 Creator Dashboard</MenuItem>
@@ -54,13 +64,10 @@ const Sidebar = () => {
       <MenuItem to="/podcast-dashboard" className={isActive("/podcast-dashboard") ? "active" : ""}>🎧 Podcast Dashboard</MenuItem>
       <MenuItem to="/radio-dashboard" className={isActive("/radio-dashboard") ? "active" : ""}>📻 Radio Dashboard</MenuItem>
 
-      <SectionHeader>👤 User </SectionHeader>
-      <MenuItem to="/home-feed" className={isActive("/home-feed") ? "active" : ""}>
-        🏠 Home Feed
-      </MenuItem>
+      {/* User */}
+      <SectionHeader>👤 User</SectionHeader>
+      <MenuItem to="/home-feed" className={isActive("/home-feed") ? "active" : ""}>🏠 Home Feed</MenuItem>
       <MenuItem to="/profile" className={isActive("/profile") ? "active" : ""}>👤 Profile</MenuItem>
-
-
 
       {/* Podcasts */}
       <SectionHeader>🎧 Podcasts</SectionHeader>
@@ -69,9 +76,7 @@ const Sidebar = () => {
 
       {/* Videos */}
       <SectionHeader>🎬 Videos</SectionHeader>
-      <MenuItem to="/videos" className={isActive("/videos") ? "active" : ""}>
-        🎞️ Browse Videos
-      </MenuItem>
+      <MenuItem to="/videos" className={isActive("/videos") ? "active" : ""}>🎞️ Browse Videos</MenuItem>
 
       {/* Radio */}
       <SectionHeader>📻 Radio Stations</SectionHeader>
@@ -88,11 +93,32 @@ const Sidebar = () => {
       <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>📡 Live Streams</MenuItem>
       <MenuItem to="/live-concerts" className={isActive("/live-concerts") ? "active" : ""}>🎶 Live Concerts</MenuItem>
 
-      {/* User Section */}
+      <>
+        <SectionHeader onClick={() => setShowGamerSection(!showGamerSection)}>
+          🎮 Gamers {showGamerSection ? "🔽" : "▶️"}
+        </SectionHeader>
+        {showGamerSection && (
+          <>
+            <MenuItem to="/gamers/chat" className={isActive("/gamers/chat") ? "active" : ""}>
+              💬 Gamer Chatrooms
+            </MenuItem>
+            <MenuItem to="/profile/gamer" className={isActive("/profile/gamer") ? "active" : ""}>
+              🧑‍🚀 My Gamer Profile
+            </MenuItem>
+            <MenuItem to="/team-room" className={isActive("/team-room") ? "active" : ""}>
+              🧑‍🤝‍🧑 Team Room
+            </MenuItem>
+            <MenuItem to="/squad-finder" className={isActive("/squad-finder") ? "active" : ""}>
+              🔍 Find Squads
+            </MenuItem>
+          </>
+        )}
+      </>
+
+
+      {/* Account */}
       <SectionHeader>👤 Account</SectionHeader>
       <MenuItem to="/settings" className={isActive("/settings") ? "active" : ""}>⚙️ Settings</MenuItem>
-
-
     </SidebarContainer>
   );
 };

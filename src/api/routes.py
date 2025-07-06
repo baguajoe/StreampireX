@@ -4,7 +4,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, ChatMessage, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, ChatMessage, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game
 import cloudinary.uploader
 import json
 import os
@@ -715,21 +715,7 @@ def start_live_podcast(podcast_id):
 
 
 # ---------------- LIVE CHAT ----------------
-@socketio.on('send_message')
-def handle_message(data):
-    user_id = data.get('user_id')
-    stream_id = data.get('stream_id')
-    message = data.get('message')
 
-    new_message = LiveChat(user_id=user_id, stream_id=stream_id, message=message)
-    db.session.add(new_message)
-    db.session.commit()
-
-    socketio.emit('receive_message', {
-        "user_id": user_id,
-        "stream_id": stream_id,
-        "message": message
-    }, broadcast=True)
 
 @api.route('/podcast/download/<int:episode_id>', methods=['GET'])
 def download_podcast_episode(episode_id):
@@ -5973,5 +5959,99 @@ def trigger_sample_seed():
     seed_sample_podcasts()
     return jsonify({"message": "Sample podcasts seeded"}), 200
 
+# 🧑‍🚀 Gamer Profile - Get
+@api.route("/gamer-profile/<int:user_id>", methods=["GET"])
+def get_gamer_profile(user_id):
+    user = User.query.get(user_id)
+    if not user or not user.is_gamer:
+        return jsonify({"error": "Gamer not found"}), 404
+    return jsonify(user.serialize())
 
+# 🧑‍🚀 Gamer Profile - Update
+@api.route("/gamer-profile/update", methods=["POST"])
+@jwt_required()
+def update_gamer_profile():
+    user = User.query.get(get_jwt_identity())
+    data = request.json
+    user.gamer_tags = data.get("gamer_tags", user.gamer_tags)
+    user.favorite_games = data.get("favorite_games", user.favorite_games)
+    user.gamer_rank = data.get("gamer_rank", user.gamer_rank)
+    user.is_gamer = True
+    db.session.commit()
+    return jsonify({"message": "Gamer profile updated"})
+
+# 🧑‍🤝‍🧑 Squad - Create
+@api.route("/squads/create", methods=["POST"])
+@jwt_required()
+def create_squad():
+    user = User.query.get(get_jwt_identity())
+    data = request.json
+    from uuid import uuid4
+    squad = Squad(
+        name=data["name"],
+        description=data.get("description"),
+        platform_tags=data.get("platform_tags", []),
+        invite_code=str(uuid4())[:8],
+        creator_id=user.id
+    )
+    db.session.add(squad)
+    user.squad = squad
+    db.session.commit()
+    return jsonify({"message": "Squad created", "squad_id": squad.id})
+
+# 📥 Squad - Join by invite code
+@api.route("/squads/join", methods=["POST"])
+@jwt_required()
+def join_squad():
+    user = User.query.get(get_jwt_identity())
+    code = request.json.get("invite_code")
+    squad = Squad.query.filter_by(invite_code=code).first()
+    if not squad:
+        return jsonify({"error": "Invalid invite code"}), 404
+    user.squad = squad
+    db.session.commit()
+    return jsonify({"message": "Joined squad", "squad_id": squad.id})
+
+# 🎥 Stream - Add or Update
+@api.route("/streams/add", methods=["POST"])
+@jwt_required()
+def add_stream():
+    user = User.query.get(get_jwt_identity())
+    data = request.json
+
+    stream = Stream.query.filter_by(user_id=user.id).first()
+    if not stream:
+        stream = Stream(user_id=user.id)
+        db.session.add(stream)
+
+    stream.stream_url = data["stream_url"]
+    stream.platform = data.get("platform", "StreampireX")
+    stream.title = data.get("title")
+    stream.squad_id = user.squad_id
+    stream.is_live = True
+    db.session.commit()
+
+    return jsonify({"message": "Stream updated", "stream": stream.serialize()})
+
+# 🔴 Stream - Get all live squad streams
+@api.route("/streams/live", methods=["GET"])
+@jwt_required()
+def get_live_squad_streams():
+    user = User.query.get(get_jwt_identity())
+    if not user.squad_id:
+        return jsonify([])
+
+    squad_streams = Stream.query.filter_by(squad_id=user.squad_id, is_live=True).all()
+    return jsonify([s.serialize() for s in squad_streams])
+
+# 🕹️ Games - Crossplay directory
+@api.route("/games/crossplay-list", methods=["GET"])
+def get_crossplay_games():
+    games = Game.query.filter_by(supports_crossplay=True).all()
+    return jsonify([{
+        "id": g.id,
+        "name": g.name,
+        "platforms": g.platforms,
+        "genre": g.genre
+    } for g in games])
 
