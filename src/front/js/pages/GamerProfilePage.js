@@ -47,7 +47,8 @@ const GamerProfilePage = () => {
         <p><strong>🧑‍🤝‍🧑 Squad ID:</strong> {profile.squad_id || "Not in a squad"}</p>
       </div>
 
-      <Link to="/profile/gamer/edit" className="btn btn-primary">✏️ Edit My Gamer Profile</Link>
+      {/* <Link to="/profile/gamer/edit" className="btn btn-primary">✏️ Edit My Gamer Profile</Link> */}
+      <Link to="/" className="btn btn-primary">✏️ Edit My Gamer Profile</Link>
     </div>
   );
 };
