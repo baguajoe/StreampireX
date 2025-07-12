@@ -31,7 +31,7 @@ import FavoritesPage from "./pages/FavoritesPage";
 import ArtistDashboard from "./pages/ArtistDashboard";
 import UploadMusic from "./pages/UploadMusic";
 import SearchArtists from "./pages/BrowseProfile";
-import ArtistProfile from "./pages/ArtistProfile";
+
 
 import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -50,6 +50,9 @@ import LiveShowPage from "./pages/LiveShowPage";
 import LabelDashboard from "./pages/LabelDashboard";
 import ReleaseList from "./pages/ReleaseList";
 
+// 🎵 NEW: Artist Profile Page Import
+import ArtistProfilePage from "./pages/ArtistProfilePage";
+
 // ✅ Temporary placeholders
 const CollaboratorSplitPage = () => (
   <div className="page-container">
@@ -64,15 +67,6 @@ const AlbumDetailPage = () => (
     <p>This page is under development.</p>
   </div>
 );
-
-// ✅ Gamer placeholders
-// const GamersChatroomPage = () => (
-//   <div className="page-container">
-//     <h1>🎮 Gamers Chatroom</h1>
-//     <p>Chat with other players by game type.</p>
-//   </div>
-// );
-
 
 const EditGamerProfilePage = () => (
   <div className="page-container">
@@ -99,6 +93,14 @@ const CreateTeamRoomPage = () => (
   <div className="page-container">
     <h1>➕ Create Team Room</h1>
     <p>Set up a new squad with invite-only access.</p>
+  </div>
+);
+
+// 🎵 NEW: Artist Profile Edit Page Placeholder
+const EditArtistProfilePage = () => (
+  <div className="page-container">
+    <h1>✏️ Edit Artist Profile</h1>
+    <p>Edit your music artist profile and settings.</p>
   </div>
 );
 
@@ -155,7 +157,7 @@ const Layout = () => {
               <Route path="/artist-dashboard" element={<ArtistDashboard />} />
               <Route path="/upload-music" element={<UploadMusic />} />
               <Route path="/search" element={<SearchArtists />} />
-              <Route path="/artist-profile/:id" element={<ArtistProfile />} />
+              <Route path="/artist-profile/:id" element={<ArtistProfilePage />} />
 
               {/* 📺 Live Streaming */}
               <Route path="/live-streams" element={<LiveStreamPage />} />
@@ -163,9 +165,11 @@ const Layout = () => {
               <Route path="/live-show/:id" element={<LiveShowPage />} />
               <Route path="/label-dashboard" element={<LabelDashboard />} />
 
-              {/* 👤 User */}
+              {/* 👤 User - ALL PROFILE TYPES */}
               <Route path="/home-feed" element={<HomeFeed />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/profile/artist" element={<ArtistProfilePage />} /> {/* 🎵 NEW ARTIST PROFILE ROUTE */}
+              <Route path="/profile/artist/edit" element={<EditArtistProfilePage />} /> {/* 🎵 NEW EDIT ROUTE */}
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/favorites" element={<FavoritesPage />} />
 
@@ -176,6 +180,10 @@ const Layout = () => {
               <Route path="/team-room" element={<TeamRoomPage />} />
               <Route path="/squad-finder" element={<SquadFinderPage />} />
               <Route path="/create-team-room" element={<CreateTeamRoomPage />} />
+
+              {/* 🎵 Additional Artist Routes (Optional) */}
+              <Route path="/artist/upload" element={<UploadMusic />} />
+              <Route path="/artist/analytics" element={<ArtistDashboard />} />
 
               {/* 404 Fallback */}
               <Route path="*" element={<h1>Not found!</h1>} />

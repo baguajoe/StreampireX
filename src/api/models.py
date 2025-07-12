@@ -52,9 +52,90 @@ class Squad(db.Model):
         }
 
 # User Model
+# class User(db.Model):
+#     __tablename__ = 'user'
+
+#     id = db.Column(db.Integer, primary_key=True)
+#     username = db.Column(db.String(80), unique=True, nullable=False)
+#     artist_name = db.Column(db.String(80), unique=True, nullable=True)
+#     bio = db.Column(db.String(500), nullable=True)
+#     industry = db.Column(db.String(80), nullable=True)
+#     email = db.Column(db.String(120), unique=True, nullable=False)
+#     password_hash = db.Column(db.String(256), nullable=False)
+#     is_premium = db.Column(db.Boolean, default=False, server_default="False")
+#     avatar_url = db.Column(db.String(500))
+
+#     # ✅ Gamer Features
+#     is_gamer = db.Column(db.Boolean, default=False)
+#     gamer_tags = db.Column(db.JSON, default={})  # e.g., {"psn": "ShadowWolf", "xbox": "NoScopeKing"}
+#     favorite_games = db.Column(db.ARRAY(db.String), default=[])
+#     gamer_rank = db.Column(db.String(50), default="Casual")
+#     squad_id = db.Column(db.Integer, db.ForeignKey("squad.id"))
+
+#     # 🔄 Relationships
+#     squad = db.relationship("Squad", back_populates="members", foreign_keys=[squad_id])
+#     streams = db.relationship("Stream", back_populates="user", foreign_keys="Stream.creator_id", lazy=True)
+
+#     # ✅ Trials
+#     is_on_trial = db.Column(db.Boolean, default=False)
+#     trial_start_date = db.Column(db.DateTime, nullable=True)
+#     trial_end_date = db.Column(db.DateTime, nullable=True)
+
+#     # 💳 Access & Purchases
+#     vr_tickets = db.relationship('VRAccessTicket', backref='user', lazy=True)
+#     ticket_purchases = db.relationship('TicketPurchase', backref='user', lazy=True)
+
+#     # 🧑‍💼 Business Info
+#     business_name = db.Column(db.String(255), nullable=True)
+#     display_name = db.Column(db.String(255), nullable=True)
+
+#     # 📸 Media
+#     profile_picture = db.Column(db.String(500), nullable=True)
+#     cover_photo = db.Column(db.String(500), nullable=True)
+#     radio_station = db.Column(db.String(500), nullable=True)
+#     podcast = db.Column(db.String(500), nullable=True)
+#     social_links = db.Column(db.JSON, nullable=True)
+#     gallery = db.Column(db.JSON, default=[])
+#     videos = db.Column(db.JSON, default=[])
+
+#     # 🛂 Role
+#     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
+#     role = db.relationship("Role", backref="users")
+
+#     # 📻 Followers
+#     radio_follows = db.relationship('RadioFollower', back_populates='user', lazy='dynamic')
+
+#     def serialize(self):
+#         return {
+#             "id": self.id,
+#             "username": self.username,
+#             "artist_name": self.artist_name,
+#             "bio": self.bio,
+#             "email": self.email,
+#             "business_name": self.business_name,
+#             "display_name": self.display_name,
+#             "profile_picture": self.profile_picture,
+#             "cover_photo": self.cover_photo,
+#             "radio_station": self.radio_station,
+#             "podcast": self.podcast,
+#             "social_links": self.social_links or {},
+#             "gallery": self.gallery or [],
+#             "videos": self.videos or [],
+#             "is_on_trial": self.is_on_trial,
+#             "trial_start_date": self.trial_start_date.strftime("%Y-%m-%d") if self.trial_start_date else None,
+#             "trial_end_date": self.trial_end_date.strftime("%Y-%m-%d") if self.trial_end_date else None,
+#             "role": self.role.name if self.role else None,
+#             "avatar_url": self.avatar_url,
+#             "is_gamer": self.is_gamer,
+#             "gamer_tags": self.gamer_tags or {},
+#             "favorite_games": self.favorite_games or [],
+#             "gamer_rank": self.gamer_rank or "Casual",
+#             "squad_id": self.squad_id,
+#         }
+
 class User(db.Model):
     __tablename__ = 'user'
-
+    
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     artist_name = db.Column(db.String(80), unique=True, nullable=True)
@@ -64,32 +145,74 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     is_premium = db.Column(db.Boolean, default=False, server_default="False")
     avatar_url = db.Column(db.String(500))
-
-    # ✅ Gamer Features
+    
+    # ✅ Basic Gamer Features (existing)
     is_gamer = db.Column(db.Boolean, default=False)
     gamer_tags = db.Column(db.JSON, default={})  # e.g., {"psn": "ShadowWolf", "xbox": "NoScopeKing"}
     favorite_games = db.Column(db.ARRAY(db.String), default=[])
     gamer_rank = db.Column(db.String(50), default="Casual")
     squad_id = db.Column(db.Integer, db.ForeignKey("squad.id"))
-
-    # 🔄 Relationships
+    
+    # 🆕 NEW GAMER PROFILE FIELDS
+    # Essential Information
+    gamertag = db.Column(db.String(100), nullable=True)  # Main gaming identity
+    gaming_platforms = db.Column(db.JSON, default={})  # {"pc": True, "playstation": False, ...}
+    current_games = db.Column(db.ARRAY(db.String), default=[])  # Currently playing
+    gaming_schedule = db.Column(db.Text, nullable=True)  # When they're online
+    skill_level = db.Column(db.String(50), default="intermediate")  # beginner, intermediate, advanced, competitive, pro
+    
+    # Social & Team Elements
+    looking_for = db.Column(db.ARRAY(db.String), default=[])  # ["Casual Friends", "Competitive Teammates", ...]
+    communication_prefs = db.Column(db.ARRAY(db.String), default=[])  # ["Voice Chat", "Discord", ...]
+    age_range = db.Column(db.String(20), nullable=True)  # "18-24", "25-34", etc.
+    timezone = db.Column(db.String(50), nullable=True)  # "EST", "PST", "GMT", etc.
+    region = db.Column(db.String(100), nullable=True)  # "North America", "EU West", etc.
+    
+    # Gaming Preferences
+    favorite_genres = db.Column(db.ARRAY(db.String), default=[])  # ["FPS", "RPG", "Strategy", ...]
+    playstyle = db.Column(db.String(50), nullable=True)  # "aggressive", "strategic", "supportive", etc.
+    game_modes = db.Column(db.ARRAY(db.String), default=[])  # ["Solo", "Co-op", "PvP", ...]
+    
+    # Setup & Equipment
+    gaming_setup = db.Column(db.JSON, default={})  # {"headset": "SteelSeries", "controller": "Xbox", ...}
+    
+    # Streaming & Content
+    is_streamer = db.Column(db.Boolean, default=False)
+    streaming_platforms = db.Column(db.ARRAY(db.String), default=[])  # ["Twitch", "YouTube", ...]
+    streaming_schedule = db.Column(db.Text, nullable=True)
+    
+    # Languages & Communication
+    languages_spoken = db.Column(db.ARRAY(db.String), default=[])  # ["English", "Spanish", ...]
+    
+    # Gaming Stats & Achievements
+    gaming_stats = db.Column(db.JSON, default={})  # {"hours_played": 1500, "games_owned": 45, ...}
+    
+    # Gamer Bio (separate from regular bio)
+    gamer_bio = db.Column(db.Text, nullable=True)
+    
+    # Availability & Status
+    online_status = db.Column(db.String(20), default="offline")  # "online", "away", "busy", "offline"
+    last_seen = db.Column(db.DateTime, nullable=True)
+    current_game_activity = db.Column(db.String(200), nullable=True)  # "Playing Valorant - Ranked"
+    
+    # 🔄 Relationships (existing)
     squad = db.relationship("Squad", back_populates="members", foreign_keys=[squad_id])
     streams = db.relationship("Stream", back_populates="user", foreign_keys="Stream.creator_id", lazy=True)
-
-    # ✅ Trials
+    
+    # ✅ Trials (existing)
     is_on_trial = db.Column(db.Boolean, default=False)
     trial_start_date = db.Column(db.DateTime, nullable=True)
     trial_end_date = db.Column(db.DateTime, nullable=True)
-
-    # 💳 Access & Purchases
+    
+    # 💳 Access & Purchases (existing)
     vr_tickets = db.relationship('VRAccessTicket', backref='user', lazy=True)
     ticket_purchases = db.relationship('TicketPurchase', backref='user', lazy=True)
-
-    # 🧑‍💼 Business Info
+    
+    # 🧑‍💼 Business Info (existing)
     business_name = db.Column(db.String(255), nullable=True)
     display_name = db.Column(db.String(255), nullable=True)
-
-    # 📸 Media
+    
+    # 📸 Media (existing)
     profile_picture = db.Column(db.String(500), nullable=True)
     cover_photo = db.Column(db.String(500), nullable=True)
     radio_station = db.Column(db.String(500), nullable=True)
@@ -97,14 +220,24 @@ class User(db.Model):
     social_links = db.Column(db.JSON, nullable=True)
     gallery = db.Column(db.JSON, default=[])
     videos = db.Column(db.JSON, default=[])
-
-    # 🛂 Role
+    
+    # 🛂 Role (existing)
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
     role = db.relationship("Role", backref="users")
-
-    # 📻 Followers
+    
+    # 📻 Followers (existing)
     radio_follows = db.relationship('RadioFollower', back_populates='user', lazy='dynamic')
 
+    is_artist = db.Column(db.Boolean, default=False)
+    artist_bio = db.Column(db.Text, nullable=True)
+    artist_genre = db.Column(db.String(50), nullable=True)
+    artist_location = db.Column(db.String(100), nullable=True)
+    artist_website = db.Column(db.String(200), nullable=True)
+    artist_social_links = db.Column(db.JSON, default={})
+    is_verified_artist = db.Column(db.Boolean, default=False)
+    monthly_listeners = db.Column(db.Integer, default=0)
+    total_plays = db.Column(db.Integer, default=0)
+    
     def serialize(self):
         return {
             "id": self.id,
@@ -126,13 +259,48 @@ class User(db.Model):
             "trial_end_date": self.trial_end_date.strftime("%Y-%m-%d") if self.trial_end_date else None,
             "role": self.role.name if self.role else None,
             "avatar_url": self.avatar_url,
+            
+            # 🎮 EXISTING GAMER FIELDS
             "is_gamer": self.is_gamer,
             "gamer_tags": self.gamer_tags or {},
             "favorite_games": self.favorite_games or [],
             "gamer_rank": self.gamer_rank or "Casual",
             "squad_id": self.squad_id,
+            
+            # 🆕 NEW GAMER PROFILE FIELDS
+            "gamertag": self.gamertag,
+            "gaming_platforms": self.gaming_platforms or {},
+            "current_games": self.current_games or [],
+            "gaming_schedule": self.gaming_schedule,
+            "skill_level": self.skill_level,
+            "looking_for": self.looking_for or [],
+            "communication_prefs": self.communication_prefs or [],
+            "age_range": self.age_range,
+            "timezone": self.timezone,
+            "region": self.region,
+            "favorite_genres": self.favorite_genres or [],
+            "playstyle": self.playstyle,
+            "game_modes": self.game_modes or [],
+            "gaming_setup": self.gaming_setup or {},
+            "is_streamer": self.is_streamer,
+            "streaming_platforms": self.streaming_platforms or [],
+            "streaming_schedule": self.streaming_schedule,
+            "languages_spoken": self.languages_spoken or [],
+            "gaming_stats": self.gaming_stats or {},
+            "gamer_bio": self.gamer_bio,
+            "online_status": self.online_status,
+            "last_seen": self.last_seen.strftime("%Y-%m-%d %H:%M:%S") if self.last_seen else None,
+            "current_game_activity": self.current_game_activity,
+            "is_artist": self.is_artist,
+            "artist_bio": self.artist_bio,
+            "artist_genre": self.artist_genre,
+            "artist_location": self.artist_location,
+            "artist_website": self.artist_website,
+            "artist_social_links": self.artist_social_links or {},
+            "is_verified_artist": self.is_verified_artist,
+            "monthly_listeners": self.monthly_listeners,
+            "total_plays": self.total_plays
         }
-
     
 class UserSettings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -814,6 +982,11 @@ class RadioStation(db.Model):
     user = db.relationship('User', backref=db.backref('radio_stations', lazy=True))
     ticket_purchases = db.relationship('TicketPurchase', backref='station', lazy=True)
 
+    genres = db.Column(db.ARRAY(db.String), default=[])  # Preferred genres
+    submission_guidelines = db.Column(db.Text, nullable=True)  # Submission rules
+    creator_name = db.Column(db.String(100), nullable=True)  # Station creator name
+    preferred_genres = db.Column(db.ARRAY(db.String), default=[])  # Alternative field name
+
 
     def serialize(self):
         return {
@@ -834,7 +1007,11 @@ class RadioStation(db.Model):
             "max_listeners": self.max_listeners,
             "logo_url": self.logo_url,
             "cover_image_url": self.cover_image_url,
-            "created_at": self.created_at.isoformat()
+            "created_at": self.created_at.isoformat(),
+            "genres": self.genres or [],
+            "submission_guidelines": self.submission_guidelines,
+            "creator_name": self.creator_name,
+            "preferred_genres": self.preferred_genres or []
         }
 
     @property
