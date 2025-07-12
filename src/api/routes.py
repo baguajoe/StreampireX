@@ -5960,25 +5960,294 @@ def trigger_sample_seed():
     return jsonify({"message": "Sample podcasts seeded"}), 200
 
 # 🧑‍🚀 Gamer Profile - Get
-@api.route("/gamer-profile/<int:user_id>", methods=["GET"])
-def get_gamer_profile(user_id):
-    user = User.query.get(user_id)
-    if not user or not user.is_gamer:
-        return jsonify({"error": "Gamer not found"}), 404
-    return jsonify(user.serialize())
+@api.route('/api/user/gamer-profile', methods=['GET'])
+@jwt_required()
+def get_gamer_profile():
+    """Get the current user's gamer profile"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        # Return gamer-specific fields
+        gamer_data = {
+            "id": user.id,
+            "username": user.username,
+            "gamertag": user.gamertag,
+            "is_gamer": user.is_gamer,
+            "gamer_rank": user.gamer_rank,
+            "gaming_platforms": user.gaming_platforms or {},
+            "current_games": user.current_games or [],
+            "favorite_games": user.favorite_games or [],
+            "gaming_schedule": user.gaming_schedule,
+            "skill_level": user.skill_level,
+            "looking_for": user.looking_for or [],
+            "communication_prefs": user.communication_prefs or [],
+            "age_range": user.age_range,
+            "timezone": user.timezone,
+            "region": user.region,
+            "favorite_genres": user.favorite_genres or [],
+            "playstyle": user.playstyle,
+            "game_modes": user.game_modes or [],
+            "gaming_setup": user.gaming_setup or {},
+            "is_streamer": user.is_streamer,
+            "streaming_platforms": user.streaming_platforms or [],
+            "streaming_schedule": user.streaming_schedule,
+            "languages_spoken": user.languages_spoken or [],
+            "gaming_stats": user.gaming_stats or {},
+            "gamer_bio": user.gamer_bio,
+            "online_status": user.online_status,
+            "last_seen": user.last_seen.isoformat() if user.last_seen else None,
+            "current_game_activity": user.current_game_activity,
+            "gamer_tags": user.gamer_tags or {},
+            "squad_id": user.squad_id,
+            "avatar_url": user.avatar_url,
+            "profile_picture": user.profile_picture
+        }
+        
+        return jsonify({"user": gamer_data}), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # 🧑‍🚀 Gamer Profile - Update
-@api.route("/gamer-profile/update", methods=["POST"])
+@api.route('/api/user/gamer-profile', methods=['PUT'])
 @jwt_required()
 def update_gamer_profile():
-    user = User.query.get(get_jwt_identity())
-    data = request.json
-    user.gamer_tags = data.get("gamer_tags", user.gamer_tags)
-    user.favorite_games = data.get("favorite_games", user.favorite_games)
-    user.gamer_rank = data.get("gamer_rank", user.gamer_rank)
-    user.is_gamer = True
-    db.session.commit()
-    return jsonify({"message": "Gamer profile updated"})
+    """Update the current user's gamer profile"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        data = request.get_json()
+        
+        # Update basic gamer info
+        if 'gamertag' in data:
+            user.gamertag = data['gamertag']
+        if 'is_gamer' in data:
+            user.is_gamer = data['is_gamer']
+        if 'gamer_rank' in data:
+            user.gamer_rank = data['gamer_rank']
+        if 'skill_level' in data:
+            user.skill_level = data['skill_level']
+            
+        # Update gaming platforms
+        if 'gaming_platforms' in data:
+            user.gaming_platforms = data['gaming_platforms']
+            
+        # Update games
+        if 'current_games' in data:
+            user.current_games = data['current_games']
+        if 'favorite_games' in data:
+            user.favorite_games = data['favorite_games']
+            
+        # Update schedule and availability
+        if 'gaming_schedule' in data:
+            user.gaming_schedule = data['gaming_schedule']
+        if 'timezone' in data:
+            user.timezone = data['timezone']
+        if 'region' in data:
+            user.region = data['region']
+            
+        # Update social preferences
+        if 'looking_for' in data:
+            user.looking_for = data['looking_for']
+        if 'communication_prefs' in data:
+            user.communication_prefs = data['communication_prefs']
+        if 'age_range' in data:
+            user.age_range = data['age_range']
+            
+        # Update gaming preferences
+        if 'favorite_genres' in data:
+            user.favorite_genres = data['favorite_genres']
+        if 'playstyle' in data:
+            user.playstyle = data['playstyle']
+        if 'game_modes' in data:
+            user.game_modes = data['game_modes']
+            
+        # Update setup and streaming
+        if 'gaming_setup' in data:
+            user.gaming_setup = data['gaming_setup']
+        if 'is_streamer' in data:
+            user.is_streamer = data['is_streamer']
+        if 'streaming_platforms' in data:
+            user.streaming_platforms = data['streaming_platforms']
+        if 'streaming_schedule' in data:
+            user.streaming_schedule = data['streaming_schedule']
+            
+        # Update languages and bio
+        if 'languages_spoken' in data:
+            user.languages_spoken = data['languages_spoken']
+        if 'gamer_bio' in data:
+            user.gamer_bio = data['gamer_bio']
+            
+        # Update gaming stats
+        if 'gaming_stats' in data:
+            user.gaming_stats = data['gaming_stats']
+            
+        # Update gamer tags
+        if 'gamer_tags' in data:
+            user.gamer_tags = data['gamer_tags']
+            
+        # Update online status
+        if 'online_status' in data:
+            user.online_status = data['online_status']
+        if 'current_game_activity' in data:
+            user.current_game_activity = data['current_game_activity']
+            
+        # Update last seen
+        user.last_seen = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Gamer profile updated successfully",
+            "user": user.serialize()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+@api.route('/api/user/<int:user_id>/gamer-profile', methods=['GET'])
+def get_public_gamer_profile(user_id):
+    """Get a user's public gamer profile (for viewing other gamers)"""
+    try:
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        if not user.is_gamer:
+            return jsonify({"error": "User is not a gamer"}), 404
+            
+        # Return public gamer profile (exclude sensitive info)
+        public_data = {
+            "id": user.id,
+            "username": user.username,
+            "gamertag": user.gamertag,
+            "gamer_rank": user.gamer_rank,
+            "gaming_platforms": user.gaming_platforms or {},
+            "current_games": user.current_games or [],
+            "favorite_games": user.favorite_games or [],
+            "skill_level": user.skill_level,
+            "looking_for": user.looking_for or [],
+            "communication_prefs": user.communication_prefs or [],
+            "age_range": user.age_range,
+            "timezone": user.timezone,
+            "region": user.region,
+            "favorite_genres": user.favorite_genres or [],
+            "playstyle": user.playstyle,
+            "game_modes": user.game_modes or [],
+            "languages_spoken": user.languages_spoken or [],
+            "gamer_bio": user.gamer_bio,
+            "online_status": user.online_status,
+            "current_game_activity": user.current_game_activity,
+            "is_streamer": user.is_streamer,
+            "streaming_platforms": user.streaming_platforms or [],
+            "avatar_url": user.avatar_url,
+            "profile_picture": user.profile_picture,
+            "squad_id": user.squad_id
+        }
+        
+        return jsonify({"user": public_data}), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@api.route('/api/user/online-status', methods=['POST'])
+@jwt_required()
+def update_online_status():
+    """Update user's online status and current activity"""
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        data = request.get_json()
+        
+        if 'online_status' in data:
+            user.online_status = data['online_status']
+        if 'current_game_activity' in data:
+            user.current_game_activity = data['current_game_activity']
+            
+        user.last_seen = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({"message": "Status updated successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
+@api.route('/api/gamers/search', methods=['GET'])
+def search_gamers():
+    """Search for gamers based on criteria"""
+    try:
+        # Get query parameters
+        game = request.args.get('game')
+        platform = request.args.get('platform')
+        skill_level = request.args.get('skill_level')
+        genre = request.args.get('genre')
+        region = request.args.get('region')
+        looking_for = request.args.get('looking_for')
+        
+        # Start with all gamers
+        query = User.query.filter(User.is_gamer == True)
+        
+        # Apply filters
+        if game:
+            query = query.filter(User.current_games.contains([game]))
+        
+        if platform:
+            # Filter by platform (this requires JSONB queries for PostgreSQL)
+            query = query.filter(User.gaming_platforms[platform].astext == 'true')
+        
+        if skill_level:
+            query = query.filter(User.skill_level == skill_level)
+            
+        if genre:
+            query = query.filter(User.favorite_genres.contains([genre]))
+            
+        if region:
+            query = query.filter(User.region.ilike(f'%{region}%'))
+            
+        if looking_for:
+            query = query.filter(User.looking_for.contains([looking_for]))
+        
+        # Execute query and limit results
+        gamers = query.limit(50).all()
+        
+        # Return public profiles
+        results = []
+        for gamer in gamers:
+            results.append({
+                "id": gamer.id,
+                "username": gamer.username,
+                "gamertag": gamer.gamertag,
+                "gamer_rank": gamer.gamer_rank,
+                "skill_level": gamer.skill_level,
+                "current_games": gamer.current_games or [],
+                "favorite_genres": gamer.favorite_genres or [],
+                "region": gamer.region,
+                "online_status": gamer.online_status,
+                "avatar_url": gamer.avatar_url,
+                "profile_picture": gamer.profile_picture
+            })
+        
+        return jsonify({"gamers": results}), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 # 🧑‍🤝‍🧑 Squad - Create
 @api.route("/squads/create", methods=["POST"])
@@ -6055,3 +6324,293 @@ def get_crossplay_games():
         "genre": g.genre
     } for g in games])
 
+# Enhanced station endpoint
+@api.route('/api/radio/stations/detailed', methods=['GET'])
+def get_detailed_stations():
+    stations = RadioStation.query.all()
+    return jsonify([{
+        "id": station.id,
+        "name": station.name,
+        "description": station.description,
+        "genres": station.genres or [],  # ✅ Correct field name
+        "preferred_genres": station.preferred_genres or [],  # ✅ Alternative field
+        "followers": station.followers_count,  # ✅ Correct field name
+        "submission_guidelines": station.submission_guidelines,  # ✅ Correct field name
+        "creator_name": station.creator_name,
+        "is_public": station.is_public,
+        "is_live": station.is_live,
+        "logo_url": station.logo_url,
+        "cover_image_url": station.cover_image_url,
+        "created_at": station.created_at.isoformat() if station.created_at else None
+    } for station in stations])
+
+# Get Artist Profile (specific route)
+@api.route('/profile/artist/<int:user_id>', methods=['GET'])
+def get_artist_profile(user_id):
+    user = User.query.get(user_id)
+    if not user or not user.is_artist:
+        return jsonify({"error": "Artist profile not found"}), 404
+    return jsonify(user.serialize()), 200
+
+# Update Artist Profile
+# Update Artist Profile - Add error handling
+@api.route('/profile/artist/update', methods=['PUT'])
+@jwt_required()
+def update_artist_profile():
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        data = request.json
+        
+        user.is_artist = True
+        user.artist_bio = data.get("artist_bio", user.artist_bio)
+        user.artist_genre = data.get("artist_genre", user.artist_genre)
+        user.artist_location = data.get("artist_location", user.artist_location)
+        user.artist_website = data.get("artist_website", user.artist_website)
+        user.artist_social_links = data.get("artist_social_links", user.artist_social_links)
+        user.monthly_listeners = data.get("monthly_listeners", user.monthly_listeners)
+        user.total_plays = data.get("total_plays", user.total_plays)
+        
+        db.session.commit()
+        return jsonify({"message": "Artist profile updated", "user": user.serialize()}), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
+# Submit music to radio station (enhanced)
+@api.route('/api/radio/upload_music', methods=['POST'])
+@jwt_required()
+def submit_music_to_station():
+    try:
+        user_id = get_jwt_identity()
+        
+        # Validate required fields
+        station_id = request.form.get('station_id')
+        if not station_id:
+            return jsonify({"error": "Station ID is required"}), 400
+            
+        # Validate station exists
+        station = RadioStation.query.get(station_id)
+        if not station:
+            return jsonify({"error": "Radio station not found"}), 404
+        
+        # Get form data
+        artist_name = request.form.get('artist_name')
+        track_title = request.form.get('track_title')
+        
+        if not all([artist_name, track_title]):
+            return jsonify({"error": "Artist name and track title are required"}), 400
+        
+        album_name = request.form.get('album_name')
+        bio = request.form.get('bio')
+        genre = request.form.get('genre')
+        social_links = request.form.get('social_links')
+        notes = request.form.get('notes')
+        
+        # Handle file upload
+        audio_file = request.files.get('audio')
+        if not audio_file:
+            return jsonify({"error": "No audio file provided"}), 400
+        
+        # Validate file type
+        allowed_extensions = ['.mp3', '.wav', '.flac', '.m4a']
+        file_ext = os.path.splitext(audio_file.filename)[1].lower()
+        if file_ext not in allowed_extensions:
+            return jsonify({"error": "Invalid file type. Allowed: MP3, WAV, FLAC, M4A"}), 400
+        
+        # Save file and create submission
+        filename = secure_filename(audio_file.filename)
+        file_path = os.path.join("uploads/radio_submissions", filename)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        audio_file.save(file_path)
+        
+        # Create submission record
+        submission = RadioSubmission(
+            artist_id=user_id,
+            station_id=station_id,
+            track_title=track_title,
+            artist_name=artist_name,
+            album_name=album_name,
+            bio=bio,
+            genre=genre,
+            social_links=social_links,
+            notes=notes,
+            audio_file_url=file_path,
+            submission_status="Pending"
+        )
+        
+        db.session.add(submission)
+        db.session.commit()
+        
+        return jsonify({"message": "Track submitted successfully!", "submission_id": submission.id}), 201
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Get comprehensive gamer profile
+@api.route('/profile/gamer/<int:user_id>', methods=['GET'])
+def get_comprehensive_gamer_profile(user_id):
+    user = User.query.get(user_id)
+    if not user or not user.is_gamer:
+        return jsonify({"error": "Gamer profile not found"}), 404
+    return jsonify(user.serialize()), 200
+
+# Update comprehensive gamer profile
+@api.route('/profile/gamer/update', methods=['PUT'])
+@jwt_required()
+def update_comprehensive_gamer_profile():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    data = request.json
+    
+    # Update all new gamer fields
+    user.is_gamer = True
+    user.gamertag = data.get("gamertag", user.gamertag)
+    user.gaming_platforms = data.get("gaming_platforms", user.gaming_platforms)
+    user.current_games = data.get("current_games", user.current_games)
+    user.gaming_schedule = data.get("gaming_schedule", user.gaming_schedule)
+    user.skill_level = data.get("skill_level", user.skill_level)
+    user.looking_for = data.get("looking_for", user.looking_for)
+    user.communication_prefs = data.get("communication_prefs", user.communication_prefs)
+    user.age_range = data.get("age_range", user.age_range)
+    user.timezone = data.get("timezone", user.timezone)
+    user.region = data.get("region", user.region)
+    user.favorite_genres = data.get("favorite_genres", user.favorite_genres)
+    user.playstyle = data.get("playstyle", user.playstyle)
+    user.game_modes = data.get("game_modes", user.game_modes)
+    user.gaming_setup = data.get("gaming_setup", user.gaming_setup)
+    user.is_streamer = data.get("is_streamer", user.is_streamer)
+    user.streaming_platforms = data.get("streaming_platforms", user.streaming_platforms)
+    user.streaming_schedule = data.get("streaming_schedule", user.streaming_schedule)
+    user.languages_spoken = data.get("languages_spoken", user.languages_spoken)
+    user.gaming_stats = data.get("gaming_stats", user.gaming_stats)
+    user.gamer_bio = data.get("gamer_bio", user.gamer_bio)
+    user.current_game_activity = data.get("current_game_activity", user.current_game_activity)
+    
+    db.session.commit()
+    return jsonify({"message": "Gamer profile updated", "user": user.serialize()}), 200
+
+# Update online status
+@api.route('/gamer/status/update', methods=['PUT'])
+@jwt_required()
+def update_gamer_status():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    data = request.json
+    
+    user.online_status = data.get("online_status", user.online_status)
+    user.current_game_activity = data.get("current_game_activity", user.current_game_activity)
+    user.last_seen = datetime.utcnow()
+    
+    db.session.commit()
+    return jsonify({"message": "Status updated"}), 200
+
+# Get user's squad info
+@api.route("/squads/my-squad", methods=["GET"])
+@jwt_required()
+def get_my_squad():
+    user = User.query.get(get_jwt_identity())
+    if not user.squad_id:
+        return jsonify({"squad": None}), 200
+    
+    squad = Squad.query.get(user.squad_id)
+    return jsonify(squad.serialize()), 200
+
+# Leave squad
+@api.route("/squads/leave", methods=["POST"])
+@jwt_required()
+def leave_squad():
+    user = User.query.get(get_jwt_identity())
+    if not user.squad_id:
+        return jsonify({"error": "Not in a squad"}), 400
+    
+    user.squad_id = None
+    db.session.commit()
+    return jsonify({"message": "Left squad successfully"}), 200
+
+# Get squad members
+@api.route("/squads/<int:squad_id>/members", methods=["GET"])
+@jwt_required()
+def get_squad_members(squad_id):
+    squad = Squad.query.get(squad_id)
+    if not squad:
+        return jsonify({"error": "Squad not found"}), 404
+    
+    members = User.query.filter_by(squad_id=squad_id).all()
+    return jsonify([member.serialize() for member in members]), 200
+
+# End stream
+@api.route("/streams/end", methods=["POST"])
+@jwt_required()
+def end_stream():
+    user = User.query.get(get_jwt_identity())
+    stream = Stream.query.filter_by(user_id=user.id, is_live=True).first()
+    
+    if not stream:
+        return jsonify({"error": "No active stream found"}), 404
+    
+    stream.is_live = False
+    stream.ended_at = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({"message": "Stream ended"}), 200
+
+# Get user's stream status
+@api.route("/streams/status", methods=["GET"])
+@jwt_required()
+def get_stream_status():
+    user = User.query.get(get_jwt_identity())
+    stream = Stream.query.filter_by(user_id=user.id, is_live=True).first()
+    
+    if not stream:
+        return jsonify({"is_live": False}), 200
+    
+    return jsonify({"is_live": True, "stream": stream.serialize()}), 200
+
+# Get submissions for station owner
+@api.route('/api/radio/submissions/<int:station_id>', methods=['GET'])
+@jwt_required()
+def get_station_submissions(station_id):
+    user_id = get_jwt_identity()
+    
+    # Verify station ownership
+    station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+    if not station:
+        return jsonify({"error": "Station not found or unauthorized"}), 403
+    
+    submissions = RadioSubmission.query.filter_by(station_id=station_id).all()
+    return jsonify([submission.serialize() for submission in submissions]), 200
+
+# Approve/reject submission
+@api.route('/api/radio/submissions/<int:submission_id>/review', methods=['PUT'])
+@jwt_required()
+def review_submission(submission_id):
+    user_id = get_jwt_identity()
+    data = request.json
+    status = data.get("status")  # "Approved" or "Rejected"
+    
+    if status not in ["Approved", "Rejected"]:
+        return jsonify({"error": "Invalid status"}), 400
+    
+    submission = RadioSubmission.query.get(submission_id)
+    if not submission:
+        return jsonify({"error": "Submission not found"}), 404
+    
+    # Verify station ownership
+    station = RadioStation.query.filter_by(id=submission.station_id, user_id=user_id).first()
+    if not station:
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    submission.submission_status = status
+    submission.reviewed_at = datetime.utcnow()
+    submission.reviewed_by = user_id
+    
+    db.session.commit()
+    
+    return jsonify({"message": f"Submission {status.lower()}"}), 200
