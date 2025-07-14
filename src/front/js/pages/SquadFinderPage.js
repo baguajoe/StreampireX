@@ -1,61 +1,40 @@
-import React, { useEffect, useState, useContext } from "react";
-import { joinSquad } from "../utils/gamerAPI";
-import { Context } from "../store/appContext";
-import SquadPreviewCard from "../components/SquadPreviewCard";
+// src/front/js/pages/SquadFinderPage.js
+import React from "react";
+import "../../styles/SquadFinderPage.css";
 
-// Optional fetchPublicSquads() would come from your backend
-// You can mock it for now or add `/api/squads/public`
-const mockSquads = [
+const squads = [
   {
-    id: 1,
     name: "Crimson Wolves",
     description: "FPS-focused squad across PS5 and PC.",
-    platform_tags: ["PS5", "PC"],
-    invite_code: "ABCD1234"
+    platforms: ["PS5", "PC"],
+    inviteCode: "ABCD1234",
   },
   {
-    id: 2,
     name: "Shadow Reapers",
     description: "Casual battle royale team.",
-    platform_tags: ["Xbox", "PC"],
-    invite_code: "XYZ999"
-  }
+    platforms: ["Xbox", "PC"],
+    inviteCode: "XYZ999",
+  },
 ];
 
 const SquadFinderPage = () => {
-  const { store } = useContext(Context);
-  const token = store.token;
-
-  const [publicSquads, setPublicSquads] = useState([]);
-  const [status, setStatus] = useState(null);
-
-  useEffect(() => {
-    // Replace with real fetchPublicSquads() call later
-    setPublicSquads(mockSquads);
-  }, []);
-
-  const handleJoin = async (inviteCode) => {
-    try {
-      const res = await joinSquad(inviteCode, token);
-      setStatus({ success: true, message: `✅ Joined squad ${res.squad_id}` });
-    } catch (err) {
-      console.error("Join failed:", err);
-      setStatus({ success: false, message: "❌ Invalid invite code." });
-    }
-  };
-
   return (
-    <div className="page-container">
-      <h1>🔍 Discover Squads</h1>
-
-      {status && (
-        <div className={`alert ${status.success ? "alert-success" : "alert-danger"}`}>
-          {status.message}
+    <div className="squad-finder-container">
+      <h2 className="squad-header">
+        <span role="img" aria-label="magnify">🔍</span> <span className="squad-header-text">Discover Squads</span>
+      </h2>
+      {squads.map((squad, index) => (
+        <div className="squad-card" key={index}>
+          <h3 className="squad-name">{squad.name}</h3>
+          <p>{squad.description}</p>
+          <div>
+            {squad.platforms.map((platform, idx) => (
+              <span className="platform-tag" key={idx}>{platform}</span>
+            ))}
+          </div>
+          <p>Invite Code: <strong>{squad.inviteCode}</strong></p>
+          <button className="join-squad-btn">Join Squad</button>
         </div>
-      )}
-
-      {publicSquads.map((squad) => (
-        <SquadPreviewCard key={squad.id} squad={squad} onJoin={handleJoin} />
       ))}
     </div>
   );

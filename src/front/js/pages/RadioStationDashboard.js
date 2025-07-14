@@ -1,20 +1,48 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import Sidebar from "../component/sidebar";
-import MonetizationAnalytics from "../component/MonetizationAnalytics";
-import StartStopLiveStream from "../component/StartStopLiveStream";
-import "../../styles/RadioStationDashboard.css";
+import { useParams, Link } from "react-router-dom";
+import Sidebar from "../component/sidebar"; // Based on your file structure
+
+// Temporary placeholder components until you create them
+const MonetizationAnalytics = ({ earnings, followers }) => (
+  <div style={{ padding: '20px', background: '#f5f5f5', margin: '20px 0', borderRadius: '8px' }}>
+    <h3>📈 Analytics</h3>
+    <p><strong>Earnings:</strong> ${earnings}</p>
+    <p><strong>Followers:</strong> {followers}</p>
+  </div>
+);
+
+const StartStopLiveStream = ({ isLive, stationId, onStart, onStop }) => (
+  <div style={{ padding: '15px', background: isLive ? '#e8f5e8' : '#fff3e0', borderRadius: '8px' }}>
+    <p><strong>Status:</strong> {isLive ? '🔴 Live' : '⚫ Offline'}</p>
+    <button 
+      onClick={isLive ? onStop : onStart}
+      style={{
+        padding: '10px 20px',
+        backgroundColor: isLive ? '#f44336' : '#4caf50',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer'
+      }}
+    >
+      {isLive ? 'Stop Stream' : 'Start Stream'}
+    </button>
+  </div>
+);
 
 const RadioStationDashboard = () => {
+  const { id: stationIdFromUrl } = useParams(); // ✅ move it here
+
   const [stations, setStations] = useState([]);
   const [tracks, setTracks] = useState([]);
   const [uploadedTracks, setUploadedTracks] = useState([]);
-  const [selectedStation, setSelectedStation] = useState(null);
+  const [selectedStation, setSelectedStation] = useState(null); // set later from param
   const [selectedTrack, setSelectedTrack] = useState("");
+  const [loopUploadStatus, setLoopUploadStatus] = useState("");
   const [earnings, setEarnings] = useState(0);
   const [followers, setFollowers] = useState(0);
   const [isLive, setIsLive] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loopMetadata, setLoopMetadata] = useState(null);
 
   useEffect(() => {
     fetch(`${process.env.BACKEND_URL}/api/user/radio-stations`, {
@@ -31,7 +59,10 @@ const RadioStationDashboard = () => {
       .then(setUploadedTracks)
       .catch(console.error);
 
-    setLoading(false);
+    if (stationIdFromUrl) {
+      setSelectedStation(stationIdFromUrl); // set selected station
+      loadStationDetails(stationIdFromUrl); // load its data
+    }
   }, []);
 
   const loadStationDetails = (stationId) => {
@@ -48,6 +79,10 @@ const RadioStationDashboard = () => {
         setFollowers(data.followers);
         setIsLive(data.is_live);
       });
+
+    fetch(`${process.env.BACKEND_URL}/api/radio/station/${stationId}`)
+      .then((res) => res.json())
+      .then(data => setLoopMetadata(data.playlist_schedule));
   };
 
   const addTrackToStation = async () => {
@@ -63,6 +98,40 @@ const RadioStationDashboard = () => {
     });
 
     loadStationDetails(selectedStation);
+  };
+
+  const handleLoopUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || file.type !== "audio/mpeg") {
+      setLoopUploadStatus("❌ Please select a valid MP3 file.");
+      return;
+    }
+    if (file.size > 200 * 1024 * 1024) {
+      setLoopUploadStatus("❌ MP3 must be under 200MB.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("loop_audio", file);
+
+    try {
+      const res = await fetch(`${process.env.BACKEND_URL}/api/radio/station/${selectedStation}/upload-loop`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setLoopUploadStatus("✅ Loop uploaded successfully!");
+        loadStationDetails(selectedStation);
+      } else {
+        setLoopUploadStatus(`❌ Error: ${data.error}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setLoopUploadStatus("❌ Upload failed.");
+    }
   };
 
   return (
@@ -117,9 +186,20 @@ const RadioStationDashboard = () => {
             <StartStopLiveStream
               isLive={isLive}
               stationId={selectedStation}
-              onStart={() => startLiveStream(selectedStation)}
-              onStop={() => stopLiveStream(selectedStation)}
+              onStart={() => { }}
+              onStop={() => { }}
             />
+
+            <h3>🔁 Upload 3-Hour MP3 Loop</h3>
+            <input type="file" accept="audio/mp3" onChange={handleLoopUpload} />
+            {loopUploadStatus && <p>{loopUploadStatus}</p>}
+
+            {loopMetadata && (
+              <div>
+                <h4>Current Playlist Metadata:</h4>
+                <pre>{JSON.stringify(loopMetadata, null, 2)}</pre>
+              </div>
+            )}
 
             <h3>🔗 Public Station Link:</h3>
             <p><a href={`/radio/${selectedStation}`}>streampirex.com/radio/{selectedStation}</a></p>

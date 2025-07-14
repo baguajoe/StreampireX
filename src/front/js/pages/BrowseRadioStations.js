@@ -37,7 +37,7 @@ const BrowseRadioStations = () => {
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [apiCallSuccessful, setApiCallSuccessful] = useState(false); // NEW: Track if API call was successful
+  const [apiCallSuccessful, setApiCallSuccessful] = useState(false); // Track if API call was successful
 
   const featuredStations = [
     { id: "static1", name: "LoFi Dreams", genre: "Lo-Fi", description: "Relaxing lo-fi beats.", image: LofiDreamsImg },
@@ -141,7 +141,10 @@ const BrowseRadioStations = () => {
         <h2 className="section-title">{title}</h2>
         <div className="podcast-scroll-row">
           {list.map((station) => {
-            const isStatic = station.id?.startsWith("static");
+            // Fix: Convert station.id to string before checking if it starts with "static"
+            const stationId = String(station.id || '');
+            const isStatic = stationId.startsWith("static");
+            
             const linkPath = isStatic
               ? `/radio/station/${station.id}/static`
               : `/radio/station/${station.id}/dynamic`;
@@ -153,7 +156,7 @@ const BrowseRadioStations = () => {
                 className="podcast-card"
               >
                 <img
-                  src={station.image || station.cover_art_url}
+                  src={station.image || station.cover_art_url || station.logo_url}
                   alt={station.name}
                   className="podcast-img"
                 />
@@ -172,7 +175,7 @@ const BrowseRadioStations = () => {
     <div className="categories-wrapper">
       <h1 className="categories-heading">📡 Browse Radio Stations</h1>
 
-      {/* FIXED: Only show error if API call actually failed AND there's an error */}
+      {/* Only show error if API call actually failed AND there's an error */}
       {error && !apiCallSuccessful && (
         <div className="error-message" style={{
           background: "#fee",

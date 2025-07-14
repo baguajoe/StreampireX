@@ -27,6 +27,8 @@ import BrowseRadioStations from "./pages/BrowseRadioStations";
 import ArtistRadioStation from "./pages/ArtistRadioStation";
 import CreatorDashboard from "./pages/CreatorDashboard";
 import FavoritesPage from "./pages/FavoritesPage";
+import TeamRoomPage from "./pages/TeamRoomPage";
+
 
 import ArtistDashboard from "./pages/ArtistDashboard";
 import UploadMusic from "./pages/UploadMusic";
@@ -43,6 +45,7 @@ import { BackendURL } from "./component/backendURL";
 import CreateReleasePage from "./pages/CreateReleasePage";
 import LyricsUploadPage from "./pages/LyricsUploadPage";
 import PodcastDetailPage from "./pages/PodcastDetailPage";
+import SquadFinderPage from "./pages/SquadFinderPage";
 
 import LiveStreamPage from "./pages/LiveStreams";
 import LiveConcerts from "./pages/LiveConcerts";
@@ -75,19 +78,19 @@ const EditGamerProfilePage = () => (
   </div>
 );
 
-const TeamRoomPage = () => (
-  <div className="page-container">
-    <h1>🧑‍🤝‍🧑 Team Room</h1>
-    <p>Private squad room with stream sharing and chat.</p>
-  </div>
-);
+// const TeamRoomPage = () => (
+//   <div className="page-container">
+//     <h1>🧑‍🤝‍🧑 Team Room</h1>
+//     <p>Private squad room with stream sharing and chat.</p>
+//   </div>
+// );
 
-const SquadFinderPage = () => (
-  <div className="page-container">
-    <h1>🔍 Squad Finder</h1>
-    <p>Search for active squads by game and platform.</p>
-  </div>
-);
+// const SquadFinderPage = () => (
+//   <div className="page-container">
+//     <h1>🔍 Squad Finder</h1>
+//     <p>Search for active squads by game and platform.</p>
+//   </div>
+// );
 
 const CreateTeamRoomPage = () => (
   <div className="page-container">

@@ -1,0 +1,74 @@
+/* Squad Finder Styles */
+.squad-finder-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 30px;
+  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+  min-height: 100vh;
+  color: white;
+  font-family: 'Arial', sans-serif;
+}
+
+.squad-header {
+  font-size: 1.8rem;
+  color: #4a9eff;
+  text-align: center;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Squad Card */
+.squad-card {
+  background: rgba(26, 26, 46, 0.8);
+  border: 1px solid #4a9eff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.squad-card:hover {
+  border-color: #6fcaff;
+  background: rgba(35, 35, 58, 0.9);
+}
+
+/* Platform Tags */
+.platform-tag {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.05);
+  color: #cccccc;
+  padding: 4px 10px;
+  margin-right: 6px;
+  margin-top: 6px;
+  border-radius: 15px;
+  font-size: 12px;
+  border: 1px solid #4a9eff;
+}
+
+/* Join Button */
+.join-squad-btn {
+  background: #ff6b35;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  margin-top: 15px;
+}
+
+.join-squad-btn:hover {
+  background: #e55a2b;
+}
+
+.squad-header-text {
+  color: #4a9eff;
+}
+
+.squad-name {
+  color: #ffffff;
+}

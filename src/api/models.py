@@ -33,15 +33,31 @@ class Squad(db.Model):
     description = db.Column(db.Text)
     invite_code = db.Column(db.String(20), unique=True)
     platform_tags = db.Column(db.ARRAY(db.String))
-    members = db.relationship("User", back_populates="squad", foreign_keys="User.squad_id")
-     # ✅ ADD THIS: Squad streams relationship
-    streams = db.relationship("Stream", back_populates="squad", foreign_keys="Stream.squad_id")
-
-
+    
     # ✅ REMOVE FOREIGN KEY - JUST STORE THE ID
     creator_id = db.Column(db.Integer, nullable=True)  # No ForeignKey constraint
+    
+    # Additional gaming-specific fields
+    game = db.Column(db.String(100), nullable=True)  # Main game
+    max_members = db.Column(db.Integer, default=5)
+    is_public = db.Column(db.Boolean, default=True)
+    skill_requirement = db.Column(db.String(50), nullable=True)
+    region = db.Column(db.String(100), nullable=True)
+    communication_platform = db.Column(db.String(50), nullable=True)  # Discord, TeamSpeak, etc.
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    members = db.relationship("User", back_populates="squad", foreign_keys="User.squad_id")
+    streams = db.relationship("Stream", back_populates="squad", foreign_keys="Stream.squad_id")
+
+    def get_creator(self):
+        """Get creator user object"""
+        if self.creator_id:
+            return User.query.get(self.creator_id)
+        return None
 
     def serialize(self):
+        creator = self.get_creator()
         return {
             "id": self.id,
             "name": self.name,
@@ -49,6 +65,17 @@ class Squad(db.Model):
             "invite_code": self.invite_code,
             "platform_tags": self.platform_tags or [],
             "creator_id": self.creator_id,
+            "creator_name": creator.username if creator else None,
+            "creator_gamertag": creator.gamertag if creator else None,
+            "game": self.game,
+            "max_members": self.max_members,
+            "current_members": len(self.members) if self.members else 0,
+            "is_public": self.is_public,
+            "skill_requirement": self.skill_requirement,
+            "region": self.region,
+            "communication_platform": self.communication_platform,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "members": [{"id": m.id, "username": m.username, "gamertag": m.gamertag, "skill_level": m.skill_level} for m in (self.members or [])]
         }
 
 # User Model
@@ -195,10 +222,6 @@ class User(db.Model):
     last_seen = db.Column(db.DateTime, nullable=True)
     current_game_activity = db.Column(db.String(200), nullable=True)  # "Playing Valorant - Ranked"
     
-    # 🔄 Relationships (existing)
-    squad = db.relationship("Squad", back_populates="members", foreign_keys=[squad_id])
-    streams = db.relationship("Stream", back_populates="user", foreign_keys="Stream.creator_id", lazy=True)
-    
     # ✅ Trials (existing)
     is_on_trial = db.Column(db.Boolean, default=False)
     trial_start_date = db.Column(db.DateTime, nullable=True)
@@ -228,6 +251,7 @@ class User(db.Model):
     # 📻 Followers (existing)
     radio_follows = db.relationship('RadioFollower', back_populates='user', lazy='dynamic')
 
+    # 🎵 Artist Features
     is_artist = db.Column(db.Boolean, default=False)
     artist_bio = db.Column(db.Text, nullable=True)
     artist_genre = db.Column(db.String(50), nullable=True)
@@ -237,6 +261,12 @@ class User(db.Model):
     is_verified_artist = db.Column(db.Boolean, default=False)
     monthly_listeners = db.Column(db.Integer, default=0)
     total_plays = db.Column(db.Integer, default=0)
+    
+    # 🔄 Gaming Relationships
+    squad = db.relationship("Squad", back_populates="members", foreign_keys=[squad_id])
+    streams = db.relationship("GameStream", back_populates="user", foreign_keys="GameStream.creator_id", lazy=True)
+    sent_friend_requests = db.relationship("FriendRequest", foreign_keys="FriendRequest.sender_id", back_populates="sender")
+    received_friend_requests = db.relationship("FriendRequest", foreign_keys="FriendRequest.receiver_id", back_populates="receiver")
     
     def serialize(self):
         return {
@@ -260,14 +290,12 @@ class User(db.Model):
             "role": self.role.name if self.role else None,
             "avatar_url": self.avatar_url,
             
-            # 🎮 EXISTING GAMER FIELDS
+            # 🎮 GAMER FIELDS
             "is_gamer": self.is_gamer,
             "gamer_tags": self.gamer_tags or {},
             "favorite_games": self.favorite_games or [],
             "gamer_rank": self.gamer_rank or "Casual",
             "squad_id": self.squad_id,
-            
-            # 🆕 NEW GAMER PROFILE FIELDS
             "gamertag": self.gamertag,
             "gaming_platforms": self.gaming_platforms or {},
             "current_games": self.current_games or [],
@@ -291,6 +319,8 @@ class User(db.Model):
             "online_status": self.online_status,
             "last_seen": self.last_seen.strftime("%Y-%m-%d %H:%M:%S") if self.last_seen else None,
             "current_game_activity": self.current_game_activity,
+            
+            # 🎵 ARTIST FIELDS
             "is_artist": self.is_artist,
             "artist_bio": self.artist_bio,
             "artist_genre": self.artist_genre,
@@ -951,7 +981,6 @@ class RadioFollower(db.Model):
 
 
 
-
 class RadioStation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -982,11 +1011,18 @@ class RadioStation(db.Model):
     user = db.relationship('User', backref=db.backref('radio_stations', lazy=True))
     ticket_purchases = db.relationship('TicketPurchase', backref='station', lazy=True)
 
-    genres = db.Column(db.ARRAY(db.String), default=[])  # Preferred genres
-    submission_guidelines = db.Column(db.Text, nullable=True)  # Submission rules
-    creator_name = db.Column(db.String(100), nullable=True)  # Station creator name
-    preferred_genres = db.Column(db.ARRAY(db.String), default=[])  # Alternative field name
+    genres = db.Column(db.ARRAY(db.String), default=[])
+    submission_guidelines = db.Column(db.Text, nullable=True)
+    creator_name = db.Column(db.String(100), nullable=True)
+    preferred_genres = db.Column(db.ARRAY(db.String), default=[])
 
+    # 🔁 Looping Playlist Fields
+    loop_audio_url = db.Column(db.String(500), nullable=True)     # MP3 or stream URL
+    is_loop_enabled = db.Column(db.Boolean, default=False)        # Toggle
+    loop_duration_minutes = db.Column(db.Integer, default=180)    # 3 hours max
+    now_playing_metadata = db.Column(db.JSON, nullable=True)
+    playlist_schedule = db.Column(db.JSON, nullable=True)         # Full track list
+    loop_started_at = db.Column(db.DateTime, nullable=True)       # UTC loop timestamp
 
     def serialize(self):
         return {
@@ -1011,12 +1047,40 @@ class RadioStation(db.Model):
             "genres": self.genres or [],
             "submission_guidelines": self.submission_guidelines,
             "creator_name": self.creator_name,
-            "preferred_genres": self.preferred_genres or []
+            "preferred_genres": self.preferred_genres or [],
+            "loop_audio_url": self.loop_audio_url,
+            "is_loop_enabled": self.is_loop_enabled,
+            "loop_duration_minutes": self.loop_duration_minutes,
+            "now_playing_metadata": self.now_playing_metadata,
+            "playlist_schedule": self.playlist_schedule,
+            "loop_started_at": self.loop_started_at.isoformat() if self.loop_started_at else None,
+            "now_playing": self.get_current_track()
         }
 
     @property
     def followers(self):
         return [entry.user for entry in self.radio_follower_entries]
+
+    def get_current_track(self):
+        """Dynamically calculate what track is currently playing in the loop."""
+        if not self.loop_started_at or not self.playlist_schedule:
+            return None
+
+        try:
+            elapsed_seconds = (datetime.utcnow() - self.loop_started_at).total_seconds()
+            loop_seconds = self.loop_duration_minutes * 60
+            time_in_loop = elapsed_seconds % loop_seconds
+
+            total = 0
+            for track in self.playlist_schedule.get("tracks", []):
+                minutes, seconds = map(int, track["duration"].split(":"))
+                duration = minutes * 60 + seconds
+                total += duration
+                if total > time_in_loop:
+                    return track
+        except Exception as e:
+            print("Error in get_current_track:", e)
+        return None
 
 
 
@@ -1092,10 +1156,10 @@ class LiveStream(db.Model):
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
     thumbnail_url = db.Column(db.String(500), nullable=True)  # Optional thumbnail
-    is_live = db.Column(db.Boolean, default=False)  # Indicates whether the user is live
+    is_live = db.Column(db.Boolean, default=False)
     started_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    user = db.relationship('User', backref=db.backref('live_streams', lazy=True))
+    user = db.relationship('User', backref=db.backref('radio_live_sessions', lazy=True))  # ✅ RENAMED backref
     station = db.relationship('RadioStation', backref=db.backref('live_streams', lazy=True), uselist=False)
 
     def serialize(self):
@@ -1110,6 +1174,7 @@ class LiveStream(db.Model):
             "is_live": self.is_live,
             "started_at": self.started_at.isoformat(),
         }
+
 
 
 class LiveStudio(db.Model):
@@ -2339,11 +2404,11 @@ class Stream(db.Model):
 
     # 🔗 Linked to a User (creator)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user = db.relationship("User", back_populates="streams", foreign_keys=[creator_id])
+    user = db.relationship("User", backref="live_streams", foreign_keys=[creator_id])
 
     # 🔗 Optional: linked to a Squad
     squad_id = db.Column(db.Integer, db.ForeignKey('squad.id'), nullable=True)
-    squad = db.relationship("Squad", back_populates="streams", foreign_keys=[squad_id])
+    squad = db.relationship("Squad", backref="squad_streams", foreign_keys=[squad_id])
 
     # 📺 Stream metadata
     stream_url = db.Column(db.String(500), nullable=False)
@@ -2575,3 +2640,268 @@ class Game(db.Model):
     supports_crossplay = db.Column(db.Boolean)
     platforms = db.Column(db.ARRAY(db.String))  # ["PS5", "Xbox", "PC"]
     genre = db.Column(db.String)
+    
+    # Optional: Add a few useful fields that complement your existing structure
+    description = db.Column(db.Text, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "supports_crossplay": self.supports_crossplay,
+            "platforms": self.platforms or [],
+            "genre": self.genre,
+            "description": self.description,
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+    
+    def get_current_players(self):
+        """Get current player count from User table"""
+    
+        return User.query.filter(User.current_games.contains([self.name])).count()
+    
+    @staticmethod
+    def get_popular_games(limit=10):
+        """Get most popular games based on current players"""
+        from sqlalchemy import func
+      
+        
+        # Query to get games by player count
+        result = db.session.query(
+            func.unnest(User.current_games).label('game_name'),
+            func.count('*').label('player_count')
+        ).filter(
+            User.is_gamer == True,
+            User.current_games != None
+        ).group_by('game_name').order_by(
+            func.count('*').desc()
+        ).limit(limit).all()
+        
+        popular_games = []
+        for row in result:
+            game = Game.query.filter_by(name=row.game_name).first()
+            if game:
+                game_data = game.serialize()
+                game_data['current_players'] = row.player_count
+                popular_games.append(game_data)
+        
+        return popular_games
+
+
+class UserGameStat(db.Model):
+    """Track individual user statistics for specific games"""
+    __tablename__ = 'user_game_stat'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)  # No FK to match your pattern
+    game_id = db.Column(db.Integer, nullable=False)   # References Game.id
+    
+    # Basic Gaming Statistics
+    hours_played = db.Column(db.Float, default=0.0)
+    matches_played = db.Column(db.Integer, default=0)
+    wins = db.Column(db.Integer, default=0)
+    losses = db.Column(db.Integer, default=0)
+    
+    # Combat Stats (for applicable games)
+    kills = db.Column(db.Integer, default=0)
+    deaths = db.Column(db.Integer, default=0)
+    assists = db.Column(db.Integer, default=0)
+    
+    # Ranking & Progress
+    current_rank = db.Column(db.String(50), nullable=True)
+    highest_rank = db.Column(db.String(50), nullable=True)
+    level = db.Column(db.Integer, default=1)
+    
+    # User Interaction
+    user_rating = db.Column(db.Integer, nullable=True)  # 1-5 rating
+    is_favorite = db.Column(db.Boolean, default=False)
+    
+    # Timestamps
+    first_played = db.Column(db.DateTime, default=datetime.utcnow)
+    last_played = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def get_user(self):
+        """Get user object"""
+       
+        return User.query.get(self.user_id)
+    
+    def get_game(self):
+        """Get game object"""
+        return Game.query.get(self.game_id)
+    
+    def serialize(self):
+        user = self.get_user()
+        game = self.get_game()
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "username": user.username if user else None,
+            "game_id": self.game_id,
+            "game_name": game.name if game else None,
+            "hours_played": self.hours_played,
+            "matches_played": self.matches_played,
+            "wins": self.wins,
+            "losses": self.losses,
+            "win_rate": round((self.wins / self.matches_played * 100), 2) if self.matches_played > 0 else 0,
+            "kills": self.kills,
+            "deaths": self.deaths,
+            "assists": self.assists,
+            "kd_ratio": round((self.kills / self.deaths), 2) if self.deaths > 0 else self.kills,
+            "current_rank": self.current_rank,
+            "highest_rank": self.highest_rank,
+            "level": self.level,
+            "user_rating": self.user_rating,
+            "is_favorite": self.is_favorite,
+            "first_played": self.first_played.isoformat(),
+            "last_played": self.last_played.isoformat()
+        }
+
+class FriendRequest(db.Model):
+    __tablename__ = 'friend_request'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    status = db.Column(db.String(20), default="pending")  # pending, accepted, declined
+    message = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    responded_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    sender = db.relationship("User", foreign_keys=[sender_id], back_populates="sent_friend_requests")
+    receiver = db.relationship("User", foreign_keys=[receiver_id], back_populates="received_friend_requests")
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "sender_id": self.sender_id,
+            "sender_username": self.sender.username,
+            "sender_gamertag": self.sender.gamertag,
+            "receiver_id": self.receiver_id,
+            "receiver_username": self.receiver.username,
+            "status": self.status,
+            "message": self.message,
+            "created_at": self.created_at.isoformat(),
+            "responded_at": self.responded_at.isoformat() if self.responded_at else None
+        }
+
+
+class GameStream(db.Model):
+    __tablename__ = 'game_stream'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    squad_id = db.Column(db.Integer, db.ForeignKey('squad.id'), nullable=True)
+    title = db.Column(db.String(200), nullable=False)
+    game = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    stream_url = db.Column(db.String(500), nullable=True)
+    thumbnail_url = db.Column(db.String(500), nullable=True)
+    is_live = db.Column(db.Boolean, default=False)
+    viewer_count = db.Column(db.Integer, default=0)
+    category = db.Column(db.String(100), nullable=True)  # "Just Chatting", "Competitive", etc.
+    tags = db.Column(db.ARRAY(db.String), default=[])
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    ended_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    user = db.relationship("User", backref="game_streams", foreign_keys=[creator_id])
+    squad = db.relationship("Squad", backref="stream_squads", foreign_keys=[squad_id])
+    
+    def get_squad(self):
+        """Get squad object if squad_id exists"""
+        if self.squad_id:
+            return Squad.query.get(self.squad_id)
+        return None
+    
+    def serialize(self):
+        squad = self.get_squad()
+        return {
+            "id": self.id,
+            "creator_id": self.creator_id,
+            "creator_username": self.user.username,
+            "creator_gamertag": self.user.gamertag,
+            "squad_id": self.squad_id,
+            "squad_name": squad.name if squad else None,
+            "title": self.title,
+            "game": self.game,
+            "description": self.description,
+            "stream_url": self.stream_url,
+            "thumbnail_url": self.thumbnail_url,
+            "is_live": self.is_live,
+            "viewer_count": self.viewer_count,
+            "category": self.category,
+            "tags": self.tags or [],
+            "started_at": self.started_at.isoformat(),
+            "ended_at": self.ended_at.isoformat() if self.ended_at else None
+        }
+
+
+class GameMatch(db.Model):
+    __tablename__ = 'game_match'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    game = db.Column(db.String(100), nullable=False)
+    match_type = db.Column(db.String(50), nullable=False)  # "ranked", "casual", "tournament"
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    max_players = db.Column(db.Integer, default=10)
+    skill_requirement = db.Column(db.String(50), nullable=True)
+    region = db.Column(db.String(100), nullable=True)
+    scheduled_time = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(20), default="open")  # open, full, started, completed
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    creator = db.relationship("User", foreign_keys=[creator_id], backref="created_matches")
+    participants = db.relationship("MatchParticipant", back_populates="match")
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "game": self.game,
+            "match_type": self.match_type,
+            "creator_id": self.creator_id,
+            "creator_username": self.creator.username,
+            "title": self.title,
+            "description": self.description,
+            "max_players": self.max_players,
+            "current_players": len(self.participants),
+            "skill_requirement": self.skill_requirement,
+            "region": self.region,
+            "scheduled_time": self.scheduled_time.isoformat() if self.scheduled_time else None,
+            "status": self.status,
+            "created_at": self.created_at.isoformat(),
+            "participants": [p.serialize() for p in self.participants]
+        }
+
+
+class MatchParticipant(db.Model):
+    __tablename__ = 'match_participant'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    match_id = db.Column(db.Integer, db.ForeignKey('game_match.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default="joined")  # joined, confirmed, no_show
+    
+    # Relationships
+    match = db.relationship("GameMatch", back_populates="participants")
+    user = db.relationship("User", backref="match_participations")
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "match_id": self.match_id,
+            "user_id": self.user_id,
+            "username": self.user.username,
+            "gamertag": self.user.gamertag,
+            "skill_level": self.user.skill_level,
+            "joined_at": self.joined_at.isoformat(),
+            "status": self.status
+        }

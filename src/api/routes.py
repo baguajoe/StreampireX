@@ -50,7 +50,7 @@ from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
 import stripe
 import os
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, join_room, emit
 from flask_caching import Cache  # Assuming Flask-Caching is set up
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -1178,14 +1178,45 @@ def track_radio_share():
 
     return jsonify({"message": "Radio share tracked successfully!"}), 201
 
-@api.route('/admin/radio-stations', methods=['GET'])
-@jwt_required()
+@api.route('/radio-stations', methods=['GET'])
 def get_all_radio_stations():
-    if not is_admin(get_jwt_identity()):
-        return jsonify({"error": "Unauthorized"}), 403
-    stations = RadioStation.query.all()
-    return jsonify([station.serialize() for station in stations]), 200
-
+    """Get all public radio stations for Browse Radio Stations page"""
+    try:
+        # Get all public stations, newest first
+        stations = RadioStation.query.filter_by(is_public=True).order_by(RadioStation.created_at.desc()).all()
+        
+        stations_data = []
+        for station in stations:
+            # Get creator info
+            creator = User.query.get(station.user_id)
+            
+            # Determine genre - your model uses 'genres' array
+            genre = "Music"  # Default
+            if station.genres and len(station.genres) > 0:
+                genre = station.genres[0]  # Use first genre
+            
+            # Build station data for frontend
+            station_data = {
+                "id": station.id,
+                "name": station.name,
+                "description": station.description or "A great radio station",
+                "genre": genre,  # BrowseRadioStations expects this field
+                "image": station.logo_url,  # For compatibility with frontend
+                "cover_art_url": station.cover_image_url,
+                "logo_url": station.logo_url,
+                "creator_name": station.creator_name or (creator.username if creator else "Unknown"),
+                "created_at": station.created_at.isoformat() if station.created_at else None,
+                "is_live": station.is_live,
+                "followers_count": station.followers_count
+            }
+            stations_data.append(station_data)
+        
+        print(f"📡 Returning {len(stations_data)} radio stations to frontend")
+        return jsonify(stations_data), 200
+        
+    except Exception as e:
+        print(f"❌ Error fetching radio stations: {e}")
+        return jsonify([]), 200  # Return empty array on error
 
 
 @api.route('/radio-stations', methods=['GET'])
@@ -2665,20 +2696,110 @@ def create_playlist_profile():
 @api.route('/profile/radio/create', methods=['POST'])
 @jwt_required()
 def create_radio_station_profile():
-    """Allows users to create a radio station."""
+    """Allows users to create a radio station with large file support."""
     user_id = get_jwt_identity()
-    data = request.json
-    name = data.get("name")
-    description = data.get("description", "")
-
-    if not name:
-        return jsonify({"error": "Radio station name is required"}), 400
-
-    new_station = RadioStation(user_id=user_id, name=name, description=description)
-    db.session.add(new_station)
-    db.session.commit()
-
-    return jsonify({"message": "Radio station created!", "station": new_station.serialize()}), 201
+    
+    try:
+        # Get form data
+        data = request.form
+        name = data.get("name")
+        
+        if not name:
+            return jsonify({"error": "Radio station name is required"}), 400
+        
+        description = data.get("description", "")
+        category = data.get("category", "")  # ✅ Get category from form
+        
+        # Create upload directories
+        os.makedirs("uploads/station_logos", exist_ok=True)
+        os.makedirs("uploads/station_covers", exist_ok=True)
+        os.makedirs("uploads/station_mixes", exist_ok=True)
+        
+        # Handle file uploads
+        logo_url = None
+        cover_url = None
+        initial_mix_url = None
+        
+        # Logo upload
+        if 'logo' in request.files:
+            logo_file = request.files['logo']
+            if logo_file and logo_file.filename:
+                logo_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(logo_file.filename)}"
+                logo_path = os.path.join("uploads/station_logos", logo_filename)
+                logo_file.save(logo_path)
+                logo_url = f"/{logo_path}"
+        
+        # Cover upload
+        if 'cover' in request.files:
+            cover_file = request.files['cover']
+            if cover_file and cover_file.filename:
+                cover_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(cover_file.filename)}"
+                cover_path = os.path.join("uploads/station_covers", cover_filename)
+                cover_file.save(cover_path)
+                cover_url = f"/{cover_path}"
+        
+        # Audio file upload
+        if 'initialMix' in request.files:
+            mix_file = request.files['initialMix']
+            if mix_file and mix_file.filename:
+                mix_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(mix_file.filename)}"
+                mix_path = os.path.join("uploads/station_mixes", mix_filename)
+                mix_file.save(mix_path)
+                initial_mix_url = f"/{mix_path}"
+        
+        # Get creator info
+        creator = User.query.get(user_id)
+        creator_name = creator.username if creator else "Unknown"
+        
+        # ✅ Create the radio station with category stored in genres
+        new_station = RadioStation(
+            user_id=user_id,
+            name=name,
+            description=description,
+            logo_url=logo_url,
+            cover_image_url=cover_url,
+            is_public=True,
+            genres=[category] if category else ["Music"],  # ✅ Store category as genre array
+            creator_name=creator_name,
+            created_at=datetime.utcnow()
+        )
+        
+        db.session.add(new_station)
+        db.session.commit()
+        
+        # Add initial mix if provided
+        if initial_mix_url:
+            mix_title = data.get("mixTitle", f"{name} - Initial Mix")
+            
+            initial_audio = Audio(
+                user_id=user_id,
+                title=mix_title,
+                description=data.get("mixDescription", ""),
+                file_url=initial_mix_url,
+                uploaded_at=datetime.utcnow()
+            )
+            db.session.add(initial_audio)
+            db.session.commit()
+            
+            # Add to radio station playlist
+            playlist_entry = RadioPlaylist(
+                station_id=new_station.id,
+                audio_id=initial_audio.id
+            )
+            db.session.add(playlist_entry)
+            db.session.commit()
+        
+        print(f"✅ Created station: ID={new_station.id}, Name={new_station.name}, Genre={category}")
+        
+        return jsonify({
+            "message": "Radio station created successfully!",
+            "station": new_station.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error creating radio station: {str(e)}")
+        return jsonify({"error": f"Failed to create station: {str(e)}"}), 500
 
 
 
@@ -4703,6 +4824,158 @@ def stripe_webhook():
     return '', 200
 
 
+@api.route('/admin/radio-stations', methods=['GET'])
+@jwt_required()
+def get_all_radio_stations_admin():
+    """Admin-only endpoint to get ALL radio stations with full details"""
+    user_id = get_jwt_identity()
+    
+    # Check if user is admin
+    if not is_admin(user_id):
+        return jsonify({"error": "Unauthorized - Admin access required"}), 403
+    
+    try:
+        # Get ALL stations (public and private) for admin
+        stations = RadioStation.query.order_by(RadioStation.created_at.desc()).all()
+        
+        stations_data = []
+        for station in stations:
+            # Get creator info
+            creator = User.query.get(station.user_id)
+            
+            # Get additional stats for admin view
+            total_followers = station.followers_count
+            total_playlists = RadioPlaylist.query.filter_by(station_id=station.id).count()
+            
+            # Determine genre
+            genre = "Music"
+            if station.genres and len(station.genres) > 0:
+                genre = station.genres[0]
+            
+            # Full admin data
+            station_data = {
+                "id": station.id,
+                "name": station.name,
+                "description": station.description,
+                "user_id": station.user_id,
+                "creator_name": station.creator_name or (creator.username if creator else "Unknown"),
+                "creator_email": creator.email if creator else "Unknown",
+                
+                # Visibility & Access
+                "is_public": station.is_public,
+                "is_live": station.is_live,
+                "allowed_users_count": len(station.allowed_users) if not station.is_public else 0,
+                
+                # Monetization
+                "is_subscription_based": station.is_subscription_based,
+                "subscription_price": station.subscription_price,
+                "is_ticketed": station.is_ticketed,
+                "ticket_price": station.ticket_price,
+                
+                # Media & Content
+                "logo_url": station.logo_url,
+                "cover_image_url": station.cover_image_url,
+                "genres": station.genres or [],
+                "genre": genre,
+                
+                # Stats
+                "followers_count": total_followers,
+                "playlist_count": total_playlists,
+                "max_listeners": station.max_listeners,
+                
+                # Technical
+                "stream_url": station.stream_url,
+                "is_webrtc_enabled": station.is_webrtc_enabled,
+                "loop_audio_url": station.loop_audio_url,
+                "is_loop_enabled": station.is_loop_enabled,
+                
+                # Timestamps
+                "created_at": station.created_at.isoformat() if station.created_at else None,
+                "loop_started_at": station.loop_started_at.isoformat() if station.loop_started_at else None,
+                
+                # Current Status
+                "now_playing": station.get_current_track(),
+                "status": "Live" if station.is_live else "Offline"
+            }
+            stations_data.append(station_data)
+        
+        print(f"🔒 Admin API: Returning {len(stations_data)} stations with full details")
+        
+        return jsonify({
+            "total_stations": len(stations_data),
+            "public_stations": len([s for s in stations_data if s["is_public"]]),
+            "private_stations": len([s for s in stations_data if not s["is_public"]]),
+            "live_stations": len([s for s in stations_data if s["is_live"]]),
+            "stations": stations_data
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error in admin radio stations API: {e}")
+        return jsonify({"error": f"Failed to fetch stations: {str(e)}"}), 500
+
+# Helper function to check admin status
+def is_admin(user_id):
+    """Check if the user has admin privileges"""
+    try:
+        user = User.query.get(user_id)
+        if not user:
+            return False
+        
+        # Check if user has admin role
+        if hasattr(user, 'role') and user.role:
+            return user.role.name.lower() == "admin"
+        
+        # Alternative: Check by role_id if you have role IDs
+        # admin_role = Role.query.filter_by(name="Admin").first()
+        # return user.role_id == admin_role.id if admin_role else False
+        
+        return False
+        
+    except Exception as e:
+        print(f"Error checking admin status: {e}")
+        return False
+
+@api.route('/radio-stations', methods=['GET'])
+def get_all_radio_stations_public():
+    """Public endpoint to get all radio stations for Browse Radio Stations page"""
+    try:
+        # Get all public stations, newest first
+        stations = RadioStation.query.filter_by(is_public=True).order_by(RadioStation.created_at.desc()).all()
+        
+        stations_data = []
+        for station in stations:
+            # Get creator info
+            creator = User.query.get(station.user_id)
+            
+            # Determine genre from your genres array
+            genre = "Music"  # Default
+            if station.genres and len(station.genres) > 0:
+                genre = station.genres[0]  # Use first genre
+            
+            # Build station data compatible with your frontend
+            station_data = {
+                "id": station.id,
+                "name": station.name,
+                "description": station.description or "A great radio station",
+                "genre": genre,  # BrowseRadioStations.js expects this field
+                "image": station.logo_url,  # Frontend looks for this
+                "cover_art_url": station.cover_image_url,
+                "logo_url": station.logo_url,
+                "creator_name": station.creator_name or (creator.username if creator else "Unknown"),
+                "created_at": station.created_at.isoformat() if station.created_at else None,
+                "is_live": station.is_live,
+                "followers_count": station.followers_count,
+                "genres": station.genres or []
+            }
+            stations_data.append(station_data)
+        
+        print(f"📡 Public API: Returning {len(stations_data)} radio stations")
+        return jsonify(stations_data), 200
+        
+    except Exception as e:
+        print(f"❌ Error in public radio stations API: {e}")
+        return jsonify([]), 200  # Return empty array on error
+
 @api.route('/api/radio/genres', methods=['GET'])
 def get_radio_genres():
     url = "https://www.radio-browser.info/webservice/json/stations"
@@ -6614,3 +6887,460 @@ def review_submission(submission_id):
     db.session.commit()
     
     return jsonify({"message": f"Submission {status.lower()}"}), 200
+
+@api.route('/radio/create-with-loop', methods=['POST'])
+@jwt_required()
+def create_radio_station_with_loop():
+    """Create radio station with immediate audio loop setup"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    # Create radio station
+    new_station = RadioStation(
+        user_id=user_id,
+        name=data["name"],
+        description=data.get("description", ""),
+        is_public=data.get("is_public", True),
+        genres=data.get("genres", []),
+        creator_name=data.get("creator_name"),
+        preferred_genres=data.get("preferred_genres", []),
+        submission_guidelines=data.get("submission_guidelines")
+    )
+    
+    db.session.add(new_station)
+    db.session.flush()  # Get the station ID
+    
+    # ✅ IMMEDIATE AUDIO SETUP - Get available tracks
+    available_tracks = get_available_tracks_for_station(user_id, data.get("preferred_genres", []))
+    
+    if available_tracks:
+        # Create playlist schedule
+        playlist_schedule = create_playlist_schedule(available_tracks)
+        
+        # Setup looping audio
+        new_station.playlist_schedule = playlist_schedule
+        new_station.is_loop_enabled = True
+        new_station.loop_duration_minutes = data.get("loop_duration", 180)  # 3 hours default
+        new_station.loop_started_at = datetime.utcnow()
+        new_station.is_live = True
+        
+        # Set now playing metadata
+        first_track = playlist_schedule["tracks"][0] if playlist_schedule["tracks"] else None
+        if first_track:
+            new_station.now_playing_metadata = first_track
+    
+    db.session.commit()
+    
+    return jsonify({
+        "message": "🎵 Radio Station Created with Audio Loop!",
+        "station": new_station.serialize(),
+        "tracks_in_loop": len(available_tracks),
+        "loop_enabled": new_station.is_loop_enabled
+    }), 201
+
+
+def get_available_tracks_for_station(user_id, preferred_genres=None):
+    """Get available audio tracks for the station"""
+    # Get user's uploaded tracks first
+    user_tracks = Audio.query.filter_by(user_id=user_id).all()
+    
+    # If user has no tracks, get some public/default tracks
+    if not user_tracks:
+        # Get tracks from other users (public tracks)
+        public_tracks = Audio.query.join(User).filter(
+            User.id != user_id  # Not the current user
+        ).limit(10).all()  # Limit to prevent overwhelming
+        user_tracks = public_tracks
+    
+    # Filter by genre if specified
+    if preferred_genres:
+        filtered_tracks = []
+        for track in user_tracks:
+            # Assuming you have genre info in Audio model or can derive it
+            if hasattr(track, 'genre') and track.genre in preferred_genres:
+                filtered_tracks.append(track)
+        if filtered_tracks:
+            user_tracks = filtered_tracks
+    
+    return user_tracks[:20]  # Limit to 20 tracks for the loop
+
+
+def create_playlist_schedule(tracks):
+    """Create playlist schedule from audio tracks"""
+    schedule_tracks = []
+    
+    for track in tracks:
+        # Get duration (you might need to calculate this if not stored)
+        duration = get_track_duration(track)
+        
+        track_info = {
+            "id": track.id,
+            "title": track.title,
+            "artist": getattr(track, 'artist_name', 'Unknown Artist'),
+            "duration": duration,
+            "file_url": track.file_url
+        }
+        schedule_tracks.append(track_info)
+    
+    return {
+        "tracks": schedule_tracks,
+        "total_tracks": len(schedule_tracks),
+        "created_at": datetime.utcnow().isoformat()
+    }
+
+
+def get_track_duration(track):
+    """Get track duration in MM:SS format"""
+    if hasattr(track, 'duration') and track.duration:
+        # If duration is in seconds
+        minutes = track.duration // 60
+        seconds = track.duration % 60
+        return f"{minutes}:{seconds:02d}"
+    
+    # Default duration if not available
+    return "3:30"
+
+@api.route('/radio/<int:station_id>/stream')
+def stream_radio_audio(station_id):
+    """Stream current playing audio from radio station"""
+    station = RadioStation.query.get(station_id)
+    
+    if not station:
+        return jsonify({"error": "Station not found"}), 404
+    
+    if not station.is_loop_enabled or not station.playlist_schedule:
+        return jsonify({"error": "No audio loop configured"}), 400
+    
+    # Get current track
+    current_track_info = station.get_current_track()
+    
+    if not current_track_info:
+        return jsonify({"error": "No track currently playing"}), 404
+    
+    # Get the actual audio file
+    track_id = current_track_info.get("id")
+    audio = Audio.query.get(track_id) if track_id else None
+    
+    if not audio or not os.path.exists(audio.file_url):
+        return jsonify({"error": "Audio file not found"}), 404
+    
+    # Calculate position in current track
+    position = calculate_current_position(station, current_track_info)
+    
+    # Stream audio with position offset
+    return stream_audio_with_position(audio.file_url, position)
+
+
+def calculate_current_position(station, current_track_info):
+    """Calculate current position within the current track"""
+    if not station.loop_started_at:
+        return 0
+    
+    try:
+        elapsed_seconds = (datetime.utcnow() - station.loop_started_at).total_seconds()
+        loop_seconds = station.loop_duration_minutes * 60
+        time_in_loop = elapsed_seconds % loop_seconds
+        
+        # Find position within current track
+        total = 0
+        for track in station.playlist_schedule.get("tracks", []):
+            minutes, seconds = map(int, track["duration"].split(":"))
+            duration = minutes * 60 + seconds
+            
+            if track["id"] == current_track_info["id"]:
+                # This is the current track, calculate position
+                position_in_track = time_in_loop - total
+                return max(0, position_in_track)
+            
+            total += duration
+    except Exception as e:
+        print(f"Error calculating position: {e}")
+    
+    return 0
+
+
+def stream_audio_with_position(file_path, start_position=0):
+    """Stream audio file starting from a specific position"""
+    def generate():
+        try:
+            # Use ffmpeg to seek to position and stream
+            import subprocess
+            cmd = [
+                'ffmpeg',
+                '-i', file_path,
+                '-ss', str(start_position),  # Seek to position
+                '-f', 'mp3',
+                '-'
+            ]
+            
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            
+            while True:
+                chunk = process.stdout.read(8192)
+                if not chunk:
+                    break
+                yield chunk
+                
+        except Exception as e:
+            print(f"Streaming error: {e}")
+            # Fallback to simple file serving
+            with open(file_path, 'rb') as f:
+                f.seek(int(start_position * 128000 // 8))  # Rough calculation for MP3
+                while True:
+                    chunk = f.read(8192)
+                    if not chunk:
+                        break
+                    yield chunk
+    
+    return Response(
+        generate(),
+        mimetype='audio/mpeg',
+        headers={
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'no-cache'
+        }
+    )
+
+
+# ===== 3. RADIO CONTROL ENDPOINTS =====
+
+@api.route('/radio/<int:station_id>/start-loop', methods=['POST'])
+@jwt_required()
+def start_radio_loop(station_id):
+    """Start or restart the radio loop"""
+    user_id = get_jwt_identity()
+    station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+    
+    if not station:
+        return jsonify({"error": "Station not found or unauthorized"}), 404
+    
+    # Reset loop
+    station.loop_started_at = datetime.utcnow()
+    station.is_loop_enabled = True
+    station.is_live = True
+    
+    # Update now playing
+    if station.playlist_schedule:
+        first_track = station.playlist_schedule["tracks"][0]
+        station.now_playing_metadata = first_track
+    
+    db.session.commit()
+    
+    # Broadcast to listeners
+    socketio.emit(f'station-{station_id}-loop-started', {
+        'station_id': station_id,
+        'message': f'{station.name} loop started!',
+        'now_playing': station.get_current_track()
+    })
+    
+    return jsonify({
+        "message": "Radio loop started!",
+        "station": station.serialize()
+    }), 200
+
+
+@api.route('/radio/<int:station_id>/stop-loop', methods=['POST'])
+@jwt_required()
+def stop_radio_loop(station_id):
+    """Stop the radio loop"""
+    user_id = get_jwt_identity()
+    station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+    
+    if not station:
+        return jsonify({"error": "Station not found or unauthorized"}), 404
+    
+    station.is_loop_enabled = False
+    station.is_live = False
+    station.now_playing_metadata = None
+    
+    db.session.commit()
+    
+    # Broadcast to listeners
+    socketio.emit(f'station-{station_id}-loop-stopped', {
+        'station_id': station_id,
+        'message': f'{station.name} stopped broadcasting'
+    })
+    
+    return jsonify({"message": "Radio loop stopped"}), 200
+
+
+@api.route('/radio/<int:station_id>/add-tracks', methods=['POST'])
+@jwt_required()
+def add_tracks_to_station(station_id):
+    """Add more tracks to station playlist"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    track_ids = data.get('track_ids', [])
+    
+    station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+    if not station:
+        return jsonify({"error": "Station not found or unauthorized"}), 404
+    
+    # Get tracks
+    new_tracks = Audio.query.filter(Audio.id.in_(track_ids)).all()
+    
+    # Add to existing playlist schedule
+    current_schedule = station.playlist_schedule or {"tracks": []}
+    
+    for track in new_tracks:
+        track_info = {
+            "id": track.id,
+            "title": track.title,
+            "artist": getattr(track, 'artist_name', 'Unknown Artist'),
+            "duration": get_track_duration(track),
+            "file_url": track.file_url
+        }
+        current_schedule["tracks"].append(track_info)
+    
+    station.playlist_schedule = current_schedule
+    db.session.commit()
+    
+    return jsonify({
+        "message": f"Added {len(new_tracks)} tracks to station",
+        "total_tracks": len(current_schedule["tracks"])
+    }), 200
+
+
+# ===== 4. PUBLIC ENDPOINTS FOR LISTENERS =====
+
+@api.route('/radio/<int:station_id>/now-playing', methods=['GET'])
+def get_now_playing(station_id):
+    """Get what's currently playing on the station"""
+    station = RadioStation.query.get(station_id)
+    
+    if not station:
+        return jsonify({"error": "Station not found"}), 404
+    
+    current_track = station.get_current_track()
+    
+    return jsonify({
+        "station_id": station_id,
+        "station_name": station.name,
+        "is_live": station.is_live,
+        "is_loop_enabled": station.is_loop_enabled,
+        "now_playing": current_track,
+        "stream_url": f"/api/radio/{station_id}/stream" if station.is_loop_enabled else None
+    }), 200
+
+
+@api.route('/radio/<int:station_id>/playlist', methods=['GET'])
+def get_station_playlist(station_id):
+    """Get full station playlist"""
+    station = RadioStation.query.get(station_id)
+    
+    if not station:
+        return jsonify({"error": "Station not found"}), 404
+    
+    playlist = station.playlist_schedule or {"tracks": []}
+    
+    return jsonify({
+        "station_id": station_id,
+        "station_name": station.name,
+        "playlist": playlist,
+        "loop_duration_minutes": station.loop_duration_minutes,
+        "total_tracks": len(playlist.get("tracks", []))
+    }), 200
+
+
+# ===== 5. WEBSOCKET EVENTS FOR REAL-TIME UPDATES =====
+
+@socketio.on('join_radio_station')
+def on_join_radio_station(data):
+    """User joins radio station for real-time updates"""
+    station_id = data.get('station_id')
+    join_room(f'radio_station_{station_id}')
+    
+    # Send current status
+    station = RadioStation.query.get(station_id)
+    if station:
+        emit('radio_status_update', {
+            'station': station.serialize(),
+            'now_playing': station.get_current_track(),
+            'listeners_in_room': len(socketio.server.manager.rooms.get(f'radio_station_{station_id}', {}))
+        })
+
+
+# ===== 6. AUTO-SETUP FOR EXISTING STATIONS =====
+
+@api.route('/radio/<int:station_id>/auto-setup-loop', methods=['POST'])
+@jwt_required()
+def auto_setup_loop(station_id):
+    """Automatically setup loop for existing station without audio"""
+    user_id = get_jwt_identity()
+    station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+    
+    if not station:
+        return jsonify({"error": "Station not found or unauthorized"}), 404
+    
+    if station.is_loop_enabled:
+        return jsonify({"message": "Station already has loop enabled"}), 200
+    
+    # Get available tracks
+    available_tracks = get_available_tracks_for_station(user_id, station.preferred_genres)
+    
+    if not available_tracks:
+        return jsonify({"error": "No audio tracks available for this station"}), 400
+    
+    # Setup loop
+    playlist_schedule = create_playlist_schedule(available_tracks)
+    station.playlist_schedule = playlist_schedule
+    station.is_loop_enabled = True
+    station.loop_duration_minutes = 180  # 3 hours
+    station.loop_started_at = datetime.utcnow()
+    station.is_live = True
+    
+    # Set now playing
+    first_track = playlist_schedule["tracks"][0]
+    station.now_playing_metadata = first_track
+    
+    db.session.commit()
+    
+    return jsonify({
+        "message": "🎵 Audio loop setup complete!",
+        "station": station.serialize(),
+        "tracks_added": len(available_tracks)
+    }), 200
+
+
+# ===== 7. DEBUGGING HELPER =====
+
+@api.route('/radio/<int:station_id>/debug', methods=['GET'])
+@jwt_required()
+def debug_station(station_id):
+    """Debug station audio issues"""
+    station = RadioStation.query.get(station_id)
+    
+    if not station:
+        return jsonify({"error": "Station not found"}), 404
+    
+    # Check all aspects
+    debug_info = {
+        "station_id": station_id,
+        "station_name": station.name,
+        "is_live": station.is_live,
+        "is_loop_enabled": station.is_loop_enabled,
+        "has_playlist_schedule": bool(station.playlist_schedule),
+        "playlist_tracks_count": len(station.playlist_schedule.get("tracks", [])) if station.playlist_schedule else 0,
+        "loop_started_at": station.loop_started_at.isoformat() if station.loop_started_at else None,
+        "current_track": station.get_current_track(),
+        "now_playing_metadata": station.now_playing_metadata
+    }
+    
+    # Check if tracks exist
+    if station.playlist_schedule:
+        tracks_status = []
+        for track_info in station.playlist_schedule.get("tracks", []):
+            track = Audio.query.get(track_info.get("id"))
+            file_exists = os.path.exists(track.file_url) if track else False
+            tracks_status.append({
+                "track_id": track_info.get("id"),
+                "title": track_info.get("title"),
+                "exists_in_db": bool(track),
+                "file_exists": file_exists,
+                "file_path": track.file_url if track else None
+            })
+        debug_info["tracks_status"] = tracks_status
+    
+    return jsonify(debug_info), 200
+
+

@@ -1,311 +1,295 @@
-/* WebRTC Chat Component Styles - Add this to ProfilePage.css */
+/* WebRTC Better Styling & Fix Choose File Buttons */
 
-.webrtc-chat-container {
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 15px;
-  background-color: #f9f9f9;
-  margin-bottom: 20px;
-  min-height: 300px;
-  width: 100%;
-  box-sizing: border-box;
+/* Hide the duplicate Choose File buttons in WebRTC */
+.webrtc-chat-container input[type="file"],
+.webrtc-section input[type="file"],
+.middle-column .webrtc-chat-container input[type="file"] {
+  display: none !important;
 }
 
-.webrtc-header {
+/* Hide any file upload elements in WebRTC that shouldn't be there */
+.webrtc-chat-container .file-upload,
+.webrtc-chat-container [type="file"],
+.webrtc-section .file-upload,
+.webrtc-section [type="file"] {
+  display: none !important;
+}
+
+/* Better WebRTC Container Styling */
+.middle-column .webrtc-section {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 16px;
+  padding: 25px;
+  margin: 30px 0;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add subtle background pattern */
+.middle-column .webrtc-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(76, 175, 80, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(33, 150, 243, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Beautiful header styling */
+.middle-column .webrtc-section h3 {
+  margin: 0 0 25px 0;
+  color: #2c3e50;
+  font-size: 24px;
+  font-weight: 700;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #ddd;
-}
-
-.webrtc-title {
-  margin: 0;
-  color: #333;
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.webrtc-room-info {
-  font-size: 12px;
-  color: #666;
-  background-color: #e8f4fd;
-  padding: 4px 8px;
-  border-radius: 12px;
-}
-
-/* Video Section */
-.webrtc-videos {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.webrtc-video-container {
-  position: relative;
-}
-
-.webrtc-video-label {
-  font-size: 12px;
-  font-weight: bold;
-  margin-bottom: 5px;
-  color: #555;
-  display: block;
-}
-
-.webrtc-video {
-  width: 100%;
-  height: 120px;
-  background-color: #000;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  object-fit: cover;
-  display: block;
-}
-
-.webrtc-video.remote {
-  background-color: #222;
-}
-
-/* Control Buttons - THE IMPORTANT PART! */
-.webrtc-controls {
-  display: flex !important;
-  gap: 8px;
+  gap: 12px;
+  text-align: center;
   justify-content: center;
-  padding: 10px;
-  background-color: #fff;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Improved WebRTC container */
+.middle-column .webrtc-chat-container {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 20px !important;
+  position: relative;
+  z-index: 1;
+}
+
+/* Better header in WebRTC */
+.middle-column .webrtc-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-radius: 8px;
-  border: 1px solid #ddd;
-  margin-top: 10px;
-  visibility: visible !important;
-  opacity: 1 !important;
-  position: relative !important;
-  z-index: 10 !important;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.webrtc-btn {
-  padding: 8px 16px !important;
+.middle-column .webrtc-title {
+  color: #495057 !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+}
+
+.middle-column .webrtc-room-info {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;
+  color: #1565c0 !important;
+  border: 1px solid #90caf9;
+  font-weight: 500;
+}
+
+/* Stunning video containers */
+.middle-column .webrtc-videos {
+  gap: 20px !important;
+  margin-bottom: 25px !important;
+  padding: 0 !important;
+}
+
+.middle-column .webrtc-video-container {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #263238 0%, #37474f 100%);
+}
+
+/* Perfect video styling */
+.middle-column .webrtc-video {
+  height: 320px !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  border: 3px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  background: linear-gradient(135deg, #263238 0%, #37474f 100%) !important;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.middle-column .webrtc-video:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Beautiful video labels */
+.middle-column .webrtc-video-label {
+  color: #495057 !important;
   font-size: 14px !important;
-  font-weight: bold !important;
-  border: none !important;
-  border-radius: 6px !important;
-  cursor: pointer !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
+  font-weight: 600 !important;
+  margin-bottom: 8px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* Gorgeous control buttons */
+.middle-column .webrtc-controls {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  gap: 12px !important;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Premium button styling */
+.middle-column .webrtc-btn {
   min-width: 80px !important;
-  justify-content: center !important;
-  text-align: center !important;
-  transition: background-color 0.3s ease !important;
-  box-sizing: border-box !important;
-  position: relative !important;
-  z-index: 11 !important;
+  height: 40px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 0 16px !important;
+  border-radius: 8px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden;
 }
 
-.webrtc-btn.start {
-  background-color: #4CAF50 !important;
-  color: white !important;
+.middle-column .webrtc-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
 }
 
-.webrtc-btn.start:hover:not(:disabled) {
-  background-color: #45a049 !important;
+.middle-column .webrtc-btn:hover::before {
+  left: 100%;
 }
 
-.webrtc-btn.stop {
-  background-color: #f44336 !important;
-  color: white !important;
+.middle-column .webrtc-btn.start {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%) !important;
+  box-shadow: 
+    0 4px 16px rgba(76, 175, 80, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
 }
 
-.webrtc-btn.stop:hover:not(:disabled) {
-  background-color: #da190b !important;
+.middle-column .webrtc-btn.start:hover {
+  background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 24px rgba(76, 175, 80, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.webrtc-btn:disabled {
-  background-color: #ccc !important;
-  cursor: not-allowed !important;
-  opacity: 0.7 !important;
+.middle-column .webrtc-btn.stop {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%) !important;
+  box-shadow: 
+    0 4px 16px rgba(244, 67, 54, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
 }
 
-.webrtc-btn.connecting {
-  background-color: #ff9800 !important;
-  color: white !important;
+.middle-column .webrtc-btn.stop:hover {
+  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 24px rgba(244, 67, 54, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-/* Status Info */
-.webrtc-status {
-  margin-top: 10px;
+/* Status styling */
+.middle-column .webrtc-status {
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  margin-top: 15px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.middle-column .webrtc-status.active {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%) !important;
+  border: 1px solid #a5d6a7 !important;
+  color: #2e7d32 !important;
+}
+
+.middle-column .webrtc-status.inactive {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%) !important;
+  border: 1px solid #ef9a9a !important;
+  color: #c62828 !important;
+}
+
+/* Debug section styling */
+.middle-column .webrtc-debug {
+  margin-top: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  padding-top: 15px;
+}
+
+.middle-column .webrtc-debug summary {
+  color: #6c757d !important;
+  font-weight: 500;
   padding: 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
 }
 
-.webrtc-status.active {
-  background-color: #d4edda;
-  border: 1px solid #c3e6cb;
-  color: #155724;
+.middle-column .webrtc-debug summary:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #495057;
 }
 
-.webrtc-status.inactive {
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
-  color: #721c24;
-}
-
-.webrtc-status-tracks {
-  margin-left: 10px;
-  color: #666;
-}
-
-/* Debug Section */
-.webrtc-debug {
-  margin-top: 10px;
-}
-
-.webrtc-debug summary {
-  cursor: pointer;
-  font-size: 12px;
-  color: #666;
-  user-select: none;
-}
-
-.webrtc-debug-content {
-  margin-top: 8px;
-  padding: 8px;
-  background-color: #f0f0f0;
-  border-radius: 4px;
-  font-size: 11px;
-  font-family: 'Courier New', monospace;
-  line-height: 1.4;
-}
-
-.webrtc-debug-item {
-  margin-bottom: 4px;
-}
-
-/* Override any parent styles that might hide the buttons */
-.right-column .webrtc-controls,
-.right-column .webrtc-controls *,
-.quick-actions .webrtc-controls,
-.quick-actions .webrtc-controls * {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  position: relative !important;
-  z-index: 999 !important;
-  overflow: visible !important;
-  height: auto !important;
-  width: auto !important;
-}
-
-/* Ensure buttons are always visible in the right column */
-.right-column .webrtc-btn {
-  background-color: #4CAF50 !important;
-  color: white !important;
-  padding: 8px 16px !important;
-  margin: 2px !important;
-  border: 2px solid #333 !important;
-  font-size: 14px !important;
-  font-weight: bold !important;
-  display: inline-block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  position: relative !important;
-  z-index: 9999 !important;
-}
-
-.right-column .webrtc-btn.stop {
-  background-color: #f44336 !important;
-}
-
-/* Responsive adjustments */
+/* Responsive improvements */
 @media (max-width: 768px) {
-  .webrtc-videos {
+  .middle-column .webrtc-section {
+    padding: 20px;
+    margin: 20px 0;
+  }
+  
+  .middle-column .webrtc-video {
+    height: 240px !important;
+  }
+  
+  .middle-column .webrtc-btn {
+    min-width: 70px !important;
+    height: 36px !important;
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .middle-column .webrtc-section {
+    padding: 15px;
+  }
+  
+  .middle-column .webrtc-video {
+    height: 200px !important;
+  }
+  
+  .middle-column .webrtc-videos {
     grid-template-columns: 1fr;
+    gap: 15px !important;
   }
-  
-  .webrtc-video {
-    height: 150px;
-  }
-  
-  .webrtc-controls {
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .webrtc-btn {
-    width: 100% !important;
-    min-width: auto !important;
-  }
-}
-
-/* Force visibility - nuclear option */
-.webrtc-chat-container * {
-  box-sizing: border-box;
-}
-
-.webrtc-controls button {
-  display: inline-block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  position: relative !important;
-  z-index: 10000 !important;
-  background: #4CAF50 !important;
-  color: white !important;
-  border: 2px solid #000 !important;
-  padding: 10px 15px !important;
-  font-size: 14px !important;
-  font-weight: bold !important;
-  cursor: pointer !important;
-  border-radius: 6px !important;
-  margin: 5px !important;
-}
-
-/* Additional overrides for common CSS frameworks */
-.webrtc-controls button[disabled] {
-  background: #ccc !important;
-  cursor: not-allowed !important;
-}
-
-.webrtc-controls .webrtc-btn:nth-child(2) {
-  background: #f44336 !important;
-}
-
-.webrtc-controls .webrtc-btn:nth-child(2):disabled {
-  background: #ccc !important;
-}
-
-/* Ensure container doesn't collapse */
-.quick-actions {
-  min-height: auto;
-  overflow: visible;
-}
-
-.right-column {
-  overflow: visible;
-}
-
-/* Make sure WebRTC container is always visible */
-.webrtc-chat-container {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  position: relative !important;
-  z-index: 1 !important;
-}
-
-/* Final fallback for button visibility */
-button[class*="webrtc"] {
-  display: inline-block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  background: #4CAF50 !important;
-  color: white !important;
-  border: 1px solid #333 !important;
-  padding: 8px 16px !important;
-  border-radius: 4px !important;
-  cursor: pointer !important;
-  font-size: 14px !important;
 }
