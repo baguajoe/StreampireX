@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import UploadVideo from "../component/UploadVideo";
 import ChatModal from "../component/ChatModal";
 import WebRTCChat from "../component/WebRTCChat";
+import VideoChatPopup from "../component/VideoChatPopup";
 import "../../styles/ProfilePage.css";
 import "../../styles/WebRTC.css";
 import lady1 from "../../img/lady1.png"
@@ -48,7 +49,7 @@ const ProfilePage = () => {
     const [newCommentText, setNewCommentText] = useState({}); // { postId: comment }
     const [justSaved, setJustSaved] = useState(false);
     const [currentMood, setCurrentMood] = useState("😌 Chill");
-    
+
     const loggedInUserId = parseInt(localStorage.getItem("user_id")) || 1; // fallback to 1
     const loggedInUsername = localStorage.getItem("username");
 
@@ -57,16 +58,16 @@ const ProfilePage = () => {
 
     useEffect(() => {
         const token = localStorage.getItem("token");
-        
+
         console.log("ProfilePage - Token check:", token ? "Token found" : "No token found");
         console.log("ProfilePage - All localStorage keys:", Object.keys(localStorage));
-        
+
         if (!token) {
             console.warn("No token found - using fallback user data");
             // Fallback: use localStorage data
             if (loggedInUserId) {
-                setUser({ 
-                    id: loggedInUserId, 
+                setUser({
+                    id: loggedInUserId,
                     username: loggedInUsername || `user_${loggedInUserId}`,
                     display_name: loggedInUsername || `User ${loggedInUserId}`
                 });
@@ -84,28 +85,28 @@ const ProfilePage = () => {
         })
             .then(async (res) => {
                 console.log("ProfilePage API Response status:", res.status);
-                
+
                 if (!res.ok) {
                     const errorText = await res.text();
                     console.error("ProfilePage API Error:", res.status, errorText);
                     throw new Error(`API Error: ${res.status}`);
                 }
-                
+
                 const text = await res.text();
                 try {
                     const data = JSON.parse(text);
                     console.log("ProfilePage - Profile data received:", data);
-                    
+
                     // ✅ Handle both response formats
                     const userData = data.user || data; // Handle {user: ...} or direct user data
-                    
+
                     // Ensure we have at least an id
                     if (!userData.id && loggedInUserId) {
                         userData.id = loggedInUserId;
                     }
-                    
+
                     setUser(userData);
-                    
+
                     // Set other states from the response
                     if (userData.bio) setBio(userData.bio);
                     if (userData.display_name) setDisplayName(userData.display_name);
@@ -114,14 +115,14 @@ const ProfilePage = () => {
                     if (userData.videos) setVideos(userData.videos);
                     if (userData.images) setImages(userData.images);
                     if (userData.gallery && !userData.images) setImages(userData.gallery); // fallback
-                    
+
                 } catch (e) {
                     console.error("Failed to parse JSON:", text);
-                    
+
                     // Fallback: use localStorage data
                     if (loggedInUserId) {
-                        setUser({ 
-                            id: loggedInUserId, 
+                        setUser({
+                            id: loggedInUserId,
                             username: loggedInUsername || `user_${loggedInUserId}`,
                             display_name: loggedInUsername || `User ${loggedInUserId}`
                         });
@@ -130,11 +131,11 @@ const ProfilePage = () => {
             })
             .catch((err) => {
                 console.error("Fetch profile error:", err);
-                
+
                 // Fallback: use localStorage data
                 if (loggedInUserId) {
-                    setUser({ 
-                        id: loggedInUserId, 
+                    setUser({
+                        id: loggedInUserId,
                         username: loggedInUsername || `user_${loggedInUserId}`,
                         display_name: loggedInUsername || `User ${loggedInUserId}`
                     });
@@ -148,7 +149,7 @@ const ProfilePage = () => {
         try {
             const token = localStorage.getItem("token");
             if (!token) return;
-            
+
             await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/avatar-toggle`, {
                 method: "POST",
                 headers: {
@@ -208,7 +209,7 @@ const ProfilePage = () => {
     const handleVideoUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
         const formData = new FormData();
         formData.append("file", file);
         formData.append("upload_preset", "your_unsigned_preset");
@@ -219,14 +220,14 @@ const ProfilePage = () => {
                 method: "POST",
                 body: formData,
             });
-            
+
             if (!res.ok) {
                 throw new Error(`Upload failed: ${res.status}`);
             }
-            
+
             const data = await res.json();
             console.log("Uploaded video URL:", data.secure_url);
-            
+
             const newVideo = { file_url: data.secure_url, title: file.name };
             setVideos(prev => [...prev, newVideo]);
 
@@ -259,13 +260,13 @@ const ProfilePage = () => {
                     [mediaType]: mediaArray
                 }),
             });
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error(`Failed to update ${mediaType}:`, response.status, errorText);
                 throw new Error(`Backend update failed: ${response.status}`);
             }
-            
+
             console.log(`${mediaType} updated successfully in backend`);
         } catch (err) {
             console.error(`Failed to update ${mediaType}:`, err);
@@ -320,11 +321,11 @@ const ProfilePage = () => {
             const result = await response.json();
             console.log("Profile saved successfully:", result);
             alert("✅ Profile saved successfully!");
-            
+
             if (result.user) {
                 setUser(result.user);
             }
-            
+
             setJustSaved(true);
             setTimeout(() => setJustSaved(false), 3000); // hide save button after 3s
 
@@ -590,137 +591,163 @@ const ProfilePage = () => {
                 </div>
 
                 <div className="middle-column">
-                    <h3>📝 Create a Post</h3>
-                    <textarea
-                        value={postContent}
-                        onChange={(e) => setPostContent(e.target.value)}
-                        placeholder="Write something..."
-                    />
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setPostImage(e.target.files[0])}
-                    />
-                    <button
-                        onClick={() => {
-                            const newPost = {
-                                id: Date.now(),
-                                content: postContent,
-                                image: postImage ? URL.createObjectURL(postImage) : null,
-                                comments: [],
-                            };
-                            setPosts([newPost, ...posts]);
-                            setPostContent("");
-                            setPostImage(null);
-                        }}
-                    >
-                        📤 Post
-                    </button>
+                    <div className="post-section-wrapper">
+                        <h3>📝 Create a Post</h3>
+                        <textarea
+                            value={postContent}
+                            onChange={(e) => setPostContent(e.target.value)}
+                            placeholder="Write something..."
+                        />
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setPostImage(e.target.files[0])}
+                        />
+                        <button
+                            onClick={() => {
+                                const newPost = {
+                                    id: Date.now(),
+                                    content: postContent,
+                                    image: postImage ? URL.createObjectURL(postImage) : null,
+                                    comments: [],
+                                };
+                                setPosts([newPost, ...posts]);
+                                setPostContent("");
+                                setPostImage(null);
+                            }}
+                        >
+                            📤 Post
+                        </button>
 
-                    {posts.map((post) => (
-                        <div key={post.id} className="post-card">
-                            <p>{post.content}</p>
-                            {post.image && (
-                                <img src={post.image} alt="Post" className="post-image" />
-                            )}
+                        {/* All post cards */}
+                        {posts.map((post) => (
+                            <div key={post.id} className="post-card">
+                                <p>{post.content}</p>
+                                {post.image && (
+                                    <img src={post.image} alt="Post" className="post-image" />
+                                )}
+                                <h5>💬 Comments</h5>
+                                <ul>
+                                    {(postComments[post.id] || []).map((comment, idx) => (
+                                        <li key={idx}>{comment}</li>
+                                    ))}
+                                </ul>
+                                <input
+                                    type="text"
+                                    placeholder="Write a comment..."
+                                    value={newCommentText[post.id] || ""}
+                                    onChange={(e) =>
+                                        setNewCommentText({ ...newCommentText, [post.id]: e.target.value })
+                                    }
+                                />
+                                <button
+                                    onClick={() => {
+                                        const comment = newCommentText[post.id]?.trim();
+                                        if (!comment) return;
+                                        setPostComments({
+                                            ...postComments,
+                                            [post.id]: [...(postComments[post.id] || []), comment],
+                                        });
+                                        setNewCommentText({ ...newCommentText, [post.id]: "" });
+                                    }}
+                                >
+                                    💬 Reply
+                                </button>
+                            </div>
+                        ))}
 
-                            <h5>💬 Comments</h5>
-                            <ul>
-                                {(postComments[post.id] || []).map((comment, idx) => (
-                                    <li key={idx}>{comment}</li>
-                                ))}
-                            </ul>
-                            <input
-                                type="text"
-                                placeholder="Write a comment..."
-                                value={newCommentText[post.id] || ""}
-                                onChange={(e) =>
-                                    setNewCommentText({ ...newCommentText, [post.id]: e.target.value })
-                                }
-                            />
-                            <button
-                                onClick={() => {
-                                    const comment = newCommentText[post.id]?.trim();
-                                    if (!comment) return;
-                                    setPostComments({
-                                        ...postComments,
-                                        [post.id]: [...(postComments[post.id] || []), comment],
-                                    });
-                                    setNewCommentText({ ...newCommentText, [post.id]: "" });
-                                }}
-                            >
-                                💬 Reply
-                            </button>
+                        {/* Upload Sections */}
+                        {user?.role && ["Pro", "Premium", "Free"].includes(user.role) && (
+                            <div className="upload-video-section">
+                                <h3>🎬 Upload a Video</h3>
+                                <UploadVideo
+                                    currentUser={user}
+                                    onUpload={() => {
+                                        const token = localStorage.getItem("token");
+                                        if (token && user.id) {
+                                            fetch(`${process.env.BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/${user.id}/videos`, {
+                                                headers: { Authorization: `Bearer ${token}` },
+                                            })
+                                                .then((res) => res.json())
+                                                .then((data) => setVideos(data))
+                                                .catch((err) => console.error("Error fetching videos:", err));
+                                        }
+                                    }}
+                                />
+                            </div>
+                        )}
+
+                        <div className="manual-upload-section">
+                            <h3>🎬 Quick Video Upload</h3>
+                            <input type="file" accept="video/*" onChange={handleVideoUpload} />
                         </div>
-                    ))}
 
-                    {user?.role && ["Pro", "Premium", "Free"].includes(user.role) && (
-                        <div className="upload-video-section">
-                            <h3>🎬 Upload a Video</h3>
-                            <UploadVideo currentUser={user} onUpload={() => {
-                                const token = localStorage.getItem("token");
-                                if (token && user.id) {
-                                    fetch(`${process.env.BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/${user.id}/videos`, {
-                                        headers: { Authorization: `Bearer ${token}` }
-                                    })
-                                        .then((res) => res.json())
-                                        .then((data) => setVideos(data))
-                                        .catch(err => console.error("Error fetching videos:", err));
-                                }
-                            }} />
-                        </div>
-                    )}
+                        {videos.length > 0 && (
+                            <div className="uploaded-videos">
+                                <h4>📹 Your Uploaded Videos</h4>
+                                {videos.map((video, index) => (
+                                    <div key={video.id || index} className="video-wrapper">
+                                        <video src={video.file_url} controls width="300" />
+                                        <p>{video.title}</p>
+                                        <button onClick={() => alert("Liked!")}>👍 {video.likes || 0}</button>
 
-                    {/* Manual Video Upload */}
-                    <div className="manual-upload-section">
-                        <h3>🎬 Quick Video Upload</h3>
-                        <input type="file" accept="video/*" onChange={handleVideoUpload} />
-                    </div>
+                                        <input
+                                            type="text"
+                                            placeholder="Add a comment"
+                                            value={commentInputs[video.id || index] || ""}
+                                            onChange={(e) =>
+                                                setCommentInputs({
+                                                    ...commentInputs,
+                                                    [video.id || index]: e.target.value,
+                                                })
+                                            }
+                                        />
+                                        <button onClick={() => alert("Comment added")}>💬 Comment</button>
 
-                    {videos.length > 0 && (
-                        <div className="uploaded-videos">
-                            <h4>📹 Your Uploaded Videos</h4>
-                            {videos.map((video, index) => (
-                                <div key={video.id || index} className="video-wrapper">
-                                    <video src={video.file_url} controls width="300" />
-                                    <p>{video.title}</p>
-                                    <button onClick={() => alert("Liked!")}>👍 {video.likes || 0}</button>
-
-                                    <input
-                                        type="text"
-                                        placeholder="Add a comment"
-                                        value={commentInputs[video.id || index] || ""}
-                                        onChange={(e) => setCommentInputs({ 
-                                            ...commentInputs, 
-                                            [video.id || index]: e.target.value 
-                                        })}
-                                    />
-                                    <button onClick={() => alert("Comment added")}>💬 Comment</button>
-
-                                    <button className="btn-secondary" onClick={() => {
-                                        setVideos(prev => prev.filter((_, i) => i !== index));
-                                        alert("Video removed from list");
-                                    }}>🗑️ Remove</button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Images Section */}
-                    {images.length > 0 && (
-                        <div className="uploaded-images">
-                            <h4>🖼️ Your Images</h4>
-                            <div className="images-grid">
-                                {images.map((image, index) => (
-                                    <div key={image.id || index} className="image-wrapper">
-                                        <img src={image.file_url} alt={image.title} style={{ width: "200px", borderRadius: "6px" }} />
-                                        <p>{image.title}</p>
+                                        <button
+                                            className="btn-secondary"
+                                            onClick={() => {
+                                                setVideos((prev) => prev.filter((_, i) => i !== index));
+                                                alert("Video removed from list");
+                                            }}
+                                        >
+                                            🗑️ Remove
+                                        </button>
                                     </div>
                                 ))}
                             </div>
-                        </div>
-                    )}
+                        )}
+
+                        {images.length > 0 && (
+                            <div className="uploaded-images">
+                                <h4>🖼️ Your Images</h4>
+                                <div className="images-grid">
+                                    {images.map((image, index) => (
+                                        <div
+                                            key={image.id || index}
+                                            className="image-wrapper"
+                                        >
+                                            <img
+                                                src={image.file_url}
+                                                alt={image.title}
+                                                style={{ width: "200px", borderRadius: "6px" }}
+                                            />
+                                            <p>{image.title}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Always pinned chat button at the bottom */}
+                    <div className="bottom-action-row">
+
+                        <VideoChatPopup />
+                    </div>
+
                 </div>
+
 
                 <div className="right-column">
                     <div className="quick-actions">
@@ -735,14 +762,8 @@ const ProfilePage = () => {
                             <button className="btn-indie-upload">🎤 Indie Artist Upload</button>
                         </Link>
 
-                        {/* Clean WebRTC Component */}
-                        {effectiveUserId && (
-                            <WebRTCChat
-                                roomId={`user-${effectiveUserId}`}
-                                userId={effectiveUserId}
-                                userName={effectiveUserName}
-                            />
-                        )}
+
+
                     </div>
 
                     <h3>🛍️ Storefront</h3>
