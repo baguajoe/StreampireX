@@ -8,6 +8,8 @@ from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingH
 import cloudinary.uploader
 import json
 import os
+import mimetypes
+
 
 
 
@@ -27,6 +29,7 @@ from api.utils.revelator_api import submit_release_to_revelator
 from rq import Queue
 from redis import Redis
 from api.utils.tasks import send_release_to_revelator
+from mutagen import File
 
 
 
@@ -2696,62 +2699,57 @@ def create_playlist_profile():
 @api.route('/profile/radio/create', methods=['POST'])
 @jwt_required()
 def create_radio_station_profile():
-    """Allows users to create a radio station with large file support."""
     user_id = get_jwt_identity()
-    
     try:
-        # Get form data
         data = request.form
         name = data.get("name")
-        
         if not name:
             return jsonify({"error": "Radio station name is required"}), 400
-        
+
         description = data.get("description", "")
-        category = data.get("category", "")  # ✅ Get category from form
-        
-        # Create upload directories
-        os.makedirs("uploads/station_logos", exist_ok=True)
-        os.makedirs("uploads/station_covers", exist_ok=True)
-        os.makedirs("uploads/station_mixes", exist_ok=True)
-        
-        # Handle file uploads
+        category = data.get("category", "")
+
+        # Correct directory paths
+        logo_dir = os.path.join("uploads", "station_logos")
+        cover_dir = os.path.join("uploads", "station_covers")
+        mix_dir = os.path.join("src", "static", "uploads", "station_mixes")
+
+        os.makedirs(logo_dir, exist_ok=True)
+        os.makedirs(cover_dir, exist_ok=True)
+        os.makedirs(mix_dir, exist_ok=True)
+
         logo_url = None
         cover_url = None
         initial_mix_url = None
-        
-        # Logo upload
+        mix_filename = None
+
         if 'logo' in request.files:
             logo_file = request.files['logo']
             if logo_file and logo_file.filename:
                 logo_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(logo_file.filename)}"
-                logo_path = os.path.join("uploads/station_logos", logo_filename)
+                logo_path = os.path.join(logo_dir, logo_filename)
                 logo_file.save(logo_path)
                 logo_url = f"/{logo_path}"
-        
-        # Cover upload
+
         if 'cover' in request.files:
             cover_file = request.files['cover']
             if cover_file and cover_file.filename:
                 cover_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(cover_file.filename)}"
-                cover_path = os.path.join("uploads/station_covers", cover_filename)
+                cover_path = os.path.join(cover_dir, cover_filename)
                 cover_file.save(cover_path)
                 cover_url = f"/{cover_path}"
-        
-        # Audio file upload
+
         if 'initialMix' in request.files:
             mix_file = request.files['initialMix']
             if mix_file and mix_file.filename:
                 mix_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(mix_file.filename)}"
-                mix_path = os.path.join("uploads/station_mixes", mix_filename)
+                mix_path = os.path.join(mix_dir, mix_filename)
                 mix_file.save(mix_path)
-                initial_mix_url = f"/{mix_path}"
-        
-        # Get creator info
+                initial_mix_url = f"/uploads/station_mixes/{mix_filename}"
+
         creator = User.query.get(user_id)
         creator_name = creator.username if creator else "Unknown"
-        
-        # ✅ Create the radio station with category stored in genres
+
         new_station = RadioStation(
             user_id=user_id,
             name=name,
@@ -2759,18 +2757,17 @@ def create_radio_station_profile():
             logo_url=logo_url,
             cover_image_url=cover_url,
             is_public=True,
-            genres=[category] if category else ["Music"],  # ✅ Store category as genre array
+            genres=[category] if category else ["Music"],
             creator_name=creator_name,
             created_at=datetime.utcnow()
         )
-        
+
         db.session.add(new_station)
-        db.session.commit()
-        
-        # Add initial mix if provided
+        db.session.flush()
+
         if initial_mix_url:
             mix_title = data.get("mixTitle", f"{name} - Initial Mix")
-            
+
             initial_audio = Audio(
                 user_id=user_id,
                 title=mix_title,
@@ -2779,60 +2776,93 @@ def create_radio_station_profile():
                 uploaded_at=datetime.utcnow()
             )
             db.session.add(initial_audio)
-            db.session.commit()
-            
-            # Add to radio station playlist
+            db.session.flush()
+
             playlist_entry = RadioPlaylist(
                 station_id=new_station.id,
                 audio_id=initial_audio.id
             )
             db.session.add(playlist_entry)
-            db.session.commit()
-        
-        print(f"✅ Created station: ID={new_station.id}, Name={new_station.name}, Genre={category}")
-        
+
+            # ✅ Use local file path to extract duration
+            mix_file_path = os.path.join(mix_dir, mix_filename)
+            duration = get_track_duration_from_file(mix_file_path)
+
+            track_info = {
+                "id": initial_audio.id,
+                "title": mix_title,
+                "artist": data.get("djName", creator_name),
+                "duration": duration,
+                "file_url": initial_mix_url,
+                "bpm": data.get("bpm", ""),
+                "mood": data.get("mood", ""),
+                "sub_genres": data.get("subGenres", "")
+            }
+
+            playlist_schedule = {
+                "tracks": [track_info],
+                "total_tracks": 1,
+                "created_at": datetime.utcnow().isoformat()
+            }
+
+            new_station.playlist_schedule = playlist_schedule
+            new_station.is_loop_enabled = True
+            new_station.loop_duration_minutes = 180
+            new_station.loop_started_at = datetime.utcnow()
+            new_station.is_live = True
+            new_station.now_playing_metadata = track_info
+            new_station.loop_audio_url = initial_mix_url
+
+            print(f"✅ Setup audio loop: {mix_title} ({duration}) for station {new_station.name}")
+
+        db.session.commit()
+
         return jsonify({
-            "message": "Radio station created successfully!",
-            "station": new_station.serialize()
+            "message": "Radio station created successfully with audio loop!" if initial_mix_url else "Radio station created successfully!",
+            "station": new_station.serialize(),
+            "audio_loop_enabled": new_station.is_loop_enabled,
+            "now_playing": new_station.get_current_track()
         }), 201
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"❌ Error creating radio station: {str(e)}")
         return jsonify({"error": f"Failed to create station: {str(e)}"}), 500
 
 
+# ✅ Duration helper included here so it's self-contained
+def get_track_duration_from_file(file_path):
+    try:
+        audio_file = File(file_path)
+        if audio_file and hasattr(audio_file, 'info'):
+            total_seconds = int(audio_file.info.length)
+            minutes = total_seconds // 60
+            seconds = total_seconds % 60
+            return f"{minutes:02d}:{seconds:02d}"
+    except ImportError:
+        print("Mutagen not available, using ffmpeg fallback")
 
-# ✅ Upload Podcast Episode
-@api.route('/podcasts/upload_episode/<int:podcast_id>', methods=['POST'])
-@jwt_required()
-def upload_episode(podcast_id):
-    """Allows users to upload podcast episodes."""
-    user_id = get_jwt_identity()
-    podcast = Podcast.query.get(podcast_id)
+    try:
+        import subprocess
+        result = subprocess.run([
+            'ffprobe', '-v', 'quiet', '-show_entries',
+            'format=duration', '-of', 'csv=p=0', file_path
+        ], capture_output=True, text=True)
 
-    if not podcast or podcast.user_id != user_id:
-        return jsonify({"error": "Unauthorized"}), 403
+        if result.returncode == 0:
+            total_seconds = int(float(result.stdout.strip()))
+            minutes = total_seconds // 60
+            seconds = total_seconds % 60
+            return f"{minutes:02d}:{seconds:02d}"
+    except Exception as e:
+        print(f"Error getting duration with ffmpeg: {e}")
 
-    if 'audio' not in request.files:
-        return jsonify({"error": "No audio file uploaded"}), 400
-
-    audio = request.files['audio']
-    filename = secure_filename(audio.filename)
-    file_path = os.path.join(UPLOAD_FOLDER, filename)
-    audio.save(file_path)
-
-    new_episode = PodcastEpisode(
-        podcast_id=podcast_id,
-        title=request.form.get("title"),
-        description=request.form.get("description"),
-        file_url=file_path
-    )
-
-    db.session.add(new_episode)
-    db.session.commit()
-
-    return jsonify({"message": "Episode uploaded successfully", "episode_id": new_episode.id}), 201
+    try:
+        file_size = os.path.getsize(file_path)
+        estimated_minutes = max(1, file_size // (1024 * 1024))
+        return f"{estimated_minutes:02d}:00"
+    except:
+        return "03:00"
 
 # ✅ Add Podcast Collaborator (Co-Host)
 @api.route('/podcasts/add_host/<int:podcast_id>', methods=['POST'])
@@ -7343,4 +7373,146 @@ def debug_station(station_id):
     
     return jsonify(debug_info), 200
 
+@api.route('/uploads/<path:filename>')
+def serve_uploaded_file(filename):
+    """Serve uploaded files (audio, images, etc.)"""
+    try:
+        # Construct the file path
+        file_path = os.path.join('uploads', filename)
+        
+        # Security check - ensure file exists and is within uploads directory
+        if not os.path.exists(file_path):
+            return jsonify({"error": "File not found"}), 404
+        
+        # Security check - prevent directory traversal
+        if not os.path.abspath(file_path).startswith(os.path.abspath('uploads')):
+            return jsonify({"error": "Access denied"}), 403
+        
+        # Determine mimetype based on file extension
+        _, ext = os.path.splitext(filename)
+        ext = ext.lower()
+        
+        if ext in ['.mp3', '.wav', '.ogg', '.m4a']:
+            mimetype = 'audio/mpeg' if ext == '.mp3' else f'audio/{ext[1:]}'
+        elif ext in ['.jpg', '.jpeg', '.png', '.gif']:
+            mimetype = f'image/{ext[1:]}' if ext != '.jpg' else 'image/jpeg'
+        else:
+            mimetype = 'application/octet-stream'
+        
+        return send_file(
+            file_path,
+            mimetype=mimetype,
+            as_attachment=False,
+            conditional=True  # Enable range requests for audio streaming
+        )
+        
+    except Exception as e:
+        print(f"Error serving file {filename}: {str(e)}")
+        return jsonify({"error": "File serving error"}), 500
 
+@api.route('/radio-stations/<int:station_id>', methods=['GET'])
+def get_radio_station_details(station_id):
+    """
+    Get detailed information about a specific radio station,
+    including creator info, metadata, and live stream support.
+    """
+    try:
+        station = RadioStation.query.get(station_id)
+        
+        if not station:
+            return jsonify({"error": "Radio station not found"}), 404
+        
+        # Get the creator info
+        creator = User.query.get(station.user_id)
+
+        # Absolute URL base (e.g., http://localhost:3001)
+        base_url = request.host_url.rstrip('/')
+
+        # Determine the stream URL if the station is live and has audio configured
+        if station.is_live and (station.loop_audio_url or station.stream_url):
+            stream_url = f"{base_url}/api/radio/{station_id}/stream"
+        else:
+            stream_url = None
+
+        # Build the station response payload
+        station_data = {
+            "id": station.id,
+            "name": station.name,
+            "description": station.description,
+            "genre": station.genres[0] if station.genres else "Music",
+            "genres": station.genres or [],
+            "creator_name": station.creator_name or (creator.username if creator else "Unknown"),
+            "is_live": station.is_live,
+            "is_loop_enabled": station.is_loop_enabled,
+            "followers_count": station.followers_count,
+            "logo_url": station.logo_url,
+            "cover_image_url": station.cover_image_url,
+            "created_at": station.created_at.isoformat() if station.created_at else None,
+            "now_playing": station.get_current_track(),
+            "stream_url": stream_url,  # ✅ Improved stream handling
+            "submission_guidelines": station.submission_guidelines,
+            "preferred_genres": station.preferred_genres or []
+        }
+        
+        return jsonify(station_data), 200
+
+    except Exception as e:
+        print(f"❌ Error getting station details: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
+    
+
+@api.route('/api/radio/<int:station_id>/stream')
+def stream_radio_station(station_id):
+    station = RadioStation.query.get_or_404(station_id)
+
+    if not station.loop_audio_url:
+        return jsonify({"error": "No audio file found"}), 404
+
+    file_path = station.loop_audio_url.lstrip("/")  # removes leading slash
+    mime_type, _ = mimetypes.guess_type(file_path)
+
+    return send_file(file_path, mimetype=mime_type or 'audio/mpeg')
+
+@api.route("/api/debug/stations")
+def debug_stations():
+    try:
+        stations = RadioStation.query.all()
+        return jsonify([
+            {
+                "id": s.id,
+                "name": s.name,
+                "loop_audio_url": s.loop_audio_url,
+                "is_live": s.is_live
+            } for s in stations
+        ])
+    except Exception as e:
+        print("❌ Debug error:", e)
+        return jsonify({"error": "Failed to fetch stations"}), 500
+
+@api.route("/uploads/<filename>")
+def uploaded_audio(filename):
+    return send_from_directory(os.path.join("static", "uploads"), filename)
+
+@api.route('/uploads/station_mixes/<filename>')
+def serve_station_mix(filename):
+    directory = os.path.join('src', 'static', 'uploads', 'station_mixes')
+    print("🎧 Serving mix from:", directory)
+    return send_from_directory(directory, filename)
+
+@api.route('/api/radio/<int:station_id>/stream')
+def stream_station_audio(station_id):
+    station = RadioStation.query.get_or_404(station_id)
+
+    if not station.loop_audio_url:
+        return jsonify({"error": "No audio file configured for this station"}), 404
+
+    # Get relative file path from DB (e.g. "uploads/station_mixes/xyz.mp3")
+    file_path = station.loop_audio_url.lstrip('/')
+    directory, filename = os.path.split(file_path)
+
+    # Add src/static as base path
+    full_directory = os.path.join("src", "static", directory)
+
+    print(f"🎧 Serving from: {full_directory}/{filename}")
+    
+    return send_from_directory(full_directory, filename, mimetype="audio/mpeg")
