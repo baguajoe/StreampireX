@@ -33,22 +33,30 @@ class Squad(db.Model):
     description = db.Column(db.Text)
     invite_code = db.Column(db.String(20), unique=True)
     platform_tags = db.Column(db.ARRAY(db.String))
-    
-    # ✅ REMOVE FOREIGN KEY - JUST STORE THE ID
     creator_id = db.Column(db.Integer, nullable=True)  # No ForeignKey constraint
     
     # Additional gaming-specific fields
-    game = db.Column(db.String(100), nullable=True)  # Main game
+    game = db.Column(db.String(100), nullable=True)
     max_members = db.Column(db.Integer, default=5)
     is_public = db.Column(db.Boolean, default=True)
     skill_requirement = db.Column(db.String(50), nullable=True)
     region = db.Column(db.String(100), nullable=True)
-    communication_platform = db.Column(db.String(50), nullable=True)  # Discord, TeamSpeak, etc.
+    communication_platform = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships
+    # ✅ FIXED: Relationships with proper overlaps parameters
     members = db.relationship("User", back_populates="squad", foreign_keys="User.squad_id")
-    streams = db.relationship("Stream", back_populates="squad", foreign_keys="Stream.squad_id")
+    
+    # ✅ FIXED: Add overlaps parameter to silence warnings
+    streams = db.relationship("Stream", 
+                             back_populates="squad", 
+                             foreign_keys="Stream.squad_id",
+                             overlaps="squad_streams")
+    
+    # ✅ FIXED: Alternative name to avoid conflicts
+    squad_streams = db.relationship("Stream", 
+                                   foreign_keys="Stream.squad_id",
+                                   overlaps="streams")
 
     def get_creator(self):
         """Get creator user object"""
@@ -66,7 +74,7 @@ class Squad(db.Model):
             "platform_tags": self.platform_tags or [],
             "creator_id": self.creator_id,
             "creator_name": creator.username if creator else None,
-            "creator_gamertag": creator.gamertag if creator else None,
+            "creator_gamertag": getattr(creator, 'gamertag', None) if creator else None,
             "game": self.game,
             "max_members": self.max_members,
             "current_members": len(self.members) if self.members else 0,
@@ -75,8 +83,9 @@ class Squad(db.Model):
             "region": self.region,
             "communication_platform": self.communication_platform,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "members": [{"id": m.id, "username": m.username, "gamertag": m.gamertag, "skill_level": m.skill_level} for m in (self.members or [])]
+            "members": [{"id": m.id, "username": m.username, "gamertag": getattr(m, 'gamertag', None), "skill_level": getattr(m, 'skill_level', 'Unknown')} for m in (self.members or [])]
         }
+
 
 # User Model
 # class User(db.Model):
@@ -262,11 +271,33 @@ class User(db.Model):
     monthly_listeners = db.Column(db.Integer, default=0)
     total_plays = db.Column(db.Integer, default=0)
     
-    # 🔄 Gaming Relationships
+    # 🔄 Gaming Relationships - ✅ FIXED WITH OVERLAPS PARAMETERS
     squad = db.relationship("Squad", back_populates="members", foreign_keys=[squad_id])
-    streams = db.relationship("GameStream", back_populates="user", foreign_keys="GameStream.creator_id", lazy=True)
-    sent_friend_requests = db.relationship("FriendRequest", foreign_keys="FriendRequest.sender_id", back_populates="sender")
-    received_friend_requests = db.relationship("FriendRequest", foreign_keys="FriendRequest.receiver_id", back_populates="receiver")
+    
+    # ✅ FIXED: Main streams relationship (for GameStream)
+    streams = db.relationship("GameStream", 
+                             back_populates="user", 
+                             foreign_keys="GameStream.creator_id", 
+                             lazy=True)
+    
+    # ✅ FIXED: Add overlaps parameter for any additional stream relationships
+    # If you have a regular Stream model as well, add this:
+    live_streams = db.relationship("Stream", 
+                                  foreign_keys="Stream.creator_id",
+                                  overlaps="streams")
+    
+    # ✅ FIXED: Game streams with overlaps parameter to avoid conflicts
+    game_streams = db.relationship("GameStream", 
+                                  foreign_keys="GameStream.creator_id",
+                                  overlaps="streams,live_streams")
+    
+    # ✅ Friend request relationships (these are fine)
+    sent_friend_requests = db.relationship("FriendRequest", 
+                                          foreign_keys="FriendRequest.sender_id", 
+                                          back_populates="sender")
+    received_friend_requests = db.relationship("FriendRequest", 
+                                              foreign_keys="FriendRequest.receiver_id", 
+                                              back_populates="receiver")
     
     def serialize(self):
         return {
@@ -1016,6 +1047,10 @@ class RadioStation(db.Model):
     creator_name = db.Column(db.String(100), nullable=True)
     preferred_genres = db.Column(db.ARRAY(db.String), default=[])
 
+    # Audio file name
+    audio_file_name = db.Column(db.String(500), nullable=True) 
+
+
     # 🔁 Looping Playlist Fields
     loop_audio_url = db.Column(db.String(500), nullable=True)     # MP3 or stream URL
     is_loop_enabled = db.Column(db.Boolean, default=False)        # Toggle
@@ -1054,7 +1089,8 @@ class RadioStation(db.Model):
             "now_playing_metadata": self.now_playing_metadata,
             "playlist_schedule": self.playlist_schedule,
             "loop_started_at": self.loop_started_at.isoformat() if self.loop_started_at else None,
-            "now_playing": self.get_current_track()
+            "now_playing": self.get_current_track(),
+            "audio_file_name": self.audio_file_name
         }
 
     @property
@@ -2401,26 +2437,18 @@ class Stream(db.Model):
     __tablename__ = "stream"
 
     id = db.Column(db.Integer, primary_key=True)
-
-    # 🔗 Linked to a User (creator)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user = db.relationship("User", backref="live_streams", foreign_keys=[creator_id])
-
-    # 🔗 Optional: linked to a Squad
     squad_id = db.Column(db.Integer, db.ForeignKey('squad.id'), nullable=True)
-    squad = db.relationship("Squad", backref="squad_streams", foreign_keys=[squad_id])
-
-    # 📺 Stream metadata
     stream_url = db.Column(db.String(500), nullable=False)
-    platform = db.Column(db.String(50))  # e.g., "Twitch", "Kick", "StreampireX"
+    platform = db.Column(db.String(50))
     title = db.Column(db.String(150), nullable=True)
-
     views = db.Column(db.Integer, default=0)
     is_live = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    def __repr__(self):
-        return f"<Stream {self.id} by user {self.creator_id} on {self.platform}>"
+    # ✅ FIXED: Proper relationships with back_populates
+    user = db.relationship("User", foreign_keys=[creator_id], overlaps="streams,game_streams,live_streams")
+    squad = db.relationship("Squad", back_populates="streams", foreign_keys=[squad_id])
 
     def serialize(self):
         return {
@@ -2430,10 +2458,11 @@ class Stream(db.Model):
             "stream_url": self.stream_url,
             "platform": self.platform,
             "title": self.title,
-            "is_live": self.is_live,
             "views": self.views,
-            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M")
+            "is_live": self.is_live,
+            "created_at": self.created_at.isoformat() if self.created_at else None
         }
+
 
 
 # models/share.py or models.py
@@ -2766,12 +2795,12 @@ class FriendRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    status = db.Column(db.String(20), default="pending")  # pending, accepted, declined
+    status = db.Column(db.String(20), default="pending")
     message = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     responded_at = db.Column(db.DateTime, nullable=True)
     
-    # Relationships
+    # ✅ These relationships are correct - using back_populates properly
     sender = db.relationship("User", foreign_keys=[sender_id], back_populates="sent_friend_requests")
     receiver = db.relationship("User", foreign_keys=[receiver_id], back_populates="received_friend_requests")
     
@@ -2780,7 +2809,7 @@ class FriendRequest(db.Model):
             "id": self.id,
             "sender_id": self.sender_id,
             "sender_username": self.sender.username,
-            "sender_gamertag": self.sender.gamertag,
+            "sender_gamertag": getattr(self.sender, 'gamertag', None),
             "receiver_id": self.receiver_id,
             "receiver_username": self.receiver.username,
             "status": self.status,
@@ -2788,6 +2817,7 @@ class FriendRequest(db.Model):
             "created_at": self.created_at.isoformat(),
             "responded_at": self.responded_at.isoformat() if self.responded_at else None
         }
+
 
 
 class GameStream(db.Model):
@@ -2803,28 +2833,26 @@ class GameStream(db.Model):
     thumbnail_url = db.Column(db.String(500), nullable=True)
     is_live = db.Column(db.Boolean, default=False)
     viewer_count = db.Column(db.Integer, default=0)
-    category = db.Column(db.String(100), nullable=True)  # "Just Chatting", "Competitive", etc.
+    category = db.Column(db.String(100), nullable=True)
     tags = db.Column(db.ARRAY(db.String), default=[])
     started_at = db.Column(db.DateTime, default=datetime.utcnow)
     ended_at = db.Column(db.DateTime, nullable=True)
     
-    # Relationships
-    user = db.relationship("User", backref="game_streams", foreign_keys=[creator_id])
-    squad = db.relationship("Squad", backref="stream_squads", foreign_keys=[squad_id])
+    # ✅ FIXED: Add overlaps="game_streams" to silence the warning
+    user = db.relationship("User", 
+                          back_populates="streams", 
+                          foreign_keys=[creator_id],
+                          overlaps="game_streams")
     
-    def get_squad(self):
-        """Get squad object if squad_id exists"""
-        if self.squad_id:
-            return Squad.query.get(self.squad_id)
-        return None
+    squad = db.relationship("Squad", foreign_keys=[squad_id])
     
     def serialize(self):
-        squad = self.get_squad()
+        squad = self.squad if self.squad_id else None
         return {
             "id": self.id,
             "creator_id": self.creator_id,
-            "creator_username": self.user.username,
-            "creator_gamertag": self.user.gamertag,
+            "creator_username": self.user.username if self.user else "Unknown",
+            "creator_gamertag": getattr(self.user, 'gamertag', None) if self.user else None,
             "squad_id": self.squad_id,
             "squad_name": squad.name if squad else None,
             "title": self.title,
