@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 38857f212bac
+Revision ID: f1407fb0f628
 Revises: 
-Create Date: 2025-07-15 19:19:03.945552
+Create Date: 2025-07-17 18:31:07.824135
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '38857f212bac'
+revision = 'f1407fb0f628'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -629,6 +629,7 @@ def upgrade():
     sa.Column('submission_guidelines', sa.Text(), nullable=True),
     sa.Column('creator_name', sa.String(length=100), nullable=True),
     sa.Column('preferred_genres', sa.ARRAY(sa.String()), nullable=True),
+    sa.Column('audio_file_name', sa.String(length=500), nullable=True),
     sa.Column('loop_audio_url', sa.String(length=500), nullable=True),
     sa.Column('is_loop_enabled', sa.Boolean(), nullable=True),
     sa.Column('loop_duration_minutes', sa.Integer(), nullable=True),

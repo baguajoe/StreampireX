@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "../../styles/RadioStationDetail.css";
 
@@ -25,17 +25,24 @@ import ZaraMoonlightImg from "../../img/ZaraMoonlight.png";
 const RadioStationDetail = () => {
   const { id, type } = useParams();
   const navigate = useNavigate();
+  
+  // State management - all React state, no DOM manipulation
   const [station, setStation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [nowPlaying, setNowPlaying] = useState(null);
   const [audioError, setAudioError] = useState(null);
+  const [audioLoading, setAudioLoading] = useState(false);
+  const [streamUrl, setStreamUrl] = useState(null);
+  const [audioReady, setAudioReady] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState('disconnected'); // 'connecting', 'connected', 'disconnected', 'error'
   
-  // Audio player ref
+  // Refs for audio management - React way to handle audio without DOM manipulation
   const audioRef = useRef(null);
+  const nowPlayingIntervalRef = useRef(null);
 
-  // Static stations data
+  // Static stations data (keeping your existing structure)
   const staticStations = {
     static1: { id: "static1", name: "LoFi Dreams", genre: "Lo-Fi", description: "Relaxing lo-fi beats to help you focus, study, or unwind. Perfect background music for any time of day.", image: LofiDreamsImg, listeners: "12.5K", rating: 4.8 },
     static2: { id: "static2", name: "Jazz Lounge", genre: "Jazz", description: "Smooth & classy jazz from the golden era to modern interpretations. Experience the sophisticated sounds of jazz legends.", image: JazzLoungeImg, listeners: "8.9K", rating: 4.9 },
@@ -57,180 +64,364 @@ const RadioStationDetail = () => {
     static18: { id: "static18", name: "Zara Moonlight", genre: "Pop", description: "Chart-topping solo artist with powerful vocals and catchy melodies. Pop perfection at its finest.", image: ZaraMoonlightImg, listeners: "19.8K", rating: 4.6 }
   };
 
-  useEffect(() => {
-    const fetchStationDetails = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  // Helper function - pure function, no DOM access
+  const getBackendUrl = useCallback(() => {
+    return process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001';
+  }, []);
 
-        if (type === 'static') {
-          // Handle static stations
-          const staticStation = staticStations[id];
-          if (staticStation) {
-            setStation(staticStation);
-          } else {
-            setError("Station not found");
-          }
-          setLoading(false);
+  // Fetch station details - React way with hooks
+  const fetchStationDetails = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (type === 'static') {
+        const staticStation = staticStations[id];
+        if (staticStation) {
+          setStation(staticStation);
         } else {
-          // Handle dynamic stations from backend
-          const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001';
-          const response = await fetch(`${backendUrl}/api/radio-stations/${id}`);
-
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-          const data = await response.json();
-          setStation(data);
-          
-          // ✅ NEW: Fetch now playing info for dynamic stations
-          if (data.is_live) {
-            fetchNowPlaying();
-          }
-          
-          setLoading(false);
+          setError("Station not found");
         }
-      } catch (err) {
-        console.error("Error loading station details:", err);
-        setError(err.message);
+        setLoading(false);
+      } else {
+        const backendUrl = getBackendUrl();
+        const response = await fetch(`${backendUrl}/api/radio-stations/${id}`);
+
+        if (!response.ok) {
+          throw new Error(`Station not found (${response.status})`);
+        }
+
+        const data = await response.json();
+        setStation(data);
+        
+        // Set stream URL if station is live
+        if (data.is_live && data.stream_url) {
+          setStreamUrl(data.stream_url);
+        }
+        
+        // Fetch now playing info
+        if (data.is_live) {
+          await fetchNowPlaying();
+          startNowPlayingUpdates();
+        }
+        
         setLoading(false);
       }
-    };
+    } catch (err) {
+      console.error("❌ Error loading station details:", err);
+      setError(err.message);
+      setLoading(false);
+    }
+  }, [id, type, getBackendUrl]);
 
-    fetchStationDetails();
-  }, [id, type]);
+  // Fetch now playing - React state updates only
+  const fetchNowPlaying = useCallback(async () => {
+    if (type === 'static') return;
 
-  // ✅ NEW: Fetch now playing information
-  const fetchNowPlaying = async () => {
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001';
+      const backendUrl = getBackendUrl();
       const response = await fetch(`${backendUrl}/api/radio/${id}/now-playing`);
       
       if (response.ok) {
         const data = await response.json();
         setNowPlaying(data.now_playing);
-        console.log("📻 Now playing:", data.now_playing);
+        console.log("📻 Now playing updated:", data.now_playing);
       }
     } catch (err) {
       console.error("Error fetching now playing:", err);
     }
-  };
+  }, [id, type, getBackendUrl]);
 
-  // ✅ NEW: Real audio player functionality
-  const handlePlayPause = async () => {
+  // Start periodic updates - React state management
+  const startNowPlayingUpdates = useCallback(() => {
+    if (nowPlayingIntervalRef.current) {
+      clearInterval(nowPlayingIntervalRef.current);
+    }
+    
+    nowPlayingIntervalRef.current = setInterval(() => {
+      fetchNowPlaying();
+    }, 30000);
+  }, [fetchNowPlaying]);
+
+  // Audio event handlers - all React state updates, no DOM manipulation
+  const handleLoadStart = useCallback(() => {
+    console.log("📡 Starting to load stream...");
+    setAudioLoading(true);
+    setConnectionStatus('connecting');
+  }, []);
+
+  const handleCanPlay = useCallback(() => {
+    console.log("✅ Stream ready to play");
+    setAudioLoading(false);
+    setAudioReady(true);
+    setConnectionStatus('connected');
+  }, []);
+
+  const handlePlaying = useCallback(() => {
+    console.log("🔊 Audio is playing");
+    setIsPlaying(true);
+    setAudioLoading(false);
+    setAudioError(null);
+    setConnectionStatus('connected');
+  }, []);
+
+  const handlePause = useCallback(() => {
+    console.log("⏸️ Audio paused");
+    setIsPlaying(false);
+    setAudioLoading(false);
+  }, []);
+
+  const handleAudioError = useCallback((e) => {
+    const audio = audioRef.current;
+    console.error("❌ Audio error:", e);
+    console.error("Error details:", audio?.error);
+    
+    let errorMessage = "Playback error occurred";
+    if (audio?.error) {
+      switch (audio.error.code) {
+        case 1: // MEDIA_ERR_ABORTED
+          errorMessage = "Playback was aborted";
+          break;
+        case 2: // MEDIA_ERR_NETWORK
+          errorMessage = "Network error occurred";
+          break;
+        case 3: // MEDIA_ERR_DECODE
+          errorMessage = "Audio decoding error";
+          break;
+        case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
+          errorMessage = "Audio format not supported";
+          break;
+        default:
+          errorMessage = audio.error.message || "Unknown playback error";
+      }
+    }
+    
+    setAudioError(errorMessage);
+    setIsPlaying(false);
+    setAudioLoading(false);
+    setConnectionStatus('error');
+  }, []);
+
+  const handleStalled = useCallback(() => {
+    console.log("⚠️ Audio stalled");
+    setAudioLoading(true);
+  }, []);
+
+  const handleWaiting = useCallback(() => {
+    console.log("⏳ Audio buffering...");
+    setAudioLoading(true);
+  }, []);
+
+  const handleEnded = useCallback(() => {
+    console.log("🔄 Audio ended, restarting stream...");
+    if (streamUrl && isPlaying) {
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.play().catch(console.error);
+        }
+      }, 1000);
+    }
+  }, [streamUrl, isPlaying]);
+
+  // Setup audio element with React patterns
+  const setupAudioElement = useCallback(() => {
+    if (!streamUrl) return null;
+
+    const audio = new Audio();
+    
+    // Add event listeners using React callback pattern
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('playing', handlePlaying);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('error', handleAudioError);
+    audio.addEventListener('stalled', handleStalled);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('ended', handleEnded);
+    
+    audio.src = streamUrl;
+    return audio;
+  }, [streamUrl, handleLoadStart, handleCanPlay, handlePlaying, handlePause, handleAudioError, handleStalled, handleWaiting, handleEnded]);
+
+  // Play/pause handler - pure React state management
+  const handlePlayPause = useCallback(async () => {
     if (type === 'static') {
-      // For static stations, just toggle UI state (no real audio)
       setIsPlaying(!isPlaying);
-      console.log(isPlaying ? "Pausing" : "Playing", station?.name);
+      console.log(isPlaying ? "⏸️ Pausing" : "▶️ Playing", station?.name);
       return;
     }
 
-    // For dynamic stations, handle real audio streaming
-    if (!station) return;
+    if (!station || !streamUrl) {
+      setAudioError("No stream available for this station");
+      return;
+    }
 
     try {
-      if (isPlaying) {
-        // Pause the audio
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
+      if (isPlaying && audioRef.current) {
+        audioRef.current.pause();
         setIsPlaying(false);
         console.log("⏸️ Paused:", station.name);
-      } else {
-        // Start playing the audio
-        setAudioError(null);
-        
-        if (!audioRef.current) {
-          // Create new audio element
-          const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001';
-          const streamUrl = `${backendUrl}/api/radio/${id}/stream`;
-          
-          console.log("🎵 Attempting to play from:", streamUrl);
-          
-          const audio = new Audio(streamUrl);
-          audioRef.current = audio;
-          
-          // Audio event listeners
-          audio.addEventListener('loadstart', () => {
-            console.log("📡 Starting to load stream...");
-          });
-          
-          audio.addEventListener('canplay', () => {
-            console.log("✅ Stream ready to play");
-            setIsPlaying(true);
-          });
-          
-          audio.addEventListener('playing', () => {
-            console.log("🔊 Audio is playing");
-            setIsPlaying(true);
-          });
-          
-          audio.addEventListener('pause', () => {
-            console.log("⏸️ Audio paused");
-            setIsPlaying(false);
-          });
-          
-          audio.addEventListener('error', (e) => {
-            console.error("❌ Audio error:", e);
-            console.error("Error details:", audio.error);
-            setAudioError(`Playback error: ${audio.error?.message || 'Unknown error'}`);
-            setIsPlaying(false);
-          });
-          
-          audio.addEventListener('stalled', () => {
-            console.log("⚠️ Audio stalled");
-          });
-          
-          audio.addEventListener('waiting', () => {
-            console.log("⏳ Audio buffering...");
-          });
-        }
-        
-        // Play the audio
-        try {
-          await audioRef.current.play();
-          console.log("▶️ Playing:", station.name);
-        } catch (playError) {
-          console.error("❌ Play error:", playError);
-          setAudioError(`Cannot play audio: ${playError.message}`);
-        }
+        return;
       }
+
+      setAudioError(null);
+      setAudioLoading(true);
+      
+      // Clean up existing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current.load();
+      }
+
+      console.log("🎵 Creating new audio stream:", streamUrl);
+      
+      // Setup new audio element
+      const audio = setupAudioElement();
+      if (!audio) {
+        setAudioError("Failed to create audio element");
+        setAudioLoading(false);
+        return;
+      }
+
+      audioRef.current = audio;
+      audio.load();
+      
+      try {
+        await audio.play();
+        console.log("▶️ Successfully started playing:", station.name);
+      } catch (playError) {
+        console.error("❌ Play error:", playError);
+        setAudioError(`Cannot start playback: ${playError.message}`);
+        setAudioLoading(false);
+      }
+      
     } catch (error) {
       console.error("❌ Audio control error:", error);
       setAudioError(`Audio error: ${error.message}`);
+      setAudioLoading(false);
     }
-  };
+  }, [type, isPlaying, station, streamUrl, setupAudioElement]);
 
-  // ✅ Cleanup audio when component unmounts
+  // Handle back navigation - React Router way
+  const handleBack = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    if (nowPlayingIntervalRef.current) {
+      clearInterval(nowPlayingIntervalRef.current);
+    }
+    navigate(-1);
+  }, [navigate]);
+
+  // Dismiss audio error - React state update
+  const dismissAudioError = useCallback(() => {
+    setAudioError(null);
+  }, []);
+
+  // Effects - React lifecycle management
+  useEffect(() => {
+    fetchStationDetails();
+  }, [fetchStationDetails]);
+
+  // Cleanup effect
   useEffect(() => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
       }
+      if (nowPlayingIntervalRef.current) {
+        clearInterval(nowPlayingIntervalRef.current);
+      }
     };
   }, []);
 
-  const handleBack = () => {
-    // Stop audio when leaving the page
-    if (audioRef.current) {
-      audioRef.current.pause();
+  // Render helpers - pure functions
+  const renderConnectionStatus = () => {
+    switch (connectionStatus) {
+      case 'connecting':
+        return <span className="connection-status connecting">🔄 Connecting...</span>;
+      case 'connected':
+        return <span className="connection-status connected">🟢 Connected</span>;
+      case 'error':
+        return <span className="connection-status error">🔴 Connection Error</span>;
+      default:
+        return null;
     }
-    navigate(-1);
   };
 
+  const renderPlayButton = () => {
+    const isDisabled = (type !== 'static' && !station?.is_live) || audioLoading;
+    
+    let buttonText = '▶️ Play';
+    if (audioLoading) {
+      buttonText = '⏳ Loading...';
+    } else if (isPlaying) {
+      buttonText = '⏸️ Pause';
+    }
+
+    return (
+      <button 
+        onClick={handlePlayPause} 
+        className={`play-button ${isPlaying ? 'playing' : ''} ${audioLoading ? 'loading' : ''}`}
+        disabled={isDisabled}
+      >
+        {buttonText}
+      </button>
+    );
+  };
+
+  const renderNowPlaying = () => {
+    if (type === 'static') {
+      return (
+        <div className="now-playing">
+          <p>🎵 Currently streaming {station.genre} music</p>
+          <p>🔴 Live broadcast</p>
+        </div>
+      );
+    }
+
+    if (!station?.is_live) return null;
+
+    return (
+      <div className="now-playing">
+        {nowPlaying ? (
+          <>
+            <p><strong>🎵 {nowPlaying.title}</strong></p>
+            <p>👤 {nowPlaying.artist}</p>
+            {nowPlaying.duration && <p>⏱️ Duration: {nowPlaying.duration}</p>}
+            {typeof nowPlaying.position_in_track === 'number' && (
+              <p>📍 Position: {Math.floor(nowPlaying.position_in_track / 60)}:{String(Math.floor(nowPlaying.position_in_track % 60)).padStart(2, '0')}</p>
+            )}
+          </>
+        ) : (
+          <p>🎵 Currently streaming {station.genre || 'music'}</p>
+        )}
+        <p>🔴 Live broadcast</p>
+      </div>
+    );
+  };
+
+  // Loading state
   if (loading) {
     return (
       <div className="station-detail-loading">
-        <div className="loading-spinner">Loading station details...</div>
+        <div className="loading-spinner">
+          <div className="spinner"></div>
+          <p>Loading station details...</p>
+        </div>
       </div>
     );
   }
 
+  // Error state
   if (error || !station) {
     return (
       <div className="station-detail-error">
-        <h2>Station Not Found</h2>
+        <h2>❌ Station Not Found</h2>
         <p>Sorry, we couldn't find the radio station you're looking for.</p>
+        <p className="error-details">{error}</p>
         <button onClick={handleBack} className="back-button">
           ← Go Back
         </button>
@@ -238,6 +429,7 @@ const RadioStationDetail = () => {
     );
   }
 
+  // Main render - all React components and state-driven
   return (
     <div className="station-detail-container">
       <div className="station-detail-header">
@@ -251,7 +443,8 @@ const RadioStationDetail = () => {
           <img 
             src={station.image || station.cover_image_url || station.logo_url} 
             alt={station.name} 
-            className="station-detail-image" 
+            className="station-detail-image"
+            
           />
           
           <div className="station-meta">
@@ -275,76 +468,68 @@ const RadioStationDetail = () => {
                   🔴 LIVE
                 </span>
               )}
+              {type !== 'static' && !station.is_live && (
+                <span className="stat offline-indicator">
+                  ⚫ OFFLINE
+                </span>
+              )}
+              {connectionStatus !== 'disconnected' && renderConnectionStatus()}
             </div>
 
-            {/* ✅ NEW: Show audio errors */}
+            {/* Audio status messages */}
             {audioError && (
-              <div className="audio-error" style={{
-                backgroundColor: '#fee',
-                border: '1px solid #fcc',
-                padding: '10px',
-                borderRadius: '5px',
-                margin: '10px 0',
-                color: '#c33'
-              }}>
+              <div className="audio-error">
                 ⚠️ {audioError}
+                <button 
+                  onClick={dismissAudioError} 
+                  className="dismiss-error"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {audioLoading && (
+              <div className="audio-loading">
+                ⏳ Loading audio stream...
               </div>
             )}
 
             <div className="station-controls">
-              <button 
-                onClick={handlePlayPause} 
-                className={`play-button ${isPlaying ? 'playing' : ''}`}
-                disabled={type !== 'static' && !station.is_live}
-              >
-                {isPlaying ? '⏸️ Pause' : '▶️ Play'}
-              </button>
+              {renderPlayButton()}
               
               <button className="favorite-button">
                 ❤️ Add to Favorites
               </button>
+
+              {/* Development debug info */}
+              {process.env.NODE_ENV === 'development' && streamUrl && (
+                <div className="debug-info">
+                  Stream: {streamUrl}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Additional station details */}
+        {/* Station details sections */}
         <div className="station-details">
           <div className="detail-section">
             <h3>About This Station</h3>
             <p>
-              {station.description || "This station brings you the best music in the " + (station.genre || 'various') + " genre."}
+              {station.description || `This station brings you the best music in the ${station.genre || 'various'} genre.`}
             </p>
           </div>
 
-          {/* ✅ NEW: Show now playing for live stations */}
-          {type !== 'static' && station.is_live && (
+          {/* Now playing section */}
+          {(type !== 'static' && station.is_live) || type === 'static' ? (
             <div className="detail-section">
               <h3>Now Playing</h3>
-              <div className="now-playing">
-                {nowPlaying ? (
-                  <>
-                    <p>🎵 <strong>{nowPlaying.title}</strong></p>
-                    <p>👤 {nowPlaying.artist}</p>
-                    {nowPlaying.duration && <p>⏱️ Duration: {nowPlaying.duration}</p>}
-                  </>
-                ) : (
-                  <p>🎵 Currently streaming {station.genre || 'music'}</p>
-                )}
-                <p>🔴 Live broadcast</p>
-              </div>
+              {renderNowPlaying()}
             </div>
-          )}
+          ) : null}
 
-          {type === 'static' && (
-            <div className="detail-section">
-              <h3>Now Playing</h3>
-              <div className="now-playing">
-                <p>🎵 Currently streaming {station.genre} music</p>
-                <p>🔴 Live broadcast</p>
-              </div>
-            </div>
-          )}
-
+          {/* Station info grid */}
           <div className="detail-section">
             <h3>Station Info</h3>
             <div className="station-info-grid">
@@ -369,8 +554,21 @@ const RadioStationDetail = () => {
                   <strong>Created by:</strong> {station.creator_name}
                 </div>
               )}
+              {station.created_at && (
+                <div className="info-item">
+                  <strong>Created:</strong> {new Date(station.created_at).toLocaleDateString()}
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Additional features */}
+          {type !== 'static' && station.submission_guidelines && (
+            <div className="detail-section">
+              <h3>Submission Guidelines</h3>
+              <p>{station.submission_guidelines}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

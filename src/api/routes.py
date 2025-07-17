@@ -1198,6 +1198,11 @@ def get_all_radio_stations():
             if station.genres and len(station.genres) > 0:
                 genre = station.genres[0]  # Use first genre
             
+            # Construct file_url from audio_file_name
+            file_url = None
+            if station.audio_file_name:
+                file_url = f"/uploads/station_mixes/{station.audio_file_name}"
+            
             # Build station data for frontend
             station_data = {
                 "id": station.id,
@@ -1210,7 +1215,8 @@ def get_all_radio_stations():
                 "creator_name": station.creator_name or (creator.username if creator else "Unknown"),
                 "created_at": station.created_at.isoformat() if station.created_at else None,
                 "is_live": station.is_live,
-                "followers_count": station.followers_count
+                "followers_count": station.followers_count,
+                "file_url": file_url  # ✅ Added file_url from audio_file_name
             }
             stations_data.append(station_data)
         
@@ -1222,14 +1228,14 @@ def get_all_radio_stations():
         return jsonify([]), 200  # Return empty array on error
 
 
-@api.route('/radio-stations', methods=['GET'])
-def get_public_radio_stations():
-    """Public endpoint to get all radio stations without authentication"""
-    try:
-        stations = RadioStation.query.all()
-        return jsonify([station.serialize() for station in stations]), 200
-    except Exception as e:
-        return jsonify({"error": "Failed to fetch radio stations"}), 500
+# @api.route('/radio-stations', methods=['GET'])
+# def get_public_radio_stations():
+#     """Public endpoint to get all radio stations without authentication"""
+#     try:
+#         stations = RadioStation.query.all()
+#         return jsonify([station.serialize() for station in stations]), 200
+#     except Exception as e:
+#         return jsonify({"error": "Failed to fetch radio stations"}), 500
 
 @api.route('/radio-stations/<int:id>', methods=['GET'])
 def get_radio_station_detail(id):
@@ -2696,6 +2702,139 @@ def create_playlist_profile():
     return jsonify({"message": "Playlist created!", "playlist": new_playlist.serialize()}), 201
 
 
+# @api.route('/profile/radio/create', methods=['POST'])
+# @jwt_required()
+# def create_radio_station_profile():
+#     user_id = get_jwt_identity()
+#     try:
+#         data = request.form
+#         name = data.get("name")
+#         if not name:
+#             return jsonify({"error": "Radio station name is required"}), 400
+
+#         description = data.get("description", "")
+#         category = data.get("category", "")
+
+#         # Correct directory paths
+#         logo_dir = os.path.join("uploads", "station_logos")
+#         cover_dir = os.path.join("uploads", "station_covers")
+#         mix_dir = os.path.join("src", "static", "uploads", "station_mixes")
+
+#         os.makedirs(logo_dir, exist_ok=True)
+#         os.makedirs(cover_dir, exist_ok=True)
+#         os.makedirs(mix_dir, exist_ok=True)
+
+#         logo_url = None
+#         cover_url = None
+#         initial_mix_url = None
+#         mix_filename = None
+
+#         if 'logo' in request.files:
+#             logo_file = request.files['logo']
+#             if logo_file and logo_file.filename:
+#                 logo_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(logo_file.filename)}"
+#                 logo_path = os.path.join(logo_dir, logo_filename)
+#                 logo_file.save(logo_path)
+#                 logo_url = f"/{logo_path}"
+
+#         if 'cover' in request.files:
+#             cover_file = request.files['cover']
+#             if cover_file and cover_file.filename:
+#                 cover_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(cover_file.filename)}"
+#                 cover_path = os.path.join(cover_dir, cover_filename)
+#                 cover_file.save(cover_path)
+#                 cover_url = f"/{cover_path}"
+
+#         if 'initialMix' in request.files:
+#             mix_file = request.files['initialMix']
+#             if mix_file and mix_file.filename:
+#                 mix_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(mix_file.filename)}"
+#                 mix_path = os.path.join(mix_dir, mix_filename)
+#                 mix_file.save(mix_path)
+#                 initial_mix_url = f"/uploads/station_mixes/{mix_filename}"
+
+#         creator = User.query.get(user_id)
+#         creator_name = creator.username if creator else "Unknown"
+
+#         new_station = RadioStation(
+#             user_id=user_id,
+#             name=name,
+#             description=description,
+#             logo_url=logo_url,
+#             cover_image_url=cover_url,
+#             is_public=True,
+#             genres=[category] if category else ["Music"],
+#             creator_name=creator_name,
+#             created_at=datetime.utcnow()
+#         )
+
+#         db.session.add(new_station)
+#         db.session.flush()
+
+#         if initial_mix_url:
+#             mix_title = data.get("mixTitle", f"{name} - Initial Mix")
+
+#             initial_audio = Audio(
+#                 user_id=user_id,
+#                 title=mix_title,
+#                 description=data.get("mixDescription", ""),
+#                 file_url=initial_mix_url,
+#                 uploaded_at=datetime.utcnow()
+#             )
+#             db.session.add(initial_audio)
+#             db.session.flush()
+
+#             playlist_entry = RadioPlaylist(
+#                 station_id=new_station.id,
+#                 audio_id=initial_audio.id
+#             )
+#             db.session.add(playlist_entry)
+
+#             # ✅ Use local file path to extract duration
+#             mix_file_path = os.path.join(mix_dir, mix_filename)
+#             duration = get_track_duration_from_file(mix_file_path)
+
+#             track_info = {
+#                 "id": initial_audio.id,
+#                 "title": mix_title,
+#                 "artist": data.get("djName", creator_name),
+#                 "duration": duration,
+#                 "file_url": initial_mix_url,
+#                 "bpm": data.get("bpm", ""),
+#                 "mood": data.get("mood", ""),
+#                 "sub_genres": data.get("subGenres", "")
+#             }
+
+#             playlist_schedule = {
+#                 "tracks": [track_info],
+#                 "total_tracks": 1,
+#                 "created_at": datetime.utcnow().isoformat()
+#             }
+
+#             new_station.playlist_schedule = playlist_schedule
+#             new_station.is_loop_enabled = True
+#             new_station.loop_duration_minutes = 180
+#             new_station.loop_started_at = datetime.utcnow()
+#             new_station.is_live = True
+#             new_station.now_playing_metadata = track_info
+#             new_station.loop_audio_url = initial_mix_url
+
+#             print(f"✅ Setup audio loop: {mix_title} ({duration}) for station {new_station.name}")
+
+#         db.session.commit()
+
+#         return jsonify({
+#             "message": "Radio station created successfully with audio loop!" if initial_mix_url else "Radio station created successfully!",
+#             "station": new_station.serialize(),
+#             "audio_loop_enabled": new_station.is_loop_enabled,
+#             "now_playing": new_station.get_current_track()
+#         }), 201
+
+#     except Exception as e:
+#         db.session.rollback()
+#         print(f"❌ Error creating radio station: {str(e)}")
+#         return jsonify({"error": f"Failed to create station: {str(e)}"}), 500
+
 @api.route('/profile/radio/create', methods=['POST'])
 @jwt_required()
 def create_radio_station_profile():
@@ -2759,7 +2898,8 @@ def create_radio_station_profile():
             is_public=True,
             genres=[category] if category else ["Music"],
             creator_name=creator_name,
-            created_at=datetime.utcnow()
+            created_at=datetime.utcnow(),
+            audio_file_name=mix_filename  # ✅ ADDED: Store the audio filename
         )
 
         db.session.add(new_station)
@@ -2814,6 +2954,7 @@ def create_radio_station_profile():
             new_station.loop_audio_url = initial_mix_url
 
             print(f"✅ Setup audio loop: {mix_title} ({duration}) for station {new_station.name}")
+            print(f"✅ Audio filename stored: {mix_filename}")
 
         db.session.commit()
 
@@ -7233,25 +7374,6 @@ def add_tracks_to_station(station_id):
 
 # ===== 4. PUBLIC ENDPOINTS FOR LISTENERS =====
 
-@api.route('/radio/<int:station_id>/now-playing', methods=['GET'])
-def get_now_playing(station_id):
-    """Get what's currently playing on the station"""
-    station = RadioStation.query.get(station_id)
-    
-    if not station:
-        return jsonify({"error": "Station not found"}), 404
-    
-    current_track = station.get_current_track()
-    
-    return jsonify({
-        "station_id": station_id,
-        "station_name": station.name,
-        "is_live": station.is_live,
-        "is_loop_enabled": station.is_loop_enabled,
-        "now_playing": current_track,
-        "stream_url": f"/api/radio/{station_id}/stream" if station.is_loop_enabled else None
-    }), 200
-
 
 @api.route('/radio/<int:station_id>/playlist', methods=['GET'])
 def get_station_playlist(station_id):
@@ -7413,8 +7535,7 @@ def serve_uploaded_file(filename):
 @api.route('/radio-stations/<int:station_id>', methods=['GET'])
 def get_radio_station_details(station_id):
     """
-    Get detailed information about a specific radio station,
-    including creator info, metadata, and live stream support.
+    Get detailed information about a specific radio station with proper stream URL
     """
     try:
         station = RadioStation.query.get(station_id)
@@ -7422,19 +7543,21 @@ def get_radio_station_details(station_id):
         if not station:
             return jsonify({"error": "Radio station not found"}), 404
         
-        # Get the creator info
+        # Get creator info
         creator = User.query.get(station.user_id)
-
-        # Absolute URL base (e.g., http://localhost:3001)
+        
+        # Build the base URL for your backend
         base_url = request.host_url.rstrip('/')
-
-        # Determine the stream URL if the station is live and has audio configured
-        if station.is_live and (station.loop_audio_url or station.stream_url):
+        
+        # Build stream URL if station is live and has audio configured
+        stream_url = None
+        if station.is_live and station.is_loop_enabled and station.playlist_schedule:
             stream_url = f"{base_url}/api/radio/{station_id}/stream"
-        else:
-            stream_url = None
-
-        # Build the station response payload
+        
+        # Get current track using the model's method
+        current_track = station.get_current_track()
+        
+        # Build the complete station response
         station_data = {
             "id": station.id,
             "name": station.name,
@@ -7448,46 +7571,228 @@ def get_radio_station_details(station_id):
             "logo_url": station.logo_url,
             "cover_image_url": station.cover_image_url,
             "created_at": station.created_at.isoformat() if station.created_at else None,
-            "now_playing": station.get_current_track(),
-            "stream_url": stream_url,  # ✅ Improved stream handling
+            
+            # ✅ FIXED: Add stream_url and now_playing
+            "stream_url": stream_url,
+            "now_playing": current_track,
+            
+            # Additional fields your frontend might use
             "submission_guidelines": station.submission_guidelines,
-            "preferred_genres": station.preferred_genres or []
+            "preferred_genres": station.preferred_genres or [],
+            "user_id": station.user_id,
+            
+            # Loop/playlist info
+            "loop_started_at": station.loop_started_at.isoformat() if station.loop_started_at else None,
+            "loop_duration_minutes": station.loop_duration_minutes,
+            "now_playing_metadata": station.now_playing_metadata,
+            "playlist_schedule": station.playlist_schedule,
+            
+            # Technical fields
+            "is_public": station.is_public,
+            "is_subscription_based": station.is_subscription_based,
+            "is_ticketed": station.is_ticketed,
+            "is_webrtc_enabled": station.is_webrtc_enabled,
+            "max_listeners": station.max_listeners,
+            "allowed_users": [user.id for user in station.allowed_users] if hasattr(station, 'allowed_users') else [],
+            
+            # URLs
+            "loop_audio_url": station.loop_audio_url,
+            
+            # Pricing
+            "subscription_price": station.subscription_price,
+            "ticket_price": station.ticket_price
         }
         
+        # Debug logging
+        print(f"✅ Station {station_id} details:")
+        print(f"   - Name: {station.name}")
+        print(f"   - Is Live: {station.is_live}")
+        print(f"   - Loop Enabled: {station.is_loop_enabled}")
+        print(f"   - Stream URL: {stream_url}")
+        print(f"   - Current Track: {current_track}")
+        
         return jsonify(station_data), 200
-
+        
     except Exception as e:
-        print(f"❌ Error getting station details: {str(e)}")
+        print(f"❌ Error getting station details for {station_id}: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
+
+
+# ===== NOW PLAYING ENDPOINT =====
+
+@api.route('/api/radio/<int:station_id>/now-playing', methods=['GET'])
+def get_now_playing(station_id):
+    """Get current playing track info for a radio station"""
+    try:
+        station = RadioStation.query.get(station_id)
+        if not station:
+            return jsonify({"error": "Station not found"}), 404
+        
+        # Get current track using the model's method
+        current_track = station.get_current_track()
+        
+        response_data = {
+            "station_id": station_id,
+            "station_name": station.name,
+            "is_live": station.is_live,
+            "is_loop_enabled": station.is_loop_enabled,
+            "now_playing": current_track,
+            "loop_started_at": station.loop_started_at.isoformat() if station.loop_started_at else None,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        
+        print(f"📻 Now playing for station {station_id}: {current_track}")
+        
+        return jsonify(response_data), 200
+        
+    except Exception as e:
+        print(f"❌ Error getting now playing for station {station_id}: {str(e)}")
+        return jsonify({"error": "Failed to get now playing info"}), 500
+
+
     
 
-@api.route('/api/radio/<int:station_id>/stream')
+@api.route('/radio/<int:station_id>/stream')
 def stream_radio_station(station_id):
-    station = RadioStation.query.get_or_404(station_id)
-
-    if not station.loop_audio_url:
-        return jsonify({"error": "No audio file found"}), 404
-
-    file_path = station.loop_audio_url.lstrip("/")  # removes leading slash
-    mime_type, _ = mimetypes.guess_type(file_path)
-
-    return send_file(file_path, mimetype=mime_type or 'audio/mpeg')
-
-@api.route("/api/debug/stations")
-def debug_stations():
+    """
+    Stream audio from a radio station with proper CORS headers
+    """
     try:
-        stations = RadioStation.query.all()
-        return jsonify([
-            {
-                "id": s.id,
-                "name": s.name,
-                "loop_audio_url": s.loop_audio_url,
-                "is_live": s.is_live
-            } for s in stations
-        ])
+        station = RadioStation.query.get(station_id)
+        
+        if not station:
+            return jsonify({"error": "Station not found"}), 404
+        
+        if not station.is_live or not station.is_loop_enabled:
+            return jsonify({"error": "Station is not currently live"}), 400
+        
+        if not station.playlist_schedule or not station.playlist_schedule.get("tracks"):
+            return jsonify({"error": "No playlist configured"}), 400
+        
+        # Get current track
+        current_track_info = station.get_current_track()
+        if not current_track_info:
+            return jsonify({"error": "No track currently playing"}), 404
+        
+        # Get audio file path from the current track
+        track_id = current_track_info.get("id")
+        audio = Audio.query.get(track_id) if track_id else None
+        
+        if not audio:
+            return jsonify({"error": "Audio track not found"}), 404
+        
+        # Build file path - handle the path stored in database
+        file_url = audio.file_url
+        if file_url.startswith('/uploads/station_mixes/'):
+            # Remove leading slash and build full path for station mixes
+            filename = file_url.replace('/uploads/station_mixes/', '')
+            file_path = os.path.join('src', 'static', 'uploads', 'station_mixes', filename)
+        elif file_url.startswith('/'):
+            # Remove leading slash for other files
+            file_path = file_url[1:]
+        else:
+            file_path = file_url
+        
+        # Validate file exists
+        if not os.path.exists(file_path):
+            print(f"❌ Audio file not found: {file_path}")
+            return jsonify({"error": "Audio file not available"}), 404
+        
+        print(f"🎵 Streaming {station.name} from: {file_path}")
+        
+        # Get MIME type
+        import mimetypes
+        mimetype, _ = mimetypes.guess_type(file_path)
+        if not mimetype:
+            mimetype = 'audio/mpeg'
+        
+        # Create streaming response
+        def generate_audio():
+            try:
+                with open(file_path, 'rb') as f:
+                    while True:
+                        chunk = f.read(8192)  # 8KB chunks
+                        if not chunk:
+                            break
+                        yield chunk
+            except Exception as e:
+                print(f"❌ Streaming error: {e}")
+        
+        # Create response with proper headers
+        response = Response(
+            generate_audio(),
+            mimetype=mimetype,
+            headers={
+                'Accept-Ranges': 'bytes',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                'Access-Control-Allow-Headers': 'Range, Content-Type',
+                'Content-Disposition': f'inline; filename="{os.path.basename(file_path)}"'
+            }
+        )
+        
+        return response
+        
     except Exception as e:
-        print("❌ Debug error:", e)
-        return jsonify({"error": "Failed to fetch stations"}), 500
+        print(f"❌ Stream error for station {station_id}: {e}")
+        return jsonify({"error": "Streaming error occurred"}), 500
+
+@api.route('/api/radio/<int:station_id>/stream', methods=['OPTIONS'])
+def handle_stream_options(station_id):
+    """Handle CORS preflight requests for streaming"""
+    response = jsonify({})
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Range, Content-Type'
+    response.headers['Access-Control-Max-Age'] = '3600'
+    return response
+
+@api.route('/debug/station/<int:station_id>')
+def debug_station_info(station_id):
+    """Debug endpoint to check station configuration"""
+    try:
+        station = RadioStation.query.get(station_id)
+        if not station:
+            return jsonify({"error": "Station not found"}), 404
+        
+        # Check audio file
+        audio_info = {}
+        if station.loop_audio_url:
+            file_url = station.loop_audio_url
+            if file_url.startswith('/uploads/station_mixes/'):
+                filename = file_url.replace('/uploads/station_mixes/', '')
+                file_path = os.path.join('src', 'static', 'uploads', 'station_mixes', filename)
+            else:
+                file_path = file_url.lstrip('/')
+            
+            audio_info = {
+                "database_url": file_url,
+                "computed_path": file_path,
+                "file_exists": os.path.exists(file_path),
+                "file_size": os.path.getsize(file_path) if os.path.exists(file_path) else 0
+            }
+        
+        debug_info = {
+            "station_id": station_id,
+            "station_name": station.name,
+            "is_live": station.is_live,
+            "is_loop_enabled": station.is_loop_enabled,
+            "has_playlist_schedule": bool(station.playlist_schedule),
+            "playlist_tracks_count": len(station.playlist_schedule.get("tracks", [])) if station.playlist_schedule else 0,
+            "loop_started_at": station.loop_started_at.isoformat() if station.loop_started_at else None,
+            "current_track": station.get_current_track(),
+            "now_playing_metadata": station.now_playing_metadata,
+            "audio_file_info": audio_info,
+            "stream_url": f"{request.host_url.rstrip('/')}/api/radio/{station_id}/stream"
+        }
+        
+        return jsonify(debug_info), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @api.route("/uploads/<filename>")
 def uploaded_audio(filename):
