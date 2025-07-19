@@ -23,7 +23,7 @@ const PodcastDashboard = () => {
     useEffect(() => {
         const fetchPodcasts = async () => {
             try {
-                const res = await fetch(`${process.env.BACKEND_URL}/api/user/podcasts`, {
+                const res = await fetch(`${process.env.BACKEND_URL}/api/podcast/dashboard`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
                 });
                 if (!res.ok) throw new Error(`Status: ${res.status}`);

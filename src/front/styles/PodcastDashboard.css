@@ -1,91 +1,176 @@
-.podcast-dashboard-centered {
-  padding: 30px;
-  max-width: 900px;
+.podcast-dashboard {
+  max-width: 1200px;
   margin: 0 auto;
-  color: #1e293b;
-  font-family: 'Inter', sans-serif;
-  background-color: #ffffff;
+  padding: 2rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f3f4f6; /* light gray for main background */
+  color: #1f2937; /* slate-800 */
 }
 
-.dashboard-title {
-  font-size: 2rem;
-  margin-bottom: 25px;
-  color: #0f172a;
+h1 {
   text-align: center;
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #111827; /* gray-900 */
 }
 
-.card {
-  background: #f8fafc;
-  padding: 20px 30px;
+.podcast-section {
+  background-color: white;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
   border-radius: 12px;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-.card h2 {
-  font-size: 1.3rem;
-  color: #0f172a;
-  margin-bottom: 10px;
+.podcast-section h2 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: #2563eb; /* blue-600 */
 }
 
-.btn-live, .btn-create, .btn-delete, .btn-edit {
-  margin-top: 10px;
-  padding: 10px 16px;
-  background-color: #3b82f6;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.btn-delete {
-  background-color: #ef4444;
-}
-
-.btn-edit {
-  background-color: #f59e0b;
-  margin-left: 10px;
+.summary-info {
+  margin: 0.5rem 0;
+  font-size: 1rem;
 }
 
 .podcast-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 20px;
 }
 
 .podcast-card {
-  background-color: #0f172a;
-  color: #e2e8f0;
-  padding: 15px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .podcast-cover {
   width: 100%;
+  height: auto;
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 1rem;
+  object-fit: cover;
 }
 
+.podcast-content h3 {
+  font-size: 1.1rem;
+  color: #111827;
+}
+
+.podcast-content p {
+  font-size: 0.95rem;
+  color: #4b5563;
+  margin: 0.5rem 0 1rem;
+  text-align: center;
+}
+
+.podcast-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.btn-primary,
+.btn-edit,
+.btn-delete,
+.btn-create,
+.btn-live {
+  background-color: #2563eb;
+  color: white;
+  padding: 0.5rem 0.9rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.btn-edit {
+  background-color: #10b981; /* teal */
+}
+
+.btn-delete {
+  background-color: #ef4444; /* red */
+}
+
+.btn-create {
+  background-color: #3b82f6; /* blue-500 */
+}
+
+.btn-live {
+  background-color: #7c3aed; /* violet */
+}
+
+.btn-primary:hover,
+.btn-edit:hover,
+.btn-delete:hover,
+.btn-create:hover,
+.btn-live:hover {
+  opacity: 0.9;
+}
+
+/* Episode list styles */
 .episode-list {
   list-style: none;
   padding: 0;
 }
 
 .episode-item {
-  background-color: #0f172a;
-  color: #e2e8f0;
-  padding: 12px;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  margin-bottom: 10px;
+  background: #f9fafb;
 }
 
-.episode-item audio {
-  display: block;
-  margin-top: 8px;
-}
-
-.create-podcast {
+/* Placeholder / empty states */
+.placeholder-content {
   text-align: center;
-  margin-top: 20px;
+  font-style: italic;
+  color: #6b7280;
+}
+
+.empty-state {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Tools List (styled cards) */
+.tools-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  list-style: none;
+  padding: 0;
+}
+
+.tools-list li {
+  background: linear-gradient(to right, #3b82f6, #1e40af);
+  color: white;
+  text-align: center;
+  padding: 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.tools-list li:hover {
+  transform: scale(1.03);
+  background: linear-gradient(to right, #2563eb, #1d4ed8);
+}
+
+.tools-list a {
+  color: white;
+  text-decoration: none;
+  display: block;
+  height: 100%;
 }

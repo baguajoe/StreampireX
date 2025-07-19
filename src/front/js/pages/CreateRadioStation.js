@@ -138,7 +138,7 @@ const CreateRadioStation = () => {
             }
 
             // Validate file size (120MB limit for mix files)
-            if (file.size > 120 * 1024 * 1024) {
+            if (file.size > 200 * 1024 * 1024) {
                 setMessage("❗ Audio file must be less than 120MB");
                 return;
             }
