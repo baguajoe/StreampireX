@@ -1,25 +1,21 @@
-"""
-This module takes care of starting the API Server, Loading the DB and Adding the endpoints
-"""
+# src/api/routes.py - Final corrected imports
 
-from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
 from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, ChatMessage, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game
+
 import cloudinary.uploader
 import json
 import os
 import mimetypes
-
-
-
-
+from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash,check_password_hash
+from datetime import datetime, timedelta
+from api.socketio import socketio
 from api.avatar_service import process_image_and_create_avatar
-
-
 from api.utils import generate_sitemap, APIException, send_email
 from sqlalchemy import func, desc, or_, and_, asc
-from datetime import timedelta  # for trial logic or date math
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from flask_apscheduler import APScheduler
 from sqlalchemy.orm.exc import NoResultFound
 from api.subscription_utils import get_user_plan, plan_required
@@ -31,11 +27,6 @@ from redis import Redis
 from api.utils.tasks import send_release_to_revelator
 from mutagen import File
 
-
-
-
-
-
 import uuid
 import ffmpeg
 import feedparser
@@ -43,53 +34,27 @@ import requests
 import whisper  # ✅ AI Transcription Support
 import subprocess
 import xml.etree.ElementTree as ET
-
+from mutagen import File
+from mutagen.mp3 import MP3  # Add this line for MP3 support
+from mutagen.mp4 import MP4  # Add this for MP4/M4A support
+from mutagen.wave import WAVE  # Add this for WAV support
 
 # import moviepy
 from moviepy import AudioFileClip, VideoFileClip
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
-
-
 import stripe
-import os
-from flask_socketio import SocketIO, join_room, emit
-from flask_caching import Cache  # Assuming Flask-Caching is set up
+# ✅ FIXED: Only import the functions you need, not the SocketIO class
+from flask_socketio import join_room, emit, leave_room
+from api.cache import cache  # Assuming Flask-Caching is set up
 from apscheduler.schedulers.background import BackgroundScheduler
+scheduler = APScheduler()
 
-scheduler = BackgroundScheduler()
-scheduler.start()
-
+# ✅ Use Blueprint instead
+api = Blueprint('api', __name__)
+marketplace = Blueprint('marketplace', __name__)
 chat_api = Blueprint('chat_api', __name__)
 
-# Initialize caching somewhere in your app setup
-
-app = Flask(__name__)
-cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
-cache.init_app(app)
-
-scheduler = BackgroundScheduler()
-scheduler.start()
-
-# somewhere in your config or routes.py
-import cloudinary
-import cloudinary.uploader
-
-cloudinary.config(
-    cloud_name="your-cloud-name",
-    api_key="your-api-key",
-    api_secret="your-api-secret"
-)
-
-
-# Initialize Stripe
-stripe.api_key = "your_stripe_secret_key"
-
-api = Blueprint('api', __name__)
-
-marketplace = Blueprint('marketplace', __name__)
-
-scheduler = APScheduler()
 
 # ✅ Define upload directories
 AUDIO_UPLOAD_DIR = "uploads/podcasts/audio"
@@ -97,36 +62,22 @@ VIDEO_UPLOAD_DIR = "uploads/podcasts/video"
 CLIP_UPLOAD_DIR = "uploads/podcasts/clips"
 COVER_UPLOAD_DIR = "uploads/podcasts/covers"
 UPLOAD_FOLDER = "uploads/music"
-UPLOAD_FOLDER = "uploads/podcasts"
-CLIP_FOLDER = "uploads/clips"
+CLIP_FOLDER = "uploads/clips"  # This was missing!
 
-UPLOAD_FOLDER = "uploads/podcasts"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# Create upload directories
 os.makedirs(AUDIO_UPLOAD_DIR, exist_ok=True)
 os.makedirs(VIDEO_UPLOAD_DIR, exist_ok=True)
 os.makedirs(CLIP_UPLOAD_DIR, exist_ok=True)
 os.makedirs(COVER_UPLOAD_DIR, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CLIP_FOLDER, exist_ok=True)
 
-# ✅ Load Whisper AI Model Once
-whisper_model = whisper.load_model("base")
-
-# Allow CORS requests to this API
-CORS(api)
-
-from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
-from flask_socketio import SocketIO
-from werkzeug.utils import secure_filename
-from werkzeug.security import check_password_hash, generate_password_hash
-import os
-from datetime import datetime
-
-socketio = SocketIO(cors_allowed_origins="*")
-
-UPLOAD_FOLDER = 'uploads/videos'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure upload directory exists
+# ✅ Load Whisper AI Model Once (if needed)
+try:
+    whisper_model = whisper.load_model("base")
+except Exception as e:
+    print(f"Warning: Could not load Whisper model: {e}")
+    whisper_model = None
 
 # ---------------- VIDEO UPLOAD ----------------
 
@@ -728,127 +679,150 @@ def download_podcast_episode(episode_id):
     return jsonify({"download_url": episode.file_url})
 
 @api.route('/upload_podcast', methods=['POST'])
+@cross_origin()
 @jwt_required()
 def upload_podcast():
-    
-
     user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
+    try:
+        title = request.form.get("title")
+        description = request.form.get("description")
+        category = request.form.get("category", "General")
+        subscription_tier = request.form.get("subscription_tier", "Free")
+        streaming_enabled = request.form.get("streaming_enabled") == "true"
+        scheduled_release = request.form.get("scheduled_release")
 
-    title = request.form.get('title', '').strip()
-    if not title:
-        return jsonify({"error": "Title is required"}), 400
+        cover_art = request.files.get("cover_art")
+        audio_file = request.files.get("audio")
+        video_file = request.files.get("video")
 
-    # Form fields
-    description = request.form.get('description', '')
-    category = request.form.get('category', 'General')
-    subscription_tier = request.form.get('subscription_tier', 'Free')
-    is_premium = request.form.get('is_premium', 'false').lower() == 'true'
-    streaming_enabled = request.form.get('streaming_enabled', 'false').lower() == 'true'
-    is_profile_upload = request.form.get('profile_upload', 'false').lower() == 'true'
-    scheduled_release = request.form.get('scheduled_release')
-    series_name = request.form.get('series_name')
-    season_number = request.form.get('season_number')
+        timestamp = str(int(datetime.utcnow().timestamp()))
+        upload_dir = os.path.join("static", "uploads", "podcasts")
+        os.makedirs(upload_dir, exist_ok=True)
 
-    # Handle audio file
-    audio_url = None
-    audio_duration = None
-    if 'audio' in request.files:
-        audio = request.files['audio']
-        audio_filename = secure_filename(audio.filename)
-        audio_path = os.path.join(AUDIO_UPLOAD_DIR, audio_filename)
-        audio.save(audio_path)
-        audio_url = audio_path
+        audio_url, video_url, cover_url, duration = None, None, None, None
+
+        if cover_art:
+            filename = secure_filename(f"{user_id}_{timestamp}_{cover_art.filename}")
+            path = os.path.join(upload_dir, filename)
+            cover_art.save(path)
+            cover_url = f"/{path}"
+
+        if audio_file:
+            filename = secure_filename(f"{user_id}_{timestamp}_{audio_file.filename}")
+            audio_path = os.path.join(upload_dir, filename)
+            audio_file.save(audio_path)
+            audio_url = f"/{audio_path}"
+
+            # Detect duration using mutagen
+            try:
+                audio = MP3(audio_path)
+                duration = int(audio.info.length)
+            except:
+                duration = None
+
+        if video_file:
+            filename = secure_filename(f"{user_id}_{timestamp}_{video_file.filename}")
+            video_path = os.path.join(upload_dir, filename)
+            video_file.save(video_path)
+            video_url = f"/{video_path}"
+            # Optional: Detect duration using moviepy
+
+        new_podcast = Podcast(
+            creator_id=user_id,
+            title=title,
+            description=description,
+            category=category,
+            cover_art_url=cover_url,
+            audio_url=audio_url,
+            video_url=video_url,
+            duration=duration,
+            subscription_tier=subscription_tier,
+            streaming_enabled=streaming_enabled,
+            scheduled_release=datetime.fromisoformat(scheduled_release) if scheduled_release else None
+        )
+        db.session.add(new_podcast)
+        db.session.commit()
+
+        # ✅ Auto-create first episode if audio or video is included
+        if audio_url or video_url:
+            episode = PodcastEpisode(
+                podcast_id=new_podcast.id,
+                user_id=user_id,
+                title=f"{title} - Episode 1",
+                description=description,
+                file_url=audio_url or video_url,
+                cover_art_url=cover_url,
+                duration=duration,
+                is_published=True,
+                release_date=datetime.utcnow(),
+            )
+            db.session.add(episode)
+            db.session.commit()
+
+        return jsonify({"message": "Podcast and episode uploaded"}), 201
+
+    except Exception as e:
+        print("Upload error:", str(e))
+        return jsonify({"error": "Upload failed"}), 500
+
+@api.route('/upload_episode', methods=['POST'])
+@jwt_required()
+def upload_episode():
+    user_id = get_jwt_identity()
+    data = request.form
+    podcast_id = data.get("podcast_id")
+    title = data.get("title")
+    description = data.get("description")
+    release_date = data.get("release_date")
+
+    audio = request.files.get("audio")
+    video = request.files.get("video")
+    cover_art = request.files.get("cover_art")
+
+    audio_url, video_url, cover_url, duration = None, None, None, None
+    upload_dir = os.path.join("static", "uploads", "episodes")
+    os.makedirs(upload_dir, exist_ok=True)
+    timestamp = str(int(datetime.utcnow().timestamp()))
+
+    if cover_art:
+        filename = secure_filename(f"{user_id}_{timestamp}_{cover_art.filename}")
+        path = os.path.join(upload_dir, filename)
+        cover_art.save(path)
+        cover_url = f"/{path}"
+
+    if audio:
+        filename = secure_filename(f"{user_id}_{timestamp}_{audio.filename}")
+        path = os.path.join(upload_dir, filename)
+        audio.save(path)
+        audio_url = f"/{path}"
         try:
-            audio_clip = AudioFileClip(audio_path)
-            audio_duration = int(audio_clip.duration)
-            audio_clip.close()
-        except Exception as e:
-            print(f"Audio duration error: {e}")
+            audio_meta = MP3(path)
+            duration = int(audio_meta.info.length)
+        except:
+            pass
 
-    # Handle video file
-    video_url = None
-    video_duration = None
-    if 'video' in request.files:
-        video = request.files['video']
-        video_filename = secure_filename(video.filename)
-        video_path = os.path.join(VIDEO_UPLOAD_DIR, video_filename)
-        video.save(video_path)
-        video_url = video_path
-        try:
-            video_clip = VideoFileClip(video_path)
-            video_duration = int(video_clip.duration)
-            video_clip.close()
-        except Exception as e:
-            print(f"Video duration error: {e}")
+    if video:
+        filename = secure_filename(f"{user_id}_{timestamp}_{video.filename}")
+        path = os.path.join(upload_dir, filename)
+        video.save(path)
+        video_url = f"/{path}"
 
-    # Cover art
-    cover_art_url = None
-    if 'cover_art' in request.files:
-        cover = request.files['cover_art']
-        cover_filename = secure_filename(cover.filename)
-        cover_path = os.path.join(COVER_UPLOAD_DIR, cover_filename)
-        cover.save(cover_path)
-        cover_art_url = cover_path
-
-    # Optional transcription (audio only)
-    transcription = None
-    if audio_url:
-        try:
-            model = whisper.load_model("base")
-            result = model.transcribe(audio_url)
-            transcription = result.get("text", "")
-        except Exception as e:
-            print(f"Transcription error: {e}")
-            transcription = None
-
-    # Determine episode number
-    latest = Podcast.query.filter_by(host_id=user_id, series_name=series_name)\
-        .order_by(Podcast.episode_number.desc()).first()
-    episode_number = latest.episode_number + 1 if latest else 1
-
-    # Stripe product
-    stripe_product_id = None
-    if is_premium:
-        try:
-            stripe_product = stripe.Product.create(name=title)
-            stripe_product_id = stripe_product["id"]
-        except Exception as e:
-            print(f"Stripe error: {e}")
-
-    # Save to DB
-    new_podcast = Podcast(
-        host_id=user_id,
+    episode = PodcastEpisode(
+        podcast_id=podcast_id,
+        user_id=user_id,
         title=title,
         description=description,
-        category=category,
-        subscription_tier=subscription_tier,
-        monetization_type="paid" if is_premium else "free",
-        is_live=False,
-        streaming_enabled=streaming_enabled,
-        audio_url=audio_url,
-        video_url=video_url,
-        cover_art_url=cover_art_url,
-        uploaded_at=datetime.utcnow(),
-        transcription=transcription,
-        duration=audio_duration or video_duration,
-        episode_number=episode_number,
-        stripe_product_id=stripe_product_id,
-        scheduled_release=datetime.fromisoformat(scheduled_release) if scheduled_release else None,
-        series_name=series_name,
-        season_number=int(season_number) if season_number else None
+        file_url=audio_url or video_url,
+        cover_art_url=cover_url,
+        duration=duration,
+        is_published=True,
+        release_date=datetime.fromisoformat(release_date) if release_date else datetime.utcnow()
     )
-
-    db.session.add(new_podcast)
+    db.session.add(episode)
     db.session.commit()
 
-    return jsonify({
-        "message": "✅ Podcast uploaded successfully!",
-        "redirect": "/profile" if is_profile_upload else "/podcasts",
-        "podcast": new_podcast.serialize()
-    }), 201
+    return jsonify({"message": "Episode uploaded successfully"}), 201
+
 
 
 
@@ -1711,12 +1685,36 @@ def protected():
     return jsonify({"user_id": user_id}), 200
 
 
+@api.route('/podcasts/browse', methods=['GET'])
+def browse_all_podcasts():
+    """Get all public podcasts for browsing"""
+    try:
+        # Get all podcasts (you can add filters here later)
+        podcasts = Podcast.query.order_by(Podcast.uploaded_at.desc()).all()
+        
+        print(f"🎧 Browse: Found {len(podcasts)} total podcasts")
+        
+        return jsonify([podcast.serialize() for podcast in podcasts]), 200
+        
+    except Exception as e:
+        print(f"❌ Browse error: {str(e)}")
+        return jsonify({"error": "Failed to fetch podcasts"}), 500
 
+# ✅ ADD: Endpoint to browse podcasts by category
+@api.route('/podcasts/category/<category_name>', methods=['GET'])
+def browse_podcasts_by_category(category_name):
+    """Get podcasts filtered by category"""
+    try:
+        podcasts = Podcast.query.filter_by(category=category_name).order_by(Podcast.uploaded_at.desc()).all()
+        
+        print(f"🎧 Category '{category_name}': Found {len(podcasts)} podcasts")
+        
+        return jsonify([podcast.serialize() for podcast in podcasts]), 200
+        
+    except Exception as e:
+        print(f"❌ Category browse error: {str(e)}")
+        return jsonify({"error": "Failed to fetch podcasts by category"}), 500
 
-@api.route('/podcasts/category/<string:category>', methods=['GET'])
-def get_podcasts_by_category(category):
-    podcasts = Podcast.query.filter_by(category=category).all()
-    return jsonify([podcast.serialize() for podcast in podcasts]), 200
 
 @api.route('/podcasts/categories', methods=['GET'])
 def get_podcast_categories():
@@ -1916,7 +1914,7 @@ def get_members():
         }
     }), 200
 
-api.route('/api/products/upload', methods=['POST'])
+api.route('/products/upload', methods=['POST'])
 @jwt_required()
 def upload_product():
     user_id = get_jwt_identity()
@@ -2332,37 +2330,53 @@ def get_radio_ad_revenue(station_id):
 
 @api.route('/profile/music/upload', methods=['POST'])
 @jwt_required()
-def upload_artist_music():
-    """Allows only artists to upload individual music tracks to their profile."""
-    user_id = get_jwt_identity()
-    
-    user = User.query.get(user_id)
-    if not user or user.role != 'artist':
-        return jsonify({"error": "Only artists can upload tracks to their profile"}), 403
+def upload_music():
+    """Allows users to upload music files to their profile."""
+    try:
+        user_id = get_jwt_identity()
+        
+        if 'audio' not in request.files:
+            return jsonify({"error": "No audio file provided"}), 400
 
-    if 'audio' not in request.files:
-        return jsonify({"error": "No audio file provided"}), 400
+        audio = request.files['audio']
+        title = request.form.get('title', 'Untitled')
+        description = request.form.get('description', '')
 
-    audio = request.files['audio']
-    title = request.form.get('title', 'Untitled')
-    description = request.form.get('description', '')
+        if not audio or audio.filename == '':
+            return jsonify({"error": "No valid audio file selected"}), 400
 
-    filename = secure_filename(audio.filename)
-    file_path = os.path.join("uploads/music", filename)
-    audio.save(file_path)
+        # Ensure upload directory exists
+        upload_dir = "uploads/music"
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        filename = secure_filename(audio.filename)
+        # Add timestamp to prevent filename conflicts
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_")
+        filename = f"{timestamp}{filename}"
+        file_path = os.path.join(upload_dir, filename)
+        
+        audio.save(file_path)
 
-    new_audio = Audio(
-        user_id=user_id,
-        title=title,
-        description=description,
-        file_url=file_path,
-        uploaded_at=datetime.utcnow()
-    )
+        new_audio = Audio(
+            user_id=user_id,
+            title=title,
+            description=description,
+            file_url=file_path,
+            uploaded_at=datetime.utcnow()
+        )
 
-    db.session.add(new_audio)
-    db.session.commit()
+        db.session.add(new_audio)
+        db.session.commit()
 
-    return jsonify({"message": "Music uploaded successfully!", "audio": new_audio.serialize()}), 201
+        return jsonify({
+            "message": "Music uploaded successfully!", 
+            "audio": new_audio.serialize()
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Upload error: {str(e)}")
+        return jsonify({"error": f"Upload failed: {str(e)}"}), 500
 
 @api.route('/profile/dj/upload', methods=['POST'])
 @jwt_required()
@@ -2847,6 +2861,50 @@ def create_radio_station_profile():
 
         description = data.get("description", "")
         category = data.get("category", "")
+        
+        # ✅ VALIDATE FILE SIZES BEFORE PROCESSING
+        if 'logo' in request.files:
+            logo_file = request.files['logo']
+            if logo_file and logo_file.filename:
+                # Check file size (50MB limit for logos)
+                if logo_file.content_length and logo_file.content_length > 50 * 1024 * 1024:
+                    return jsonify({"error": "Logo file too large (max 50MB)"}), 413
+                
+                # Check file in memory size if content_length not available
+                logo_file.seek(0, 2)  # Seek to end
+                file_size = logo_file.tell()
+                logo_file.seek(0)  # Reset to beginning
+                
+                if file_size > 50 * 1024 * 1024:
+                    return jsonify({"error": "Logo file too large (max 50MB)"}), 413
+
+        if 'cover' in request.files:
+            cover_file = request.files['cover']
+            if cover_file and cover_file.filename:
+                # Check file size (5MB limit for covers)
+                if cover_file.content_length and cover_file.content_length > 5 * 1024 * 1024:
+                    return jsonify({"error": "Cover file too large (max 5MB)"}), 413
+                
+                cover_file.seek(0, 2)
+                file_size = cover_file.tell()
+                cover_file.seek(0)
+                
+                if file_size > 5 * 1024 * 1024:
+                    return jsonify({"error": "Cover file too large (max 5MB)"}), 413
+
+        if 'initialMix' in request.files:
+            mix_file = request.files['initialMix']
+            if mix_file and mix_file.filename:
+                # Check file size (150MB limit for audio)
+                if mix_file.content_length and mix_file.content_length > 150 * 1024 * 1024:
+                    return jsonify({"error": "Audio file too large (max 150MB)"}), 413
+                
+                mix_file.seek(0, 2)
+                file_size = mix_file.tell()
+                mix_file.seek(0)
+                
+                if file_size > 150 * 1024 * 1024:
+                    return jsonify({"error": "Audio file too large (max 150MB)"}), 413
 
         # Correct directory paths
         logo_dir = os.path.join("uploads", "station_logos")
@@ -2899,7 +2957,7 @@ def create_radio_station_profile():
             genres=[category] if category else ["Music"],
             creator_name=creator_name,
             created_at=datetime.utcnow(),
-            audio_file_name=mix_filename  # ✅ ADDED: Store the audio filename
+            audio_file_name=mix_filename
         )
 
         db.session.add(new_station)
@@ -2924,7 +2982,7 @@ def create_radio_station_profile():
             )
             db.session.add(playlist_entry)
 
-            # ✅ Use local file path to extract duration
+            # Use local file path to extract duration
             mix_file_path = os.path.join(mix_dir, mix_filename)
             duration = get_track_duration_from_file(mix_file_path)
 
@@ -2971,9 +3029,10 @@ def create_radio_station_profile():
         return jsonify({"error": f"Failed to create station: {str(e)}"}), 500
 
 
-# ✅ Duration helper included here so it's self-contained
+# Duration helper function
 def get_track_duration_from_file(file_path):
     try:
+        from mutagen import File
         audio_file = File(file_path)
         if audio_file and hasattr(audio_file, 'info'):
             total_seconds = int(audio_file.info.length)
@@ -3340,14 +3399,30 @@ class ArchivedShow(db.Model):
     file_path = db.Column(db.String(255))
 
 @api.route('/radio/dashboard', methods=['GET'])
+@jwt_required()
 def get_radio_dashboard():
-    stations = RadioStation.query.filter_by(owner_id=request.args.get("user_id")).all()
+    user_id = get_jwt_identity()
+    stations = RadioStation.query.filter_by(owner_id=user_id).all()
     return jsonify([station.serialize() for station in stations])
 
 @api.route('/podcast/dashboard', methods=['GET'])
+@jwt_required()  # ✅ ADD: Require JWT authentication
 def get_podcast_dashboard():
-    podcasts = Podcast.query.filter_by(creator_id=request.args.get("user_id")).all()
-    return jsonify([podcast.serialize() for podcast in podcasts])
+    # ✅ FIXED: Get user_id from JWT token instead of query params
+    user_id = get_jwt_identity()
+    
+    try:
+        # ✅ FIXED: Use creator_id to match your Podcast model
+        podcasts = Podcast.query.filter_by(creator_id=user_id).all()
+        
+        # ✅ ADD: Debug logging
+        print(f"📊 Dashboard: Found {len(podcasts)} podcasts for user {user_id}")
+        
+        return jsonify([podcast.serialize() for podcast in podcasts]), 200
+        
+    except Exception as e:
+        print(f"❌ Dashboard error: {str(e)}")
+        return jsonify({"error": "Failed to fetch podcasts"}), 500
 
 @api.route('/artist/dashboard', methods=['GET'])
 def get_artist_dashboard():
@@ -3365,37 +3440,6 @@ def delete_dashboard():
 
     db.session.commit()
     return jsonify({"message": "Dashboard deleted successfully."})
-
-@api.route('/music/upload', methods=['POST'])
-@jwt_required()
-def upload_music():
-    """Allows all users to upload music files, but they are private unless added to a station."""
-    user_id = get_jwt_identity()
-
-    if 'audio' not in request.files:
-        return jsonify({"error": "No audio file provided"}), 400
-
-    audio = request.files['audio']
-    title = request.form.get('title', 'Untitled')
-    description = request.form.get('description', '')
-
-    filename = secure_filename(audio.filename)
-    file_path = os.path.join("uploads/user_music", filename)
-    audio.save(file_path)
-
-    new_audio = Audio(
-        user_id=user_id,
-        title=title,
-        description=description,
-        file_url=file_path,
-        uploaded_at=datetime.utcnow(),
-        is_public=False  # Default to private unless added to a station
-    )
-
-    db.session.add(new_audio)
-    db.session.commit()
-
-    return jsonify({"message": "Music uploaded successfully!", "audio": new_audio.serialize()}), 201
 
 
 @api.route('/music/all', methods=['GET'])
@@ -3828,21 +3872,6 @@ def subscribe_to_station(station_id):
         "platform_cut": split["platform_cut"],
         "creator_earnings": split["creator_earnings"]
     }), 200
-
-@socketio.on('live_status_update')
-def handle_live_status_update(data):
-    """WebSocket: Notify all clients when a station goes live/offline."""
-    station_id = data.get("stationId")
-    is_live = data.get("isLive")
-
-    station = RadioStation.query.get(station_id)
-    if station:
-        station.is_live = is_live
-        db.session.commit()
-
-        # 🔴 Broadcast live status update
-        socketio.emit(f"station-{station_id}-live-status", {"stationId": station_id, "isLive": is_live})
-
 
 
 @api.route('/radio/<int:station_id>/buy-ticket', methods=['POST'])
@@ -4469,10 +4498,9 @@ def stop_recording_route():
 
 if __name__ == "__main__":
     api.run(debug=True)
-
 @api.route('/engagement/<int:content_id>', methods=['GET'])
 @jwt_required(optional=True)  # Optional authentication
-@cache.cached(timeout=60, query_string=True)  # Cache response for 60s per content_id
+@cache.cached(timeout=60, query_string=True)  # Use 'cache' instead of 'current_app.cache'
 def get_full_engagement(content_id):
     try:
         engagement = Engagement.query.filter_by(content_id=content_id).first()
@@ -4492,11 +4520,6 @@ def get_full_engagement(content_id):
             "shares": shares,
             "comments": comments
         }), 200
-
-    except NoResultFound:
-        return jsonify({"error": "No engagement data found for this content ID"}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
     except NoResultFound:
         return jsonify({"error": "No engagement data found for this content ID"}), 404
@@ -4880,7 +4903,7 @@ def create_podcast():
     data = request.get_json()
 
     podcast = Podcast(
-        user_id=user_id,
+        creator_id=user_id,
         title=data["title"],
         description=data.get("description"),
         cover_image=data.get("cover_image"),
@@ -5167,8 +5190,7 @@ def get_radio_genres():
     else:
         return jsonify({"error": "Failed to fetch data from Radio Browser API"}), 500
 
-if __name__ == "__main__":
-    app.run(debug=True)
+
 
 @api.route('/radio-stations/<genre>', methods=['GET'])
 def get_radio_stations_by_genre(genre):
@@ -5485,8 +5507,7 @@ def delete_avatar_from_user_profile(user_id):
     # Remove the avatar reference from the user's profile in the database
     pass
 
-if __name__ == '__main__':
-    app.run(debug=True)
+
 
 
 
@@ -6386,12 +6407,8 @@ def seed_sample_podcasts():
             )
             db.session.add(episode)
 
-    db.session.commit()@app.route('/seed/sample_podcasts')
-def seed_sample_podcasts_route():
-    seed_sample_podcasts()
-    return "Sample podcasts seeded"
-
-    print("✅ Sample podcasts seeded successfully.")  
+    db.session.commit()
+ 
 
 @api.route('/seed/sample_podcasts')
 def seed_sample_podcasts_route():
@@ -7396,20 +7413,7 @@ def get_station_playlist(station_id):
 
 # ===== 5. WEBSOCKET EVENTS FOR REAL-TIME UPDATES =====
 
-@socketio.on('join_radio_station')
-def on_join_radio_station(data):
-    """User joins radio station for real-time updates"""
-    station_id = data.get('station_id')
-    join_room(f'radio_station_{station_id}')
-    
-    # Send current status
-    station = RadioStation.query.get(station_id)
-    if station:
-        emit('radio_status_update', {
-            'station': station.serialize(),
-            'now_playing': station.get_current_track(),
-            'listeners_in_room': len(socketio.server.manager.rooms.get(f'radio_station_{station_id}', {}))
-        })
+
 
 
 # ===== 6. AUTO-SETUP FOR EXISTING STATIONS =====
@@ -7821,3 +7825,5 @@ def stream_station_audio(station_id):
     print(f"🎧 Serving from: {full_directory}/{filename}")
     
     return send_from_directory(full_directory, filename, mimetype="audio/mpeg")
+
+

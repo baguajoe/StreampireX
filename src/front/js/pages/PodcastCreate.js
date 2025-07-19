@@ -24,19 +24,30 @@ const PodcastCreate = () => {
   }, []);
 
   const handleUpload = async () => {
+    // ✅ Validation before upload
+    if (!title.trim() || !description.trim() || !category) {
+      alert("⚠️ Please fill in the title, description, and category.");
+      return;
+    }
+
+    if (!audioFile && !videoFile) {
+      alert("⚠️ Please upload either an audio or video file.");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("title", title);
     formData.append("description", description);
     formData.append("category", category);
-    formData.append("cover_art", coverArt);
-    formData.append("audio", audioFile);
-    formData.append("video", videoFile);
+    if (coverArt) formData.append("cover_art", coverArt);
+    if (audioFile) formData.append("audio", audioFile);
+    if (videoFile) formData.append("video", videoFile);
     formData.append("subscription_tier", subscriptionTier);
     formData.append("streaming_enabled", streamingEnabled);
-    formData.append("scheduled_release", scheduledRelease);
+    if (scheduledRelease) formData.append("scheduled_release", scheduledRelease);
 
     try {
-      const response = await fetch(`${process.env.BACKEND_URL}/upload_podcast`, {
+      const response = await fetch(`${process.env.BACKEND_URL}/api/upload_podcast`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -48,9 +59,9 @@ const PodcastCreate = () => {
 
       if (response.ok) {
         alert("✅ Podcast uploaded successfully!");
-        navigate("/podcast-dashboard"); // updated for clarity
+        navigate("/podcast-dashboard");
       } else {
-        alert(`❌ Upload error: ${data.error}`);
+        alert(`❌ Upload error: ${data.error || "Unknown error"}`);
       }
     } catch (err) {
       console.error("Upload failed:", err);

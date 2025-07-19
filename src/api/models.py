@@ -53,10 +53,7 @@ class Squad(db.Model):
                              foreign_keys="Stream.squad_id",
                              overlaps="squad_streams")
     
-    # ✅ FIXED: Alternative name to avoid conflicts
-    squad_streams = db.relationship("Stream", 
-                                   foreign_keys="Stream.squad_id",
-                                   overlaps="streams")
+    
 
     def get_creator(self):
         """Get creator user object"""
@@ -494,33 +491,52 @@ playlist_audio_association = db.Table(
 )
 
 
+# Add this to your models.py file
+
 class Audio(db.Model):
+    __tablename__ = 'audio'
+    
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.Text, nullable=True)
-    file_url = db.Column(db.String(500), nullable=False)  # URL of the stored file
-    duration = db.Column(db.Integer, nullable=True)  # Duration in seconds
+    description = db.Column(db.Text)
+    file_url = db.Column(db.String(500), nullable=False)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Many-to-Many relationship with PlaylistAudio
-    playlists = db.relationship(
-        'PlaylistAudio', secondary=playlist_audio_association, back_populates="audios"
-    )
-
-    user = db.relationship('User', backref=db.backref('audios', lazy=True))
-
+    
+    # Optional additional fields
+    duration = db.Column(db.String(10))  # e.g., "3:45"
+    plays = db.Column(db.Integer, default=0)
+    likes = db.Column(db.Integer, default=0)
+    album = db.Column(db.String(255))
+    genre = db.Column(db.String(100))
+    artwork_url = db.Column(db.String(500))
+    is_public = db.Column(db.Boolean, default=True)
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('audio_tracks', lazy=True))
+    
     def serialize(self):
+        """Serialize the Audio model to a dictionary"""
         return {
             "id": self.id,
             "user_id": self.user_id,
             "title": self.title,
             "description": self.description,
             "file_url": self.file_url,
-            "duration": self.duration,
-            "uploaded_at": self.uploaded_at.isoformat(),
-            "playlists": [playlist.id for playlist in self.playlists],  # List of associated playlists
+            "uploaded_at": self.uploaded_at.isoformat() if self.uploaded_at else None,
+            "duration": self.duration or "0:00",
+            "plays": self.plays or 0,
+            "likes": self.likes or 0,
+            "album": self.album or "Single",
+            "genre": self.genre or "Unknown",
+            "artwork": self.artwork_url or "/default-track-artwork.jpg",
+            "is_public": self.is_public,
+            "artist_name": self.user.username if self.user else "Unknown Artist"
         }
+    
+    def __repr__(self):
+        return f'<Audio {self.id}: {self.title}>'
+
 
 
 
@@ -532,7 +548,7 @@ class PlaylistAudio(db.Model):
 
     # Many-to-Many relationship with Audio
     audios = db.relationship(
-        'Audio', secondary=playlist_audio_association, back_populates="playlists"
+        'Audio', secondary=playlist_audio_association, backref="playlists"
     )
 
     user = db.relationship('User', backref=db.backref('playlist_audios', lazy=True))
@@ -1286,6 +1302,7 @@ class LiveChat(db.Model):
 
 class PodcastEpisode(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    podcast_id = db.Column(db.Integer, db.ForeignKey('podcast.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
@@ -1357,9 +1374,16 @@ class PodcastClip(db.Model):
 
 class Podcast(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    host_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
+    
+    # ✅ ADD: Category field
+    category = db.Column(db.String(100), nullable=True, default='General')
+    
+    # ✅ ADD: Missing fields from upload route
+    transcription = db.Column(db.Text, nullable=True)  # AI-generated transcription
+    duration = db.Column(db.Integer, nullable=True)    # Duration in seconds
     
     # Storage & Metadata
     audio_url = db.Column(db.String(500), nullable=True)
@@ -1427,9 +1451,12 @@ class Podcast(db.Model):
     def serialize(self):
         return {
             "id": self.id,
-            "host_id": self.host_id,
+            "creator_id": self.creator_id,
             "title": self.title,
             "description": self.description,
+            "category": self.category,  # ✅ ADD: Include category in serialization
+            "transcription": self.transcription,  # ✅ ADD: Include transcription
+            "duration": self.duration,  # ✅ ADD: Include duration
             "audio_url": self.audio_url if self.audio_url else "No audio available",
             "video_url": self.video_url if self.video_url else "No video available",
             "cover_art_url": self.cover_art_url,
@@ -1463,7 +1490,6 @@ class Podcast(db.Model):
             "creator_earnings": self.creator_earnings,
             "platform_cut": self.platform_cut
         }
-
 
 
 # Assuming you have a model for tracking podcast plays (or similar)

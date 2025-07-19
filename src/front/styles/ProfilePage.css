@@ -3,7 +3,8 @@
   max-width: 1200px;
   margin: 20px auto;
   padding: 20px;
-  background: linear-gradient(135deg, #1b2e1b 0%, #2e4f2e 50%, #3e5e3e 100%);
+  background: linear-gradient(135deg, #0f1c2e, #1a2a40, #243b55);
+
   border-radius: 10px;
   box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.3);
   font-family: Arial, sans-serif;
@@ -154,13 +155,19 @@
 .profile-card-bio {
   flex: 1;
   min-width: 350px;
-  max-width: 450px;
-  background: rgba(46, 79, 46, 0.9);
-  padding: 25px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 15px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  padding: 25px;
+  color: #e0e0ff;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+
+  padding: 25px;
+  
+  
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(76, 175, 80, 0.3);
+ 
 }
 
 .profile-card-bio label {
@@ -1173,8 +1180,6 @@ h3 {
   border: none;
   box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
 }
-
-
 
 .green-btn:hover {
   background: #388e3c;
