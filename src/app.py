@@ -1,3 +1,4 @@
+# src/app.py
 # ✅ Monkey patch must come FIRST — before ANY other imports
 import eventlet
 eventlet.monkey_patch()
@@ -9,14 +10,77 @@ from flask_mail import Mail, Message
 from flask_jwt_extended import JWTManager, decode_token, exceptions as jwt_exceptions
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
+from api.socketio import socketio
+import cloudinary
+
+# Import your blueprints
 from api.routes import api
-from api.models import db, LiveChat, User
+from api.cache import cache
+from api.models import db, LiveChat, User, RadioStation
 from api.utils import APIException, generate_sitemap
 from api.admin import setup_admin
 from api.commands import setup_commands
-import cloudinary
 
-# ✅ Cloudinary config
+# ✅ Environment setup
+ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
+static_file_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../public/')
+
+# ✅ Create Flask app
+app = Flask(__name__)
+
+from flask_apscheduler import APScheduler
+
+
+
+# Initialize scheduler with the app
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
+
+app.url_map.strict_slashes = False
+cache.init_app(app)
+# ✅ Configuration
+app.config.update({
+    "JWT_ACCESS_TOKEN_EXPIRES": 7 * 24 * 60 * 60 * 52,  # ~1 year
+    "JWT_SECRET_KEY": os.getenv("JWT_SECRET_KEY"),
+    "SQLALCHEMY_TRACK_MODIFICATIONS": False,
+    "MAIL_SERVER": 'smtp.gmail.com',
+    "MAIL_PORT": 587,
+    "MAIL_USE_TLS": True,
+    "MAIL_USE_SSL": False,
+    "MAIL_USERNAME": os.getenv("MAIL_USERNAME"),
+    "MAIL_PASSWORD": os.getenv("MAIL_PASSWORD"),
+    "MAIL_DEFAULT_SENDER": os.getenv("MAIL_USERNAME"),
+})
+
+# ✅ Database configuration
+db_url = os.getenv("DATABASE_URL")
+if db_url:
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace("postgres://", "postgresql://")
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
+
+# ✅ Initialize extensions
+db.init_app(app)
+JWTManager(app)
+mail = Mail(app)
+
+# ✅ Initialize cache
+from flask_caching import Cache
+cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
+app.cache = cache  # Make cache available to routes
+
+# ✅ CORS setup
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+additional_origins = os.getenv("ADDITIONAL_ORIGINS", "").split(",") if os.getenv("ADDITIONAL_ORIGINS") else []
+allowed_origins = [FRONTEND_URL] + [origin for origin in additional_origins if origin]
+
+CORS(app, resources={r"/*": {"origins": allowed_origins}}, supports_credentials=True)
+if ENV == "development":
+    print(f"CORS enabled for: {allowed_origins}")
+
+# ✅ Third-party service configuration
+# Cloudinary
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
     api_key=os.getenv("CLOUDINARY_API_KEY"),
@@ -24,88 +88,30 @@ cloudinary.config(
     secure=True
 )
 
-# ✅ App config
-ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
-static_file_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../public/')
-app = Flask(__name__)
-app.url_map.strict_slashes = False
-
-# ✅ CORS
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
-additional_origins = os.getenv("ADDITIONAL_ORIGINS", "").split(",") if os.getenv("ADDITIONAL_ORIGINS") else []
-allowed_origins = [FRONTEND_URL] + additional_origins
-CORS(app, resources={r"/*": {"origins": allowed_origins}}, supports_credentials=True)
-if ENV == "development":
-    print(f"CORS enabled for: {allowed_origins}")
-
-# ✅ JWT
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 7 * 24 * 60 * 60 * 52  # ~1 year
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
-JWTManager(app)
-
-# ✅ Database
-db_url = os.getenv("DATABASE_URL")
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace("postgres://", "postgresql://") if db_url else "sqlite:////tmp/test.db"
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-MIGRATE = Migrate(app, db, compare_type=True)
-db.init_app(app)
-
-# ✅ Mail
-app.config.update({
-    'MAIL_SERVER': 'smtp.gmail.com',
-    'MAIL_PORT': 587,
-    'MAIL_USE_TLS': True,
-    'MAIL_USE_SSL': False,
-    'MAIL_USERNAME': os.getenv("MAIL_USERNAME"),
-    'MAIL_PASSWORD': os.getenv("MAIL_PASSWORD"),
-    'MAIL_DEFAULT_SENDER': os.getenv("MAIL_USERNAME"),
-})
-mail = Mail(app)
-
-# ✅ Admin / CLI / Blueprints
+# ✅ Setup migrations, admin, commands
+Migrate(app, db, compare_type=True)
 setup_admin(app)
 setup_commands(app)
+
+# ✅ Register blueprints
 app.register_blueprint(api, url_prefix='/api')
 
-# ✅ Error Handling
-@app.errorhandler(APIException)
-def handle_invalid_usage(error):
-    return jsonify(error.to_dict()), error.status_code
-
-@app.route('/')
-def sitemap():
-    if ENV == "development":
-        return generate_sitemap(app)
-    return send_from_directory(static_file_dir, 'index.html')
-
-@app.route('/<path:path>', methods=['GET'])
-def serve_any_other_file(path):
-    if not os.path.isfile(os.path.join(static_file_dir, path)):
-        path = 'index.html'
-    response = send_from_directory(static_file_dir, path)
-    response.cache_control.max_age = 0
-    return response
-
-def send_email(recipient, subject, body):
-    try:
-        msg = Message(subject, recipients=[recipient])
-        msg.body = body
-        mail.send(msg)
-    except Exception as e:
-        print(f"Error sending email: {e}")
-        raise ValueError("Failed to send email.")
-
-# ✅ SocketIO setup with heartbeat
-socketio = SocketIO(
+# ✅ SocketIO setup
+socketio.init_app(
     app,
     cors_allowed_origins=allowed_origins,
-    ping_interval=25,  # keep-alive every 25s
+    ping_interval=25,
     ping_timeout=60
 )
 
+# ✅ Make socketio available to other modules
+app.socketio = socketio
+
+# ✅ Global variables for socket management
 connected_users = {}
 listener_count = 0
 
+# ✅ Socket event handlers
 @socketio.on('connect')
 def on_connect(auth):
     global listener_count
@@ -159,15 +165,71 @@ def handle_message(data):
         "user_id": user_id,
         "stream_id": stream_id,
         "message": message,
-        "username": user.username
+        "username": user.username if user else "Unknown"
     })
 
-# ✅ Optional: socket error handler
+@socketio.on('live_status_update')
+def handle_live_status_update(data):
+    """Handle live status updates for radio stations"""
+    station_id = data.get("stationId")
+    is_live = data.get("isLive")
+    
+    # Update station in database
+    station = RadioStation.query.get(station_id)
+    if station:
+        station.is_live = is_live
+        db.session.commit()
+        
+        # Broadcast to all clients listening to this station
+        socketio.emit('station_status_update', {
+            'station_id': station_id,
+            'is_live': is_live,
+            'station_name': station.name
+        }, room=f'radio_station_{station_id}')
+
+@socketio.on('join_radio_station')
+def on_join_radio_station(data):
+    """User joins radio station for real-time updates"""
+    from flask_socketio import join_room
+    station_id = data.get('station_id')
+    join_room(f'radio_station_{station_id}')
+    
+    # Send current status
+    station = RadioStation.query.get(station_id)
+    if station:
+        emit('radio_status_update', {
+            'station': station.serialize() if hasattr(station, 'serialize') else {'id': station.id, 'name': station.name},
+            'now_playing': getattr(station, 'now_playing_metadata', None),
+            'listener_count': listener_count
+        })
+
+
+
 @socketio.on_error_default
 def default_error_handler(e):
     print(f"SocketIO error: {e}")
 
-# ✅ Run the app with eventlet
+# ✅ Error handlers
+@app.errorhandler(APIException)
+def handle_invalid_usage(error):
+    return jsonify(error.to_dict()), error.status_code
+
+# ✅ Basic routes
+@app.route('/')
+def sitemap():
+    if ENV == "development":
+        return generate_sitemap(app)
+    return send_from_directory(static_file_dir, 'index.html')
+
+@app.route('/<path:path>')
+def serve_any_other_file(path):
+    if not os.path.isfile(os.path.join(static_file_dir, path)):
+        path = 'index.html'
+    response = send_from_directory(static_file_dir, path)
+    response.cache_control.max_age = 0  # avoid cache memory
+    return response
+
+# ✅ Run the app
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3001))
     socketio.run(app, host='0.0.0.0', port=PORT, debug=True)
