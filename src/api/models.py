@@ -1377,6 +1377,8 @@ class Podcast(db.Model):
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
+    audio_file_name = db.Column(db.String(500), nullable=True) 
+    video_file_name = db.Column(db.String(500), nullable=True) 
     
     # ✅ ADD: Category field
     category = db.Column(db.String(100), nullable=True, default='General')
