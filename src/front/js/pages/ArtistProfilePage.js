@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Context } from "../store/appContext";
 import { Link } from "react-router-dom";
-import UploadTrackModal from "../component/TrackUploadForm"; // adjust path as needed
+import UploadTrackModal from "../component/UploadTrackModal"; // adjust path as needed
 import "../../styles/ArtistProfile.css";
 
 const ArtistProfilePage = () => {

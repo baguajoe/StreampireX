@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: f1407fb0f628
+Revision ID: d6075bd35182
 Revises: 
-Create Date: 2025-07-17 18:31:07.824135
+Create Date: 2025-07-21 20:02:45.052757
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'f1407fb0f628'
+revision = 'd6075bd35182'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -295,8 +295,14 @@ def upgrade():
     sa.Column('title', sa.String(length=255), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('file_url', sa.String(length=500), nullable=False),
-    sa.Column('duration', sa.Integer(), nullable=True),
     sa.Column('uploaded_at', sa.DateTime(), nullable=True),
+    sa.Column('duration', sa.String(length=10), nullable=True),
+    sa.Column('plays', sa.Integer(), nullable=True),
+    sa.Column('likes', sa.Integer(), nullable=True),
+    sa.Column('album', sa.String(length=255), nullable=True),
+    sa.Column('genre', sa.String(length=100), nullable=True),
+    sa.Column('artwork_url', sa.String(length=500), nullable=True),
+    sa.Column('is_public', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -532,9 +538,14 @@ def upgrade():
     )
     op.create_table('podcast',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('host_id', sa.Integer(), nullable=False),
+    sa.Column('creator_id', sa.Integer(), nullable=False),
     sa.Column('title', sa.String(length=255), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('audio_file_name', sa.String(length=500), nullable=True),
+    sa.Column('video_file_name', sa.String(length=500), nullable=True),
+    sa.Column('category', sa.String(length=100), nullable=True),
+    sa.Column('transcription', sa.Text(), nullable=True),
+    sa.Column('duration', sa.Integer(), nullable=True),
     sa.Column('audio_url', sa.String(length=500), nullable=True),
     sa.Column('video_url', sa.String(length=500), nullable=True),
     sa.Column('cover_art_url', sa.String(length=500), nullable=True),
@@ -567,27 +578,7 @@ def upgrade():
     sa.Column('episode_number', sa.Integer(), nullable=True),
     sa.Column('ad_insertion', sa.Boolean(), nullable=True),
     sa.Column('uploaded_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['host_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('podcast_episode',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('title', sa.String(length=255), nullable=False),
-    sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('file_url', sa.String(length=500), nullable=False),
-    sa.Column('cover_art_url', sa.String(length=500), nullable=True),
-    sa.Column('duration', sa.Integer(), nullable=True),
-    sa.Column('is_premium', sa.Boolean(), nullable=True),
-    sa.Column('is_published', sa.Boolean(), nullable=True),
-    sa.Column('release_date', sa.DateTime(), nullable=True),
-    sa.Column('uploaded_at', sa.DateTime(), nullable=True),
-    sa.Column('total_revenue', sa.Float(), nullable=True),
-    sa.Column('revenue_from_ads', sa.Float(), nullable=True),
-    sa.Column('revenue_from_subscriptions', sa.Float(), nullable=True),
-    sa.Column('platform_cut', sa.Float(), nullable=True),
-    sa.Column('creator_earnings', sa.Float(), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['creator_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('product',
@@ -1017,13 +1008,25 @@ def upgrade():
     sa.ForeignKeyConstraint(['podcast_id'], ['podcast.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('podcast_episode_interaction',
+    op.create_table('podcast_episode',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('episode_id', sa.Integer(), nullable=False),
+    sa.Column('podcast_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('play_count', sa.Integer(), nullable=True),
-    sa.Column('timestamp', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['episode_id'], ['podcast_episode.id'], ),
+    sa.Column('title', sa.String(length=255), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('file_url', sa.String(length=500), nullable=False),
+    sa.Column('cover_art_url', sa.String(length=500), nullable=True),
+    sa.Column('duration', sa.Integer(), nullable=True),
+    sa.Column('is_premium', sa.Boolean(), nullable=True),
+    sa.Column('is_published', sa.Boolean(), nullable=True),
+    sa.Column('release_date', sa.DateTime(), nullable=True),
+    sa.Column('uploaded_at', sa.DateTime(), nullable=True),
+    sa.Column('total_revenue', sa.Float(), nullable=True),
+    sa.Column('revenue_from_ads', sa.Float(), nullable=True),
+    sa.Column('revenue_from_subscriptions', sa.Float(), nullable=True),
+    sa.Column('platform_cut', sa.Float(), nullable=True),
+    sa.Column('creator_earnings', sa.Float(), nullable=True),
+    sa.ForeignKeyConstraint(['podcast_id'], ['podcast.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -1032,17 +1035,6 @@ def upgrade():
     sa.Column('podcast_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['podcast_id'], ['podcast.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('podcast_purchase',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('episode_id', sa.Integer(), nullable=True),
-    sa.Column('timestamp', sa.DateTime(), nullable=True),
-    sa.Column('platform_cut', sa.Float(), nullable=True),
-    sa.Column('creator_earnings', sa.Float(), nullable=True),
-    sa.ForeignKeyConstraint(['episode_id'], ['podcast_episode.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -1288,6 +1280,27 @@ def upgrade():
     sa.ForeignKeyConstraint(['music_id'], ['music.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('podcast_episode_interaction',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('episode_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('play_count', sa.Integer(), nullable=True),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['episode_id'], ['podcast_episode.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('podcast_purchase',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('episode_id', sa.Integer(), nullable=True),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.Column('platform_cut', sa.Float(), nullable=True),
+    sa.Column('creator_earnings', sa.Float(), nullable=True),
+    sa.ForeignKeyConstraint(['episode_id'], ['podcast_episode.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('radio_track',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('station_id', sa.Integer(), nullable=False),
@@ -1303,6 +1316,8 @@ def upgrade():
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('radio_track')
+    op.drop_table('podcast_purchase')
+    op.drop_table('podcast_episode_interaction')
     op.drop_table('music_usage')
     op.drop_table('music_purchase')
     op.drop_table('music_interaction')
@@ -1327,9 +1342,8 @@ def downgrade():
     op.drop_table('radio_access')
     op.drop_table('purchase')
     op.drop_table('podcast_subscription')
-    op.drop_table('podcast_purchase')
     op.drop_table('podcast_host')
-    op.drop_table('podcast_episode_interaction')
+    op.drop_table('podcast_episode')
     op.drop_table('podcast_clip')
     op.drop_table('podcast_chapter')
     op.drop_table('playlist_audio_association')
@@ -1361,7 +1375,6 @@ def downgrade():
     op.drop_table('release')
     op.drop_table('radio_station')
     op.drop_table('product')
-    op.drop_table('podcast_episode')
     op.drop_table('podcast')
     op.drop_table('playlist_audio')
     op.drop_table('payout')

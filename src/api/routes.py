@@ -696,20 +696,31 @@ def upload_podcast():
         video_file = request.files.get("video")
 
         timestamp = str(int(datetime.utcnow().timestamp()))
-        upload_dir = os.path.join("static", "uploads", "podcasts")
-        os.makedirs(upload_dir, exist_ok=True)
+        
+        # ✅ Use organized directory structure
+        audio_upload_dir = os.path.join("static", "uploads", "podcasts", "audio")
+        video_upload_dir = os.path.join("static", "uploads", "podcasts", "video")
+        cover_upload_dir = os.path.join("static", "uploads", "podcasts", "covers")
+        
+        # ✅ Create directories if they don't exist
+        os.makedirs(audio_upload_dir, exist_ok=True)
+        os.makedirs(video_upload_dir, exist_ok=True)
+        os.makedirs(cover_upload_dir, exist_ok=True)
 
         audio_url, video_url, cover_url, duration = None, None, None, None
+        audio_file_name, video_file_name = None, None
 
+        # ✅ Handle cover art upload
         if cover_art:
-            filename = secure_filename(f"{user_id}_{timestamp}_{cover_art.filename}")
-            path = os.path.join(upload_dir, filename)
-            cover_art.save(path)
-            cover_url = f"/{path}"
+            cover_filename = secure_filename(f"{user_id}_{timestamp}_{cover_art.filename}")
+            cover_path = os.path.join(cover_upload_dir, cover_filename)
+            cover_art.save(cover_path)
+            cover_url = f"/{cover_path}"
 
+        # ✅ Handle audio file upload
         if audio_file:
-            filename = secure_filename(f"{user_id}_{timestamp}_{audio_file.filename}")
-            audio_path = os.path.join(upload_dir, filename)
+            audio_file_name = secure_filename(f"{user_id}_{timestamp}_{audio_file.filename}")
+            audio_path = os.path.join(audio_upload_dir, audio_file_name)
             audio_file.save(audio_path)
             audio_url = f"/{audio_path}"
 
@@ -720,21 +731,36 @@ def upload_podcast():
             except:
                 duration = None
 
+        # ✅ Handle video file upload - goes to video folder
         if video_file:
-            filename = secure_filename(f"{user_id}_{timestamp}_{video_file.filename}")
-            video_path = os.path.join(upload_dir, filename)
+            video_file_name = secure_filename(f"{user_id}_{timestamp}_{video_file.filename}")
+            video_path = os.path.join(video_upload_dir, video_file_name)
             video_file.save(video_path)
             video_url = f"/{video_path}"
+            
             # Optional: Detect duration using moviepy
+            try:
+                from moviepy import VideoFileClip
+                video_clip = VideoFileClip(video_path)
+                if not duration:  # Only set if audio didn't already set it
+                    duration = int(video_clip.duration)
+                video_clip.close()
+            except:
+                pass
 
+        # ✅ Create podcast with organized file paths
         new_podcast = Podcast(
             creator_id=user_id,
             title=title,
             description=description,
             category=category,
-            cover_art_url=cover_url,
+            # Store filenames
+            audio_file_name=audio_file_name,
+            video_file_name=video_file_name,
+            # Store full organized paths
             audio_url=audio_url,
             video_url=video_url,
+            cover_art_url=cover_url,
             duration=duration,
             subscription_tier=subscription_tier,
             streaming_enabled=streaming_enabled,
@@ -759,7 +785,15 @@ def upload_podcast():
             db.session.add(episode)
             db.session.commit()
 
-        return jsonify({"message": "Podcast and episode uploaded"}), 201
+        return jsonify({
+            "message": "Podcast and episode uploaded successfully",
+            "podcast_id": new_podcast.id,
+            "files_saved_to": {
+                "audio": f"static/uploads/podcasts/audio/{audio_file_name}" if audio_file_name else None,
+                "video": f"static/uploads/podcasts/video/{video_file_name}" if video_file_name else None,
+                "cover": f"static/uploads/podcasts/covers/" if cover_url else None
+            }
+        }), 201
 
     except Exception as e:
         print("Upload error:", str(e))
