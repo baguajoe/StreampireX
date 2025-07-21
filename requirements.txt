@@ -10,7 +10,8 @@ flask-swagger==0.2.14
 flask-jwt-extended==3.25.1
 flask-mail==0.9.1
 flask-socketio==5.3.6
-flask-apscheduler==1.12.5
+flask-apscheduler==1.12.3
+
 
 # WSGI/WebSocket
 gunicorn==20.0.4
