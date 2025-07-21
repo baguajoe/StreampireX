@@ -84,6 +84,68 @@
 	margin-bottom: 0.5rem;
 }
 
+/* Distribution Platforms Section */
+.distribution-platforms {
+	padding: 4rem 2rem;
+	background: #0f172a;
+	text-align: center;
+}
+
+.distribution-platforms h2 {
+	color: #00ffc8;
+	font-size: 2rem;
+	margin-bottom: 1rem;
+}
+
+.distribution-platforms > p {
+	color: #d1d5db;
+	font-size: 1.1rem;
+	margin-bottom: 3rem;
+	max-width: 600px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.platforms-grid {
+	display: flex;
+	flex-wrap: nowrap; /* Prevent wrapping to new line */
+	gap: 1.5rem;
+	max-width: 1200px;
+	margin: 0 auto;
+	justify-content: space-between;
+}
+
+.platform-category {
+	flex: 1; /* Each takes equal width */
+	min-width: 0; /* Allows flex items to shrink below content size */
+	background: #1f2937;
+	padding: 2rem;
+	border-radius: 12px;
+	box-shadow: 0 0 12px rgba(0, 255, 200, 0.1);
+}
+
+.platform-category h4 {
+	color: #00ffc8;
+	margin-bottom: 1rem;
+	font-size: 1.2rem;
+}
+
+.platform-category ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.platform-category li {
+	color: #d1d5db;
+	padding: 0.4rem 0;
+	border-bottom: 1px solid #374151;
+}
+
+.platform-category li:last-child {
+	border-bottom: none;
+}
+
 /* Join Now Section */
 .join-now {
 	background: #111827;
@@ -111,4 +173,26 @@
 	font-size: 0.9rem;
 	color: #6b7280;
 	border-top: 1px solid #1f2937;
+}
+
+/* For tablets - allow wrapping to 2 rows */
+@media (max-width: 1024px) {
+	.platforms-grid {
+		flex-wrap: wrap;
+	}
+	
+	.platform-category {
+		flex: 0 0 calc(50% - 0.75rem); /* 2 columns with gap */
+	}
+}
+
+/* For mobile - stack vertically */
+@media (max-width: 768px) {
+	.platforms-grid {
+		flex-direction: column;
+	}
+	
+	.platform-category {
+		flex: none;
+	}
 }
