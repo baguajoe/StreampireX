@@ -12,3 +12,4 @@ gunicorn==21.2.0
 python-dotenv==1.0.1
 cloudinary==1.39.0
 psycopg2-binary==2.9.9
+Flask-Caching==2.1.0
