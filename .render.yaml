@@ -18,4 +18,4 @@ services:
       - key: CLOUDINARY_URL
         value: cloudinary://your_key:your_secret@your_cloud
       - key: PYTHONPATH
-        value: /opt/render/project/src
+        value: src
