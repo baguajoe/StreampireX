@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: streampirex-backend
+    env: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k eventlet -w 1 src.app:app
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        value: your-secret-key-here
+      - key: JWT_SECRET_KEY
+        value: your-jwt-secret
+      - key: FRONTEND_URL
+        value: https://your-vercel-frontend.vercel.app
+      - key: CLOUDINARY_URL
+        value: cloudinary://your_key:your_secret@your_cloud
+      - key: PYTHONPATH
+        value: /opt/render/project/src
