@@ -21,6 +21,7 @@ from api.models import db, LiveChat, User, RadioStation
 from api.utils import APIException, generate_sitemap
 from api.admin import setup_admin
 from api.commands import setup_commands
+from api import socketio  # ✅ if you're treating 'src' as the root module
 
 # ✅ Environment setup
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
