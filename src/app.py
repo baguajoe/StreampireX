@@ -10,7 +10,8 @@ from flask_mail import Mail, Message
 from flask_jwt_extended import JWTManager, decode_token, exceptions as jwt_exceptions
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
-from api.socketio import socketio
+socketio = SocketIO()  # ✅ correctly initialized here
+
 import cloudinary
 
 # Import your blueprints
