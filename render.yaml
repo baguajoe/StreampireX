@@ -1,29 +1,9 @@
 services:
   - type: web
     name: streampirex-backend
-    env: python
+    env: docker
     plan: free
+    dockerfilePath: Dockerfile
+    autoDeploy: true
     region: oregon
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -k eventlet -w 1 src.app:app
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: your-db-name
-          property: connectionString
-      - key: FLASK_APP_KEY
-        value: any key works
-      - key: FLASK_APP
-        value: src/app.py
-      - key: FLASK_DEBUG
-        value: 0
-      - key: DEBUG
-        value: FALSE
-      - key: CLOUDINARY_CLOUD_NAME
-        value: dli7r0d7s
-      - key: CLOUDINARY_API_KEY
-        value: 556594849769177
-      - key: CLOUDINARY_API_SECRET
-        value: --gyDlBq6ohShi8D6QVpRJIxOhg
-      - key: FRONTEND_URL
-        value: https://studious-space-goggles-r4rp7v96jgr62x5j-3000.app.github.dev
+    healthCheckPath: /api/health
