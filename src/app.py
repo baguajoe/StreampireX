@@ -10,18 +10,20 @@ from flask_mail import Mail, Message
 from flask_jwt_extended import JWTManager, decode_token, exceptions as jwt_exceptions
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
-socketio = SocketIO()  # ✅ correctly initialized here
-
+from flask_caching import Cache
+from flask_apscheduler import APScheduler
 import cloudinary
 
-# Import your blueprints
-from src.api.routes import api
-from src.api.cache import cache
-from src.api.models import db, LiveChat, User, RadioStation
-from src.api.utils import APIException, generate_sitemap
-from src.api.admin import setup_admin
-from src.api.commands import setup_commands
-from src.api import socketio  # ✅ if you're treating 'src' as the root module
+# ✅ Create socketio instance here (not importing from api module)
+socketio = SocketIO()
+
+# Import your blueprints - FIXED: Remove the conflicting socketio import
+from api.routes import api
+from api.cache import cache
+from api.models import db, LiveChat, User, RadioStation
+from api.utils import APIException, generate_sitemap
+from api.admin import setup_admin
+from api.commands import setup_commands
 
 # ✅ Environment setup
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
@@ -30,17 +32,13 @@ static_file_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../
 # ✅ Create Flask app
 app = Flask(__name__)
 
-from flask_apscheduler import APScheduler
-
-
-
 # Initialize scheduler with the app
 scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
 
 app.url_map.strict_slashes = False
-cache.init_app(app)
+
 # ✅ Configuration
 app.config.update({
     "JWT_ACCESS_TOKEN_EXPIRES": 7 * 24 * 60 * 60 * 52,  # ~1 year
@@ -53,6 +51,7 @@ app.config.update({
     "MAIL_USERNAME": os.getenv("MAIL_USERNAME"),
     "MAIL_PASSWORD": os.getenv("MAIL_PASSWORD"),
     "MAIL_DEFAULT_SENDER": os.getenv("MAIL_USERNAME"),
+    "CACHE_TYPE": "SimpleCache"  # Fix the cache warning
 })
 
 # ✅ Database configuration
@@ -67,10 +66,10 @@ db.init_app(app)
 JWTManager(app)
 mail = Mail(app)
 
-# ✅ Initialize cache
-from flask_caching import Cache
-cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
-app.cache = cache  # Make cache available to routes
+# ✅ Initialize cache - FIXED: Use the config from app.config
+cache_instance = Cache(app)
+cache.init_app(app)
+app.cache = cache_instance  # Make cache available to routes
 
 # ✅ CORS setup
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
@@ -98,7 +97,7 @@ setup_commands(app)
 # ✅ Register blueprints
 app.register_blueprint(api, url_prefix='/api')
 
-# ✅ SocketIO setup
+# ✅ SocketIO setup - FIXED: Use the socketio instance created above
 socketio.init_app(
     app,
     cors_allowed_origins=allowed_origins,
@@ -204,8 +203,6 @@ def on_join_radio_station(data):
             'now_playing': getattr(station, 'now_playing_metadata', None),
             'listener_count': listener_count
         })
-
-
 
 @socketio.on_error_default
 def default_error_handler(e):
