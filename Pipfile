@@ -32,6 +32,8 @@ flask-wtf = "*"
 flask-jwt-extended = "*"
 moviepy = "*"
 mutagen = "*"
+eventlet = "*"
+flask-apscheduler = "*"
 
 [requires]
 python_version = "3.10"
