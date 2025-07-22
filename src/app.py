@@ -15,13 +15,13 @@ socketio = SocketIO()  # ✅ correctly initialized here
 import cloudinary
 
 # Import your blueprints
-from api.routes import api
-from api.cache import cache
-from api.models import db, LiveChat, User, RadioStation
-from api.utils import APIException, generate_sitemap
-from api.admin import setup_admin
-from api.commands import setup_commands
-from api import socketio  # ✅ if you're treating 'src' as the root module
+from src.api.routes import api
+from src.api.cache import cache
+from src.api.models import db, LiveChat, User, RadioStation
+from src.api.utils import APIException, generate_sitemap
+from src.api.admin import setup_admin
+from src.api.commands import setup_commands
+from src.api import socketio  # ✅ if you're treating 'src' as the root module
 
 # ✅ Environment setup
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
