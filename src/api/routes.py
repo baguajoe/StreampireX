@@ -11,9 +11,9 @@ import mimetypes
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash,check_password_hash
 from datetime import datetime, timedelta
-from api.socketio import socketio
-from api.avatar_service import process_image_and_create_avatar
-from api.utils import generate_sitemap, APIException, send_email
+from .socketio import socketio
+from .avatar_service import process_image_and_create_avatar
+from .utils import generate_sitemap, APIException, send_email
 from sqlalchemy import func, desc, or_, and_, asc
 from flask_cors import CORS, cross_origin
 from flask_apscheduler import APScheduler
