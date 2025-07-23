@@ -18,7 +18,7 @@ import cloudinary
 socketio = SocketIO()
 
 # Import your blueprints - FIXED: Remove the conflicting socketio import
-from .api.routes import api
+from api.routes import api
 from api.cache import cache
 from api.models import db, LiveChat, User, RadioStation
 from api.utils import APIException, generate_sitemap
