@@ -2,8 +2,13 @@
 # ✅ Monkey patch must come FIRST — before ANY other imports
 import eventlet
 eventlet.monkey_patch()
-
+import sys
 import os
+
+src_dir = os.path.dirname(os.path.abspath(__file__))
+if src_dir not in sys.path:
+    sys.path.insert(0, src_dir)
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_migrate import Migrate
 from flask_mail import Mail, Message
