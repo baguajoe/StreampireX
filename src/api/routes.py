@@ -165,9 +165,9 @@ def get_videos():
     
     # Add sorting options
     if sort_by == 'newest':
-        query = query.order_by(desc(Video.created_at))
+        query = query.order_by(desc(Video.uploaded_at))
     elif sort_by == 'oldest':
-        query = query.order_by(asc(Video.created_at))
+        query = query.order_by(asc(Video.uploaded_at))
     elif sort_by == 'popular':
         # If you have views field, otherwise use likes
         if hasattr(Video, 'views'):
@@ -178,7 +178,7 @@ def get_videos():
         query = query.order_by(desc(Video.likes))
     else:
         # Default to newest
-        query = query.order_by(desc(Video.created_at))
+        query = query.order_by(desc(Video.uploaded_at))
     
     # Add pagination
     paginated_videos = query.paginate(
@@ -195,7 +195,7 @@ def get_videos():
             "title": v.title,
             "file_url": v.file_url,
             "likes": v.likes,
-            "created_at": v.created_at.isoformat(),
+            "created_at": v.uploaded_at.isoformat(),
             "uploader_id": v.user_id,
             "uploader_name": v.user.display_name or v.user.username,
             
@@ -465,7 +465,7 @@ def get_trending_videos():
     week_ago = datetime.utcnow() - timedelta(days=7)
     
     trending_videos = Video.query.filter(
-        Video.created_at >= week_ago,
+        Video.uploaded_at >= week_ago,
         Video.is_public == True
     ).order_by(desc(Video.likes)).limit(10).all()
     
@@ -476,7 +476,7 @@ def get_trending_videos():
             "title": v.title,
             "file_url": v.file_url,
             "likes": v.likes,
-            "created_at": v.created_at.isoformat(),
+            "created_at": v.uploaded_at.isoformat(),
             "uploader_id": v.user_id,
             "uploader_name": v.user.display_name or v.user.username,
             "uploader_avatar": getattr(v.user, 'profile_picture', None) or getattr(v.user, 'avatar_url', None),
