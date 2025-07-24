@@ -120,7 +120,7 @@ const useDebounce = (value, delay) => {
 
 // Custom hook for API calls
 const useApi = () => {
-  const baseUrl = process.env.REACT_APP_BACKEND_URL;
+  const baseUrl = process.env.BACKEND_URL;
   
   const apiCall = useCallback(async (endpoint, options = {}) => {
     const response = await fetch(`${baseUrl}${endpoint}`, {
