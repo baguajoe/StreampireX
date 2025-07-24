@@ -2,7 +2,7 @@
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from .models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, ChatMessage, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game
 
 import cloudinary.uploader
 import json
@@ -40,7 +40,7 @@ from mutagen.mp4 import MP4  # Add this for MP4/M4A support
 from mutagen.wave import WAVE  # Add this for WAV support
 
 # import moviepy
-from moviepy import AudioFileClip, VideoFileClip
+
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
 import stripe
@@ -5381,39 +5381,39 @@ def get_conversations():
     return jsonify(result), 200
 
 
-@api.route('/chat/send', methods=['POST'])
-@jwt_required()
-def send_chat_message():
-    data = request.get_json()
-    user_id = get_jwt_identity()
+# @api.route('/chat/send', methods=['POST'])
+# @jwt_required()
+# def send_chat_message():
+#     data = request.get_json()
+#     user_id = get_jwt_identity()
 
-    new_message = ChatMessage(
-        room=data['room'],
-        sender_id=user_id,
-        recipient_id=data['to'],
-        text=data['text'],
-        timestamp=datetime.utcnow(),
-        media_url=data.get('mediaUrl')
-    )
-    db.session.add(new_message)
-    db.session.commit()
+#     new_message = ChatMessage(
+#         room=data['room'],
+#         sender_id=user_id,
+#         recipient_id=data['to'],
+#         text=data['text'],
+#         timestamp=datetime.utcnow(),
+#         media_url=data.get('mediaUrl')
+#     )
+#     db.session.add(new_message)
+#     db.session.commit()
 
-    return jsonify({"message": "Message saved successfully."}), 201
+#     return jsonify({"message": "Message saved successfully."}), 201
 
 
-@api.route('/chat/history', methods=['GET'])
-@jwt_required()
-def get_chat_history():
-    room = request.args.get('room')
-    messages = ChatMessage.query.filter_by(room=room).order_by(ChatMessage.timestamp.asc()).all()
+# @api.route('/chat/history', methods=['GET'])
+# @jwt_required()
+# def get_chat_history():
+#     room = request.args.get('room')
+#     messages = ChatMessage.query.filter_by(room=room).order_by(ChatMessage.timestamp.asc()).all()
 
-    return jsonify([{
-        'from': m.sender_id,
-        'to': m.recipient_id,
-        'text': m.text,
-        'timestamp': m.timestamp.isoformat(),
-        'mediaUrl': m.media_url
-    } for m in messages])
+#     return jsonify([{
+#         'from': m.sender_id,
+#         'to': m.recipient_id,
+#         'text': m.text,
+#         'timestamp': m.timestamp.isoformat(),
+#         'mediaUrl': m.media_url
+#     } for m in messages])
 
 @api.route('/user/settings', methods=['GET', 'PUT'])
 @jwt_required()
@@ -7860,4 +7860,48 @@ def stream_station_audio(station_id):
     
     return send_from_directory(full_directory, filename, mimetype="audio/mpeg")
 
+# ✅ Create a Group
+@api.route("/api/groups", methods=["POST"])
+@jwt_required()
+def create_group():
+    data = request.json
+    name = data.get("name")
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
 
+    group = Group(name=name, created_by=user_id)
+    group.members.append(user)  # Creator is added automatically
+
+    db.session.add(group)
+    db.session.commit()
+    return jsonify(group.serialize()), 201
+
+# ✅ Add User to Group
+@api.route("/api/groups/<int:group_id>/add-member", methods=["POST"])
+@jwt_required()
+def add_group_member(group_id):
+    data = request.json
+    user_id = data.get("user_id")
+
+    group = Group.query.get(group_id)
+    user = User.query.get(user_id)
+
+    if not group or not user:
+        return jsonify({"error": "Invalid group or user ID"}), 404
+
+    group.members.append(user)
+    db.session.commit()
+    return jsonify({"message": f"User {user_id} added to group {group_id}"}), 200
+
+@api.route('/messages/room/<room_id>', methods=['GET'])
+@jwt_required()
+def get_messages_by_room(room_id):
+    messages = Message.query.filter_by(room=room_id).order_by(Message.created_at).all()
+    return jsonify([{
+        "id": m.id,
+        "room": m.room,
+        "from": m.sender_id,
+        "to": m.recipient_id,
+        "text": m.text,
+        "timestamp": m.created_at.isoformat()
+    } for m in messages]), 200
