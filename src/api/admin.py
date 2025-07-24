@@ -1,6 +1,6 @@
 import os
 from flask_admin import Admin
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, PricingPlan, Subscription, FavoritePage, Product, RefundRequest, Revenue, Payment, Order, Notification, Comment, Message, Conversation, Group, ChatMessage, ShareAnalytics, Like, Tip, Engagement, Earnings, Popularity, Podcast, PodcastHost, PodcastChapter, PodcastPurchase, PodcastClip, RadioDonation, RadioFollower, RadioSubmission, Role, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, TicketPurchase, VRAccessTicket, Music, Track, LicensingOpportunity, MusicLicensing, Collaboration, Artist, Album, ListeningParty, ListeningPartyAttendee, Stream
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, PricingPlan, Subscription, FavoritePage, Product, RefundRequest, Revenue, Payment, Order, Notification, Comment, Message, Conversation, Group,ShareAnalytics, Like, Tip, Engagement, Earnings, Popularity, Podcast, PodcastHost, PodcastChapter, PodcastPurchase, PodcastClip, RadioDonation, RadioFollower, RadioSubmission, Role, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, TicketPurchase, VRAccessTicket, Music, Track, LicensingOpportunity, MusicLicensing, Collaboration, Artist, Album, ListeningParty, ListeningPartyAttendee, Stream
 from flask_admin.contrib.sqla import ModelView
 
 def setup_admin(app):
@@ -40,7 +40,6 @@ def setup_admin(app):
     admin.add_view(ModelView(Message, db.session))
     admin.add_view(ModelView(Conversation, db.session))
     admin.add_view(ModelView(Group, db.session))
-    admin.add_view(ModelView(ChatMessage, db.session))
     admin.add_view(ModelView(ShareAnalytics, db.session))
     admin.add_view(ModelView(Like, db.session))
     admin.add_view(ModelView(Tip, db.session))

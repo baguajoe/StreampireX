@@ -2542,36 +2542,42 @@ class Conversation(db.Model):
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    room = db.Column(db.String(128), nullable=False)
+    room = db.Column(db.String(128), nullable=False)  # UUID or "user1-user2"
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # null for group
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=True)
     text = db.Column(db.Text, nullable=False)
     is_read = db.Column(db.Boolean, default=False)
     read_at = db.Column(db.DateTime)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class ChatMessage(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    room = db.Column(db.String(128), nullable=False)
-    sender_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    recipient_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
-    text = db.Column(db.Text)
-    media_url = db.Column(db.String)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 # Define association table first
+# 🔁 Many-to-Many Table (no model needed)
 group_members = db.Table('group_members',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
     db.Column('group_id', db.Integer, db.ForeignKey('group.id'))
 )
 
-# Then use it in your Group model
+# 👥 Group Chat Model
 class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Users in the group
     members = db.relationship('User', secondary=group_members, backref='groups')
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "created_by": self.created_by,
+            "members": [user.id for user in self.members],
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        }
 
 # models.py
 

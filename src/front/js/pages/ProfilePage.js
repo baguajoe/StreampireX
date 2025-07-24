@@ -4,6 +4,9 @@ import UploadVideo from "../component/UploadVideo";
 import ChatModal from "../component/ChatModal";
 import WebRTCChat from "../component/WebRTCChat";
 import VideoChatPopup from "../component/VideoChatPopup";
+import DirectChat from "../component/DirectChat";
+import InboxDrawer from "../component/InboxDrawer";
+import GroupChat from "../component/GroupChat";
 import "../../styles/ProfilePage.css";
 import "../../styles/WebRTC.css";
 import lady1 from "../../img/lady1.png"
@@ -14,6 +17,15 @@ import energyReset from "../../img/energy_reset.png";
 import chiCast from "../../img/chicast.png";
 import zenmaster from "../../img/zenmaster.png";
 import fitjay from "../../img/fit_jay.png";
+
+
+import { io } from "socket.io-client";
+
+const socket = io(process.env.BACKEND_URL || "http://localhost:3001", {
+  transports: ["websocket"],
+  auth: { token: localStorage.getItem("token") },
+  withCredentials: true,
+});
 
 const ProfilePage = () => {
     const [user, setUser] = useState({});
@@ -780,7 +792,9 @@ const ProfilePage = () => {
                     )}
                 </div>
             </div>
-
+            {user && socket && (
+                <InboxDrawer currentUser={user} socket={socket} />
+            )}
             {!justSaved && (
                 <button onClick={handleSaveProfile} className="btn-primary">
                     💾 Save Profile
