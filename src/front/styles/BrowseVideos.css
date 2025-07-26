@@ -1,6 +1,6 @@
-/* BrowseVideos.css - Styled like BrowseRadioStations */
+/* BrowseVideos.css - Solution 1: Persistent Header Upload Button */
 
-/* Main wrapper matching BrowseRadioStations */
+/* Main wrapper */
 .categories-wrapper {
   max-width: 1200px;
   margin: 0 auto;
@@ -9,7 +9,7 @@
   min-height: 100vh;
 }
 
-/* Header styling */
+/* Header styling with persistent upload button */
 .categories-heading {
   text-align: center;
   font-size: 2.5rem;
@@ -22,14 +22,59 @@
 }
 
 .browse-videos-header {
-  text-align: center;
   margin-bottom: 2rem;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background: white;
+  padding: 1.5rem 2rem;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.header-text {
+  text-align: left;
+  flex: 1;
+}
+
+.header-actions {
+  flex-shrink: 0;
 }
 
 .video-count {
   font-size: 1.1rem;
   color: #666;
   margin-top: 0.5rem;
+}
+
+/* Persistent Upload Button - Always Visible */
+.upload-header-btn {
+  background: linear-gradient(45deg, #6c63ff, #5a52d5);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(108, 99, 255, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-header-btn:hover {
+  background: linear-gradient(45deg, #5a52d5, #4846c7);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(108, 99, 255, 0.4);
+  color: white;
+  text-decoration: none;
 }
 
 /* Search Section */
@@ -310,6 +355,7 @@
   padding: 1rem;
 }
 
+/* Video Title and Content */
 .video-title {
   font-size: 1.1rem;
   font-weight: 600;
@@ -320,7 +366,27 @@
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  line-clamp: 2;
   min-height: 2.6em;
+}
+
+/* Video Creator Channel Link Styles */
+.video-creator-link {
+  text-decoration: none;
+  color: inherit;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.video-creator-link:hover {
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.video-creator-link:hover .video-creator {
+  background: linear-gradient(135deg, #764ba2, #667eea);
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .video-creator {
@@ -332,6 +398,12 @@
   display: inline-block;
   margin-bottom: 10px;
   font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.video-creator:hover {
+  color: white;
 }
 
 .video-stats {
@@ -352,7 +424,26 @@
 }
 
 /* Error and No Videos States */
-.error-message,
+.error-message {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  margin: 2rem 0;
+}
+
+.error-message h3 {
+  color: #333;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+/* ===========================================
+   DRAG & DROP ZONE STYLES
+   =========================================== */
+
+/* Enhanced No Videos State with Drag & Drop */
 .no-videos {
   text-align: center;
   padding: 3rem 2rem;
@@ -362,12 +453,199 @@
   margin: 2rem 0;
 }
 
-.error-message h3,
 .no-videos h3 {
   color: #333;
   margin-bottom: 1rem;
   font-size: 1.5rem;
 }
+
+/* Drag and Drop Zone Styles */
+.drag-drop-zone {
+  border: 3px dashed #6c63ff;
+  border-radius: 20px;
+  padding: 60px 40px;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(108, 99, 255, 0.05), rgba(108, 99, 255, 0.1));
+  margin: 40px auto;
+  max-width: 600px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.drag-drop-zone::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.drag-drop-zone:hover {
+  border-color: #5a52d5;
+  background: linear-gradient(135deg, rgba(108, 99, 255, 0.1), rgba(108, 99, 255, 0.15));
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(108, 99, 255, 0.2);
+}
+
+.drag-drop-zone:hover::before {
+  left: 100%;
+}
+
+.drag-drop-zone.drag-over {
+  border-color: #4caf50;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.15));
+  transform: scale(1.02);
+}
+
+.drag-drop-content {
+  position: relative;
+  z-index: 1;
+}
+
+.upload-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+.upload-options {
+  margin: 30px 0;
+}
+
+.drag-drop-text {
+  margin-bottom: 20px;
+}
+
+.drag-highlight {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #6c63ff;
+  margin-bottom: 8px;
+}
+
+.drag-or {
+  display: block;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.upload-main-btn {
+  background: linear-gradient(45deg, #6c63ff, #5a52d5);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin: 10px;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.upload-main-btn:hover {
+  background: linear-gradient(45deg, #5a52d5, #4846c7);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(108, 99, 255, 0.3);
+  text-decoration: none;
+  color: white;
+}
+
+.clear-filters-btn-main {
+  background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+  color: white;
+  border: none;
+  padding: 10px 25px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin: 10px;
+}
+
+.clear-filters-btn-main:hover {
+  background: linear-gradient(45deg, #ee5a52, #e53e3e);
+  transform: translateY(-2px);
+}
+
+.upload-info {
+  margin-top: 25px;
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.upload-info small {
+  background: rgba(108, 99, 255, 0.1);
+  padding: 8px 16px;
+  border-radius: 15px;
+  border: 1px solid rgba(108, 99, 255, 0.2);
+}
+
+/* Loading overlay for drag uploads */
+.drag-drop-zone.uploading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.drag-drop-zone.uploading::after {
+  content: 'Uploading...';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(108, 99, 255, 0.9);
+  color: white;
+  padding: 15px 30px;
+  border-radius: 10px;
+  font-weight: 600;
+  z-index: 10;
+}
+
+/* Animation for successful upload */
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+    border-color: #4caf50;
+  }
+  50% {
+    transform: scale(1.05);
+    border-color: #66bb6a;
+  }
+  100% {
+    transform: scale(1);
+    border-color: #4caf50;
+  }
+}
+
+.drag-drop-zone.upload-success {
+  animation: successPulse 0.6s ease-in-out;
+  border-color: #4caf50;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.15));
+}
+
+/* ===========================================
+   BUTTON STYLES
+   =========================================== */
 
 .retry-btn,
 .btn-secondary,
@@ -392,6 +670,8 @@
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  text-decoration: none;
+  color: white;
 }
 
 /* Pagination */
@@ -479,7 +759,10 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Responsive Design */
+/* ===========================================
+   RESPONSIVE DESIGN
+   =========================================== */
+
 @media (max-width: 1200px) {
   .podcast-scroll-row {
     grid-template-columns: repeat(3, 1fr);
@@ -501,6 +784,21 @@
 @media (max-width: 768px) {
   .categories-wrapper {
     padding: 15px;
+  }
+
+  .header-content {
+    flex-direction: column;
+    text-align: center;
+    padding: 1rem;
+  }
+
+  .header-text {
+    text-align: center;
+  }
+
+  .upload-header-btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .controls-section {
@@ -546,6 +844,25 @@
     height: 35px;
     font-size: 1rem;
   }
+
+  /* Mobile Drag & Drop Adjustments */
+  .drag-drop-zone {
+    padding: 40px 20px;
+    margin: 20px;
+  }
+  
+  .upload-icon {
+    font-size: 3rem;
+  }
+  
+  .drag-highlight {
+    font-size: 1rem;
+  }
+  
+  .upload-main-btn {
+    width: 100%;
+    margin: 10px 0;
+  }
 }
 
 @media (max-width: 480px) {
@@ -586,13 +903,42 @@
   .video-content {
     padding: 0.8rem;
   }
+
+  /* Smaller drag zone on very small screens */
+  .drag-drop-zone {
+    padding: 30px 15px;
+    margin: 15px;
+  }
+
+  .upload-icon {
+    font-size: 2.5rem;
+  }
+
+  .drag-highlight {
+    font-size: 0.9rem;
+  }
 }
 
 /* Focus states for accessibility */
 .category-pill:focus,
 .scroll-button:focus,
 .pagination-btn:focus,
-.search-input:focus {
+.search-input:focus,
+.upload-main-btn:focus,
+.upload-header-btn:focus,
+.drag-drop-zone:focus {
   outline: 2px solid #667eea;
   outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .drag-drop-zone {
+    border-color: #000;
+    background: rgba(255, 255, 255, 0.9);
+  }
+  
+  .drag-highlight {
+    color: #000;
+  }
 }

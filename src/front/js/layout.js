@@ -53,6 +53,11 @@ import LiveShowPage from "./pages/LiveShowPage";
 import LabelDashboard from "./pages/LabelDashboard";
 import ReleaseList from "./pages/ReleaseList";
 
+import UserVideoChannelPage from "./pages/UserVideoChannelPage";
+
+// Add in your Routes section
+<Route path="/user/:userId/videos" element={<UserVideoChannelPage />} />
+
 // 🎵 NEW: Artist Profile Page Import
 import ArtistProfilePage from "./pages/ArtistProfilePage";
 
@@ -138,6 +143,7 @@ const Layout = () => {
               <Route path="/podcast/profile/:username/:podcastId" element={<PodcastProfile />} />
               <Route path="/podcast-category/:category" element={<PodcastCategoryPage />} />
               <Route path="/podcast/:podcast_id" element={<PodcastDetailPage />} />
+              <Route path="/user/:userId/videos" element={<UserVideoChannelPage />} />
 
               {/* 📻 Radio Stations */}
               <Route path="/radio-dashboard" element={<RadioStationDashboard />} />

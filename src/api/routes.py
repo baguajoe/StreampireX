@@ -93,12 +93,25 @@ def upload_video():
     video = request.files['video']
     title = request.form.get('title', 'Untitled')
     description = request.form.get('description', '')
+    
+    # ✅ NEW: Additional form fields
+    category = request.form.get('category', 'Other')
+    tags = request.form.get('tags', '')
+    visibility = request.form.get('visibility', 'public')
+    age_restricted = request.form.get('age_restricted', 'false').lower() == 'true'
+    allow_comments = request.form.get('allow_comments', 'true').lower() == 'true'
+    allow_likes = request.form.get('allow_likes', 'true').lower() == 'true'
+    
+    # Content declaration fields
+    made_for_kids = request.form.get('made_for_kids', 'false').lower() == 'true'
+    contains_paid_promotion = request.form.get('contains_paid_promotion', 'false').lower() == 'true'
+    original_content = request.form.get('original_content', 'true').lower() == 'true'
 
     if video.filename == '':
         return jsonify({"error": "No selected file"}), 400
 
     try:
-        # ✅ Upload to Cloudinary
+        # ✅ Upload video to Cloudinary
         upload_result = cloudinary.uploader.upload_large(
             video,
             resource_type="video",
@@ -109,28 +122,110 @@ def upload_video():
 
         video_url = upload_result.get("secure_url")
         duration = upload_result.get("duration", 0)
+        
+        # ✅ Get additional metadata from Cloudinary
+        file_size = upload_result.get("bytes", 0)
+        width = upload_result.get("width", 0)
+        height = upload_result.get("height", 0)
+        format_type = upload_result.get("format", "")
+        
+        # Create resolution string
+        resolution = f"{width}x{height}" if width and height else None
 
-        # ✅ Enforce duration limits by user role
-        if user.role == 'Free' and duration > 120:
-            return jsonify({"error": "Free users can only upload videos up to 2 minutes."}), 403
-        elif user.role in ['Pro', 'Premium'] and duration > 1200:
-            return jsonify({"error": "Video too long for Pro/Premium tier."}), 403
+        # ✅ UPDATED: More generous duration limits by user role
+        if user.role == 'Free' and duration > 600:  # 10 minutes for Free users
+            return jsonify({"error": "Free users can upload videos up to 10 minutes long."}), 403
+        elif user.role == 'Pro' and duration > 1800:  # 30 minutes for Pro users
+            return jsonify({"error": "Pro users can upload videos up to 30 minutes long."}), 403
+        elif user.role == 'Premium' and duration > 3600:  # 60 minutes for Premium users
+            return jsonify({"error": "Premium users can upload videos up to 60 minutes long."}), 403
 
-        # ✅ Save to DB
+        # ✅ Handle thumbnail upload (if provided)
+        thumbnail_url = None
+        if 'thumbnail' in request.files:
+            thumbnail_file = request.files['thumbnail']
+            if thumbnail_file.filename != '':
+                try:
+                    thumbnail_result = cloudinary.uploader.upload(
+                        thumbnail_file,
+                        folder="video_thumbnails",
+                        public_id=f"thumb_{secure_filename(video.filename).split('.')[0]}",
+                        overwrite=True
+                    )
+                    thumbnail_url = thumbnail_result.get("secure_url")
+                except Exception as thumb_error:
+                    print(f"Thumbnail upload failed: {thumb_error}")
+                    # Continue without thumbnail - not critical
+
+        # ✅ Process tags
+        tag_list = []
+        if tags:
+            tag_list = [tag.strip() for tag in tags.split(',') if tag.strip()]
+
+        # ✅ Determine if video is public based on visibility
+        is_public = visibility == 'public'
+
+        # ✅ Save to DB with comprehensive metadata
         new_video = Video(
             user_id=user_id,
             title=title,
             description=description,
             file_url=video_url,
+            thumbnail_url=thumbnail_url,
+            duration=int(duration) if duration else None,
+            file_size=file_size,
+            resolution=resolution,
+            codec=format_type,
+            
+            # Category and organization
+            category=category,
+            tags=tag_list,
+            
+            # Visibility and permissions
+            is_public=is_public,
+            is_premium=False,  # Could be updated based on user tier
+            age_restricted=age_restricted,
+            
+            # Content declarations
+            made_for_kids=made_for_kids,
+            contains_paid_promotion=contains_paid_promotion,
+            original_content=original_content,
+            
+            # Interaction settings
+            allow_comments=allow_comments,
+            allow_likes=allow_likes,
+            
+            # Timestamps
             uploaded_at=datetime.utcnow()
         )
+        
         db.session.add(new_video)
         db.session.commit()
 
-        return jsonify({"message": "Video uploaded to Cloudinary!", "video": new_video.serialize()}), 201
+        # ✅ Return comprehensive response
+        response_data = {
+            "message": "Video uploaded successfully!",
+            "video": {
+                "id": new_video.id,
+                "title": new_video.title,
+                "description": new_video.description,
+                "file_url": new_video.file_url,
+                "thumbnail_url": new_video.thumbnail_url,
+                "duration": new_video.duration,
+                "category": new_video.category,
+                "tags": new_video.tags,
+                "visibility": visibility,
+                "is_public": new_video.is_public,
+                "uploaded_at": new_video.uploaded_at.isoformat(),
+                "uploader_name": user.display_name or user.username
+            }
+        }
+
+        return jsonify(response_data), 201
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Video upload error: {str(e)}")
+        return jsonify({"error": f"Upload failed: {str(e)}"}), 500
 
 # ---------------- GET VIDEOS ----------------
 @api.route('/videos', methods=['GET'])
@@ -5584,6 +5679,42 @@ def get_user_profile():
             "error": f"Failed to retrieve profile: {str(e)}"
         }), 500
 
+# Add these endpoints to your routes.py file
+
+# Add this endpoint to your routes.py file
+
+@api.route("/api/user/<int:user_id>", methods=["GET"])
+def get_public_user_profile(user_id):
+    """Get any user's public profile data (for video channels)"""
+    try:
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Return public profile data only (no sensitive info)
+        public_profile = {
+            "id": user.id,
+            "username": user.username,
+            "display_name": getattr(user, 'display_name', None),
+            "bio": getattr(user, 'bio', None),
+            "profile_picture": getattr(user, 'profile_picture', None),
+            "avatar_url": getattr(user, 'avatar_url', None),
+            "cover_photo": getattr(user, 'cover_photo', None),
+            "created_at": user.created_at.isoformat() if hasattr(user, 'created_at') and user.created_at else None,
+            "artist_name": getattr(user, 'artist_name', None),
+            # Don't include private info like email, password_hash, etc.
+        }
+        
+        return jsonify(public_profile), 200
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to retrieve user profile: {str(e)}"
+        }), 500
+
+# 2. Get videos for a specific user (for video channels)
+
 
 @api.route('/user/profile', methods=['PUT'])
 @jwt_required()
@@ -7905,3 +8036,4 @@ def get_messages_by_room(room_id):
         "text": m.text,
         "timestamp": m.created_at.isoformat()
     } for m in messages]), 200
+
