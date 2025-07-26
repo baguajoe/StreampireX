@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "460c3d531a173fddd02ff989debc14ad1551c28e18cc6d6d4a8dd210ce13b4fc"
+            "sha256": "5e5d708cee302a8704f95c2a120227171844c71e8b520c35ec707c9d53934ea3"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -204,11 +204,11 @@
         },
         "eventlet": {
             "hashes": [
-                "sha256:378f36ac9b3f4d28f2e921fd8897ebc9797d017e34b96c259ac87c032d1c1bf3",
-                "sha256:aee74de74ac6634a1dac1ed58dc93b5dc2abaef3c7b5e76fd7f195f1662f25ef"
+                "sha256:42636c277f761d026905cd0ba0a11edec7600001be401d6ae7e9546559c8d8b0",
+                "sha256:590c67b982015bc6b753a5303f3ec7356bc7890a39efd65176179f0113f5d35e"
             ],
             "index": "pypi",
-            "version": "==0.40.1"
+            "version": "==0.40.2"
         },
         "feedparser": {
             "hashes": [
@@ -217,6 +217,13 @@
             ],
             "index": "pypi",
             "version": "==6.0.11"
+        },
+        "ffmpeg": {
+            "hashes": [
+                "sha256:6931692c890ff21d39938433c2189747815dca0c60ddc7f9bb97f199dba0b5b9"
+            ],
+            "index": "pypi",
+            "version": "==1.4"
         },
         "flask": {
             "hashes": [
@@ -378,7 +385,7 @@
                 "sha256:efc6dc8a792243c31f2f5674b670b3a95d46fa1c6a912b8e310d6f542e7b0712",
                 "sha256:f4bfbaa6096b1b7a200024784217defedf46a07c2eee1a498e94a1b5f8ec5728"
             ],
-            "markers": "python_version >= '3' and platform_machine == 'aarch64' or (platform_machine == 'ppc64le' or (platform_machine == 'x86_64' or (platform_machine == 'amd64' or (platform_machine == 'AMD64' or (platform_machine == 'win32' or platform_machine == 'WIN32')))))",
+            "markers": "python_version >= '3' and (platform_machine == 'aarch64' or (platform_machine == 'ppc64le' or (platform_machine == 'x86_64' or (platform_machine == 'amd64' or (platform_machine == 'AMD64' or (platform_machine == 'win32' or platform_machine == 'WIN32'))))))",
             "version": "==3.2.3"
         },
         "gunicorn": {
@@ -804,7 +811,7 @@
                 "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3",
                 "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"
             ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2'",
             "version": "==2.9.0.post0"
         },
         "python-dotenv": {
@@ -933,7 +940,7 @@
                 "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274",
                 "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81"
             ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2'",
             "version": "==1.17.0"
         },
         "sqlalchemy": {

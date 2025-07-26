@@ -34,6 +34,7 @@ moviepy = "*"
 mutagen = "*"
 eventlet = "*"
 flask-apscheduler = "*"
+ffmpeg = "*"
 
 [requires]
 python_version = "3.10"

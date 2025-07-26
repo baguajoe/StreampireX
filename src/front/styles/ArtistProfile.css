@@ -1,5 +1,6 @@
 /* Artist Profile Styles */
 .artist-profile-container {
+  width: 90vw;
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
