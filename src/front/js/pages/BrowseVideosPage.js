@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import { Link } from "react-router-dom";
 import "../../styles/BrowseVideos.css";
 import VideoCard from "../component/VideoCard";
+import VideoUploadForm from "../component/VideoUploadForm";
 
 // Constants moved outside component to prevent recreation
 const ITEMS_PER_PAGE = 20;
@@ -121,7 +122,7 @@ const useDebounce = (value, delay) => {
 // Custom hook for API calls
 const useApi = () => {
   const baseUrl = process.env.BACKEND_URL;
-  
+
   const apiCall = useCallback(async (endpoint, options = {}) => {
     const response = await fetch(`${baseUrl}${endpoint}`, {
       headers: {
@@ -153,6 +154,7 @@ const BrowseVideosPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState(""); // For navigation tabs
+  const [showUploadForm, setShowUploadForm] = useState(false);
 
   // Refs for scrolling
   const scrollRef = useRef(null);
@@ -167,8 +169,8 @@ const BrowseVideosPage = () => {
   }, [searchTerm, selectedCategory, sortBy]);
 
   const videoCountText = useMemo(() => {
-    return pagination.total 
-      ? `${pagination.total.toLocaleString()} videos found` 
+    return pagination.total
+      ? `${pagination.total.toLocaleString()} videos found`
       : `${videos.length.toLocaleString()} videos`;
   }, [pagination.total, videos.length]);
 
@@ -184,6 +186,85 @@ const BrowseVideosPage = () => {
       scrollRef.current.scrollLeft += 200;
     }
   };
+
+  // Drag and drop handlers
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const files = Array.from(e.dataTransfer.files);
+    const videoFiles = files.filter(file => file.type.startsWith('video/'));
+
+    if (videoFiles.length === 0) {
+      alert('Please drop video files only.');
+      return;
+    }
+
+    // Handle the first video file dropped
+    const videoFile = videoFiles[0];
+    
+    // Check file size (50MB limit)
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (videoFile.size > maxSize) {
+      alert('Video file is too large. Maximum size is 50MB.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please log in to upload videos");
+        return;
+      }
+
+      setIsLoading(true);
+      
+      const formData = new FormData();
+      formData.append('video', videoFile);
+      formData.append('title', videoFile.name.replace(/\.[^/.]+$/, "")); // Remove file extension
+      formData.append('description', `Uploaded via drag and drop: ${videoFile.name}`);
+
+      const response = await fetch(`${process.env.BACKEND_URL}/api/upload_video`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const result = await response.json();
+      alert('Video uploaded successfully!');
+      
+      // Refresh the videos list
+      fetchVideos();
+      
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert(`Upload failed: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   // API functions
   const fetchCategories = useCallback(async () => {
@@ -217,10 +298,10 @@ const BrowseVideosPage = () => {
         setPagination(data.pagination || {});
       } else if (Array.isArray(data)) {
         setVideos(data);
-        setPagination({ 
-          page: 1, 
-          total: data.length, 
-          has_next: false, 
+        setPagination({
+          page: 1,
+          total: data.length,
+          has_next: false,
           has_prev: false,
           pages: 1
         });
@@ -353,9 +434,22 @@ const BrowseVideosPage = () => {
 
   return (
     <div className="categories-wrapper">
+      {/* Header with Persistent Upload Button */}
       <div className="browse-videos-header">
-        <h1 className="categories-heading">📹 Browse All Free Videos</h1>
-        <p className="video-count">{videoCountText}</p>
+        <div className="header-content">
+          <div className="header-text">
+            <h1 className="categories-heading">📹 Browse All Free Videos</h1>
+            <p className="video-count">{videoCountText}</p>
+          </div>
+          <div className="header-actions">
+            <button
+              onClick={() => setShowUploadForm(true)}
+              className="btn-primary upload-header-btn"
+            >
+              📤 Upload Video
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -386,42 +480,42 @@ const BrowseVideosPage = () => {
       <div className="controls-section">
         {/* Navigation Tabs */}
         <div className="nav-tabs">
-          <div 
+          <div
             className={`nav-tab ${activeTab === 'history' ? 'active' : ''}`}
             onClick={() => setActiveTab('history')}
           >
             <span className="nav-icon">🕐</span>
             <span className="nav-text">History</span>
           </div>
-          <div 
+          <div
             className={`nav-tab ${activeTab === 'playlists' ? 'active' : ''}`}
             onClick={() => setActiveTab('playlists')}
           >
             <span className="nav-icon">📋</span>
             <span className="nav-text">Playlists</span>
           </div>
-          <div 
+          <div
             className={`nav-tab ${activeTab === 'your-videos' ? 'active' : ''}`}
             onClick={() => setActiveTab('your-videos')}
           >
             <span className="nav-icon">📹</span>
             <span className="nav-text">Your videos</span>
           </div>
-          <div 
+          <div
             className={`nav-tab ${activeTab === 'watch-later' ? 'active' : ''}`}
             onClick={() => setActiveTab('watch-later')}
           >
             <span className="nav-icon">🕒</span>
             <span className="nav-text">Watch later</span>
           </div>
-          <div 
+          <div
             className={`nav-tab ${activeTab === 'liked' ? 'active' : ''}`}
             onClick={() => setActiveTab('liked')}
           >
             <span className="nav-icon">👍</span>
             <span className="nav-text">Liked videos</span>
           </div>
-          <div 
+          <div
             className={`nav-tab ${activeTab === 'downloads' ? 'active' : ''}`}
             onClick={() => setActiveTab('downloads')}
           >
@@ -442,8 +536,8 @@ const BrowseVideosPage = () => {
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
-              <option value="popular">Most Popular</option>
               <option value="most_liked">Most Liked</option>
+              <option value="popular">Most Popular</option>
             </select>
           </div>
 
@@ -458,7 +552,7 @@ const BrowseVideosPage = () => {
         </div>
       </div>
 
-      {/* Horizontal Category Navigation - BrowseRadioStations Style */}
+      {/* Horizontal Category Navigation */}
       <div className="category-nav">
         <button onClick={scrollLeft} className="scroll-button">‹</button>
         <div className="categories-scroll" ref={scrollRef}>
@@ -485,43 +579,75 @@ const BrowseVideosPage = () => {
         </div>
       )}
 
-      {/* No Videos State */}
+      {/* No Videos State with Drag & Drop */}
       {!isLoading && !error && videos.length === 0 && (
-        <div className="no-videos">
-          <h3>🎬 No videos found</h3>
-          <p>
-            {hasActiveFilters
-              ? "Try adjusting your search or filters"
-              : "No videos have been uploaded yet. Be the first!"
-            }
-          </p>
-          {hasActiveFilters && (
-            <button onClick={handleClearFilters} className="btn-secondary">
-              🔄 Clear All Filters
-            </button>
-          )}
-          <Link to="/profile" className="btn-primary">
-            📤 Upload Your First Video
-          </Link>
+        <div 
+          className="no-videos drag-drop-zone"
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <div className="drag-drop-content">
+            <div className="upload-icon">📁</div>
+            <h3>🎬 No videos found</h3>
+            <p>
+              {hasActiveFilters
+                ? "Try adjusting your search or filters"
+                : "No videos have been uploaded yet. Be the first!"
+              }
+            </p>
+            
+            <div className="upload-options">
+              <div className="drag-drop-text">
+                <span className="drag-highlight">Drag & drop videos here</span>
+                <span className="drag-or">or</span>
+              </div>
+              
+              {hasActiveFilters && (
+                <button onClick={handleClearFilters} className="btn-secondary clear-filters-btn-main">
+                  🔄 Clear All Filters
+                </button>
+              )}
+              
+              <button 
+                onClick={() => setShowUploadForm(true)} 
+                className="btn-primary upload-main-btn"
+              >
+                📤 Upload Your First Video
+              </button>
+            </div>
+            
+            <div className="upload-info">
+              <small>Supported formats: MP4, AVI, MOV, WMV • Max size: 50MB</small>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Video Grid - 4 per row */}
+      {/* Video Grid */}
       {videos.length > 0 && (
         <div className="podcast-section">
           <div className="podcast-scroll-row">
             {videos.map((video) => (
               <div key={video.id} className="video-card">
-                <img 
-                  src={video.thumbnail_url || '/placeholder-thumbnail.jpg'} 
+                <img
+                  src={video.thumbnail_url || '/placeholder-thumbnail.jpg'}
                   alt={video.title}
                   className="video-thumbnail"
                 />
                 <div className="video-content">
                   <h3 className="video-title">{video.title}</h3>
-                  <span className="video-creator">
-                    {video.uploader_name || 'Unknown'}
-                  </span>
+
+                  <Link
+                    to={`/user/${video.uploader_id}/videos`}
+                    className="video-creator-link"
+                  >
+                    <span className="video-creator">
+                      {video.uploader_name || 'Unknown'}
+                    </span>
+                  </Link>
+
                   <div className="video-stats">
                     <span>{video.views || 0} views</span>
                     <span className="video-duration">
@@ -563,12 +689,23 @@ const BrowseVideosPage = () => {
         </div>
       )}
 
-        {/* Loading overlay for pagination */}
-        {isLoading && videos.length > 0 && (
-          <div className="loading-overlay">
-            <div className="spinner"></div>
-          </div>
-        )}
+      {/* Loading overlay for pagination */}
+      {isLoading && videos.length > 0 && (
+        <div className="loading-overlay">
+          <div className="spinner"></div>
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUploadForm && (
+        <VideoUploadForm
+          onClose={() => setShowUploadForm(false)}
+          onUploadSuccess={() => {
+            setShowUploadForm(false);
+            fetchVideos(); // Refresh the video list
+          }}
+        />
+      )}
     </div>
   );
 };
