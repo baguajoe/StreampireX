@@ -35,6 +35,7 @@ mutagen = "*"
 eventlet = "*"
 flask-apscheduler = "*"
 ffmpeg = "*"
+openai-whisper = "*"
 
 [requires]
 python_version = "3.10"

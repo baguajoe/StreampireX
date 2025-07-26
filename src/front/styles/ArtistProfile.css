@@ -1,7 +1,7 @@
 /* Artist Profile Styles */
 .artist-profile-container {
   width: 90vw;
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 20px;
   background: linear-gradient(135deg, #1a0033 0%, #330066 50%, #4d0099 100%);

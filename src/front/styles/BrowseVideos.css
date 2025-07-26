@@ -2,7 +2,7 @@
 
 /* Main wrapper */
 .categories-wrapper {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 20px;
   background: linear-gradient(135deg, #f8f9fa, #ffffff);
