@@ -1,16 +1,15 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import UploadVideo from "../component/UploadVideo";
 import ChatModal from "../component/ChatModal";
-import WebRTCChat from "../component/WebRTCChat";
 import VideoChatPopup from "../component/VideoChatPopup";
-import DirectChat from "../component/DirectChat";
 import InboxDrawer from "../component/InboxDrawer";
-import GroupChat from "../component/GroupChat";
 import "../../styles/ProfilePage.css";
 import "../../styles/WebRTC.css";
-import lady1 from "../../img/lady1.png"
-import campfire from "../../img/campfire.png"
+
+// Optimized imports - consider lazy loading these
+import lady1 from "../../img/lady1.png";
+import campfire from "../../img/campfire.png";
 import lofiLounge from "../../img/lofi_lounge.png";
 import jazzHub from "../../img/jazzhub.png";
 import energyReset from "../../img/energy_reset.png";
@@ -18,65 +17,185 @@ import chiCast from "../../img/chicast.png";
 import zenmaster from "../../img/zenmaster.png";
 import fitjay from "../../img/fit_jay.png";
 
-
 import { io } from "socket.io-client";
 
-const socket = io(process.env.BACKEND_URL || "http://localhost:3001", {
-  transports: ["websocket"],
-  auth: { token: localStorage.getItem("token") },
-  withCredentials: true,
-});
+// Constants
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev';
+const SOCKET_URL = process.env.BACKEND_URL || "http://localhost:3001";
+
+const MOOD_OPTIONS = [
+    { id: "chill", emoji: "😌", label: "Chill" },
+    { id: "creative", emoji: "🎵", label: "Creative" },
+    { id: "energetic", emoji: "🔥", label: "Energetic" },
+    { id: "zen", emoji: "🧘", label: "Zen" },
+    { id: "jamming", emoji: "🎸", label: "Jamming" },
+    { id: "focused", emoji: "📚", label: "Focused" }
+];
+
+const SOCIAL_PLATFORMS = [
+    { key: 'twitter', icon: '🐦', label: 'Twitter' },
+    { key: 'instagram', icon: '📸', label: 'Instagram' },
+    { key: 'linkedin', icon: '💼', label: 'LinkedIn' },
+    { key: 'youtube', icon: '📺', label: 'YouTube' },
+    { key: 'github', icon: '💻', label: 'GitHub' }
+];
+
+// Memoized socket connection
+const createSocket = () => {
+    return io(SOCKET_URL, {
+        transports: ["websocket"],
+        auth: { token: localStorage.getItem("token") },
+        withCredentials: true,
+    });
+};
 
 const ProfilePage = () => {
+    // Core user state
     const [user, setUser] = useState({});
-    const [bio, setBio] = useState("");
-    const [isEditingBio, setIsEditingBio] = useState(false);
-    const [displayName, setDisplayName] = useState("");
-    const [businessName, setBusinessName] = useState("");
-    const [profilePicture, setProfilePicture] = useState(null);
-    const [coverPhoto, setCoverPhoto] = useState(null);
-    const [coverPhotoName, setCoverPhotoName] = useState("");
-    const [profilePicName, setProfilePicName] = useState("");
-    const [socialLinks, setSocialLinks] = useState({ twitter: "", facebook: "", instagram: "", linkedin: "", custom: [] });
-    const [radioStation, setRadioStation] = useState("");
-    const [podcast, setPodcast] = useState("");
-    const [storefrontLink, setStorefrontLink] = useState("");
-    const [products, setProducts] = useState([]);
-    const [comments, setComments] = useState([]);
-    const [newComment, setNewComment] = useState("");
-    const [favorites, setFavorites] = useState([]);
-    const [favoriteRadioStations, setFavoriteRadioStations] = useState([]);
-    const [favoritePodcasts, setFavoritePodcasts] = useState([]);
-    const [isEditingName, setIsEditingName] = useState(false);
-    const [videos, setVideos] = useState([]);
-    const [images, setImages] = useState([]);
-    const [commentInputs, setCommentInputs] = useState({});
-    const [isChatOpen, setIsChatOpen] = useState(false);
-    const [chatFeatures, setChatFeatures] = useState({ typing: false, groupMode: false });
-    const [useAvatar, setUseAvatar] = useState(false);
-    const [posts, setPosts] = useState([]); // user-created posts
-    const [postContent, setPostContent] = useState("");
-    const [postImage, setPostImage] = useState(null);
-    const [postComments, setPostComments] = useState({}); // { postId: [comments] }
-    const [newCommentText, setNewCommentText] = useState({}); // { postId: comment }
-    const [justSaved, setJustSaved] = useState(false);
-    const [currentMood, setCurrentMood] = useState("😌 Chill");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    const loggedInUserId = parseInt(localStorage.getItem("user_id")) || 1; // fallback to 1
-    const loggedInUsername = localStorage.getItem("username");
+    // Profile editing state
+    const [editingStates, setEditingStates] = useState({
+        bio: false,
+        name: false,
+        socialLinks: false
+    });
 
+    // Form data state
+    const [formData, setFormData] = useState({
+        bio: "",
+        displayName: "",
+        businessName: "",
+        radioStation: "",
+        storefrontLink: "",
+        socialLinks: {
+            twitter: "",
+            instagram: "",
+            linkedin: "",
+            youtube: "",
+            github: "",
+            custom: []
+        }
+    });
+
+    // Media state
+    const [media, setMedia] = useState({
+        profilePicture: null,
+        coverPhoto: null,
+        videos: [],
+        images: []
+    });
+
+    // UI state
+    const [ui, setUi] = useState({
+        currentMood: "chill",
+        activeTab: "posts",
+        isChatOpen: false,
+        useAvatar: false,
+        justSaved: false
+    });
+
+    // Posts and comments
+    const [posts, setPosts] = useState([]);
+    const [postForm, setPostForm] = useState({
+        content: "",
+        image: null
+    });
+    const [comments, setComments] = useState({});
+
+    // Refs
     const profilePicInputRef = useRef(null);
     const coverPhotoInputRef = useRef(null);
+    const socket = useRef(null);
 
+    // Memoized user data
+    const loggedInUserId = useMemo(() => 
+        parseInt(localStorage.getItem("user_id")) || 1, []
+    );
+    const loggedInUsername = useMemo(() => 
+        localStorage.getItem("username"), []
+    );
+
+    // Initialize socket connection
     useEffect(() => {
+        socket.current = createSocket();
+        
+        return () => {
+            if (socket.current) {
+                socket.current.disconnect();
+            }
+        };
+    }, []);
+
+    // Fetch user profile
+    const fetchProfile = useCallback(async () => {
         const token = localStorage.getItem("token");
-
-        console.log("ProfilePage - Token check:", token ? "Token found" : "No token found");
-        console.log("ProfilePage - All localStorage keys:", Object.keys(localStorage));
-
+        
         if (!token) {
             console.warn("No token found - using fallback user data");
-            // Fallback: use localStorage data
+            setUser({
+                id: loggedInUserId,
+                username: loggedInUsername || `user_${loggedInUserId}`,
+                display_name: loggedInUsername || `User ${loggedInUserId}`
+            });
+            setLoading(false);
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const response = await fetch(`${BACKEND_URL}/api/user/profile`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const userData = data.user || data;
+
+            // Ensure we have at least an id
+            if (!userData.id && loggedInUserId) {
+                userData.id = loggedInUserId;
+            }
+
+            setUser(userData);
+            
+            // Update form data with user data
+            setFormData(prev => ({
+                ...prev,
+                bio: userData.bio || "",
+                displayName: userData.display_name || "",
+                businessName: userData.business_name || "",
+                radioStation: userData.radio_station || "",
+                storefrontLink: userData.storefront_link || "",
+                socialLinks: userData.social_links || prev.socialLinks
+            }));
+
+            // Update media
+            setMedia(prev => ({
+                ...prev,
+                videos: userData.videos || [],
+                images: userData.images || userData.gallery || []
+            }));
+
+            // Update UI state
+            setUi(prev => ({
+                ...prev,
+                useAvatar: userData.use_avatar || false
+            }));
+
+        } catch (error) {
+            console.error("Fetch profile error:", error);
+            setError(error.message);
+            
+            // Fallback to localStorage data
             if (loggedInUserId) {
                 setUser({
                     id: loggedInUserId,
@@ -84,99 +203,43 @@ const ProfilePage = () => {
                     display_name: loggedInUsername || `User ${loggedInUserId}`
                 });
             }
-            return;
+        } finally {
+            setLoading(false);
         }
-
-        console.log("Making API call to fetch profile...");
-        fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/profile`, {
-            method: "GET",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json"
-            },
-        })
-            .then(async (res) => {
-                console.log("ProfilePage API Response status:", res.status);
-
-                if (!res.ok) {
-                    const errorText = await res.text();
-                    console.error("ProfilePage API Error:", res.status, errorText);
-                    throw new Error(`API Error: ${res.status}`);
-                }
-
-                const text = await res.text();
-                try {
-                    const data = JSON.parse(text);
-                    console.log("ProfilePage - Profile data received:", data);
-
-                    // ✅ Handle both response formats
-                    const userData = data.user || data; // Handle {user: ...} or direct user data
-
-                    // Ensure we have at least an id
-                    if (!userData.id && loggedInUserId) {
-                        userData.id = loggedInUserId;
-                    }
-
-                    setUser(userData);
-
-                    // Set other states from the response
-                    if (userData.bio) setBio(userData.bio);
-                    if (userData.display_name) setDisplayName(userData.display_name);
-                    if (userData.business_name) setBusinessName(userData.business_name);
-                    if (userData.use_avatar !== undefined) setUseAvatar(userData.use_avatar);
-                    if (userData.videos) setVideos(userData.videos);
-                    if (userData.images) setImages(userData.images);
-                    if (userData.gallery && !userData.images) setImages(userData.gallery); // fallback
-
-                } catch (e) {
-                    console.error("Failed to parse JSON:", text);
-
-                    // Fallback: use localStorage data
-                    if (loggedInUserId) {
-                        setUser({
-                            id: loggedInUserId,
-                            username: loggedInUsername || `user_${loggedInUserId}`,
-                            display_name: loggedInUsername || `User ${loggedInUserId}`
-                        });
-                    }
-                }
-            })
-            .catch((err) => {
-                console.error("Fetch profile error:", err);
-
-                // Fallback: use localStorage data
-                if (loggedInUserId) {
-                    setUser({
-                        id: loggedInUserId,
-                        username: loggedInUsername || `user_${loggedInUserId}`,
-                        display_name: loggedInUsername || `User ${loggedInUserId}`
-                    });
-                }
-            });
     }, [loggedInUserId, loggedInUsername]);
 
-    const handleToggleAvatar = async () => {
-        const newValue = !useAvatar;
-        setUseAvatar(newValue);
-        try {
-            const token = localStorage.getItem("token");
-            if (!token) return;
+    useEffect(() => {
+        fetchProfile();
+    }, [fetchProfile]);
 
-            await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/avatar-toggle`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`,
-                },
-                body: JSON.stringify({ use_avatar: newValue })
-            });
-        } catch (err) {
-            console.error("Failed to update avatar preference:", err);
-            alert("Failed to update avatar preference.");
-        }
-    };
+    // Handle form updates
+    const updateFormData = useCallback((field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+    }, []);
 
-    const handleProfilePicChange = async (e) => {
+    const updateSocialLink = useCallback((platform, value) => {
+        setFormData(prev => ({
+            ...prev,
+            socialLinks: {
+                ...prev.socialLinks,
+                [platform]: value
+            }
+        }));
+    }, []);
+
+    // Handle editing states
+    const toggleEditingState = useCallback((field) => {
+        setEditingStates(prev => ({
+            ...prev,
+            [field]: !prev[field]
+        }));
+    }, []);
+
+    // Handle file uploads
+    const handleProfilePicChange = useCallback(async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
@@ -190,7 +253,7 @@ const ProfilePage = () => {
         formData.append("profile_picture", file);
 
         try {
-            const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/profile`, {
+            const response = await fetch(`${BACKEND_URL}/api/user/profile`, {
                 method: "PUT",
                 headers: {
                     "Authorization": `Bearer ${token}`
@@ -198,62 +261,67 @@ const ProfilePage = () => {
                 body: formData,
             });
 
-            if (!res.ok) {
-                throw new Error(`Upload failed: ${res.status}`);
+            if (!response.ok) {
+                throw new Error(`Upload failed: ${response.status}`);
             }
 
-            const data = await res.json();
-            setUser((prev) => ({ ...prev, profile_picture: data.url }));
+            const data = await response.json();
+            setUser(prev => ({ ...prev, profile_picture: data.url }));
             alert("✅ Profile picture updated successfully!");
-        } catch (err) {
-            console.error("Profile picture upload error:", err);
+        } catch (error) {
+            console.error("Profile picture upload error:", error);
             alert("❌ Failed to upload profile picture");
         }
-    };
+    }, []);
 
-    const handleCoverPhotoChange = (e) => {
+    const handleCoverPhotoChange = useCallback((e) => {
         if (e.target.files.length > 0) {
-            setCoverPhoto(URL.createObjectURL(e.target.files[0]));
-            setCoverPhotoName(e.target.files[0].name);
+            const file = e.target.files[0];
+            setMedia(prev => ({
+                ...prev,
+                coverPhoto: URL.createObjectURL(file)
+            }));
         }
-    };
+    }, []);
 
-    const handleVideoUpload = async (e) => {
+    // Handle video upload with better error handling
+    const handleVideoUpload = useCallback(async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("upload_preset", "your_unsigned_preset");
+        const uploadFormData = new FormData();
+        uploadFormData.append("file", file);
+        uploadFormData.append("upload_preset", "your_unsigned_preset");
 
         try {
             console.log("Uploading video to Cloudinary...");
-            const res = await fetch("https://api.cloudinary.com/v1_1/dli7r0d7s/video/upload", {
+            const response = await fetch("https://api.cloudinary.com/v1_1/dli7r0d7s/video/upload", {
                 method: "POST",
-                body: formData,
+                body: uploadFormData,
             });
 
-            if (!res.ok) {
-                throw new Error(`Upload failed: ${res.status}`);
+            if (!response.ok) {
+                throw new Error(`Upload failed: ${response.status}`);
             }
 
-            const data = await res.json();
-            console.log("Uploaded video URL:", data.secure_url);
-
+            const data = await response.json();
             const newVideo = { file_url: data.secure_url, title: file.name };
-            setVideos(prev => [...prev, newVideo]);
+            
+            setMedia(prev => ({
+                ...prev,
+                videos: [...prev.videos, newVideo]
+            }));
 
-            // Save to backend
-            await updateUserMedia('videos', [...videos, newVideo]);
+            await updateUserMedia('videos', [...media.videos, newVideo]);
 
-        } catch (err) {
-            console.error("Video upload error:", err);
-            alert(`Video upload failed: ${err.message}`);
+        } catch (error) {
+            console.error("Video upload error:", error);
+            alert(`Video upload failed: ${error.message}`);
         }
-    };
+    }, [media.videos]);
 
-    // ✅ Helper function to update backend media
-    const updateUserMedia = async (mediaType, mediaArray) => {
+    // Update user media in backend
+    const updateUserMedia = useCallback(async (mediaType, mediaArray) => {
         const token = localStorage.getItem("token");
         if (!token) {
             console.error("No token found for backend update");
@@ -261,8 +329,7 @@ const ProfilePage = () => {
         }
 
         try {
-            console.log(`Updating ${mediaType} in backend...`);
-            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/profile`, {
+            const response = await fetch(`${BACKEND_URL}/api/user/profile`, {
                 method: "PUT",
                 headers: {
                     "Authorization": `Bearer ${token}`,
@@ -274,48 +341,48 @@ const ProfilePage = () => {
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error(`Failed to update ${mediaType}:`, response.status, errorText);
                 throw new Error(`Backend update failed: ${response.status}`);
             }
 
             console.log(`${mediaType} updated successfully in backend`);
-        } catch (err) {
-            console.error(`Failed to update ${mediaType}:`, err);
-            alert(`Warning: File uploaded to cloud but failed to save to profile: ${err.message}`);
+        } catch (error) {
+            console.error(`Failed to update ${mediaType}:`, error);
+            alert(`Warning: File uploaded but failed to save to profile: ${error.message}`);
         }
-    };
+    }, []);
 
-    const handleSaveProfile = async () => {
+    // Save profile with optimized payload
+    const handleSaveProfile = useCallback(async () => {
         const token = localStorage.getItem("token");
         if (!token) {
             alert("Please log in to save profile");
             return;
         }
 
-        const payload = {
-            // strings: trim and check non-empty
-            ...(displayName?.trim() && { display_name: displayName }),
-            ...(businessName?.trim() && { business_name: businessName }),
-            ...(bio?.trim() && { bio }),
-
-            // arrays: check length > 0
-            ...(Array.isArray(socialLinks) && socialLinks.length > 0 && { social_links: socialLinks }),
-            ...(Array.isArray(videos) && videos.length > 0 && { videos }),
-            ...(Array.isArray(images) && images.length > 0 && { images }),
-
-            // objects (non-array): check has any own keys
-            ...(podcast && !Array.isArray(podcast) && Object.keys(podcast).length > 0 && { podcast }),
-
-            // simple values (truthy only)
-            ...(radioStation?.trim() && { radio_station: radioStation }),
-            ...(profilePicture && { profile_picture: profilePicture }),
-            ...(coverPhoto && { cover_photo: coverPhoto }),
-        };
+        const payload = {};
+        
+        // Only include non-empty fields
+        if (formData.displayName?.trim()) payload.display_name = formData.displayName;
+        if (formData.businessName?.trim()) payload.business_name = formData.businessName;
+        if (formData.bio?.trim()) payload.bio = formData.bio;
+        if (formData.radioStation?.trim()) payload.radio_station = formData.radioStation;
+        if (formData.storefrontLink?.trim()) payload.storefront_link = formData.storefrontLink;
+        
+        // Include arrays if they have content
+        if (media.videos.length > 0) payload.videos = media.videos;
+        if (media.images.length > 0) payload.images = media.images;
+        
+        // Include social links if any are filled
+        const filledSocialLinks = Object.entries(formData.socialLinks)
+            .filter(([key, value]) => key !== 'custom' && value?.trim())
+            .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+        
+        if (Object.keys(filledSocialLinks).length > 0) {
+            payload.social_links = { ...filledSocialLinks, custom: formData.socialLinks.custom };
+        }
 
         try {
-            console.log("Saving profile with payload:", payload);
-            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/profile`, {
+            const response = await fetch(`${BACKEND_URL}/api/user/profile`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -325,8 +392,6 @@ const ProfilePage = () => {
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error("Save profile error:", response.status, errorText);
                 throw new Error(`Save failed: ${response.status}`);
             }
 
@@ -338,39 +403,121 @@ const ProfilePage = () => {
                 setUser(result.user);
             }
 
-            setJustSaved(true);
-            setTimeout(() => setJustSaved(false), 3000); // hide save button after 3s
+            setUi(prev => ({ ...prev, justSaved: true }));
+            setTimeout(() => setUi(prev => ({ ...prev, justSaved: false })), 3000);
 
         } catch (error) {
             console.error("Save profile error:", error);
             alert(`An error occurred while saving profile: ${error.message}`);
         }
-    };
+    }, [formData, media]);
 
-    // Get effective user ID for WebRTC (fallback to localStorage if API fails)
+    // Handle post creation
+    const handleCreatePost = useCallback(() => {
+        if (!postForm.content.trim()) return;
+
+        const newPost = {
+            id: Date.now(),
+            content: postForm.content,
+            image: postForm.image ? URL.createObjectURL(postForm.image) : null,
+            timestamp: new Date().toISOString(),
+            likes: 0,
+            comments: []
+        };
+
+        setPosts(prev => [newPost, ...prev]);
+        setPostForm({ content: "", image: null });
+    }, [postForm]);
+
+    // Handle mood change
+    const handleMoodChange = useCallback((moodId) => {
+        setUi(prev => ({ ...prev, currentMood: moodId }));
+    }, []);
+
+    // Toggle avatar usage
+    const handleToggleAvatar = useCallback(async () => {
+        const newValue = !ui.useAvatar;
+        setUi(prev => ({ ...prev, useAvatar: newValue }));
+        
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) return;
+
+            await fetch(`${BACKEND_URL}/api/user/avatar-toggle`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: JSON.stringify({ use_avatar: newValue })
+            });
+        } catch (error) {
+            console.error("Failed to update avatar preference:", error);
+            alert("Failed to update avatar preference.");
+        }
+    }, [ui.useAvatar]);
+
+    // Render loading state
+    if (loading) {
+        return (
+            <div className="profile-container">
+                <div className="loading-state">
+                    <div className="loading-spinner"></div>
+                    <p>Loading your profile...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Render error state
+    if (error) {
+        return (
+            <div className="profile-container">
+                <div className="error-state">
+                    <h3>⚠️ Unable to load profile</h3>
+                    <p>{error}</p>
+                    <button onClick={fetchProfile} className="retry-btn">
+                        🔄 Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     const effectiveUserId = user?.id || loggedInUserId;
     const effectiveUserName = user?.display_name || user?.username || loggedInUsername || `User ${effectiveUserId}`;
 
-    console.log("ProfilePage render - effectiveUserId:", effectiveUserId);
-    console.log("ProfilePage render - condition check:", !!effectiveUserId);
-    console.log("ProfilePage render - user object:", user);
-    console.log("ProfilePage render - loggedInUserId:", loggedInUserId);
-
     return (
         <div className="profile-container">
-            <div className="cover-photo-container ">
-                <img src={coverPhoto || user.cover_photo || campfire} alt="Cover" className="cover-photo" />
-                <button onClick={() => coverPhotoInputRef.current.click()} className="upload-btn">📷 Upload Cover Photo</button>
-                <input ref={coverPhotoInputRef} type="file" style={{ display: 'none' }} onChange={handleCoverPhotoChange} />
-                {coverPhotoName && <p className="filename-display">📁 {coverPhotoName}</p>}
+            {/* Cover Photo Section */}
+            <div className="cover-photo-container">
+                <img 
+                    src={media.coverPhoto || user.cover_photo || campfire} 
+                    alt="Cover" 
+                    className="cover-photo" 
+                />
+                <button 
+                    onClick={() => coverPhotoInputRef.current.click()} 
+                    className="upload-btn cover-upload-btn"
+                >
+                    📷 Upload Cover Photo
+                </button>
+                <input 
+                    ref={coverPhotoInputRef} 
+                    type="file" 
+                    style={{ display: 'none' }} 
+                    onChange={handleCoverPhotoChange}
+                    accept="image/*"
+                />
             </div>
 
-            {isChatOpen && (
+            {/* Chat Modal */}
+            {ui.isChatOpen && (
                 <ChatModal
                     recipientId={user.id}
-                    recipientName={user.display_name || user.username}
+                    recipientName={effectiveUserName}
                     currentUserId={loggedInUserId}
-                    onClose={() => setIsChatOpen(false)}
+                    onClose={() => setUi(prev => ({ ...prev, isChatOpen: false }))}
                     enableTypingIndicator={true}
                     enableThreads={true}
                     autoScroll={true}
@@ -379,29 +526,42 @@ const ProfilePage = () => {
                 />
             )}
 
+            {/* Profile Header */}
             <div className="profile-avatar-toggle-horizontal">
-                <img
-                    src={useAvatar ? user.avatar_url : profilePicture || user.profile_picture || lady1}
-                    alt="Profile"
-                    className="profile-pic"
-                />
-                <div className="profile-name-inline">
-                    <p className="profile-name-label">
-                        {displayName || user.username || "Your Name"}
-                    </p>
-                    <button onClick={() => profilePicInputRef.current.click()} className="upload-btn">
-                        😀 Upload Profile Picture
+                <div className="profile-avatar-section">
+                    <img
+                        src={ui.useAvatar ? user.avatar_url : media.profilePicture || user.profile_picture || lady1}
+                        alt="Profile"
+                        className="profile-pic"
+                    />
+                    <button 
+                        onClick={handleToggleAvatar}
+                        className="avatar-toggle-btn"
+                        title={ui.useAvatar ? "Switch to uploaded photo" : "Use AI avatar"}
+                    >
+                        {ui.useAvatar ? "📷" : "🤖"}
                     </button>
-                    <input ref={profilePicInputRef} type="file" style={{ display: 'none' }} onChange={handleProfilePicChange} />
                 </div>
-                <div className="profile-name-header">
-                    {!isEditingName ? (
-                        <div className="name-and-actions">
+
+                <div className="profile-name-inline">
+                    {!editingStates.name ? (
+                        <div className="name-display">
+                            <h1 className="profile-name-label">
+                                {formData.displayName || user.username || "Your Name"}
+                            </h1>
                             <div className="name-actions">
-                                <button className="edit-name-btn small-btn" onClick={() => setIsEditingName(true)}>✏️</button>
+                                <button 
+                                    className="edit-name-btn small-btn" 
+                                    onClick={() => toggleEditingState('name')}
+                                >
+                                    ✏️ Edit
+                                </button>
                                 {user.id !== loggedInUserId && (
-                                    <button className="message-btn small-btn" onClick={() => setIsChatOpen(true)}>
-                                        💬
+                                    <button 
+                                        className="message-btn small-btn" 
+                                        onClick={() => setUi(prev => ({ ...prev, isChatOpen: true }))}
+                                    >
+                                        💬 Message
                                     </button>
                                 )}
                             </div>
@@ -411,30 +571,85 @@ const ProfilePage = () => {
                             <input
                                 type="text"
                                 className="name-input"
-                                value={displayName}
-                                onChange={(e) => setDisplayName(e.target.value)}
+                                value={formData.displayName}
+                                onChange={(e) => updateFormData('displayName', e.target.value)}
+                                placeholder="Enter your display name"
                                 autoFocus
                             />
-                            <button className="name-save-btn" onClick={() => setIsEditingName(false)}>Save</button>
+                            <div className="name-edit-actions">
+                                <button 
+                                    className="name-save-btn" 
+                                    onClick={() => toggleEditingState('name')}
+                                >
+                                    ✅ Save
+                                </button>
+                                <button 
+                                    className="name-cancel-btn" 
+                                    onClick={() => {
+                                        toggleEditingState('name');
+                                        updateFormData('displayName', user.display_name || '');
+                                    }}
+                                >
+                                    ❌ Cancel
+                                </button>
+                            </div>
                         </div>
                     )}
+
+                    <button 
+                        onClick={() => profilePicInputRef.current.click()} 
+                        className="upload-btn profile-pic-upload"
+                    >
+                        😀 Upload Profile Picture
+                    </button>
+                    <input 
+                        ref={profilePicInputRef} 
+                        type="file" 
+                        style={{ display: 'none' }} 
+                        onChange={handleProfilePicChange}
+                        accept="image/*"
+                    />
                 </div>
             </div>
 
-            {/* Bio and Quick Stats Row */}
+            {/* Main Content Grid */}
             <div className="profile-header-flex">
-                {/* Bio Block */}
+                {/* Bio Section */}
                 <div className="profile-card-bio">
                     <label>📝 Bio:</label>
-                    {!isEditingBio ? (
+                    {!editingStates.bio ? (
                         <>
-                            <p>{bio}</p>
-                            <button onClick={() => setIsEditingBio(true)}>✏️ Edit Bio</button>
+                            <p>{formData.bio || "Add a bio to tell people about yourself..."}</p>
+                            <button onClick={() => toggleEditingState('bio')}>
+                                ✏️ Edit Bio
+                            </button>
                         </>
                     ) : (
                         <>
-                            <textarea rows={5} value={bio} onChange={(e) => setBio(e.target.value)} />
-                            <button onClick={() => { setIsEditingBio(false); handleSaveProfile(); }}>✅ Save Bio</button>
+                            <textarea 
+                                rows={5} 
+                                value={formData.bio} 
+                                onChange={(e) => updateFormData('bio', e.target.value)}
+                                placeholder="Tell people about yourself..."
+                            />
+                            <div className="bio-edit-actions">
+                                <button 
+                                    onClick={() => {
+                                        toggleEditingState('bio');
+                                        handleSaveProfile();
+                                    }}
+                                >
+                                    ✅ Save Bio
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        toggleEditingState('bio');
+                                        updateFormData('bio', user.bio || '');
+                                    }}
+                                >
+                                    ❌ Cancel
+                                </button>
+                            </div>
                         </>
                     )}
                 </div>
@@ -443,10 +658,12 @@ const ProfilePage = () => {
                 <div className="profile-stats-card">
                     <h4>📊 Quick Stats</h4>
                     <ul className="profile-stats-list">
-                        <li>📊 Streams: <strong>158</strong></li>
-                        <li>🎧 Podcasts: <strong>12</strong></li>
-                        <li>📻 Stations: <strong>5</strong></li>
-                        <li>⭐ Followers: <strong>623</strong></li>
+                        <li>📊 Streams: <strong>{user.streams || 158}</strong></li>
+                        <li>🎧 Podcasts: <strong>{user.podcasts || 12}</strong></li>
+                        <li>📻 Stations: <strong>{user.stations || 5}</strong></li>
+                        <li>⭐ Followers: <strong>{user.followers || 623}</strong></li>
+                        <li>🎵 Videos: <strong>{media.videos.length}</strong></li>
+                        <li>🖼️ Images: <strong>{media.images.length}</strong></li>
                     </ul>
                 </div>
 
@@ -455,102 +672,84 @@ const ProfilePage = () => {
                     <div className="mood-card">
                         <h4>🎨 Current Mood</h4>
                         <div className="mood-selector">
-                            <button
-                                className={`mood-btn ${currentMood === "😌 Chill" ? "active" : ""}`}
-                                onClick={() => setCurrentMood("😌 Chill")}
-                            >
-                                😌 Chill
-                            </button>
-                            <button
-                                className={`mood-btn ${currentMood === "🎵 Creative" ? "active" : ""}`}
-                                onClick={() => setCurrentMood("🎵 Creative")}
-                            >
-                                🎵 Creative
-                            </button>
-                            <button
-                                className={`mood-btn ${currentMood === "🔥 Energetic" ? "active" : ""}`}
-                                onClick={() => setCurrentMood("🔥 Energetic")}
-                            >
-                                🔥 Energetic
-                            </button>
-                            <button
-                                className={`mood-btn ${currentMood === "🧘 Zen" ? "active" : ""}`}
-                                onClick={() => setCurrentMood("🧘 Zen")}
-                            >
-                                🧘 Zen
-                            </button>
-                            <button
-                                className={`mood-btn ${currentMood === "🎸 Jamming" ? "active" : ""}`}
-                                onClick={() => setCurrentMood("🎸 Jamming")}
-                            >
-                                🎸 Jamming
-                            </button>
-                            <button
-                                className={`mood-btn ${currentMood === "📚 Focused" ? "active" : ""}`}
-                                onClick={() => setCurrentMood("📚 Focused")}
-                            >
-                                📚 Focused
-                            </button>
+                            {MOOD_OPTIONS.map((mood) => (
+                                <button
+                                    key={mood.id}
+                                    className={`mood-btn ${ui.currentMood === mood.id ? "active" : ""}`}
+                                    onClick={() => handleMoodChange(mood.id)}
+                                >
+                                    {mood.emoji} {mood.label}
+                                </button>
+                            ))}
                         </div>
                         <div className="current-mood-display">
-                            <p>Currently: <strong>{currentMood}</strong></p>
+                            <p>Currently: <strong>
+                                {MOOD_OPTIONS.find(m => m.id === ui.currentMood)?.emoji} {MOOD_OPTIONS.find(m => m.id === ui.currentMood)?.label}
+                            </strong></p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Social Links */}
+            {/* Social Links Section */}
             <div className="social-links">
-                <h4>🔗 Social Links</h4>
-                <div className="social-links-grid">
-                    <a href="https://twitter.com/susansmith_dev" target="_blank" rel="noopener noreferrer" className="social-link">
-                        <span className="social-icon">🐦</span>
-                        <div className="social-info">
-                            <strong>@susansmith_dev</strong>
-                            <p>Follow for tech & wellness tips</p>
-                        </div>
-                    </a>
-
-                    <a href="https://instagram.com/susan.mindful.codes" target="_blank" rel="noopener noreferrer" className="social-link">
-                        <span className="social-icon">📸</span>
-                        <div className="social-info">
-                            <strong>@susan.mindful.codes</strong>
-                            <p>Daily meditation & coding journey</p>
-                        </div>
-                    </a>
-
-                    <a href="https://linkedin.com/in/susansmith-developer" target="_blank" rel="noopener noreferrer" className="social-link">
-                        <span className="social-icon">💼</span>
-                        <div className="social-info">
-                            <strong>Susan Smith</strong>
-                            <p>Senior Full Stack Developer</p>
-                        </div>
-                    </a>
-
-                    <a href="https://youtube.com/c/CodeAndCalm" target="_blank" rel="noopener noreferrer" className="social-link">
-                        <span className="social-icon">📺</span>
-                        <div className="social-info">
-                            <strong>Code & Calm</strong>
-                            <p>Programming tutorials & mindfulness</p>
-                        </div>
-                    </a>
-
-                    <a href="https://github.com/susansmith-dev" target="_blank" rel="noopener noreferrer" className="social-link">
-                        <span className="social-icon">💻</span>
-                        <div className="social-info">
-                            <strong>susansmith-dev</strong>
-                            <p>Open source wellness tools</p>
-                        </div>
-                    </a>
+                <div className="social-links-header">
+                    <h4>🔗 Social Links</h4>
+                    <button 
+                        className="edit-social-btn"
+                        onClick={() => toggleEditingState('socialLinks')}
+                    >
+                        {editingStates.socialLinks ? '✅ Done' : '✏️ Edit'}
+                    </button>
                 </div>
+                
+                {editingStates.socialLinks ? (
+                    <div className="social-links-edit">
+                        {SOCIAL_PLATFORMS.map((platform) => (
+                            <div key={platform.key} className="social-input-group">
+                                <span className="social-icon">{platform.icon}</span>
+                                <input
+                                    type="url"
+                                    placeholder={`Your ${platform.label} URL`}
+                                    value={formData.socialLinks[platform.key] || ''}
+                                    onChange={(e) => updateSocialLink(platform.key, e.target.value)}
+                                    className="social-input"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="social-links-grid">
+                        {SOCIAL_PLATFORMS.map((platform) => {
+                            const url = formData.socialLinks[platform.key];
+                            if (!url) return null;
+                            
+                            return (
+                                <a 
+                                    key={platform.key}
+                                    href={url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="social-link"
+                                >
+                                    <span className="social-icon">{platform.icon}</span>
+                                    <div className="social-info">
+                                        <strong>{platform.label}</strong>
+                                        <p>{url.replace(/https?:\/\//, '').substring(0, 30)}...</p>
+                                    </div>
+                                </a>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
+            {/* Main Profile Layout */}
             <div className="profile-layout">
+                {/* Left Column - Favorites */}
                 <div className="left-column">
-                    <h3>
-                        ⭐ <Link to="/favorites">Favorite Profiles</Link>
-                    </h3>
-
+                    <h3>⭐ <Link to="/favorites">Favorite Profiles</Link></h3>
+                    
                     <div className="favorite-item">
                         <img src={zenmaster} alt="Zen Master" className="favorite-avatar" />
                         <div>
@@ -602,203 +801,340 @@ const ProfilePage = () => {
                     </div>
                 </div>
 
+                {/* Middle Column - Posts and Content */}
                 <div className="middle-column">
                     <div className="post-section-wrapper">
-                        <h3>📝 Create a Post</h3>
-                        <textarea
-                            value={postContent}
-                            onChange={(e) => setPostContent(e.target.value)}
-                            placeholder="Write something..."
-                        />
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => setPostImage(e.target.files[0])}
-                        />
-                        <button
-                            onClick={() => {
-                                const newPost = {
-                                    id: Date.now(),
-                                    content: postContent,
-                                    image: postImage ? URL.createObjectURL(postImage) : null,
-                                    comments: [],
-                                };
-                                setPosts([newPost, ...posts]);
-                                setPostContent("");
-                                setPostImage(null);
-                            }}
-                        >
-                            📤 Post
-                        </button>
-
-                        {/* All post cards */}
-                        {posts.map((post) => (
-                            <div key={post.id} className="post-card">
-                                <p>{post.content}</p>
-                                {post.image && (
-                                    <img src={post.image} alt="Post" className="post-image" />
-                                )}
-                                <h5>💬 Comments</h5>
-                                <ul>
-                                    {(postComments[post.id] || []).map((comment, idx) => (
-                                        <li key={idx}>{comment}</li>
-                                    ))}
-                                </ul>
-                                <input
-                                    type="text"
-                                    placeholder="Write a comment..."
-                                    value={newCommentText[post.id] || ""}
-                                    onChange={(e) =>
-                                        setNewCommentText({ ...newCommentText, [post.id]: e.target.value })
-                                    }
-                                />
+                        {/* Tab Navigation */}
+                        <div className="content-tabs">
+                            {['posts', 'videos', 'images', 'uploads'].map((tab) => (
                                 <button
-                                    onClick={() => {
-                                        const comment = newCommentText[post.id]?.trim();
-                                        if (!comment) return;
-                                        setPostComments({
-                                            ...postComments,
-                                            [post.id]: [...(postComments[post.id] || []), comment],
-                                        });
-                                        setNewCommentText({ ...newCommentText, [post.id]: "" });
-                                    }}
+                                    key={tab}
+                                    className={`tab-btn ${ui.activeTab === tab ? 'active' : ''}`}
+                                    onClick={() => setUi(prev => ({ ...prev, activeTab: tab }))}
                                 >
-                                    💬 Reply
+                                    {tab === 'posts' && '📝 Posts'}
+                                    {tab === 'videos' && '🎬 Videos'}
+                                    {tab === 'images' && '🖼️ Images'}
+                                    {tab === 'uploads' && '📤 Upload'}
                                 </button>
-                            </div>
-                        ))}
-
-                        {/* Upload Sections */}
-                        {user?.role && ["Pro", "Premium", "Free"].includes(user.role) && (
-                            <div className="upload-video-section">
-                                <h3>🎬 Upload a Video</h3>
-                                <UploadVideo
-                                    currentUser={user}
-                                    onUpload={() => {
-                                        const token = localStorage.getItem("token");
-                                        if (token && user.id) {
-                                            fetch(`${process.env.BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/${user.id}/videos`, {
-                                                headers: { Authorization: `Bearer ${token}` },
-                                            })
-                                                .then((res) => res.json())
-                                                .then((data) => setVideos(data))
-                                                .catch((err) => console.error("Error fetching videos:", err));
-                                        }
-                                    }}
-                                />
-                            </div>
-                        )}
-
-                        <div className="manual-upload-section">
-                            <h3>🎬 Quick Video Upload</h3>
-                            <input type="file" accept="video/*" onChange={handleVideoUpload} />
+                            ))}
                         </div>
 
-                        {videos.length > 0 && (
-                            <div className="uploaded-videos">
-                                <h4>📹 Your Uploaded Videos</h4>
-                                {videos.map((video, index) => (
-                                    <div key={video.id || index} className="video-wrapper">
-                                        <video src={video.file_url} controls width="300" />
-                                        <p>{video.title}</p>
-                                        <button onClick={() => alert("Liked!")}>👍 {video.likes || 0}</button>
-
+                        {/* Tab Content */}
+                        {ui.activeTab === 'posts' && (
+                            <div className="posts-section">
+                                <div className="create-post">
+                                    <h3>📝 Create a Post</h3>
+                                    <textarea
+                                        value={postForm.content}
+                                        onChange={(e) => setPostForm(prev => ({ ...prev, content: e.target.value }))}
+                                        placeholder="What's on your mind?"
+                                        className="post-textarea"
+                                    />
+                                    <div className="post-actions">
                                         <input
-                                            type="text"
-                                            placeholder="Add a comment"
-                                            value={commentInputs[video.id || index] || ""}
-                                            onChange={(e) =>
-                                                setCommentInputs({
-                                                    ...commentInputs,
-                                                    [video.id || index]: e.target.value,
-                                                })
-                                            }
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => setPostForm(prev => ({ ...prev, image: e.target.files[0] }))}
+                                            className="post-image-input"
                                         />
-                                        <button onClick={() => alert("Comment added")}>💬 Comment</button>
-
-                                        <button
-                                            className="btn-secondary"
-                                            onClick={() => {
-                                                setVideos((prev) => prev.filter((_, i) => i !== index));
-                                                alert("Video removed from list");
-                                            }}
-                                        >
-                                            🗑️ Remove
+                                        <button onClick={handleCreatePost} className="post-btn">
+                                            📤 Post
                                         </button>
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                </div>
 
-                        {images.length > 0 && (
-                            <div className="uploaded-images">
-                                <h4>🖼️ Your Images</h4>
-                                <div className="images-grid">
-                                    {images.map((image, index) => (
-                                        <div
-                                            key={image.id || index}
-                                            className="image-wrapper"
-                                        >
-                                            <img
-                                                src={image.file_url}
-                                                alt={image.title}
-                                                style={{ width: "200px", borderRadius: "6px" }}
-                                            />
-                                            <p>{image.title}</p>
+                                {/* Posts List */}
+                                <div className="posts-list">
+                                    {posts.map((post) => (
+                                        <div key={post.id} className="post-card">
+                                            <div className="post-header">
+                                                <img src={user.profile_picture || lady1} alt="Profile" className="post-avatar" />
+                                                <div className="post-info">
+                                                    <strong>{effectiveUserName}</strong>
+                                                    <span className="post-time">
+                                                        {new Date(post.timestamp).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <p className="post-content">{post.content}</p>
+                                            {post.image && (
+                                                <img src={post.image} alt="Post" className="post-image" />
+                                            )}
+                                            <div className="post-actions">
+                                                <button className="post-action-btn">
+                                                    👍 {post.likes}
+                                                </button>
+                                                <button className="post-action-btn">
+                                                    💬 {post.comments.length}
+                                                </button>
+                                                <button className="post-action-btn">
+                                                    🔄 Share
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         )}
+
+                        {ui.activeTab === 'videos' && (
+                            <div className="videos-section">
+                                <h3>🎬 Your Videos ({media.videos.length})</h3>
+                                {media.videos.length > 0 ? (
+                                    <div className="videos-grid">
+                                        {media.videos.map((video, index) => (
+                                            <div key={video.id || index} className="video-card">
+                                                <video 
+                                                    src={video.file_url} 
+                                                    controls 
+                                                    className="video-player"
+                                                    poster={video.thumbnail}
+                                                />
+                                                <div className="video-info">
+                                                    <h4>{video.title}</h4>
+                                                    <div className="video-stats">
+                                                        <span>👁️ {video.views || 0}</span>
+                                                        <span>👍 {video.likes || 0}</span>
+                                                        <span>💬 {video.comments || 0}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="video-actions">
+                                                    <button className="video-action-btn">
+                                                        👍 Like
+                                                    </button>
+                                                    <button className="video-action-btn">
+                                                        💬 Comment
+                                                    </button>
+                                                    <button 
+                                                        className="video-action-btn danger"
+                                                        onClick={() => {
+                                                            setMedia(prev => ({
+                                                                ...prev,
+                                                                videos: prev.videos.filter((_, i) => i !== index)
+                                                            }));
+                                                        }}
+                                                    >
+                                                        🗑️ Remove
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="empty-state">
+                                        <p>No videos uploaded yet. Switch to the Upload tab to add some!</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {ui.activeTab === 'images' && (
+                            <div className="images-section">
+                                <h3>🖼️ Your Images ({media.images.length})</h3>
+                                {media.images.length > 0 ? (
+                                    <div className="images-grid">
+                                        {media.images.map((image, index) => (
+                                            <div key={image.id || index} className="image-card">
+                                                <img
+                                                    src={image.file_url}
+                                                    alt={image.title}
+                                                    className="gallery-image"
+                                                />
+                                                <div className="image-overlay">
+                                                    <h4>{image.title}</h4>
+                                                    <div className="image-actions">
+                                                        <button className="image-action-btn">
+                                                            👁️ View
+                                                        </button>
+                                                        <button className="image-action-btn">
+                                                            📤 Share
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="empty-state">
+                                        <p>No images uploaded yet. Switch to the Upload tab to add some!</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {ui.activeTab === 'uploads' && (
+                            <div className="uploads-section">
+                                <div className="upload-options">
+                                    <div className="upload-card">
+                                        <h3>🎬 Upload Video</h3>
+                                        <p>Share your creative videos with the community</p>
+                                        <input 
+                                            type="file" 
+                                            accept="video/*" 
+                                            onChange={handleVideoUpload}
+                                            className="upload-input"
+                                            id="video-upload"
+                                        />
+                                        <label htmlFor="video-upload" className="upload-label">
+                                            📹 Choose Video File
+                                        </label>
+                                    </div>
+
+                                    <div className="upload-card">
+                                        <h3>🖼️ Upload Images</h3>
+                                        <p>Add photos to your gallery</p>
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            multiple
+                                            onChange={(e) => {
+                                                // Handle image uploads
+                                                const files = Array.from(e.target.files);
+                                                files.forEach(file => {
+                                                    const newImage = {
+                                                        id: Date.now() + Math.random(),
+                                                        file_url: URL.createObjectURL(file),
+                                                        title: file.name
+                                                    };
+                                                    setMedia(prev => ({
+                                                        ...prev,
+                                                        images: [...prev.images, newImage]
+                                                    }));
+                                                });
+                                            }}
+                                            className="upload-input"
+                                            id="image-upload"
+                                        />
+                                        <label htmlFor="image-upload" className="upload-label">
+                                            🖼️ Choose Image Files
+                                        </label>
+                                    </div>
+
+                                    {user?.role && ["Pro", "Premium", "Free"].includes(user.role) && (
+                                        <div className="upload-card">
+                                            <h3>🎬 Advanced Upload</h3>
+                                            <p>Use the advanced uploader with more options</p>
+                                            <UploadVideo
+                                                currentUser={user}
+                                                onUpload={() => {
+                                                    const token = localStorage.getItem("token");
+                                                    if (token && user.id) {
+                                                        fetch(`${BACKEND_URL}/api/user/${user.id}/videos`, {
+                                                            headers: { Authorization: `Bearer ${token}` },
+                                                        })
+                                                            .then((res) => res.json())
+                                                            .then((data) => setMedia(prev => ({ ...prev, videos: data })))
+                                                            .catch((err) => console.error("Error fetching videos:", err));
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Always pinned chat button at the bottom */}
+                    {/* Video Chat Section */}
                     <div className="bottom-action-row">
-
                         <VideoChatPopup />
                     </div>
-
                 </div>
 
-
+                {/* Right Column - Quick Actions & Storefront */}
                 <div className="right-column">
                     <div className="quick-actions">
                         <h3>🎛️ Quick Actions</h3>
-                        <Link to="/podcast/create">
-                            <button className="btn-podcast">🎙️ Create Podcast</button>
-                        </Link>
-                        <Link to="/create-radio">
-                            <button className="btn-radio">📡 Create Radio Station</button>
-                        </Link>
-                        <Link to="/indie-artist-upload">
-                            <button className="btn-indie-upload">🎤 Indie Artist Upload</button>
-                        </Link>
-
-
-
+                        <div className="action-buttons">
+                            <Link to="/podcast/create" className="action-link">
+                                <button className="action-btn podcast">
+                                    🎙️ Create Podcast
+                                </button>
+                            </Link>
+                            <Link to="/create-radio" className="action-link">
+                                <button className="action-btn radio">
+                                    📡 Create Radio Station
+                                </button>
+                            </Link>
+                            <Link to="/indie-artist-upload" className="action-link">
+                                <button className="action-btn indie">
+                                    🎤 Indie Artist Upload
+                                </button>
+                            </Link>
+                        </div>
                     </div>
 
-                    <h3>🛍️ Storefront</h3>
-                    <p>
-                        Visit my store:{" "}
-                        <a href={storefrontLink} target="_blank" rel="noopener noreferrer">
-                            {storefrontLink || "N/A"}
-                        </a>
-                    </p>
-                    {products.length > 0 && (
-                        <div className="featured-product">
-                            Featured: {products[0].name}
+                    <div className="storefront-section">
+                        <h3>🛍️ Storefront</h3>
+                        {formData.storefrontLink ? (
+                            <div className="storefront-info">
+                                <p>Visit my store:</p>
+                                <a 
+                                    href={formData.storefrontLink} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="storefront-link"
+                                >
+                                    🔗 {formData.storefrontLink.replace(/https?:\/\//, '').substring(0, 25)}...
+                                </a>
+                            </div>
+                        ) : (
+                            <div className="storefront-setup">
+                                <p>Set up your storefront to sell products</p>
+                                <input
+                                    type="url"
+                                    placeholder="Enter your store URL"
+                                    value={formData.storefrontLink}
+                                    onChange={(e) => updateFormData('storefrontLink', e.target.value)}
+                                    className="storefront-input"
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Business Info */}
+                    <div className="business-info">
+                        <h3>💼 Business Info</h3>
+                        <div className="business-fields">
+                            <input
+                                type="text"
+                                placeholder="Business Name"
+                                value={formData.businessName}
+                                onChange={(e) => updateFormData('businessName', e.target.value)}
+                                className="business-input"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Radio Station"
+                                value={formData.radioStation}
+                                onChange={(e) => updateFormData('radioStation', e.target.value)}
+                                className="business-input"
+                            />
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
-            {user && socket && (
-                <InboxDrawer currentUser={user} socket={socket} />
+
+            {/* Inbox Drawer */}
+            {user && socket.current && (
+                <InboxDrawer currentUser={user} socket={socket.current} />
             )}
-            {!justSaved && (
-                <button onClick={handleSaveProfile} className="btn-primary">
-                    💾 Save Profile
-                </button>
+
+            {/* Save Profile Button - Only show when changes are made */}
+            {!ui.justSaved && (
+                <div className="profile-actions">
+                    <button onClick={handleSaveProfile} className="save-profile-btn">
+                        💾 Save Profile
+                    </button>
+                </div>
+            )}
+
+            {/* Success Message */}
+            {ui.justSaved && (
+                <div className="success-message">
+                    ✅ Profile saved successfully!
+                </div>
             )}
         </div>
     );
