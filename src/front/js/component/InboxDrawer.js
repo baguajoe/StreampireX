@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../../styles/InboxDrawer.css";
 
-const InboxDrawer = ({ currentUser, socket }) => {
+const InboxDrawer = ({ currentUser, socket, onClose }) => {
   const [conversations, setConversations] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -64,10 +64,17 @@ const InboxDrawer = ({ currentUser, socket }) => {
 
   return (
     <div className="inbox-drawer">
-      <div className="conversation-list">
+      <div className="drawer-header">
         <h4>Inbox</h4>
+        <button className="close-btn" onClick={onClose}>×</button>
+      </div>
+
+      <div className="conversation-list">
         {conversations.map((c) => (
-          <button key={c.conversation_id} onClick={() => openChat({ id: c.with_user_id, username: c.with_username })}>
+          <button
+            key={c.conversation_id}
+            onClick={() => openChat({ id: c.with_user_id, username: c.with_username })}
+          >
             {c.with_username}
           </button>
         ))}
@@ -77,6 +84,7 @@ const InboxDrawer = ({ currentUser, socket }) => {
         <div className="chat-box">
           <div className="chat-header">
             <strong>{selectedUser.username}</strong>
+            <button className="back-btn" onClick={() => setSelectedUser(null)}>←</button>
           </div>
           <div className="chat-messages">
             {messages.map((m, i) => (
@@ -86,7 +94,11 @@ const InboxDrawer = ({ currentUser, socket }) => {
             ))}
           </div>
           <div className="chat-input">
-            <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Type message..." />
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Type message..."
+            />
             <button onClick={sendMessage}>Send</button>
           </div>
         </div>
