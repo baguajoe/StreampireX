@@ -12,21 +12,19 @@ cloudinary.config(
     secure=True
 )
 
-def uploadFile(file, filename, filetype):
+def uploadFile(file, filename):
 
   # Upload the image and get its URL
   # ==============================
 
   # Upload the image.
   # Set the asset's public ID and allow overwriting the asset with new versions
-  cloudinary.uploader.upload(file, public_id=filename, unique_filename = True, overwrite=False)
+  upload_result = cloudinary.uploader.upload(file, public_id = filename, unique_filename = True, overwrite=False)
 
   # Build the URL for the image and save it in the variable 'srcURL'
-  srcURL = CloudinaryImage("quickstart_butterfly").build_url()
+  srcURL = upload_result["secure_url"]
 
-  # Log the image URL to the console. 
-  # Copy this URL in a browser tab to generate the image on the fly.
-  print("****2. Upload an image****\nDelivery URL: ", srcURL, "\n")
+  return srcURL
 
 def getAssetInfo():
 
