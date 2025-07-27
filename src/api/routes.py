@@ -53,7 +53,7 @@ scheduler = APScheduler()
 api = Blueprint('api', __name__)
 marketplace = Blueprint('marketplace', __name__)
 chat_api = Blueprint('chat_api', __name__)
-
+CORS(api)
 
 # ✅ Define upload directories
 AUDIO_UPLOAD_DIR = "uploads/podcasts/audio"
