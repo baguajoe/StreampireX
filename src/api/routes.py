@@ -4,7 +4,7 @@ from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directo
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
 from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game
 
-import cloudinary.uploader
+
 import json
 import os
 import mimetypes
@@ -38,7 +38,7 @@ from mutagen import File
 from mutagen.mp3 import MP3  # Add this line for MP3 support
 from mutagen.mp4 import MP4  # Add this for MP4/M4A support
 from mutagen.wave import WAVE  # Add this for WAV support
-from cloudinary_setup import uploadFile
+from api.cloudinary_setup import uploadFile
 
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
@@ -93,7 +93,7 @@ def upload_video():
     title = request.form.get('title', 'Untitled')
     description = request.form.get('description', '')
     
-    # ✅ NEW: Additional form fields
+    # Additional form fields
     category = request.form.get('category', 'Other')
     tags = request.form.get('tags', '')
     visibility = request.form.get('visibility', 'public')
@@ -110,71 +110,38 @@ def upload_video():
         return jsonify({"error": "No selected file"}), 400
 
     try:
-        # ✅ Upload video to Cloudinary
-        upload_result = cloudinary.uploader.upload_large(
-            video,
-            resource_type="video",
-            folder="user_videos",
-            public_id=secure_filename(video.filename).split('.')[0],
-            overwrite=True
-        )
-
-        video_url = upload_result.get("secure_url")
-        duration = upload_result.get("duration", 0)
+        filename = secure_filename(video.filename)
         
-        # ✅ Get additional metadata from Cloudinary
-        file_size = upload_result.get("bytes", 0)
-        width = upload_result.get("width", 0)
-        height = upload_result.get("height", 0)
-        format_type = upload_result.get("format", "")
-        
-        # Create resolution string
-        resolution = f"{width}x{height}" if width and height else None
+        # Use uploadFile function instead of cloudinary.uploader.upload_large
+        video_url = uploadFile(video, filename)
 
-        # ✅ UPDATED: More generous duration limits by user role
-        if user.role == 'Free' and duration > 600:  # 10 minutes for Free users
-            return jsonify({"error": "Free users can upload videos up to 10 minutes long."}), 403
-        elif user.role == 'Pro' and duration > 1800:  # 30 minutes for Pro users
-            return jsonify({"error": "Pro users can upload videos up to 30 minutes long."}), 403
-        elif user.role == 'Premium' and duration > 3600:  # 60 minutes for Premium users
-            return jsonify({"error": "Premium users can upload videos up to 60 minutes long."}), 403
-
-        # ✅ Handle thumbnail upload (if provided)
+        # Handle thumbnail upload (if provided)
         thumbnail_url = None
         if 'thumbnail' in request.files:
             thumbnail_file = request.files['thumbnail']
             if thumbnail_file.filename != '':
                 try:
-                    thumbnail_result = cloudinary.uploader.upload(
-                        thumbnail_file,
-                        folder="video_thumbnails",
-                        public_id=f"thumb_{secure_filename(video.filename).split('.')[0]}",
-                        overwrite=True
-                    )
-                    thumbnail_url = thumbnail_result.get("secure_url")
+                    thumb_filename = secure_filename(thumbnail_file.filename)
+                    thumbnail_url = uploadFile(thumbnail_file, thumb_filename)
                 except Exception as thumb_error:
                     print(f"Thumbnail upload failed: {thumb_error}")
                     # Continue without thumbnail - not critical
 
-        # ✅ Process tags
+        # Process tags
         tag_list = []
         if tags:
             tag_list = [tag.strip() for tag in tags.split(',') if tag.strip()]
 
-        # ✅ Determine if video is public based on visibility
+        # Determine if video is public based on visibility
         is_public = visibility == 'public'
 
-        # ✅ Save to DB with comprehensive metadata
+        # Save to DB with cloudinary URL
         new_video = Video(
             user_id=user_id,
             title=title,
             description=description,
-            file_url=video_url,
+            file_url=video_url,  # Store cloudinary URL
             thumbnail_url=thumbnail_url,
-            duration=int(duration) if duration else None,
-            file_size=file_size,
-            resolution=resolution,
-            codec=format_type,
             
             # Category and organization
             category=category,
@@ -182,7 +149,7 @@ def upload_video():
             
             # Visibility and permissions
             is_public=is_public,
-            is_premium=False,  # Could be updated based on user tier
+            is_premium=False,
             age_restricted=age_restricted,
             
             # Content declarations
@@ -201,31 +168,15 @@ def upload_video():
         db.session.add(new_video)
         db.session.commit()
 
-        # ✅ Return comprehensive response
-        response_data = {
+        return jsonify({
             "message": "Video uploaded successfully!",
-            "video": {
-                "id": new_video.id,
-                "title": new_video.title,
-                "description": new_video.description,
-                "file_url": new_video.file_url,
-                "thumbnail_url": new_video.thumbnail_url,
-                "duration": new_video.duration,
-                "category": new_video.category,
-                "tags": new_video.tags,
-                "visibility": visibility,
-                "is_public": new_video.is_public,
-                "uploaded_at": new_video.uploaded_at.isoformat(),
-                "uploader_name": user.display_name or user.username
-            }
-        }
-
-        return jsonify(response_data), 201
+            "video": new_video.serialize()
+        }), 201
 
     except Exception as e:
-        print(f"Video upload error: {str(e)}")
-        return jsonify({"error": f"Upload failed: {str(e)}"}), 500
-
+        db.session.rollback()
+        return jsonify({"error": f"Video upload failed: {str(e)}"}), 500
+    
 # ---------------- GET VIDEOS ----------------
 @api.route('/videos', methods=['GET'])
 def get_videos():
@@ -789,72 +740,38 @@ def upload_podcast():
         audio_file = request.files.get("audio")
         video_file = request.files.get("video")
 
-        timestamp = str(int(datetime.utcnow().timestamp()))
-        
-        # ✅ Use organized directory structure
-        audio_upload_dir = os.path.join("static", "uploads", "podcasts", "audio")
-        video_upload_dir = os.path.join("static", "uploads", "podcasts", "video")
-        cover_upload_dir = os.path.join("static", "uploads", "podcasts", "covers")
-        
-        # ✅ Create directories if they don't exist
-        os.makedirs(audio_upload_dir, exist_ok=True)
-        os.makedirs(video_upload_dir, exist_ok=True)
-        os.makedirs(cover_upload_dir, exist_ok=True)
-
         audio_url, video_url, cover_url, duration = None, None, None, None
         audio_file_name, video_file_name = None, None
 
-        # ✅ Handle cover art upload
+        # Handle cover art upload using uploadFile
         if cover_art:
-            cover_filename = secure_filename(f"{user_id}_{timestamp}_{cover_art.filename}")
-            cover_path = os.path.join(cover_upload_dir, cover_filename)
-            cover_art.save(cover_path)
-            cover_url = f"/{cover_path}"
+            cover_filename = secure_filename(cover_art.filename)
+            cover_url = uploadFile(cover_art, cover_filename)
 
-        # ✅ Handle audio file upload
+        # Handle audio file upload using uploadFile
         if audio_file:
-            audio_file_name = secure_filename(f"{user_id}_{timestamp}_{audio_file.filename}")
-            audio_path = os.path.join(audio_upload_dir, audio_file_name)
-            audio_file.save(audio_path)
-            audio_url = f"/{audio_path}"
+            audio_file_name = secure_filename(audio_file.filename)
+            audio_url = uploadFile(audio_file, audio_file_name)
 
-            # Detect duration using mutagen
-            try:
-                audio = MP3(audio_path)
-                duration = int(audio.info.length)
-            except:
-                duration = None
+            # Note: Duration detection would need to be handled separately
+            # as uploadFile doesn't return metadata like cloudinary.uploader.upload_large
 
-        # ✅ Handle video file upload - goes to video folder
+        # Handle video file upload using uploadFile
         if video_file:
-            video_file_name = secure_filename(f"{user_id}_{timestamp}_{video_file.filename}")
-            video_path = os.path.join(video_upload_dir, video_file_name)
-            video_file.save(video_path)
-            video_url = f"/{video_path}"
-            
-            # Optional: Detect duration using moviepy
-            try:
-                from moviepy import VideoFileClip
-                video_clip = VideoFileClip(video_path)
-                if not duration:  # Only set if audio didn't already set it
-                    duration = int(video_clip.duration)
-                video_clip.close()
-            except:
-                pass
+            video_file_name = secure_filename(video_file.filename)
+            video_url = uploadFile(video_file, video_file_name)
 
-        # ✅ Create podcast with organized file paths
+        # Create podcast with cloudinary URLs
         new_podcast = Podcast(
             creator_id=user_id,
             title=title,
             description=description,
             category=category,
-            # Store filenames
             audio_file_name=audio_file_name,
             video_file_name=video_file_name,
-            # Store full organized paths
-            audio_url=audio_url,
-            video_url=video_url,
-            cover_art_url=cover_url,
+            audio_url=audio_url,      # Store cloudinary URL
+            video_url=video_url,      # Store cloudinary URL
+            cover_art_url=cover_url,  # Store cloudinary URL
             duration=duration,
             subscription_tier=subscription_tier,
             streaming_enabled=streaming_enabled,
@@ -863,15 +780,15 @@ def upload_podcast():
         db.session.add(new_podcast)
         db.session.commit()
 
-        # ✅ Auto-create first episode if audio or video is included
+        # Auto-create first episode if audio or video is included
         if audio_url or video_url:
             episode = PodcastEpisode(
                 podcast_id=new_podcast.id,
                 user_id=user_id,
                 title=f"{title} - Episode 1",
                 description=description,
-                file_url=audio_url or video_url,
-                cover_art_url=cover_url,
+                file_url=audio_url or video_url,  # Store cloudinary URL
+                cover_art_url=cover_url,          # Store cloudinary URL
                 duration=duration,
                 is_published=True,
                 release_date=datetime.utcnow(),
@@ -882,16 +799,14 @@ def upload_podcast():
         return jsonify({
             "message": "Podcast and episode uploaded successfully",
             "podcast_id": new_podcast.id,
-            "files_saved_to": {
-                "audio": f"static/uploads/podcasts/audio/{audio_file_name}" if audio_file_name else None,
-                "video": f"static/uploads/podcasts/video/{video_file_name}" if video_file_name else None,
-                "cover": f"static/uploads/podcasts/covers/" if cover_url else None
-            }
+            "audio_url": audio_url,
+            "video_url": video_url,
+            "cover_url": cover_url
         }), 201
 
     except Exception as e:
-        print("Upload error:", str(e))
-        return jsonify({"error": "Upload failed"}), 500
+        db.session.rollback()
+        return jsonify({"error": f"Podcast upload failed: {str(e)}"}), 500
 
 @api.route('/upload_episode', methods=['POST'])
 @jwt_required()
@@ -1156,19 +1071,66 @@ def add_audio_to_radio():
 @jwt_required()
 def create_radio_station():
     user_id = get_jwt_identity()
-    data = request.json
+    
+    try:
+        # Get form data
+        station_name = request.form.get('stationName')
+        description = request.form.get('description')
+        category = request.form.get('category')
+        target_audience = request.form.get('targetAudience')
+        
+        # Validate required fields
+        if not station_name or not category or not target_audience:
+            return jsonify({"error": "Station name, category, and target audience are required"}), 400
 
-    new_station = RadioStation(
-        user_id=user_id,
-        name=data["name"],
-        description=data.get("description", ""),
-        is_public=data.get("is_public", True)  # ✅ Allow public/private setting
-    )
+        # Handle file uploads using uploadFile
+        logo_url = None
+        cover_url = None
+        initial_mix_url = None
 
-    db.session.add(new_station)
-    db.session.commit()
+        if 'logo' in request.files:
+            logo_file = request.files['logo']
+            if logo_file and logo_file.filename:
+                logo_filename = secure_filename(logo_file.filename)
+                logo_url = uploadFile(logo_file, logo_filename)
 
-    return jsonify({"message": "Radio Station Created!", "station": new_station.serialize()}), 201
+        if 'coverPhoto' in request.files:
+            cover_file = request.files['coverPhoto']
+            if cover_file and cover_file.filename:
+                cover_filename = secure_filename(cover_file.filename)
+                cover_url = uploadFile(cover_file, cover_filename)
+
+        if 'initialMix' in request.files:
+            mix_file = request.files['initialMix']
+            if mix_file and mix_file.filename:
+                mix_filename = secure_filename(mix_file.filename)
+                initial_mix_url = uploadFile(mix_file, mix_filename)
+
+        # Create radio station with cloudinary URLs
+        new_station = RadioStation(
+            user_id=user_id,
+            name=station_name,
+            description=description,
+            category=category,
+            target_audience=target_audience,
+            logo_url=logo_url,           # Store cloudinary URL
+            cover_url=cover_url,         # Store cloudinary URL
+            initial_mix_url=initial_mix_url,  # Store cloudinary URL
+            is_live=False,
+            created_at=datetime.utcnow()
+        )
+
+        db.session.add(new_station)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Radio station created successfully!",
+            "station": new_station.serialize()
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to create radio station: {str(e)}"}), 500
 
 @api.route("/radio/like", methods=["POST"])
 @jwt_required()
@@ -2042,7 +2004,7 @@ def get_members():
         }
     }), 200
 
-api.route('/products/upload', methods=['POST'])
+@api.route('/products/upload', methods=['POST'])
 @jwt_required()
 def upload_product():
     user_id = get_jwt_identity()
@@ -2051,55 +2013,54 @@ def upload_product():
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    # Try both form and JSON fields
-    if request.content_type and "application/json" in request.content_type:
-        data = request.get_json()
-        title = data.get("title")
-        description = data.get("description")
-        price = data.get("price")
-        is_digital = data.get("is_digital", False)
-        stock = data.get("stock")
-        file_url = data.get("file_url")
-        image_url = data.get("image_url")  # Assume already uploaded externally
-    else:
+    try:
+        # Get form data
         title = request.form.get("title")
         description = request.form.get("description")
         price = request.form.get("price")
         is_digital = request.form.get("is_digital") == "true"
         stock = request.form.get("stock")
-        file_url = request.form.get("file_url")
-        image_file = request.files.get("image")
 
-        # Upload image if present
-        if image_file:
-            try:
-                uploaded = cloudinary.uploader.upload(image_file)
-                image_url = uploaded.get("secure_url")
-            except Exception as e:
-                return jsonify({"error": "Image upload failed", "details": str(e)}), 500
-        else:
-            image_url = None
+        # Handle image upload using uploadFile
+        image_url = None
+        if 'image' in request.files:
+            image_file = request.files['image']
+            if image_file and image_file.filename:
+                image_filename = secure_filename(image_file.filename)
+                image_url = uploadFile(image_file, image_filename)
 
-    # Basic field validation
-    if not title or not price or not image_url:
-        return jsonify({"error": "Missing required fields (title, price, image)"}), 400
+        # Basic field validation
+        if not title or not price or not image_url:
+            return jsonify({"error": "Missing required fields (title, price, image)"}), 400
 
-    product = Product(
-        creator_id=user.id,
-        title=title,
-        description=description,
-        image_url=image_url,
-        file_url=file_url if is_digital else None,
-        price=float(price),
-        stock=int(stock) if not is_digital and stock else None,
-        is_digital=is_digital,
-        created_at=datetime.utcnow()
-    )
+        # Create product with cloudinary URL
+        new_product = Product(
+            user_id=user_id,
+            title=title,
+            description=description,
+            price=float(price),
+            is_digital=is_digital,
+            stock=int(stock) if stock else None,
+            image_url=image_url,  # Store cloudinary URL
+            created_at=datetime.utcnow()
+        )
 
-    db.session.add(product)
-    db.session.commit()
+        db.session.add(new_product)
+        db.session.commit()
 
-    return jsonify({"message": "✅ Product uploaded successfully", "product": product.serialize()}), 201
+        return jsonify({
+            "message": "Product uploaded successfully!",
+            "product": new_product.serialize()
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Product upload failed: {str(e)}"}), 500
+
+
+# Note: Remember to update your import statement at the top of routes.py:
+# Change: from cloudinary_setup import uploadFile
+# (instead of from cloudinary_setup import fileUpload)
 
 @api.route('/products', methods=['GET'])
 def get_products():
@@ -2473,23 +2434,16 @@ def upload_music():
         if not audio or audio.filename == '':
             return jsonify({"error": "No valid audio file selected"}), 400
 
-        # Ensure upload directory exists
-        upload_dir = "uploads/music"
-        os.makedirs(upload_dir, exist_ok=True)
-        
         filename = secure_filename(audio.filename)
-        # Add timestamp to prevent filename conflicts
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_")
-        filename = f"{timestamp}{filename}"
-        file_path = os.path.join(upload_dir, filename)
         
-        audio.save(file_path)
+        # Use uploadFile function instead of local saving
+        audio_url = uploadFile(audio, filename)
 
         new_audio = Audio(
             user_id=user_id,
             title=title,
             description=description,
-            file_url=file_path,
+            file_url=audio_url,  # Store the cloudinary URL
             uploaded_at=datetime.utcnow()
         )
 
@@ -2742,19 +2696,42 @@ def calculate_royalties():
 def upload_track():
     """Allow artists to upload music with ISRC codes"""
     user_id = get_jwt_identity()
-    data = request.json
+    
+    try:
+        # Handle both form data and file upload
+        title = request.form.get("title")
+        isrc = request.form.get("isrc")
+        
+        if 'audio' not in request.files:
+            return jsonify({"error": "No audio file provided"}), 400
+        
+        audio_file = request.files['audio']
+        if not audio_file or audio_file.filename == '':
+            return jsonify({"error": "No valid audio file selected"}), 400
+        
+        filename = secure_filename(audio_file.filename)
+        
+        # Use uploadFile function to upload to cloudinary
+        file_url = uploadFile(audio_file, filename)
 
-    new_track = Audio(
-        user_id=user_id,
-        title=data.get("title"),
-        file_url=data.get("file_url"),
-        isrc_code=data.get("isrc"),  # Required for licensing
-        uploaded_at=datetime.utcnow()
-    )
-    db.session.add(new_track)
-    db.session.commit()
+        new_track = Audio(
+            user_id=user_id,
+            title=title,
+            file_url=file_url,  # Store cloudinary URL
+            isrc_code=isrc,
+            uploaded_at=datetime.utcnow()
+        )
+        db.session.add(new_track)
+        db.session.commit()
 
-    return jsonify({"message": "Track uploaded successfully!"}), 201
+        return jsonify({
+            "message": "Track uploaded successfully!",
+            "track": new_track.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Track upload failed: {str(e)}"}), 500
 
 
 @api.route('/submit-track-licensing', methods=['POST'])
@@ -5718,93 +5695,54 @@ def get_public_user_profile(user_id):
 @api.route('/user/profile', methods=['PUT'])
 @jwt_required()
 def update_user_profile():
-    """Update user profile - handles both JSON and FormData"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
     try:
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
+        # Handle text fields
+        data = request.form.to_dict() if request.form else {}
         
-        if not user:
-            return jsonify({"error": "User not found"}), 404
-        
-        # Handle both JSON and FormData
-        if request.is_json:
-            data = request.get_json()
-        else:
-            data = request.form.to_dict()
-        
-        # Update basic fields
-        if "display_name" in data:
-            user.display_name = data["display_name"]
-        if "business_name" in data:
-            user.business_name = data["business_name"]
-        if "bio" in data:
-            user.bio = data["bio"]
-        if "radio_station" in data:
-            user.radio_station = data["radio_station"]
-        if "podcast" in data:
-            user.podcast = data["podcast"]
-        
-        # Handle JSON fields
-        if "social_links" in data:
-            try:
-                if isinstance(data["social_links"], str):
-                    user.social_links = json.loads(data["social_links"])
+        # Update user fields
+        for field in ['bio', 'location', 'website', 'display_name', 'social_links']:
+            if field in data:
+                if field == 'social_links':
+                    try:
+                        user.social_links = json.loads(data[field])
+                    except:
+                        return jsonify({"error": "Invalid social_links format"}), 400
                 else:
-                    user.social_links = data["social_links"]
-            except:
-                return jsonify({"error": "Invalid social_links format"}), 400
+                    setattr(user, field, data[field])
         
-        # Handle videos
-        if "videos" in data:
+        # Handle images array
+        if 'images' in data:
             try:
-                if isinstance(data["videos"], str):
-                    videos = json.loads(data["videos"])
-                else:
-                    videos = data["videos"]
-                
-                if len(videos) > 10:
-                    return jsonify({"error": "Max 10 videos allowed"}), 400
-                user.videos = videos
-            except:
-                return jsonify({"error": "Invalid videos format"}), 400
-        
-        # Handle images/gallery
-        if "images" in data:
-            try:
-                if isinstance(data["images"], str):
-                    images = json.loads(data["images"])
-                else:
-                    images = data["images"]
-                
+                images = json.loads(data['images'])
                 if len(images) > 10:
                     return jsonify({"error": "Max 10 images allowed"}), 400
-                    
-                # Update both images and gallery fields
                 user.images = images
-                user.gallery = images  # Keep both for compatibility
+                user.gallery = images
             except:
                 return jsonify({"error": "Invalid images format"}), 400
         
-        # Handle file uploads
+        # Handle file uploads using uploadFile function
         if "profile_picture" in request.files:
             pic = request.files["profile_picture"]
             if pic.filename != "":
                 filename = secure_filename(pic.filename)
-                pic_dir = "uploads/profile_pics"
-                os.makedirs(pic_dir, exist_ok=True)
-                pic_path = os.path.join(pic_dir, filename)
-                pic.save(pic_path)
-                user.profile_picture = pic_path
+                # Use uploadFile function instead of local saving
+                pic_url = uploadFile(pic, filename)
+                user.profile_picture = pic_url
         
         if "cover_photo" in request.files:
             cover = request.files["cover_photo"]
             if cover.filename != "":
                 filename = secure_filename(cover.filename)
-                cover_dir = "uploads/cover_photos"
-                os.makedirs(cover_dir, exist_ok=True)
-                cover_path = os.path.join(cover_dir, filename)
-                cover.save(cover_path)
-                user.cover_photo = cover_path
+                # Use uploadFile function instead of local saving
+                cover_url = uploadFile(cover, filename)
+                user.cover_photo = cover_url
         
         db.session.commit()
         
@@ -5833,16 +5771,12 @@ def upload_profile_video():
     video = request.files['video']
     filename = secure_filename(video.filename)
     
-    # Create uploads directory if it doesn't exist
-    upload_dir = "uploads/videos"
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, filename)
-    
     # Limit video size (max 20MB)
     if video.content_length and video.content_length > 20 * 1024 * 1024:
         return jsonify({"error": "Video file is too large (Max 20MB)"}), 400
     
-    video.save(file_path)
+    # Use uploadFile function instead of local saving
+    video_url = uploadFile(video, filename)
     
     # Ensure video gallery list doesn't exceed limit
     if len(user.videos or []) >= 10:
@@ -5852,7 +5786,7 @@ def upload_profile_video():
         user.videos = []
     
     user.videos.append({
-        "file_url": file_path,
+        "file_url": video_url,
         "title": filename
     })
     
@@ -5862,6 +5796,7 @@ def upload_profile_video():
         "message": "Video uploaded successfully", 
         "videos": user.videos
     }), 200
+
 
 # UPDATE SETTINGS
 @api.route('/api/user/settings', methods=['PUT'])
