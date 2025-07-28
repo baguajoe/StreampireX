@@ -1,12 +1,11 @@
-/* Enhanced Radio Station Detail CSS */
+/* Enhanced RadioStationDetail.css */
 
 .station-detail-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   min-height: 100vh;
-  color: white;
 }
 
 .station-detail-header {
@@ -14,39 +13,40 @@
 }
 
 .back-button {
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg, #6c757d, #495057);
   color: white;
-  padding: 10px 20px;
+  border: none;
+  padding: 12px 24px;
   border-radius: 25px;
+  font-size: 14px;
+  font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
 }
 
 .back-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, #495057, #343a40);
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
 }
 
 .station-detail-content {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  background: white;
   border-radius: 20px;
   padding: 2rem;
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
 .station-info {
   display: flex;
   gap: 2rem;
-  margin-bottom: 2rem;
   align-items: flex-start;
+  margin-bottom: 3rem;
+  flex-wrap: wrap;
 }
 
 .station-image-container {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -54,20 +54,20 @@
 }
 
 .station-detail-image {
-  width: 200px;
-  height: 200px;
-  border-radius: 15px;
+  width: 300px;
+  height: 300px;
+  border-radius: 20px;
   object-fit: cover;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  border: 4px solid #dee2e6;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
   transition: transform 0.3s ease;
 }
 
 .station-detail-image:hover {
-  transform: scale(1.05);
+  transform: scale(1.02);
 }
 
-/* Station Logo Styles */
+/* Logo Styles */
 .station-logo-container {
   position: relative;
   display: inline-block;
@@ -98,23 +98,25 @@
   justify-content: center;
   border: 4px solid #dee2e6;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  color: #6c757d;
 }
 
 .station-meta {
   flex: 1;
+  min-width: 300px;
 }
 
 .station-name {
   font-size: 2.5rem;
   font-weight: bold;
+  color: #212529;
   margin: 0 0 0.5rem 0;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .station-genre {
   font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: #6c757d;
+  font-weight: 500;
   margin: 0 0 1rem 0;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -122,40 +124,44 @@
 
 .station-description {
   font-size: 1rem;
+  color: #495057;
   line-height: 1.6;
-  margin-bottom: 1.5rem;
-  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 1.5rem 0;
 }
 
 .station-stats {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .stat {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 8px 15px;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  padding: 8px 16px;
   border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid #dee2e6;
   display: inline-flex;
   align-items: center;
   gap: 5px;
 }
 
 .live-indicator {
-  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
   animation: pulse 2s infinite;
 }
 
 .loop-indicator {
-  background: linear-gradient(135deg, #4ecdc4, #44a08d);
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  color: #212529;
 }
 
 .offline-indicator {
-  background: rgba(108, 117, 125, 0.8);
+  background: linear-gradient(135deg, #6c757d, #545b62);
+  color: white;
 }
 
 /* Connection Status */
@@ -187,54 +193,56 @@
   border: 1px solid #f5c6cb;
 }
 
-/* Audio Error and Loading Messages */
+/* Audio Status Messages */
 .audio-error {
-  background: rgba(220, 53, 69, 0.2);
-  border: 1px solid rgba(220, 53, 69, 0.5);
-  color: #ff6b6b;
-  padding: 10px 15px;
+  background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+  color: #721c24;
+  padding: 15px;
   border-radius: 10px;
-  margin: 10px 0;
+  margin-bottom: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border: 1px solid #f5c6cb;
 }
 
 .dismiss-error {
-  background: none;
+  background: #dc3545;
+  color: white;
   border: none;
-  color: #ff6b6b;
-  font-size: 1.2rem;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
   cursor: pointer;
-  padding: 0;
-  margin-left: 10px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .audio-loading {
-  background: rgba(255, 193, 7, 0.2);
-  border: 1px solid rgba(255, 193, 7, 0.5);
-  color: #ffc107;
-  padding: 10px 15px;
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  color: #856404;
+  padding: 15px;
   border-radius: 10px;
-  margin: 10px 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  margin-bottom: 1rem;
+  text-align: center;
+  border: 1px solid #ffeaa7;
 }
 
 /* Station Controls */
 .station-controls {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 1rem;
-  align-items: flex-start;
+  align-items: center;
 }
 
-/* Enhanced Play Button */
+/* Play Button Container */
 .play-button-container {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
 }
 
@@ -250,9 +258,6 @@
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
   min-width: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .play-button:hover:not(:disabled) {
@@ -267,104 +272,108 @@
 }
 
 .play-button.loading {
-  background: linear-gradient(135deg, #6c757d, #5a6268);
-  cursor: wait;
+  background: linear-gradient(135deg, #6c757d, #495057);
+  cursor: not-allowed;
 }
 
-.play-button:disabled,
-.play-button.disabled {
+.play-button:disabled {
   background: #6c757d;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
-  opacity: 0.6;
 }
 
 .no-audio-message {
   color: #dc3545;
   font-size: 14px;
   margin: 0;
-  text-align: left;
-  background: rgba(220, 53, 69, 0.1);
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(220, 53, 69, 0.3);
+  text-align: center;
+  font-weight: 500;
 }
 
 .favorite-button {
-  background: linear-gradient(135deg, #e91e63, #ad1457);
+  background: linear-gradient(135deg, #dc3545, #c82333);
   color: white;
   border: none;
-  padding: 12px 25px;
-  border-radius: 25px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 15px 25px;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);
+  box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
 }
 
 .favorite-button:hover {
-  background: linear-gradient(135deg, #c2185b, #880e4f);
+  background: linear-gradient(135deg, #c82333, #a71e2a);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(233, 30, 99, 0.4);
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
 }
 
-/* Station Details Sections */
+/* Station Details */
 .station-details {
-  margin-top: 2rem;
+  margin-top: 3rem;
 }
 
 .detail-section {
-  background: rgba(255, 255, 255, 0.1);
-  margin-bottom: 1.5rem;
-  padding: 1.5rem;
+  margin-bottom: 2.5rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
   border-radius: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid #dee2e6;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
 .detail-section h3 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #212529;
   margin: 0 0 1rem 0;
-  font-size: 1.3rem;
-  color: rgba(255, 255, 255, 0.9);
-  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
-  padding-bottom: 0.5rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .station-info-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1rem;
-  margin-top: 1rem;
 }
 
 .info-item {
-  background: rgba(255, 255, 255, 0.1);
+  background: white;
   padding: 1rem;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .info-item strong {
-  color: rgba(255, 255, 255, 0.8);
+  color: #495057;
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* Now Playing Section */
+/* Now Playing */
 .now-playing {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 1rem;
-  border-radius: 10px;
-  border-left: 4px solid #28a745;
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  padding: 1.5rem;
+  border-radius: 15px;
+  border-left: 5px solid #2196f3;
 }
 
 .now-playing p {
   margin: 0.5rem 0;
-  color: rgba(255, 255, 255, 0.9);
+  color: #1565c0;
+}
+
+.now-playing p:first-child {
+  margin-top: 0;
+}
+
+.now-playing p:last-child {
+  margin-bottom: 0;
 }
 
 /* Loading States */
@@ -373,19 +382,17 @@
   justify-content: center;
   align-items: center;
   min-height: 50vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .loading-spinner {
   text-align: center;
-  color: white;
 }
 
 .spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top: 4px solid white;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #28a745;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 1rem;
@@ -395,18 +402,19 @@
 .station-detail-error {
   text-align: center;
   padding: 3rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  min-height: 50vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.station-detail-error h2 {
+  color: #dc3545;
+  margin-bottom: 1rem;
 }
 
 .error-details {
-  color: rgba(255, 255, 255, 0.8);
-  font-style: italic;
-  margin: 1rem 0;
+  color: #6c757d;
+  margin-bottom: 2rem;
 }
 
 /* Animations */
@@ -416,11 +424,11 @@
     transform: scale(1);
   }
   50% { 
-    box-shadow: 0 6px 25px rgba(255, 193, 7, 0.6); 
+    box-shadow: 0 6px 25px rgba(255, 193, 7, 0.6);
     transform: scale(1.02);
   }
   100% { 
-    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3); 
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
     transform: scale(1);
   }
 }
@@ -441,51 +449,52 @@
     text-align: center;
   }
   
-  .station-image-container {
-    align-self: center;
+  .station-detail-image {
+    width: 250px;
+    height: 250px;
   }
   
   .station-name {
     font-size: 2rem;
   }
   
-  .station-stats {
-    justify-content: center;
-  }
-  
   .station-controls {
-    align-items: center;
+    justify-content: center;
   }
   
   .station-info-grid {
     grid-template-columns: 1fr;
   }
   
-  .play-button-container {
-    align-items: center;
-    width: 100%;
-  }
-  
-  .play-button {
-    width: 100%;
-    max-width: 200px;
+  .detail-section {
+    padding: 1.5rem;
   }
 }
 
 @media (max-width: 480px) {
-  .station-detail-image,
-  .station-logo {
-    width: 150px;
-    height: 150px;
+  .station-detail-image {
+    width: 200px;
+    height: 200px;
   }
   
   .station-logo {
-    width: 100px;
-    height: 100px;
+    width: 80px;
+    height: 80px;
+  }
+  
+  .station-logo-placeholder {
+    width: 80px;
+    height: 80px;
   }
   
   .station-name {
     font-size: 1.5rem;
+  }
+  
+  .play-button,
+  .favorite-button {
+    padding: 12px 20px;
+    font-size: 14px;
   }
   
   .detail-section {

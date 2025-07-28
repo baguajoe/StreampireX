@@ -77,6 +77,7 @@ const RadioStationDetail = () => {
         stream_url: station.stream_url,
         loop_audio_url: station.loop_audio_url,
         initial_mix_url: station.initial_mix_url,
+        audio_url: station.audio_url,
         now_playing: station.now_playing_metadata
     });
 
@@ -86,25 +87,31 @@ const RadioStationDetail = () => {
         return station.stream_url;
     }
     
-    // Priority 2: Loop audio URL (Cloudinary)
+    // Priority 2: Audio URL field (Cloudinary)
+    if (station.audio_url && station.audio_url.startsWith('http')) {
+        console.log("✅ Using audio_url (Cloudinary):", station.audio_url);
+        return station.audio_url;
+    }
+    
+    // Priority 3: Loop audio URL (Cloudinary)
     if (station.loop_audio_url && station.loop_audio_url.startsWith('http')) {
         console.log("✅ Using loop_audio_url (Cloudinary):", station.loop_audio_url);
         return station.loop_audio_url;
     }
     
-    // Priority 3: Initial mix URL (Cloudinary)  
+    // Priority 4: Initial mix URL (Cloudinary)  
     if (station.initial_mix_url && station.initial_mix_url.startsWith('http')) {
         console.log("✅ Using initial_mix_url (Cloudinary):", station.initial_mix_url);
         return station.initial_mix_url;
     }
 
-    // Priority 4: From playlist metadata (Cloudinary)
+    // Priority 5: From playlist metadata (Cloudinary)
     if (station.now_playing_metadata?.file_url && station.now_playing_metadata.file_url.startsWith('http')) {
         console.log("✅ Using now_playing file_url (Cloudinary):", station.now_playing_metadata.file_url);
         return station.now_playing_metadata.file_url;
     }
 
-    // Priority 5: From playlist schedule (Cloudinary)
+    // Priority 6: From playlist schedule (Cloudinary)
     if (station.playlist_schedule?.tracks?.length > 0) {
         const firstTrack = station.playlist_schedule.tracks[0];
         if (firstTrack.file_url && firstTrack.file_url.startsWith('http')) {
