@@ -68,36 +68,54 @@ const RadioStationDetail = () => {
     return process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001';
   }, []);
 
-  // Fixed audio URL construction
+  // FIXED getAudioUrl function with Cloudinary priority
   const getAudioUrl = useCallback(() => {
     if (!station) return null;
 
-    // If station has a direct stream URL, use it
-    if (station.stream_url) {
-      return station.stream_url;
+    console.log("🔍 Getting audio URL for station:", station.name);
+    console.log("🔍 Station data:", {
+        stream_url: station.stream_url,
+        loop_audio_url: station.loop_audio_url,
+        initial_mix_url: station.initial_mix_url,
+        now_playing: station.now_playing_metadata
+    });
+
+    // Priority 1: Direct stream URL (Cloudinary)
+    if (station.stream_url && station.stream_url.startsWith('http')) {
+        console.log("✅ Using stream_url (Cloudinary):", station.stream_url);
+        return station.stream_url;
     }
     
-    // For loop-enabled stations, use the loop audio URL
-    if (station.is_loop_enabled && station.loop_audio_url) {
-      const backendUrl = getBackendUrl();
-      // The URL should be constructed as: backend_url + /static + file_path
-      const cleanPath = station.loop_audio_url.startsWith('/') 
-        ? station.loop_audio_url 
-        : `/${station.loop_audio_url}`;
-      return `${backendUrl}/static${cleanPath}`;
+    // Priority 2: Loop audio URL (Cloudinary)
+    if (station.loop_audio_url && station.loop_audio_url.startsWith('http')) {
+        console.log("✅ Using loop_audio_url (Cloudinary):", station.loop_audio_url);
+        return station.loop_audio_url;
     }
     
-    // Fallback to now playing metadata file URL
-    if (station.now_playing_metadata?.file_url) {
-      const backendUrl = getBackendUrl();
-      const cleanPath = station.now_playing_metadata.file_url.startsWith('/') 
-        ? station.now_playing_metadata.file_url 
-        : `/${station.now_playing_metadata.file_url}`;
-      return `${backendUrl}/static${cleanPath}`;
+    // Priority 3: Initial mix URL (Cloudinary)  
+    if (station.initial_mix_url && station.initial_mix_url.startsWith('http')) {
+        console.log("✅ Using initial_mix_url (Cloudinary):", station.initial_mix_url);
+        return station.initial_mix_url;
+    }
+
+    // Priority 4: From playlist metadata (Cloudinary)
+    if (station.now_playing_metadata?.file_url && station.now_playing_metadata.file_url.startsWith('http')) {
+        console.log("✅ Using now_playing file_url (Cloudinary):", station.now_playing_metadata.file_url);
+        return station.now_playing_metadata.file_url;
+    }
+
+    // Priority 5: From playlist schedule (Cloudinary)
+    if (station.playlist_schedule?.tracks?.length > 0) {
+        const firstTrack = station.playlist_schedule.tracks[0];
+        if (firstTrack.file_url && firstTrack.file_url.startsWith('http')) {
+            console.log("✅ Using playlist track file_url (Cloudinary):", firstTrack.file_url);
+            return firstTrack.file_url;
+        }
     }
     
+    console.log("❌ No valid Cloudinary audio URL found");
     return null;
-  }, [station, getBackendUrl]);
+  }, [station]);
 
   // Fetch station details
   const fetchStationDetails = useCallback(async () => {
@@ -265,32 +283,77 @@ const RadioStationDetail = () => {
     }
   }, [station, isPlaying]);
 
-  // Improved audio element setup
+  // ENHANCED audio element setup with better Cloudinary support
   const setupAudioElement = useCallback(() => {
     const audioUrl = getAudioUrl();
-    if (!audioUrl) return null;
+    if (!audioUrl) {
+        console.error("❌ No audio URL available for setup");
+        setAudioError("No audio file available for this station");
+        return null;
+    }
 
-    console.log("🎵 Setting up audio with URL:", audioUrl);
+    console.log("🎵 Setting up audio with Cloudinary URL:", audioUrl);
 
     const audio = new Audio();
     
-    // Set audio properties for better compatibility
+    // Enhanced audio properties for Cloudinary
     audio.crossOrigin = 'anonymous';
-    audio.preload = 'metadata';
+    audio.preload = 'auto';
     
-    // Add event listeners
-    audio.addEventListener('loadstart', handleLoadStart);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('playing', handlePlaying);
-    audio.addEventListener('pause', handlePause);
-    audio.addEventListener('error', handleAudioError);
-    audio.addEventListener('stalled', handleStalled);
-    audio.addEventListener('waiting', handleWaiting);
-    audio.addEventListener('ended', handleEnded);
+    // Add comprehensive event listeners
+    audio.addEventListener('loadstart', () => {
+        console.log("🔄 Audio loading started");
+        setConnectionStatus('connecting');
+    });
     
+    audio.addEventListener('canplay', () => {
+        console.log("✅ Audio can play");
+        setConnectionStatus('connected');
+        setAudioLoading(false);
+    });
+    
+    audio.addEventListener('loadeddata', () => {
+        console.log("✅ Audio data loaded");
+    });
+
+    audio.addEventListener('loadedmetadata', () => {
+        console.log("✅ Audio metadata loaded, duration:", audio.duration);
+    });
+    
+    audio.addEventListener('error', (e) => {
+        console.error("❌ Audio error event:", e);
+        console.error("❌ Audio error object:", audio.error);
+        
+        let errorMessage = 'Audio failed to load';
+        if (audio.error) {
+            switch (audio.error.code) {
+                case audio.error.MEDIA_ERR_ABORTED:
+                    errorMessage = 'Audio loading was aborted';
+                    break;
+                case audio.error.MEDIA_ERR_NETWORK:
+                    errorMessage = 'Network error while loading audio';
+                    break;
+                case audio.error.MEDIA_ERR_DECODE:
+                    errorMessage = 'Audio format not supported';
+                    break;
+                case audio.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                    errorMessage = 'Audio source not supported';
+                    break;
+                default:
+                    errorMessage = `Audio error (code: ${audio.error.code})`;
+            }
+        }
+        
+        setAudioError(errorMessage);
+        setConnectionStatus('error');
+        setAudioLoading(false);
+    });
+
+    // Set the Cloudinary URL
     audio.src = audioUrl;
+    
     return audio;
-  }, [getAudioUrl, handleLoadStart, handleCanPlay, handlePlaying, handlePause, handleAudioError, handleStalled, handleWaiting, handleEnded]);
+  }, [getAudioUrl]);
 
   // Improved play/pause handler
   const handlePlayPause = useCallback(async () => {
@@ -416,6 +479,43 @@ const RadioStationDetail = () => {
     };
   }, []);
 
+  // FIXED Logo Rendering
+  const renderStationLogo = () => {
+    console.log("🖼️ Rendering logo, URL:", station?.logo_url);
+    
+    if (!station?.logo_url) {
+        return (
+            <div className="station-logo-placeholder">
+                <span style={{ fontSize: '2rem' }}>📻</span>
+                <p style={{ margin: '5px 0', fontSize: '12px' }}>No Logo</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="station-logo-container">
+            <img 
+                src={station.logo_url} 
+                alt={`${station.name} logo`}
+                className="station-logo"
+                onLoad={() => {
+                    console.log("✅ Logo loaded successfully:", station.logo_url);
+                }}
+                onError={(e) => {
+                    console.error("❌ Logo failed to load:", station.logo_url);
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML = `
+                        <div class="station-logo-placeholder">
+                            <span style="font-size: 2rem">📻</span>
+                            <p style="margin: 5px 0; font-size: 12px">Logo Error</p>
+                        </div>
+                    `;
+                }}
+            />
+        </div>
+    );
+  };
+
   // Render helpers
   const renderConnectionStatus = () => {
     switch (connectionStatus) {
@@ -430,24 +530,42 @@ const RadioStationDetail = () => {
     }
   };
 
+  // ENHANCED Play Button with Better Error Handling
   const renderPlayButton = () => {
-    const isDisabled = (type !== 'static' && !station?.is_live) || audioLoading;
+    const audioUrl = getAudioUrl();
+    const isDisabled = !audioUrl || audioLoading;
     
     let buttonText = '▶️ Play';
+    let buttonClass = 'play-button';
+    
     if (audioLoading) {
-      buttonText = '⏳ Loading...';
+        buttonText = '⏳ Loading...';
+        buttonClass += ' loading';
     } else if (isPlaying) {
-      buttonText = '⏸️ Pause';
+        buttonText = '⏸️ Pause';
+        buttonClass += ' playing';
+    }
+
+    if (isDisabled) {
+        buttonClass += ' disabled';
     }
 
     return (
-      <button 
-        onClick={handlePlayPause} 
-        className={`play-button ${isPlaying ? 'playing' : ''} ${audioLoading ? 'loading' : ''}`}
-        disabled={isDisabled}
-      >
-        {buttonText}
-      </button>
+        <div className="play-button-container">
+            <button 
+                onClick={handlePlayPause} 
+                className={buttonClass}
+                disabled={isDisabled}
+                title={!audioUrl ? 'No audio available' : isPlaying ? 'Pause' : 'Play'}
+            >
+                {buttonText}
+            </button>
+            {!audioUrl && (
+                <p className="no-audio-message">
+                    ⚠️ No audio file available
+                </p>
+            )}
+        </div>
     );
   };
 
@@ -490,6 +608,54 @@ const RadioStationDetail = () => {
     );
   };
 
+  // DEBUG Component (for development)
+  const renderDebugInfo = () => {
+    if (process.env.NODE_ENV !== 'development') return null;
+    
+    const audioUrl = getAudioUrl();
+    
+    return (
+        <div style={{ 
+            background: '#f8f9fa', 
+            border: '1px solid #dee2e6', 
+            padding: '15px', 
+            margin: '15px 0',
+            borderRadius: '8px',
+            fontSize: '14px'
+        }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>🐛 Debug Info</h4>
+            <p><strong>Station ID:</strong> {station?.id}</p>
+            <p><strong>Station Name:</strong> {station?.name}</p>
+            <p><strong>Logo URL:</strong> {station?.logo_url || 'None'}</p>
+            <p><strong>Audio URL:</strong> {audioUrl || 'None'}</p>
+            <p><strong>Is Live:</strong> {station?.is_live ? 'Yes' : 'No'}</p>
+            <p><strong>Loop Enabled:</strong> {station?.is_loop_enabled ? 'Yes' : 'No'}</p>
+            <p><strong>Connection Status:</strong> {connectionStatus}</p>
+            {audioError && <p style={{color: 'red'}}><strong>Audio Error:</strong> {audioError}</p>}
+            
+            <button 
+                onClick={() => {
+                    console.log("🔍 Full Station Object:", station);
+                    if (audioUrl) {
+                        window.open(audioUrl, '_blank');
+                    }
+                }}
+                style={{
+                    marginTop: '10px',
+                    padding: '5px 10px',
+                    background: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                }}
+            >
+                Test Audio URL
+            </button>
+        </div>
+    );
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -527,14 +693,18 @@ const RadioStationDetail = () => {
 
       <div className="station-detail-content">
         <div className="station-info">
-          <img 
-            src={station.image || station.cover_image_url || station.logo_url} 
-            alt={station.name} 
-            className="station-detail-image"
-            onError={(e) => {
-              e.target.src = LofiDreamsImg; // Fallback image
-            }}
-          />
+          <div className="station-image-container">
+            <img 
+              src={station.image || station.cover_image_url || station.logo_url} 
+              alt={station.name} 
+              className="station-detail-image"
+              onError={(e) => {
+                e.target.src = LofiDreamsImg; // Fallback image
+              }}
+            />
+            {/* Render station logo separately */}
+            {renderStationLogo()}
+          </div>
           
           <div className="station-meta">
             <h1 className="station-name">{station.name}</h1>
@@ -597,13 +767,7 @@ const RadioStationDetail = () => {
               </button>
 
               {/* Development debug info */}
-              {process.env.NODE_ENV === 'development' && getAudioUrl() && (
-                <div className="debug-info">
-                  <p>Audio URL: {getAudioUrl()}</p>
-                  <p>Loop enabled: {station.is_loop_enabled ? 'Yes' : 'No'}</p>
-                  <p>Is live: {station.is_live ? 'Yes' : 'No'}</p>
-                </div>
-              )}
+              {renderDebugInfo()}
             </div>
           </div>
         </div>
