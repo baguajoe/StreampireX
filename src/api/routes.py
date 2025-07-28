@@ -2,7 +2,7 @@
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle
 
 
 import json
@@ -8320,3 +8320,231 @@ def get_messages_by_room(room_id):
         "timestamp": m.created_at.isoformat()
     } for m in messages]), 200
 
+@api.route('/profile/<int:user_id>/inner-circle', methods=['GET'])
+def get_user_inner_circle(user_id):
+    """Get a user's inner circle (viewable by anyone)"""
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    inner_circle = InnerCircle.query.filter_by(user_id=user_id)\
+                                   .order_by(InnerCircle.position)\
+                                   .all()
+    
+    return jsonify({
+        "user_id": user_id,
+        "username": user.username,
+        "inner_circle": [member.serialize() for member in inner_circle]
+    }), 200
+
+# ⭐ Inner Circle - Get current user's inner circle for editing
+@api.route('/profile/my-inner-circle', methods=['GET'])
+@jwt_required()
+def get_my_inner_circle():
+    """Get current user's inner circle for editing"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    inner_circle = InnerCircle.query.filter_by(user_id=user_id)\
+                                   .order_by(InnerCircle.position)\
+                                   .all()
+    
+    return jsonify({
+        "user_id": user_id,
+        "inner_circle": [member.serialize() for member in inner_circle],
+        "available_friends": get_available_friends_for_circle(user_id)
+    }), 200
+
+# ⭐ Inner Circle - Add friend to inner circle
+@api.route('/profile/inner-circle/add', methods=['POST'])
+@jwt_required()
+def add_to_inner_circle():
+    """Add a friend to inner circle"""
+    user_id = get_jwt_identity()
+    data = request.json
+    
+    friend_user_id = data.get('friend_user_id')
+    position = data.get('position')  # Optional
+    custom_title = data.get('custom_title', '').strip()[:50]  # Limit title length
+    
+    if not friend_user_id:
+        return jsonify({"error": "Friend user ID is required"}), 400
+    
+    # Verify friend exists and isn't the same user
+    friend = User.query.get(friend_user_id)
+    if not friend:
+        return jsonify({"error": "Friend not found"}), 404
+    
+    if friend_user_id == user_id:
+        return jsonify({"error": "Cannot add yourself to inner circle"}), 400
+    
+    # Check if already in inner circle
+    existing = InnerCircle.query.filter_by(user_id=user_id, friend_user_id=friend_user_id).first()
+    if existing:
+        return jsonify({"error": "Friend already in inner circle"}), 400
+    
+    # Check if inner circle is full (10 members max)
+    current_count = InnerCircle.query.filter_by(user_id=user_id).count()
+    if current_count >= 10 and not position:
+        return jsonify({"error": "Inner circle is full (10 members max)"}), 400
+    
+    try:
+        user = User.query.get(user_id)
+        new_member = user.add_to_inner_circle(friend_user_id, position, custom_title)
+        
+        if not new_member:
+            return jsonify({"error": "Could not add to inner circle"}), 400
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Friend added to inner circle",
+            "member": new_member.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+# ⭐ Inner Circle - Remove friend from inner circle
+@api.route('/profile/inner-circle/remove/<int:friend_user_id>', methods=['DELETE'])
+@jwt_required()
+def remove_from_inner_circle(friend_user_id):
+    """Remove a friend from inner circle"""
+    user_id = get_jwt_identity()
+    
+    try:
+        user = User.query.get(user_id)
+        success = user.remove_from_inner_circle(friend_user_id)
+        
+        if success:
+            return jsonify({"message": "Friend removed from inner circle"}), 200
+        else:
+            return jsonify({"error": "Friend not found in inner circle"}), 404
+            
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+# ⭐ Inner Circle - Reorder inner circle
+@api.route('/profile/inner-circle/reorder', methods=['PUT'])
+@jwt_required()
+def reorder_inner_circle():
+    """Reorder inner circle members"""
+    user_id = get_jwt_identity()
+    data = request.json
+    
+    new_order = data.get('order', [])  # List of friend_user_ids in desired order
+    
+    if not isinstance(new_order, list):
+        return jsonify({"error": "Order must be a list of user IDs"}), 400
+    
+    if len(new_order) > 10:
+        return jsonify({"error": "Inner circle cannot have more than 10 members"}), 400
+    
+    try:
+        user = User.query.get(user_id)
+        user.reorder_inner_circle(new_order)
+        
+        # Return updated inner circle
+        updated_circle = InnerCircle.query.filter_by(user_id=user_id)\
+                                         .order_by(InnerCircle.position)\
+                                         .all()
+        
+        return jsonify({
+            "message": "Inner circle reordered successfully",
+            "inner_circle": [member.serialize() for member in updated_circle]
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+# ⭐ Inner Circle - Update member title
+@api.route('/profile/inner-circle/update-title/<int:friend_user_id>', methods=['PUT'])
+@jwt_required()
+def update_inner_circle_title(friend_user_id):
+    """Update custom title for inner circle member"""
+    user_id = get_jwt_identity()
+    data = request.json
+    
+    custom_title = data.get('custom_title', '').strip()[:50]
+    
+    member = InnerCircle.query.filter_by(user_id=user_id, friend_user_id=friend_user_id).first()
+    if not member:
+        return jsonify({"error": "Member not found in inner circle"}), 404
+    
+    member.custom_title = custom_title
+    member.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Title updated successfully",
+        "member": member.serialize()
+    }), 200
+
+# ⭐ Helper function to get available friends for inner circle
+def get_available_friends_for_circle(user_id):
+    """Get list of friends/connections not already in inner circle"""
+    # This assumes you have a friends/connections system
+    # Adjust this based on your actual friendship model
+    
+    # Get current inner circle member IDs
+    current_circle_ids = [member.friend_user_id for member in 
+                         InnerCircle.query.filter_by(user_id=user_id).all()]
+    
+    # For now, return all users except self and current circle members
+    # You should replace this with actual friends/connections query
+    available_users = User.query.filter(
+        User.id != user_id,
+        ~User.id.in_(current_circle_ids)
+    ).limit(50).all()  # Limit for performance
+    
+    return [{
+        "id": user.id,
+        "username": user.username,
+        "artist_name": user.artist_name,
+        "avatar_url": user.avatar_url,
+        "bio": user.bio,
+        "is_gamer": user.is_gamer,
+        "gamertag": user.gamertag,
+        "is_artist": user.is_artist
+    } for user in available_users]
+
+# ⭐ Search users for inner circle
+@api.route('/profile/inner-circle/search-users', methods=['GET'])
+@jwt_required()
+def search_users_for_inner_circle():
+    """Search for users to add to inner circle"""
+    user_id = get_jwt_identity()
+    query = request.args.get('q', '').strip()
+    
+    if len(query) < 2:
+        return jsonify({"users": []}), 200
+    
+    # Get current inner circle member IDs
+    current_circle_ids = [member.friend_user_id for member in 
+                         InnerCircle.query.filter_by(user_id=user_id).all()]
+    current_circle_ids.append(user_id)  # Exclude self
+    
+    # Search users by username or artist name
+    users = User.query.filter(
+        or_(
+            User.username.ilike(f'%{query}%'),
+            User.artist_name.ilike(f'%{query}%')
+        ),
+        ~User.id.in_(current_circle_ids)
+    ).limit(20).all()
+    
+    return jsonify({
+        "users": [{
+            "id": user.id,
+            "username": user.username,
+            "artist_name": user.artist_name,
+            "avatar_url": user.avatar_url,
+            "bio": user.bio,
+            "is_gamer": user.is_gamer,
+            "gamertag": user.gamertag,
+            "is_artist": user.is_artist
+        } for user in users]
+    }), 200

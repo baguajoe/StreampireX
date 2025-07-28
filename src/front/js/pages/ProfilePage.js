@@ -4,6 +4,7 @@ import UploadVideo from "../component/UploadVideo";
 import ChatModal from "../component/ChatModal";
 import VideoChatPopup from "../component/VideoChatPopup";
 import InboxDrawer from "../component/InboxDrawer";
+import InnerCircle from "../component/InnerCircle";
 import "../../styles/ProfilePage.css";
 import "../../styles/WebRTC.css";
 
@@ -110,17 +111,22 @@ const ProfilePage = () => {
     const socket = useRef(null);
 
     // Memoized user data
-    const loggedInUserId = useMemo(() => 
+    const loggedInUserId = useMemo(() =>
         parseInt(localStorage.getItem("user_id")) || 1, []
     );
-    const loggedInUsername = useMemo(() => 
+    const loggedInUsername = useMemo(() =>
         localStorage.getItem("username"), []
     );
+
+    // Calculate derived values
+    const effectiveUserId = user?.id || loggedInUserId;
+    const effectiveUserName = user?.display_name || user?.username || loggedInUsername || `User ${effectiveUserId}`;
+    const isOwnProfile = effectiveUserId === loggedInUserId;
 
     // Initialize socket connection
     useEffect(() => {
         socket.current = createSocket();
-        
+
         return () => {
             if (socket.current) {
                 socket.current.disconnect();
@@ -131,7 +137,7 @@ const ProfilePage = () => {
     // Fetch user profile
     const fetchProfile = useCallback(async () => {
         const token = localStorage.getItem("token");
-        
+
         if (!token) {
             console.warn("No token found - using fallback user data");
             setUser({
@@ -166,7 +172,7 @@ const ProfilePage = () => {
             }
 
             setUser(userData);
-            
+
             // Update form data with user data
             setFormData(prev => ({
                 ...prev,
@@ -194,7 +200,7 @@ const ProfilePage = () => {
         } catch (error) {
             console.error("Fetch profile error:", error);
             setError(error.message);
-            
+
             // Fallback to localStorage data
             if (loggedInUserId) {
                 setUser({
@@ -306,7 +312,7 @@ const ProfilePage = () => {
 
             const data = await response.json();
             const newVideo = { file_url: data.secure_url, title: file.name };
-            
+
             setMedia(prev => ({
                 ...prev,
                 videos: [...prev.videos, newVideo]
@@ -360,23 +366,23 @@ const ProfilePage = () => {
         }
 
         const payload = {};
-        
+
         // Only include non-empty fields
         if (formData.displayName?.trim()) payload.display_name = formData.displayName;
         if (formData.businessName?.trim()) payload.business_name = formData.businessName;
         if (formData.bio?.trim()) payload.bio = formData.bio;
         if (formData.radioStation?.trim()) payload.radio_station = formData.radioStation;
         if (formData.storefrontLink?.trim()) payload.storefront_link = formData.storefrontLink;
-        
+
         // Include arrays if they have content
         if (media.videos.length > 0) payload.videos = media.videos;
         if (media.images.length > 0) payload.images = media.images;
-        
+
         // Include social links if any are filled
         const filledSocialLinks = Object.entries(formData.socialLinks)
             .filter(([key, value]) => key !== 'custom' && value?.trim())
             .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
-        
+
         if (Object.keys(filledSocialLinks).length > 0) {
             payload.social_links = { ...filledSocialLinks, custom: formData.socialLinks.custom };
         }
@@ -438,7 +444,7 @@ const ProfilePage = () => {
     const handleToggleAvatar = useCallback(async () => {
         const newValue = !ui.useAvatar;
         setUi(prev => ({ ...prev, useAvatar: newValue }));
-        
+
         try {
             const token = localStorage.getItem("token");
             if (!token) return;
@@ -484,28 +490,25 @@ const ProfilePage = () => {
         );
     }
 
-    const effectiveUserId = user?.id || loggedInUserId;
-    const effectiveUserName = user?.display_name || user?.username || loggedInUsername || `User ${effectiveUserId}`;
-
     return (
         <div className="profile-container">
             {/* Cover Photo Section */}
             <div className="cover-photo-container">
-                <img 
-                    src={media.coverPhoto || user.cover_photo || campfire} 
-                    alt="Cover" 
-                    className="cover-photo" 
+                <img
+                    src={media.coverPhoto || user.cover_photo || campfire}
+                    alt="Cover"
+                    className="cover-photo"
                 />
-                <button 
-                    onClick={() => coverPhotoInputRef.current.click()} 
+                <button
+                    onClick={() => coverPhotoInputRef.current.click()}
                     className="upload-btn cover-upload-btn"
                 >
                     📷 Upload Cover Photo
                 </button>
-                <input 
-                    ref={coverPhotoInputRef} 
-                    type="file" 
-                    style={{ display: 'none' }} 
+                <input
+                    ref={coverPhotoInputRef}
+                    type="file"
+                    style={{ display: 'none' }}
                     onChange={handleCoverPhotoChange}
                     accept="image/*"
                 />
@@ -534,7 +537,7 @@ const ProfilePage = () => {
                         alt="Profile"
                         className="profile-pic"
                     />
-                    <button 
+                    <button
                         onClick={handleToggleAvatar}
                         className="avatar-toggle-btn"
                         title={ui.useAvatar ? "Switch to uploaded photo" : "Use AI avatar"}
@@ -550,15 +553,15 @@ const ProfilePage = () => {
                                 {formData.displayName || user.username || "Your Name"}
                             </h1>
                             <div className="name-actions">
-                                <button 
-                                    className="edit-name-btn small-btn" 
+                                <button
+                                    className="edit-name-btn small-btn"
                                     onClick={() => toggleEditingState('name')}
                                 >
                                     ✏️ Edit
                                 </button>
                                 {user.id !== loggedInUserId && (
-                                    <button 
-                                        className="message-btn small-btn" 
+                                    <button
+                                        className="message-btn small-btn"
                                         onClick={() => setUi(prev => ({ ...prev, isChatOpen: true }))}
                                     >
                                         💬 Message
@@ -577,14 +580,14 @@ const ProfilePage = () => {
                                 autoFocus
                             />
                             <div className="name-edit-actions">
-                                <button 
-                                    className="name-save-btn" 
+                                <button
+                                    className="name-save-btn"
                                     onClick={() => toggleEditingState('name')}
                                 >
                                     ✅ Save
                                 </button>
-                                <button 
-                                    className="name-cancel-btn" 
+                                <button
+                                    className="name-cancel-btn"
                                     onClick={() => {
                                         toggleEditingState('name');
                                         updateFormData('displayName', user.display_name || '');
@@ -596,16 +599,16 @@ const ProfilePage = () => {
                         </div>
                     )}
 
-                    <button 
-                        onClick={() => profilePicInputRef.current.click()} 
+                    <button
+                        onClick={() => profilePicInputRef.current.click()}
                         className="upload-btn profile-pic-upload"
                     >
                         😀 Upload Profile Picture
                     </button>
-                    <input 
-                        ref={profilePicInputRef} 
-                        type="file" 
-                        style={{ display: 'none' }} 
+                    <input
+                        ref={profilePicInputRef}
+                        type="file"
+                        style={{ display: 'none' }}
                         onChange={handleProfilePicChange}
                         accept="image/*"
                     />
@@ -626,14 +629,14 @@ const ProfilePage = () => {
                         </>
                     ) : (
                         <>
-                            <textarea 
-                                rows={5} 
-                                value={formData.bio} 
+                            <textarea
+                                rows={5}
+                                value={formData.bio}
                                 onChange={(e) => updateFormData('bio', e.target.value)}
                                 placeholder="Tell people about yourself..."
                             />
                             <div className="bio-edit-actions">
-                                <button 
+                                <button
                                     onClick={() => {
                                         toggleEditingState('bio');
                                         handleSaveProfile();
@@ -641,7 +644,7 @@ const ProfilePage = () => {
                                 >
                                     ✅ Save Bio
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => {
                                         toggleEditingState('bio');
                                         updateFormData('bio', user.bio || '');
@@ -691,18 +694,23 @@ const ProfilePage = () => {
                 </div>
             </div>
 
+            <InnerCircle
+                userId={effectiveUserId}
+                isOwnProfile={isOwnProfile}
+            />
+
             {/* Social Links Section */}
             <div className="social-links">
                 <div className="social-links-header">
                     <h4>🔗 Social Links</h4>
-                    <button 
+                    <button
                         className="edit-social-btn"
                         onClick={() => toggleEditingState('socialLinks')}
                     >
                         {editingStates.socialLinks ? '✅ Done' : '✏️ Edit'}
                     </button>
                 </div>
-                
+
                 {editingStates.socialLinks ? (
                     <div className="social-links-edit">
                         {SOCIAL_PLATFORMS.map((platform) => (
@@ -723,13 +731,13 @@ const ProfilePage = () => {
                         {SOCIAL_PLATFORMS.map((platform) => {
                             const url = formData.socialLinks[platform.key];
                             if (!url) return null;
-                            
+
                             return (
-                                <a 
+                                <a
                                     key={platform.key}
-                                    href={url} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
+                                    href={url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="social-link"
                                 >
                                     <span className="social-icon">{platform.icon}</span>
@@ -749,7 +757,7 @@ const ProfilePage = () => {
                 {/* Left Column - Favorites */}
                 <div className="left-column">
                     <h3>⭐ <Link to="/favorites">Favorite Profiles</Link></h3>
-                    
+
                     <div className="favorite-item">
                         <img src={zenmaster} alt="Zen Master" className="favorite-avatar" />
                         <div>
@@ -885,9 +893,9 @@ const ProfilePage = () => {
                                     <div className="videos-grid">
                                         {media.videos.map((video, index) => (
                                             <div key={video.id || index} className="video-card">
-                                                <video 
-                                                    src={video.file_url} 
-                                                    controls 
+                                                <video
+                                                    src={video.file_url}
+                                                    controls
                                                     className="video-player"
                                                     poster={video.thumbnail}
                                                 />
@@ -906,7 +914,7 @@ const ProfilePage = () => {
                                                     <button className="video-action-btn">
                                                         💬 Comment
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         className="video-action-btn danger"
                                                         onClick={() => {
                                                             setMedia(prev => ({
@@ -969,9 +977,9 @@ const ProfilePage = () => {
                                     <div className="upload-card">
                                         <h3>🎬 Upload Video</h3>
                                         <p>Share your creative videos with the community</p>
-                                        <input 
-                                            type="file" 
-                                            accept="video/*" 
+                                        <input
+                                            type="file"
+                                            accept="video/*"
                                             onChange={handleVideoUpload}
                                             className="upload-input"
                                             id="video-upload"
@@ -984,9 +992,9 @@ const ProfilePage = () => {
                                     <div className="upload-card">
                                         <h3>🖼️ Upload Images</h3>
                                         <p>Add photos to your gallery</p>
-                                        <input 
-                                            type="file" 
-                                            accept="image/*" 
+                                        <input
+                                            type="file"
+                                            accept="image/*"
                                             multiple
                                             onChange={(e) => {
                                                 // Handle image uploads
@@ -1070,9 +1078,9 @@ const ProfilePage = () => {
                         {formData.storefrontLink ? (
                             <div className="storefront-info">
                                 <p>Visit my store:</p>
-                                <a 
-                                    href={formData.storefrontLink} 
-                                    target="_blank" 
+                                <a
+                                    href={formData.storefrontLink}
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="storefront-link"
                                 >

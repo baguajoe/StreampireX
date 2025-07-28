@@ -2966,4 +2966,124 @@ class MatchParticipant(db.Model):
             "skill_level": self.user.skill_level,
             "joined_at": self.joined_at.isoformat(),
             "status": self.status
+        }  
+
+# Add this to your models.py file
+
+class InnerCircle(db.Model):
+    """User's Inner Circle - Top 10 featured friends (like MySpace Top 8 but expanded)"""
+    __tablename__ = 'inner_circle'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    friend_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    position = db.Column(db.Integer, nullable=False)  # 1-10 ranking position
+    custom_title = db.Column(db.String(50), nullable=True)  # Optional custom title like "Best Friend", "Gaming Buddy", etc.
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Ensure unique position per user and prevent self-adding
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'position', name='unique_user_position'),
+        db.UniqueConstraint('user_id', 'friend_user_id', name='unique_user_friend'),
+        db.CheckConstraint('user_id != friend_user_id', name='no_self_inner_circle')
+    )
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='inner_circle_members')
+    friend = db.relationship('User', foreign_keys=[friend_user_id], backref='featured_in_circles')
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "friend_user_id": self.friend_user_id,
+            "position": self.position,
+            "custom_title": self.custom_title,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "friend": {
+                "id": self.friend.id,
+                "username": self.friend.username,
+                "artist_name": self.friend.artist_name,
+                "avatar_url": self.friend.avatar_url,
+                "bio": self.friend.bio,
+                "is_gamer": self.friend.is_gamer,
+                "gamertag": self.friend.gamertag,
+                "is_artist": self.friend.is_artist
+            } if self.friend else None
         }
+
+# Add this method to your existing User model class
+def get_inner_circle(self):
+    """Get user's inner circle ordered by position"""
+    return InnerCircle.query.filter_by(user_id=self.id)\
+                           .order_by(InnerCircle.position)\
+                           .all()
+
+def add_to_inner_circle(self, friend_user_id, position=None, custom_title=None):
+    """Add a friend to inner circle at specific position"""
+    if position is None:
+        # Find next available position
+        existing_positions = [ic.position for ic in self.get_inner_circle()]
+        position = 1
+        while position in existing_positions and position <= 10:
+            position += 1
+        if position > 10:
+            return None  # Inner circle is full
+    
+    # Remove existing entry for this friend if exists
+    existing = InnerCircle.query.filter_by(user_id=self.id, friend_user_id=friend_user_id).first()
+    if existing:
+        db.session.delete(existing)
+    
+    # If position is taken, shift others down
+    if position <= 10:
+        existing_at_position = InnerCircle.query.filter_by(user_id=self.id, position=position).first()
+        if existing_at_position:
+            # Shift this and subsequent positions down
+            to_shift = InnerCircle.query.filter_by(user_id=self.id)\
+                                      .filter(InnerCircle.position >= position)\
+                                      .order_by(InnerCircle.position.desc()).all()
+            for item in to_shift:
+                if item.position < 10:
+                    item.position += 1
+                else:
+                    db.session.delete(item)  # Remove if it would go beyond position 10
+    
+    # Add new inner circle member
+    new_member = InnerCircle(
+        user_id=self.id,
+        friend_user_id=friend_user_id,
+        position=position,
+        custom_title=custom_title
+    )
+    db.session.add(new_member)
+    return new_member
+
+def remove_from_inner_circle(self, friend_user_id):
+    """Remove a friend from inner circle and reorder positions"""
+    member = InnerCircle.query.filter_by(user_id=self.id, friend_user_id=friend_user_id).first()
+    if member:
+        removed_position = member.position
+        db.session.delete(member)
+        
+        # Shift higher positions down to fill the gap
+        to_shift = InnerCircle.query.filter_by(user_id=self.id)\
+                                  .filter(InnerCircle.position > removed_position)\
+                                  .order_by(InnerCircle.position).all()
+        for item in to_shift:
+            item.position -= 1
+        
+        db.session.commit()
+        return True
+    return False
+
+def reorder_inner_circle(self, new_order):
+    """Reorder inner circle based on list of friend_user_ids in desired order"""
+    for i, friend_user_id in enumerate(new_order[:10], 1):  # Limit to top 10
+        member = InnerCircle.query.filter_by(user_id=self.id, friend_user_id=friend_user_id).first()
+        if member:
+            member.position = i
+            member.updated_at = datetime.utcnow()
+    db.session.commit()
