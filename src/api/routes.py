@@ -3011,15 +3011,7 @@ def create_radio_station_profile():
                 if file_size > 150 * 1024 * 1024:
                     return jsonify({"error": "Audio file too large (max 150MB)"}), 413
 
-        # Correct directory paths
-        logo_dir = os.path.join("uploads", "station_logos")
-        cover_dir = os.path.join("uploads", "station_covers")
-        mix_dir = os.path.join("src", "static", "uploads", "station_mixes")
-
-        os.makedirs(logo_dir, exist_ok=True)
-        os.makedirs(cover_dir, exist_ok=True)
-        os.makedirs(mix_dir, exist_ok=True)
-
+        # 🔥 FIXED: Use Cloudinary instead of local storage
         logo_url = None
         cover_url = None
         initial_mix_url = None
@@ -3028,36 +3020,34 @@ def create_radio_station_profile():
         if 'logo' in request.files:
             logo_file = request.files['logo']
             if logo_file and logo_file.filename:
-                logo_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(logo_file.filename)}"
-                logo_path = os.path.join(logo_dir, logo_filename)
-                logo_file.save(logo_path)
-                logo_url = f"/{logo_path}"
+                logo_filename = secure_filename(logo_file.filename)
+                logo_url = uploadFile(logo_file, logo_filename)  # ✅ Use Cloudinary
+                print(f"✅ Logo uploaded to Cloudinary: {logo_url}")
 
         if 'cover' in request.files:
             cover_file = request.files['cover']
             if cover_file and cover_file.filename:
-                cover_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(cover_file.filename)}"
-                cover_path = os.path.join(cover_dir, cover_filename)
-                cover_file.save(cover_path)
-                cover_url = f"/{cover_path}"
+                cover_filename = secure_filename(cover_file.filename)
+                cover_url = uploadFile(cover_file, cover_filename)  # ✅ Use Cloudinary
+                print(f"✅ Cover uploaded to Cloudinary: {cover_url}")
 
         if 'initialMix' in request.files:
             mix_file = request.files['initialMix']
             if mix_file and mix_file.filename:
-                mix_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(mix_file.filename)}"
-                mix_path = os.path.join(mix_dir, mix_filename)
-                mix_file.save(mix_path)
-                initial_mix_url = f"/uploads/station_mixes/{mix_filename}"
+                mix_filename = secure_filename(mix_file.filename)
+                initial_mix_url = uploadFile(mix_file, mix_filename)  # ✅ Use Cloudinary
+                print(f"✅ Audio uploaded to Cloudinary: {initial_mix_url}")
 
         creator = User.query.get(user_id)
         creator_name = creator.username if creator else "Unknown"
 
+        # ✅ Create station with Cloudinary URLs
         new_station = RadioStation(
             user_id=user_id,
             name=name,
             description=description,
-            logo_url=logo_url,
-            cover_image_url=cover_url,
+            logo_url=logo_url,                    # ✅ Cloudinary URL
+            cover_image_url=cover_url,            # ✅ Cloudinary URL
             is_public=True,
             genres=[category] if category else ["Music"],
             creator_name=creator_name,
@@ -3068,6 +3058,7 @@ def create_radio_station_profile():
         db.session.add(new_station)
         db.session.flush()
 
+        # ✅ Setup audio with Cloudinary URL
         if initial_mix_url:
             mix_title = data.get("mixTitle", f"{name} - Initial Mix")
 
@@ -3075,7 +3066,7 @@ def create_radio_station_profile():
                 user_id=user_id,
                 title=mix_title,
                 description=data.get("mixDescription", ""),
-                file_url=initial_mix_url,
+                file_url=initial_mix_url,  # ✅ Cloudinary URL
                 uploaded_at=datetime.utcnow()
             )
             db.session.add(initial_audio)
@@ -3087,16 +3078,15 @@ def create_radio_station_profile():
             )
             db.session.add(playlist_entry)
 
-            # Use local file path to extract duration
-            mix_file_path = os.path.join(mix_dir, mix_filename)
-            duration = get_track_duration_from_file(mix_file_path)
+            # ✅ Get duration (simplified since file is on Cloudinary)
+            duration = data.get("duration", "03:00")  # Use form data or default
 
             track_info = {
                 "id": initial_audio.id,
                 "title": mix_title,
                 "artist": data.get("djName", creator_name),
                 "duration": duration,
-                "file_url": initial_mix_url,
+                "file_url": initial_mix_url,  # ✅ Cloudinary URL
                 "bpm": data.get("bpm", ""),
                 "mood": data.get("mood", ""),
                 "sub_genres": data.get("subGenres", "")
@@ -3108,66 +3098,79 @@ def create_radio_station_profile():
                 "created_at": datetime.utcnow().isoformat()
             }
 
+            # ✅ Setup station with proper URLs
             new_station.playlist_schedule = playlist_schedule
             new_station.is_loop_enabled = True
             new_station.loop_duration_minutes = 180
             new_station.loop_started_at = datetime.utcnow()
             new_station.is_live = True
             new_station.now_playing_metadata = track_info
-            new_station.loop_audio_url = initial_mix_url
+            new_station.loop_audio_url = initial_mix_url  # ✅ Cloudinary URL
 
             print(f"✅ Setup audio loop: {mix_title} ({duration}) for station {new_station.name}")
-            print(f"✅ Audio filename stored: {mix_filename}")
+            print(f"✅ Audio Cloudinary URL: {initial_mix_url}")
 
         db.session.commit()
 
-        return jsonify({
+        # ✅ Enhanced response with debug info
+        response_data = {
             "message": "Radio station created successfully with audio loop!" if initial_mix_url else "Radio station created successfully!",
-            "station": new_station.serialize(),
+            "station": {
+                "id": new_station.id,
+                "name": new_station.name,
+                "description": new_station.description,
+                "logo_url": new_station.logo_url,
+                "cover_url": new_station.cover_image_url,
+                "stream_url": initial_mix_url,  # ✅ For compatibility
+                "loop_audio_url": new_station.loop_audio_url,
+                "is_live": new_station.is_live,
+                "is_loop_enabled": new_station.is_loop_enabled,
+                "creator_name": new_station.creator_name
+            },
             "audio_loop_enabled": new_station.is_loop_enabled,
-            "now_playing": new_station.get_current_track()
-        }), 201
+            "now_playing": new_station.get_current_track() if hasattr(new_station, 'get_current_track') else track_info if initial_mix_url else None
+        }
+
+        # 🎯 DEBUG INFO
+        print(f"🎯 DEBUG Station Created:")
+        print(f"   Name: {new_station.name}")
+        print(f"   Logo URL: {new_station.logo_url}")
+        print(f"   Cover URL: {new_station.cover_image_url}")
+        print(f"   Audio URL: {new_station.loop_audio_url}")
+        print(f"   Is Live: {new_station.is_live}")
+
+        return jsonify(response_data), 201
 
     except Exception as e:
         db.session.rollback()
         print(f"❌ Error creating radio station: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": f"Failed to create station: {str(e)}"}), 500
 
 
-# Duration helper function
-def get_track_duration_from_file(file_path):
+# ✅ Updated duration helper function (simplified for Cloudinary)
+def get_track_duration_from_file(file_path_or_url):
+    """
+    Get track duration - simplified since files are on Cloudinary
+    """
+    # For Cloudinary files, we can't easily get duration server-side
+    # So we'll use default or client-provided duration
     try:
-        from mutagen import File
-        audio_file = File(file_path)
-        if audio_file and hasattr(audio_file, 'info'):
-            total_seconds = int(audio_file.info.length)
-            minutes = total_seconds // 60
-            seconds = total_seconds % 60
-            return f"{minutes:02d}:{seconds:02d}"
-    except ImportError:
-        print("Mutagen not available, using ffmpeg fallback")
-
-    try:
-        import subprocess
-        result = subprocess.run([
-            'ffprobe', '-v', 'quiet', '-show_entries',
-            'format=duration', '-of', 'csv=p=0', file_path
-        ], capture_output=True, text=True)
-
-        if result.returncode == 0:
-            total_seconds = int(float(result.stdout.strip()))
-            minutes = total_seconds // 60
-            seconds = total_seconds % 60
-            return f"{minutes:02d}:{seconds:02d}"
+        # If it's a local file path (fallback)
+        if not file_path_or_url.startswith('http'):
+            from mutagen import File
+            audio_file = File(file_path_or_url)
+            if audio_file and hasattr(audio_file, 'info'):
+                total_seconds = int(audio_file.info.length)
+                minutes = total_seconds // 60
+                seconds = total_seconds % 60
+                return f"{minutes:02d}:{seconds:02d}"
     except Exception as e:
-        print(f"Error getting duration with ffmpeg: {e}")
+        print(f"Could not get duration: {e}")
 
-    try:
-        file_size = os.path.getsize(file_path)
-        estimated_minutes = max(1, file_size // (1024 * 1024))
-        return f"{estimated_minutes:02d}:00"
-    except:
-        return "03:00"
+    # Default duration for Cloudinary files
+    return "03:00"
 
 # ✅ Add Podcast Collaborator (Co-Host)
 @api.route('/podcasts/add_host/<int:podcast_id>', methods=['POST'])
