@@ -26,6 +26,8 @@ from rq import Queue
 from redis import Redis
 from api.utils.tasks import send_release_to_revelator
 from mutagen import File
+# Add this import at the top of your routes.py file
+from flask import Flask, request, jsonify, send_file, Response, redirect
 
 import uuid
 import ffmpeg
@@ -3171,6 +3173,175 @@ def get_track_duration_from_file(file_path_or_url):
 
     # Default duration for Cloudinary files
     return "03:00"
+
+@api.route('/admin/migrate-stations-to-cloudinary', methods=['POST'])
+@jwt_required()
+def migrate_stations_to_cloudinary():
+    """
+    ONE-TIME migration to convert existing radio stations from local paths to Cloudinary URLs
+    """
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    # Simple admin check - you can modify this based on your admin setup
+    if not user or (hasattr(user, 'role') and user.role != 'admin'):
+        return jsonify({"error": "Admin access required"}), 403
+    
+    try:
+        updated_count = 0
+        errors = []
+        
+        # Find all stations with local file paths
+        stations = RadioStation.query.all()
+        
+        for station in stations:
+            try:
+                station_updated = False
+                
+                # 1. Migrate loop_audio_url if it's a local path
+                if station.loop_audio_url and station.loop_audio_url.startswith('/uploads/'):
+                    local_path = station.loop_audio_url
+                    filename = local_path.replace('/uploads/station_mixes/', '')
+                    full_path = os.path.join('src', 'static', 'uploads', 'station_mixes', filename)
+                    
+                    print(f"🔍 Checking station {station.name}: {full_path}")
+                    
+                    if os.path.exists(full_path):
+                        try:
+                            # Upload to Cloudinary
+                            with open(full_path, 'rb') as file:
+                                cloudinary_url = uploadFile(file, filename)
+                                station.loop_audio_url = cloudinary_url
+                                station_updated = True
+                                print(f"✅ Migrated audio for {station.name}: {cloudinary_url}")
+                        except Exception as upload_error:
+                            error_msg = f"Failed to upload {station.name}: {str(upload_error)}"
+                            errors.append(error_msg)
+                            print(f"❌ {error_msg}")
+                            continue
+                    else:
+                        error_msg = f"File not found for {station.name}: {full_path}"
+                        errors.append(error_msg)
+                        print(f"❌ {error_msg}")
+                        continue
+                
+                # 2. Migrate logo_url if it's a local path
+                if station.logo_url and station.logo_url.startswith('/uploads/'):
+                    local_path = station.logo_url
+                    full_path = os.path.join('src', 'static', local_path.lstrip('/'))
+                    
+                    if os.path.exists(full_path):
+                        try:
+                            filename = os.path.basename(full_path)
+                            with open(full_path, 'rb') as file:
+                                cloudinary_url = uploadFile(file, filename)
+                                station.logo_url = cloudinary_url
+                                station_updated = True
+                                print(f"✅ Migrated logo for {station.name}")
+                        except Exception as upload_error:
+                            print(f"⚠️ Logo upload failed for {station.name}: {upload_error}")
+                            # Continue anyway - logo is not critical
+                
+                # 3. Migrate cover_image_url if it's a local path
+                if station.cover_image_url and station.cover_image_url.startswith('/uploads/'):
+                    local_path = station.cover_image_url
+                    full_path = os.path.join('src', 'static', local_path.lstrip('/'))
+                    
+                    if os.path.exists(full_path):
+                        try:
+                            filename = os.path.basename(full_path)
+                            with open(full_path, 'rb') as file:
+                                cloudinary_url = uploadFile(file, filename)
+                                station.cover_image_url = cloudinary_url
+                                station_updated = True
+                                print(f"✅ Migrated cover for {station.name}")
+                        except Exception as upload_error:
+                            print(f"⚠️ Cover upload failed for {station.name}: {upload_error}")
+                            # Continue anyway - cover is not critical
+                
+                # 4. Update playlist metadata with new Cloudinary URLs
+                if station_updated and station.playlist_schedule:
+                    playlist = station.playlist_schedule
+                    if 'tracks' in playlist:
+                        for track in playlist['tracks']:
+                            if 'file_url' in track and track['file_url'].startswith('/uploads/'):
+                                # Update track file_url to point to new Cloudinary URL
+                                track['file_url'] = station.loop_audio_url
+                    
+                    station.playlist_schedule = playlist
+                    
+                    # Update now_playing_metadata too
+                    if station.now_playing_metadata and 'file_url' in station.now_playing_metadata:
+                        station.now_playing_metadata['file_url'] = station.loop_audio_url
+                
+                if station_updated:
+                    updated_count += 1
+                    
+            except Exception as station_error:
+                error_msg = f"Error processing station {station.name}: {str(station_error)}"
+                errors.append(error_msg)
+                print(f"❌ {error_msg}")
+                continue
+        
+        # Commit all changes
+        db.session.commit()
+        
+        return jsonify({
+            "message": f"Migration completed! Updated {updated_count} stations.",
+            "updated_count": updated_count,
+            "total_stations": len(stations),
+            "errors": errors
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Migration failed: {str(e)}")
+        return jsonify({"error": f"Migration failed: {str(e)}"}), 500
+
+@api.route('/admin/check-stations-migration', methods=['GET'])
+@jwt_required()
+def check_stations_migration():
+    """Check which stations have local paths and need migration"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    if not user or (hasattr(user, 'role') and user.role != 'admin'):
+        return jsonify({"error": "Admin access required"}), 403
+    
+    stations = RadioStation.query.all()
+    
+    needs_migration = []
+    already_cloudinary = []
+    
+    for station in stations:
+        station_info = {
+            "id": station.id,
+            "name": station.name,
+            "loop_audio_url": station.loop_audio_url,
+            "logo_url": station.logo_url,
+            "cover_image_url": station.cover_image_url
+        }
+        
+        # Check if any URLs are local paths
+        has_local_paths = (
+            (station.loop_audio_url and station.loop_audio_url.startswith('/uploads/')) or
+            (station.logo_url and station.logo_url.startswith('/uploads/')) or
+            (station.cover_image_url and station.cover_image_url.startswith('/uploads/'))
+        )
+        
+        if has_local_paths:
+            needs_migration.append(station_info)
+        else:
+            already_cloudinary.append(station_info)
+    
+    return jsonify({
+        "total_stations": len(stations),
+        "needs_migration": len(needs_migration),
+        "already_cloudinary": len(already_cloudinary),
+        "stations_needing_migration": needs_migration,
+        "stations_already_cloudinary": already_cloudinary
+    }), 200
+
 
 # ✅ Add Podcast Collaborator (Co-Host)
 @api.route('/podcasts/add_host/<int:podcast_id>', methods=['POST'])
@@ -7761,7 +7932,7 @@ def get_now_playing(station_id):
 @api.route('/radio/<int:station_id>/stream')
 def stream_radio_station(station_id):
     """
-    Stream audio from a radio station with proper CORS headers
+    Stream audio from a radio station - Updated for Cloudinary URLs
     """
     try:
         station = RadioStation.query.get(station_id)
@@ -7769,50 +7940,91 @@ def stream_radio_station(station_id):
         if not station:
             return jsonify({"error": "Station not found"}), 404
         
-        if not station.is_live or not station.is_loop_enabled:
+        if not station.is_live:
             return jsonify({"error": "Station is not currently live"}), 400
         
-        if not station.playlist_schedule or not station.playlist_schedule.get("tracks"):
-            return jsonify({"error": "No playlist configured"}), 400
+        # ✅ UPDATED: Handle both Cloudinary URLs and local files
+        audio_url = None
         
-        # Get current track
-        current_track_info = station.get_current_track()
-        if not current_track_info:
-            return jsonify({"error": "No track currently playing"}), 404
+        # Priority 1: Check for direct Cloudinary URLs in station
+        if station.loop_audio_url and station.loop_audio_url.startswith('http'):
+            audio_url = station.loop_audio_url
+            print(f"🎵 Using station loop_audio_url (Cloudinary): {audio_url}")
         
-        # Get audio file path from the current track
-        track_id = current_track_info.get("id")
-        audio = Audio.query.get(track_id) if track_id else None
+        # Priority 2: Check current track for Cloudinary URL
+        elif station.playlist_schedule and station.playlist_schedule.get("tracks"):
+            current_track_info = station.get_current_track()
+            if current_track_info and current_track_info.get("file_url"):
+                file_url = current_track_info.get("file_url")
+                if file_url.startswith('http'):
+                    audio_url = file_url
+                    print(f"🎵 Using current track URL (Cloudinary): {audio_url}")
         
-        if not audio:
-            return jsonify({"error": "Audio track not found"}), 404
+        # Priority 3: Check Audio table for Cloudinary URL
+        if not audio_url and station.playlist_schedule:
+            current_track_info = station.get_current_track()
+            if current_track_info:
+                track_id = current_track_info.get("id")
+                audio = Audio.query.get(track_id) if track_id else None
+                if audio and audio.file_url and audio.file_url.startswith('http'):
+                    audio_url = audio.file_url
+                    print(f"🎵 Using Audio record URL (Cloudinary): {audio_url}")
         
-        # Build file path - handle the path stored in database
-        file_url = audio.file_url
-        if file_url.startswith('/uploads/station_mixes/'):
-            # Remove leading slash and build full path for station mixes
-            filename = file_url.replace('/uploads/station_mixes/', '')
-            file_path = os.path.join('src', 'static', 'uploads', 'station_mixes', filename)
-        elif file_url.startswith('/'):
-            # Remove leading slash for other files
-            file_path = file_url[1:]
-        else:
-            file_path = file_url
+        # ✅ NEW: For Cloudinary URLs, redirect to the direct URL
+        if audio_url and audio_url.startswith('http'):
+            print(f"🔗 Redirecting to Cloudinary URL: {audio_url}")
+            
+            # Return redirect response with CORS headers
+            response = redirect(audio_url)
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Range, Content-Type'
+            return response
         
-        # Validate file exists
-        if not os.path.exists(file_path):
-            print(f"❌ Audio file not found: {file_path}")
-            return jsonify({"error": "Audio file not available"}), 404
+        # ✅ FALLBACK: Handle local files (for backward compatibility)
+        if station.playlist_schedule and station.playlist_schedule.get("tracks"):
+            current_track_info = station.get_current_track()
+            if current_track_info:
+                track_id = current_track_info.get("id")
+                audio = Audio.query.get(track_id) if track_id else None
+                
+                if audio and audio.file_url:
+                    file_url = audio.file_url
+                    
+                    # Only handle local files if they're not Cloudinary URLs
+                    if not file_url.startswith('http'):
+                        # Build file path for local files
+                        if file_url.startswith('/uploads/station_mixes/'):
+                            filename = file_url.replace('/uploads/station_mixes/', '')
+                            file_path = os.path.join('src', 'static', 'uploads', 'station_mixes', filename)
+                        elif file_url.startswith('/'):
+                            file_path = file_url[1:]
+                        else:
+                            file_path = file_url
+                        
+                        # Validate local file exists
+                        if os.path.exists(file_path):
+                            print(f"🎵 Streaming local file: {file_path}")
+                            return stream_local_file(file_path, station.name)
         
-        print(f"🎵 Streaming {station.name} from: {file_path}")
+        # No valid audio source found
+        return jsonify({"error": "No valid audio source available for this station"}), 404
         
+    except Exception as e:
+        print(f"❌ Stream error for station {station_id}: {e}")
+        return jsonify({"error": "Streaming error occurred"}), 500
+
+
+def stream_local_file(file_path, station_name):
+    """Helper function to stream local files"""
+    try:
         # Get MIME type
         import mimetypes
         mimetype, _ = mimetypes.guess_type(file_path)
         if not mimetype:
             mimetype = 'audio/mpeg'
         
-        # Create streaming response
+        # Create streaming response for local files
         def generate_audio():
             try:
                 with open(file_path, 'rb') as f:
@@ -7822,7 +8034,7 @@ def stream_radio_station(station_id):
                             break
                         yield chunk
             except Exception as e:
-                print(f"❌ Streaming error: {e}")
+                print(f"❌ Local streaming error: {e}")
         
         # Create response with proper headers
         response = Response(
@@ -7843,8 +8055,9 @@ def stream_radio_station(station_id):
         return response
         
     except Exception as e:
-        print(f"❌ Stream error for station {station_id}: {e}")
-        return jsonify({"error": "Streaming error occurred"}), 500
+        print(f"❌ Local file streaming error: {e}")
+        return jsonify({"error": "Local file streaming error"}), 500
+
 
 @api.route('/api/radio/<int:station_id>/stream', methods=['OPTIONS'])
 def handle_stream_options(station_id):
@@ -7854,7 +8067,140 @@ def handle_stream_options(station_id):
     response.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Range, Content-Type'
     response.headers['Access-Control-Max-Age'] = '3600'
-    return response
+    return response  
+
+@api.route('/api/radio/<int:station_id>/audio-url', methods=['GET'])
+def get_station_audio_url(station_id):
+    """
+    Get the direct audio URL for a station (preferred method for Cloudinary)
+    This is what your frontend should use instead of streaming through the backend
+    """
+    try:
+        station = RadioStation.query.get(station_id)
+        
+        if not station:
+            return jsonify({"error": "Station not found"}), 404
+        
+        if not station.is_live:
+            return jsonify({"error": "Station is not currently live"}), 400
+        
+        # Get the direct Cloudinary URL
+        audio_url = None
+        
+        # Priority 1: Station's loop_audio_url (Cloudinary)
+        if station.loop_audio_url and station.loop_audio_url.startswith('http'):
+            audio_url = station.loop_audio_url
+        
+        # Priority 2: Current track URL (Cloudinary)
+        elif station.playlist_schedule:
+            current_track_info = station.get_current_track()
+            if current_track_info and current_track_info.get("file_url"):
+                file_url = current_track_info.get("file_url")
+                if file_url.startswith('http'):
+                    audio_url = file_url
+        
+        # Priority 3: Audio record URL (Cloudinary)
+        if not audio_url and station.playlist_schedule:
+            current_track_info = station.get_current_track()
+            if current_track_info:
+                track_id = current_track_info.get("id")
+                audio = Audio.query.get(track_id) if track_id else None
+                if audio and audio.file_url and audio.file_url.startswith('http'):
+                    audio_url = audio.file_url
+        
+        if not audio_url:
+            return jsonify({"error": "No audio URL available"}), 404
+        
+        return jsonify({
+            "station_id": station_id,
+            "station_name": station.name,
+            "audio_url": audio_url,
+            "is_live": station.is_live,
+            "current_track": station.get_current_track()
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Error getting audio URL for station {station_id}: {e}")
+        return jsonify({"error": "Failed to get audio URL"}), 500
+
+@api.route('/api/radio-stations/<int:station_id>', methods=['GET'])
+def get_radio_station_details_enhanced(station_id):
+    """
+    Enhanced station details with proper Cloudinary URL handling
+    """
+    try:
+        station = RadioStation.query.get(station_id)
+        
+        if not station:
+            return jsonify({"error": "Station not found"}), 404
+        
+        # Get creator info
+        creator = User.query.get(station.user_id)
+        
+        # Get the audio URL (Cloudinary or local)
+        audio_url = None
+        if station.loop_audio_url:
+            if station.loop_audio_url.startswith('http'):
+                audio_url = station.loop_audio_url  # Cloudinary URL
+            else:
+                # Local file - build stream URL
+                base_url = request.host_url.rstrip('/')
+                audio_url = f"{base_url}/radio/{station_id}/stream"
+        
+        # Get current track
+        current_track = station.get_current_track()
+        
+        # Build the complete station response
+        station_data = {
+            "id": station.id,
+            "name": station.name,
+            "description": station.description,
+            "genre": station.genres[0] if station.genres else "Music",
+            "genres": station.genres or [],
+            "creator_name": station.creator_name or (creator.username if creator else "Unknown"),
+            "is_live": station.is_live,
+            "is_loop_enabled": station.is_loop_enabled,
+            "followers_count": station.followers_count,
+            "logo_url": station.logo_url,
+            "cover_image_url": station.cover_image_url,
+            "created_at": station.created_at.isoformat() if station.created_at else None,
+            
+            # ✅ ENHANCED: Multiple URL options for compatibility
+            "stream_url": audio_url,  # Direct Cloudinary URL or stream endpoint
+            "loop_audio_url": station.loop_audio_url,  # Raw URL from DB
+            "audio_url": audio_url,  # Alias for frontend compatibility
+            "now_playing": current_track,
+            
+            # Additional fields
+            "submission_guidelines": station.submission_guidelines,
+            "preferred_genres": station.preferred_genres or [],
+            "user_id": station.user_id,
+            "loop_started_at": station.loop_started_at.isoformat() if station.loop_started_at else None,
+            "loop_duration_minutes": station.loop_duration_minutes,
+            "now_playing_metadata": station.now_playing_metadata,
+            "playlist_schedule": station.playlist_schedule,
+            "is_public": station.is_public,
+            "is_subscription_based": station.is_subscription_based,
+            "is_ticketed": station.is_ticketed,
+            "is_webrtc_enabled": station.is_webrtc_enabled,
+            "max_listeners": station.max_listeners,
+            "subscription_price": station.subscription_price,
+            "ticket_price": station.ticket_price
+        }
+        
+        # Debug logging
+        print(f"✅ Station {station_id} details:")
+        print(f"   - Name: {station.name}")
+        print(f"   - Is Live: {station.is_live}")
+        print(f"   - Loop Enabled: {station.is_loop_enabled}")
+        print(f"   - Audio URL: {audio_url}")
+        print(f"   - Current Track: {current_track}")
+        
+        return jsonify(station_data), 200
+        
+    except Exception as e:
+        print(f"❌ Error getting station details for {station_id}: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
 
 @api.route('/debug/station/<int:station_id>')
 def debug_station_info(station_id):
