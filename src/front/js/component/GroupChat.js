@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import io from "socket.io-client";
+import { io } from "socket.io-client";
 
-const socket = io("http://localhost:5000"); // update to your WebSocket server
+const socket = io("http://localhost:5000", {
+  transports: ["websocket"],
+  withCredentials: true,
+});
 
 const GroupChat = ({ groupId, currentUser }) => {
   const [messages, setMessages] = useState([]);

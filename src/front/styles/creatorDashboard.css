@@ -1,68 +1,244 @@
+/* Dashboard Container */
 .creator-dashboard {
-    padding: 20px;
-  }
-  
-  .dashboard-overview {
-    background: #f4f4f4;
-    padding: 15px;
-    text-align: center;
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-bottom: 20px;
-  }
-  
-  .dashboard-section {
-    margin-bottom: 30px;
-  }
-  
-  .dashboard-section h2 {
-    margin-bottom: 10px;
-  }
-  
-  .content-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-  }
-  
-  .content-card {
-    width: 250px;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    background: white;
-    text-align: center;
-  }
-  
-  .content-card img {
-    width: 100%;
-    height: auto;
-    border-radius: 5px;
-  }
-  
-  .btn-primary, .btn-secondary {
-    display: inline-block;
-    padding: 10px 15px;
-    margin: 10px;
-    border-radius: 5px;
-    text-decoration: none;
-  }
-  
-  .btn-primary {
-    background: #007bff;
-    color: white;
-  }
-  
-  .btn-secondary {
-    background: #28a745;
-    color: white;
-  }
+  max-width: 100%;
+  padding: 30px;
+  background-color: #f9f9fb;
+  font-family: 'Segoe UI', sans-serif;
+  color: #333;
+}
 
-  .creator-profile-img {
-  width: 120px;
-  height: 120px;
-  border-radius: 10px;
+/* Header */
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+}
+
+.creator-profile-overview {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.creator-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #0f172a;
+  border: 3px solid #ccc;
+}
+
+.creator-info h1 {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.creator-name {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.subscription-badge {
+  font-size: 14px;
+  background: #4caf50;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+/* Metrics Overview */
+.metrics-overview h2 {
+  font-size: 20px;
   margin-bottom: 16px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.metric-card {
+  background: #eaf2ff;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.metric-icon {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.metric-change {
+  font-size: 13px;
+  color: #666;
+}
+
+/* Quick Actions */
+.quick-actions h2 {
+  font-size: 20px;
+  margin-top: 40px;
+  margin-bottom: 16px;
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: #f1f1f1;
+  text-decoration: none;
+  color: #333;
+  transition: 0.2s;
+}
+
+.action-btn:hover {
+  background: #ddd;
+}
+
+.action-btn.podcast {
+  background-color: #ffd6e0;
+}
+.action-btn.music {
+  background-color: #d6f0ff;
+}
+.action-btn.radio {
+  background-color: #e0ffe5;
+}
+.action-btn.livestream {
+  background-color: #fff0cc;
+}
+
+/* Charts Section */
+.analytics-section {
+  margin-top: 40px;
+}
+
+.charts-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.chart-container {
+  flex: 1 1 300px;
+  height: 300px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.growth-chart {
+  margin-top: 30px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  height: 320px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Recent Activity */
+.recent-activity {
+  margin-top: 40px;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 12px;
+  background: #f3f3f3;
+  border-radius: 8px;
+}
+
+.activity-icon {
+  font-size: 24px;
+}
+
+.activity-content p {
+  margin: 0;
+  font-weight: 500;
+}
+
+.activity-time {
+  font-size: 13px;
+  color: #888;
+}
+
+/* Specialized Dashboards */
+.dashboard-navigation {
+  margin-top: 50px;
+}
+
+.dashboard-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.dashboard-link {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 15px;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 20px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  text-decoration: none;
+  color: #222;
+  transition: 0.2s ease-in-out;
+}
+
+.dashboard-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.link-icon {
+  font-size: 30px;
+}
+
+.link-content h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.link-content p {
+  font-size: 14px;
+  margin: 4px 0;
+  color: #666;
+}
+
+.link-stats {
+  font-size: 13px;
+  color: #888;
 }

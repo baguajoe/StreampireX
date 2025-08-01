@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 
-const socket = io("http://localhost:5000");
+const socket = io(
+  window.location.hostname === "localhost"
+    ? "http://localhost:5000"
+    : "https://streampirex-websockets.up.railway.app",
+  {
+    transports: ["websocket"],
+    withCredentials: true
+  }
+);
+
 
 const Chat = () => {
   const [messages, setMessages] = useState([]);

@@ -2975,6 +2975,7 @@ def create_radio_station_profile():
             if logo_file and logo_file.filename:
                 # Check file size (50MB limit for logos)
                 if logo_file.content_length and logo_file.content_length > 50 * 1024 * 1024:
+                    print("CONTENT TOO LARGE")
                     return jsonify({"error": "Logo file too large (max 50MB)"}), 413
                 
                 # Check file in memory size if content_length not available
@@ -2983,21 +2984,24 @@ def create_radio_station_profile():
                 logo_file.seek(0)  # Reset to beginning
                 
                 if file_size > 50 * 1024 * 1024:
+                    print("CONTENT TOO LARGE")
                     return jsonify({"error": "Logo file too large (max 50MB)"}), 413
 
         if 'cover' in request.files:
             cover_file = request.files['cover']
             if cover_file and cover_file.filename:
-                # Check file size (5MB limit for covers)
-                if cover_file.content_length and cover_file.content_length > 5 * 1024 * 1024:
-                    return jsonify({"error": "Cover file too large (max 5MB)"}), 413
+                # Check file size (50MB limit for covers)
+                if cover_file.content_length and cover_file.content_length > 50 * 1024 * 1024:
+                    print("CONTENT TOO LARGE")
+                    return jsonify({"error": "Cover file too large (max 50MB)"}), 413
                 
                 cover_file.seek(0, 2)
                 file_size = cover_file.tell()
                 cover_file.seek(0)
                 
-                if file_size > 5 * 1024 * 1024:
-                    return jsonify({"error": "Cover file too large (max 5MB)"}), 413
+                if file_size > 50 * 1024 * 1024:
+                    print("CONTENT TOO LARGE")
+                    return jsonify({"error": "Cover file too large (max 50MB)"}), 413
 
         if 'initialMix' in request.files:
             mix_file = request.files['initialMix']

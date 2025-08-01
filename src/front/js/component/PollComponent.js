@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import io from 'socket.io-client';
+import { io } from 'socket.io-client';
 
 const PollComponent = () => {
   const [poll, setPoll] = useState(null);
-  const socket = io("http://localhost:5000");
+  const socket = io("http://localhost:5000", {
+    transports: ["websocket"],
+    withCredentials: true
+  });
 
   useEffect(() => {
     socket.on("new_poll", (data) => {

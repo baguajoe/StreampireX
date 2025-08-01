@@ -205,8 +205,8 @@ const Sidebar = ({ user }) => {
       </MenuItem>
 
       <SectionHeader>🎤 Indie Artists</SectionHeader>
-      <MenuItem to="/upload-music" className={isActive("/upload-music") ? "active" : ""}>
-        ⬆️ Upload Music
+      <MenuItem to="/music-distribution" className={isActive("/music-distribution") ? "active" : ""}>
+        🌍 Music Distribution
       </MenuItem>
       <MenuItem to="/search" className={isActive("/search") ? "active" : ""}>
         🔍 Search Artists
