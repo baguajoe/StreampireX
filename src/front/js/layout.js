@@ -29,11 +29,9 @@ import CreatorDashboard from "./pages/CreatorDashboard";
 import FavoritesPage from "./pages/FavoritesPage";
 import TeamRoomPage from "./pages/TeamRoomPage";
 
-
 import ArtistDashboard from "./pages/ArtistDashboard";
 import UploadMusic from "./pages/UploadMusic";
 import SearchArtists from "./pages/BrowseProfile";
-
 
 import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -46,6 +44,7 @@ import CreateReleasePage from "./pages/CreateReleasePage";
 import LyricsUploadPage from "./pages/LyricsUploadPage";
 import PodcastDetailPage from "./pages/PodcastDetailPage";
 import SquadFinderPage from "./pages/SquadFinderPage";
+import MusicDistribution from "./pages/MusicDistribution";
 
 import LiveStreamPage from "./pages/LiveStreams";
 import LiveConcerts from "./pages/LiveConcerts";
@@ -54,11 +53,6 @@ import LabelDashboard from "./pages/LabelDashboard";
 import ReleaseList from "./pages/ReleaseList";
 
 import UserVideoChannelPage from "./pages/UserVideoChannelPage";
-
-// Add in your Routes section
-<Route path="/user/:userId/videos" element={<UserVideoChannelPage />} />
-
-// 🎵 NEW: Artist Profile Page Import
 import ArtistProfilePage from "./pages/ArtistProfilePage";
 
 // ✅ Temporary placeholders
@@ -83,20 +77,6 @@ const EditGamerProfilePage = () => (
   </div>
 );
 
-// const TeamRoomPage = () => (
-//   <div className="page-container">
-//     <h1>🧑‍🤝‍🧑 Team Room</h1>
-//     <p>Private squad room with stream sharing and chat.</p>
-//   </div>
-// );
-
-// const SquadFinderPage = () => (
-//   <div className="page-container">
-//     <h1>🔍 Squad Finder</h1>
-//     <p>Search for active squads by game and platform.</p>
-//   </div>
-// );
-
 const CreateTeamRoomPage = () => (
   <div className="page-container">
     <h1>➕ Create Team Room</h1>
@@ -104,7 +84,6 @@ const CreateTeamRoomPage = () => (
   </div>
 );
 
-// 🎵 NEW: Artist Profile Edit Page Placeholder
 const EditArtistProfilePage = () => (
   <div className="page-container">
     <h1>✏️ Edit Artist Profile</h1>
@@ -133,6 +112,9 @@ const Layout = () => {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Signup />} />
+
+              {/* 📊 Dashboards */}
+              <Route path="/creator-dashboard" element={<CreatorDashboard />} />
 
               {/* 🎧 Podcasts */}
               <Route path="/podcast-dashboard" element={<PodcastDashboard />} />
@@ -165,6 +147,7 @@ const Layout = () => {
               {/* 🎤 Indie Artists */}
               <Route path="/artist-dashboard" element={<ArtistDashboard />} />
               <Route path="/upload-music" element={<UploadMusic />} />
+              <Route path="/music-distribution" element={<MusicDistribution />} />
               <Route path="/search" element={<SearchArtists />} />
               <Route path="/artist-profile/:id" element={<ArtistProfilePage />} />
 
@@ -177,8 +160,8 @@ const Layout = () => {
               {/* 👤 User - ALL PROFILE TYPES */}
               <Route path="/home-feed" element={<HomeFeed />} />
               <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/profile/artist" element={<ArtistProfilePage />} /> {/* 🎵 NEW ARTIST PROFILE ROUTE */}
-              <Route path="/profile/artist/edit" element={<EditArtistProfilePage />} /> {/* 🎵 NEW EDIT ROUTE */}
+              <Route path="/profile/artist" element={<ArtistProfilePage />} />
+              <Route path="/profile/artist/edit" element={<EditArtistProfilePage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/favorites" element={<FavoritesPage />} />
 

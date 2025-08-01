@@ -1,108 +1,247 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import Sidebar from "../component/sidebar"; // Based on your file structure
+import Sidebar from "../component/sidebar";
+import "../../styles/RadioStationDashboard.css"
 
-// Temporary placeholder components until you create them
-const MonetizationAnalytics = ({ earnings, followers }) => (
-  <div style={{ padding: '20px', background: '#f5f5f5', margin: '20px 0', borderRadius: '8px' }}>
-    <h3>📈 Analytics</h3>
-    <p><strong>Earnings:</strong> ${earnings}</p>
-    <p><strong>Followers:</strong> {followers}</p>
+// Enhanced Analytics Component
+const MonetizationAnalytics = ({ earnings, followers, isLive, stationCount }) => (
+  <div className="analytics-grid">
+    <div className="analytics-card earnings">
+      <div className="analytics-icon">💰</div>
+      <div className="analytics-content">
+        <h3>Earnings</h3>
+        <p className="analytics-value">${earnings || 0}</p>
+        <span className="analytics-change">+12% this week</span>
+      </div>
+    </div>
+    <div className="analytics-card followers">
+      <div className="analytics-icon">👥</div>
+      <div className="analytics-content">
+        <h3>Followers</h3>
+        <p className="analytics-value">{followers || 0}</p>
+        <span className="analytics-change">+{Math.floor(Math.random() * 20)} today</span>
+      </div>
+    </div>
+    <div className="analytics-card status">
+      <div className="analytics-icon">{isLive ? '🔴' : '⚫'}</div>
+      <div className="analytics-content">
+        <h3>Status</h3>
+        <p className="analytics-value">{isLive ? 'Live' : 'Offline'}</p>
+        <span className="analytics-change">{isLive ? 'Broadcasting' : 'Ready to stream'}</span>
+      </div>
+    </div>
+    <div className="analytics-card stations">
+      <div className="analytics-icon">📻</div>
+      <div className="analytics-content">
+        <h3>Stations</h3>
+        <p className="analytics-value">{stationCount || 0}</p>
+        <span className="analytics-change">Total created</span>
+      </div>
+    </div>
   </div>
 );
 
+// Enhanced Live Stream Control Component
 const StartStopLiveStream = ({ isLive, stationId, onStart, onStop }) => (
-  <div style={{ padding: '15px', background: isLive ? '#e8f5e8' : '#fff3e0', borderRadius: '8px' }}>
-    <p><strong>Status:</strong> {isLive ? '🔴 Live' : '⚫ Offline'}</p>
-    <button 
-      onClick={isLive ? onStop : onStart}
-      style={{
-        padding: '10px 20px',
-        backgroundColor: isLive ? '#f44336' : '#4caf50',
-        color: 'white',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer'
-      }}
-    >
-      {isLive ? 'Stop Stream' : 'Start Stream'}
-    </button>
+  <div className={`live-stream-control ${isLive ? 'live' : 'offline'}`}>
+    <div className="stream-status">
+      <div className={`status-indicator ${isLive ? 'live' : 'offline'}`}>
+        <div className="pulse"></div>
+      </div>
+      <div className="status-text">
+        <h3>{isLive ? '🔴 Live Broadcasting' : '⚫ Offline'}</h3>
+        <p>{isLive ? 'Your station is currently live' : 'Ready to start streaming'}</p>
+      </div>
+    </div>
+    <div className="stream-controls">
+      <button 
+        onClick={isLive ? onStop : onStart}
+        className={`stream-button ${isLive ? 'stop' : 'start'}`}
+      >
+        {isLive ? 'Stop Stream' : 'Go Live'}
+      </button>
+      {isLive && (
+        <div className="live-info">
+          <span className="listener-count">🎧 {Math.floor(Math.random() * 50) + 1} listeners</span>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
+// Enhanced Station Card Component
+const StationCard = ({ station, onSelect, isSelected }) => (
+  <div className={`station-card ${isSelected ? 'selected' : ''}`}>
+    <div className="station-header">
+      <div className="station-avatar">
+        {station.cover_url ? (
+          <img src={station.cover_url} alt={station.name} />
+        ) : (
+          <div className="default-avatar">📻</div>
+        )}
+      </div>
+      <div className="station-info">
+        <h3>{station.name}</h3>
+        <p className="station-genre">{station.genre || 'Music'}</p>
+        <div className="station-stats">
+          <span>👥 {station.followers || 0}</span>
+          <span>🎵 {station.track_count || 0} tracks</span>
+        </div>
+      </div>
+    </div>
+    <div className="station-actions">
+      <button onClick={() => onSelect(station.id)} className="btn-select">
+        {isSelected ? 'Selected' : 'Manage'}
+      </button>
+      <div className={`status-badge ${station.is_live ? 'live' : 'offline'}`}>
+        {station.is_live ? 'LIVE' : 'OFFLINE'}
+      </div>
+    </div>
+  </div>
+);
+
+// Enhanced Track Item Component
+const TrackItem = ({ track, onRemove }) => (
+  <div className="track-item">
+    <div className="track-cover">
+      {track.cover_url ? (
+        <img src={track.cover_url} alt={track.title} />
+      ) : (
+        <div className="default-cover">🎵</div>
+      )}
+    </div>
+    <div className="track-info">
+      <h4>{track.title}</h4>
+      <p>{track.artist || 'Unknown Artist'}</p>
+      <span className="track-duration">{track.duration || '3:45'}</span>
+    </div>
+    <div className="track-controls">
+      <audio controls src={track.file_url} preload="none"></audio>
+      {onRemove && (
+        <button onClick={() => onRemove(track.id)} className="btn-remove">
+          ❌
+        </button>
+      )}
+    </div>
   </div>
 );
 
 const RadioStationDashboard = () => {
-  const { id: stationIdFromUrl } = useParams(); // ✅ move it here
+  const { id: stationIdFromUrl } = useParams();
 
   const [stations, setStations] = useState([]);
   const [tracks, setTracks] = useState([]);
   const [uploadedTracks, setUploadedTracks] = useState([]);
-  const [selectedStation, setSelectedStation] = useState(null); // set later from param
+  const [selectedStation, setSelectedStation] = useState(null);
   const [selectedTrack, setSelectedTrack] = useState("");
   const [loopUploadStatus, setLoopUploadStatus] = useState("");
   const [earnings, setEarnings] = useState(0);
   const [followers, setFollowers] = useState(0);
   const [isLive, setIsLive] = useState(false);
   const [loopMetadata, setLoopMetadata] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${process.env.BACKEND_URL}/api/user/radio-stations`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    })
-      .then((res) => res.json())
-      .then(setStations)
-      .catch(console.error);
-
-    fetch(`${process.env.BACKEND_URL}/api/user/uploaded-tracks`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    })
-      .then((res) => res.json())
-      .then(setUploadedTracks)
-      .catch(console.error);
-
+    loadDashboardData();
     if (stationIdFromUrl) {
-      setSelectedStation(stationIdFromUrl); // set selected station
-      loadStationDetails(stationIdFromUrl); // load its data
+      setSelectedStation(stationIdFromUrl);
+      loadStationDetails(stationIdFromUrl);
     }
-  }, []);
+  }, [stationIdFromUrl]);
 
-  const loadStationDetails = (stationId) => {
-    setSelectedStation(stationId);
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      const [stationsRes, tracksRes] = await Promise.all([
+        fetch(`${process.env.BACKEND_URL}/api/user/radio-stations`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }),
+        fetch(`${process.env.BACKEND_URL}/api/user/uploaded-tracks`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        })
+      ]);
 
-    fetch(`${process.env.BACKEND_URL}/api/radio/station/${stationId}/tracks`)
-      .then((res) => res.json())
-      .then(setTracks);
+      if (stationsRes.ok) {
+        const stationsData = await stationsRes.json();
+        setStations(stationsData);
+      }
+      
+      if (tracksRes.ok) {
+        const tracksData = await tracksRes.json();
+        setUploadedTracks(tracksData);
+      }
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetch(`${process.env.BACKEND_URL}/api/radio/station/${stationId}/analytics`)
-      .then((res) => res.json())
-      .then((data) => {
-        setEarnings(data.earnings);
-        setFollowers(data.followers);
-        setIsLive(data.is_live);
-      });
+  const loadStationDetails = async (stationId) => {
+    try {
+      setSelectedStation(stationId);
 
-    fetch(`${process.env.BACKEND_URL}/api/radio/station/${stationId}`)
-      .then((res) => res.json())
-      .then(data => setLoopMetadata(data.playlist_schedule));
+      const [tracksRes, analyticsRes, stationRes] = await Promise.all([
+        fetch(`${process.env.BACKEND_URL}/api/radio/station/${stationId}/tracks`),
+        fetch(`${process.env.BACKEND_URL}/api/radio/station/${stationId}/analytics`),
+        fetch(`${process.env.BACKEND_URL}/api/radio/station/${stationId}`)
+      ]);
+
+      if (tracksRes.ok) {
+        const tracksData = await tracksRes.json();
+        setTracks(tracksData);
+      }
+
+      if (analyticsRes.ok) {
+        const analyticsData = await analyticsRes.json();
+        setEarnings(analyticsData.earnings);
+        setFollowers(analyticsData.followers);
+        setIsLive(analyticsData.is_live);
+      }
+
+      if (stationRes.ok) {
+        const stationData = await stationRes.json();
+        setLoopMetadata(stationData.playlist_schedule);
+      }
+    } catch (error) {
+      console.error('Error loading station details:', error);
+    }
   };
 
   const addTrackToStation = async () => {
-    if (!selectedTrack) return alert("Select a track first.");
+    if (!selectedTrack) {
+      alert("Please select a track first.");
+      return;
+    }
 
-    await fetch(`${process.env.BACKEND_URL}/api/radio/station/${selectedStation}/add-track`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ track_id: selectedTrack }),
-    });
+    try {
+      const response = await fetch(`${process.env.BACKEND_URL}/api/radio/station/${selectedStation}/add-track`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ track_id: selectedTrack }),
+      });
 
-    loadStationDetails(selectedStation);
+      if (response.ok) {
+        loadStationDetails(selectedStation);
+        setSelectedTrack("");
+      } else {
+        alert("Failed to add track to station");
+      }
+    } catch (error) {
+      console.error('Error adding track:', error);
+      alert("Error adding track to station");
+    }
   };
 
   const handleLoopUpload = async (e) => {
     const file = e.target.files[0];
-    if (!file || file.type !== "audio/mpeg") {
+    if (!file) return;
+
+    if (file.type !== "audio/mpeg") {
       setLoopUploadStatus("❌ Please select a valid MP3 file.");
       return;
     }
@@ -110,6 +249,8 @@ const RadioStationDashboard = () => {
       setLoopUploadStatus("❌ MP3 must be under 200MB.");
       return;
     }
+
+    setLoopUploadStatus("⏳ Uploading...");
 
     const formData = new FormData();
     formData.append("loop_audio", file);
@@ -134,77 +275,185 @@ const RadioStationDashboard = () => {
     }
   };
 
+  const handleStartStream = () => {
+    setIsLive(true);
+    // Add actual stream start logic here
+  };
+
+  const handleStopStream = () => {
+    setIsLive(false);
+    // Add actual stream stop logic here
+  };
+
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <Sidebar />
+        <div className="content">
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <h2>Loading your radio dashboard...</h2>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-container">
       <Sidebar />
       <div className="content">
-        <h1>📻 Radio Station Dashboard</h1>
-        <MonetizationAnalytics earnings={earnings} followers={followers} />
+        <div className="dashboard-header">
+          <h1>📻 Radio Station Dashboard</h1>
+          <p className="dashboard-subtitle">Manage your stations, tracks, and broadcasts</p>
+        </div>
 
-        <h2>Your Stations</h2>
-        {stations.length === 0 ? (
-          <div>
-            <p>No stations yet.</p>
-            <Link to="/create-radio">
-              <button className="btn-create">➕ Create Station</button>
-            </Link>
-          </div>
-        ) : (
-          <ul>
-            {stations.map((station) => (
-              <li key={station.id}>
-                <strong>{station.name}</strong>
-                <button onClick={() => loadStationDetails(station.id)}>View</button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <MonetizationAnalytics 
+          earnings={earnings} 
+          followers={followers} 
+          isLive={isLive}
+          stationCount={stations.length}
+        />
 
-        {selectedStation && (
-          <>
-            <h2>🎵 Station Tracks</h2>
-            <ul>
-              {tracks.map((track) => (
-                <li key={track.id}>
-                  <p>{track.title}</p>
-                  <audio controls src={track.file_url}></audio>
-                  {track.cover_url && <img src={track.cover_url} alt="cover" width="50" />}
-                </li>
-              ))}
-            </ul>
+        <div className="dashboard-grid">
+          <div className="stations-section">
+            <div className="section-header">
+              <h2>Your Radio Stations</h2>
+              <Link to="/create-radio" className="btn-create">
+                ➕ Create New Station
+              </Link>
+            </div>
 
-            <h3>Add a Track</h3>
-            <select value={selectedTrack} onChange={(e) => setSelectedTrack(e.target.value)}>
-              <option value="">-- Select your uploaded track --</option>
-              {uploadedTracks.map((t) => (
-                <option key={t.id} value={t.id}>{t.title}</option>
-              ))}
-            </select>
-            <button onClick={addTrackToStation}>Add</button>
-
-            <h2>🎙️ Live Streaming</h2>
-            <StartStopLiveStream
-              isLive={isLive}
-              stationId={selectedStation}
-              onStart={() => { }}
-              onStop={() => { }}
-            />
-
-            <h3>🔁 Upload 3-Hour MP3 Loop</h3>
-            <input type="file" accept="audio/mp3" onChange={handleLoopUpload} />
-            {loopUploadStatus && <p>{loopUploadStatus}</p>}
-
-            {loopMetadata && (
-              <div>
-                <h4>Current Playlist Metadata:</h4>
-                <pre>{JSON.stringify(loopMetadata, null, 2)}</pre>
+            {stations.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">📻</div>
+                <h3>No stations yet</h3>
+                <p>Create your first radio station to start broadcasting</p>
+                <Link to="/create-radio" className="btn-primary">
+                  Create Your First Station
+                </Link>
+              </div>
+            ) : (
+              <div className="stations-grid">
+                {stations.map((station) => (
+                  <StationCard
+                    key={station.id}
+                    station={station}
+                    onSelect={loadStationDetails}
+                    isSelected={selectedStation === station.id}
+                  />
+                ))}
               </div>
             )}
+          </div>
 
-            <h3>🔗 Public Station Link:</h3>
-            <p><a href={`/radio/${selectedStation}`}>streampirex.com/radio/{selectedStation}</a></p>
-          </>
-        )}
+          {selectedStation && (
+            <div className="station-management">
+              <div className="management-tabs">
+                <div className="tab active">🎵 Tracks</div>
+                <div className="tab">🎙️ Live Stream</div>
+                <div className="tab">🔁 Loop Settings</div>
+                <div className="tab">📊 Analytics</div>
+              </div>
+
+              <div className="station-content">
+                <section className="tracks-section">
+                  <h3>Station Tracks</h3>
+                  {tracks.length === 0 ? (
+                    <div className="empty-tracks">
+                      <p>No tracks added yet. Add some music to get started!</p>
+                    </div>
+                  ) : (
+                    <div className="tracks-list">
+                      {tracks.map((track) => (
+                        <TrackItem key={track.id} track={track} />
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="add-track-section">
+                    <h4>Add Track to Station</h4>
+                    <div className="track-selector">
+                      <select 
+                        value={selectedTrack} 
+                        onChange={(e) => setSelectedTrack(e.target.value)}
+                        className="track-dropdown"
+                      >
+                        <option value="">Select from your uploaded tracks</option>
+                        {uploadedTracks.map((track) => (
+                          <option key={track.id} value={track.id}>
+                            {track.title}
+                          </option>
+                        ))}
+                      </select>
+                      <button onClick={addTrackToStation} className="btn-add">
+                        Add Track
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="live-section">
+                  <h3>Live Broadcasting</h3>
+                  <StartStopLiveStream
+                    isLive={isLive}
+                    stationId={selectedStation}
+                    onStart={handleStartStream}
+                    onStop={handleStopStream}
+                  />
+                </section>
+
+                <section className="loop-section">
+                  <h3>3-Hour Loop Upload</h3>
+                  <div className="upload-area">
+                    <input 
+                      type="file" 
+                      accept="audio/mp3" 
+                      onChange={handleLoopUpload} 
+                      id="loop-upload"
+                      className="file-input"
+                    />
+                    <label htmlFor="loop-upload" className="file-label">
+                      📁 Choose MP3 File (Max 200MB)
+                    </label>
+                    {loopUploadStatus && (
+                      <p className={`upload-status ${loopUploadStatus.includes('✅') ? 'success' : loopUploadStatus.includes('❌') ? 'error' : 'info'}`}>
+                        {loopUploadStatus}
+                      </p>
+                    )}
+                  </div>
+
+                  {loopMetadata && (
+                    <div className="metadata-display">
+                      <h4>Current Loop Metadata</h4>
+                      <pre className="metadata-content">
+                        {JSON.stringify(loopMetadata, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </section>
+
+                <section className="public-link-section">
+                  <h3>Share Your Station</h3>
+                  <div className="link-display">
+                    <input 
+                      type="text" 
+                      value={`streampirex.com/radio/${selectedStation}`} 
+                      readOnly 
+                      className="public-link"
+                    />
+                    <button 
+                      onClick={() => navigator.clipboard.writeText(`streampirex.com/radio/${selectedStation}`)}
+                      className="btn-copy"
+                    >
+                      📋 Copy
+                    </button>
+                  </div>
+                </section>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
