@@ -9,7 +9,7 @@ src_dir = os.path.dirname(os.path.abspath(__file__))
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_migrate import Migrate
 from flask_mail import Mail, Message
 from flask_jwt_extended import JWTManager, decode_token, exceptions as jwt_exceptions
@@ -41,6 +41,9 @@ app = Flask(__name__)
 scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
+
+from dotenv import load_dotenv
+load_dotenv()
 
 app.url_map.strict_slashes = False
 
@@ -227,11 +230,26 @@ def sitemap():
 
 @app.route('/<path:path>')
 def serve_any_other_file(path):
+    # Don't override requests to Flask static assets
+    if path.startswith("static/"):
+        return send_from_directory(app.static_folder, path)
+
     if not os.path.isfile(os.path.join(static_file_dir, path)):
         path = 'index.html'
     response = send_from_directory(static_file_dir, path)
-    response.cache_control.max_age = 0  # avoid cache memory
+    response.cache_control.max_age = 0
     return response
+
+@app.before_request
+def restrict_admin_to_basic_auth():
+    if request.path.startswith('/admin'):
+        print(os.getenv("BA_USERNAME"))
+        auth = request.authorization
+        if not auth or not (auth.username == os.getenv("BA_USERNAME") and auth.password == os.getenv("BA_PASSWORD")):
+            return Response(
+            'Could not verify your access level for that URL.\n'
+            'You have to login with proper credentials', 401,
+            {'WWW-Authenticate': 'Basic realm="Login Required"'})
 
 # ✅ Run the app
 if __name__ == '__main__':
