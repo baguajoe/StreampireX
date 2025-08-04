@@ -11,7 +11,7 @@ const LabelDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/label-dashboard`, {
+    fetch(`${process.env.BACKEND_URL}/api/label-dashboard`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
