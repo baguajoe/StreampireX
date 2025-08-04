@@ -48,7 +48,7 @@ const CreatorDashboard = () => {
       try {
         const token = localStorage.getItem("token");
 
-        const profileRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+        const profileRes = await fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (profileRes.ok) {
@@ -56,7 +56,7 @@ const CreatorDashboard = () => {
           setProfile(prev => ({ ...prev, ...profileData }));
         }
 
-        const statsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/overview-stats`, {
+        const statsRes = await fetch(`${process.env.BACKEND_URL}/api/creator/overview-stats`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (statsRes.ok) {
@@ -64,7 +64,7 @@ const CreatorDashboard = () => {
           setOverviewStats(statsData);
         }
 
-        const contentRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/content-breakdown`, {
+        const contentRes = await fetch(`${process.env.BACKEND_URL}/api/creator/content-breakdown`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (contentRes.ok) {

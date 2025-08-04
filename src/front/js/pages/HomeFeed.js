@@ -89,7 +89,7 @@ const HomeFeed = () => {
 
         // Fetch user profile
         try {
-          const profileRes = await fetch(`${backendUrl}/api/profile`, {
+          const profileRes = await fetch(`${backendUrl}/user/profile`, {
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
