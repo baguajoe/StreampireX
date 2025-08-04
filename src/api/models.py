@@ -9,7 +9,14 @@ import stripe
 
 
 # ✅ This is fine here
-socketio = SocketIO(cors_allowed_origins="*")
+socketio = SocketIO(cors_allowed_origins=[
+    "https://www.streampirex.com",
+    "https://streampirex.com", 
+    "https://www.streampiror.com",  # Add this to fix the error
+    "https://streampiror.com",     # Add this too
+    "http://localhost:3000",
+    "*"
+])
 db = SQLAlchemy()
 
 
