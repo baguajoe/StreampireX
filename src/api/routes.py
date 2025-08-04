@@ -8552,3 +8552,21 @@ def search_users_for_inner_circle():
             "is_artist": user.is_artist
         } for user in users]
     }), 200
+
+@api.route('/api/creator/overview-stats', methods=['GET'])
+@jwt_required()
+def get_creator_overview_stats():
+    # Implementation needed
+    pass
+
+@api.route('/api/creator/content-breakdown', methods=['GET'])
+@jwt_required()
+def get_creator_content_breakdown():
+    # Implementation needed
+    pass
+
+@api.route('/api/artist/analytics', methods=['GET'])
+@jwt_required()
+def get_artist_analytics():
+    # Implementation needed
+    pass

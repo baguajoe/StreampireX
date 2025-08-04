@@ -84,7 +84,7 @@ const ArtistDashboard = () => {
       const token = localStorage.getItem("token");
       
       // Fetch user profile
-      const profileRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
+      const profileRes = await fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (profileRes.ok) {
@@ -93,7 +93,7 @@ const ArtistDashboard = () => {
       }
 
       // Fetch tracks
-      const tracksRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/tracks`, {
+      const tracksRes = await fetch(`${process.env.BACKEND_URL}/api/artist/tracks`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (tracksRes.ok) {
@@ -102,7 +102,7 @@ const ArtistDashboard = () => {
       }
 
       // Fetch analytics
-      const analyticsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/analytics`, {
+      const analyticsRes = await fetch(`${process.env.BACKEND_URL}/api/artist/analytics`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (analyticsRes.ok) {
@@ -119,7 +119,7 @@ const ArtistDashboard = () => {
 
   const fetchGenres = async () => {
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/categories`);
+      const res = await fetch(`${process.env.BACKEND_URL}/api/categories`);
       if (res.ok) {
         const data = await res.json();
         setGenres(data);
@@ -143,7 +143,7 @@ const ArtistDashboard = () => {
     formData.append("explicit", explicit);
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload-track`, {
+      const res = await fetch(`${process.env.BACKEND_URL}/api/upload-track`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`
