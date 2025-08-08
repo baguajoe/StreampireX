@@ -53,14 +53,14 @@ const CreateRadioStation = () => {
             try {
                 const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001';
                 console.log("🔍 Fetching categories from:", `${backendUrl}/api/radio/categories`);
-                
+
                 const response = await fetch(`${backendUrl}/api/radio/categories`);
                 console.log("📡 Categories response status:", response.status);
 
                 if (!response.ok) {
                     throw new Error(`Failed to fetch categories: ${response.status} ${response.statusText}`);
                 }
-                
+
                 const data = await response.json();
                 console.log("📋 Categories data:", data);
                 setCategories(data);
@@ -130,31 +130,28 @@ const CreateRadioStation = () => {
     // ✅ NEW: Function to handle audio file selection
     const handleAudioChange = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            // Validate file type
-            if (!file.type.startsWith('audio/')) {
-                setMessage("❗ Please upload a valid audio file");
-                return;
-            }
+        if (!file) return;
 
-            // Validate file size (120MB limit for mix files)
-            if (file.size > 200 * 1024 * 1024) {
-                setMessage("❗ Audio file must be less than 120MB");
-                return;
-            }
-
-            if (audioPreview) URL.revokeObjectURL(audioPreview);
-            setInitialMixFile(file);
-            setAudioPreview(URL.createObjectURL(file));
-
-            // Auto-populate mix title with filename if empty
-            if (!mixTitle) {
-                const fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
-                setMixTitle(fileName);
-            }
-
-            setMessage(""); // Clear any previous error messages
+        // Validate audio file
+        if (!file.type.startsWith('audio/')) {
+            alert('Please select a valid audio file');
+            return;
         }
+
+        console.log("✅ Audio file selected:", file.name, "Size:", file.size);
+
+        setInitialMixFile(file);
+
+        // Create preview URL for the player
+        const audioUrl = URL.createObjectURL(file);
+        setAudioPreview(audioUrl);
+
+        // Clean up previous URL to prevent memory leaks
+        return () => {
+            if (audioUrl) {
+                URL.revokeObjectURL(audioUrl);
+            }
+        };
     };
 
     // Function to handle social link changes
@@ -225,7 +222,7 @@ const CreateRadioStation = () => {
 
             const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || "http://localhost:3001";
             const endpoint = `${backendUrl}/api/profile/radio/create`;
-            
+
             console.log("🚀 Creating station with endpoint:", endpoint);
             console.log("📦 FormData contents:");
             for (let [key, value] of formData.entries()) {
@@ -278,7 +275,7 @@ const CreateRadioStation = () => {
                 setAudioPreview(null);
 
                 setMessage("🎶 Radio station created successfully! Redirecting to browse stations...");
-                
+
                 // Redirect to browse stations after short delay
                 setTimeout(() => {
                     navigate("/radio/browse");
@@ -288,7 +285,7 @@ const CreateRadioStation = () => {
             }
         } catch (error) {
             console.error("❌ Error creating radio station:", error);
-            
+
             // More detailed error messages
             if (error.message.includes('fetch')) {
                 setMessage("❌ Could not connect to server. Please check your connection and try again.");
@@ -313,9 +310,9 @@ const CreateRadioStation = () => {
             {message && (
                 <p style={{
                     ...styles.message,
-                    color: message.includes('❌') ? '#dc3545' : 
-                           message.includes('⚠️') ? '#ffc107' : 
-                           message.includes('🔄') ? '#007bff' : '#28a745'
+                    color: message.includes('❌') ? '#dc3545' :
+                        message.includes('⚠️') ? '#ffc107' :
+                            message.includes('🔄') ? '#007bff' : '#28a745'
                 }}>
                     {message}
                 </p>

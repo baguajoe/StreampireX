@@ -767,7 +767,7 @@ def upgrade():
     sa.Column('emailNotifications', sa.Boolean(), nullable=True),
     sa.Column('darkMode', sa.Boolean(), nullable=True),
     sa.Column('profileVisibility', sa.String(length=50), nullable=True),
-    sa.Column('subscriptionPlan', sa.String(length=50), nullable=True),
+    sa.Column('subscription', sa.String(length=50), nullable=True),
     sa.Column('twoFactorEnabled', sa.Boolean(), nullable=True),
     sa.Column('payoutMethod', sa.String(length=50), nullable=True),
     sa.Column('defaultStreamQuality', sa.String(length=20), nullable=True),
