@@ -4,6 +4,14 @@ import eventlet
 eventlet.monkey_patch()
 import sys
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
+
+# Access the SonoSuite config variables
+SONOSUITE_SHARED_SECRET = os.getenv("SONOSUITE_SHARED_SECRET")
+SONOSUITE_BASE_URL = os.getenv("SONOSUITE_BASE_URL", "https://streampirex.sonosuite.com")
 
 src_dir = os.path.dirname(os.path.abspath(__file__))
 if src_dir not in sys.path:
@@ -18,6 +26,8 @@ from flask_socketio import SocketIO, emit
 from flask_caching import Cache
 from flask_apscheduler import APScheduler
 import cloudinary
+import click
+from flask.cli import with_appcontext
 
 # ✅ Create socketio instance here (not importing from api module)
 socketio = SocketIO()
@@ -25,7 +35,7 @@ socketio = SocketIO()
 # Import your blueprints - FIXED: Remove the conflicting socketio import
 from api.routes import api
 from api.cache import cache
-from api.models import db, LiveChat, User, RadioStation
+from api.models import db, LiveChat, User, RadioStation,PricingPlan, SonoSuiteUser
 from api.utils import APIException, generate_sitemap
 from api.admin import setup_admin
 from api.commands import setup_commands
@@ -97,10 +107,145 @@ cloudinary.config(
     secure=True
 )
 
+@click.command()
+@with_appcontext
+def init_pricing():
+    """Initialize pricing plans with your exact pricing structure"""
+    
+    # Create tables if they don't exist
+    db.create_all()
+    
+    # Clear existing plans (optional - remove if you want to keep existing data)
+    # PricingPlan.query.delete()
+    
+    plans_data = [
+        {
+            "name": "Free",
+            "price_monthly": 0.00,
+            "price_yearly": 0.00,
+            "trial_days": 0,
+            "includes_podcasts": False,
+            "includes_radio": False,
+            "includes_digital_sales": False,
+            "includes_merch_sales": False,
+            "includes_live_events": False,
+            "includes_tip_jar": False,
+            "includes_ad_revenue": False,
+            "includes_music_distribution": False,
+            "sonosuite_access": False,
+            "distribution_uploads_limit": 0,
+            "includes_gaming_features": True,
+            "includes_team_rooms": False,
+            "includes_squad_finder": True,
+            "includes_gaming_analytics": False,
+            "includes_game_streaming": False,
+            "includes_gaming_monetization": False,
+            "includes_video_distribution": False,
+            "video_uploads_limit": 0
+        },
+        {
+            "name": "Basic",
+            "price_monthly": 11.99,
+            "price_yearly": 119.00,
+            "trial_days": 14,
+            "includes_podcasts": False,
+            "includes_radio": False,
+            "includes_digital_sales": False,
+            "includes_merch_sales": False,
+            "includes_live_events": False,
+            "includes_tip_jar": False,
+            "includes_ad_revenue": False,
+            "includes_music_distribution": False,
+            "sonosuite_access": False,
+            "distribution_uploads_limit": 0,
+            "includes_gaming_features": True,
+            "includes_team_rooms": True,
+            "includes_squad_finder": True,
+            "includes_gaming_analytics": True,
+            "includes_game_streaming": False,
+            "includes_gaming_monetization": False,
+            "includes_video_distribution": False,
+            "video_uploads_limit": 0
+        },
+        {
+            "name": "Pro",
+            "price_monthly": 21.99,
+            "price_yearly": 219.00,
+            "trial_days": 14,
+            "includes_podcasts": True,
+            "includes_radio": True,
+            "includes_digital_sales": True,
+            "includes_merch_sales": False,
+            "includes_live_events": True,
+            "includes_tip_jar": True,
+            "includes_ad_revenue": True,
+            "includes_music_distribution": True,
+            "sonosuite_access": True,
+            "distribution_uploads_limit": 5,
+            "includes_gaming_features": True,
+            "includes_team_rooms": True,
+            "includes_squad_finder": True,
+            "includes_gaming_analytics": True,
+            "includes_game_streaming": True,
+            "includes_gaming_monetization": True,
+            "includes_video_distribution": True,
+            "video_uploads_limit": 3
+        },
+        {
+            "name": "Premium",
+            "price_monthly": 29.99,
+            "price_yearly": 299.00,
+            "trial_days": 14,
+            "includes_podcasts": True,
+            "includes_radio": True,
+            "includes_digital_sales": True,
+            "includes_merch_sales": True,
+            "includes_live_events": True,
+            "includes_tip_jar": True,
+            "includes_ad_revenue": True,
+            "includes_music_distribution": True,
+            "sonosuite_access": True,
+            "distribution_uploads_limit": -1,  # Unlimited
+            "includes_gaming_features": True,
+            "includes_team_rooms": True,
+            "includes_squad_finder": True,
+            "includes_gaming_analytics": True,
+            "includes_game_streaming": True,
+            "includes_gaming_monetization": True,
+            "includes_video_distribution": True,
+            "video_uploads_limit": -1  # Unlimited
+        }
+    ]
+    
+    for plan_data in plans_data:
+        existing_plan = PricingPlan.query.filter_by(name=plan_data["name"]).first()
+        if not existing_plan:
+            plan = PricingPlan(**plan_data)
+            db.session.add(plan)
+            print(f"✅ Created {plan_data['name']} plan")
+        else:
+            # Update existing plan
+            for key, value in plan_data.items():
+                setattr(existing_plan, key, value)
+            print(f"✅ Updated {plan_data['name']} plan")
+    
+    try:
+        db.session.commit()
+        print("✅ All pricing plans initialized successfully!")
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error: {e}")
+
+# Register the command
+def register_commands(app):
+    app.cli.add_command(init_pricing)
+
 # ✅ Setup migrations, admin, commands
 Migrate(app, db, compare_type=True)
 setup_admin(app)
 setup_commands(app)
+register_commands(app)
+
 
 # ✅ Register blueprints
 app.register_blueprint(api, url_prefix='/api')
@@ -250,6 +395,12 @@ def restrict_admin_to_basic_auth():
             'Could not verify your access level for that URL.\n'
             'You have to login with proper credentials', 401,
             {'WWW-Authenticate': 'Basic realm="Login Required"'})
+        
+
+
+
+
+# Usage: flask init-pricing
 
 # ✅ Run the app
 if __name__ == '__main__':

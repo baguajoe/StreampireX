@@ -1,6 +1,6 @@
 import os
 from flask_admin import Admin
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, PricingPlan, Subscription, FavoritePage, Product, RefundRequest, Revenue, Payment, Order, Notification, Comment, Message, Conversation, Group,ShareAnalytics, Like, Tip, Engagement, Earnings, Popularity, Podcast, PodcastHost, PodcastChapter, PodcastPurchase, PodcastClip, RadioDonation, RadioFollower, RadioSubmission, Role, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, TicketPurchase, VRAccessTicket, Music, Track, LicensingOpportunity, MusicLicensing, Collaboration, Artist, Album, ListeningParty, ListeningPartyAttendee, Stream
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, PricingPlan, Subscription, FavoritePage, Product, RefundRequest, Revenue, Payment, Order, Notification, Comment, Message, Conversation, Group,ShareAnalytics, Like, Tip, Engagement, Earnings, Popularity, Podcast, PodcastHost, PodcastChapter, PodcastPurchase, PodcastClip, RadioDonation, RadioFollower, RadioSubmission, Role, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, TicketPurchase, VRAccessTicket, Music, Track, LicensingOpportunity, MusicLicensing, Collaboration, Artist, Album, ListeningParty, ListeningPartyAttendee, Stream
 from flask_admin.contrib.sqla import ModelView
 
 def setup_admin(app):
@@ -20,7 +20,6 @@ def setup_admin(app):
     admin.add_view(ModelView(CreatorMembershipTier, db.session))
     admin.add_view(ModelView(CreatorDonation, db.session))
     admin.add_view(ModelView(AdRevenue, db.session))
-    admin.add_view(ModelView(SubscriptionPlan, db.session))
     admin.add_view(ModelView(UserSubscription, db.session))
     admin.add_view(ModelView(Video, db.session))
     admin.add_view(ModelView(VideoPlaylist, db.session))

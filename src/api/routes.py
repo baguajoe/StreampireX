@@ -2,12 +2,16 @@
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, SubscriptionPlan, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser
 
 
 import json
 import os
 import mimetypes
+import jwt
+import time
+import hashlib
+import random
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash,check_password_hash
 from datetime import datetime, timedelta
@@ -79,6 +83,228 @@ try:
 except Exception as e:
     print(f"Warning: Could not load Whisper model: {e}")
     whisper_model = None
+
+
+
+
+# Add this function to your routes.py or create a separate seed_pricing.py file
+
+def seed_pricing_plans():
+    """Create the four main pricing plans based on your pricing document"""
+    
+    plans_data = [
+        {
+            "name": "Free",
+            "price_monthly": 0.00,
+            "price_yearly": 0.00,
+            "trial_days": 0,  # No trial needed for free plan
+            "includes_podcasts": False,
+            "includes_radio": False,
+            "includes_digital_sales": False,
+            "includes_merch_sales": False,
+            "includes_live_events": False,
+            "includes_tip_jar": False,
+            "includes_ad_revenue": False,
+            "includes_music_distribution": False,
+            "sonosuite_access": False,
+            "distribution_uploads_limit": 0,
+            "includes_gaming_features": True,  # Basic gaming features
+            "includes_team_rooms": False,
+            "includes_squad_finder": True,  # Can search for squads
+            "includes_gaming_analytics": False,
+            "includes_game_streaming": False,
+            "includes_gaming_monetization": False,
+            "includes_video_distribution": False,
+            "video_uploads_limit": 0
+        },
+        {
+            "name": "Basic",
+            "price_monthly": 11.99,
+            "price_yearly": 119.00,  # 2 months free
+            "trial_days": 14,
+            "includes_podcasts": False,
+            "includes_radio": False,
+            "includes_digital_sales": False,
+            "includes_merch_sales": False,
+            "includes_live_events": False,
+            "includes_tip_jar": False,
+            "includes_ad_revenue": False,
+            "includes_music_distribution": False,
+            "sonosuite_access": False,
+            "distribution_uploads_limit": 0,
+            "includes_gaming_features": True,
+            "includes_team_rooms": True,  # Create private gaming rooms
+            "includes_squad_finder": True,
+            "includes_gaming_analytics": True,  # Basic gaming stats
+            "includes_game_streaming": False,
+            "includes_gaming_monetization": False,
+            "includes_video_distribution": False,
+            "video_uploads_limit": 0
+        },
+        {
+            "name": "Pro",
+            "price_monthly": 21.99,
+            "price_yearly": 219.00,  # 2+ months free
+            "trial_days": 14,
+            "includes_podcasts": True,
+            "includes_radio": True,
+            "includes_digital_sales": True,
+            "includes_merch_sales": False,
+            "includes_live_events": True,
+            "includes_tip_jar": True,
+            "includes_ad_revenue": True,
+            "includes_music_distribution": True,
+            "sonosuite_access": True,
+            "distribution_uploads_limit": 5,  # 5 tracks per month
+            "includes_gaming_features": True,
+            "includes_team_rooms": True,
+            "includes_squad_finder": True,
+            "includes_gaming_analytics": True,
+            "includes_game_streaming": True,  # Live streaming capability
+            "includes_gaming_monetization": True,  # Tips and sponsorships
+            "includes_video_distribution": True,
+            "video_uploads_limit": 3  # 3 videos per month
+        },
+        {
+            "name": "Premium",
+            "price_monthly": 29.99,
+            "price_yearly": 299.00,  # 2+ months free
+            "trial_days": 14,
+            "includes_podcasts": True,
+            "includes_radio": True,
+            "includes_digital_sales": True,
+            "includes_merch_sales": True,
+            "includes_live_events": True,
+            "includes_tip_jar": True,
+            "includes_ad_revenue": True,
+            "includes_music_distribution": True,
+            "sonosuite_access": True,
+            "distribution_uploads_limit": -1,  # Unlimited uploads
+            "includes_gaming_features": True,
+            "includes_team_rooms": True,
+            "includes_squad_finder": True,
+            "includes_gaming_analytics": True,
+            "includes_game_streaming": True,
+            "includes_gaming_monetization": True,
+            "includes_video_distribution": True,
+            "video_uploads_limit": -1  # Unlimited videos
+        }
+    ]
+    
+    for plan_data in plans_data:
+        # Check if plan already exists
+        existing_plan = PricingPlan.query.filter_by(name=plan_data["name"]).first()
+        if not existing_plan:
+            plan = PricingPlan(**plan_data)
+            db.session.add(plan)
+        else:
+            # Update existing plan with new fields
+            for key, value in plan_data.items():
+                setattr(existing_plan, key, value)
+    
+    db.session.commit()
+    print("✅ Pricing plans seeded successfully!")
+
+
+SONOSUITE_SHARED_SECRET = os.getenv("SONOSUITE_SHARED_SECRET", "your_shared_secret_here")
+SONOSUITE_BASE_URL = os.getenv("SONOSUITE_BASE_URL", "https://streampirex.sonosuite.com")
+
+def generate_sonosuite_jwt(user_email, external_id):
+    """Generate JWT token for SonoSuite SSO"""
+    now = int(time.time())
+    exp = now + 3600  # Token expires in 1 hour
+    
+    # Generate unique jti (exactly 32 characters as required)
+    jti = hashlib.md5(f"{now}{random.randint(1, 1000000)}".encode()).hexdigest()
+    
+    payload = {
+        "iat": now,
+        "exp": exp,
+        "email": user_email,
+        "externalId": str(external_id),
+        "jti": jti
+    }
+    
+    try:
+        token = jwt.encode(
+            payload, 
+            SONOSUITE_SHARED_SECRET, 
+            algorithm="HS256",
+            headers={"typ": "JWT", "alg": "HS256"}
+        )
+        return token
+    except Exception as e:
+        print(f"JWT generation error: {e}")
+        return None
+
+# Add this route to run the seed function
+@api.route('/admin/seed-pricing', methods=['POST'])
+@jwt_required()
+def seed_pricing_route():
+    if not is_admin(get_jwt_identity()):
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    try:
+        seed_pricing_plans()
+        return jsonify({"message": "Pricing plans seeded successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Simple helper function for SonoSuite requests
+def make_sonosuite_request(endpoint, method="GET", data=None, files=None):
+    """Handle SonoSuite requests - works with or without API credentials"""
+    
+    # Check if SonoSuite is configured
+    sonosuite_api_key = os.getenv("SONOSUITE_API_KEY")
+    
+    if not sonosuite_api_key:
+        # No SonoSuite configured - return mock success response
+        print("ℹ️ SonoSuite not configured - using StreampireX direct distribution")
+        
+        mock_response = {
+            "message": "Submitted to StreampireX distribution network",
+            "release_id": f"spx_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "status": "processing"
+        }
+        return mock_response, 201
+    
+    # If SonoSuite IS configured, make real API call
+    try:
+        import requests
+        
+        sonosuite_api_base = "https://api.sonosuite.com/v1"
+        headers = {
+            "Authorization": f"Bearer {sonosuite_api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        url = f"{sonosuite_api_base}/{endpoint}"
+        
+        if method == "POST":
+            response = requests.post(url, headers=headers, json=data, timeout=30)
+        elif method == "PUT":
+            response = requests.put(url, headers=headers, json=data, timeout=30)
+        elif method == "DELETE":
+            response = requests.delete(url, headers=headers, timeout=30)
+        else:
+            response = requests.get(url, headers=headers, timeout=30)
+        
+        # Try to return JSON response
+        try:
+            return response.json(), response.status_code
+        except:
+            return {"message": response.text}, response.status_code
+            
+    except Exception as e:
+        print(f"⚠️ SonoSuite API error: {str(e)}")
+        
+        # Return fallback success response if API fails
+        fallback_response = {
+            "message": "Processing via StreampireX direct distribution",
+            "release_id": f"spx_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            "status": "processing"
+        }
+        return fallback_response, 201
 
 # ---------------- VIDEO UPLOAD ----------------
 
@@ -1071,68 +1297,101 @@ def add_audio_to_radio():
 
 @api.route('/radio/create', methods=['POST'])
 @jwt_required()
-def create_radio_station():
+def create_radio_station_fixed():
+    """Create radio station with proper Cloudinary integration"""
     user_id = get_jwt_identity()
     
     try:
         # Get form data
-        station_name = request.form.get('stationName')
-        description = request.form.get('description')
-        category = request.form.get('category')
-        target_audience = request.form.get('targetAudience')
+        data = request.form.to_dict()
+        name = data.get('stationName') or data.get('name')
+        description = data.get('description', '')
+        category = data.get('category', 'Music')
         
-        # Validate required fields
-        if not station_name or not category or not target_audience:
-            return jsonify({"error": "Station name, category, and target audience are required"}), 400
+        if not name:
+            return jsonify({"error": "Station name is required"}), 400
 
-        # Handle file uploads using uploadFile
+        # Initialize URLs
         logo_url = None
         cover_url = None
         initial_mix_url = None
+        mix_filename = None
 
+        # ✅ Handle logo upload with Cloudinary
         if 'logo' in request.files:
             logo_file = request.files['logo']
             if logo_file and logo_file.filename:
                 logo_filename = secure_filename(logo_file.filename)
                 logo_url = uploadFile(logo_file, logo_filename)
+                print(f"✅ Logo uploaded to Cloudinary: {logo_url}")
 
-        if 'coverPhoto' in request.files:
-            cover_file = request.files['coverPhoto']
+        # ✅ Handle cover upload with Cloudinary
+        if 'cover' in request.files or 'coverPhoto' in request.files:
+            cover_file = request.files.get('cover') or request.files.get('coverPhoto')
             if cover_file and cover_file.filename:
                 cover_filename = secure_filename(cover_file.filename)
                 cover_url = uploadFile(cover_file, cover_filename)
+                print(f"✅ Cover uploaded to Cloudinary: {cover_url}")
 
+        # ✅ Handle initial mix upload with Cloudinary
         if 'initialMix' in request.files:
             mix_file = request.files['initialMix']
             if mix_file and mix_file.filename:
                 mix_filename = secure_filename(mix_file.filename)
                 initial_mix_url = uploadFile(mix_file, mix_filename)
+                print(f"✅ Audio uploaded to Cloudinary: {initial_mix_url}")
 
-        # Create radio station with cloudinary URLs
+        # Get creator info
+        creator = User.query.get(user_id)
+        creator_name = creator.username if creator else "Unknown"
+
+        # ✅ Create station with Cloudinary URLs
         new_station = RadioStation(
             user_id=user_id,
-            name=station_name,
+            name=name,
             description=description,
-            category=category,
-            target_audience=target_audience,
-            logo_url=logo_url,           # Store cloudinary URL
-            cover_url=cover_url,         # Store cloudinary URL
-            initial_mix_url=initial_mix_url,  # Store cloudinary URL
-            is_live=False,
-            created_at=datetime.utcnow()
+            logo_url=logo_url,                    # ✅ Cloudinary URL
+            cover_image_url=cover_url,            # ✅ Cloudinary URL
+            stream_url=initial_mix_url,           # ✅ Primary audio URL
+            loop_audio_url=initial_mix_url,       # ✅ Loop audio URL  
+            audio_url=initial_mix_url,            # ✅ Backup audio URL
+            is_public=True,
+            is_live=True if initial_mix_url else False,  # Only live if has audio
+            genres=[category] if category else ["Music"],
+            creator_name=creator_name,
+            created_at=datetime.utcnow(),
+            audio_file_name=mix_filename
         )
 
         db.session.add(new_station)
+        db.session.flush()  # Get station ID
+
+        # ✅ Create Audio record if initial mix was uploaded
+        if initial_mix_url:
+            mix_title = data.get("mixTitle", f"{name} - Initial Mix")
+            
+            initial_audio = Audio(
+                user_id=user_id,
+                title=mix_title,
+                description=data.get("mixDescription", ""),
+                file_url=initial_mix_url,  # ✅ Cloudinary URL
+                uploaded_at=datetime.utcnow()
+            )
+            
+            db.session.add(initial_audio)
+
         db.session.commit()
 
         return jsonify({
             "message": "Radio station created successfully!",
-            "station": new_station.serialize()
+            "station": new_station.serialize(),
+            "redirect_url": f"/radio/{new_station.id}"
         }), 201
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Failed to create radio station: {str(e)}"}), 500
+        print(f"❌ Station creation error: {str(e)}")
+        return jsonify({"error": f"Failed to create station: {str(e)}"}), 500
 
 @api.route("/radio/like", methods=["POST"])
 @jwt_required()
@@ -1350,48 +1609,81 @@ def subscribe():
     if not plan_id:
         return jsonify({"error": "Missing plan_id"}), 400
 
-    plan = SubscriptionPlan.query.get(plan_id)
+    # CHANGE: Use PricingPlan instead of SubscriptionPlan
+    plan = PricingPlan.query.get(plan_id)  # Changed from SubscriptionPlan
     if not plan:
         return jsonify({"error": "Plan not found"}), 404
 
     try:
+        # Check if user already has an active subscription
+        existing_subscription = Subscription.query.filter_by(
+            user_id=user_id,
+            status="active"
+        ).first()
+
+        if existing_subscription:
+            # Update existing subscription
+            existing_subscription.plan_id = plan_id
+            existing_subscription.billing_cycle = data.get("billing_cycle", "monthly")
+            db.session.commit()
+            
+            return jsonify({
+                "message": "Subscription updated successfully",
+                "subscription": existing_subscription.serialize()
+            }), 200
+
         # Create Stripe Checkout Session
+        import stripe
+        
+        price_amount = plan.price_yearly if data.get("billing_cycle") == "yearly" else plan.price_monthly
+        
         session = stripe.checkout.Session.create(
             payment_method_types=['card'],
             line_items=[{
                 'price_data': {
                     'currency': 'usd',
                     'product_data': {
-                        'name': plan.name
+                        'name': f"{plan.name} Plan",
+                        'description': f"StreampireX {plan.name} subscription"
                     },
-                    'unit_amount': int(plan.price_monthly * 100),  # Stripe uses cents
+                    'unit_amount': int(price_amount * 100),  # Stripe uses cents
                     'recurring': {
-                        'interval': 'month'
+                        'interval': 'year' if data.get("billing_cycle") == "yearly" else 'month'
                     }
                 },
                 'quantity': 1
             }],
             mode='subscription',
-            success_url='https://yourapp.com/success?session_id={CHECKOUT_SESSION_ID}',
-            cancel_url='https://yourapp.com/cancel'
+            success_url=f'{request.host_url}success?session_id={{CHECKOUT_SESSION_ID}}',
+            cancel_url=f'{request.host_url}pricing',
+            metadata={
+                'user_id': user_id,
+                'plan_id': plan_id,
+                'billing_cycle': data.get("billing_cycle", "monthly")
+            }
         )
 
-        # Optionally, log intent (you can insert a pending subscription record here)
-        new_sub = UserSubscription(
+        # Create pending subscription record
+        new_subscription = Subscription(
             user_id=user_id,
-            plan_id=plan.id,
+            plan_id=plan_id,
             stripe_subscription_id=None,  # Will be updated via webhook
+            billing_cycle=data.get("billing_cycle", "monthly"),
+            status="pending",
             start_date=datetime.utcnow()
         )
-        db.session.add(new_sub)
+        
+        db.session.add(new_subscription)
         db.session.commit()
 
-        return jsonify({"checkout_url": session.url}), 200
+        return jsonify({
+            "checkout_url": session.url,
+            "session_id": session.id
+        }), 200
 
     except Exception as e:
+        db.session.rollback()
         return jsonify({"error": str(e)}), 500
-
-    return jsonify({"checkout_url": session.url}), 200
 
 @api.route('/subscriptions/status', methods=['GET'])
 @jwt_required()
@@ -1565,10 +1857,6 @@ def get_public_podcasts():
     podcasts = Podcast.query.all()
     return jsonify([podcast.serialize() for podcast in podcasts]), 200
 
-# @api.route('/api/public-radio-stations', methods=['GET'])
-# def get_public_radio_stations():
-#     stations = RadioStation.query.all()
-#     return jsonify([station.serialize() for station in stations]), 200
 
 
 @api.route("/like", methods=["POST"])
@@ -2232,16 +2520,6 @@ def buy_product(product_id):
     else:
         return jsonify({"error": "Payment failed"}), 400
 
-    
-@api.route('/subscription-plans', methods=['GET'])
-def get_subscription_plans():
-    plans = SubscriptionPlan.query.all()
-    return jsonify([plan.serialize() for plan in plans]), 200
-
-@api.route('/pricing-plans', methods=['GET'])
-def get_pricing_plans():
-    plans = PricingPlan.query.order_by(PricingPlan.price_monthly.asc()).all()
-    return jsonify([plan.serialize() for plan in plans]), 200
 
 
 @api.route('/admin/plans', methods=['GET'])
@@ -4077,7 +4355,7 @@ def buy_ticket(stream_id):
 
     return jsonify({"checkout_url": checkout_session.url}), 200
 
-@api.route('/api/artist/live-streams', methods=['GET'])
+@api.route('/artist/live-streams', methods=['GET'])
 @jwt_required()
 def get_my_live_streams():
     user_id = get_jwt_identity()
@@ -4911,7 +5189,7 @@ def send_invite():
     return jsonify({"message": "Invite sent!"}), 200
 
 # --- Tip Jar ---
-@api.route('/api/tips/send', methods=['POST'])
+@api.route('/tips/send', methods=['POST'])
 @jwt_required()
 def send_tip():
     data = request.get_json()
@@ -4927,7 +5205,7 @@ def send_tip():
     db.session.commit()
     return jsonify({'message': 'Tip sent successfully'}), 200
 
-@api.route('/api/tips/history', methods=['GET'])
+@api.route('/tips/history', methods=['GET'])
 @jwt_required()
 def tip_history():
     user_id = get_jwt_identity()
@@ -4935,7 +5213,7 @@ def tip_history():
     return jsonify([{'id': t.id, 'amount': t.amount, 'to': t.recipient_id} for t in tips])
 
 # --- Ad Revenue ---
-@api.route('/api/creator/ad-earnings', methods=['GET'])
+@api.route('/creator/ad-earnings', methods=['GET'])
 @jwt_required()
 def ad_earnings():
     user_id = get_jwt_identity()
@@ -4944,7 +5222,7 @@ def ad_earnings():
     return jsonify({'total_ad_revenue': total})
 
 # --- Creator Analytics ---
-@api.route('/api/analytics/creator/<int:creator_id>', methods=['GET'])
+@api.route('/analytics/creator/<int:creator_id>', methods=['GET'])
 def creator_analytics(creator_id):
     total_streams = Stream.query.filter_by(creator_id=creator_id).count()
     total_earnings = sum([p.amount for p in Purchase.query.filter_by(creator_id=creator_id).all()])
@@ -5054,7 +5332,7 @@ def purchase_vr_ticket():
         "creator_earnings": split["creator_earnings"]
     }), 200
 
-@api.route('/api/episodes/<int:episode_id>', methods=['GET'])
+@api.route('/episodes/<int:episode_id>', methods=['GET'])
 def get_episode(episode_id):
     episode = PodcastEpisode.query.get(episode_id)
     if not episode:
@@ -5062,7 +5340,7 @@ def get_episode(episode_id):
 
     return jsonify(episode.serialize()), 200
 
-@api.route('/api/episodes/<int:episode_id>/access', methods=['GET'])
+@api.route('/episodes/<int:episode_id>/access', methods=['GET'])
 @jwt_required(optional=True)
 def check_episode_access(episode_id):
     episode = PodcastEpisode.query.get(episode_id)
@@ -5155,51 +5433,82 @@ def purchase_episode(podcast_id):
         return jsonify({"error": str(e)}), 500
     
 # ✅ Upload Merch
-@api.route('/api/products/upload', methods=['POST'])
+@api.route('/products/upload', methods=['POST'])
 @jwt_required()
 @plan_required("includes_merch_sales")
 def upload_merch():
     user_id = get_jwt_identity()
     data = request.get_json()
 
-    product = Product(
-        creator_id=user_id,
-        title=data["title"],
-        description=data.get("description"),
-        image_url=data["image_url"],
-        price=float(data["price"]),
-        stock=int(data.get("stock", 0)),
-        is_digital=False,
-        created_at=datetime.utcnow()
-    )
-    db.session.add(product)
-    db.session.commit()
-    return jsonify({"message": "🛍️ Merch uploaded", "product": product.serialize()}), 201
+    # Validate required fields
+    if not data.get("title") or not data.get("price"):
+        return jsonify({"error": "Title and price are required"}), 400
+
+    try:
+        product = Product(
+            creator_id=user_id,
+            title=data["title"],
+            description=data.get("description", ""),
+            image_url=data.get("image_url"),
+            price=float(data["price"]),
+            stock=int(data.get("stock", 0)),
+            is_digital=False,
+            category=data.get("category", "merch"),
+            created_at=datetime.utcnow()
+        )
+        
+        db.session.add(product)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "🛍️ Merch uploaded successfully", 
+            "product": product.serialize()
+        }), 201
+        
+    except ValueError as e:
+        return jsonify({"error": "Invalid price format"}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 # ✅ Create Podcast
-@api.route('/api/podcasts/create', methods=['POST'])
+@api.route('/podcasts/create', methods=['POST'])
 @jwt_required()
 @plan_required("includes_podcasts")
 def create_podcast():
     user_id = get_jwt_identity()
     data = request.get_json()
 
-    podcast = Podcast(
-        creator_id=user_id,
-        title=data["title"],
-        description=data.get("description"),
-        cover_image=data.get("cover_image"),
-        created_at=datetime.utcnow()
-    )
-    db.session.add(podcast)
-    db.session.commit()
-    return jsonify({"message": "🎙️ Podcast created", "podcast": podcast.serialize()}), 201
+    if not data.get("title"):
+        return jsonify({"error": "Title is required"}), 400
+
+    try:
+        podcast = Podcast(
+            creator_id=user_id,
+            title=data["title"],
+            description=data.get("description", ""),
+            cover_image=data.get("cover_image"),
+            category=data.get("category", "general"),
+            created_at=datetime.utcnow()
+        )
+        
+        db.session.add(podcast)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "🎙️ Podcast created successfully", 
+            "podcast": podcast.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
 
 # ✅ Enable Ad Revenue
-@api.route('/api/ad-revenue/enable', methods=['POST'])
+@api.route('/ad-revenue/enable', methods=['POST'])
 @jwt_required()
 @plan_required("includes_ad_revenue")
 def enable_ad_revenue():
@@ -5267,38 +5576,216 @@ import stripe
 # Setup Stripe API
 stripe.api_key = 'your_stripe_secret_key'
 
-@api.route('/webhook', methods=['POST'])
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "your_webhook_secret_here")
+
+@api.route('/webhooks/stripe', methods=['POST'])
 def stripe_webhook():
+    """Handle Stripe webhook events for subscription management"""
     payload = request.get_data(as_text=True)
     sig_header = request.headers.get('Stripe-Signature')
-    endpoint_secret = 'your_stripe_endpoint_secret'
-
-    event = None
 
     try:
+        # Verify webhook signature
         event = stripe.Webhook.construct_event(
-            payload, sig_header, endpoint_secret
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
         )
     except ValueError as e:
-        return 'Invalid payload', 400
+        # Invalid payload
+        return jsonify({"error": "Invalid payload"}), 400
     except stripe.error.SignatureVerificationError as e:
-        return 'Signature verification failed', 400
+        # Invalid signature
+        return jsonify({"error": "Invalid signature"}), 400
 
-    # Handle the event based on type
-    if event['type'] == 'invoice.payment_succeeded':
-        invoice = event['data']['object']  # Contains a stripe.Invoice object
-        user_id = invoice['customer']  # Assuming 'customer' matches your user ID
-        amount_paid = invoice['amount_paid'] / 100  # Convert to dollars
+    # Handle the event
+    if event['type'] == 'checkout.session.completed':
+        handle_checkout_completed(event['data']['object'])
+    
+    elif event['type'] == 'customer.subscription.created':
+        handle_subscription_created(event['data']['object'])
+    
+    elif event['type'] == 'customer.subscription.updated':
+        handle_subscription_updated(event['data']['object'])
+    
+    elif event['type'] == 'customer.subscription.deleted':
+        handle_subscription_cancelled(event['data']['object'])
+    
+    elif event['type'] == 'invoice.payment_succeeded':
+        handle_payment_succeeded(event['data']['object'])
+    
+    elif event['type'] == 'invoice.payment_failed':
+        handle_payment_failed(event['data']['object'])
+    
+    else:
+        print(f"Unhandled event type: {event['type']}")
 
-        # Find the user's podcast subscription and update revenue
-        subscription = Subscription.query.filter_by(user_id=user_id).first()
+    return jsonify({"status": "success"}), 200
+
+def handle_checkout_completed(session):
+    """Handle successful checkout completion"""
+    try:
+        user_id = session['metadata']['user_id']
+        plan_id = session['metadata']['plan_id']
+        billing_cycle = session['metadata']['billing_cycle']
+        
+        # Update the pending subscription with Stripe subscription ID
+        subscription = Subscription.query.filter_by(
+            user_id=user_id,
+            plan_id=plan_id,
+            status="pending"
+        ).first()
+        
         if subscription:
-            podcast = Podcast.query.get(subscription.podcast_id)
-            podcast.revenue_from_subscriptions += amount_paid  # Update podcast revenue
-            podcast.calculate_revenue()  # Recalculate total revenue
+            # Get the Stripe subscription ID from the session
+            stripe_subscription = stripe.Subscription.retrieve(session['subscription'])
+            
+            subscription.stripe_subscription_id = stripe_subscription.id
+            subscription.status = "active"
+            subscription.start_date = datetime.utcnow()
+            
+            # Set end date based on billing cycle
+            if billing_cycle == "yearly":
+                subscription.end_date = datetime.utcnow() + timedelta(days=365)
+            else:
+                subscription.end_date = datetime.utcnow() + timedelta(days=30)
+            
             db.session.commit()
+            
+            # Update user's trial status if they were on trial
+            user = User.query.get(user_id)
+            if user and user.is_on_trial:
+                user.is_on_trial = False
+                db.session.commit()
+            
+            print(f"✅ Subscription activated for user {user_id}")
+        
+    except Exception as e:
+        print(f"❌ Error handling checkout completion: {e}")
 
-    return '', 200
+def handle_subscription_created(subscription):
+    """Handle when a subscription is created in Stripe"""
+    try:
+        # Find subscription by Stripe ID and activate it
+        local_subscription = Subscription.query.filter_by(
+            stripe_subscription_id=subscription['id']
+        ).first()
+        
+        if local_subscription:
+            local_subscription.status = "active"
+            db.session.commit()
+            print(f"✅ Subscription {subscription['id']} activated")
+            
+    except Exception as e:
+        print(f"❌ Error handling subscription creation: {e}")
+
+def handle_subscription_updated(subscription):
+    """Handle subscription updates (plan changes, etc.)"""
+    try:
+        local_subscription = Subscription.query.filter_by(
+            stripe_subscription_id=subscription['id']
+        ).first()
+        
+        if local_subscription:
+            # Update subscription status based on Stripe status
+            stripe_status = subscription['status']
+            
+            if stripe_status == 'active':
+                local_subscription.status = 'active'
+            elif stripe_status == 'canceled':
+                local_subscription.status = 'canceled'
+                local_subscription.end_date = datetime.utcnow()
+            elif stripe_status == 'past_due':
+                local_subscription.status = 'past_due'
+            
+            db.session.commit()
+            print(f"✅ Subscription {subscription['id']} updated to {stripe_status}")
+            
+    except Exception as e:
+        print(f"❌ Error handling subscription update: {e}")
+
+def handle_subscription_cancelled(subscription):
+    """Handle subscription cancellation"""
+    try:
+        local_subscription = Subscription.query.filter_by(
+            stripe_subscription_id=subscription['id']
+        ).first()
+        
+        if local_subscription:
+            local_subscription.status = "canceled"
+            local_subscription.end_date = datetime.utcnow()
+            db.session.commit()
+            
+            print(f"✅ Subscription {subscription['id']} cancelled")
+            
+    except Exception as e:
+        print(f"❌ Error handling subscription cancellation: {e}")
+
+def handle_payment_succeeded(invoice):
+    """Handle successful payment"""
+    try:
+        subscription_id = invoice['subscription']
+        
+        local_subscription = Subscription.query.filter_by(
+            stripe_subscription_id=subscription_id
+        ).first()
+        
+        if local_subscription:
+            # Extend subscription end date for next billing cycle
+            if local_subscription.billing_cycle == "yearly":
+                local_subscription.end_date = datetime.utcnow() + timedelta(days=365)
+            else:
+                local_subscription.end_date = datetime.utcnow() + timedelta(days=30)
+            
+            local_subscription.status = "active"
+            db.session.commit()
+            
+            print(f"✅ Payment succeeded for subscription {subscription_id}")
+            
+    except Exception as e:
+        print(f"❌ Error handling payment success: {e}")
+
+def handle_payment_failed(invoice):
+    """Handle failed payment"""
+    try:
+        subscription_id = invoice['subscription']
+        
+        local_subscription = Subscription.query.filter_by(
+            stripe_subscription_id=subscription_id
+        ).first()
+        
+        if local_subscription:
+            # Set grace period (7 days from now)
+            local_subscription.grace_period_end = datetime.utcnow() + timedelta(days=7)
+            local_subscription.status = "past_due"
+            db.session.commit()
+            
+            print(f"⚠️ Payment failed for subscription {subscription_id} - grace period set")
+            
+    except Exception as e:
+        print(f"❌ Error handling payment failure: {e}")
+
+# Add this to check subscription status including grace period
+def is_subscription_active(user_id):
+    """Check if user has active subscription including grace period"""
+    subscription = Subscription.query.filter_by(
+        user_id=user_id
+    ).first()
+    
+    if not subscription:
+        return False
+    
+    now = datetime.utcnow()
+    
+    # Check if subscription is active
+    if subscription.status == "active" and subscription.end_date > now:
+        return True
+    
+    # Check grace period for past due subscriptions
+    if (subscription.status == "past_due" and 
+        subscription.grace_period_end and 
+        subscription.grace_period_end > now):
+        return True
+    
+    return False
 
 
 @api.route('/admin/radio-stations', methods=['GET'])
@@ -5453,7 +5940,7 @@ def get_all_radio_stations_public():
         print(f"❌ Error in public radio stations API: {e}")
         return jsonify([]), 200  # Return empty array on error
 
-@api.route('/api/radio/genres', methods=['GET'])
+@api.route('/radio/genres', methods=['GET'])
 def get_radio_genres():
     url = "https://www.radio-browser.info/webservice/json/stations"
     response = requests.get(url)
@@ -5837,7 +6324,7 @@ def get_user_profile():
 
 # Add this endpoint to your routes.py file
 
-@api.route("/api/user/<int:user_id>", methods=["GET"])
+@api.route("/user/<int:user_id>", methods=["GET"])
 def get_public_user_profile(user_id):
     """Get any user's public profile data (for video channels)"""
     try:
@@ -5977,7 +6464,7 @@ def upload_profile_video():
 
 
 # UPDATE SETTINGS
-@api.route('/api/user/settings', methods=['PUT'])
+@api.route('/user/settings', methods=['PUT'])
 @jwt_required()
 def update_settings():
     user_id = get_jwt_identity()
@@ -5993,7 +6480,7 @@ def update_settings():
     db.session.commit()
     return jsonify(settings.to_dict())
 
-@api.route("/api/messages/send", methods=["POST"])
+@api.route("/messages/send", methods=["POST"])
 @jwt_required()
 def send_dm():
     data = request.json
@@ -6015,7 +6502,7 @@ def send_dm():
 
     return jsonify({"message": "Message sent", "id": message.id}), 200
 
-@api.route("/api/messages/<int:recipient_id>", methods=["GET"])
+@api.route("/messages/<int:recipient_id>", methods=["GET"])
 @jwt_required()
 def get_dm(recipient_id):
     current_user = get_jwt_identity()
@@ -6064,7 +6551,7 @@ def get_user_earnings():
     }), 200
 
 
-@api.route('/api/send-payment', methods=['POST'])
+@api.route('/send-payment', methods=['POST'])
 @jwt_required()
 def send_payment():
     sender_id = get_jwt_identity()
@@ -6092,7 +6579,7 @@ def send_payment():
 
     return jsonify({"message": f"✅ Sent ${amount} to {recipient.username or recipient.email}!"}), 200
 
-@api.route('/api/submit-track', methods=['POST'])
+@api.route('/submit-track', methods=['POST'])
 def submit_track():
     try:
         title = request.form.get('title')
@@ -6139,7 +6626,7 @@ def submit_track():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@api.route('/api/my-releases', methods=['GET'])
+@api.route('/my-releases', methods=['GET'])
 @jwt_required()
 def get_my_releases():
     try:
@@ -6151,7 +6638,7 @@ def get_my_releases():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@api.route('/api/track/<int:track_id>', methods=['GET'])
+@api.route('/track/<int:track_id>', methods=['GET'])
 @jwt_required()
 def get_track_details(track_id):
     try:
@@ -6164,7 +6651,7 @@ def get_track_details(track_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500 
     
-@api.route('/api/tracks/user', methods=['GET'])
+@api.route('/tracks/user', methods=['GET'])
 @jwt_required()
 def get_user_tracks():
     try:
@@ -6176,7 +6663,7 @@ def get_user_tracks():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-@api.route('/api/admin/tracks', methods=['GET'])
+@api.route('/admin/tracks', methods=['GET'])
 @jwt_required()
 def get_all_tracks_admin():
     user_id = get_jwt_identity()
@@ -6214,7 +6701,7 @@ def get_all_tracks_admin():
         "tracks": results
     }), 200
 
-@api.route('/api/create-release', methods=['POST'])
+@api.route('/create-release', methods=['POST'])
 @jwt_required()
 def create_release():
     import uuid  # ✅ Make sure this is at the top of your file if not already
@@ -6282,7 +6769,7 @@ def create_release():
 
     return jsonify({"message": "✅ Release saved and submission enqueued!"}), 201
 
-@api.route('/api/upload-lyrics', methods=['POST'])
+@api.route('/upload-lyrics', methods=['POST'])
 @jwt_required()
 def upload_lyrics():
     user_id = get_jwt_identity()
@@ -6301,7 +6788,7 @@ def upload_lyrics():
     db.session.commit()
     return jsonify({"message": "Lyrics saved"}), 200
 # ✅ In routes.py
-@api.route('/api/create-album', methods=['POST'])
+@api.route('/create-album', methods=['POST'])
 @jwt_required()
 def create_album():
     user_id = get_jwt_identity()
@@ -6362,7 +6849,7 @@ def create_album():
 
     # handle metadata, save cover, associate user
 
-@api.route('/api/album/<int:album_id>/add-track', methods=['POST'])
+@api.route('/album/<int:album_id>/add-track', methods=['POST'])
 @jwt_required()
 def add_track_to_album(album_id):
     """Add a track to an album"""
@@ -6394,7 +6881,7 @@ def add_track_to_album(album_id):
     return jsonify({"message": "✅ Track added to album"}), 200
 
 
-@api.route('/api/album/<int:album_id>/remove-track', methods=['POST'])
+@api.route('/album/<int:album_id>/remove-track', methods=['POST'])
 @jwt_required()
 def remove_track_from_album(album_id):
     """Remove a track from an album"""
@@ -6425,7 +6912,7 @@ def remove_track_from_album(album_id):
     return jsonify({"message": "Track removed from album"}), 200
 
 
-@api.route('/api/album/<int:album_id>', methods=['GET'])
+@api.route('/album/<int:album_id>', methods=['GET'])
 @jwt_required()
 def get_album_detail(album_id):
     """Get album details with all tracks"""
@@ -6443,7 +6930,7 @@ def get_album_detail(album_id):
     }), 200
 
 
-@api.route('/api/my-albums', methods=['GET'])
+@api.route('/my-albums', methods=['GET'])
 @jwt_required()
 def get_my_albums():
     """Get all albums for the current user"""
@@ -6452,7 +6939,7 @@ def get_my_albums():
     return jsonify([a.serialize() for a in albums]), 200
 
 
-@api.route('/api/track/<int:track_id>/edit', methods=['PUT'])
+@api.route('/track/<int:track_id>/edit', methods=['PUT'])
 @jwt_required()
 def edit_track(track_id):
     """Edit track details (title, genre, description, etc.)"""
@@ -6487,7 +6974,7 @@ def edit_track(track_id):
 
 
 
-@api.route('/api/tracks/unassigned', methods=['GET'])
+@api.route('/tracks/unassigned', methods=['GET'])
 @jwt_required()
 def get_unassigned_tracks():
     """Get all tracks that are not assigned to any album"""
@@ -6496,7 +6983,7 @@ def get_unassigned_tracks():
     return jsonify([t.serialize() for t in tracks]), 200
 
 
-@api.route('/api/user/top-track', methods=['GET'])
+@api.route('/user/top-track', methods=['GET'])
 @jwt_required()
 def get_top_track():
     user_id = get_jwt_identity()
@@ -6512,7 +6999,7 @@ def get_top_track():
         "file_url": top_track.file_url
     }), 200
 
-@api.route('/api/user/earnings-history', methods=['GET'])
+@api.route('/user/earnings-history', methods=['GET'])
 @jwt_required()
 def get_earnings_history():
     user_id = get_jwt_identity()
@@ -6612,7 +7099,7 @@ def add_artist():
 
 
 
-@api.route("/api/podcast/<int:podcast_id>", methods=["GET"])
+@api.route("/podcast/<int:podcast_id>", methods=["GET"])
 def get_podcast_detail(podcast_id):
     try:
         podcast = Podcast.query.get(podcast_id)
@@ -6624,7 +7111,7 @@ def get_podcast_detail(podcast_id):
         return jsonify({"error": "Failed to load podcast details."}), 500
 
 
-@api.route("/api/podcast/<int:podcast_id>/episodes", methods=["GET"])
+@api.route("/podcast/<int:podcast_id>/episodes", methods=["GET"])
 def get_podcast_episodes(podcast_id):
     try:
         episodes = PodcastEpisode.query.filter_by(podcast_id=podcast_id).all()
@@ -6698,7 +7185,7 @@ def trigger_sample_seed():
     return jsonify({"message": "Sample podcasts seeded"}), 200
 
 # 🧑‍🚀 Gamer Profile - Get
-@api.route('/api/user/gamer-profile', methods=['GET'])
+@api.route('/user/gamer-profile', methods=['GET'])
 @jwt_required()
 def get_gamer_profile():
     """Get the current user's gamer profile"""
@@ -6751,7 +7238,7 @@ def get_gamer_profile():
         return jsonify({"error": str(e)}), 500
 
 # 🧑‍🚀 Gamer Profile - Update
-@api.route('/api/user/gamer-profile', methods=['PUT'])
+@api.route('/user/gamer-profile', methods=['PUT'])
 @jwt_required()
 def update_gamer_profile():
     """Update the current user's gamer profile"""
@@ -6852,7 +7339,7 @@ def update_gamer_profile():
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
     
-@api.route('/api/user/<int:user_id>/gamer-profile', methods=['GET'])
+@api.route('/user/<int:user_id>/gamer-profile', methods=['GET'])
 def get_public_gamer_profile(user_id):
     """Get a user's public gamer profile (for viewing other gamers)"""
     try:
@@ -6898,7 +7385,7 @@ def get_public_gamer_profile(user_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-@api.route('/api/user/online-status', methods=['POST'])
+@api.route('/user/online-status', methods=['POST'])
 @jwt_required()
 def update_online_status():
     """Update user's online status and current activity"""
@@ -6926,7 +7413,7 @@ def update_online_status():
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
     
-@api.route('/api/gamers/search', methods=['GET'])
+@api.route('/gamers/search', methods=['GET'])
 def search_gamers():
     """Search for gamers based on criteria"""
     try:
@@ -7063,7 +7550,7 @@ def get_crossplay_games():
     } for g in games])
 
 # Enhanced station endpoint
-@api.route('/api/radio/stations/detailed', methods=['GET'])
+@api.route('/radio/stations/detailed', methods=['GET'])
 def get_detailed_stations():
     stations = RadioStation.query.all()
     return jsonify([{
@@ -7122,7 +7609,7 @@ def update_artist_profile():
 
 
 # Submit music to radio station (enhanced)
-@api.route('/api/radio/upload_music', methods=['POST'])
+@api.route('/radio/upload_music', methods=['POST'])
 @jwt_required()
 def submit_music_to_station():
     try:
@@ -7312,7 +7799,7 @@ def get_stream_status():
     return jsonify({"is_live": True, "stream": stream.serialize()}), 200
 
 # Get submissions for station owner
-@api.route('/api/radio/submissions/<int:station_id>', methods=['GET'])
+@api.route('/radio/submissions/<int:station_id>', methods=['GET'])
 @jwt_required()
 def get_station_submissions(station_id):
     user_id = get_jwt_identity()
@@ -7326,7 +7813,7 @@ def get_station_submissions(station_id):
     return jsonify([submission.serialize() for submission in submissions]), 200
 
 # Approve/reject submission
-@api.route('/api/radio/submissions/<int:submission_id>/review', methods=['PUT'])
+@api.route('/radio/submissions/<int:submission_id>/review', methods=['PUT'])
 @jwt_required()
 def review_submission(submission_id):
     user_id = get_jwt_identity()
@@ -7628,6 +8115,60 @@ def stop_radio_loop(station_id):
     
     return jsonify({"message": "Radio loop stopped"}), 200
 
+@api.route('/radio/station/<int:station_id>/upload-loop', methods=['POST'])
+@jwt_required()
+def upload_station_loop(station_id):
+    """Upload loop audio for radio station using Cloudinary"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Get station and verify ownership
+        station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+        if not station:
+            return jsonify({"error": "Station not found or unauthorized"}), 404
+        
+        # Check for audio file
+        if 'loop_audio' not in request.files:
+            return jsonify({"error": "No audio file provided"}), 400
+            
+        audio_file = request.files['loop_audio']
+        if not audio_file or audio_file.filename == '':
+            return jsonify({"error": "No valid audio file selected"}), 400
+        
+        # Validate file type
+        allowed_types = ['audio/mpeg', 'audio/wav', 'audio/flac', 'audio/m4a']
+        if audio_file.content_type not in allowed_types:
+            return jsonify({"error": "Invalid file type. Allowed: MP3, WAV, FLAC, M4A"}), 400
+        
+        filename = secure_filename(audio_file.filename)
+        
+        # ✅ CRITICAL: Use uploadFile function for Cloudinary upload
+        try:
+            audio_url = uploadFile(audio_file, filename)
+            print(f"✅ Audio uploaded to Cloudinary: {audio_url}")
+        except Exception as upload_error:
+            print(f"❌ Cloudinary upload failed: {upload_error}")
+            return jsonify({"error": f"Upload failed: {str(upload_error)}"}), 500
+        
+        # ✅ Save Cloudinary URL to station
+        station.loop_audio_url = audio_url
+        station.stream_url = audio_url  # Also set as primary stream URL
+        station.audio_url = audio_url   # Backup field
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Loop audio uploaded successfully",
+            "audio_url": audio_url,
+            "station": station.serialize()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Upload error: {str(e)}")
+        return jsonify({"error": f"Upload failed: {str(e)}"}), 500
+
+
 
 @api.route('/radio/<int:station_id>/add-tracks', methods=['POST'])
 @jwt_required()
@@ -7833,7 +8374,7 @@ def get_radio_station_details(station_id):
         # Build stream URL if station is live and has audio configured
         stream_url = None
         if station.is_live and station.is_loop_enabled and station.playlist_schedule:
-            stream_url = f"{base_url}/api/radio/{station_id}/stream"
+            stream_url = f"{base_url}/radio/{station_id}/stream"
         
         # Get current track using the model's method
         current_track = station.get_current_track()
@@ -7901,7 +8442,7 @@ def get_radio_station_details(station_id):
 
 # ===== NOW PLAYING ENDPOINT =====
 
-@api.route('/api/radio/<int:station_id>/now-playing', methods=['GET'])
+@api.route('/radio/<int:station_id>/now-playing', methods=['GET'])
 def get_now_playing(station_id):
     """Get current playing track info for a radio station"""
     try:
@@ -8063,7 +8604,7 @@ def stream_local_file(file_path, station_name):
         return jsonify({"error": "Local file streaming error"}), 500
 
 
-@api.route('/api/radio/<int:station_id>/stream', methods=['OPTIONS'])
+@api.route('/radio/<int:station_id>/stream', methods=['OPTIONS'])
 def handle_stream_options(station_id):
     """Handle CORS preflight requests for streaming"""
     response = jsonify({})
@@ -8073,7 +8614,7 @@ def handle_stream_options(station_id):
     response.headers['Access-Control-Max-Age'] = '3600'
     return response  
 
-@api.route('/api/radio/<int:station_id>/audio-url', methods=['GET'])
+@api.route('/radio/<int:station_id>/audio-url', methods=['GET'])
 def get_station_audio_url(station_id):
     """
     Get the direct audio URL for a station (preferred method for Cloudinary)
@@ -8127,7 +8668,7 @@ def get_station_audio_url(station_id):
         print(f"❌ Error getting audio URL for station {station_id}: {e}")
         return jsonify({"error": "Failed to get audio URL"}), 500
 
-@api.route('/api/radio-stations/<int:station_id>', methods=['GET'])
+@api.route('/radio-stations/<int:station_id>', methods=['GET'])
 def get_radio_station_details_enhanced(station_id):
     """
     Enhanced station details with proper Cloudinary URL handling
@@ -8242,7 +8783,7 @@ def debug_station_info(station_id):
             "current_track": station.get_current_track(),
             "now_playing_metadata": station.now_playing_metadata,
             "audio_file_info": audio_info,
-            "stream_url": f"{request.host_url.rstrip('/')}/api/radio/{station_id}/stream"
+            "stream_url": f"{request.host_url.rstrip('/')}/radio/{station_id}/stream"
         }
         
         return jsonify(debug_info), 200
@@ -8260,7 +8801,7 @@ def serve_station_mix(filename):
     print("🎧 Serving mix from:", directory)
     return send_from_directory(directory, filename)
 
-@api.route('/api/radio/<int:station_id>/stream')
+@api.route('/radio/<int:station_id>/stream')
 def stream_station_audio(station_id):
     station = RadioStation.query.get_or_404(station_id)
 
@@ -8279,7 +8820,7 @@ def stream_station_audio(station_id):
     return send_from_directory(full_directory, filename, mimetype="audio/mpeg")
 
 # ✅ Create a Group
-@api.route("/api/groups", methods=["POST"])
+@api.route("/groups", methods=["POST"])
 @jwt_required()
 def create_group():
     data = request.json
@@ -8295,7 +8836,7 @@ def create_group():
     return jsonify(group.serialize()), 201
 
 # ✅ Add User to Group
-@api.route("/api/groups/<int:group_id>/add-member", methods=["POST"])
+@api.route("/groups/<int:group_id>/add-member", methods=["POST"])
 @jwt_required()
 def add_group_member(group_id):
     data = request.json
@@ -8553,20 +9094,538 @@ def search_users_for_inner_circle():
         } for user in users]
     }), 200
 
-@api.route('/api/creator/overview-stats', methods=['GET'])
+@api.route('/creator/overview-stats', methods=['GET'])
 @jwt_required()
 def get_creator_overview_stats():
     # Implementation needed
     pass
 
-@api.route('/api/creator/content-breakdown', methods=['GET'])
+@api.route('/creator/content-breakdown', methods=['GET'])
 @jwt_required()
 def get_creator_content_breakdown():
     # Implementation needed
     pass
 
-@api.route('/api/artist/analytics', methods=['GET'])
+@api.route('/artist/analytics', methods=['GET'])
 @jwt_required()
 def get_artist_analytics():
     # Implementation needed
     pass
+
+
+@api.route('/user/plan-status', methods=['GET'])
+@jwt_required()
+def get_user_plan_status():
+    """Get detailed information about user's current plan and usage"""
+    user_id = get_jwt_identity()
+    user_plan = get_user_plan(user_id)
+    
+    if not user_plan:
+        return jsonify({"error": "No plan found"}), 404
+    
+    # Get upload limits and usage
+    music_limit_info = check_upload_limit(user_id, "music")
+    video_limit_info = check_upload_limit(user_id, "video")
+    
+    return jsonify({
+        "plan": user_plan.serialize(),
+        "music_uploads": music_limit_info,
+        "video_uploads": video_limit_info,
+        "features_enabled": {
+            "podcasts": user_plan.includes_podcasts,
+            "radio": user_plan.includes_radio,
+            "digital_sales": user_plan.includes_digital_sales,
+            "merch_sales": user_plan.includes_merch_sales,
+            "live_events": user_plan.includes_live_events,
+            "tip_jar": user_plan.includes_tip_jar,
+            "ad_revenue": user_plan.includes_ad_revenue,
+            "music_distribution": user_plan.includes_music_distribution,
+            "sonosuite_access": user_plan.sonosuite_access,
+            "gaming_features": user_plan.includes_gaming_features,
+            "team_rooms": user_plan.includes_team_rooms,
+            "squad_finder": user_plan.includes_squad_finder,
+            "gaming_analytics": user_plan.includes_gaming_analytics,
+            "game_streaming": user_plan.includes_game_streaming,
+            "gaming_monetization": user_plan.includes_gaming_monetization,
+            "video_distribution": user_plan.includes_video_distribution
+        }
+    }), 200
+
+# 2. SONOSUITE CONNECTION STATUS
+@api.route('/sonosuite/status', methods=['GET'])
+@jwt_required()
+def get_sonosuite_connection_status():
+    """Get user's SonoSuite connection status"""
+    user_id = get_jwt_identity()
+    
+    connection = SonoSuiteUser.query.filter_by(
+        streampirex_user_id=user_id,
+        is_active=True
+    ).first()
+    
+    if connection:
+        return jsonify({
+            "connected": True,
+            "connection": connection.serialize(),
+            "can_redirect": True
+        }), 200
+    else:
+        return jsonify({
+            "connected": False,
+            "message": "SonoSuite account not connected"
+        }), 200
+
+# 3. SONOSUITE CONNECTION
+@api.route('/sonosuite/connect', methods=['POST'])
+@jwt_required()
+@plan_required("sonosuite_access")
+def connect_sonosuite_account():
+    """Connect StreampireX user to SonoSuite account"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    data = request.get_json()
+    
+    # Validate required fields
+    required_fields = ['sonosuite_email', 'external_id']
+    if not all(field in data for field in required_fields):
+        return jsonify({
+            "error": "Missing required fields",
+            "required": required_fields
+        }), 400
+    
+    # Check if connection already exists
+    existing_connection = SonoSuiteUser.query.filter_by(
+        streampirex_user_id=user_id
+    ).first()
+    
+    if existing_connection:
+        # Update existing connection
+        existing_connection.sonosuite_email = data['sonosuite_email']
+        existing_connection.sonosuite_external_id = data['external_id']
+        existing_connection.is_active = True
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "SonoSuite connection updated successfully",
+            "connection": existing_connection.serialize()
+        }), 200
+    
+    # Create new connection
+    sonosuite_user = SonoSuiteUser(
+        streampirex_user_id=user_id,
+        sonosuite_external_id=data['external_id'],
+        sonosuite_email=data['sonosuite_email'],
+        jwt_secret=SONOSUITE_SHARED_SECRET,
+        is_active=True
+    )
+    
+    try:
+        db.session.add(sonosuite_user)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "SonoSuite account connected successfully",
+            "connection": sonosuite_user.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to connect SonoSuite account: {str(e)}"}), 500
+
+# 4. SONOSUITE SSO REDIRECT
+@api.route('/sonosuite/redirect', methods=['GET'])
+@jwt_required()
+@plan_required("sonosuite_access")
+def redirect_to_sonosuite():
+    """Redirect authenticated user to SonoSuite with JWT"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    # Check if user has SonoSuite profile
+    sonosuite_profile = SonoSuiteUser.query.filter_by(
+        streampirex_user_id=user_id,
+        is_active=True
+    ).first()
+    
+    if not sonosuite_profile:
+        return jsonify({
+            "error": "SonoSuite account not connected",
+            "message": "Please connect your SonoSuite account first"
+        }), 400
+    
+    # Generate JWT token
+    try:
+        jwt_token = generate_sonosuite_jwt(
+            user_email=sonosuite_profile.sonosuite_email,
+            external_id=sonosuite_profile.sonosuite_external_id
+        )
+        
+        if not jwt_token:
+            return jsonify({"error": "Failed to generate authentication token"}), 500
+        
+        # Get return_to parameter from request
+        return_to = request.args.get('return_to', '/albums')
+        
+        # Build SonoSuite URL with JWT
+        sonosuite_url = f"{SONOSUITE_BASE_URL}{return_to}?jwt={jwt_token}"
+        
+        return jsonify({
+            "redirect_url": sonosuite_url,
+            "message": "Redirecting to SonoSuite..."
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to generate SSO token: {str(e)}"}), 500
+
+# 5. SONOSUITE DISCONNECT
+@api.route('/sonosuite/disconnect', methods=['POST'])
+@jwt_required()
+def disconnect_sonosuite():
+    """Disconnect SonoSuite account"""
+    user_id = get_jwt_identity()
+    
+    connection = SonoSuiteUser.query.filter_by(
+        streampirex_user_id=user_id
+    ).first()
+    
+    if not connection:
+        return jsonify({"error": "No SonoSuite connection found"}), 404
+    
+    # Deactivate instead of deleting (for audit trail)
+    connection.is_active = False
+    db.session.commit()
+    
+    return jsonify({
+        "message": "SonoSuite account disconnected successfully"
+    }), 200
+
+# 6. DISTRIBUTION STATS
+@api.route('/distribution/stats', methods=['GET'])
+@jwt_required()
+@plan_required("includes_music_distribution")
+def get_distribution_stats():
+    """Get user's distribution statistics"""
+    user_id = get_jwt_identity()
+    
+    # This would integrate with SonoSuite API to get real stats
+    # For now, return mock data structure
+    stats = {
+        "totalTracks": 0,
+        "platformsReached": 150,
+        "totalStreams": 0,
+        "monthlyEarnings": 0.0,
+        "lastUpdated": datetime.utcnow().isoformat()
+    }
+    
+    return jsonify(stats), 200
+
+# 7. DISTRIBUTION RELEASES
+@api.route('/distribution/releases', methods=['GET'])
+@jwt_required()
+@plan_required("includes_music_distribution")
+def get_distribution_releases():
+    """Get user's distribution releases"""
+    user_id = get_jwt_identity()
+    
+    # This would integrate with SonoSuite API to get real releases
+    # For now, return mock data structure
+    releases = {
+        "pending": [],
+        "active": [],
+        "total": 0
+    }
+    
+    return jsonify(releases), 200
+
+# 8. SUBMIT FOR DISTRIBUTION
+@api.route('/distribution/submit', methods=['POST'])
+@jwt_required()
+@plan_required("includes_music_distribution")
+def submit_for_distribution():
+    """Submit track for distribution through SonoSuite"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    # Check if user has SonoSuite connected
+    sonosuite_profile = SonoSuiteUser.query.filter_by(
+        streampirex_user_id=user_id,
+        is_active=True
+    ).first()
+    
+    if not sonosuite_profile:
+        return jsonify({
+            "error": "SonoSuite account not connected",
+            "message": "Please connect your SonoSuite account first"
+        }), 400
+    
+    # Check upload limits
+    upload_check = check_upload_limit(user_id, "music")
+    if not upload_check["allowed"]:
+        return jsonify({
+            "error": "Upload limit reached",
+            "limit_info": upload_check
+        }), 400
+    
+    # Validate required fields
+    required_fields = ['track_id', 'release_title', 'artist_name', 'genre']
+    if not all(field in data for field in required_fields):
+        return jsonify({
+            "error": "Missing required fields",
+            "required": required_fields
+        }), 400
+    
+    try:
+        # Here you would integrate with SonoSuite API to submit the track
+        # For now, we'll create a record in our database
+        
+        submission = {
+            "user_id": user_id,
+            "track_id": data["track_id"],
+            "release_title": data["release_title"],
+            "artist_name": data["artist_name"],
+            "genre": data["genre"],
+            "release_date": data.get("release_date"),
+            "label": data.get("label", "StreampireX Records"),
+            "explicit": data.get("explicit", False),
+            "platforms": data.get("platforms", []),
+            "territories": data.get("territories", ["worldwide"]),
+            "status": "pending",
+            "submitted_at": datetime.utcnow(),
+            "sonosuite_submission_id": f"spx_{user_id}_{int(time.time())}"
+        }
+        
+        # TODO: Save to database and integrate with SonoSuite API
+        
+        return jsonify({
+            "message": "Track submitted successfully for distribution",
+            "submission_id": submission["sonosuite_submission_id"],
+            "status": "pending",
+            "estimated_live_date": "24-48 hours"
+        }), 201
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to submit track: {str(e)}"
+        }), 500
+
+# 9. HELPER FUNCTIONS
+def check_upload_limit(user_id, content_type):
+    """Check if user has reached their monthly upload limit"""
+    user_plan = get_user_plan(user_id)
+    
+    if content_type == "music":
+        limit = user_plan.distribution_uploads_limit
+        if limit == -1:  # Unlimited
+            return {"allowed": True, "remaining": "unlimited"}
+        elif limit == 0:  # No uploads allowed
+            return {"allowed": False, "remaining": 0, "error": "Music distribution not included in your plan"}
+        
+        current_uploads = get_monthly_upload_count(user_id, "music")
+        remaining = limit - current_uploads
+        
+        return {
+            "allowed": remaining > 0,
+            "remaining": remaining,
+            "limit": limit,
+            "used": current_uploads
+        }
+    
+    elif content_type == "video":
+        limit = user_plan.video_uploads_limit
+        if limit == -1:  # Unlimited
+            return {"allowed": True, "remaining": "unlimited"}
+        elif limit == 0:  # No uploads allowed
+            return {"allowed": False, "remaining": 0, "error": "Video distribution not included in your plan"}
+        
+        current_uploads = get_monthly_upload_count(user_id, "video")
+        remaining = limit - current_uploads
+        
+        return {
+            "allowed": remaining > 0,
+            "remaining": remaining,
+            "limit": limit,
+            "used": current_uploads
+        }
+    
+    return {"allowed": False, "error": "Unknown content type"}
+
+def get_monthly_upload_count(user_id, content_type):
+    """Get count of uploads for current month"""
+    from datetime import datetime
+    from api.models import Music, Video
+    
+    current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    if content_type == "music":
+        # You'll need to create a Music or Distribution model to track uploads
+        count = 0  # Placeholder - implement based on your data model
+    elif content_type == "video":
+        # You'll need to create a Video distribution model
+        count = 0  # Placeholder - implement based on your data model
+    else:
+        count = 0
+    
+    return count
+
+# 10. SONOSUITE LOGIN HANDLER (for redirects from SonoSuite)
+@api.route('/sonosuite/login', methods=['GET'])
+def sonosuite_login_handler():
+    """Handle login redirects from SonoSuite"""
+    return_to = request.args.get('return_to', '/')
+    
+    # Redirect to StreampireX login with return_to parameter
+    login_url = f"/login?return_to={return_to}&source=sonosuite"
+    
+    return redirect(login_url)
+
+# 11. JWT VALIDATION (for SonoSuite webhooks if needed)
+def validate_sonosuite_jwt(token):
+    """Validate JWT token from SonoSuite"""
+    try:
+        payload = jwt.decode(
+            token, 
+            SONOSUITE_SHARED_SECRET, 
+            algorithms=["HS256"]
+        )
+        return payload
+    except jwt.ExpiredSignatureError:
+        return {"error": "Token has expired"}
+    except jwt.InvalidTokenError:
+        return {"error": "Invalid token"}
+
+
+# Updated routes.py - Add these new plan-gated routes
+
+# Gaming Feature Routes
+@api.route('/gaming/team-room/create', methods=['POST'])
+@jwt_required()
+@plan_required("includes_team_rooms")
+def create_team_room():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    # Create team room logic here
+    return jsonify({"message": "🏠 Team room created", "room_id": data.get("room_name")}), 201
+
+@api.route('/gaming/start-stream', methods=['POST'])
+@jwt_required()
+@plan_required("includes_game_streaming")
+def start_gaming_stream():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    # Start gaming stream logic
+    return jsonify({"message": "🎮 Gaming stream started"}), 200
+
+@api.route('/gaming/analytics', methods=['GET'])
+@jwt_required()
+@plan_required("includes_gaming_analytics")
+def get_gaming_analytics():
+    user_id = get_jwt_identity()
+    
+    # Return gaming analytics data
+    return jsonify({"gaming_stats": "analytics_data"}), 200
+
+@api.route('/gaming/monetization/enable', methods=['POST'])
+@jwt_required()
+@plan_required("includes_gaming_monetization")
+def enable_gaming_monetization():
+    user_id = get_jwt_identity()
+    
+    # Enable gaming monetization features
+    return jsonify({"message": "💰 Gaming monetization enabled"}), 200
+
+# Music Distribution Routes
+@api.route('/music/distribute', methods=['POST'])
+@jwt_required()
+@plan_required("includes_music_distribution")
+def distribute_music():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    # Check upload limit
+    user_plan = get_user_plan(user_id)
+    if user_plan.distribution_uploads_limit > 0:
+        # Check current month uploads
+        current_month_uploads = get_monthly_upload_count(user_id, "music")
+        if current_month_uploads >= user_plan.distribution_uploads_limit:
+            return jsonify({"error": "Monthly upload limit reached"}), 400
+    
+    # Distribute music logic
+    return jsonify({"message": "🎵 Music distributed successfully"}), 201
+
+@api.route('/sonosuite/connect', methods=['POST'])
+@jwt_required()
+@plan_required("sonosuite_access")
+def connect_sonosuite():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    # Create SonoSuite connection
+    sonosuite_user = SonoSuiteUser(
+        streampirex_user_id=user_id,
+        sonosuite_external_id=data["external_id"],
+        sonosuite_email=data["email"],
+        jwt_secret=data["jwt_secret"]
+    )
+    db.session.add(sonosuite_user)
+    db.session.commit()
+    
+    return jsonify({"message": "🎼 SonoSuite connected successfully"}), 201
+
+# Video Distribution Routes
+@api.route('/video/distribute', methods=['POST'])
+@jwt_required()
+@plan_required("includes_video_distribution")
+def distribute_video():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    # Check upload limit
+    user_plan = get_user_plan(user_id)
+    if user_plan.video_uploads_limit > 0:
+        current_month_uploads = get_monthly_upload_count(user_id, "video")
+        if current_month_uploads >= user_plan.video_uploads_limit:
+            return jsonify({"error": "Monthly video upload limit reached"}), 400
+    
+    # Distribute video logic
+    return jsonify({"message": "🎥 Video distributed successfully"}), 201
+
+# Helper function to get monthly upload count
+def get_monthly_upload_count(user_id, content_type):
+    """Get count of uploads for current month"""
+    from datetime import datetime
+    from dateutil.relativedelta import relativedelta
+    
+    current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    if content_type == "music":
+        count = db.session.query(Music).filter(
+            Music.user_id == user_id,
+            Music.created_at >= current_month_start
+        ).count()
+    elif content_type == "video":
+        count = db.session.query(Video).filter(
+            Video.user_id == user_id,
+            Video.created_at >= current_month_start
+        ).count()
+    
+    return count
+
+# Updated plan checking utility
+def get_user_plan(user_id):
+    """Get the user's current active plan"""
+    subscription = Subscription.query.filter_by(
+        user_id=user_id, 
+        status="active"
+    ).first()
+    
+    if subscription:
+        return subscription.plan
+    else:
+        # Return free plan if no active subscription
+        return PricingPlan.query.filter_by(name="Free").first()

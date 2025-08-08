@@ -54,7 +54,7 @@ const StartStopLiveStream = ({ isLive, stationId, onStart, onStop }) => (
       </div>
     </div>
     <div className="stream-controls">
-      <button 
+      <button
         onClick={isLive ? onStop : onStart}
         className={`stream-button ${isLive ? 'stop' : 'start'}`}
       >
@@ -152,7 +152,7 @@ const RadioStationDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       const [stationsRes, tracksRes] = await Promise.all([
         fetch(`${process.env.BACKEND_URL}/api/user/radio-stations`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -166,7 +166,7 @@ const RadioStationDashboard = () => {
         const stationsData = await stationsRes.json();
         setStations(stationsData);
       }
-      
+
       if (tracksRes.ok) {
         const tracksData = await tracksRes.json();
         setUploadedTracks(tracksData);
@@ -241,63 +241,48 @@ const RadioStationDashboard = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.type !== "audio/mpeg") {
-      setLoopUploadStatus("❌ Please select a valid MP3 file.");
+    // Validate file type and size
+    if (!file.type.startsWith("audio/")) {
+      setLoopUploadStatus("❌ Please select a valid audio file.");
       return;
     }
     if (file.size > 200 * 1024 * 1024) {
-      setLoopUploadStatus("❌ MP3 must be under 200MB.");
+      setLoopUploadStatus("❌ Audio file must be under 200MB.");
       return;
     }
 
-    setLoopUploadStatus("⏳ Uploading...");
+    setLoopUploadStatus("⏳ Uploading to Cloudinary...");
 
     const formData = new FormData();
     formData.append("loop_audio", file);
 
     try {
+      // Upload to station's loop endpoint (should use Cloudinary)
       const res = await fetch(`${process.env.BACKEND_URL}/api/radio/station/${selectedStation}/upload-loop`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`
+        },
         body: formData
       });
 
       const data = await res.json();
       if (res.ok) {
         setLoopUploadStatus("✅ Loop uploaded successfully!");
-        loadStationDetails(selectedStation);
+
+        // Reload station details to get updated audio URL
+        await loadStationDetails(selectedStation);
+
+        // Verify the audio URL was saved correctly
+        console.log("✅ Audio uploaded. New station data:", data);
       } else {
-        setLoopUploadStatus(`❌ Error: ${data.error}`);
+        setLoopUploadStatus(`❌ Error: ${data.error || 'Upload failed'}`);
       }
     } catch (err) {
-      console.error(err);
-      setLoopUploadStatus("❌ Upload failed.");
+      console.error("Upload error:", err);
+      setLoopUploadStatus("❌ Upload failed. Please try again.");
     }
   };
-
-  const handleStartStream = () => {
-    setIsLive(true);
-    // Add actual stream start logic here
-  };
-
-  const handleStopStream = () => {
-    setIsLive(false);
-    // Add actual stream stop logic here
-  };
-
-  if (loading) {
-    return (
-      <div className="dashboard-container">
-        <Sidebar />
-        <div className="content">
-          <div className="loading-state">
-            <div className="loading-spinner"></div>
-            <h2>Loading your radio dashboard...</h2>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="dashboard-container">
@@ -308,9 +293,9 @@ const RadioStationDashboard = () => {
           <p className="dashboard-subtitle">Manage your stations, tracks, and broadcasts</p>
         </div>
 
-        <MonetizationAnalytics 
-          earnings={earnings} 
-          followers={followers} 
+        <MonetizationAnalytics
+          earnings={earnings}
+          followers={followers}
           isLive={isLive}
           stationCount={stations.length}
         />
@@ -374,8 +359,8 @@ const RadioStationDashboard = () => {
                   <div className="add-track-section">
                     <h4>Add Track to Station</h4>
                     <div className="track-selector">
-                      <select 
-                        value={selectedTrack} 
+                      <select
+                        value={selectedTrack}
                         onChange={(e) => setSelectedTrack(e.target.value)}
                         className="track-dropdown"
                       >
@@ -406,10 +391,10 @@ const RadioStationDashboard = () => {
                 <section className="loop-section">
                   <h3>3-Hour Loop Upload</h3>
                   <div className="upload-area">
-                    <input 
-                      type="file" 
-                      accept="audio/mp3" 
-                      onChange={handleLoopUpload} 
+                    <input
+                      type="file"
+                      accept="audio/mp3"
+                      onChange={handleLoopUpload}
                       id="loop-upload"
                       className="file-input"
                     />
@@ -436,13 +421,13 @@ const RadioStationDashboard = () => {
                 <section className="public-link-section">
                   <h3>Share Your Station</h3>
                   <div className="link-display">
-                    <input 
-                      type="text" 
-                      value={`streampirex.com/radio/${selectedStation}`} 
-                      readOnly 
+                    <input
+                      type="text"
+                      value={`streampirex.com/radio/${selectedStation}`}
+                      readOnly
                       className="public-link"
                     />
-                    <button 
+                    <button
                       onClick={() => navigator.clipboard.writeText(`streampirex.com/radio/${selectedStation}`)}
                       className="btn-copy"
                     >
