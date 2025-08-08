@@ -10,7 +10,7 @@ const SettingsPage = () => {
     emailNotifications: true,
     darkMode: false,
     profileVisibility: "public",
-    subscriptionPlan: "Free Plan",
+    subscription: "Free Plan",
     twoFactorEnabled: false,
     payoutMethod: "",
     defaultStreamQuality: "high",
@@ -92,7 +92,7 @@ const SettingsPage = () => {
       <h2>👤 Account Info</h2>
       <div className="setting-item">
         <label>Subscription Plan</label>
-        <span>{settings.subscriptionPlan}</span>
+        <span>{settings.subscription}</span>
         <button onClick={handleUpgrade}>Manage</button>
       </div>
 

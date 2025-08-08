@@ -128,7 +128,7 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/home-feed" className={isActive("/home-feed") ? "active" : ""}>
         🏠 Home Feed
       </MenuItem>
-      
+
       {/* Profile Sub-section */}
       <div style={{ marginLeft: '10px', borderLeft: '2px solid #ffa726', paddingLeft: '5px' }}>
         <ProfileMenuItem to="/profile" className={isActive("/profile") && !isActive("/profile/gamer") && !isActive("/profile/artist") ? "active" : ""}>
@@ -155,6 +155,14 @@ const Sidebar = ({ user }) => {
       </MenuItem>
       <MenuItem to="/radio-dashboard" className={isActive("/radio-dashboard") ? "active" : ""}>
         📻 Radio Dashboard
+      </MenuItem>
+
+      <SectionHeader>🎤 Indie Artists</SectionHeader>
+      <MenuItem to="/music-distribution" className={isActive("/music-distribution") ? "active" : ""}>
+        🌍 Music Distribution
+      </MenuItem>
+      <MenuItem to="/search" className={isActive("/search") ? "active" : ""}>
+        🔍 Search Artists
       </MenuItem>
 
       {/* 🎮 GAMERS SECTION - Position #3 */}
@@ -202,14 +210,6 @@ const Sidebar = ({ user }) => {
       </MenuItem>
       <MenuItem to="/create-radio" className={isActive("/create-radio") ? "active" : ""}>
         ➕ Create Station
-      </MenuItem>
-
-      <SectionHeader>🎤 Indie Artists</SectionHeader>
-      <MenuItem to="/music-distribution" className={isActive("/music-distribution") ? "active" : ""}>
-        🌍 Music Distribution
-      </MenuItem>
-      <MenuItem to="/search" className={isActive("/search") ? "active" : ""}>
-        🔍 Search Artists
       </MenuItem>
 
       <SectionHeader>🎥 Live Streaming</SectionHeader>

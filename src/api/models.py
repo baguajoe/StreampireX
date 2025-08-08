@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy.dialects.postgresql import JSON
 
 import stripe
+import json
 
 
 # ✅ This is fine here
@@ -369,7 +370,6 @@ class UserSettings(db.Model):
     emailNotifications = db.Column(db.Boolean, default=True)
     darkMode = db.Column(db.Boolean, default=False)
     profileVisibility = db.Column(db.String(50), default="public")
-    subscriptionPlan = db.Column(db.String(50), default="Free Plan")
     twoFactorEnabled = db.Column(db.Boolean, default=False)
     payoutMethod = db.Column(db.String(50), default="")
     defaultStreamQuality = db.Column(db.String(20), default="high")
@@ -1526,94 +1526,38 @@ class PodcastHost(db.Model):
 
 class PricingPlan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)  # "Basic", "Pro", "Premium"
+    name = db.Column(db.String(50), unique=True, nullable=False)  # "Free", "Basic", "Pro", "Premium"
     price_monthly = db.Column(db.Float, nullable=False)
     price_yearly = db.Column(db.Float, nullable=False)
-    trial_days = db.Column(db.Integer, default=14)  # ✅ Free Trial Support
-    includes_podcasts = db.Column(db.Boolean, default=False)  # ✅ Podcast Plan
-    includes_radio = db.Column(db.Boolean, default=False)  # ✅ Radio Plan
-    includes_digital_sales = db.Column(db.Boolean, default=False)  # ✅ Sell Digital Products
-    includes_merch_sales = db.Column(db.Boolean, default=False)  # ✅ Sell Physical Products
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    trial_days = db.Column(db.Integer, default=14)  # Free Trial Support
+    
+    # Core Platform Features
+    includes_podcasts = db.Column(db.Boolean, default=False)
+    includes_radio = db.Column(db.Boolean, default=False)
+    includes_digital_sales = db.Column(db.Boolean, default=False)
+    includes_merch_sales = db.Column(db.Boolean, default=False)
     includes_live_events = db.Column(db.Boolean, default=False)
     includes_tip_jar = db.Column(db.Boolean, default=False)
     includes_ad_revenue = db.Column(db.Boolean, default=False)
-
-
-    def serialize(self):
-         return {
-        "id": self.id,
-        "name": self.name,
-        "price_monthly": self.price_monthly,
-        "price_yearly": self.price_yearly,
-        "trial_days": self.trial_days,
-        "includes_podcasts": self.includes_podcasts,
-        "includes_radio": self.includes_radio,
-        "includes_digital_sales": self.includes_digital_sales,
-        "includes_merch_sales": self.includes_merch_sales,
-        "includes_live_events": self.includes_live_events,
-        "includes_tip_jar": self.includes_tip_jar,
-        "includes_ad_revenue": self.includes_ad_revenue,
-        "created_at": self.created_at.isoformat()
-    }
-
-
-class Subscription(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    plan_id = db.Column(db.Integer, db.ForeignKey('pricing_plan.id'), nullable=False)  # Links to PricingPlan
-    stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)  # Stripe Subscription ID
-    start_date = db.Column(db.DateTime, default=datetime.utcnow)  # When the subscription started
-    end_date = db.Column(db.DateTime, nullable=True)  # When the subscription expires
-    grace_period_end = db.Column(db.DateTime, nullable=True)  # Soft expiration (e.g., 7-day grace period)
-    auto_renew = db.Column(db.Boolean, default=True)  # Whether the subscription renews automatically
-    billing_cycle = db.Column(db.String(20), default="monthly")  # Monthly, yearly, etc.
-    status = db.Column(db.String(20), default="active")  # active, canceled, expired
-    platform_cut = db.Column(db.Float, default=0.15)  # 15% platform cut
-    creator_earnings = db.Column(db.Float)  # 85% earnings for the creator
-
-    user = db.relationship('User', backref=db.backref('subscriptions', lazy=True))
-    plan = db.relationship('PricingPlan', backref=db.backref('subscriptions', lazy=True))
-
-    def calculate_earnings(self):
-        """Calculate creator earnings based on subscription price."""
-        # Example: Calculate creator's earnings from the monthly plan
-        self.creator_earnings = self.plan.price_monthly * (1 - self.platform_cut)
-        db.session.commit()
-
-    def serialize(self):
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "plan_id": self.plan_id,
-            "stripe_subscription_id": self.stripe_subscription_id,
-            "start_date": self.start_date.isoformat(),
-            "end_date": self.end_date.isoformat() if self.end_date else None,
-            "grace_period_end": self.grace_period_end.isoformat() if self.grace_period_end else None,
-            "auto_renew": self.auto_renew,
-            "billing_cycle": self.billing_cycle,
-            "status": self.status,
-            "platform_cut": self.platform_cut,
-            "creator_earnings": self.creator_earnings,
-        }
-
-class SubscriptionPlan(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)  # "Podcast Only", "Radio Only", "All Access"
-    price_monthly = db.Column(db.Float, nullable=False)
-    price_yearly = db.Column(db.Float, nullable=False)
-    features = db.Column(db.Text, nullable=True)  # List of features
-    includes_podcasts = db.Column(db.Boolean, default=False)  # Whether the plan includes podcasts
-    includes_radio = db.Column(db.Boolean, default=False)  # Whether the plan includes radio
-
-    # New fields to handle creator earnings and platform cut
-    platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
-    creator_earnings = db.Column(db.Float)  # Automatically calculated earnings for creator
-
-    def calculate_creator_earnings(self):
-        """Calculate creator earnings from the price of the plan."""
-        self.creator_earnings = self.price_monthly * (1 - self.platform_cut)
-        db.session.commit()
+    
+    # NEW: Music Distribution Features
+    includes_music_distribution = db.Column(db.Boolean, default=False)
+    sonosuite_access = db.Column(db.Boolean, default=False)
+    distribution_uploads_limit = db.Column(db.Integer, default=0)  # Number of tracks per month
+    
+    # NEW: Gaming Features
+    includes_gaming_features = db.Column(db.Boolean, default=False)
+    includes_team_rooms = db.Column(db.Boolean, default=False)
+    includes_squad_finder = db.Column(db.Boolean, default=False)
+    includes_gaming_analytics = db.Column(db.Boolean, default=False)
+    includes_game_streaming = db.Column(db.Boolean, default=False)
+    includes_gaming_monetization = db.Column(db.Boolean, default=False)
+    
+    # NEW: Video Distribution Features
+    includes_video_distribution = db.Column(db.Boolean, default=False)
+    video_uploads_limit = db.Column(db.Integer, default=0)  # Videos per month
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def serialize(self):
         return {
@@ -1621,29 +1565,127 @@ class SubscriptionPlan(db.Model):
             "name": self.name,
             "price_monthly": self.price_monthly,
             "price_yearly": self.price_yearly,
-            "features": self.features.split(";") if self.features else [],
+            "trial_days": self.trial_days,
+            
+            # Core Features
             "includes_podcasts": self.includes_podcasts,
             "includes_radio": self.includes_radio,
-            "platform_cut": self.platform_cut,
-            "creator_earnings": self.creator_earnings,
+            "includes_digital_sales": self.includes_digital_sales,
+            "includes_merch_sales": self.includes_merch_sales,
+            "includes_live_events": self.includes_live_events,
+            "includes_tip_jar": self.includes_tip_jar,
+            "includes_ad_revenue": self.includes_ad_revenue,
+            
+            # Music Distribution
+            "includes_music_distribution": self.includes_music_distribution,
+            "sonosuite_access": self.sonosuite_access,
+            "distribution_uploads_limit": self.distribution_uploads_limit,
+            
+            # Gaming Features
+            "includes_gaming_features": self.includes_gaming_features,
+            "includes_team_rooms": self.includes_team_rooms,
+            "includes_squad_finder": self.includes_squad_finder,
+            "includes_gaming_analytics": self.includes_gaming_analytics,
+            "includes_game_streaming": self.includes_game_streaming,
+            "includes_gaming_monetization": self.includes_gaming_monetization,
+            
+            # Video Distribution
+            "includes_video_distribution": self.includes_video_distribution,
+            "video_uploads_limit": self.video_uploads_limit,
+            
+            "created_at": self.created_at.isoformat()
+        }
+
+class SonoSuiteUser(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    streampirex_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    sonosuite_external_id = db.Column(db.String(255), nullable=False, unique=True)
+    sonosuite_email = db.Column(db.String(255), nullable=False)
+    jwt_secret = db.Column(db.String(500), nullable=False)  # Store shared secret
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    user = db.relationship('User', backref='sonosuite_profile')
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "sonosuite_external_id": self.sonosuite_external_id,
+            "sonosuite_email": self.sonosuite_email,
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat()
         }
 
 
+# Updated models.py - Consolidate your subscription models
 
-class UserSubscription(db.Model):
+# KEEP THIS ONE - Main subscription model that links users to PricingPlan
+class Subscription(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    plan_id = db.Column(db.Integer, db.ForeignKey('subscription_plan.id'), nullable=True)  # Platform-wide plan
-    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=True)  # If subscribing to a station
+    plan_id = db.Column(db.Integer, db.ForeignKey('pricing_plan.id'), nullable=False)  # Links to PricingPlan
     stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)
     start_date = db.Column(db.DateTime, default=datetime.utcnow)
     end_date = db.Column(db.DateTime, nullable=True)
-
-    user = db.relationship('User', backref=db.backref('user_subscriptions', lazy=True))
-    plan = db.relationship('SubscriptionPlan', backref=db.backref('user_subscriptions', lazy=True))
-    station = db.relationship('RadioStation', backref=db.backref('station_subscriptions', lazy=True))
-
+    grace_period_end = db.Column(db.DateTime, nullable=True)  # 7-day grace period
+    auto_renew = db.Column(db.Boolean, default=True)
+    billing_cycle = db.Column(db.String(20), default="monthly")  # "monthly" or "yearly"
+    status = db.Column(db.String(20), default="active")  # "active", "canceled", "expired"
     
+    # Remove these - they should come from the PricingPlan
+    # platform_cut = db.Column(db.Float, default=0.15)  # DELETE THIS
+    # creator_earnings = db.Column(db.Float)  # DELETE THIS
+
+    user = db.relationship('User', backref=db.backref('subscriptions', lazy=True))
+    plan = db.relationship('PricingPlan', backref=db.backref('subscriptions', lazy=True))
+
+    def get_monthly_revenue(self):
+        """Calculate monthly revenue based on billing cycle"""
+        if self.billing_cycle == "yearly":
+            return self.plan.price_yearly / 12
+        return self.plan.price_monthly
+
+    def calculate_earnings(self):
+        """Calculate creator earnings based on subscription price and billing cycle"""
+        monthly_price = self.get_monthly_revenue()
+        platform_cut = 0.15  # 15% platform cut
+        return monthly_price * (1 - platform_cut)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "plan_id": self.plan_id,
+            "plan_name": self.plan.name,
+            "stripe_subscription_id": self.stripe_subscription_id,
+            "start_date": self.start_date.isoformat(),
+            "end_date": self.end_date.isoformat() if self.end_date else None,
+            "grace_period_end": self.grace_period_end.isoformat() if self.grace_period_end else None,
+            "auto_renew": self.auto_renew,
+            "billing_cycle": self.billing_cycle,
+            "status": self.status,
+            "monthly_price": self.get_monthly_revenue(),
+            "creator_earnings": self.calculate_earnings(),
+        }
+
+class UserSubscription(db.Model):
+    """For subscribing to individual radio stations or creator content"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Make these mutually exclusive - either platform plan OR specific content
+    plan_id = db.Column(db.Integer, nullable=True)  # For legacy compatibility
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=True)  # Station-specific subscription
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Creator-specific subscription
+    
+    stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)
+    start_date = db.Column(db.DateTime, default=datetime.utcnow)
+    end_date = db.Column(db.DateTime, nullable=True)
+    monthly_price = db.Column(db.Float, nullable=False)  # Store the price at time of subscription
+
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('user_subscriptions', lazy=True))
+    creator = db.relationship('User', foreign_keys=[creator_id], backref=db.backref('creator_subscriptions', lazy=True))
+    station = db.relationship('RadioStation', backref=db.backref('station_subscriptions', lazy=True))
 
     def serialize(self):
         return {
@@ -1651,9 +1693,11 @@ class UserSubscription(db.Model):
             "user_id": self.user_id,
             "plan_id": self.plan_id,
             "station_id": self.station_id,
+            "creator_id": self.creator_id,
             "stripe_subscription_id": self.stripe_subscription_id,
             "start_date": self.start_date.isoformat(),
-            "end_date": self.end_date.isoformat() if self.end_date else None
+            "end_date": self.end_date.isoformat() if self.end_date else None,
+            "monthly_price": self.monthly_price
         }
 
 class TicketPurchase(db.Model):
@@ -1672,6 +1716,60 @@ class TicketPurchase(db.Model):
             "amount_paid": self.amount_paid
         }
 
+# Add these models to your models.py file
+
+# Distribution Submission Model (to track submissions)
+class DistributionSubmission(db.Model):
+    __tablename__ = 'distribution_submission'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    track_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=True)
+    release_title = db.Column(db.String(255), nullable=False)
+    artist_name = db.Column(db.String(255), nullable=False)
+    genre = db.Column(db.String(100), nullable=False)
+    release_date = db.Column(db.Date, nullable=True)
+    label = db.Column(db.String(255), default='StreampireX Records')
+    explicit = db.Column(db.Boolean, default=False)
+    platforms = db.Column(db.JSON, default=[])  # Array of platform names
+    territories = db.Column(db.JSON, default=['worldwide'])
+    status = db.Column(db.String(50), default='pending')  # pending, processing, live, rejected
+    sonosuite_submission_id = db.Column(db.String(255), unique=True)
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expected_live_date = db.Column(db.DateTime, nullable=True)
+    actual_live_date = db.Column(db.DateTime, nullable=True)
+    
+    # Revenue tracking
+    total_streams = db.Column(db.Integer, default=0)
+    total_revenue = db.Column(db.Float, default=0.0)
+    
+    # Relationships
+    user = db.relationship('User', backref='distribution_submissions')
+    track = db.relationship('Audio', backref='distribution_submissions')
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "track_id": self.track_id,
+            "release_title": self.release_title,
+            "artist_name": self.artist_name,
+            "genre": self.genre,
+            "release_date": self.release_date.isoformat() if self.release_date else None,
+            "label": self.label,
+            "explicit": self.explicit,
+            "platforms": self.platforms or [],
+            "territories": self.territories or [],
+            "status": self.status,
+            "sonosuite_submission_id": self.sonosuite_submission_id,
+            "submitted_at": self.submitted_at.isoformat(),
+            "expected_live_date": self.expected_live_date.isoformat() if self.expected_live_date else None,
+            "actual_live_date": self.actual_live_date.isoformat() if self.actual_live_date else None,
+            "total_streams": self.total_streams,
+            "total_revenue": self.total_revenue
+        }
+
+# Distribution Analytics Model (to track performance)
 
 
 class PodcastSubscription(db.Model):
@@ -3087,3 +3185,144 @@ def reorder_inner_circle(self, new_order):
             member.position = i
             member.updated_at = datetime.utcnow()
     db.session.commit()
+
+# ADD THIS TO YOUR EXISTING models.py FILE
+
+class MusicDistribution(db.Model):
+    """Track music distributions through StreampireX (powered by SonoSuite)"""
+    __tablename__ = 'music_distributions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    track_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
+    
+    # Release Information
+    release_title = db.Column(db.String(200), nullable=False)
+    artist_name = db.Column(db.String(100), nullable=False)
+    label = db.Column(db.String(100), default='StreampireX Records')
+    genre = db.Column(db.String(50))
+    release_type = db.Column(db.String(20), default='single')  # single, ep, album
+    release_date = db.Column(db.Date)
+    
+    # Distribution Service Details
+    distribution_service = db.Column(db.String(50), default='streampirex')  # streampirex, sonosuite, etc.
+    sonosuite_release_id = db.Column(db.String(100))  # SonoSuite's internal release ID
+    external_release_id = db.Column(db.String(100))  # For other services
+    
+    # Status and Dates
+    status = db.Column(db.String(50), default='pending')  # pending, processing, submitted, live, rejected, review
+    submission_date = db.Column(db.DateTime, default=datetime.utcnow)
+    expected_live_date = db.Column(db.DateTime)
+    live_date = db.Column(db.DateTime)
+    takedown_date = db.Column(db.DateTime)
+    
+    # Platform Information (JSON strings)
+    platforms = db.Column(db.Text)  # JSON string of platforms (Spotify, Apple Music, etc.)
+    territories = db.Column(db.Text)  # JSON string of territories/countries
+    
+    # Revenue Tracking
+    total_streams = db.Column(db.BigInteger, default=0)
+    total_revenue = db.Column(db.Numeric(10, 2), default=0.00)
+    last_revenue_update = db.Column(db.DateTime)
+    
+    # Metadata
+    isrc_code = db.Column(db.String(20))
+    upc_code = db.Column(db.String(20))  # For albums/EPs
+    explicit_content = db.Column(db.Boolean, default=False)
+    copyright_info = db.Column(db.String(200))
+    
+    # Additional tracking
+    notes = db.Column(db.Text)  # Internal notes
+    sonosuite_response = db.Column(db.Text)  # Store SonoSuite API responses
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('music_distributions', lazy=True))
+    track = db.relationship('Audio', backref=db.backref('distributions', lazy=True))
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "track_id": self.track_id,
+            "release_title": self.release_title,
+            "artist_name": self.artist_name,
+            "label": self.label,
+            "genre": self.genre,
+            "release_type": self.release_type,
+            "release_date": self.release_date.isoformat() if self.release_date else None,
+            "distribution_service": self.distribution_service,
+            "sonosuite_release_id": self.sonosuite_release_id,
+            "status": self.status,
+            "submission_date": self.submission_date.isoformat() if self.submission_date else None,
+            "expected_live_date": self.expected_live_date.isoformat() if self.expected_live_date else None,
+            "live_date": self.live_date.isoformat() if self.live_date else None,
+            "takedown_date": self.takedown_date.isoformat() if self.takedown_date else None,
+            "platforms": json.loads(self.platforms) if self.platforms else [],
+            "territories": json.loads(self.territories) if self.territories else [],
+            "total_streams": self.total_streams or 0,
+            "total_revenue": float(self.total_revenue) if self.total_revenue else 0.0,
+            "isrc_code": self.isrc_code,
+            "upc_code": self.upc_code,
+            "explicit_content": self.explicit_content,
+            "copyright_info": self.copyright_info,
+            "notes": self.notes,
+            "track": self.track.serialize() if self.track else None
+        }
+
+class DistributionAnalytics(db.Model):
+    """Store analytics data from distribution services"""
+    __tablename__ = 'distribution_analytics'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    distribution_id = db.Column(db.Integer, db.ForeignKey('music_distributions.id'), nullable=False)
+    
+    # Platform-specific data
+    platform = db.Column(db.String(50), nullable=False)  # spotify, apple_music, etc.
+    territory = db.Column(db.String(10))  # US, UK, etc.
+    
+    # Metrics
+    streams = db.Column(db.BigInteger, default=0)
+    downloads = db.Column(db.BigInteger, default=0)
+    revenue = db.Column(db.Numeric(10, 4), default=0.0000)
+    
+    # Time period
+    report_date = db.Column(db.Date, nullable=False)
+    report_period = db.Column(db.String(20), default='daily')  # daily, weekly, monthly
+    
+    # Additional metrics
+    unique_listeners = db.Column(db.Integer, default=0)
+    playlist_adds = db.Column(db.Integer, default=0)
+    saves = db.Column(db.Integer, default=0)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    distribution = db.relationship('MusicDistribution', backref=db.backref('analytics', lazy=True))
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "distribution_id": self.distribution_id,
+            "platform": self.platform,
+            "territory": self.territory,
+            "streams": self.streams or 0,
+            "downloads": self.downloads or 0,
+            "revenue": float(self.revenue) if self.revenue else 0.0,
+            "report_date": self.report_date.isoformat() if self.report_date else None,
+            "report_period": self.report_period,
+            "unique_listeners": self.unique_listeners or 0,
+            "playlist_adds": self.playlist_adds or 0,
+            "saves": self.saves or 0,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+
+# ENHANCE YOUR EXISTING Audio MODEL by adding these fields if not already present:
+"""
+Add these fields to your existing Audio model if they don't exist:
+
+    # Distribution-related fields (add these if missing)
+    isrc_code = db.Column(db.String(20))  # International Standard Recording Code
+    explicit_content = db.Column(db.Boolean, default=False)
+    copyright_info = db.Column(db.String(200))
+"""

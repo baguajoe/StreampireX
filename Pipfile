@@ -36,6 +36,7 @@ eventlet = "*"
 flask-apscheduler = "*"
 ffmpeg = "*"
 openai-whisper = "*"
+pyjwt = "==2.8.0"
 
 [requires]
 python_version = "3.10"
