@@ -5,7 +5,6 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import JSON
 
-import stripe
 import json
 
 
@@ -2046,7 +2045,7 @@ class CreatorDonation(db.Model):
 
     
 # Initialize Stripe
-stripe.api_key = "your_stripe_secret_key"
+# stripe.api_key = "your_stripe_secret_key"
 
 # Creator Membership Tiers
 class CreatorMembershipTier(db.Model):
