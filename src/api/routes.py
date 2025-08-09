@@ -10,6 +10,7 @@ import os
 import mimetypes
 import jwt
 import time
+import stripe
 import hashlib
 import random
 from werkzeug.utils import secure_filename
@@ -37,7 +38,7 @@ import uuid
 import ffmpeg
 import feedparser
 import requests 
-import whisper  # ✅ AI Transcription Support
+# import whisper  # ✅ AI Transcription Support
 import subprocess
 import xml.etree.ElementTree as ET
 from mutagen import File
@@ -48,7 +49,7 @@ from api.cloudinary_setup import uploadFile
 
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
-import stripe
+# import stripe
 # ✅ FIXED: Only import the functions you need, not the SocketIO class
 from flask_socketio import join_room, emit, leave_room
 from api.cache import cache  # Assuming Flask-Caching is set up
@@ -78,11 +79,11 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CLIP_FOLDER, exist_ok=True)
 
 # ✅ Load Whisper AI Model Once (if needed)
-try:
-    whisper_model = whisper.load_model("base")
-except Exception as e:
-    print(f"Warning: Could not load Whisper model: {e}")
-    whisper_model = None
+# try:
+#     whisper_model = whisper.load_model("base")
+# except Exception as e:
+#     print(f"Warning: Could not load Whisper model: {e}")
+#     whisper_model = None
 
 
 
@@ -1633,7 +1634,7 @@ def subscribe():
             }), 200
 
         # Create Stripe Checkout Session
-        import stripe
+      
         
         price_amount = plan.price_yearly if data.get("billing_cycle") == "yearly" else plan.price_monthly
         
@@ -1704,7 +1705,7 @@ def cancel_subscription():
         return jsonify({"error": "No active subscription found"}), 404
 
     # Cancel in Stripe
-    stripe.Subscription.delete(subscription.stripe_subscription_id)
+    # stripe.Subscription.delete(subscription.stripe_subscription_id)
     db.session.delete(subscription)
     db.session.commit()
 
@@ -2646,7 +2647,7 @@ def subscribe_to_radio():
         return jsonify({"message": "Already subscribed"}), 200
 
     # Stripe Payment (Mock)
-    stripe_charge = stripe.PaymentIntent.create(
+    stripe_charge =stripe.PaymentIntent.create(
         amount=int(station.subscription_price * 100),  # Convert to cents
         currency="usd",
         payment_method_types=["card"]
@@ -2903,7 +2904,7 @@ def licensing_payment_success():
     event = None
 
     try:
-        event = stripe.Event.construct_from(payload, stripe.api_key)
+        stripe.api_key = "disabled"
     except ValueError as e:
         return jsonify({"error": "Invalid payload"}), 400
 
@@ -3684,20 +3685,20 @@ def subscribe_to_paid_podcast(podcast_id):
 
     return jsonify({"message": "Successfully subscribed!"}), 200
 
-@api.route('/transcribe_podcast/<int:podcast_id>', methods=['POST'])
-@jwt_required()
-def transcribe_podcast(podcast_id):
-    podcast = Podcast.query.get(podcast_id)
-    if not podcast or not podcast.audio_url:
-        return jsonify({"error": "Podcast audio not found"}), 404
+# @api.route('/transcribe_podcast/<int:podcast_id>', methods=['POST'])
+# @jwt_required()
+# def transcribe_podcast(podcast_id):
+#     podcast = Podcast.query.get(podcast_id)
+#     if not podcast or not podcast.audio_url:
+#         return jsonify({"error": "Podcast audio not found"}), 404
 
-    model = whisper.load_model("base")
-    result = model.transcribe(podcast.audio_url)
+#     model = whisper.load_model("base")
+#     result = model.transcribe(podcast.audio_url)
 
-    podcast.transcription = result["text"]
-    db.session.commit()
+#     podcast.transcription = result["text"]
+#     db.session.commit()
 
-    return jsonify({"message": "Transcription completed", "transcription": podcast.transcription}), 200
+#     return jsonify({"message": "Transcription completed", "transcription": podcast.transcription}), 200
 
 @api.route('/purchase_podcast', methods=['POST'])
 @jwt_required()
@@ -5571,10 +5572,10 @@ def purchase_live_ticket():
     }), 200
 
 from flask import request
-import stripe
+# import stripe
 
 # Setup Stripe API
-stripe.api_key = 'your_stripe_secret_key'
+# stripe.api_key = "disabled"
 
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "your_webhook_secret_here")
 
