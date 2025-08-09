@@ -207,36 +207,41 @@ def seed_pricing_plans():
     print("✅ Pricing plans seeded successfully!")
 
 
-SONOSUITE_SHARED_SECRET = os.getenv("SONOSUITE_SHARED_SECRET", "your_shared_secret_here")
+# Updated SonoSuite Configuration with new secret
+SONOSUITE_SHARED_SECRET = os.getenv("SONOSUITE_SHARED_SECRET", "Kj9mP2nR8qL5vBxN7wQ1zF6tY3uI0oE4rT9yU8iO7pA6sD5fG2hJ1kL0zX3cV")
 SONOSUITE_BASE_URL = os.getenv("SONOSUITE_BASE_URL", "https://streampirex.sonosuite.com")
 
 def generate_sonosuite_jwt(user_email, external_id):
-    """Generate JWT token for SonoSuite SSO"""
+    """Generate JWT token for SonoSuite SSO - Updated with corrected secret"""
     now = int(time.time())
     exp = now + 3600  # Token expires in 1 hour
     
-    # Generate unique jti (exactly 32 characters as required)
-    jti = hashlib.md5(f"{now}{random.randint(1, 1000000)}".encode()).hexdigest()
+    # Generate unique jti (MUST be exactly 32 characters as required by SonoSuite)
+    jti_source = f"{now}{random.randint(1, 1000000)}{user_email}"
+    jti = hashlib.md5(jti_source.encode()).hexdigest()
     
+    # SonoSuite required payload structure
     payload = {
-        "iat": now,
-        "exp": exp,
-        "email": user_email,
-        "externalId": str(external_id),
-        "jti": jti
+        "iat": now,           # Required: Token generation time
+        "exp": exp,           # Required: Token expiration time  
+        "email": user_email,  # Required: User email (max 255 chars)
+        "externalId": str(external_id),  # Required: Your unique user ID (as string)
+        "jti": jti           # Required: Unique token ID (exactly 32 chars)
     }
     
     try:
+        # SonoSuite requires HS256 algorithm with specific headers
         token = jwt.encode(
             payload, 
             SONOSUITE_SHARED_SECRET, 
             algorithm="HS256",
-            headers={"typ": "JWT", "alg": "HS256"}
+            headers={"typ": "JWT", "alg": "HS256"}  # Required headers
         )
         return token
     except Exception as e:
         print(f"JWT generation error: {e}")
         return None
+
 
 # Add this route to run the seed function
 @api.route('/admin/seed-pricing', methods=['POST'])
@@ -9113,7 +9118,7 @@ def get_artist_analytics():
     # Implementation needed
     pass
 
-
+# 1. USER PLAN STATUS - Updated with correct plan checks
 @api.route('/user/plan-status', methods=['GET'])
 @jwt_required()
 def get_user_plan_status():
@@ -9141,7 +9146,7 @@ def get_user_plan_status():
             "tip_jar": user_plan.includes_tip_jar,
             "ad_revenue": user_plan.includes_ad_revenue,
             "music_distribution": user_plan.includes_music_distribution,
-            "sonosuite_access": user_plan.sonosuite_access,
+            "sonosuite_access": user_plan.includes_music_distribution,  # Updated
             "gaming_features": user_plan.includes_gaming_features,
             "team_rooms": user_plan.includes_team_rooms,
             "squad_finder": user_plan.includes_squad_finder,
@@ -9176,10 +9181,10 @@ def get_sonosuite_connection_status():
             "message": "SonoSuite account not connected"
         }), 200
 
-# 3. SONOSUITE CONNECTION
+# 3. SONOSUITE CONNECTION - Updated with better plan checking
 @api.route('/sonosuite/connect', methods=['POST'])
 @jwt_required()
-@plan_required("sonosuite_access")
+@plan_required("includes_music_distribution")  # Updated plan requirement
 def connect_sonosuite_account():
     """Connect StreampireX user to SonoSuite account"""
     user_id = get_jwt_identity()
@@ -9204,6 +9209,7 @@ def connect_sonosuite_account():
         existing_connection.sonosuite_email = data['sonosuite_email']
         existing_connection.sonosuite_external_id = data['external_id']
         existing_connection.is_active = True
+        existing_connection.jwt_secret = SONOSUITE_SHARED_SECRET  # Updated secret
         
         db.session.commit()
         
@@ -9217,7 +9223,7 @@ def connect_sonosuite_account():
         streampirex_user_id=user_id,
         sonosuite_external_id=data['external_id'],
         sonosuite_email=data['sonosuite_email'],
-        jwt_secret=SONOSUITE_SHARED_SECRET,
+        jwt_secret=SONOSUITE_SHARED_SECRET,  # Updated secret
         is_active=True
     )
     
@@ -9234,10 +9240,10 @@ def connect_sonosuite_account():
         db.session.rollback()
         return jsonify({"error": f"Failed to connect SonoSuite account: {str(e)}"}), 500
 
-# 4. SONOSUITE SSO REDIRECT
+# 4. SONOSUITE SSO REDIRECT - Updated with proper URL handling
 @api.route('/sonosuite/redirect', methods=['GET'])
 @jwt_required()
-@plan_required("sonosuite_access")
+@plan_required("includes_music_distribution")  # Updated plan requirement
 def redirect_to_sonosuite():
     """Redirect authenticated user to SonoSuite with JWT"""
     user_id = get_jwt_identity()
@@ -9273,6 +9279,11 @@ def redirect_to_sonosuite():
         
         # Build SonoSuite URL with JWT
         sonosuite_url = f"{SONOSUITE_BASE_URL}{return_to}?jwt={jwt_token}"
+        
+        # If return_to was provided as original parameter, add it back
+        original_return_to = request.args.get('return_to')
+        if original_return_to and original_return_to != return_to:
+            sonosuite_url += f"&return_to={original_return_to}"
         
         return jsonify({
             "redirect_url": sonosuite_url,
@@ -9413,7 +9424,43 @@ def submit_for_distribution():
             "error": f"Failed to submit track: {str(e)}"
         }), 500
 
-# 9. HELPER FUNCTIONS
+# 9. SONOSUITE LOGIN HANDLER (for redirects from SonoSuite)
+@api.route('/sonosuite/login', methods=['GET'])
+def sonosuite_login_handler():
+    """Handle login redirects from SonoSuite"""
+    return_to = request.args.get('return_to', '/')
+    
+    # Redirect to StreampireX login with return_to parameter
+    login_url = f"/login?return_to={return_to}&source=sonosuite"
+    
+    return redirect(login_url)
+
+# 10. JWT VALIDATION (for SonoSuite webhooks if needed)
+def validate_sonosuite_jwt(token):
+    """Validate JWT token from SonoSuite"""
+    try:
+        payload = jwt.decode(
+            token, 
+            SONOSUITE_SHARED_SECRET, 
+            algorithms=["HS256"]
+        )
+        
+        # Validate required fields
+        required_fields = ['iat', 'exp', 'email', 'externalId', 'jti']
+        if not all(field in payload for field in required_fields):
+            return {"error": "Missing required JWT fields"}
+        
+        # Validate jti length (must be exactly 32 characters)
+        if len(payload.get('jti', '')) != 32:
+            return {"error": "Invalid jti length (must be 32 characters)"}
+        
+        return payload
+    except jwt.ExpiredSignatureError:
+        return {"error": "Token has expired"}
+    except jwt.InvalidTokenError:
+        return {"error": "Invalid token"}
+
+# Helper function to check upload limits
 def check_upload_limit(user_id, content_type):
     """Check if user has reached their monthly upload limit"""
     user_plan = get_user_plan(user_id)
@@ -9435,71 +9482,12 @@ def check_upload_limit(user_id, content_type):
             "used": current_uploads
         }
     
-    elif content_type == "video":
-        limit = user_plan.video_uploads_limit
-        if limit == -1:  # Unlimited
-            return {"allowed": True, "remaining": "unlimited"}
-        elif limit == 0:  # No uploads allowed
-            return {"allowed": False, "remaining": 0, "error": "Video distribution not included in your plan"}
-        
-        current_uploads = get_monthly_upload_count(user_id, "video")
-        remaining = limit - current_uploads
-        
-        return {
-            "allowed": remaining > 0,
-            "remaining": remaining,
-            "limit": limit,
-            "used": current_uploads
-        }
-    
     return {"allowed": False, "error": "Unknown content type"}
 
 def get_monthly_upload_count(user_id, content_type):
     """Get count of uploads for current month"""
-    from datetime import datetime
-    from api.models import Music, Video
-    
-    current_month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    
-    if content_type == "music":
-        # You'll need to create a Music or Distribution model to track uploads
-        count = 0  # Placeholder - implement based on your data model
-    elif content_type == "video":
-        # You'll need to create a Video distribution model
-        count = 0  # Placeholder - implement based on your data model
-    else:
-        count = 0
-    
-    return count
-
-# 10. SONOSUITE LOGIN HANDLER (for redirects from SonoSuite)
-@api.route('/sonosuite/login', methods=['GET'])
-def sonosuite_login_handler():
-    """Handle login redirects from SonoSuite"""
-    return_to = request.args.get('return_to', '/')
-    
-    # Redirect to StreampireX login with return_to parameter
-    login_url = f"/login?return_to={return_to}&source=sonosuite"
-    
-    return redirect(login_url)
-
-# 11. JWT VALIDATION (for SonoSuite webhooks if needed)
-def validate_sonosuite_jwt(token):
-    """Validate JWT token from SonoSuite"""
-    try:
-        payload = jwt.decode(
-            token, 
-            SONOSUITE_SHARED_SECRET, 
-            algorithms=["HS256"]
-        )
-        return payload
-    except jwt.ExpiredSignatureError:
-        return {"error": "Token has expired"}
-    except jwt.InvalidTokenError:
-        return {"error": "Invalid token"}
-
-
-# Updated routes.py - Add these new plan-gated routes
+    # This is a placeholder - implement based on your data model
+    return 0
 
 # Gaming Feature Routes
 @api.route('/gaming/team-room/create', methods=['POST'])
