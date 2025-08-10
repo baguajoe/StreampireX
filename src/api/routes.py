@@ -208,7 +208,7 @@ def seed_pricing_plans():
 
 
 # Updated SonoSuite Configuration with new secret
-SONOSUITE_SHARED_SECRET = os.getenv("SONOSUITE_SHARED_SECRET", "Kj9mP2nR8qL5vBxN7wQ1zF6tY3uI0oE4rT9yU8iO7pA6sD5fG2hJ1kL0zX3cV")
+SONOSUITE_SHARED_SECRET = os.getenv("SONOSUITE_SHARED_SECRET")
 SONOSUITE_BASE_URL = os.getenv("SONOSUITE_BASE_URL", "https://streampirex.sonosuite.com")
 
 def generate_sonosuite_jwt(user_email, external_id):

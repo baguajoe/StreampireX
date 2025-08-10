@@ -451,7 +451,7 @@ const MusicDistribution = () => {
         <Link to="/pricing" className="btn-primary large" style={{ background: 'white', color: '#667eea' }}>
           Upgrade to Pro - $21.99/month
         </Link>
-        <Link to="/pricing" className="btn-secondary large" style={{ borderColor: 'white', color: 'white' }}>
+        <Link to="/pricing/plans" className="btn-secondary large" style={{ borderColor: 'white', color: 'white' }}>
           View All Plans
         </Link>
       </div>

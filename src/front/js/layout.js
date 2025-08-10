@@ -28,6 +28,7 @@ import ArtistRadioStation from "./pages/ArtistRadioStation";
 import CreatorDashboard from "./pages/CreatorDashboard";
 import FavoritesPage from "./pages/FavoritesPage";
 import TeamRoomPage from "./pages/TeamRoomPage";
+import PricingPlans from "./pages/PricingPlans";
 
 import ArtistDashboard from "./pages/ArtistDashboard";
 import UploadMusic from "./pages/UploadMusic";
@@ -112,6 +113,7 @@ const Layout = () => {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Signup />} />
+              <Route path="/pricing/plans" element={<PricingPlans />} />
 
               {/* 📊 Dashboards */}
               <Route path="/creator-dashboard" element={<CreatorDashboard />} />
@@ -126,6 +128,7 @@ const Layout = () => {
               <Route path="/podcast-category/:category" element={<PodcastCategoryPage />} />
               <Route path="/podcast/:podcast_id" element={<PodcastDetailPage />} />
               <Route path="/user/:userId/videos" element={<UserVideoChannelPage />} />
+              
 
               {/* 📻 Radio Stations */}
               <Route path="/radio-dashboard" element={<RadioStationDashboard />} />
