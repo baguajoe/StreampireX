@@ -60,7 +60,16 @@ scheduler = APScheduler()
 api = Blueprint('api', __name__)
 marketplace = Blueprint('marketplace', __name__)
 chat_api = Blueprint('chat_api', __name__)
-CORS(api)
+# Update your CORS configuration (around line 63)
+from flask_cors import CORS
+
+# Configure CORS with your specific origins
+CORS(api, origins=[
+    "https://studious-space-goggles-r4rp7v96jgr62x5j-3000.app.github.dev",  # Your frontend
+    "https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev",  # Your backend
+    "http://localhost:3000",
+    "http://localhost:3001"
+], supports_credentials=True)
 
 # ✅ Define upload directories
 AUDIO_UPLOAD_DIR = "uploads/podcasts/audio"
@@ -1605,20 +1614,180 @@ def delete_radio_station(station_id):
     return jsonify({"message": "Radio station deleted successfully"}), 200
 
 
+# Update your subscription route in routes.py
+
+# Add this function to your routes.py file
+
+def create_standalone_plans():
+    """Create standalone music distribution plans"""
+    
+    # Check if standalone plans already exist
+    artist_plan = PricingPlan.query.filter_by(name="Standalone Artist").first()
+    label_plan = PricingPlan.query.filter_by(name="Standalone Label").first()
+    
+    if not artist_plan:
+        artist_plan = PricingPlan(
+            name="Standalone Artist",
+            price_monthly=0.00,  # Not used for standalone
+            price_yearly=22.99,  # Yearly pricing
+            trial_days=0,
+            includes_podcasts=False,
+            includes_radio=False,
+            includes_digital_sales=False,
+            includes_merch_sales=False,
+            includes_live_events=False,
+            includes_tip_jar=False,
+            includes_ad_revenue=False,
+            includes_music_distribution=True,
+            sonosuite_access=True,
+            distribution_uploads_limit=-1,  # Unlimited
+            includes_gaming_features=False,
+            includes_team_rooms=False,
+            includes_squad_finder=False,
+            includes_gaming_analytics=False,
+            includes_game_streaming=False,
+            includes_gaming_monetization=False,
+            includes_video_distribution=False,
+            video_uploads_limit=0
+        )
+        db.session.add(artist_plan)
+    
+    if not label_plan:
+        label_plan = PricingPlan(
+            name="Standalone Label",
+            price_monthly=0.00,  # Not used for standalone
+            price_yearly=74.99,  # Yearly pricing
+            trial_days=0,
+            includes_podcasts=False,
+            includes_radio=False,
+            includes_digital_sales=False,
+            includes_merch_sales=False,
+            includes_live_events=False,
+            includes_tip_jar=False,
+            includes_ad_revenue=False,
+            includes_music_distribution=True,
+            sonosuite_access=True,
+            distribution_uploads_limit=-1,  # Unlimited
+            includes_gaming_features=False,
+            includes_team_rooms=False,
+            includes_squad_finder=False,
+            includes_gaming_analytics=False,
+            includes_game_streaming=False,
+            includes_gaming_monetization=False,
+            includes_video_distribution=False,
+            video_uploads_limit=0
+        )
+        db.session.add(label_plan)
+    
+    try:
+        db.session.commit()
+        print("✅ Standalone plans created successfully!")
+        return True
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error creating standalone plans: {e}")
+        return False
+
+
+# Update your existing subscription route to handle standalone plans
 @api.route('/subscriptions/subscribe', methods=['POST'])
 @jwt_required()
 def subscribe():
+    """Handle subscription requests for all plan types"""
     user_id = get_jwt_identity()
-    data = request.json
+    data = request.get_json()
     plan_id = data.get("plan_id")
 
     if not plan_id:
         return jsonify({"error": "Missing plan_id"}), 400
 
-    # CHANGE: Use PricingPlan instead of SubscriptionPlan
-    plan = PricingPlan.query.get(plan_id)  # Changed from SubscriptionPlan
+    print(f"Subscription request for plan_id: {plan_id}, type: {type(plan_id)}")
+
+    # Find the plan
+    plan = None
+    
+    if isinstance(plan_id, str):
+        if plan_id == "standalone-artist":
+            # Find or create standalone artist plan
+            plan = PricingPlan.query.filter_by(name="Standalone Artist").first()
+            if not plan:
+                print("Creating Standalone Artist plan...")
+                plan = PricingPlan(
+                    name="Standalone Artist",
+                    price_monthly=22.99,
+                    price_yearly=22.99,  # Actually yearly
+                    trial_days=0,
+                    includes_podcasts=False,
+                    includes_radio=False,
+                    includes_digital_sales=False,
+                    includes_merch_sales=False,
+                    includes_live_events=False,
+                    includes_tip_jar=False,
+                    includes_ad_revenue=False,
+                    includes_music_distribution=True,
+                    sonosuite_access=True,
+                    distribution_uploads_limit=-1,
+                    includes_gaming_features=False,
+                    includes_team_rooms=False,
+                    includes_squad_finder=False,
+                    includes_gaming_analytics=False,
+                    includes_game_streaming=False,
+                    includes_gaming_monetization=False,
+                    includes_video_distribution=False,
+                    video_uploads_limit=0
+                )
+                db.session.add(plan)
+                db.session.commit()
+                print("Standalone Artist plan created successfully!")
+                
+        elif plan_id == "standalone-label":
+            # Find or create standalone label plan
+            plan = PricingPlan.query.filter_by(name="Standalone Label").first()
+            if not plan:
+                print("Creating Standalone Label plan...")
+                plan = PricingPlan(
+                    name="Standalone Label",
+                    price_monthly=74.99,
+                    price_yearly=74.99,  # Actually yearly
+                    trial_days=0,
+                    includes_podcasts=False,
+                    includes_radio=False,
+                    includes_digital_sales=False,
+                    includes_merch_sales=False,
+                    includes_live_events=False,
+                    includes_tip_jar=False,
+                    includes_ad_revenue=False,
+                    includes_music_distribution=True,
+                    sonosuite_access=True,
+                    distribution_uploads_limit=-1,
+                    includes_gaming_features=False,
+                    includes_team_rooms=False,
+                    includes_squad_finder=False,
+                    includes_gaming_analytics=False,
+                    includes_game_streaming=False,
+                    includes_gaming_monetization=False,
+                    includes_video_distribution=False,
+                    video_uploads_limit=0
+                )
+                db.session.add(plan)
+                db.session.commit()
+                print("Standalone Label plan created successfully!")
+        else:
+            # Try to find by name or regular ID
+            try:
+                plan_id_int = int(plan_id)
+                plan = PricingPlan.query.get(plan_id_int)
+            except ValueError:
+                plan = PricingPlan.query.filter_by(name=plan_id).first()
+    else:
+        # Integer plan ID
+        plan = PricingPlan.query.get(plan_id)
+
     if not plan:
+        print(f"Plan not found for ID: {plan_id}")
         return jsonify({"error": "Plan not found"}), 404
+
+    print(f"Found plan: {plan.name} (ID: {plan.id})")
 
     try:
         # Check if user already has an active subscription
@@ -1627,78 +1796,94 @@ def subscribe():
             status="active"
         ).first()
 
+        # Determine billing cycle
+        billing_cycle = data.get("billing_cycle", "yearly")
+        if plan.name.startswith("Standalone"):
+            billing_cycle = "yearly"  # Standalone plans are always yearly
+            price_amount = plan.price_yearly
+        else:
+            price_amount = plan.price_yearly if billing_cycle == "yearly" else plan.price_monthly
+
         if existing_subscription:
             # Update existing subscription
-            existing_subscription.plan_id = plan_id
-            existing_subscription.billing_cycle = data.get("billing_cycle", "monthly")
+            print(f"Updating existing subscription to plan: {plan.name}")
+            existing_subscription.plan_id = plan.id
+            existing_subscription.billing_cycle = billing_cycle
             db.session.commit()
             
             return jsonify({
-                "message": "Subscription updated successfully",
-                "subscription": existing_subscription.serialize()
+                "message": f"Subscription updated to {plan.name}!",
+                "subscription": existing_subscription.serialize(),
+                "checkout_url": f"/success?plan={plan.name}&updated=true"
             }), 200
 
-        # Create Stripe Checkout Session
-      
-        
-        price_amount = plan.price_yearly if data.get("billing_cycle") == "yearly" else plan.price_monthly
-        
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'usd',
-                    'product_data': {
-                        'name': f"{plan.name} Plan",
-                        'description': f"StreampireX {plan.name} subscription"
-                    },
-                    'unit_amount': int(price_amount * 100),  # Stripe uses cents
-                    'recurring': {
-                        'interval': 'year' if data.get("billing_cycle") == "yearly" else 'month'
-                    }
-                },
-                'quantity': 1
-            }],
-            mode='subscription',
-            success_url=f'{request.host_url}success?session_id={{CHECKOUT_SESSION_ID}}',
-            cancel_url=f'{request.host_url}pricing',
-            metadata={
-                'user_id': user_id,
-                'plan_id': plan_id,
-                'billing_cycle': data.get("billing_cycle", "monthly")
-            }
-        )
-
-        # Create pending subscription record
+        # Create new subscription
+        print(f"Creating new subscription for plan: {plan.name}")
         new_subscription = Subscription(
             user_id=user_id,
-            plan_id=plan_id,
-            stripe_subscription_id=None,  # Will be updated via webhook
-            billing_cycle=data.get("billing_cycle", "monthly"),
-            status="pending",
+            plan_id=plan.id,
+            billing_cycle=billing_cycle,
+            status="active",  # For testing, set directly to active
             start_date=datetime.utcnow()
         )
         
         db.session.add(new_subscription)
         db.session.commit()
+        print("New subscription created successfully!")
 
+        # Return success response
         return jsonify({
-            "checkout_url": session.url,
-            "session_id": session.id
+            "message": f"Successfully subscribed to {plan.name}!",
+            "subscription": new_subscription.serialize(),
+            "checkout_url": f"/success?plan={plan.name}&price={price_amount}"
         }), 200
 
     except Exception as e:
         db.session.rollback()
+        print(f"Subscription error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@api.route('/success', methods=['GET'])
+def subscription_success():
+    """Simple success page for subscription"""
+    plan = request.args.get('plan', 'Unknown')
+    price = request.args.get('price', '0')
+    updated = request.args.get('updated', 'false')
+    
+    action = "updated to" if updated == 'true' else "subscribed to"
+    
+    return f"""
+    <html>
+    <head><title>Subscription Success</title></head>
+    <body style="font-family: Arial; text-align: center; padding: 50px;">
+        <h1>🎉 Success!</h1>
+        <h2>You have successfully {action} the {plan} plan!</h2>
+        <p>Price: ${price}/year</p>
+        <p><a href="/pricing">← Back to Pricing</a></p>
+        <p><a href="/music-distribution">Go to Music Distribution →</a></p>
+    </body>
+    </html>
+    """
+
+
+# Add a route to check subscription status
 @api.route('/subscriptions/status', methods=['GET'])
 @jwt_required()
 def get_subscription_status():
+    """Get current user's subscription status"""
     user_id = get_jwt_identity()
-    subscription = UserSubscription.query.filter_by(user_id=user_id).first()
-    if not subscription:
-        return jsonify({"message": "No active subscription"}), 200
-    return jsonify(subscription.serialize()), 200
+    subscription = Subscription.query.filter_by(user_id=user_id, status="active").first()
+    
+    if subscription:
+        return jsonify({
+            "has_subscription": True,
+            "subscription": subscription.serialize()
+        }), 200
+    else:
+        return jsonify({
+            "has_subscription": False,
+            "message": "No active subscription found"
+        }), 200
 
 @api.route('/subscriptions/cancel', methods=['POST'])
 @jwt_required()
@@ -1715,6 +1900,17 @@ def cancel_subscription():
     db.session.commit()
 
     return jsonify({"message": "Subscription canceled successfully"}), 200
+
+
+# Add this route to manually create standalone plans (for testing)
+@api.route('/admin/create-standalone-plans', methods=['POST'])
+def create_standalone_plans_route():
+    """Manual route to create standalone plans"""
+    success = create_standalone_plans()
+    if success:
+        return jsonify({"message": "Standalone plans created successfully"}), 200
+    else:
+        return jsonify({"error": "Failed to create standalone plans"}), 500
 
 # API Routes
 
@@ -3056,189 +3252,6 @@ def update_social_links():
     return jsonify({"message": "Social links updated!", "social_links": user.social_links}), 200
 
 
-
-
-
-# @api.route('/profile/music/upload', methods=['POST'])
-# @jwt_required()
-# def upload_music():
-#     """Allows users to upload music files to their profile."""
-#     user_id = get_jwt_identity()
-#     if 'audio' not in request.files:
-#         return jsonify({"error": "No audio file provided"}), 400
-
-#     audio = request.files['audio']
-#     title = request.form.get('title', 'Untitled')
-#     description = request.form.get('description', '')
-
-#     filename = secure_filename(audio.filename)
-#     file_path = os.path.join("uploads/music", filename)
-#     audio.save(file_path)
-
-#     new_audio = Audio(
-#         user_id=user_id,
-#         title=title,
-#         description=description,
-#         file_url=file_path,
-#         uploaded_at=datetime.utcnow()
-#     )
-
-#     db.session.add(new_audio)
-#     db.session.commit()
-
-#     return jsonify({"message": "Music uploaded successfully!", "audio": new_audio.serialize()}), 201
-
-
-@api.route('/profile/playlists/create', methods=['POST'])
-@jwt_required()
-def create_playlist_profile():
-    """Allows users to create a playlist on their profile."""
-    user_id = get_jwt_identity()
-    data = request.json
-    name = data.get("name")
-
-    if not name:
-        return jsonify({"error": "Playlist name is required"}), 400
-
-    new_playlist = PlaylistAudio(user_id=user_id, name=name)
-    db.session.add(new_playlist)
-    db.session.commit()
-
-    return jsonify({"message": "Playlist created!", "playlist": new_playlist.serialize()}), 201
-
-
-# @api.route('/profile/radio/create', methods=['POST'])
-# @jwt_required()
-# def create_radio_station_profile():
-#     user_id = get_jwt_identity()
-#     try:
-#         data = request.form
-#         name = data.get("name")
-#         if not name:
-#             return jsonify({"error": "Radio station name is required"}), 400
-
-#         description = data.get("description", "")
-#         category = data.get("category", "")
-
-#         # Correct directory paths
-#         logo_dir = os.path.join("uploads", "station_logos")
-#         cover_dir = os.path.join("uploads", "station_covers")
-#         mix_dir = os.path.join("src", "static", "uploads", "station_mixes")
-
-#         os.makedirs(logo_dir, exist_ok=True)
-#         os.makedirs(cover_dir, exist_ok=True)
-#         os.makedirs(mix_dir, exist_ok=True)
-
-#         logo_url = None
-#         cover_url = None
-#         initial_mix_url = None
-#         mix_filename = None
-
-#         if 'logo' in request.files:
-#             logo_file = request.files['logo']
-#             if logo_file and logo_file.filename:
-#                 logo_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(logo_file.filename)}"
-#                 logo_path = os.path.join(logo_dir, logo_filename)
-#                 logo_file.save(logo_path)
-#                 logo_url = f"/{logo_path}"
-
-#         if 'cover' in request.files:
-#             cover_file = request.files['cover']
-#             if cover_file and cover_file.filename:
-#                 cover_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(cover_file.filename)}"
-#                 cover_path = os.path.join(cover_dir, cover_filename)
-#                 cover_file.save(cover_path)
-#                 cover_url = f"/{cover_path}"
-
-#         if 'initialMix' in request.files:
-#             mix_file = request.files['initialMix']
-#             if mix_file and mix_file.filename:
-#                 mix_filename = f"{user_id}_{int(datetime.utcnow().timestamp())}_{secure_filename(mix_file.filename)}"
-#                 mix_path = os.path.join(mix_dir, mix_filename)
-#                 mix_file.save(mix_path)
-#                 initial_mix_url = f"/uploads/station_mixes/{mix_filename}"
-
-#         creator = User.query.get(user_id)
-#         creator_name = creator.username if creator else "Unknown"
-
-#         new_station = RadioStation(
-#             user_id=user_id,
-#             name=name,
-#             description=description,
-#             logo_url=logo_url,
-#             cover_image_url=cover_url,
-#             is_public=True,
-#             genres=[category] if category else ["Music"],
-#             creator_name=creator_name,
-#             created_at=datetime.utcnow()
-#         )
-
-#         db.session.add(new_station)
-#         db.session.flush()
-
-#         if initial_mix_url:
-#             mix_title = data.get("mixTitle", f"{name} - Initial Mix")
-
-#             initial_audio = Audio(
-#                 user_id=user_id,
-#                 title=mix_title,
-#                 description=data.get("mixDescription", ""),
-#                 file_url=initial_mix_url,
-#                 uploaded_at=datetime.utcnow()
-#             )
-#             db.session.add(initial_audio)
-#             db.session.flush()
-
-#             playlist_entry = RadioPlaylist(
-#                 station_id=new_station.id,
-#                 audio_id=initial_audio.id
-#             )
-#             db.session.add(playlist_entry)
-
-#             # ✅ Use local file path to extract duration
-#             mix_file_path = os.path.join(mix_dir, mix_filename)
-#             duration = get_track_duration_from_file(mix_file_path)
-
-#             track_info = {
-#                 "id": initial_audio.id,
-#                 "title": mix_title,
-#                 "artist": data.get("djName", creator_name),
-#                 "duration": duration,
-#                 "file_url": initial_mix_url,
-#                 "bpm": data.get("bpm", ""),
-#                 "mood": data.get("mood", ""),
-#                 "sub_genres": data.get("subGenres", "")
-#             }
-
-#             playlist_schedule = {
-#                 "tracks": [track_info],
-#                 "total_tracks": 1,
-#                 "created_at": datetime.utcnow().isoformat()
-#             }
-
-#             new_station.playlist_schedule = playlist_schedule
-#             new_station.is_loop_enabled = True
-#             new_station.loop_duration_minutes = 180
-#             new_station.loop_started_at = datetime.utcnow()
-#             new_station.is_live = True
-#             new_station.now_playing_metadata = track_info
-#             new_station.loop_audio_url = initial_mix_url
-
-#             print(f"✅ Setup audio loop: {mix_title} ({duration}) for station {new_station.name}")
-
-#         db.session.commit()
-
-#         return jsonify({
-#             "message": "Radio station created successfully with audio loop!" if initial_mix_url else "Radio station created successfully!",
-#             "station": new_station.serialize(),
-#             "audio_loop_enabled": new_station.is_loop_enabled,
-#             "now_playing": new_station.get_current_track()
-#         }), 201
-
-#     except Exception as e:
-#         db.session.rollback()
-#         print(f"❌ Error creating radio station: {str(e)}")
-#         return jsonify({"error": f"Failed to create station: {str(e)}"}), 500
 
 @api.route('/profile/radio/create', methods=['POST'])
 @jwt_required()
@@ -9553,8 +9566,8 @@ def distribute_music():
 def connect_sonosuite():
     user_id = get_jwt_identity()
     data = request.get_json()
-    
-    # Create SonoSuite connection
+            
+                # Create SonoSuite connection
     sonosuite_user = SonoSuiteUser(
         streampirex_user_id=user_id,
         sonosuite_external_id=data["external_id"],
@@ -9563,7 +9576,7 @@ def connect_sonosuite():
     )
     db.session.add(sonosuite_user)
     db.session.commit()
-    
+                                                                    
     return jsonify({"message": "🎼 SonoSuite connected successfully"}), 201
 
 # Video Distribution Routes
@@ -9618,3 +9631,29 @@ def get_user_plan(user_id):
     else:
         # Return free plan if no active subscription
         return PricingPlan.query.filter_by(name="Free").first()
+
+# Add this route to your existing routes.py file
+# (since you already have the seed_pricing_plans function)
+
+@api.route('/pricing-plans', methods=['GET'])
+def get_pricing_plans():
+    """Get all available pricing plans for the frontend"""
+    try:
+        # Fetch all pricing plans from database
+        plans = PricingPlan.query.all()
+        
+        # If no plans exist, seed them first
+        if not plans:
+            print("No pricing plans found, seeding...")
+            seed_pricing_plans()
+            plans = PricingPlan.query.all()
+        
+        # Serialize plans to JSON format
+        plans_data = [plan.serialize() for plan in plans]
+        
+        print(f"Returning {len(plans_data)} pricing plans")
+        return jsonify(plans_data), 200
+        
+    except Exception as e:
+        print(f"Error fetching pricing plans: {e}")
+        return jsonify({"error": "Failed to fetch pricing plans", "details": str(e)}), 500
