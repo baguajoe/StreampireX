@@ -2026,9 +2026,6 @@ def serve_clip(filename):
     """Serve generated clips"""
     return (CLIP_FOLDER, filename)
 
-if __name__ == "__main__":
-    api.run(debug=True)
-
 @api.route('/share-stats', methods=['GET'])
 @jwt_required()
 def get_share_stats():
@@ -5076,8 +5073,7 @@ def stop_recording_route():
     # Implement logic to kill the ffmpeg process if needed (not implemented here)
     return jsonify({"message": "Recording stopped"}), 200
 
-if __name__ == "__main__":
-    api.run(debug=True)
+
 @api.route('/engagement/<int:content_id>', methods=['GET'])
 @jwt_required(optional=True)  # Optional authentication
 @cache.cached(timeout=60, query_string=True)  # Use 'cache' instead of 'current_app.cache'
@@ -9136,39 +9132,120 @@ def get_artist_analytics():
 @jwt_required()
 def get_user_plan_status():
     """Get detailed information about user's current plan and usage"""
-    user_id = get_jwt_identity()
-    user_plan = get_user_plan(user_id)
-    
-    if not user_plan:
-        return jsonify({"error": "No plan found"}), 404
-    
-    # Get upload limits and usage
-    music_limit_info = check_upload_limit(user_id, "music")
-    video_limit_info = check_upload_limit(user_id, "video")
-    
-    return jsonify({
-        "plan": user_plan.serialize(),
-        "music_uploads": music_limit_info,
-        "video_uploads": video_limit_info,
-        "features_enabled": {
-            "podcasts": user_plan.includes_podcasts,
-            "radio": user_plan.includes_radio,
-            "digital_sales": user_plan.includes_digital_sales,
-            "merch_sales": user_plan.includes_merch_sales,
-            "live_events": user_plan.includes_live_events,
-            "tip_jar": user_plan.includes_tip_jar,
-            "ad_revenue": user_plan.includes_ad_revenue,
-            "music_distribution": user_plan.includes_music_distribution,
-            "sonosuite_access": user_plan.includes_music_distribution,  # Updated
-            "gaming_features": user_plan.includes_gaming_features,
-            "team_rooms": user_plan.includes_team_rooms,
-            "squad_finder": user_plan.includes_squad_finder,
-            "gaming_analytics": user_plan.includes_gaming_analytics,
-            "game_streaming": user_plan.includes_game_streaming,
-            "gaming_monetization": user_plan.includes_gaming_monetization,
-            "video_distribution": user_plan.includes_video_distribution
+    try:
+        user_id = get_jwt_identity()
+        user_plan = get_user_plan(user_id)
+        
+        if not user_plan:
+            # If no plan found, default to Free plan
+            free_plan = PricingPlan.query.filter_by(name="Free").first()
+            if free_plan:
+                return jsonify({
+                    "plan": free_plan.serialize(),
+                    "has_plan": False,
+                    "music_uploads": {"used": 0, "limit": 0, "remaining": 0},
+                    "video_uploads": {"used": 0, "limit": 0, "remaining": 0},
+                    "features_enabled": {
+                        "podcasts": free_plan.includes_podcasts,
+                        "radio": free_plan.includes_radio,
+                        "digital_sales": free_plan.includes_digital_sales,
+                        "merch_sales": free_plan.includes_merch_sales,
+                        "live_events": free_plan.includes_live_events,
+                        "tip_jar": free_plan.includes_tip_jar,
+                        "ad_revenue": free_plan.includes_ad_revenue,
+                        "music_distribution": free_plan.includes_music_distribution,
+                        "sonosuite_access": free_plan.sonosuite_access,  # Fixed: use the actual field
+                        "gaming_features": free_plan.includes_gaming_features,
+                        "team_rooms": free_plan.includes_team_rooms,
+                        "squad_finder": free_plan.includes_squad_finder,
+                        "gaming_analytics": free_plan.includes_gaming_analytics,
+                        "game_streaming": free_plan.includes_game_streaming,
+                        "gaming_monetization": free_plan.includes_gaming_monetization,
+                        "video_distribution": free_plan.includes_video_distribution
+                    }
+                }), 200
+            else:
+                return jsonify({"error": "No plans available"}), 404
+        
+        # Get upload limits and usage
+        music_limit_info = check_upload_limit(user_id, "music")
+        video_limit_info = check_upload_limit(user_id, "video")
+        
+        return jsonify({
+            "plan": user_plan.serialize(),
+            "has_plan": True,
+            "music_uploads": music_limit_info,
+            "video_uploads": video_limit_info,
+            "features_enabled": {
+                "podcasts": user_plan.includes_podcasts,
+                "radio": user_plan.includes_radio,
+                "digital_sales": user_plan.includes_digital_sales,
+                "merch_sales": user_plan.includes_merch_sales,
+                "live_events": user_plan.includes_live_events,
+                "tip_jar": user_plan.includes_tip_jar,
+                "ad_revenue": user_plan.includes_ad_revenue,
+                "music_distribution": user_plan.includes_music_distribution,
+                "sonosuite_access": user_plan.sonosuite_access,  # Fixed: use the actual field name
+                "gaming_features": user_plan.includes_gaming_features,
+                "team_rooms": user_plan.includes_team_rooms,
+                "squad_finder": user_plan.includes_squad_finder,
+                "gaming_analytics": user_plan.includes_gaming_analytics,
+                "game_streaming": user_plan.includes_game_streaming,
+                "gaming_monetization": user_plan.includes_gaming_monetization,
+                "video_distribution": user_plan.includes_video_distribution
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching user plan status: {e}")
+        return jsonify({"error": "Failed to fetch plan status"}), 500
+
+# Make sure you also have the check_upload_limit function
+def check_upload_limit(user_id, upload_type):
+    """Check upload limits for a user"""
+    try:
+        user_plan = get_user_plan(user_id)
+        
+        if not user_plan:
+            return {"used": 0, "limit": 0, "remaining": 0}
+        
+        # Get the limit based on upload type
+        if upload_type == "music":
+            limit = user_plan.distribution_uploads_limit
+            # Count current month's music uploads
+            from datetime import datetime, timedelta
+            start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            used = MusicDistribution.query.filter(
+                MusicDistribution.user_id == user_id,
+                MusicDistribution.created_at >= start_of_month
+            ).count()
+        elif upload_type == "video":
+            limit = user_plan.video_uploads_limit
+            # Count current month's video uploads
+            from datetime import datetime
+            start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            used = Video.query.filter(
+                Video.user_id == user_id,
+                Video.created_at >= start_of_month
+            ).count()
+        else:
+            return {"used": 0, "limit": 0, "remaining": 0}
+        
+        # Calculate remaining (-1 means unlimited)
+        if limit == -1:
+            remaining = "unlimited"
+        else:
+            remaining = max(0, limit - used)
+        
+        return {
+            "used": used,
+            "limit": limit if limit != -1 else "unlimited",
+            "remaining": remaining
         }
-    }), 200
+        
+    except Exception as e:
+        print(f"Error checking upload limit: {e}")
+        return {"used": 0, "limit": 0, "remaining": 0}
 
 # 2. SONOSUITE CONNECTION STATUS
 @api.route('/sonosuite/status', methods=['GET'])
@@ -9334,37 +9411,109 @@ def disconnect_sonosuite():
 @plan_required("includes_music_distribution")
 def get_distribution_stats():
     """Get user's distribution statistics"""
-    user_id = get_jwt_identity()
-    
-    # This would integrate with SonoSuite API to get real stats
-    # For now, return mock data structure
-    stats = {
-        "totalTracks": 0,
-        "platformsReached": 150,
-        "totalStreams": 0,
-        "monthlyEarnings": 0.0,
-        "lastUpdated": datetime.utcnow().isoformat()
-    }
-    
-    return jsonify(stats), 200
+    try:
+        user_id = get_jwt_identity()
+        
+        # Get comprehensive stats from your model
+        total_distributions = MusicDistribution.query.filter_by(user_id=user_id).count()
+        
+        live_distributions = MusicDistribution.query.filter_by(
+            user_id=user_id,
+            status="live"
+        ).count()
+        
+        processing_distributions = MusicDistribution.query.filter(
+            MusicDistribution.user_id == user_id,
+            MusicDistribution.status.in_(["pending", "processing", "submitted"])
+        ).count()
+        
+        # Calculate total streams and revenue
+        from sqlalchemy import func
+        revenue_stats = db.session.query(
+            func.sum(MusicDistribution.total_streams).label('total_streams'),
+            func.sum(MusicDistribution.total_revenue).label('total_revenue')
+        ).filter_by(user_id=user_id).first()
+        
+        total_streams = int(revenue_stats.total_streams or 0)
+        total_revenue = float(revenue_stats.total_revenue or 0.0)
+        
+        # Calculate platforms reached (from JSON data)
+        platforms_reached = 0
+        live_releases = MusicDistribution.query.filter_by(
+            user_id=user_id,
+            status="live"
+        ).all()
+        
+        unique_platforms = set()
+        for release in live_releases:
+            if release.platforms:
+                platforms = json.loads(release.platforms)
+                unique_platforms.update(platforms)
+        
+        platforms_reached = len(unique_platforms)
+        
+        # Get recent activity
+        recent_distributions = MusicDistribution.query.filter_by(
+            user_id=user_id
+        ).order_by(MusicDistribution.submission_date.desc()).limit(5).all()
+        
+        stats = {
+            "totalTracks": total_distributions,
+            "liveTracks": live_distributions,
+            "processingTracks": processing_distributions,
+            "platformsReached": platforms_reached,
+            "totalStreams": total_streams,
+            "totalRevenue": total_revenue,
+            "monthlyEarnings": total_revenue,  # Could calculate monthly subset
+            "lastUpdated": datetime.utcnow().isoformat(),
+            "recentActivity": [dist.serialize() for dist in recent_distributions]
+        }
+        
+        return jsonify(stats), 200
+        
+    except Exception as e:
+        print(f"Error fetching distribution stats: {e}")
+        return jsonify({"error": "Failed to fetch stats"}), 500
 
 # 7. DISTRIBUTION RELEASES
 @api.route('/distribution/releases', methods=['GET'])
 @jwt_required()
 @plan_required("includes_music_distribution")
 def get_distribution_releases():
-    """Get user's distribution releases"""
-    user_id = get_jwt_identity()
-    
-    # This would integrate with SonoSuite API to get real releases
-    # For now, return mock data structure
-    releases = {
-        "pending": [],
-        "active": [],
-        "total": 0
-    }
-    
-    return jsonify(releases), 200
+    """Get user's distribution releases with detailed info"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Get pending/processing releases
+        pending = MusicDistribution.query.filter(
+            MusicDistribution.user_id == user_id,
+            MusicDistribution.status.in_(["pending", "processing", "submitted"])
+        ).order_by(MusicDistribution.submission_date.desc()).all()
+        
+        # Get live releases
+        live = MusicDistribution.query.filter_by(
+            user_id=user_id,
+            status="live"
+        ).order_by(MusicDistribution.live_date.desc()).all()
+        
+        # Get rejected/review releases
+        under_review = MusicDistribution.query.filter(
+            MusicDistribution.user_id == user_id,
+            MusicDistribution.status.in_(["rejected", "review"])
+        ).order_by(MusicDistribution.submission_date.desc()).all()
+        
+        releases = {
+            "pending": [release.serialize() for release in pending],
+            "live": [release.serialize() for release in live],
+            "under_review": [release.serialize() for release in under_review],
+            "total": len(pending) + len(live) + len(under_review)
+        }
+        
+        return jsonify(releases), 200
+        
+    except Exception as e:
+        print(f"Error fetching releases: {e}")
+        return jsonify({"error": "Failed to fetch releases"}), 500
 
 # 8. SUBMIT FOR DISTRIBUTION
 @api.route('/distribution/submit', methods=['POST'])
@@ -9437,6 +9586,152 @@ def submit_for_distribution():
             "error": f"Failed to submit track: {str(e)}"
         }), 500
 
+@api.route('/distribution/<int:distribution_id>/status', methods=['PUT'])
+@jwt_required()
+def update_distribution_status(distribution_id):
+    """Update distribution status and related data"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        distribution = MusicDistribution.query.filter_by(
+            id=distribution_id,
+            user_id=user_id
+        ).first()
+        
+        if not distribution:
+            return jsonify({"error": "Distribution not found"}), 404
+        
+        # Update status
+        if 'status' in data:
+            old_status = distribution.status
+            distribution.status = data['status']
+            
+            # Update related dates based on status
+            if data['status'] == 'live' and not distribution.live_date:
+                distribution.live_date = datetime.utcnow()
+            elif data['status'] == 'rejected':
+                distribution.notes = (distribution.notes or "") + f" | Rejected on {datetime.utcnow()}"
+        
+        # Update streams and revenue if provided
+        if 'total_streams' in data:
+            distribution.total_streams = data['total_streams']
+            distribution.last_revenue_update = datetime.utcnow()
+        
+        if 'total_revenue' in data:
+            distribution.total_revenue = data['total_revenue']
+            distribution.last_revenue_update = datetime.utcnow()
+        
+        # Update ISRC/UPC codes if provided
+        if 'isrc_code' in data:
+            distribution.isrc_code = data['isrc_code']
+        
+        if 'upc_code' in data:
+            distribution.upc_code = data['upc_code']
+        
+        # Add notes if provided
+        if 'notes' in data:
+            timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            distribution.notes = (distribution.notes or "") + f" | {timestamp}: {data['notes']}"
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Distribution updated successfully",
+            "distribution": distribution.serialize()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating distribution: {e}")
+        return jsonify({"error": "Failed to update distribution"}), 500
+
+# ✅ Fixed upload limit checking with your model
+def check_upload_limit(user_id, content_type):
+    """Check if user has reached their monthly upload limit"""
+    try:
+        user_plan = get_user_plan(user_id)
+        
+        if not user_plan:
+            return {"allowed": False, "error": "No plan found"}
+        
+        if content_type == "music":
+            limit = user_plan.distribution_uploads_limit
+            
+            if limit == -1:  # Unlimited
+                return {"allowed": True, "remaining": "unlimited"}
+            elif limit == 0:  # No uploads allowed
+                return {"allowed": False, "remaining": 0, "error": "Music distribution not included in your plan"}
+            
+            # Count current month's uploads using your model
+            start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            
+            current_uploads = MusicDistribution.query.filter(
+                MusicDistribution.user_id == user_id,
+                MusicDistribution.submission_date >= start_of_month
+            ).count()
+            
+            remaining = limit - current_uploads
+            
+            return {
+                "allowed": remaining > 0,
+                "remaining": remaining,
+                "limit": limit,
+                "used": current_uploads
+            }
+        
+        return {"allowed": False, "error": "Unknown content type"}
+        
+    except Exception as e:
+        print(f"Error checking upload limit: {e}")
+        return {"allowed": False, "error": "Failed to check upload limit"}
+
+# ✅ Helper function: Bulk update distributions (for SonoSuite webhooks)
+def update_distributions_from_sonosuite(webhook_data):
+    """Update multiple distributions based on SonoSuite webhook data"""
+    try:
+        for release_data in webhook_data.get('releases', []):
+            sonosuite_release_id = release_data.get('release_id')
+            
+            if not sonosuite_release_id:
+                continue
+            
+            distribution = MusicDistribution.query.filter_by(
+                sonosuite_release_id=sonosuite_release_id
+            ).first()
+            
+            if distribution:
+                # Update status
+                if 'status' in release_data:
+                    distribution.status = release_data['status']
+                
+                # Update live date if went live
+                if release_data.get('status') == 'live' and not distribution.live_date:
+                    distribution.live_date = datetime.utcnow()
+                
+                # Update revenue data if provided
+                if 'streams' in release_data:
+                    distribution.total_streams = release_data['streams']
+                
+                if 'revenue' in release_data:
+                    distribution.total_revenue = release_data['revenue']
+                    distribution.last_revenue_update = datetime.utcnow()
+                
+                # Update codes if provided
+                if 'isrc' in release_data:
+                    distribution.isrc_code = release_data['isrc']
+                
+                if 'upc' in release_data:
+                    distribution.upc_code = release_data['upc']
+        
+        db.session.commit()
+        return {"success": True, "updated": len(webhook_data.get('releases', []))}
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating distributions from SonoSuite: {e}")
+        return {"success": False, "error": str(e)}
+
 # 9. SONOSUITE LOGIN HANDLER (for redirects from SonoSuite)
 @api.route('/sonosuite/login', methods=['GET'])
 def sonosuite_login_handler():
@@ -9472,35 +9767,183 @@ def validate_sonosuite_jwt(token):
         return {"error": "Token has expired"}
     except jwt.InvalidTokenError:
         return {"error": "Invalid token"}
+# ✅ REPLACE your placeholder functions with these complete implementations
 
-# Helper function to check upload limits
 def check_upload_limit(user_id, content_type):
     """Check if user has reached their monthly upload limit"""
-    user_plan = get_user_plan(user_id)
-    
-    if content_type == "music":
-        limit = user_plan.distribution_uploads_limit
-        if limit == -1:  # Unlimited
-            return {"allowed": True, "remaining": "unlimited"}
-        elif limit == 0:  # No uploads allowed
-            return {"allowed": False, "remaining": 0, "error": "Music distribution not included in your plan"}
+    try:
+        user_plan = get_user_plan(user_id)
         
-        current_uploads = get_monthly_upload_count(user_id, "music")
-        remaining = limit - current_uploads
+        if not user_plan:
+            return {"allowed": False, "error": "No plan found"}
         
-        return {
-            "allowed": remaining > 0,
-            "remaining": remaining,
-            "limit": limit,
-            "used": current_uploads
-        }
-    
-    return {"allowed": False, "error": "Unknown content type"}
+        if content_type == "music":
+            limit = user_plan.distribution_uploads_limit
+            
+            if limit == -1:  # Unlimited
+                return {"allowed": True, "remaining": "unlimited"}
+            elif limit == 0:  # No uploads allowed
+                return {"allowed": False, "remaining": 0, "error": "Music distribution not included in your plan"}
+            
+            # ✅ Count current month's uploads using your MusicDistribution model
+            current_uploads = get_monthly_upload_count(user_id, "music")
+            remaining = limit - current_uploads
+            
+            return {
+                "allowed": remaining > 0,
+                "remaining": remaining,
+                "limit": limit,
+                "used": current_uploads
+            }
+        
+        return {"allowed": False, "error": "Unknown content type"}
+        
+    except Exception as e:
+        print(f"Error checking upload limit: {e}")
+        return {"allowed": False, "error": "Failed to check upload limit"}
 
 def get_monthly_upload_count(user_id, content_type):
-    """Get count of uploads for current month"""
-    # This is a placeholder - implement based on your data model
-    return 0
+    """Get count of uploads for current month using MusicDistribution model"""
+    try:
+        if content_type == "music":
+            # Count distributions submitted this month
+            from datetime import datetime
+            start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            
+            count = MusicDistribution.query.filter(
+                MusicDistribution.user_id == user_id,
+                MusicDistribution.submission_date >= start_of_month
+            ).count()
+            
+            return count
+        
+        return 0
+        
+    except Exception as e:
+        print(f"Error getting monthly upload count: {e}")
+        return 0
+
+# ✅ BONUS: Additional helper functions you might find useful
+
+def get_user_distribution_summary(user_id):
+    """Get a complete summary of user's distributions"""
+    try:
+        total = MusicDistribution.query.filter_by(user_id=user_id).count()
+        
+        live = MusicDistribution.query.filter_by(
+            user_id=user_id, 
+            status="live"
+        ).count()
+        
+        processing = MusicDistribution.query.filter(
+            MusicDistribution.user_id == user_id,
+            MusicDistribution.status.in_(["pending", "processing", "submitted"])
+        ).count()
+        
+        rejected = MusicDistribution.query.filter_by(
+            user_id=user_id,
+            status="rejected"
+        ).count()
+        
+        # Get this month's uploads
+        monthly_uploads = get_monthly_upload_count(user_id, "music")
+        
+        # Get upload limit
+        upload_limit_info = check_upload_limit(user_id, "music")
+        
+        return {
+            "total_distributions": total,
+            "live_distributions": live,
+            "processing_distributions": processing,
+            "rejected_distributions": rejected,
+            "monthly_uploads": monthly_uploads,
+            "upload_limit_info": upload_limit_info
+        }
+        
+    except Exception as e:
+        print(f"Error getting distribution summary: {e}")
+        return None
+
+def can_user_distribute_music(user_id):
+    """Quick check if user can distribute music"""
+    try:
+        # Check plan access
+        user_plan = get_user_plan(user_id)
+        if not user_plan or not user_plan.includes_music_distribution:
+            return False, "Music distribution not included in your plan"
+        
+        # Check upload limits
+        limit_check = check_upload_limit(user_id, "music")
+        if not limit_check["allowed"]:
+            return False, limit_check.get("error", "Upload limit reached")
+        
+        # Check SonoSuite connection
+        sonosuite_connection = SonoSuiteUser.query.filter_by(
+            streampirex_user_id=user_id,
+            is_active=True
+        ).first()
+        
+        if not sonosuite_connection:
+            return False, "SonoSuite account not connected"
+        
+        return True, "Can distribute music"
+        
+    except Exception as e:
+        print(f"Error checking distribution capability: {e}")
+        return False, "Error checking distribution access"
+
+def get_user_distribution_analytics(user_id):
+    """Get analytics data for user's distributions"""
+    try:
+        from sqlalchemy import func
+        
+        # Get total stats
+        stats = db.session.query(
+            func.count(MusicDistribution.id).label('total_releases'),
+            func.sum(MusicDistribution.total_streams).label('total_streams'),
+            func.sum(MusicDistribution.total_revenue).label('total_revenue')
+        ).filter_by(user_id=user_id).first()
+        
+        # Get status breakdown
+        status_breakdown = db.session.query(
+            MusicDistribution.status,
+            func.count(MusicDistribution.id).label('count')
+        ).filter_by(user_id=user_id).group_by(MusicDistribution.status).all()
+        
+        # Get monthly trend (last 6 months)
+        from datetime import datetime, timedelta
+        six_months_ago = datetime.now() - timedelta(days=180)
+        
+        monthly_submissions = db.session.query(
+            func.date_trunc('month', MusicDistribution.submission_date).label('month'),
+            func.count(MusicDistribution.id).label('submissions')
+        ).filter(
+            MusicDistribution.user_id == user_id,
+            MusicDistribution.submission_date >= six_months_ago
+        ).group_by(func.date_trunc('month', MusicDistribution.submission_date)).all()
+        
+        return {
+            "total_releases": stats.total_releases or 0,
+            "total_streams": int(stats.total_streams or 0),
+            "total_revenue": float(stats.total_revenue or 0),
+            "status_breakdown": {status: count for status, count in status_breakdown},
+            "monthly_trend": [
+                {
+                    "month": month.strftime('%Y-%m') if month else None,
+                    "submissions": submissions
+                } for month, submissions in monthly_submissions
+            ]
+        }
+        
+    except Exception as e:
+        print(f"Error getting distribution analytics: {e}")
+        return {
+            "total_releases": 0,
+            "total_streams": 0,
+            "total_revenue": 0,
+            "status_breakdown": {},
+            "monthly_trend": []
+        }
 
 # Gaming Feature Routes
 @api.route('/gaming/team-room/create', methods=['POST'])
@@ -9546,19 +9989,131 @@ def enable_gaming_monetization():
 @jwt_required()
 @plan_required("includes_music_distribution")
 def distribute_music():
-    user_id = get_jwt_identity()
-    data = request.get_json()
-    
-    # Check upload limit
-    user_plan = get_user_plan(user_id)
-    if user_plan.distribution_uploads_limit > 0:
-        # Check current month uploads
-        current_month_uploads = get_monthly_upload_count(user_id, "music")
-        if current_month_uploads >= user_plan.distribution_uploads_limit:
-            return jsonify({"error": "Monthly upload limit reached"}), 400
-    
-    # Distribute music logic
-    return jsonify({"message": "🎵 Music distributed successfully"}), 201
+    """Submit music for distribution via SonoSuite"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        # Check upload limits
+        upload_check = check_upload_limit(user_id, "music")
+        if not upload_check["allowed"]:
+            return jsonify({
+                "error": "Upload limit reached",
+                "limit_info": upload_check
+            }), 403
+        
+        # Validate required fields
+        required_fields = ['track_id', 'release_title', 'artist_name']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        if missing_fields:
+            return jsonify({
+                "error": "Missing required fields",
+                "missing": missing_fields
+            }), 400
+        
+        # Get track details
+        track = Audio.query.filter_by(id=data['track_id'], user_id=user_id).first()
+        if not track:
+            return jsonify({"error": "Track not found or unauthorized"}), 404
+        
+        # Check if track is already distributed
+        existing_distribution = MusicDistribution.query.filter_by(
+            track_id=track.id,
+            status__in=["pending", "processing", "submitted", "live"]
+        ).first()
+        
+        if existing_distribution:
+            return jsonify({
+                "error": "Track is already distributed or being processed",
+                "existing_distribution": existing_distribution.serialize()
+            }), 400
+        
+        # Check if user has SonoSuite connected
+        sonosuite_profile = SonoSuiteUser.query.filter_by(
+            streampirex_user_id=user_id,
+            is_active=True
+        ).first()
+        
+        if not sonosuite_profile:
+            return jsonify({
+                "error": "SonoSuite account not connected",
+                "message": "Please connect your SonoSuite account first"
+            }), 400
+        
+        # Prepare platform and territory data
+        platforms = data.get('platforms', ['spotify', 'apple_music', 'amazon_music', 'youtube_music', 'deezer', 'tidal'])
+        territories = data.get('territories', ['worldwide'])
+        
+        # Calculate expected live date (24-48 hours from now)
+        expected_live = datetime.utcnow() + timedelta(hours=36)  # 36 hours average
+        
+        # Create distribution record using your model
+        distribution = MusicDistribution(
+            user_id=user_id,
+            track_id=track.id,
+            release_title=data['release_title'],
+            artist_name=data['artist_name'],
+            label=data.get('label', 'StreampireX Records'),
+            genre=data.get('genre', track.genre if hasattr(track, 'genre') else None),
+            release_type=data.get('release_type', 'single'),
+            release_date=datetime.strptime(data['release_date'], '%Y-%m-%d').date() if data.get('release_date') else datetime.utcnow().date(),
+            distribution_service='sonosuite',
+            status='processing',
+            submission_date=datetime.utcnow(),
+            expected_live_date=expected_live,
+            platforms=json.dumps(platforms),
+            territories=json.dumps(territories),
+            explicit_content=data.get('explicit', False),
+            copyright_info=data.get('copyright_info', f"© {datetime.now().year} {data['artist_name']}"),
+            notes=f"Submitted via StreampireX on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}"
+        )
+        
+        # TODO: Here you would make the actual SonoSuite API call
+        # For now, we'll simulate the submission
+        try:
+            # Simulate SonoSuite API call
+            sonosuite_response = {
+                "success": True,
+                "release_id": f"ss_{user_id}_{track.id}_{int(datetime.utcnow().timestamp())}",
+                "status": "submitted",
+                "message": "Release submitted successfully to SonoSuite",
+                "platforms": platforms,
+                "estimated_live_date": expected_live.isoformat()
+            }
+            
+            # Update distribution with SonoSuite response
+            distribution.sonosuite_release_id = sonosuite_response["release_id"]
+            distribution.status = "submitted"
+            distribution.sonosuite_response = json.dumps(sonosuite_response)
+            
+            db.session.add(distribution)
+            db.session.commit()
+            
+            return jsonify({
+                "message": "Music submitted for distribution successfully!",
+                "distribution": distribution.serialize(),
+                "sonosuite_response": sonosuite_response,
+                "estimated_live_date": expected_live.isoformat()
+            }), 201
+            
+        except Exception as sonosuite_error:
+            # If SonoSuite API fails, still create the distribution record
+            distribution.status = "pending"
+            distribution.notes += f" | SonoSuite API Error: {str(sonosuite_error)}"
+            
+            db.session.add(distribution)
+            db.session.commit()
+            
+            return jsonify({
+                "message": "Distribution request saved. Will retry SonoSuite submission.",
+                "distribution": distribution.serialize(),
+                "warning": "SonoSuite API temporarily unavailable"
+            }), 202
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Distribution error: {str(e)}")
+        return jsonify({"error": "Failed to submit for distribution"}), 500
 
 @api.route('/sonosuite/connect', methods=['POST'])
 @jwt_required()
@@ -9632,28 +10187,139 @@ def get_user_plan(user_id):
         # Return free plan if no active subscription
         return PricingPlan.query.filter_by(name="Free").first()
 
-# Add this route to your existing routes.py file
-# (since you already have the seed_pricing_plans function)
 
 @api.route('/pricing-plans', methods=['GET'])
 def get_pricing_plans():
-    """Get all available pricing plans for the frontend"""
+    """Get all pricing plans for display on the frontend"""
     try:
-        # Fetch all pricing plans from database
         plans = PricingPlan.query.all()
         
-        # If no plans exist, seed them first
         if not plans:
-            print("No pricing plans found, seeding...")
-            seed_pricing_plans()
+            # If no plans exist, create the default ones
+            create_default_pricing_plans()
             plans = PricingPlan.query.all()
-        
-        # Serialize plans to JSON format
-        plans_data = [plan.serialize() for plan in plans]
-        
-        print(f"Returning {len(plans_data)} pricing plans")
-        return jsonify(plans_data), 200
-        
+            
+        return jsonify([plan.serialize() for plan in plans]), 200
     except Exception as e:
         print(f"Error fetching pricing plans: {e}")
-        return jsonify({"error": "Failed to fetch pricing plans", "details": str(e)}), 500
+        return jsonify({"error": "Failed to fetch pricing plans"}), 500
+
+def create_default_pricing_plans():
+    """Create the default pricing plans if they don't exist"""
+    try:
+        # Check if plans already exist
+        existing_plans = PricingPlan.query.count()
+        if existing_plans > 0:
+            return
+            
+        print("Creating default pricing plans...")
+        
+        plans_data = [
+            {
+                "name": "Free",
+                "price_monthly": 0.00,
+                "price_yearly": 0.00,
+                "trial_days": 0,
+                "includes_podcasts": False,
+                "includes_radio": False,
+                "includes_digital_sales": False,
+                "includes_merch_sales": False,
+                "includes_live_events": False,
+                "includes_tip_jar": False,
+                "includes_ad_revenue": False,
+                "includes_music_distribution": False,
+                "sonosuite_access": False,
+                "distribution_uploads_limit": 0,
+                "includes_gaming_features": True,
+                "includes_team_rooms": False,
+                "includes_squad_finder": True,
+                "includes_gaming_analytics": False,
+                "includes_game_streaming": False,
+                "includes_gaming_monetization": False,
+                "includes_video_distribution": False,
+                "video_uploads_limit": 0
+            },
+            {
+                "name": "Basic",
+                "price_monthly": 4.99,
+                "price_yearly": 49.99,
+                "trial_days": 7,
+                "includes_podcasts": True,
+                "includes_radio": True,
+                "includes_digital_sales": False,
+                "includes_merch_sales": False,
+                "includes_live_events": False,
+                "includes_tip_jar": False,
+                "includes_ad_revenue": False,
+                "includes_music_distribution": False,
+                "sonosuite_access": False,
+                "distribution_uploads_limit": 0,
+                "includes_gaming_features": True,
+                "includes_team_rooms": True,
+                "includes_squad_finder": True,
+                "includes_gaming_analytics": True,
+                "includes_game_streaming": False,
+                "includes_gaming_monetization": False,
+                "includes_video_distribution": False,
+                "video_uploads_limit": 0
+            },
+            {
+                "name": "Pro",
+                "price_monthly": 14.99,
+                "price_yearly": 149.99,
+                "trial_days": 14,
+                "includes_podcasts": True,
+                "includes_radio": True,
+                "includes_digital_sales": True,
+                "includes_merch_sales": True,
+                "includes_live_events": True,
+                "includes_tip_jar": True,
+                "includes_ad_revenue": True,
+                "includes_music_distribution": True,
+                "sonosuite_access": True,
+                "distribution_uploads_limit": 10,  # 10 tracks per month
+                "includes_gaming_features": True,
+                "includes_team_rooms": True,
+                "includes_squad_finder": True,
+                "includes_gaming_analytics": True,
+                "includes_game_streaming": True,
+                "includes_gaming_monetization": True,
+                "includes_video_distribution": True,
+                "video_uploads_limit": 5
+            },
+            {
+                "name": "Premium",
+                "price_monthly": 29.99,
+                "price_yearly": 299.99,
+                "trial_days": 30,
+                "includes_podcasts": True,
+                "includes_radio": True,
+                "includes_digital_sales": True,
+                "includes_merch_sales": True,
+                "includes_live_events": True,
+                "includes_tip_jar": True,
+                "includes_ad_revenue": True,
+                "includes_music_distribution": True,
+                "sonosuite_access": True,
+                "distribution_uploads_limit": -1,  # Unlimited
+                "includes_gaming_features": True,
+                "includes_team_rooms": True,
+                "includes_squad_finder": True,
+                "includes_gaming_analytics": True,
+                "includes_game_streaming": True,
+                "includes_gaming_monetization": True,
+                "includes_video_distribution": True,
+                "video_uploads_limit": -1  # Unlimited
+            }
+        ]
+        
+        for plan_data in plans_data:
+            plan = PricingPlan(**plan_data)
+            db.session.add(plan)
+            
+        db.session.commit()
+        print("✅ Default pricing plans created successfully!")
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error creating default pricing plans: {e}")

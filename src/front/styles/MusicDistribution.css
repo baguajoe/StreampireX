@@ -1,10 +1,12 @@
 .music-distribution {
-  padding: 30px;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 20px;
+  width: 100%;
+  margin: 0;
   font-family: "Inter", sans-serif;
   color: #1e293b;
   background-color: #ffffff;
+  box-sizing: border-box;
+  min-height: 100vh;
 }
 
 /* Header Section */
@@ -15,18 +17,21 @@
   border-radius: 20px;
   color: white;
   margin-bottom: 40px;
+  max-width: 100%;
 }
 
 .distribution-header h1 {
   font-size: 3rem;
   margin-bottom: 20px;
   font-weight: 700;
+  max-width: 100%;
 }
 
 .distribution-header p {
   font-size: 1.2rem;
   margin-bottom: 30px;
   opacity: 0.9;
+  max-width: 100%;
 }
 
 .cta-button {
@@ -40,6 +45,8 @@
   font-size: 1.1rem;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .cta-button:hover {
@@ -53,13 +60,15 @@
 /* Stats Section */
 .distribution-stats {
   margin-bottom: 50px;
+  width: 100%;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
   margin-bottom: 30px;
+  width: 100%;
 }
 
 .stat-card {
@@ -71,6 +80,8 @@
   gap: 15px;
   border: 1px solid #e2e8f0;
   transition: all 0.3s ease;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .stat-card:hover {
@@ -88,6 +99,12 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.stat-content {
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .stat-content h3 {
@@ -95,6 +112,8 @@
   font-weight: 700;
   margin: 0;
   color: #1e293b;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 .stat-content p {
@@ -103,11 +122,14 @@
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 /* How It Works Section */
 .how-it-works {
   margin-bottom: 50px;
+  width: 100%;
 }
 
 .how-it-works h2 {
@@ -115,22 +137,44 @@
   font-size: 2.5rem;
   margin-bottom: 40px;
   color: #1e293b;
+  width: 100%;
 }
 
 .process-steps {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+  width: 100%;
+  justify-content: stretch;
+}
+
+@media (max-width: 1400px) {
+  .process-steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .process-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .process-step {
   background: white;
-  padding: 30px;
+  padding: 20px;
   border-radius: 15px;
   text-align: center;
   border: 2px solid #e2e8f0;
   transition: all 0.3s ease;
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .process-step:hover {
@@ -161,32 +205,43 @@
   margin-bottom: 15px;
 }
 
+.step-content {
+  max-width: 100%;
+}
+
 .step-content h3 {
   font-size: 1.3rem;
   margin-bottom: 10px;
   color: #1e293b;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 .step-content p {
   color: #64748b;
   line-height: 1.6;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 /* Platforms Section */
 .platforms-section, .social-platforms-section {
   margin-bottom: 50px;
+  width: 100%;
 }
 
 .platforms-section h2, .social-platforms-section h2 {
   font-size: 2rem;
   margin-bottom: 30px;
   color: #1e293b;
+  width: 100%;
 }
 
 .platforms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 15px;
+  width: 100%;
 }
 
 .platform-card {
@@ -195,6 +250,8 @@
   border-radius: 10px;
   padding: 20px;
   transition: all 0.3s ease;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .platform-card:hover {
@@ -212,15 +269,21 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
+  max-width: 100%;
 }
 
 .platform-icon {
   font-size: 1.5rem;
+  flex-shrink: 0;
 }
 
 .platform-name {
   font-weight: 600;
   flex: 1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status-badge {
@@ -228,6 +291,7 @@
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .status-badge.active {
@@ -243,23 +307,28 @@
 .platform-stats {
   color: #64748b;
   font-size: 0.9rem;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 /* Releases Section */
 .pending-releases, .active-distributions {
   margin-bottom: 50px;
+  max-width: 100%;
 }
 
 .pending-releases h2, .active-distributions h2 {
   font-size: 2rem;
   margin-bottom: 30px;
   color: #1e293b;
+  max-width: 100%;
 }
 
 .releases-list {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  max-width: 100%;
 }
 
 .release-card {
@@ -271,6 +340,8 @@
   align-items: center;
   gap: 20px;
   transition: all 0.3s ease;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .release-card:hover {
@@ -290,29 +361,42 @@
   height: 60px;
   border-radius: 8px;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .release-info {
   flex: 1;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .release-info h3 {
   margin: 0 0 5px 0;
   color: #1e293b;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .release-info p {
   margin: 0 0 5px 0;
   color: #64748b;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .release-date {
   font-size: 0.8rem;
   color: #9ca3af;
+  max-width: 100%;
 }
 
 .release-stats {
   text-align: right;
+  flex-shrink: 0;
 }
 
 .release-stats p {
@@ -329,6 +413,8 @@
   text-decoration: none;
   font-size: 0.9rem;
   transition: all 0.3s ease;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .release-actions .btn-secondary:hover {
@@ -349,16 +435,21 @@
   background: #f8fafc;
   border-radius: 15px;
   border: 2px dashed #d1d5db;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .empty-state h3 {
   color: #6b7280;
   margin-bottom: 10px;
+  max-width: 100%;
 }
 
 .empty-state p {
   color: #9ca3af;
   margin-bottom: 25px;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 .btn-primary {
@@ -370,6 +461,8 @@
   font-weight: 600;
   transition: all 0.3s ease;
   display: inline-block;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .btn-primary:hover {
@@ -382,6 +475,7 @@
 /* Features Section */
 .features-benefits {
   margin-bottom: 50px;
+  width: 100%;
 }
 
 .features-benefits h2 {
@@ -389,12 +483,14 @@
   font-size: 2.5rem;
   margin-bottom: 40px;
   color: #1e293b;
+  width: 100%;
 }
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 25px;
+  width: 100%;
 }
 
 .feature-card {
@@ -404,6 +500,8 @@
   padding: 25px;
   text-align: center;
   transition: all 0.3s ease;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .feature-card:hover {
@@ -422,11 +520,15 @@
   font-size: 1.3rem;
   margin-bottom: 10px;
   color: #1e293b;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 .feature-card p {
   color: #64748b;
   line-height: 1.6;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 /* CTA Section */
@@ -436,17 +538,27 @@
   padding: 60px 30px;
   text-align: center;
   color: white;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.cta-content {
+  max-width: 100%;
 }
 
 .cta-content h2 {
   font-size: 2.5rem;
   margin-bottom: 15px;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 .cta-content p {
   font-size: 1.2rem;
   margin-bottom: 30px;
   opacity: 0.9;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 .cta-buttons {
@@ -454,12 +566,15 @@
   gap: 20px;
   justify-content: center;
   flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .btn-primary.large, .btn-secondary.large {
   padding: 15px 35px;
   font-size: 1.1rem;
   border-radius: 50px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .btn-secondary {
@@ -469,6 +584,8 @@
   text-decoration: none;
   transition: all 0.3s ease;
   display: inline-block;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .btn-secondary:hover {
@@ -480,44 +597,151 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .music-distribution {
-    padding: 20px;
+    padding: 15px;
+    width: 100%;
   }
 
   .distribution-header {
     padding: 40px 20px;
+    width: 100%;
   }
 
   .distribution-header h1 {
     font-size: 2rem;
+    width: 100%;
   }
 
   .stats-grid {
     grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .process-steps {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    width: 100%;
+    gap: 15px;
   }
 
   .platforms-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    width: 100%;
   }
 
   .features-grid {
     grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .cta-buttons {
     flex-direction: column;
     align-items: center;
+    width: 100%;
   }
 
   .release-card {
     flex-direction: column;
     text-align: center;
+    width: 100%;
   }
 
   .release-stats {
     text-align: center;
   }
+
+  .platform-name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .release-info h3,
+  .release-info p {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+}
+
+/* Additional responsive improvements */
+@media (max-width: 480px) {
+  .music-distribution {
+    padding: 10px;
+  }
+
+  .distribution-header {
+    padding: 30px 15px;
+  }
+
+  .distribution-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .stat-card {
+    padding: 20px;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .stat-icon {
+    margin-bottom: 10px;
+  }
+
+  .process-step {
+    padding: 20px;
+    min-height: 250px;
+  }
+
+  .platform-card {
+    padding: 15px;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .feature-card {
+    padding: 20px;
+  }
+
+  .cta-section {
+    padding: 40px 20px;
+  }
+
+  .cta-content h2 {
+    font-size: 2rem;
+  }
+
+  .cta-content p {
+    font-size: 1rem;
+  }
+
+  .platforms-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+}
+
+/* Prevent horizontal overflow and ensure full width usage */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Ensure main container uses full viewport width */
+.music-distribution {
+  padding: 20px;
+  width: 100vw;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  color: #1e293b;
+  background-color: #ffffff;
+  box-sizing: border-box;
+  min-height: 100vh;
 }

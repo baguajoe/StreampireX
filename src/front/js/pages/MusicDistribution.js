@@ -1,4 +1,4 @@
-// Complete MusicDistribution.js with SonoSuite Dashboard Integration and Plan Selection
+// Complete MusicDistribution.js with Full Width Layout and SonoSuite Dashboard Integration
 
 import React, { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
@@ -522,10 +522,11 @@ const MusicDistribution = () => {
     <section className="plan-selection-section" style={{
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       borderRadius: '15px',
-      padding: '40px',
+      padding: '40px 20px',
       marginBottom: '30px',
       color: 'white',
-      textAlign: 'center'
+      textAlign: 'center',
+      width: '100%'
     }}>
       <h2 style={{ marginBottom: '15px', fontSize: '2rem' }}>🎵 Choose Your Distribution Plan</h2>
       <p style={{ marginBottom: '30px', fontSize: '1.1rem', opacity: 0.9 }}>
@@ -534,16 +535,18 @@ const MusicDistribution = () => {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
         gap: '20px',
-        marginBottom: '30px'
+        marginBottom: '30px',
+        width: '100%'
       }}>
         {/* Free Plan Card */}
         <div style={{
           background: 'rgba(255,255,255,0.1)',
           padding: '25px',
           borderRadius: '12px',
-          border: '2px solid rgba(255,255,255,0.2)'
+          border: '2px solid rgba(255,255,255,0.2)',
+          width: '100%'
         }}>
           <h3 style={{ marginBottom: '10px' }}>🆓 Free Plan</h3>
           <p style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '10px' }}>$0</p>
@@ -563,7 +566,8 @@ const MusicDistribution = () => {
               textDecoration: 'none',
               borderRadius: '8px',
               border: '1px solid rgba(255,255,255,0.3)',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
+              width: '80%'
             }}
           >
             Current Plan
@@ -576,7 +580,8 @@ const MusicDistribution = () => {
           padding: '25px',
           borderRadius: '12px',
           border: '2px solid #FFD700',
-          position: 'relative'
+          position: 'relative',
+          width: '100%'
         }}>
           <div style={{
             position: 'absolute',
@@ -605,7 +610,7 @@ const MusicDistribution = () => {
             <div>✅ Radio Stations</div>
           </div>
           <Link 
-            to="/pricing/plans" 
+            to="/pricing" 
             style={{
               display: 'inline-block',
               padding: '12px 20px',
@@ -614,10 +619,11 @@ const MusicDistribution = () => {
               textDecoration: 'none',
               borderRadius: '8px',
               fontWeight: 'bold',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
+              width: '80%'
             }}
           >
-            Upgrade to Pro
+            Choose Pro Plan
           </Link>
         </div>
 
@@ -626,7 +632,8 @@ const MusicDistribution = () => {
           background: 'rgba(255,255,255,0.1)',
           padding: '25px',
           borderRadius: '12px',
-          border: '2px solid rgba(255,255,255,0.2)'
+          border: '2px solid rgba(255,255,255,0.2)',
+          width: '100%'
         }}>
           <h3 style={{ marginBottom: '10px' }}>💎 Premium Plan</h3>
           <p style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '5px' }}>$39.99</p>
@@ -650,7 +657,8 @@ const MusicDistribution = () => {
               textDecoration: 'none',
               borderRadius: '8px',
               border: '1px solid rgba(255,255,255,0.3)',
-              transition: 'all 0.3s ease'
+              transition: 'all 0.3s ease',
+              width: '80%'
             }}
           >
             Upgrade to Premium
@@ -664,7 +672,8 @@ const MusicDistribution = () => {
         padding: '25px',
         borderRadius: '12px',
         border: '1px solid rgba(255,255,255,0.2)',
-        marginTop: '20px'
+        marginTop: '20px',
+        width: '100%'
       }}>
         <h3 style={{ marginBottom: '15px' }}>🎵 Standalone Music Distribution</h3>
         <p style={{ marginBottom: '20px', opacity: 0.9 }}>
@@ -713,7 +722,7 @@ const MusicDistribution = () => {
       {/* Call to Action */}
       <div style={{ marginTop: '30px' }}>
         <Link 
-          to="/pricing/plans"
+          to="/pricing"
           style={{
             display: 'inline-block',
             padding: '15px 30px',
@@ -727,7 +736,7 @@ const MusicDistribution = () => {
             transition: 'all 0.3s ease'
           }}
         >
-          🎯 View All Plans & Features
+          🎯 Choose a Plan & Start Distributing
         </Link>
       </div>
     </section>
@@ -738,9 +747,10 @@ const MusicDistribution = () => {
     <section className="simple-dashboard-section" style={{
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       borderRadius: '12px',
-      padding: '30px',
+      padding: '30px 20px',
       marginBottom: '30px',
-      color: 'white'
+      color: 'white',
+      width: '100%'
     }}>
       <h2 style={{ marginBottom: '20px', color: 'white' }}>📊 Quick Dashboard Access</h2>
       <p style={{ marginBottom: '25px', opacity: 0.9 }}>
@@ -749,10 +759,11 @@ const MusicDistribution = () => {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '15px'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+        gap: '15px',
+        width: '100%'
       }}>
-        {/* Main Dashboard */}
+        {/* Dashboard buttons with full width */}
         <button
           onClick={() => goToDashboard("/dashboard")}
           disabled={dashboardLoading}
@@ -765,13 +776,13 @@ const MusicDistribution = () => {
             fontSize: '16px',
             cursor: dashboardLoading ? 'not-allowed' : 'pointer',
             transition: 'all 0.3s ease',
-            fontWeight: '500'
+            fontWeight: '500',
+            width: '100%'
           }}
         >
           {dashboardLoading ? '🔄 Loading...' : '📊 Dashboard'}
         </button>
 
-        {/* Albums */}
         <button
           onClick={() => goToDashboard("/albums")}
           disabled={dashboardLoading}
@@ -784,13 +795,13 @@ const MusicDistribution = () => {
             fontSize: '16px',
             cursor: dashboardLoading ? 'not-allowed' : 'pointer',
             transition: 'all 0.3s ease',
-            fontWeight: '500'
+            fontWeight: '500',
+            width: '100%'
           }}
         >
           📀 Albums
         </button>
 
-        {/* Analytics */}
         <button
           onClick={() => goToDashboard("/analytics")}
           disabled={dashboardLoading}
@@ -803,13 +814,13 @@ const MusicDistribution = () => {
             fontSize: '16px',
             cursor: dashboardLoading ? 'not-allowed' : 'pointer',
             transition: 'all 0.3s ease',
-            fontWeight: '500'
+            fontWeight: '500',
+            width: '100%'
           }}
         >
           📈 Analytics
         </button>
 
-        {/* Releases */}
         <button
           onClick={() => goToDashboard("/releases")}
           disabled={dashboardLoading}
@@ -822,7 +833,8 @@ const MusicDistribution = () => {
             fontSize: '16px',
             cursor: dashboardLoading ? 'not-allowed' : 'pointer',
             transition: 'all 0.3s ease',
-            fontWeight: '500'
+            fontWeight: '500',
+            width: '100%'
           }}
         >
           🎵 Releases
@@ -838,7 +850,8 @@ const MusicDistribution = () => {
           padding: '10px',
           background: 'rgba(255,0,0,0.1)',
           borderRadius: '6px',
-          border: '1px solid rgba(255,0,0,0.2)'
+          border: '1px solid rgba(255,0,0,0.2)',
+          width: '100%'
         }}>
           ❌ {dashboardError}
         </div>
@@ -851,16 +864,23 @@ const MusicDistribution = () => {
     <div className="upgrade-section" style={{
       background: 'linear-gradient(135deg, #667eea, #764ba2)',
       color: 'white',
-      padding: '3rem',
+      padding: '3rem 2rem',
       borderRadius: '15px',
       textAlign: 'center',
-      marginBottom: '2rem'
+      marginBottom: '2rem',
+      width: '100%'
     }}>
       <h2>🎵 Unlock Global Music Distribution</h2>
       <p style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>
         Distribute your music to 150+ platforms including Spotify, Apple Music, Amazon Music, and more!
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+        gap: '1rem', 
+        marginBottom: '2rem',
+        width: '100%'
+      }}>
         <div>✅ Global music distribution</div>
         <div>✅ Keep 100% of your royalties</div>
         <div>✅ Detailed analytics and reporting</div>
@@ -869,10 +889,36 @@ const MusicDistribution = () => {
         <div>✅ YouTube Content ID protection</div>
       </div>
       <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-        <Link to="/pricing" className="btn-primary large" style={{ background: 'white', color: '#667eea' }}>
-          Upgrade to Pro - $21.99/month
+        <Link 
+          to="/pricing" 
+          style={{ 
+            background: 'white', 
+            color: '#667eea',
+            padding: '15px 35px',
+            fontSize: '1.1rem',
+            borderRadius: '50px',
+            textDecoration: 'none',
+            fontWeight: 'bold',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+          }}
+        >
+          🚀 Choose a Plan - Start Distributing
         </Link>
-        <Link to="/pricing" className="btn-secondary large" style={{ borderColor: 'white', color: 'white' }}>
+        <Link 
+          to="/pricing" 
+          style={{ 
+            background: 'transparent',
+            color: 'white',
+            border: '2px solid white',
+            padding: '15px 35px',
+            fontSize: '1.1rem',
+            borderRadius: '50px',
+            textDecoration: 'none',
+            fontWeight: 'bold',
+            transition: 'all 0.3s ease'
+          }}
+        >
           View All Plans
         </Link>
       </div>
@@ -887,7 +933,8 @@ const MusicDistribution = () => {
       borderRadius: '15px',
       padding: '2rem',
       marginBottom: '2rem',
-      textAlign: 'center'
+      textAlign: 'center',
+      width: '100%'
     }}>
       <h2>🎼 Connect Distribution System</h2>
       <p style={{ marginBottom: '1.5rem' }}>
@@ -896,7 +943,13 @@ const MusicDistribution = () => {
 
       <div style={{ marginBottom: '2rem' }}>
         <p><strong>What you'll get:</strong></p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+          gap: '1rem', 
+          marginTop: '1rem',
+          width: '100%'
+        }}>
           <div>🌍 Global distribution to 150+ platforms</div>
           <div>💰 Keep 100% of your royalties</div>
           <div>📊 Detailed analytics and reporting</div>
@@ -929,14 +982,15 @@ const MusicDistribution = () => {
           border: '1px solid #dee2e6',
           borderRadius: '8px',
           padding: '1.5rem',
-          marginTop: '1rem'
+          marginTop: '1rem',
+          width: '100%'
         }}>
           <h4>Manual Connection</h4>
           <p style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>
             If auto-connection failed, please enter your details manually:
           </p>
           
-          <form onSubmit={handleManualConnect}>
+          <form onSubmit={handleManualConnect} style={{ width: '100%' }}>
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
                 SonoSuite Email:
@@ -950,7 +1004,8 @@ const MusicDistribution = () => {
                   width: '100%',
                   padding: '0.5rem',
                   border: '1px solid #ccc',
-                  borderRadius: '4px'
+                  borderRadius: '4px',
+                  boxSizing: 'border-box'
                 }}
                 placeholder="your-email@example.com"
               />
@@ -969,13 +1024,14 @@ const MusicDistribution = () => {
                   width: '100%',
                   padding: '0.5rem',
                   border: '1px solid #ccc',
-                  borderRadius: '4px'
+                  borderRadius: '4px',
+                  boxSizing: 'border-box'
                 }}
                 placeholder="Your user ID"
               />
             </div>
             
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button 
                 type="submit"
                 disabled={isConnecting}
@@ -1019,7 +1075,8 @@ const MusicDistribution = () => {
       border: '1px solid #c3e6cb',
       borderRadius: '15px',
       padding: '2rem',
-      marginBottom: '2rem'
+      marginBottom: '2rem',
+      width: '100%'
     }}>
       <div className="connection-info" style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <h3>✅ Connected to SonoSuite Distribution</h3>
@@ -1033,7 +1090,14 @@ const MusicDistribution = () => {
       <SimpleDashboardButtons />
 
       {/* Plan Management Section */}
-      <div className="plan-management-section" style={{ textAlign: 'center', marginTop: '2rem', padding: '1.5rem', background: '#f8f9fa', borderRadius: '10px' }}>
+      <div className="plan-management-section" style={{ 
+        textAlign: 'center', 
+        marginTop: '2rem', 
+        padding: '1.5rem', 
+        background: '#f8f9fa', 
+        borderRadius: '10px',
+        width: '100%'
+      }}>
         <h4 style={{ marginBottom: '1rem', color: '#333' }}>🎯 Manage Your Plan</h4>
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
           <Link 
@@ -1093,54 +1157,25 @@ const MusicDistribution = () => {
 
   // Distribution Stats Component
   const DistributionStatsSection = () => (
-    <section className="distribution-stats" style={{ marginBottom: '2rem' }}>
+    <section className="distribution-stats">
       <h2>📊 Your Distribution Overview</h2>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '1rem',
-        marginBottom: '2rem'
-      }}>
-        <div className="stat-card" style={{
-          background: 'white',
-          padding: '1.5rem',
-          borderRadius: '10px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          textAlign: 'center'
-        }}>
+      <div className="stats-grid">
+        <div className="stat-card">
           <h3 style={{ color: '#667eea', marginBottom: '0.5rem' }}>Total Tracks</h3>
           <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0 }}>{distributionStats.totalTracks}</p>
         </div>
         
-        <div className="stat-card" style={{
-          background: 'white',
-          padding: '1.5rem',
-          borderRadius: '10px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          textAlign: 'center'
-        }}>
+        <div className="stat-card">
           <h3 style={{ color: '#667eea', marginBottom: '0.5rem' }}>Platforms</h3>
           <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0 }}>{distributionStats.platformsReached}</p>
         </div>
         
-        <div className="stat-card" style={{
-          background: 'white',
-          padding: '1.5rem',
-          borderRadius: '10px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          textAlign: 'center'
-        }}>
+        <div className="stat-card">
           <h3 style={{ color: '#667eea', marginBottom: '0.5rem' }}>Total Streams</h3>
           <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0 }}>{distributionStats.totalStreams.toLocaleString()}</p>
         </div>
         
-        <div className="stat-card" style={{
-          background: 'white',
-          padding: '1.5rem',
-          borderRadius: '10px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-          textAlign: 'center'
-        }}>
+        <div className="stat-card">
           <h3 style={{ color: '#667eea', marginBottom: '0.5rem' }}>Monthly Earnings</h3>
           <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0 }}>${distributionStats.monthlyEarnings}</p>
         </div>
@@ -1150,21 +1185,11 @@ const MusicDistribution = () => {
 
   // Streaming Platforms Section
   const StreamingPlatformsSection = () => (
-    <section className="streaming-platforms" style={{ marginBottom: '2rem' }}>
+    <section className="platforms-section">
       <h2>🎵 Supported Streaming Platforms</h2>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-        gap: '1rem',
-        marginBottom: '2rem'
-      }}>
+      <div className="platforms-grid">
         {streamingPlatforms.map((platform, index) => (
           <div key={index} className="platform-card" style={{
-            background: 'white',
-            padding: '1rem',
-            borderRadius: '8px',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-            textAlign: 'center',
             border: platform.status === 'active' ? '2px solid #28a745' : '2px solid #ffc107'
           }}>
             <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{platform.icon}</div>
@@ -1185,48 +1210,26 @@ const MusicDistribution = () => {
 
   // Distribution Process Section
   const DistributionProcessSection = () => (
-    <section className="distribution-process" style={{ marginBottom: '2rem' }}>
+    <section className="how-it-works">
       <h2>🚀 How Distribution Works</h2>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '1.5rem',
-        marginBottom: '2rem'
-      }}>
+      <div className="process-steps">
         {distributionProcess.map((step, index) => (
-          <div key={index} className="process-step" style={{
-            background: 'white',
-            padding: '1.5rem',
-            borderRadius: '10px',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-            textAlign: 'center'
-          }}>
-            <div style={{ 
-              fontSize: '3rem', 
-              marginBottom: '1rem',
-              background: '#667eea',
-              color: 'white',
-              width: '60px',
-              height: '60px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 1rem auto',
-              fontSize: '1.5rem'
-            }}>
+          <div key={index} className="process-step">
+            <div className="step-number">
               {step.step}
             </div>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>{step.icon}</div>
-            <h3 style={{ marginBottom: '0.5rem', color: '#333' }}>{step.title}</h3>
-            <p style={{ fontSize: '0.9rem', color: '#666', lineHeight: '1.4' }}>{step.description}</p>
+            <div className="step-icon">{step.icon}</div>
+            <div className="step-content">
+              <h3>{step.title}</h3>
+              <p>{step.description}</p>
+            </div>
           </div>
         ))}
       </div>
     </section>
   );
 
-  // Music Submission Form
+  // Music Submission Form (keeping existing implementation)
   const MusicSubmissionForm = () => (
     <div className="submission-overlay" style={{
       position: 'fixed',
@@ -1433,7 +1436,7 @@ const MusicDistribution = () => {
 
   // Active Releases Section
   const ActiveReleasesSection = () => (
-    <section className="active-releases" style={{ marginBottom: '2rem' }}>
+    <section className="active-distributions">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <h2>🎵 Your Active Releases</h2>
         {sonosuiteStatus.connected && userPlan?.plan?.includes_music_distribution && (
@@ -1455,36 +1458,20 @@ const MusicDistribution = () => {
       </div>
 
       {activeDistributions.length > 0 ? (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '1rem'
-        }}>
+        <div className="releases-list">
           {activeDistributions.map((release, index) => (
-            <div key={index} style={{
-              background: 'white',
-              border: '1px solid #e3e3e3',
-              borderRadius: '8px',
-              padding: '1.5rem',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
-            }}>
-              <h4 style={{ marginBottom: '0.5rem', color: '#333' }}>{release.title}</h4>
-              <p style={{ marginBottom: '0.5rem', color: '#666' }}>Artist: {release.artist}</p>
-              <p style={{ marginBottom: '0.5rem', color: '#666' }}>Status: {release.status}</p>
-              <p style={{ marginBottom: '1rem', color: '#666' }}>Platforms: {release.platforms?.length || 0}</p>
+            <div key={index} className="release-card active">
+              <div className="release-info">
+                <h4 style={{ marginBottom: '0.5rem', color: '#333' }}>{release.title}</h4>
+                <p style={{ marginBottom: '0.5rem', color: '#666' }}>Artist: {release.artist}</p>
+                <p style={{ marginBottom: '0.5rem', color: '#666' }}>Status: {release.status}</p>
+                <p style={{ marginBottom: '1rem', color: '#666' }}>Platforms: {release.platforms?.length || 0}</p>
+              </div>
               
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <div className="release-actions">
                 <button
                   onClick={() => openSonoSuiteDashboard(`/releases/${release.id}`)}
-                  style={{
-                    background: '#667eea',
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem'
-                  }}
+                  className="btn-secondary"
                 >
                   📊 View Analytics
                 </button>
@@ -1493,15 +1480,9 @@ const MusicDistribution = () => {
           ))}
         </div>
       ) : (
-        <div style={{
-          background: '#f8f9fa',
-          border: '1px solid #e9ecef',
-          borderRadius: '8px',
-          padding: '2rem',
-          textAlign: 'center',
-          color: '#6c757d'
-        }}>
-          <p>No active releases yet. Submit your first track to get started!</p>
+        <div className="empty-state">
+          <h3>No active releases yet</h3>
+          <p>Submit your first track to get started!</p>
         </div>
       )}
     </section>
@@ -1528,55 +1509,49 @@ const MusicDistribution = () => {
 
   // Main render
   return (
-    <div className="music-distribution" style={{ 
-      minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
-      padding: '2rem'
-    }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Header */}
-        <header style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <h1 style={{ 
-            fontSize: '3rem', 
-            marginBottom: '1rem',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>
-            🎵 Global Music Distribution
-          </h1>
-          <p style={{ fontSize: '1.2rem', color: '#666' }}>
-            Distribute your music to 150+ platforms worldwide with StreampireX
-          </p>
-        </header>
+    <div className="music-distribution">
+      {/* Header */}
+      <header style={{ textAlign: 'center', marginBottom: '3rem', width: '100%' }}>
+        <h1 style={{ 
+          fontSize: '3rem', 
+          marginBottom: '1rem',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}>
+          🎵 Global Music Distribution
+        </h1>
+        <p style={{ fontSize: '1.2rem', color: '#666' }}>
+          Distribute your music to 150+ platforms worldwide with StreampireX
+        </p>
+      </header>
 
-        {/* Conditional Rendering Based on Plan and Connection Status */}
-        {!userPlan?.plan?.includes_music_distribution ? (
-          <>
-            <PlanSelectionSection />
-            <PlanUpgradePrompt />
-          </>
-        ) : !sonosuiteStatus.connected ? (
-          <>
-            <ConnectionPrompt />
-            <DistributionProcessSection />
-          </>
-        ) : (
-          <>
-            <ConnectedState />
-            <DistributionStatsSection />
-            <ActiveReleasesSection />
-          </>
-        )}
+      {/* Conditional Rendering Based on Plan and Connection Status */}
+      {!userPlan?.plan?.includes_music_distribution ? (
+        <>
+          <PlanSelectionSection />
+          <PlanUpgradePrompt />
+        </>
+      ) : !sonosuiteStatus.connected ? (
+        <>
+          <ConnectionPrompt />
+          <DistributionProcessSection />
+        </>
+      ) : (
+        <>
+          <ConnectedState />
+          <DistributionStatsSection />
+          <ActiveReleasesSection />
+        </>
+      )}
 
-        {/* Always show these sections */}
-        <StreamingPlatformsSection />
-        <DistributionProcessSection />
+      {/* Always show these sections */}
+      <StreamingPlatformsSection />
+      <DistributionProcessSection />
 
-        {/* Submission Form Modal */}
-        {showSubmissionForm && <MusicSubmissionForm />}
-      </div>
+      {/* Submission Form Modal */}
+      {showSubmissionForm && <MusicSubmissionForm />}
     </div>
   );
 };
