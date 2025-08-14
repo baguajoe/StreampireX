@@ -1,4 +1,4 @@
-// Enhanced PricingPlans.js with improved UI and music distribution focus
+// Fixed PricingPlans.js with correct API endpoints
 
 import React, { useEffect, useState } from "react";
 import { useContext } from "react";
@@ -20,12 +20,25 @@ const PricingPlans = () => {
 
     const fetchPlans = async () => {
         try {
-            const response = await fetch(process.env.BACKEND_URL + "/api/subscriptions/subscribe");
+            // ✅ FIXED: Use the correct endpoint to GET pricing plans
+            const response = await fetch(process.env.BACKEND_URL + "/api/pricing-plans", {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
-            console.log("response from /pricing-plans:", data);
+            console.log("✅ Pricing plans fetched successfully:", data);
             setPlans(data);
         } catch (err) {
-            console.error("Error fetching pricing plans:", err);
+            console.error("❌ Error fetching pricing plans:", err);
+            // Set empty array as fallback
+            setPlans([]);
         } finally {
             setLoading(false);
         }
@@ -35,14 +48,18 @@ const PricingPlans = () => {
         try {
             const token = localStorage.getItem("token");
             const response = await fetch(`${process.env.BACKEND_URL}/api/user/plan-status`, {
-                headers: { "Authorization": `Bearer ${token}` }
+                headers: { 
+                    "Authorization": `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
             if (response.ok) {
                 const data = await response.json();
                 setCurrentPlan(data.plan);
+                console.log("✅ Current plan fetched:", data.plan);
             }
         } catch (err) {
-            console.error("Error fetching current plan:", err);
+            console.error("❌ Error fetching current plan:", err);
         }
     };
 
@@ -53,23 +70,42 @@ const PricingPlans = () => {
         }
 
         try {
+            // Handle standalone distribution plans
+            let actualPlanId = planId;
+            if (planId === "artist-distribution") {
+                actualPlanId = "standalone-artist";
+            } else if (planId === "label-distribution") {
+                actualPlanId = "standalone-label";
+            }
+
+            console.log("🔄 Subscribing to plan:", actualPlanId);
+
             const res = await fetch(`${process.env.BACKEND_URL}/api/subscriptions/subscribe`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + localStorage.getItem("token")
                 },
-                body: JSON.stringify({ plan_id: planId })
+                body: JSON.stringify({ plan_id: actualPlanId })
             });
 
             const data = await res.json();
+            console.log("📋 Subscription response:", data);
+
             if (res.ok) {
-                window.location.href = data.checkout_url;
+                if (data.checkout_url) {
+                    window.location.href = data.checkout_url;
+                } else {
+                    // Handle direct subscription success (like free plans)
+                    alert("✅ " + data.message);
+                    window.location.reload(); // Refresh to show updated plan
+                }
             } else {
-                alert("❌ " + data.error);
+                console.error("❌ Subscription error:", data);
+                alert("❌ " + (data.error || "Subscription failed"));
             }
         } catch (error) {
-            console.error("Subscription error:", error);
+            console.error("❌ Subscription error:", error);
             alert("❌ Failed to process subscription. Please try again.");
         }
     };
@@ -151,6 +187,29 @@ const PricingPlans = () => {
             <div className="pricing-container loading">
                 <h1>💰 Loading Plans...</h1>
                 <div className="loading-spinner"></div>
+            </div>
+        );
+    }
+
+    // Show message if no plans are found
+    if (plans.length === 0) {
+        return (
+            <div className="pricing-container">
+                <div className="pricing-header">
+                    <h1>💰 Pricing Plans</h1>
+                    <p className="error-message">
+                        ⚠️ Unable to load pricing plans. Please check your backend connection.
+                    </p>
+                    <button 
+                        className="retry-btn"
+                        onClick={() => {
+                            setLoading(true);
+                            fetchPlans();
+                        }}
+                    >
+                        🔄 Retry
+                    </button>
+                </div>
             </div>
         );
     }
@@ -274,7 +333,7 @@ const PricingPlans = () => {
                         </div>
                         <button 
                             className="service-btn artist"
-                            onClick={() => handleSubscribe("artist-distribution")}
+                            onClick={() => handleSubscribe("standalone-artist")}
                         >
                             Choose Artist Plan
                         </button>
@@ -292,7 +351,7 @@ const PricingPlans = () => {
                         </div>
                         <button 
                             className="service-btn label"
-                            onClick={() => handleSubscribe("label-distribution")}
+                            onClick={() => handleSubscribe("standalone-label")}
                         >
                             Choose Label Plan
                         </button>
