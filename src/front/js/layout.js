@@ -113,7 +113,11 @@ const Layout = () => {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Signup />} />
+              
+              {/* 💰 Pricing Routes - Both paths for compatibility */}
+              <Route path="/pricing" element={<PricingPlans />} />
               <Route path="/pricing/plans" element={<PricingPlans />} />
+              <Route path="/pricing-plans" element={<PricingPlans />} />
 
               {/* 📊 Dashboards */}
               <Route path="/creator-dashboard" element={<CreatorDashboard />} />
@@ -179,6 +183,9 @@ const Layout = () => {
               {/* 🎵 Additional Artist Routes (Optional) */}
               <Route path="/artist/upload" element={<UploadMusic />} />
               <Route path="/artist/analytics" element={<ArtistDashboard />} />
+
+              {/* 🔔 Notifications */}
+              <Route path="/notifications" element={<NotificationsPage />} />
 
               {/* 404 Fallback */}
               <Route path="*" element={<h1>Not found!</h1>} />

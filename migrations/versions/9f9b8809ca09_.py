@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: d6075bd35182
+Revision ID: 9f9b8809ca09
 Revises: 
-Create Date: 2025-07-21 20:02:45.052757
+Create Date: 2025-08-13 14:09:35.458252
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'd6075bd35182'
+revision = '9f9b8809ca09'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -66,11 +66,6 @@ def upgrade():
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('group',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=100), nullable=False),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('label',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=255), nullable=False),
@@ -108,10 +103,21 @@ def upgrade():
     sa.Column('includes_radio', sa.Boolean(), nullable=True),
     sa.Column('includes_digital_sales', sa.Boolean(), nullable=True),
     sa.Column('includes_merch_sales', sa.Boolean(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('includes_live_events', sa.Boolean(), nullable=True),
     sa.Column('includes_tip_jar', sa.Boolean(), nullable=True),
     sa.Column('includes_ad_revenue', sa.Boolean(), nullable=True),
+    sa.Column('includes_music_distribution', sa.Boolean(), nullable=True),
+    sa.Column('sonosuite_access', sa.Boolean(), nullable=True),
+    sa.Column('distribution_uploads_limit', sa.Integer(), nullable=True),
+    sa.Column('includes_gaming_features', sa.Boolean(), nullable=True),
+    sa.Column('includes_team_rooms', sa.Boolean(), nullable=True),
+    sa.Column('includes_squad_finder', sa.Boolean(), nullable=True),
+    sa.Column('includes_gaming_analytics', sa.Boolean(), nullable=True),
+    sa.Column('includes_game_streaming', sa.Boolean(), nullable=True),
+    sa.Column('includes_gaming_monetization', sa.Boolean(), nullable=True),
+    sa.Column('includes_video_distribution', sa.Boolean(), nullable=True),
+    sa.Column('video_uploads_limit', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
@@ -145,19 +151,6 @@ def upgrade():
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('invite_code'),
-    sa.UniqueConstraint('name')
-    )
-    op.create_table('subscription_plan',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(length=50), nullable=False),
-    sa.Column('price_monthly', sa.Float(), nullable=False),
-    sa.Column('price_yearly', sa.Float(), nullable=False),
-    sa.Column('features', sa.Text(), nullable=True),
-    sa.Column('includes_podcasts', sa.Boolean(), nullable=True),
-    sa.Column('includes_radio', sa.Boolean(), nullable=True),
-    sa.Column('platform_cut', sa.Float(), nullable=True),
-    sa.Column('creator_earnings', sa.Float(), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
     op.create_table('user_game_stat',
@@ -306,18 +299,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('chat_message',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('room', sa.String(length=128), nullable=False),
-    sa.Column('sender_id', sa.Integer(), nullable=False),
-    sa.Column('recipient_id', sa.Integer(), nullable=True),
-    sa.Column('text', sa.Text(), nullable=True),
-    sa.Column('media_url', sa.String(), nullable=True),
-    sa.Column('timestamp', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['recipient_id'], ['user.id'], ),
-    sa.ForeignKeyConstraint(['sender_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('conversation',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user1_id', sa.Integer(), nullable=True),
@@ -414,11 +395,13 @@ def upgrade():
     sa.ForeignKeyConstraint(['squad_id'], ['squad.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('group_members',
-    sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('group_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['group_id'], ['group.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], )
+    op.create_table('group',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=100), nullable=False),
+    sa.Column('created_by', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['created_by'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('indie_station',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -428,6 +411,21 @@ def upgrade():
     sa.ForeignKeyConstraint(['artist_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('artist_id')
+    )
+    op.create_table('inner_circle',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('friend_user_id', sa.Integer(), nullable=False),
+    sa.Column('position', sa.Integer(), nullable=False),
+    sa.Column('custom_title', sa.String(length=50), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.CheckConstraint('user_id != friend_user_id', name='no_self_inner_circle'),
+    sa.ForeignKeyConstraint(['friend_user_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id', 'friend_user_id', name='unique_user_friend'),
+    sa.UniqueConstraint('user_id', 'position', name='unique_user_position')
     )
     op.create_table('like',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -478,21 +476,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('stream_key')
-    )
-    op.create_table('message',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('room', sa.String(length=128), nullable=False),
-    sa.Column('sender_id', sa.Integer(), nullable=True),
-    sa.Column('recipient_id', sa.Integer(), nullable=True),
-    sa.Column('group_id', sa.Integer(), nullable=True),
-    sa.Column('text', sa.Text(), nullable=False),
-    sa.Column('is_read', sa.Boolean(), nullable=True),
-    sa.Column('read_at', sa.DateTime(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['group_id'], ['group.id'], ),
-    sa.ForeignKeyConstraint(['recipient_id'], ['user.id'], ),
-    sa.ForeignKeyConstraint(['sender_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('notification',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -679,6 +662,18 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('sono_suite_user',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('streampirex_user_id', sa.Integer(), nullable=False),
+    sa.Column('sonosuite_external_id', sa.String(length=255), nullable=False),
+    sa.Column('sonosuite_email', sa.String(length=255), nullable=False),
+    sa.Column('jwt_secret', sa.String(length=500), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=True),
+    sa.ForeignKeyConstraint(['streampirex_user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('sonosuite_external_id')
+    )
     op.create_table('stream',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('creator_id', sa.Integer(), nullable=False),
@@ -713,8 +708,6 @@ def upgrade():
     sa.Column('auto_renew', sa.Boolean(), nullable=True),
     sa.Column('billing_cycle', sa.String(length=20), nullable=True),
     sa.Column('status', sa.String(length=20), nullable=True),
-    sa.Column('platform_cut', sa.Float(), nullable=True),
-    sa.Column('creator_earnings', sa.Float(), nullable=True),
     sa.ForeignKeyConstraint(['plan_id'], ['pricing_plan.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id'),
@@ -767,7 +760,6 @@ def upgrade():
     sa.Column('emailNotifications', sa.Boolean(), nullable=True),
     sa.Column('darkMode', sa.Boolean(), nullable=True),
     sa.Column('profileVisibility', sa.String(length=50), nullable=True),
-    sa.Column('subscription', sa.String(length=50), nullable=True),
     sa.Column('twoFactorEnabled', sa.Boolean(), nullable=True),
     sa.Column('payoutMethod', sa.String(length=50), nullable=True),
     sa.Column('defaultStreamQuality', sa.String(length=20), nullable=True),
@@ -837,6 +829,30 @@ def upgrade():
     sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('distribution_submission',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('track_id', sa.Integer(), nullable=True),
+    sa.Column('release_title', sa.String(length=255), nullable=False),
+    sa.Column('artist_name', sa.String(length=255), nullable=False),
+    sa.Column('genre', sa.String(length=100), nullable=False),
+    sa.Column('release_date', sa.Date(), nullable=True),
+    sa.Column('label', sa.String(length=255), nullable=True),
+    sa.Column('explicit', sa.Boolean(), nullable=True),
+    sa.Column('platforms', sa.JSON(), nullable=True),
+    sa.Column('territories', sa.JSON(), nullable=True),
+    sa.Column('status', sa.String(length=50), nullable=True),
+    sa.Column('sonosuite_submission_id', sa.String(length=255), nullable=True),
+    sa.Column('submitted_at', sa.DateTime(), nullable=True),
+    sa.Column('expected_live_date', sa.DateTime(), nullable=True),
+    sa.Column('actual_live_date', sa.DateTime(), nullable=True),
+    sa.Column('total_streams', sa.Integer(), nullable=True),
+    sa.Column('total_revenue', sa.Float(), nullable=True),
+    sa.ForeignKeyConstraint(['track_id'], ['audio.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('sonosuite_submission_id')
+    )
     op.create_table('event_ticket',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
@@ -859,6 +875,12 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('group_members',
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('group_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['group_id'], ['group.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], )
     )
     op.create_table('indie_station_follower',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -924,6 +946,21 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('message',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('room', sa.String(length=128), nullable=False),
+    sa.Column('sender_id', sa.Integer(), nullable=True),
+    sa.Column('recipient_id', sa.Integer(), nullable=True),
+    sa.Column('group_id', sa.Integer(), nullable=True),
+    sa.Column('text', sa.Text(), nullable=False),
+    sa.Column('is_read', sa.Boolean(), nullable=True),
+    sa.Column('read_at', sa.DateTime(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['group_id'], ['group.id'], ),
+    sa.ForeignKeyConstraint(['recipient_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['sender_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('music',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
@@ -951,6 +988,39 @@ def upgrade():
     sa.Column('playlist_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['playlist_id'], ['playlist_audio.id'], ),
     sa.ForeignKeyConstraint(['radio_station_id'], ['radio_station.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('music_distributions',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('track_id', sa.Integer(), nullable=False),
+    sa.Column('release_title', sa.String(length=200), nullable=False),
+    sa.Column('artist_name', sa.String(length=100), nullable=False),
+    sa.Column('label', sa.String(length=100), nullable=True),
+    sa.Column('genre', sa.String(length=50), nullable=True),
+    sa.Column('release_type', sa.String(length=20), nullable=True),
+    sa.Column('release_date', sa.Date(), nullable=True),
+    sa.Column('distribution_service', sa.String(length=50), nullable=True),
+    sa.Column('sonosuite_release_id', sa.String(length=100), nullable=True),
+    sa.Column('external_release_id', sa.String(length=100), nullable=True),
+    sa.Column('status', sa.String(length=50), nullable=True),
+    sa.Column('submission_date', sa.DateTime(), nullable=True),
+    sa.Column('expected_live_date', sa.DateTime(), nullable=True),
+    sa.Column('live_date', sa.DateTime(), nullable=True),
+    sa.Column('takedown_date', sa.DateTime(), nullable=True),
+    sa.Column('platforms', sa.Text(), nullable=True),
+    sa.Column('territories', sa.Text(), nullable=True),
+    sa.Column('total_streams', sa.BigInteger(), nullable=True),
+    sa.Column('total_revenue', sa.Numeric(precision=10, scale=2), nullable=True),
+    sa.Column('last_revenue_update', sa.DateTime(), nullable=True),
+    sa.Column('isrc_code', sa.String(length=20), nullable=True),
+    sa.Column('upc_code', sa.String(length=20), nullable=True),
+    sa.Column('explicit_content', sa.Boolean(), nullable=True),
+    sa.Column('copyright_info', sa.String(length=200), nullable=True),
+    sa.Column('notes', sa.Text(), nullable=True),
+    sa.Column('sonosuite_response', sa.Text(), nullable=True),
+    sa.ForeignKeyConstraint(['track_id'], ['audio.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -1155,10 +1225,12 @@ def upgrade():
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('plan_id', sa.Integer(), nullable=True),
     sa.Column('station_id', sa.Integer(), nullable=True),
+    sa.Column('creator_id', sa.Integer(), nullable=True),
     sa.Column('stripe_subscription_id', sa.String(length=255), nullable=True),
     sa.Column('start_date', sa.DateTime(), nullable=True),
     sa.Column('end_date', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['plan_id'], ['subscription_plan.id'], ),
+    sa.Column('monthly_price', sa.Float(), nullable=False),
+    sa.ForeignKeyConstraint(['creator_id'], ['user.id'], ),
     sa.ForeignKeyConstraint(['station_id'], ['radio_station.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id'),
@@ -1226,6 +1298,23 @@ def upgrade():
     sa.Column('role', sa.String(length=120), nullable=True),
     sa.Column('percentage', sa.Float(), nullable=True),
     sa.ForeignKeyConstraint(['track_id'], ['track.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('distribution_analytics',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('distribution_id', sa.Integer(), nullable=False),
+    sa.Column('platform', sa.String(length=50), nullable=False),
+    sa.Column('territory', sa.String(length=10), nullable=True),
+    sa.Column('streams', sa.BigInteger(), nullable=True),
+    sa.Column('downloads', sa.BigInteger(), nullable=True),
+    sa.Column('revenue', sa.Numeric(precision=10, scale=4), nullable=True),
+    sa.Column('report_date', sa.Date(), nullable=False),
+    sa.Column('report_period', sa.String(length=20), nullable=True),
+    sa.Column('unique_listeners', sa.Integer(), nullable=True),
+    sa.Column('playlist_adds', sa.Integer(), nullable=True),
+    sa.Column('saves', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['distribution_id'], ['music_distributions.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('listening_party_attendee',
@@ -1323,6 +1412,7 @@ def downgrade():
     op.drop_table('music_interaction')
     op.drop_table('music_earnings')
     op.drop_table('listening_party_attendee')
+    op.drop_table('distribution_analytics')
     op.drop_table('collaborator')
     op.drop_table('album_track')
     op.drop_table('vr_access_ticket')
@@ -1349,15 +1439,19 @@ def downgrade():
     op.drop_table('playlist_audio_association')
     op.drop_table('order')
     op.drop_table('music_licensing')
+    op.drop_table('music_distributions')
     op.drop_table('music')
+    op.drop_table('message')
     op.drop_table('match_participant')
     op.drop_table('live_stream')
     op.drop_table('live_chat')
     op.drop_table('listening_party')
     op.drop_table('indie_station_track')
     op.drop_table('indie_station_follower')
+    op.drop_table('group_members')
     op.drop_table('favorite')
     op.drop_table('event_ticket')
+    op.drop_table('distribution_submission')
     op.drop_table('comment')
     op.drop_table('archived_show')
     op.drop_table('video_playlist')
@@ -1369,6 +1463,7 @@ def downgrade():
     op.drop_table('subscription')
     op.drop_table('streaming_history')
     op.drop_table('stream')
+    op.drop_table('sono_suite_user')
     op.drop_table('share_analytics')
     op.drop_table('share')
     op.drop_table('revenue')
@@ -1380,12 +1475,12 @@ def downgrade():
     op.drop_table('payout')
     op.drop_table('payment')
     op.drop_table('notification')
-    op.drop_table('message')
     op.drop_table('live_studio')
     op.drop_table('live_event')
     op.drop_table('like')
+    op.drop_table('inner_circle')
     op.drop_table('indie_station')
-    op.drop_table('group_members')
+    op.drop_table('group')
     op.drop_table('game_stream')
     op.drop_table('game_match')
     op.drop_table('friend_request')
@@ -1394,7 +1489,6 @@ def downgrade():
     op.drop_table('creator_membership_tier')
     op.drop_table('creator_donation')
     op.drop_table('conversation')
-    op.drop_table('chat_message')
     op.drop_table('audio')
     op.drop_table('artist')
     op.drop_table('analytics')
@@ -1402,7 +1496,6 @@ def downgrade():
     op.drop_table('ad_revenue')
     op.drop_table('user')
     op.drop_table('user_game_stat')
-    op.drop_table('subscription_plan')
     op.drop_table('squad')
     op.drop_table('role')
     op.drop_table('radio_submission')
@@ -1411,7 +1504,6 @@ def downgrade():
     op.drop_table('popularity')
     op.drop_table('licensing_opportunity')
     op.drop_table('label')
-    op.drop_table('group')
     op.drop_table('game')
     op.drop_table('engagement')
     op.drop_table('earnings')
