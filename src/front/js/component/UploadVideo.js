@@ -9,7 +9,7 @@ const UploadVideo = ({ currentUser }) => {
 
   useEffect(() => {
     // Fetch videos on mount
-    fetch('/api/my_videos', {
+    fetch(`${process.env.BACKEND_URL}/api/my_videos`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
