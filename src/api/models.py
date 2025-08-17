@@ -3325,3 +3325,262 @@ Add these fields to your existing Audio model if they don't exist:
     explicit_content = db.Column(db.Boolean, default=False)
     copyright_info = db.Column(db.String(200))
 """
+
+# ADD THESE NEW MODELS TO YOUR models.py - NO CONFLICTS
+
+class VideoChannel(db.Model):
+    __tablename__ = 'video_channels'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    channel_name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    banner_url = db.Column(db.String(500), nullable=True)
+    subscriber_count = db.Column(db.Integer, default=0)
+    total_views = db.Column(db.Integer, default=0)
+    total_videos = db.Column(db.Integer, default=0)
+    is_verified = db.Column(db.Boolean, default=False)
+    is_public = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='video_channels')
+    clips = db.relationship('VideoClip', backref='channel', lazy=True)
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'channel_name': self.channel_name,
+            'description': self.description,
+            'banner_url': self.banner_url,
+            'subscriber_count': self.subscriber_count,
+            'total_views': self.total_views,
+            'total_videos': self.total_videos,
+            'is_verified': self.is_verified,
+            'is_public': self.is_public,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class VideoClip(db.Model):
+    __tablename__ = 'video_clips'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    channel_id = db.Column(db.Integer, db.ForeignKey('video_channels.id'), nullable=True)
+    source_video_id = db.Column(db.Integer, db.ForeignKey('video.id'), nullable=True)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    video_url = db.Column(db.String(500), nullable=False)
+    thumbnail_url = db.Column(db.String(500), nullable=True)
+    start_time = db.Column(db.Integer, nullable=True)
+    end_time = db.Column(db.Integer, nullable=True)
+    duration = db.Column(db.Integer, nullable=False)
+    content_type = db.Column(db.String(50), default='clip')
+    views = db.Column(db.Integer, default=0)
+    likes = db.Column(db.Integer, default=0)
+    comments = db.Column(db.Integer, default=0)
+    shares = db.Column(db.Integer, default=0)
+    tags = db.Column(db.JSON, default=[])
+    is_public = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='clips')
+    source_video = db.relationship('Video', backref='clips', foreign_keys=[source_video_id])
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'channel_id': self.channel_id,
+            'source_video_id': self.source_video_id,
+            'title': self.title,
+            'description': self.description,
+            'video_url': self.video_url,
+            'thumbnail_url': self.thumbnail_url,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'duration': self.duration,
+            'content_type': self.content_type,
+            'views': self.views,
+            'likes': self.likes,
+            'comments': self.comments,
+            'shares': self.shares,
+            'tags': self.tags,
+            'is_public': self.is_public,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'creator': {
+                'id': self.user.id,
+                'username': self.user.username,
+                'profile_picture': getattr(self.user, 'profile_picture', None) or getattr(self.user, 'avatar_url', None)
+            } if self.user else None
+        }
+
+class ChannelSubscription(db.Model):
+    __tablename__ = 'channel_subscriptions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    subscriber_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    channel_id = db.Column(db.Integer, db.ForeignKey('video_channels.id'), nullable=False)
+    notifications_enabled = db.Column(db.Boolean, default=True)
+    subscribed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    subscriber = db.relationship('User', backref='channel_subscriptions')
+    channel = db.relationship('VideoChannel', backref='subscriptions')
+    
+    # Unique constraint
+    __table_args__ = (db.UniqueConstraint('subscriber_id', 'channel_id', name='unique_channel_subscription'),)
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'subscriber_id': self.subscriber_id,
+            'channel_id': self.channel_id,
+            'notifications_enabled': self.notifications_enabled,
+            'subscribed_at': self.subscribed_at.isoformat() if self.subscribed_at else None
+        }
+
+class ClipLike(db.Model):
+    __tablename__ = 'clip_likes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    clip_id = db.Column(db.Integer, db.ForeignKey('video_clips.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='clip_likes')
+    clip = db.relationship('VideoClip', backref='clip_likes')
+    
+    # Unique constraint
+    __table_args__ = (db.UniqueConstraint('user_id', 'clip_id', name='unique_clip_like'),)
+
+class SocialAccount(db.Model):
+    __tablename__ = 'social_accounts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    platform = db.Column(db.String(50), nullable=False)
+    platform_user_id = db.Column(db.String(255), nullable=False)
+    username = db.Column(db.String(255), nullable=False)
+    display_name = db.Column(db.String(255), nullable=True)
+    profile_picture = db.Column(db.String(500), nullable=True)
+    access_token = db.Column(db.Text, nullable=True)
+    refresh_token = db.Column(db.Text, nullable=True)
+    token_expires_at = db.Column(db.DateTime, nullable=True)
+    followers_count = db.Column(db.Integer, default=0)
+    following_count = db.Column(db.Integer, default=0)
+    posts_count = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    last_sync = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='social_accounts')
+    posts = db.relationship('SocialPost', backref='account', lazy=True)
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'platform': self.platform,
+            'username': self.username,
+            'display_name': self.display_name,
+            'profile_picture': self.profile_picture,
+            'followers_count': self.followers_count,
+            'following_count': self.following_count,
+            'posts_count': self.posts_count,
+            'is_active': self.is_active,
+            'last_sync': self.last_sync.isoformat() if self.last_sync else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class SocialPost(db.Model):
+    __tablename__ = 'social_posts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    account_id = db.Column(db.Integer, db.ForeignKey('social_accounts.id'), nullable=False)
+    platform_post_id = db.Column(db.String(255), nullable=True)
+    content = db.Column(db.Text, nullable=False)
+    media_urls = db.Column(db.JSON, default=[])
+    hashtags = db.Column(db.JSON, default=[])
+    scheduled_time = db.Column(db.DateTime, nullable=True)
+    posted_at = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(50), default='draft')
+    likes_count = db.Column(db.Integer, default=0)
+    shares_count = db.Column(db.Integer, default=0)
+    comments_count = db.Column(db.Integer, default=0)
+    reach = db.Column(db.Integer, default=0)
+    engagement_rate = db.Column(db.Float, default=0.0)
+    error_message = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='social_posts')
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'account_id': self.account_id,
+            'platform': self.account.platform if self.account else None,
+            'platform_post_id': self.platform_post_id,
+            'content': self.content,
+            'media_urls': self.media_urls,
+            'hashtags': self.hashtags,
+            'scheduled_time': self.scheduled_time.isoformat() if self.scheduled_time else None,
+            'posted_at': self.posted_at.isoformat() if self.posted_at else None,
+            'status': self.status,
+            'likes_count': self.likes_count,
+            'shares_count': self.shares_count,
+            'comments_count': self.comments_count,
+            'reach': self.reach,
+            'engagement_rate': self.engagement_rate,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+class SocialAnalytics(db.Model):
+    __tablename__ = 'social_analytics'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    account_id = db.Column(db.Integer, db.ForeignKey('social_accounts.id'), nullable=True)
+    date = db.Column(db.Date, nullable=False)
+    platform = db.Column(db.String(50), nullable=False)
+    followers_gained = db.Column(db.Integer, default=0)
+    followers_lost = db.Column(db.Integer, default=0)
+    posts_published = db.Column(db.Integer, default=0)
+    total_likes = db.Column(db.Integer, default=0)
+    total_shares = db.Column(db.Integer, default=0)
+    total_comments = db.Column(db.Integer, default=0)
+    total_reach = db.Column(db.Integer, default=0)
+    total_impressions = db.Column(db.Integer, default=0)
+    engagement_rate = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='social_analytics')
+    account = db.relationship('SocialAccount', backref='analytics')
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'account_id': self.account_id,
+            'date': self.date.isoformat() if self.date else None,
+            'platform': self.platform,
+            'followers_gained': self.followers_gained,
+            'followers_lost': self.followers_lost,
+            'posts_published': self.posts_published,
+            'total_likes': self.total_likes,
+            'total_shares': self.total_shares,
+            'total_comments': self.total_comments,
+            'total_reach': self.total_reach,
+            'total_impressions': self.total_impressions,
+            'engagement_rate': self.engagement_rate,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }

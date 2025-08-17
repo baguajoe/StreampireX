@@ -2,7 +2,7 @@
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics
 
 
 import json
@@ -321,104 +321,7 @@ def make_sonosuite_request(endpoint, method="GET", data=None, files=None):
         }
         return fallback_response, 201
 
-# ---------------- VIDEO UPLOAD ----------------
 
-@api.route('/upload_video', methods=['POST'])
-@jwt_required()
-def upload_video():
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if 'video' not in request.files:
-        return jsonify({"error": "No video file provided"}), 400
-
-    video = request.files['video']
-    title = request.form.get('title', 'Untitled')
-    description = request.form.get('description', '')
-    
-    # Additional form fields
-    category = request.form.get('category', 'Other')
-    tags = request.form.get('tags', '')
-    visibility = request.form.get('visibility', 'public')
-    age_restricted = request.form.get('age_restricted', 'false').lower() == 'true'
-    allow_comments = request.form.get('allow_comments', 'true').lower() == 'true'
-    allow_likes = request.form.get('allow_likes', 'true').lower() == 'true'
-    
-    # Content declaration fields
-    made_for_kids = request.form.get('made_for_kids', 'false').lower() == 'true'
-    contains_paid_promotion = request.form.get('contains_paid_promotion', 'false').lower() == 'true'
-    original_content = request.form.get('original_content', 'true').lower() == 'true'
-
-    if video.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-
-    try:
-        filename = secure_filename(video.filename)
-        
-        # Use uploadFile function instead of cloudinary.uploader.upload_large
-        video_url = uploadFile(video, filename)
-
-        # Handle thumbnail upload (if provided)
-        thumbnail_url = None
-        if 'thumbnail' in request.files:
-            thumbnail_file = request.files['thumbnail']
-            if thumbnail_file.filename != '':
-                try:
-                    thumb_filename = secure_filename(thumbnail_file.filename)
-                    thumbnail_url = uploadFile(thumbnail_file, thumb_filename)
-                except Exception as thumb_error:
-                    print(f"Thumbnail upload failed: {thumb_error}")
-                    # Continue without thumbnail - not critical
-
-        # Process tags
-        tag_list = []
-        if tags:
-            tag_list = [tag.strip() for tag in tags.split(',') if tag.strip()]
-
-        # Determine if video is public based on visibility
-        is_public = visibility == 'public'
-
-        # Save to DB with cloudinary URL
-        new_video = Video(
-            user_id=user_id,
-            title=title,
-            description=description,
-            file_url=video_url,  # Store cloudinary URL
-            thumbnail_url=thumbnail_url,
-            
-            # Category and organization
-            category=category,
-            tags=tag_list,
-            
-            # Visibility and permissions
-            is_public=is_public,
-            is_premium=False,
-            age_restricted=age_restricted,
-            
-            # Content declarations
-            made_for_kids=made_for_kids,
-            contains_paid_promotion=contains_paid_promotion,
-            original_content=original_content,
-            
-            # Interaction settings
-            allow_comments=allow_comments,
-            allow_likes=allow_likes,
-            
-            # Timestamps
-            uploaded_at=datetime.utcnow()
-        )
-        
-        db.session.add(new_video)
-        db.session.commit()
-
-        return jsonify({
-            "message": "Video uploaded successfully!",
-            "video": new_video.serialize()
-        }), 201
-
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Video upload failed: {str(e)}"}), 500
     
 # ---------------- GET VIDEOS ----------------
 @api.route('/videos', methods=['GET'])
@@ -475,9 +378,12 @@ def get_videos():
         error_out=False
     )
     
-    # Enhanced video serialization
+    # Enhanced video serialization with channel data
     videos_data = []
     for v in paginated_videos.items:
+        # Get user's channel if exists
+        channel = VideoChannel.query.filter_by(user_id=v.user_id).first()
+        
         video_data = {
             "id": v.id,
             "title": v.title,
@@ -498,7 +404,14 @@ def get_videos():
             "uploader_avatar": getattr(v.user, 'profile_picture', None) or getattr(v.user, 'avatar_url', None),
             
             # Add category if available
-            "category": v.category.name if hasattr(v, 'category') and v.category else "Other"
+            "category": v.category.name if hasattr(v, 'category') and v.category else "Other",
+            
+            # ADD CHANNEL INFORMATION
+            "channel_id": channel.id if channel else None,
+            "channel_name": channel.channel_name if channel else None,
+            "channel_subscriber_count": channel.subscriber_count if channel else 0,
+            "channel_verified": channel.is_verified if channel else False,
+            "channel_description": channel.description if channel else None
         }
         videos_data.append(video_data)
     
@@ -518,7 +431,66 @@ def get_videos():
             "category": category,
             "sort_by": sort_by
         }
-    }), 200  
+    }), 200
+
+@api.route('/video/channels/browse', methods=['GET'])
+def browse_channels():
+    """Get all public video channels for browsing"""
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+        search = request.args.get('search', '').strip()
+        
+        query = VideoChannel.query.filter_by(is_public=True)
+        
+        if search:
+            query = query.join(User).filter(
+                or_(
+                    VideoChannel.channel_name.ilike(f'%{search}%'),
+                    VideoChannel.description.ilike(f'%{search}%'),
+                    User.username.ilike(f'%{search}%')
+                )
+            )
+        
+        query = query.order_by(desc(VideoChannel.subscriber_count))
+        
+        paginated_channels = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+        
+        channels_data = []
+        for channel in paginated_channels.items:
+            # Get recent videos for preview
+            recent_videos = Video.query.filter_by(user_id=channel.user_id, is_public=True)\
+                                      .order_by(desc(Video.uploaded_at))\
+                                      .limit(3).all()
+            
+            channel_data = channel.serialize()
+            channel_data['recent_videos'] = [v.serialize() for v in recent_videos]
+            channel_data['creator'] = {
+                'id': channel.user.id,
+                'username': channel.user.username,
+                'display_name': getattr(channel.user, 'display_name', None),
+                'profile_picture': getattr(channel.user, 'profile_picture', None) or getattr(channel.user, 'avatar_url', None)
+            }
+            channels_data.append(channel_data)
+        
+        return jsonify({
+            "channels": channels_data,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": paginated_channels.total,
+                "pages": paginated_channels.pages,
+                "has_next": paginated_channels.has_next,
+                "has_prev": paginated_channels.has_prev
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to browse channels: {str(e)}"}), 500
 
 @api.route('/videos/categories', methods=['GET'])
 def get_video_categories():
@@ -10323,3 +10295,591 @@ def create_default_pricing_plans():
     except Exception as e:
         db.session.rollback()
         print(f"❌ Error creating default pricing plans: {e}")
+
+# ADD THESE NEW ROUTES TO YOUR routes.py - NO CONFLICTS
+
+# ============ VIDEO CHANNEL ROUTES (NEW) ============
+
+@api.route('/video/channel/me', methods=['GET'])
+@jwt_required()
+def get_my_channel():
+    """Get the current user's video channel"""
+    user_id = get_jwt_identity()
+    
+    channel = VideoChannel.query.filter_by(user_id=user_id).first()
+    if not channel:
+        return jsonify({"error": "Channel not found"}), 404
+    
+    return jsonify(channel.serialize()), 200
+
+@api.route('/video/channel/create', methods=['POST'])
+@jwt_required()
+def create_channel():
+    """Create a new video channel for the user"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    # Check if user already has a channel
+    existing_channel = VideoChannel.query.filter_by(user_id=user_id).first()
+    if existing_channel:
+        return jsonify({"error": "User already has a channel"}), 400
+    
+    channel_name = data.get('channel_name')
+    description = data.get('description', '')
+    
+    if not channel_name:
+        return jsonify({"error": "Channel name is required"}), 400
+    
+    try:
+        new_channel = VideoChannel(
+            user_id=user_id,
+            channel_name=channel_name,
+            description=description
+        )
+        
+        db.session.add(new_channel)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Channel created successfully",
+            "channel": new_channel.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to create channel: {str(e)}"}), 500
+
+@api.route('/video/channel/<int:channel_id>', methods=['GET'])
+def get_channel_videos(channel_id):
+    """Get all videos for a specific channel"""
+    try:
+        channel = VideoChannel.query.get_or_404(channel_id)
+        
+        # Get videos from both Video and VideoClip tables
+        videos = Video.query.filter_by(user_id=channel.user_id, is_public=True).all()
+        clips = VideoClip.query.filter_by(channel_id=channel_id, is_public=True).all()
+        
+        # Combine and serialize
+        all_content = []
+        
+        for video in videos:
+            video_data = video.serialize()
+            video_data['content_type'] = 'video'
+            all_content.append(video_data)
+        
+        for clip in clips:
+            clip_data = clip.serialize()
+            all_content.append(clip_data)
+        
+        # Sort by creation date
+        all_content.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        return jsonify({
+            "channel": channel.serialize(),
+            "videos": all_content
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to get channel videos: {str(e)}"}), 500
+
+# ============ VIDEO CLIP ROUTES (NEW) ============
+
+@api.route('/clips/create', methods=['POST'])
+@jwt_required()
+def create_clip_from_video():
+    """Create a clip from an existing video"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    try:
+        source_video_id = data.get('source_video_id')
+        start_time = data.get('start_time', 0)
+        end_time = data.get('end_time', 15)
+        title = data.get('title')
+        description = data.get('description', '')
+        tags = data.get('tags', [])
+        
+        if not source_video_id or not title:
+            return jsonify({"error": "Source video ID and title are required"}), 400
+        
+        # Verify source video exists and user has permission
+        source_video = Video.query.get(source_video_id)
+        if not source_video:
+            return jsonify({"error": "Source video not found"}), 404
+        
+        if source_video.user_id != user_id:
+            return jsonify({"error": "You can only create clips from your own videos"}), 403
+        
+        # Get user's channel
+        channel = VideoChannel.query.filter_by(user_id=user_id).first()
+        
+        # Create clip record
+        new_clip = VideoClip(
+            user_id=user_id,
+            channel_id=channel.id if channel else None,
+            source_video_id=source_video_id,
+            title=title,
+            description=description,
+            video_url=f"{source_video.file_url}#t={start_time},{end_time}",
+            thumbnail_url=source_video.thumbnail_url,
+            start_time=start_time,
+            end_time=end_time,
+            duration=end_time - start_time,
+            tags=tags
+        )
+        
+        db.session.add(new_clip)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Clip created successfully",
+            "clip": new_clip.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to create clip: {str(e)}"}), 500
+
+@api.route('/clips/upload', methods=['POST'])
+@jwt_required()
+def upload_clip():
+    """Upload a new short video clip"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    try:
+        title = data.get('title')
+        description = data.get('description', '')
+        video_url = data.get('video_url')
+        thumbnail_url = data.get('thumbnail_url')
+        duration = data.get('duration', 60)
+        tags = data.get('tags', [])
+        
+        if not title or not video_url:
+            return jsonify({"error": "Title and video URL are required"}), 400
+        
+        if duration > 60:
+            return jsonify({"error": "Clips must be under 60 seconds"}), 400
+        
+        # Get user's channel
+        channel = VideoChannel.query.filter_by(user_id=user_id).first()
+        
+        new_clip = VideoClip(
+            user_id=user_id,
+            channel_id=channel.id if channel else None,
+            title=title,
+            description=description,
+            video_url=video_url,
+            thumbnail_url=thumbnail_url,
+            duration=duration,
+            tags=tags
+        )
+        
+        db.session.add(new_clip)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Clip uploaded successfully",
+            "clip": new_clip.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to upload clip: {str(e)}"}), 500
+
+@api.route('/clips/<int:clip_id>/like', methods=['POST'])
+@jwt_required()
+def like_clip(clip_id):
+    """Like or unlike a video clip"""
+    user_id = get_jwt_identity()
+    
+    try:
+        clip = VideoClip.query.get_or_404(clip_id)
+        
+        # Check if already liked
+        existing_like = ClipLike.query.filter_by(
+            user_id=user_id,
+            clip_id=clip_id
+        ).first()
+        
+        if existing_like:
+            # Unlike
+            db.session.delete(existing_like)
+            clip.likes = max(0, clip.likes - 1)
+            action = "unliked"
+        else:
+            # Like
+            new_like = ClipLike(user_id=user_id, clip_id=clip_id)
+            db.session.add(new_like)
+            clip.likes += 1
+            action = "liked"
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": f"Clip {action} successfully",
+            "likes": clip.likes,
+            "action": action
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to like clip: {str(e)}"}), 500
+
+# ============ SOCIAL MEDIA ROUTES (NEW) ============
+
+@api.route('/social/accounts', methods=['GET'])
+@jwt_required()
+def get_social_accounts():
+    """Get user's connected social media accounts"""
+    user_id = get_jwt_identity()
+    
+    try:
+        accounts = SocialAccount.query.filter_by(user_id=user_id, is_active=True).all()
+        
+        return jsonify({
+            "connected_accounts": [account.serialize() for account in accounts]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to get social accounts: {str(e)}"}), 500
+
+@api.route('/social/accounts/connect', methods=['POST'])
+@jwt_required()
+def connect_social_account():
+    """Connect a new social media account"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    try:
+        platform = data.get('platform')
+        platform_user_id = data.get('platform_user_id')
+        username = data.get('username')
+        access_token = data.get('access_token')
+        
+        if not all([platform, platform_user_id, username]):
+            return jsonify({"error": "Platform, platform_user_id, and username are required"}), 400
+        
+        # Check if account already connected
+        existing = SocialAccount.query.filter_by(
+            user_id=user_id,
+            platform=platform,
+            platform_user_id=platform_user_id
+        ).first()
+        
+        if existing:
+            return jsonify({"error": "Account already connected"}), 400
+        
+        new_account = SocialAccount(
+            user_id=user_id,
+            platform=platform,
+            platform_user_id=platform_user_id,
+            username=username,
+            access_token=access_token
+        )
+        
+        db.session.add(new_account)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Social account connected successfully",
+            "account": new_account.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to connect account: {str(e)}"}), 500
+
+@api.route('/social/analytics', methods=['GET'])
+@jwt_required()
+def get_social_analytics():
+    """Get social media analytics for the user"""
+    user_id = get_jwt_identity()
+    
+    try:
+        days = int(request.args.get('days', 30))
+        platform = request.args.get('platform')
+        
+        from datetime import datetime, timedelta
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        query = SocialAnalytics.query.filter(
+            SocialAnalytics.user_id == user_id,
+            SocialAnalytics.date >= start_date.date()
+        )
+        
+        if platform:
+            query = query.filter_by(platform=platform)
+        
+        analytics = query.all()
+        
+        # Aggregate metrics
+        total_metrics = {
+            'total_likes': sum(a.total_likes for a in analytics),
+            'total_shares': sum(a.total_shares for a in analytics),
+            'total_comments': sum(a.total_comments for a in analytics),
+            'total_reach': sum(a.total_reach for a in analytics),
+            'total_impressions': sum(a.total_impressions for a in analytics),
+            'followers_gained': sum(a.followers_gained for a in analytics),
+            'followers_lost': sum(a.followers_lost for a in analytics),
+            'posts_published': sum(a.posts_published for a in analytics),
+            'average_engagement_rate': sum(a.engagement_rate for a in analytics) / len(analytics) if analytics else 0,
+            'connected_platforms': list(set(a.platform for a in analytics))
+        }
+        
+        return jsonify({
+            "period_days": days,
+            "total_metrics": total_metrics,
+            "daily_analytics": [a.serialize() for a in analytics]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to get analytics: {str(e)}"}), 500
+
+# ============ VIDEO UPLOAD ROUTES (NEW) ============
+
+@api.route('/upload_video', methods=['POST'])
+@jwt_required()
+def upload_video():
+    """Upload a video file and create video/clip record with channel integration"""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    if 'video' not in request.files:
+        return jsonify({"error": "No video file provided"}), 400
+    
+    video_file = request.files['video']
+    title = request.form.get('title', 'Untitled')
+    description = request.form.get('description', '')
+    
+    # Additional form fields
+    category = request.form.get('category', 'Other')
+    tags = request.form.get('tags', '')
+    visibility = request.form.get('visibility', 'public')
+    age_restricted = request.form.get('age_restricted', 'false').lower() == 'true'
+    allow_comments = request.form.get('allow_comments', 'true').lower() == 'true'
+    allow_likes = request.form.get('allow_likes', 'true').lower() == 'true'
+    
+    # Content declaration fields
+    made_for_kids = request.form.get('made_for_kids', 'false').lower() == 'true'
+    contains_paid_promotion = request.form.get('contains_paid_promotion', 'false').lower() == 'true'
+    original_content = request.form.get('original_content', 'true').lower() == 'true'
+    
+    if video_file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    
+    try:
+        filename = secure_filename(video_file.filename)
+        
+        # Upload video file
+        video_url = uploadFile(video_file, filename)
+        
+        # Handle thumbnail upload (if provided)
+        thumbnail_url = None
+        if 'thumbnail' in request.files:
+            thumbnail_file = request.files['thumbnail']
+            if thumbnail_file.filename != '':
+                try:
+                    thumb_filename = secure_filename(thumbnail_file.filename)
+                    thumbnail_url = uploadFile(thumbnail_file, thumb_filename)
+                except Exception as thumb_error:
+                    print(f"Thumbnail upload failed: {thumb_error}")
+        
+        # Process tags
+        tag_list = []
+        if tags:
+            tag_list = [tag.strip() for tag in tags.split(',') if tag.strip()]
+        
+        # Get or create user's video channel
+        channel = VideoChannel.query.filter_by(user_id=user_id).first()
+        if not channel:
+            channel = VideoChannel(
+                user_id=user_id,
+                channel_name=f"{user.username}'s Channel" if user else "My Channel",
+                description="Welcome to my video channel!"
+            )
+            db.session.add(channel)
+            db.session.flush()
+        
+        # Determine duration and content type (you'll need to add duration detection)
+        duration = None  # TODO: Add video duration detection
+        is_clip = duration and duration <= 60
+        
+        if is_clip:
+            # Create as VideoClip
+            new_content = VideoClip(
+                user_id=user_id,
+                channel_id=channel.id,
+                title=title,
+                description=description,
+                video_url=video_url,
+                thumbnail_url=thumbnail_url,
+                duration=duration,
+                tags=tag_list,
+                content_type='clip',
+                is_public=(visibility == 'public')
+            )
+        else:
+            # Create as regular Video with channel association
+            new_content = Video(
+                user_id=user_id,
+                title=title,
+                description=description,
+                file_url=video_url,
+                thumbnail_url=thumbnail_url,
+                duration=duration,
+                tags=tag_list,
+                category=category,
+                is_public=(visibility == 'public'),
+                is_premium=False,
+                age_restricted=age_restricted,
+                made_for_kids=made_for_kids,
+                contains_paid_promotion=contains_paid_promotion,
+                original_content=original_content,
+                allow_comments=allow_comments,
+                allow_likes=allow_likes,
+                uploaded_at=datetime.utcnow()
+            )
+        
+        # Update channel stats
+        channel.total_videos += 1
+        
+        db.session.add(new_content)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Video uploaded successfully!",
+            "video": new_content.serialize(),
+            "channel": channel.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Video upload failed: {str(e)}"}), 500
+
+@api.route('/upload/cloudinary', methods=['POST'])
+@jwt_required()
+def upload_to_cloudinary():
+    """Upload file to Cloudinary and return secure URL"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+        
+        # Use the existing uploadFile function from cloudinary_setup
+        secure_url = uploadFile(file, file.filename)
+        
+        return jsonify({
+            "secure_url": secure_url,
+            "message": "File uploaded successfully"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Upload failed: {str(e)}"}), 500
+
+# ============ TOP USERS ROUTE (UPDATED) ============
+
+@api.route('/users/top-10', methods=['GET'])
+@jwt_required()
+def get_top_users():
+    """Get top 10 users based on engagement metrics"""
+    try:
+        from sqlalchemy import func
+        
+        # Use your existing Video model instead of creating conflicts
+        top_users = db.session.query(
+            User,
+            func.coalesce(func.sum(Video.likes), 0).label('total_likes'),
+            func.count(Video.id).label('total_videos')
+        ).outerjoin(Video).group_by(User.id).order_by(
+            desc('total_likes'),
+            desc('total_videos')
+        ).limit(10).all()
+        
+        users_data = []
+        for user, total_likes, total_videos in top_users:
+            user_data = {
+                'id': user.id,
+                'username': user.username,
+                'display_name': getattr(user, 'display_name', None) or getattr(user, 'artist_name', None),
+                'profile_picture': getattr(user, 'profile_picture', None) or getattr(user, 'avatar_url', None),
+                'follower_count': getattr(user, 'follower_count', 0),
+                'total_likes': total_likes,
+                'total_streams': total_videos,
+                'primary_achievement': 'Top Creator'
+            }
+            users_data.append(user_data)
+        
+        return jsonify({"users": users_data}), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to get top users: {str(e)}"}), 500
+
+# ============ MODIFIED INNER CIRCLE ROUTES (USING YOUR EXISTING MODEL) ============
+
+@api.route('/inner-circle/<int:user_id>', methods=['GET'])
+@jwt_required()
+def get_inner_circle_for_profile(user_id):
+    """Get inner circle members for ProfilePage.js (uses your existing model)"""
+    try:
+        # Use your existing InnerCircle model with position ordering
+        inner_circle = InnerCircle.query.filter_by(user_id=user_id)\
+                                       .order_by(InnerCircle.position)\
+                                       .all()
+        
+        members = []
+        for ic in inner_circle:
+            # Adapt to what ProfilePage.js expects
+            member_data = {
+                'id': ic.friend.id if ic.friend else ic.friend_user_id,
+                'username': ic.friend.username if ic.friend else f"User_{ic.friend_user_id}",
+                'display_name': getattr(ic.friend, 'artist_name', None) or getattr(ic.friend, 'display_name', None) or ic.friend.username if ic.friend else None,
+                'profile_picture': getattr(ic.friend, 'avatar_url', None) or getattr(ic.friend, 'profile_picture', None) if ic.friend else None,
+                'bio': getattr(ic.friend, 'bio', None) if ic.friend else None,
+                'track_count': Video.query.filter_by(user_id=ic.friend_user_id).count() if ic.friend else 0,
+                'follower_count': getattr(ic.friend, 'follower_count', 0) if ic.friend else 0,
+                'position': ic.position,
+                'custom_title': ic.custom_title
+            }
+            members.append(member_data)
+        
+        return jsonify({"members": members}), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to get inner circle: {str(e)}"}), 500
+
+@api.route('/inner-circle/add', methods=['POST'])
+@jwt_required()
+def add_to_inner_circle_for_profile():
+    """Add a user to inner circle (using your existing User method)"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    try:
+        target_user_id = data.get('target_user_id')
+        position = data.get('position')
+        custom_title = data.get('custom_title')
+        
+        if not target_user_id:
+            return jsonify({"error": "Target user ID is required"}), 400
+        
+        # Use your existing User method
+        user = User.query.get(user_id)
+        new_member = user.add_to_inner_circle(target_user_id, position, custom_title)
+        
+        if not new_member:
+            return jsonify({"error": "Could not add to inner circle (may be full)"}), 400
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "User added to inner circle successfully",
+            "member": new_member.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to add to inner circle: {str(e)}"}), 500
