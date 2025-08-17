@@ -145,6 +145,7 @@ const useApi = () => {
 const BrowseVideosPage = () => {
   // State management
   const [videos, setVideos] = useState([]);
+  const [channels, setChannels] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState("newest");
@@ -154,6 +155,7 @@ const BrowseVideosPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState(""); // For navigation tabs
+  const [browseMode, setBrowseMode] = useState("videos"); // 'videos' or 'channels'
   const [showUploadForm, setShowUploadForm] = useState(false);
 
   // Refs for scrolling
@@ -169,10 +171,30 @@ const BrowseVideosPage = () => {
   }, [searchTerm, selectedCategory, sortBy]);
 
   const videoCountText = useMemo(() => {
+    if (browseMode === 'channels') {
+      return channels.length > 0 ? `${channels.length} channels found` : 'No channels found';
+    }
     return pagination.total
       ? `${pagination.total.toLocaleString()} videos found`
       : `${videos.length.toLocaleString()} videos`;
-  }, [pagination.total, videos.length]);
+  }, [pagination.total, videos.length, channels.length, browseMode]);
+
+  // Utility functions
+  const formatCount = useCallback((count) => {
+    if (count >= 1000000) {
+      return `${(count / 1000000).toFixed(1)}M`;
+    } else if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}K`;
+    }
+    return count.toString();
+  }, []);
+
+  const formatDuration = useCallback((seconds) => {
+    if (!seconds) return "0:00";
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }, []);
 
   // Scroll functions for categories
   const scrollLeft = () => {
@@ -315,6 +337,29 @@ const BrowseVideosPage = () => {
     }
   }, [apiCall, debouncedSearchTerm, selectedCategory, sortBy, currentPage]);
 
+  const fetchChannels = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const params = new URLSearchParams({
+        search: debouncedSearchTerm,
+        page: currentPage.toString(),
+        per_page: ITEMS_PER_PAGE.toString()
+      });
+
+      const data = await apiCall(`/api/video/channels/browse?${params}`);
+      setChannels(data.channels || []);
+      setPagination(data.pagination || {});
+    } catch (err) {
+      console.error("Failed to fetch channels:", err);
+      setError("Failed to load channels. Please try again later.");
+      setChannels([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [apiCall, debouncedSearchTerm, currentPage]);
+
   // Event handlers
   const handleLike = useCallback(async (videoId) => {
     try {
@@ -369,6 +414,12 @@ const BrowseVideosPage = () => {
     setCurrentPage(1);
   }, []);
 
+  const handleBrowseModeChange = useCallback((mode) => {
+    setBrowseMode(mode);
+    setCurrentPage(1);
+    setActiveTab("");
+  }, []);
+
   const handleShare = useCallback(async (video) => {
     const shareData = {
       title: video.title,
@@ -395,38 +446,34 @@ const BrowseVideosPage = () => {
     }
   }, []);
 
-  // Utility functions
-  const formatDuration = useCallback((seconds) => {
-    if (!seconds) return "0:00";
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  }, []);
-
   // Effects
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
 
   useEffect(() => {
-    fetchVideos();
-  }, [fetchVideos]);
+    if (browseMode === 'videos') {
+      fetchVideos();
+    } else {
+      fetchChannels();
+    }
+  }, [browseMode, fetchVideos, fetchChannels]);
 
   // Reset page when filters change
   useEffect(() => {
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
-  }, [debouncedSearchTerm, selectedCategory, sortBy]);
+  }, [debouncedSearchTerm, selectedCategory, sortBy, browseMode]);
 
   // Loading state
-  if (isLoading && videos.length === 0) {
+  if (isLoading && videos.length === 0 && channels.length === 0) {
     return (
       <div className="categories-wrapper">
-        <h1 className="categories-heading">📹 Browse All Free Videos</h1>
+        <h1 className="categories-heading">Browse All Free {browseMode === 'videos' ? 'Videos' : 'Channels'}</h1>
         <div className="loading-spinner">
           <div className="spinner"></div>
-          <p>Loading videos...</p>
+          <p>Loading {browseMode}...</p>
         </div>
       </div>
     );
@@ -438,7 +485,7 @@ const BrowseVideosPage = () => {
       <div className="browse-videos-header">
         <div className="header-content">
           <div className="header-text">
-            <h1 className="categories-heading">📹 Browse All Free Videos</h1>
+            <h1 className="categories-heading">Browse All Free {browseMode === 'videos' ? 'Videos' : 'Channels'}</h1>
             <p className="video-count">{videoCountText}</p>
           </div>
           <div className="header-actions">
@@ -446,10 +493,26 @@ const BrowseVideosPage = () => {
               onClick={() => setShowUploadForm(true)}
               className="btn-primary upload-header-btn"
             >
-              📤 Upload Video
+              Upload Video
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Browse Mode Toggle */}
+      <div className="browse-mode-toggle">
+        <button
+          className={`mode-btn ${browseMode === 'videos' ? 'active' : ''}`}
+          onClick={() => handleBrowseModeChange('videos')}
+        >
+          Videos
+        </button>
+        <button
+          className={`mode-btn ${browseMode === 'channels' ? 'active' : ''}`}
+          onClick={() => handleBrowseModeChange('channels')}
+        >
+          Channels
+        </button>
       </div>
 
       {/* Search Bar */}
@@ -457,11 +520,11 @@ const BrowseVideosPage = () => {
         <div className="search-bar">
           <input
             type="text"
-            placeholder="🔍 Search videos, creators, or topics..."
+            placeholder={`Search ${browseMode}, creators, or topics...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
-            aria-label="Search videos"
+            aria-label={`Search ${browseMode}`}
           />
           {searchTerm && (
             <button
@@ -470,7 +533,7 @@ const BrowseVideosPage = () => {
               title="Clear search"
               aria-label="Clear search"
             >
-              ✖️
+              ✖
             </button>
           )}
         </div>
@@ -519,68 +582,72 @@ const BrowseVideosPage = () => {
             className={`nav-tab ${activeTab === 'downloads' ? 'active' : ''}`}
             onClick={() => setActiveTab('downloads')}
           >
-            <span className="nav-icon">⬇️</span>
+            <span className="nav-icon">⬇</span>
             <span className="nav-text">Downloads</span>
           </div>
         </div>
 
-        {/* Sort Section */}
-        <div className="sort-and-filters">
-          <div className="sort-section">
-            <label htmlFor="sort-select">Sort by: </label>
-            <select
-              id="sort-select"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="sort-select"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="most_liked">Most Liked</option>
-              <option value="popular">Most Popular</option>
-            </select>
-          </div>
-
-          {hasActiveFilters && (
-            <button
-              onClick={handleClearFilters}
-              className="clear-filters-btn"
-            >
-              🔄 Clear All Filters
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Horizontal Category Navigation */}
-      <div className="category-nav">
-        <button onClick={scrollLeft} className="scroll-button">‹</button>
-        <div className="categories-scroll" ref={scrollRef}>
-          {categories.map((category) => (
-            <div
-              key={category.id}
-              onClick={() => setSelectedCategory(category.name)}
-              className={`category-pill ${selectedCategory === category.name ? "active" : ""}`}
-            >
-              {category.name}
+        {/* Sort Section - Only show for videos */}
+        {browseMode === 'videos' && (
+          <div className="sort-and-filters">
+            <div className="sort-section">
+              <label htmlFor="sort-select">Sort by: </label>
+              <select
+                id="sort-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="sort-select"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="most_liked">Most Liked</option>
+                <option value="popular">Most Popular</option>
+              </select>
             </div>
-          ))}
-        </div>
-        <button onClick={scrollRight} className="scroll-button">›</button>
+
+            {hasActiveFilters && (
+              <button
+                onClick={handleClearFilters}
+                className="clear-filters-btn"
+              >
+                Clear All Filters
+              </button>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Horizontal Category Navigation - Only show for videos */}
+      {browseMode === 'videos' && (
+        <div className="category-nav">
+          <button onClick={scrollLeft} className="scroll-button">‹</button>
+          <div className="categories-scroll" ref={scrollRef}>
+            {categories.map((category) => (
+              <div
+                key={category.id}
+                onClick={() => setSelectedCategory(category.name)}
+                className={`category-pill ${selectedCategory === category.name ? "active" : ""}`}
+              >
+                {category.name}
+              </div>
+            ))}
+          </div>
+          <button onClick={scrollRight} className="scroll-button">›</button>
+        </div>
+      )}
 
       {/* Error State */}
       {error && (
         <div className="error-message">
-          <h3>⚠️ {error}</h3>
-          <button onClick={fetchVideos} className="retry-btn">
-            🔄 Try Again
+          <h3>{error}</h3>
+          <button onClick={browseMode === 'videos' ? fetchVideos : fetchChannels} className="retry-btn">
+            Try Again
           </button>
         </div>
       )}
 
-      {/* No Videos State with Drag & Drop */}
-      {!isLoading && !error && videos.length === 0 && (
+      {/* No Content State with Drag & Drop */}
+      {!isLoading && !error && ((browseMode === 'videos' && videos.length === 0) || (browseMode === 'channels' && channels.length === 0)) && (
         <div 
           className="no-videos drag-drop-zone"
           onDragOver={handleDragOver}
@@ -590,43 +657,49 @@ const BrowseVideosPage = () => {
         >
           <div className="drag-drop-content">
             <div className="upload-icon">📁</div>
-            <h3>🎬 No videos found</h3>
+            <h3>No {browseMode} found</h3>
             <p>
               {hasActiveFilters
                 ? "Try adjusting your search or filters"
-                : "No videos have been uploaded yet. Be the first!"
+                : `No ${browseMode} have been uploaded yet. Be the first!`
               }
             </p>
             
             <div className="upload-options">
-              <div className="drag-drop-text">
-                <span className="drag-highlight">Drag & drop videos here</span>
-                <span className="drag-or">or</span>
-              </div>
+              {browseMode === 'videos' && (
+                <>
+                  <div className="drag-drop-text">
+                    <span className="drag-highlight">Drag & drop videos here</span>
+                    <span className="drag-or">or</span>
+                  </div>
+                  
+                  <button 
+                    onClick={() => setShowUploadForm(true)} 
+                    className="btn-primary upload-main-btn"
+                  >
+                    Upload Your First Video
+                  </button>
+                </>
+              )}
               
               {hasActiveFilters && (
                 <button onClick={handleClearFilters} className="btn-secondary clear-filters-btn-main">
-                  🔄 Clear All Filters
+                  Clear All Filters
                 </button>
               )}
-              
-              <button 
-                onClick={() => setShowUploadForm(true)} 
-                className="btn-primary upload-main-btn"
-              >
-                📤 Upload Your First Video
-              </button>
             </div>
             
-            <div className="upload-info">
-              <small>Supported formats: MP4, AVI, MOV, WMV • Max size: 50MB</small>
-            </div>
+            {browseMode === 'videos' && (
+              <div className="upload-info">
+                <small>Supported formats: MP4, AVI, MOV, WMV • Max size: 50MB</small>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Video Grid */}
-      {videos.length > 0 && (
+      {/* Videos Grid */}
+      {browseMode === 'videos' && videos.length > 0 && (
         <div className="podcast-section">
           <div className="podcast-scroll-row">
             {videos.map((video) => (
@@ -639,20 +712,114 @@ const BrowseVideosPage = () => {
                 <div className="video-content">
                   <h3 className="video-title">{video.title}</h3>
 
-                  <Link
-                    to={`/user/${video.uploader_id}/videos`}
-                    className="video-creator-link"
-                  >
-                    <span className="video-creator">
-                      {video.uploader_name || 'Unknown'}
-                    </span>
-                  </Link>
+                  {/* Enhanced creator/channel info */}
+                  <div className="creator-channel-info">
+                    <Link
+                      to={`/profile/${video.uploader_id}`}
+                      className="video-creator-link"
+                    >
+                      {video.uploader_avatar && (
+                        <img 
+                          src={video.uploader_avatar} 
+                          alt={video.uploader_name}
+                          className="creator-avatar"
+                        />
+                      )}
+                      <div className="creator-details">
+                        <span className="video-creator">
+                          {video.uploader_name || 'Unknown'}
+                        </span>
+                        
+                        {/* Show channel name if exists */}
+                        {video.channel_name && (
+                          <div className="channel-info">
+                            <span className="channel-name">
+                              {video.channel_name}
+                              {video.channel_verified && <span className="verified-badge">✓</span>}
+                            </span>
+                            <span className="channel-subs">
+                              {formatCount(video.channel_subscriber_count)} subscribers
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  </div>
 
                   <div className="video-stats">
-                    <span>{video.views || 0} views</span>
+                    <span>{formatCount(video.views || 0)} views</span>
                     <span className="video-duration">
                       {formatDuration(video.duration)}
                     </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Channels Grid */}
+      {browseMode === 'channels' && channels.length > 0 && (
+        <div className="channels-section">
+          <div className="channels-grid">
+            {channels.map((channel) => (
+              <div key={channel.id} className="channel-card">
+                <div className="channel-header">
+                  <img
+                    src={channel.banner_url || '/placeholder-banner.jpg'}
+                    alt={channel.channel_name}
+                    className="channel-banner"
+                  />
+                  <div className="channel-avatar-container">
+                    <img
+                      src={channel.creator?.profile_picture || '/default-avatar.png'}
+                      alt={channel.creator?.username}
+                      className="channel-avatar"
+                    />
+                  </div>
+                </div>
+                
+                <div className="channel-info">
+                  <h3 className="channel-name">
+                    {channel.channel_name}
+                    {channel.is_verified && <span className="verified-badge">✓</span>}
+                  </h3>
+                  <p className="channel-creator">by @{channel.creator?.username}</p>
+                  <p className="channel-description">{channel.description}</p>
+                  
+                  <div className="channel-stats">
+                    <span>{formatCount(channel.subscriber_count)} subscribers</span>
+                    <span>{channel.total_videos} videos</span>
+                    <span>{formatCount(channel.total_views)} views</span>
+                  </div>
+
+                  {/* Recent videos preview */}
+                  {channel.recent_videos && channel.recent_videos.length > 0 && (
+                    <div className="recent-videos-preview">
+                      <h4>Recent Videos:</h4>
+                      <div className="preview-videos">
+                        {channel.recent_videos.slice(0, 3).map((video) => (
+                          <div key={video.id} className="preview-video">
+                            <img
+                              src={video.thumbnail_url || '/placeholder-thumbnail.jpg'}
+                              alt={video.title}
+                              className="preview-thumbnail"
+                            />
+                            <span className="preview-title">{video.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="channel-actions">
+                    <Link
+                      to={`/profile/${channel.user_id}`}
+                      className="btn-primary visit-channel-btn"
+                    >
+                      Visit Channel
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -675,7 +842,7 @@ const BrowseVideosPage = () => {
           <div className="pagination-info">
             <span>Page {pagination.page} of {pagination.pages}</span>
             <span className="total-items">
-              ({pagination.total?.toLocaleString()} total videos)
+              ({pagination.total?.toLocaleString()} total {browseMode})
             </span>
           </div>
 
@@ -690,7 +857,7 @@ const BrowseVideosPage = () => {
       )}
 
       {/* Loading overlay for pagination */}
-      {isLoading && videos.length > 0 && (
+      {isLoading && (videos.length > 0 || channels.length > 0) && (
         <div className="loading-overlay">
           <div className="spinner"></div>
         </div>
