@@ -1,11 +1,14 @@
-// ✅ Updated Navbar.js
+// Horizontal Navbar.js - Replaces sidebar layout
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import logo from "../../img/StreampireX.png";
 import "../../styles/Navbar.css";
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -24,76 +27,151 @@ const Navbar = () => {
   const handleLogout = () => {
     localStorage.removeItem("token");
     setUser(null);
+    setIsUserMenuOpen(false);
+  };
+
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const toggleUserMenu = () => {
+    setIsUserMenuOpen(!isUserMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-dark px-3">
-      <Link className="navbar-brand" to="/">
-        <img src={logo} alt="StreampireX" style={{ height: "48px" }} />
-      </Link>
+    <nav className="horizontal-navbar">
+      <div className="navbar-container">
+        {/* Logo */}
+        <Link className="navbar-brand" to="/" onClick={closeMobileMenu}>
+          <img src={logo} alt="StreampireX" />
+        </Link>
 
-      <ul className="navbar-nav ms-auto">
-        <li className="nav-item">
-          <Link className="nav-link" to="/">🏠 Home</Link>
-        </li>
-        <li className="nav-item">
-          <Link className="nav-link" to="/pricing-plans">🏠 Pricing</Link>
-        </li>
-        <li className="nav-item">
-          <Link className="nav-link" to="/browse-podcast-categories">🎙️ Browse Podcast Categories</Link>
-        </li>
-        <li className="nav-item">
-          <Link className="nav-link" to="/videos">📹 Browse Videos</Link> {/* ✅ Fixed route path */}
-        </li>
-        <li className="nav-item">
-          <Link className="nav-link" to="/browse-radio-stations">📻 Browse Radio Stations</Link>
-        </li>
-        <li className="nav-item">
-          <Link className="nav-link" to="/live-streams">📡 Live Streams</Link>
-        </li>
+        {/* Mobile Menu Button */}
+        <button 
+          className={`mobile-menu-btn ${isMobileMenuOpen ? 'active' : ''}`}
+          onClick={toggleMobileMenu}
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
 
-        {!user ? (
-          <>
-            <li className="nav-item">
-              <Link className="nav-link" to="/login">🔑 Login</Link>
-            </li>
-            <li className="nav-item">
-              <Link className="nav-link" to="/register">📝 Signup</Link>
-            </li>
-          </>
-        ) : (
-          <li className="nav-item dropdown">
-            <a
-              className="nav-link dropdown-toggle"
-              href="#"
-              role="button"
-              data-bs-toggle="dropdown"
-            >
-              <img
-                src={user.profile_picture || "/default-avatar.png"}
-                alt="Avatar"
-                className="rounded-circle"
-                style={{ width: "24px", height: "24px", marginRight: "5px" }}
-              />
-              {user.username}
-            </a>
-            <ul className="dropdown-menu dropdown-menu-end">
-              <li>
-                <Link className="dropdown-item" to="/profile">👤 My Profile</Link>
-              </li>
-              <li>
-                <Link className="dropdown-item" to="/settings">⚙️ Settings</Link>
-              </li>
-              <li>
-                <Link className="dropdown-item" to="/notifications">🔔 Notifications</Link>
-              </li>
-              <li>
-                <button className="dropdown-item" onClick={handleLogout}>🚪 Logout</button>
-              </li>
-            </ul>
-          </li>
-        )}
-      </ul>
+        {/* Navigation Links */}
+        <div className={`nav-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+          <Link 
+            className={`nav-link ${isActive('/') ? 'active' : ''}`} 
+            to="/" 
+            onClick={closeMobileMenu}
+          >
+            Home
+          </Link>
+          
+          <Link 
+            className={`nav-link ${isActive('/pricing-plans') ? 'active' : ''}`} 
+            to="/pricing-plans" 
+            onClick={closeMobileMenu}
+          >
+            Pricing
+          </Link>
+          
+          <Link 
+            className={`nav-link ${isActive('/browse-podcast-categories') ? 'active' : ''}`} 
+            to="/browse-podcast-categories" 
+            onClick={closeMobileMenu}
+          >
+            Podcasts
+          </Link>
+          
+          <Link 
+            className={`nav-link ${isActive('/videos') ? 'active' : ''}`} 
+            to="/videos" 
+            onClick={closeMobileMenu}
+          >
+            Videos
+          </Link>
+          
+          <Link 
+            className={`nav-link ${isActive('/browse-radio-stations') ? 'active' : ''}`} 
+            to="/browse-radio-stations" 
+            onClick={closeMobileMenu}
+          >
+            Radio
+          </Link>
+          
+          <Link 
+            className={`nav-link ${isActive('/live-streams') ? 'active' : ''}`} 
+            to="/live-streams" 
+            onClick={closeMobileMenu}
+          >
+            Live
+          </Link>
+        </div>
+
+        {/* User Section */}
+        <div className="user-section">
+          {!user ? (
+            <div className="auth-buttons">
+              <Link className="login-btn" to="/login" onClick={closeMobileMenu}>
+                Login
+              </Link>
+              <Link className="signup-btn" to="/register" onClick={closeMobileMenu}>
+                Sign Up
+              </Link>
+            </div>
+          ) : (
+            <div className="user-menu-container">
+              <button className="user-menu-btn" onClick={toggleUserMenu}>
+                <img
+                  src={user.profile_picture || "/default-avatar.png"}
+                  alt="Profile"
+                  className="user-avatar"
+                />
+                <span className="username">{user.username}</span>
+                <span className={`dropdown-arrow ${isUserMenuOpen ? 'rotated' : ''}`}>▼</span>
+              </button>
+              
+              {isUserMenuOpen && (
+                <div className="user-dropdown">
+                  <div className="dropdown-header">
+                    <img
+                      src={user.profile_picture || "/default-avatar.png"}
+                      alt="Profile"
+                      className="dropdown-avatar"
+                    />
+                    <div className="user-info">
+                      <span className="dropdown-username">{user.username}</span>
+                      <span className="user-email">{user.email}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="dropdown-divider"></div>
+                  
+                  <Link className="dropdown-item" to="/settings" onClick={() => setIsUserMenuOpen(false)}>
+                    Settings
+                  </Link>
+                  <Link className="dropdown-item" to="/notifications" onClick={() => setIsUserMenuOpen(false)}>
+                    Notifications
+                  </Link>
+                  
+                  <div className="dropdown-divider"></div>
+                  
+                  <button className="dropdown-item logout-item" onClick={handleLogout}>
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </nav>
   );
 };
