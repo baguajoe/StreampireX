@@ -220,6 +220,20 @@ const Sidebar = ({ user }) => {
         🎶 Live Concerts
       </MenuItem>
 
+      <SectionHeader>🛍️ Store & Marketplace</SectionHeader>
+      <MenuItem to="/marketplace" className={isActive("/marketplace") ? "active" : ""}>
+        🛒 Browse Marketplace
+      </MenuItem>
+      <MenuItem to="/storefront" className={isActive("/storefront") ? "active" : ""}>
+        🏪 My Storefront
+      </MenuItem>
+      <MenuItem to="/orders" className={isActive("/orders") ? "active" : ""}>
+        📦 Order History
+      </MenuItem>
+      <MenuItem to="/sales-dashboard" className={isActive("/sales-dashboard") ? "active" : ""}>
+        💰 Sales Dashboard
+      </MenuItem>
+
       {/* Account */}
       <SectionHeader>👤 Account</SectionHeader>
       <MenuItem to="/settings" className={isActive("/settings") ? "active" : ""}>
