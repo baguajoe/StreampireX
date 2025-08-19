@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import "../../styles/marketplace.css"
 
 const Marketplace = () => {
   const [products, setProducts] = useState([]);

@@ -46,6 +46,14 @@ import LyricsUploadPage from "./pages/LyricsUploadPage";
 import PodcastDetailPage from "./pages/PodcastDetailPage";
 import SquadFinderPage from "./pages/SquadFinderPage";
 import MusicDistribution from "./pages/MusicDistribution";
+// Store/Marketplace Components
+import ProductDetailPage from "./pages/ProductDetailPage";
+import ShoppingCart from "./pages/ShoppingCart";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrderHistoryPage from "./pages/OrderHistoryPage";
+import SalesDashboard from "./pages/SalesDashboard";
+import Marketplace from "./pages/Marketplace";
+import StorefrontPage from "./pages/StorefrontPage";
 
 import LiveStreamPage from "./pages/LiveStreams";
 import LiveConcerts from "./pages/LiveConcerts";
@@ -113,11 +121,19 @@ const Layout = () => {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Signup />} />
-              
+
               {/* 💰 Pricing Routes - Both paths for compatibility */}
               <Route path="/pricing" element={<PricingPlans />} />
               <Route path="/pricing/plans" element={<PricingPlans />} />
               <Route path="/pricing-plans" element={<PricingPlans />} />
+
+              <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/storefront" element={<StorefrontPage />} />
+              <Route path="/product/:id" element={<ProductDetailPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/orders" element={<OrderHistoryPage />} />
+              <Route path="/sales-dashboard" element={<SalesDashboard />} />
+              <Route path="/cart" element={<ShoppingCart />} />
 
               {/* 📊 Dashboards */}
               <Route path="/creator-dashboard" element={<CreatorDashboard />} />
@@ -132,7 +148,7 @@ const Layout = () => {
               <Route path="/podcast-category/:category" element={<PodcastCategoryPage />} />
               <Route path="/podcast/:podcast_id" element={<PodcastDetailPage />} />
               <Route path="/user/:userId/videos" element={<UserVideoChannelPage />} />
-              
+
 
               {/* 📻 Radio Stations */}
               <Route path="/radio-dashboard" element={<RadioStationDashboard />} />
