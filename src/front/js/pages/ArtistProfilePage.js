@@ -62,7 +62,7 @@ const ArtistProfilePage = () => {
     { id: "artist", label: "🎵 Artist Profile", path: "/profile/artist" }
   ];
 
-  // ✅ Helper function for safe image URLs
+  // Helper function for safe image URLs
   const getImageUrl = (imageUrl, fallback = "https://via.placeholder.com/150x150/9c27b0/white?text=🎵") => {
     if (!imageUrl || imageUrl === "/default-artist-avatar.png" || imageUrl === "/placeholder-album.jpg") {
       return fallback;
@@ -70,12 +70,7 @@ const ArtistProfilePage = () => {
     return imageUrl;
   };
 
-  // ✅ Backend URL helper
-  const getBackendUrl = () => {
-    return process.env.BACKEND_URL || import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
-  };
-
-  // ✅ BACKEND INTEGRATION - Fetch all artist data
+  // BACKEND INTEGRATION - Fetch all artist data
   useEffect(() => {
     fetchArtistData();
   }, []);
@@ -93,11 +88,10 @@ const ArtistProfilePage = () => {
       }
 
       const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
-      const SOCKET_URL = process.env.BACKEND_URL || "http://localhost:3001";
 
       // 1. Fetch user profile data
       try {
-        const profileRes = await fetch(`${backendUrl}/api/user/profile`, {
+        const profileRes = await fetch(`${BACKEND_URL}/api/user/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -132,7 +126,7 @@ const ArtistProfilePage = () => {
 
       // 2. Fetch artist tracks
       try {
-        const tracksRes = await fetch(`${backendUrl}/api/artist/tracks`, {
+        const tracksRes = await fetch(`${BACKEND_URL}/api/artist/tracks`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -154,7 +148,7 @@ const ArtistProfilePage = () => {
 
       // 3. Fetch analytics data
       try {
-        const analyticsRes = await fetch(`${backendUrl}/api/artist/analytics`, {
+        const analyticsRes = await fetch(`${BACKEND_URL}/api/artist/analytics`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -184,7 +178,7 @@ const ArtistProfilePage = () => {
       }
 
       // 4. Optional endpoints (won't break if they fail)
-      await fetchOptionalData(backendUrl, token);
+      await fetchOptionalData(BACKEND_URL, token);
 
     } catch (error) {
       console.error("Error fetching artist data:", error);

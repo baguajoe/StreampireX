@@ -156,6 +156,9 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/radio-dashboard" className={isActive("/radio-dashboard") ? "active" : ""}>
         📻 Radio Dashboard
       </MenuItem>
+      <MenuItem to="/label-dashboard" className={isActive("/label-dashboard") ? "active" : ""}>
+        🏢 Label Dashboard
+      </MenuItem>
 
       <SectionHeader>🎤 Indie Artists</SectionHeader>
       <MenuItem to="/music-distribution" className={isActive("/music-distribution") ? "active" : ""}>
@@ -163,6 +166,9 @@ const Sidebar = ({ user }) => {
       </MenuItem>
       <MenuItem to="/search" className={isActive("/search") ? "active" : ""}>
         🔍 Search Artists
+      </MenuItem>
+      <MenuItem to="/collaborator-splits" className={isActive("/collaborator-splits") ? "active" : ""}>
+        👥 Collaborator Splits
       </MenuItem>
 
       {/* 🎮 GAMERS SECTION - Position #3 */}
