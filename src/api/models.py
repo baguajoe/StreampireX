@@ -3584,3 +3584,144 @@ class SocialAnalytics(db.Model):
             'engagement_rate': self.engagement_rate,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+class VideoRoom(db.Model):
+    __tablename__ = 'video_rooms'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.String(100), unique=True, nullable=False)
+    room_type = db.Column(db.String(50), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    max_participants = db.Column(db.Integer, default=8)
+    is_active = db.Column(db.Boolean, default=True)
+    requires_permission = db.Column(db.Boolean, default=False)
+    allow_screen_sharing = db.Column(db.Boolean, default=True)
+    allow_recording = db.Column(db.Boolean, default=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    squad_id = db.Column(db.Integer, db.ForeignKey('squad.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_activity = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    creator = db.relationship('User', foreign_keys=[created_by])
+    squad = db.relationship('Squad', backref='video_rooms')
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'room_id': self.room_id,
+            'room_type': self.room_type,
+            'name': self.name,
+            'description': self.description,
+            'max_participants': self.max_participants,
+            'is_active': self.is_active,
+            'requires_permission': self.requires_permission,
+            'allow_screen_sharing': self.allow_screen_sharing,
+            'allow_recording': self.allow_recording,
+            'created_by': self.created_by,
+            'squad_id': self.squad_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_activity': self.last_activity.isoformat() if self.last_activity else None,
+            'creator_name': self.creator.username if self.creator else None
+        }
+
+# User presence and video chat status
+class UserPresence(db.Model):
+    __tablename__ = 'user_presence'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    online_status = db.Column(db.String(20), default='offline')
+    current_room_id = db.Column(db.String(100), nullable=True)
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
+    last_activity = db.Column(db.DateTime, default=datetime.utcnow)
+    video_enabled = db.Column(db.Boolean, default=True)
+    audio_enabled = db.Column(db.Boolean, default=True)
+    screen_sharing = db.Column(db.Boolean, default=False)
+    current_game = db.Column(db.String(200), nullable=True)
+    gaming_status = db.Column(db.String(100), nullable=True)
+    
+    # Relationships
+    user = db.relationship('User', backref='presence')
+    
+    def serialize(self):
+        return {
+            'user_id': self.user_id,
+            'username': self.user.username if self.user else None,
+            'gamertag': getattr(self.user, 'gamertag', None) if self.user else None,
+            'online_status': self.online_status,
+            'current_room_id': self.current_room_id,
+            'last_seen': self.last_seen.isoformat() if self.last_seen else None,
+            'last_activity': self.last_activity.isoformat() if self.last_activity else None,
+            'video_enabled': self.video_enabled,
+            'audio_enabled': self.audio_enabled,
+            'screen_sharing': self.screen_sharing,
+            'current_game': self.current_game,
+            'gaming_status': self.gaming_status
+        }
+
+# Video chat session tracking
+class VideoChatSession(db.Model):
+    __tablename__ = 'video_chat_sessions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    joined_at = db.Column(db.DateTime, default=datetime.utcnow)
+    left_at = db.Column(db.DateTime, nullable=True)
+    duration_minutes = db.Column(db.Integer, nullable=True)
+    had_video = db.Column(db.Boolean, default=False)
+    had_audio = db.Column(db.Boolean, default=False)
+    shared_screen = db.Column(db.Boolean, default=False)
+    role = db.Column(db.String(20), default='participant')
+    
+    # Relationships
+    user = db.relationship('User')
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'room_id': self.room_id,
+            'user_id': self.user_id,
+            'joined_at': self.joined_at.isoformat() if self.joined_at else None,
+            'left_at': self.left_at.isoformat() if self.left_at else None,
+            'duration_minutes': self.duration_minutes,
+            'had_video': self.had_video,
+            'had_audio': self.had_audio,
+            'shared_screen': self.shared_screen,
+            'role': self.role
+        }
+
+# Communication preferences (extends existing user model)
+class CommunicationPreferences(db.Model):
+    __tablename__ = 'communication_preferences'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    auto_join_squad_room = db.Column(db.Boolean, default=True)
+    allow_random_invites = db.Column(db.Boolean, default=False)
+    preferred_communication = db.Column(db.ARRAY(db.String), default=['Voice Chat', 'Video Chat'])
+    notify_squad_online = db.Column(db.Boolean, default=True)
+    notify_game_invites = db.Column(db.Boolean, default=True)
+    notify_video_calls = db.Column(db.Boolean, default=True)
+    preferred_video_quality = db.Column(db.String(20), default='720p')
+    enable_noise_suppression = db.Column(db.Boolean, default=True)
+    enable_echo_cancellation = db.Column(db.Boolean, default=True)
+    
+    # Relationships
+    user = db.relationship('User', backref='comm_prefs')
+    
+    def serialize(self):
+        return {
+            'user_id': self.user_id,
+            'auto_join_squad_room': self.auto_join_squad_room,
+            'allow_random_invites': self.allow_random_invites,
+            'preferred_communication': self.preferred_communication or [],
+            'notify_squad_online': self.notify_squad_online,
+            'notify_game_invites': self.notify_game_invites,
+            'notify_video_calls': self.notify_video_calls,
+            'preferred_video_quality': self.preferred_video_quality,
+            'enable_noise_suppression': self.enable_noise_suppression,
+            'enable_echo_cancellation': self.enable_echo_cancellation
+        }

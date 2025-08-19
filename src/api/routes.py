@@ -2,7 +2,7 @@
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences
 
 
 import json
@@ -10883,3 +10883,407 @@ def add_to_inner_circle_for_profile():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Failed to add to inner circle: {str(e)}"}), 500
+
+@api.route('/video-rooms/status', methods=['GET'])
+@jwt_required()
+def get_user_video_room_status():
+    """Get current user's video room status and available rooms"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Get user's presence
+        presence = UserPresence.query.filter_by(user_id=user_id).first()
+        if not presence:
+            # Create default presence
+            presence = UserPresence(user_id=user_id)
+            db.session.add(presence)
+            db.session.commit()
+        
+        # Get squad room if user has a squad
+        squad_room = None
+        if user.squad_id:
+            squad_room = VideoRoom.query.filter_by(
+                squad_id=user.squad_id, 
+                is_active=True
+            ).first()
+            
+            # Create squad room if it doesn't exist
+            if not squad_room:
+                squad_room = VideoRoom(
+                    room_id=f"squad-{user.squad_id}",
+                    room_type="squad",
+                    name=f"Squad {user.squad_id} Room",
+                    created_by=user_id,
+                    squad_id=user.squad_id
+                )
+                db.session.add(squad_room)
+                db.session.commit()
+        
+        # Get user's private room
+        private_room = VideoRoom.query.filter_by(
+            room_id=f"user-{user_id}-room",
+            room_type="private"
+        ).first()
+        
+        if not private_room:
+            private_room = VideoRoom(
+                room_id=f"user-{user_id}-room",
+                room_type="private",
+                name=f"{user.username}'s Room",
+                created_by=user_id
+            )
+            db.session.add(private_room)
+            db.session.commit()
+        
+        return jsonify({
+            "user_presence": presence.serialize(),
+            "squad_room": squad_room.serialize() if squad_room else None,
+            "private_room": private_room.serialize(),
+            "has_squad": user.squad_id is not None,
+            "squad_id": user.squad_id
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/video-rooms/join', methods=['POST'])
+@jwt_required()
+def join_video_room():
+    """Join a video room and update user presence"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        room_id = data.get('room_id')
+        
+        if not room_id:
+            return jsonify({"error": "Room ID required"}), 400
+        
+        # Verify room exists and user has access
+        room = VideoRoom.query.filter_by(room_id=room_id, is_active=True).first()
+        if not room:
+            return jsonify({"error": "Room not found or inactive"}), 404
+        
+        # Check if room is squad-based and user has access
+        if room.room_type == "squad" and room.squad_id:
+            user = User.query.get(user_id)
+            if user.squad_id != room.squad_id:
+                return jsonify({"error": "Access denied to squad room"}), 403
+        
+        # Update user presence
+        presence = UserPresence.query.filter_by(user_id=user_id).first()
+        if not presence:
+            presence = UserPresence(user_id=user_id)
+            db.session.add(presence)
+        
+        presence.online_status = "in_call"
+        presence.current_room_id = room_id
+        presence.last_activity = datetime.utcnow()
+        
+        # Create session record
+        session = VideoChatSession(
+            room_id=room_id,
+            user_id=user_id,
+            role="participant"
+        )
+        db.session.add(session)
+        
+        # Update room activity
+        room.last_activity = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Joined room successfully",
+            "room": room.serialize(),
+            "session_id": session.id
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/video-rooms/leave', methods=['POST'])
+@jwt_required()
+def leave_video_room():
+    """Leave current video room"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Update user presence
+        presence = UserPresence.query.filter_by(user_id=user_id).first()
+        if presence:
+            room_id = presence.current_room_id
+            presence.online_status = "online"
+            presence.current_room_id = None
+            presence.last_activity = datetime.utcnow()
+            
+            # End current session
+            if room_id:
+                session = VideoChatSession.query.filter_by(
+                    room_id=room_id,
+                    user_id=user_id,
+                    left_at=None
+                ).first()
+                
+                if session:
+                    session.left_at = datetime.utcnow()
+                    duration = session.left_at - session.joined_at
+                    session.duration_minutes = int(duration.total_seconds() / 60)
+            
+            db.session.commit()
+        
+        return jsonify({"message": "Left room successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/user-presence/update', methods=['POST'])
+@jwt_required()
+def update_user_presence():
+    """Update user's online status and gaming activity"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        presence = UserPresence.query.filter_by(user_id=user_id).first()
+        if not presence:
+            presence = UserPresence(user_id=user_id)
+            db.session.add(presence)
+        
+        # Update fields if provided
+        if 'online_status' in data:
+            presence.online_status = data['online_status']
+        if 'current_game' in data:
+            presence.current_game = data['current_game']
+        if 'gaming_status' in data:
+            presence.gaming_status = data['gaming_status']
+        if 'video_enabled' in data:
+            presence.video_enabled = data['video_enabled']
+        if 'audio_enabled' in data:
+            presence.audio_enabled = data['audio_enabled']
+        
+        presence.last_activity = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Presence updated",
+            "presence": presence.serialize()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/squad/<int:squad_id>/members/presence', methods=['GET'])
+def get_squad_members_presence(squad_id):
+    """Get online status of squad members"""
+    try:
+        # Get squad members
+        squad = Squad.query.get(squad_id)
+        if not squad:
+            return jsonify({"error": "Squad not found"}), 404
+        
+        # Get presence for all squad members
+        member_presence = []
+        for member in squad.members:
+            presence = UserPresence.query.filter_by(user_id=member.id).first()
+            if presence:
+                member_data = presence.serialize()
+                member_data['gamertag'] = getattr(member, 'gamertag', None)
+                member_data['skill_level'] = getattr(member, 'skill_level', None)
+                member_presence.append(member_data)
+        
+        return jsonify({
+            "squad_id": squad_id,
+            "squad_name": squad.name,
+            "members_presence": member_presence,
+            "online_count": len([p for p in member_presence if p['online_status'] in ['online', 'in_call']])
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/communication-preferences', methods=['GET', 'POST'])
+@jwt_required()
+def manage_communication_preferences():
+    """Get or update user's communication preferences"""
+    try:
+        user_id = get_jwt_identity()
+        
+        if request.method == 'GET':
+            prefs = CommunicationPreferences.query.filter_by(user_id=user_id).first()
+            if not prefs:
+                # Create default preferences
+                prefs = CommunicationPreferences(user_id=user_id)
+                db.session.add(prefs)
+                db.session.commit()
+            
+            return jsonify(prefs.serialize()), 200
+        
+        elif request.method == 'POST':
+            data = request.get_json()
+            prefs = CommunicationPreferences.query.filter_by(user_id=user_id).first()
+            
+            if not prefs:
+                prefs = CommunicationPreferences(user_id=user_id)
+                db.session.add(prefs)
+            
+            # Update preferences
+            if 'auto_join_squad_room' in data:
+                prefs.auto_join_squad_room = data['auto_join_squad_room']
+            if 'allow_random_invites' in data:
+                prefs.allow_random_invites = data['allow_random_invites']
+            if 'preferred_communication' in data:
+                prefs.preferred_communication = data['preferred_communication']
+            if 'notify_squad_online' in data:
+                prefs.notify_squad_online = data['notify_squad_online']
+            if 'notify_game_invites' in data:
+                prefs.notify_game_invites = data['notify_game_invites']
+            if 'notify_video_calls' in data:
+                prefs.notify_video_calls = data['notify_video_calls']
+            if 'preferred_video_quality' in data:
+                prefs.preferred_video_quality = data['preferred_video_quality']
+            if 'enable_noise_suppression' in data:
+                prefs.enable_noise_suppression = data['enable_noise_suppression']
+            if 'enable_echo_cancellation' in data:
+                prefs.enable_echo_cancellation = data['enable_echo_cancellation']
+            
+            db.session.commit()
+            
+            return jsonify({
+                "message": "Communication preferences updated",
+                "preferences": prefs.serialize()
+            }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/video-rooms/active', methods=['GET'])
+@jwt_required()
+def get_active_video_rooms():
+    """Get list of active video rooms user can join"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        # Get public rooms and user's accessible rooms
+        query = VideoRoom.query.filter(
+            VideoRoom.is_active == True,
+            VideoRoom.last_activity >= datetime.utcnow() - timedelta(hours=24)
+        )
+        
+        # Add squad room if user has squad
+        accessible_rooms = []
+        
+        if user.squad_id:
+            squad_rooms = query.filter(VideoRoom.squad_id == user.squad_id).all()
+            accessible_rooms.extend(squad_rooms)
+        
+        # Add user's private room
+        private_rooms = query.filter(
+            VideoRoom.created_by == user_id,
+            VideoRoom.room_type == "private"
+        ).all()
+        accessible_rooms.extend(private_rooms)
+        
+        # Add public rooms
+        public_rooms = query.filter(VideoRoom.room_type == "public").limit(10).all()
+        accessible_rooms.extend(public_rooms)
+        
+        return jsonify({
+            "rooms": [room.serialize() for room in accessible_rooms]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Database migration helper - run this once to add new tables
+def create_video_chat_tables():
+    """Run this function once to create the new tables"""
+    try:
+        db.create_all()
+        print("Video chat tables created successfully")
+    except Exception as e:
+        print(f"Error creating tables: {e}")
+
+# Socket.IO events for real-time video chat status (add to your socketio handlers)
+from flask_socketio import emit, join_room as socketio_join_room, leave_room as socketio_leave_room
+
+@socketio.on('join_video_room')
+def on_join_video_room(data):
+    """Handle user joining video room via socket"""
+    room_id = data.get('room_id')
+    user_id = data.get('user_id')
+    
+    if room_id and user_id:
+        socketio_join_room(room_id)
+        
+        # Update presence in database
+        presence = UserPresence.query.filter_by(user_id=user_id).first()
+        if presence:
+            presence.current_room_id = room_id
+            presence.online_status = "in_call"
+            presence.last_activity = datetime.utcnow()
+            db.session.commit()
+        
+        # Notify other users in room
+        emit('user_joined_room', {
+            'user_id': user_id,
+            'room_id': room_id,
+            'timestamp': datetime.utcnow().isoformat()
+        }, room=room_id)
+
+@socketio.on('leave_video_room')
+def on_leave_video_room(data):
+    """Handle user leaving video room via socket"""
+    room_id = data.get('room_id')
+    user_id = data.get('user_id')
+    
+    if room_id and user_id:
+        socketio_leave_room(room_id)
+        
+        # Update presence in database
+        presence = UserPresence.query.filter_by(user_id=user_id).first()
+        if presence:
+            presence.current_room_id = None
+            presence.online_status = "online"
+            presence.last_activity = datetime.utcnow()
+            db.session.commit()
+        
+        # Notify other users in room
+        emit('user_left_room', {
+            'user_id': user_id,
+            'room_id': room_id,
+            'timestamp': datetime.utcnow().isoformat()
+        }, room=room_id)
+
+@socketio.on('update_video_status')
+def on_update_video_status(data):
+    """Handle video/audio status updates"""
+    room_id = data.get('room_id')
+    user_id = data.get('user_id')
+    video_enabled = data.get('video_enabled', True)
+    audio_enabled = data.get('audio_enabled', True)
+    
+    # Update presence
+    presence = UserPresence.query.filter_by(user_id=user_id).first()
+    if presence:
+        presence.video_enabled = video_enabled
+        presence.audio_enabled = audio_enabled
+        presence.last_activity = datetime.utcnow()
+        db.session.commit()
+    
+    # Notify room
+    if room_id:
+        emit('user_status_update', {
+            'user_id': user_id,
+            'video_enabled': video_enabled,
+            'audio_enabled': audio_enabled
+        }, room=room_id)
