@@ -2,7 +2,7 @@
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike
 
 
 import json
@@ -11468,3 +11468,113 @@ def serialize(self):
         "is_verified": getattr(self, 'is_verified', False),
         "created_at": self.created_at.isoformat() if hasattr(self, 'created_at') and self.created_at else None
     }
+
+@api.route('/video/channel/update', methods=['PUT'])
+@jwt_required()
+def update_channel():
+    """Update video channel settings"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    channel = VideoChannel.query.filter_by(user_id=user_id).first()
+    if not channel:
+        return jsonify({"error": "Channel not found"}), 404
+    
+    # Update channel fields
+    channel.channel_name = data.get('channelName', channel.channel_name)
+    channel.description = data.get('description', channel.description)
+    channel.custom_url = data.get('customUrl', channel.custom_url)
+    channel.primary_category = data.get('primaryCategory', channel.primary_category)
+    channel.country = data.get('country', channel.country)
+    channel.language = data.get('language', channel.language)
+    channel.is_public = data.get('isPublic', channel.is_public)
+    channel.allow_comments = data.get('allowComments', channel.allow_comments)
+    channel.avatar_url = data.get('avatar_url', channel.avatar_url)
+    channel.banner_url = data.get('banner_url', channel.banner_url)
+    
+    try:
+        db.session.commit()
+        return jsonify(channel.serialize()), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to update channel: {str(e)}"}), 500
+
+@api.route('/video/channel/<int:channel_id>/subscribers', methods=['GET'])
+@jwt_required()
+def get_channel_subscribers(channel_id):
+    """Get channel subscribers"""
+    user_id = get_jwt_identity()
+    
+    # Verify user owns the channel
+    channel = VideoChannel.query.get_or_404(channel_id)
+    if channel.user_id != user_id:
+        return jsonify({"error": "Access denied"}), 403
+    
+    subscribers = ChannelSubscription.query.filter_by(channel_id=channel_id).all()
+    
+    subscribers_data = []
+    for sub in subscribers:
+        user_data = {
+            'id': sub.subscriber.id,
+            'username': sub.subscriber.username,
+            'display_name': getattr(sub.subscriber, 'display_name', None),
+            'avatar_url': getattr(sub.subscriber, 'profile_picture', None),
+            'subscribed_at': sub.subscribed_at.isoformat()
+        }
+        subscribers_data.append(user_data)
+    
+    return jsonify({"subscribers": subscribers_data}), 200
+
+@api.route('/clips/user', methods=['GET'])
+@jwt_required()
+def get_user_clips():
+    """Get all clips by the authenticated user"""
+    user_id = get_jwt_identity()
+    clips = VideoClip.query.filter_by(user_id=user_id).order_by(desc(VideoClip.created_at)).all()
+    return jsonify([clip.serialize() for clip in clips]), 200
+
+@api.route('/video/upload', methods=['POST'])
+@jwt_required()
+def upload_video_json():
+    """Upload video with JSON data (alternative to form upload)"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    # Get or create channel
+    channel = VideoChannel.query.filter_by(user_id=user_id).first()
+    if not channel:
+        return jsonify({"error": "Channel not found. Create a channel first."}), 400
+    
+    try:
+        new_video = Video(
+            user_id=user_id,
+            title=data.get('title'),
+            description=data.get('description', ''),
+            file_url=data.get('file_url'),
+            thumbnail_url=data.get('thumbnail_url'),
+            category=data.get('category', 'Other'),
+            tags=data.get('tags', []),
+            is_public=data.get('is_public', True),
+            age_restricted=data.get('age_restricted', False),
+            made_for_kids=data.get('made_for_kids', False),
+            contains_paid_promotion=data.get('contains_paid_promotion', False),
+            original_content=data.get('original_content', True),
+            allow_comments=data.get('allow_comments', True),
+            allow_likes=data.get('allow_likes', True),
+            uploaded_at=datetime.utcnow()
+        )
+        
+        # Update channel stats
+        channel.total_videos += 1
+        
+        db.session.add(new_video)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Video uploaded successfully",
+            "video": new_video.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to upload video: {str(e)}"}), 500

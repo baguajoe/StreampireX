@@ -3331,16 +3331,53 @@ Add these fields to your existing Audio model if they don't exist:
 class VideoChannel(db.Model):
     __tablename__ = 'video_channels'
     
+    # Basic Channel Info
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     channel_name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
+    custom_url = db.Column(db.String(100), unique=True, nullable=True)
+    
+    # Media Assets
+    avatar_url = db.Column(db.String(500), nullable=True)
     banner_url = db.Column(db.String(500), nullable=True)
+    watermark_url = db.Column(db.String(500), nullable=True)
+    
+    # Statistics
     subscriber_count = db.Column(db.Integer, default=0)
     total_views = db.Column(db.Integer, default=0)
     total_videos = db.Column(db.Integer, default=0)
+    
+    # Categories & Location
+    primary_category = db.Column(db.String(50), nullable=True)
+    secondary_category = db.Column(db.String(50), nullable=True)
+    country = db.Column(db.String(100), nullable=True)
+    language = db.Column(db.String(10), default='en')
+    
+    # Channel Settings
     is_verified = db.Column(db.Boolean, default=False)
     is_public = db.Column(db.Boolean, default=True)
+    allow_comments = db.Column(db.Boolean, default=True)
+    allow_likes = db.Column(db.Boolean, default=True)
+    age_restricted = db.Column(db.Boolean, default=False)
+    made_for_kids = db.Column(db.Boolean, default=False)
+    enable_monetization = db.Column(db.Boolean, default=False)
+    
+    # Branding & Theme
+    theme_color = db.Column(db.String(7), default='#667eea')
+    accent_color = db.Column(db.String(7), default='#764ba2')
+    custom_css = db.Column(db.Text, nullable=True)
+    
+    # Social Links
+    website_url = db.Column(db.String(255), nullable=True)
+    twitter_url = db.Column(db.String(255), nullable=True)
+    instagram_url = db.Column(db.String(255), nullable=True)
+    facebook_url = db.Column(db.String(255), nullable=True)
+    tiktok_url = db.Column(db.String(255), nullable=True)
+    discord_url = db.Column(db.String(255), nullable=True)
+    twitch_url = db.Column(db.String(255), nullable=True)
+    
+    # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -3350,17 +3387,55 @@ class VideoChannel(db.Model):
     
     def serialize(self):
         return {
+            # Basic Info
             'id': self.id,
             'user_id': self.user_id,
             'channel_name': self.channel_name,
             'description': self.description,
+            'custom_url': self.custom_url,
+            
+            # Media Assets
+            'avatar_url': self.avatar_url,
             'banner_url': self.banner_url,
+            'watermark_url': self.watermark_url,
+            
+            # Statistics
             'subscriber_count': self.subscriber_count,
             'total_views': self.total_views,
             'total_videos': self.total_videos,
+            
+            # Categories & Location
+            'primary_category': self.primary_category,
+            'secondary_category': self.secondary_category,
+            'country': self.country,
+            'language': self.language,
+            
+            # Channel Settings
             'is_verified': self.is_verified,
             'is_public': self.is_public,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'allow_comments': self.allow_comments,
+            'allow_likes': self.allow_likes,
+            'age_restricted': self.age_restricted,
+            'made_for_kids': self.made_for_kids,
+            'enable_monetization': self.enable_monetization,
+            
+            # Branding & Theme
+            'theme_color': self.theme_color,
+            'accent_color': self.accent_color,
+            'custom_css': self.custom_css,
+            
+            # Social Links
+            'website_url': self.website_url,
+            'twitter_url': self.twitter_url,
+            'instagram_url': self.instagram_url,
+            'facebook_url': self.facebook_url,
+            'tiktok_url': self.tiktok_url,
+            'discord_url': self.discord_url,
+            'twitch_url': self.twitch_url,
+            
+            # Timestamps
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
 
 class VideoClip(db.Model):
