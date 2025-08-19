@@ -6344,69 +6344,6 @@ def get_public_user_profile(user_id):
 # 2. Get videos for a specific user (for video channels)
 
 
-@api.route('/user/profile', methods=['PUT'])
-@jwt_required()
-def update_user_profile():
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-    
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-    
-    try:
-        # Handle text fields
-        data = request.form.to_dict() if request.form else {}
-        
-        # Update user fields
-        for field in ['bio', 'location', 'website', 'display_name', 'social_links']:
-            if field in data:
-                if field == 'social_links':
-                    try:
-                        user.social_links = json.loads(data[field])
-                    except:
-                        return jsonify({"error": "Invalid social_links format"}), 400
-                else:
-                    setattr(user, field, data[field])
-        
-        # Handle images array
-        if 'images' in data:
-            try:
-                images = json.loads(data['images'])
-                if len(images) > 10:
-                    return jsonify({"error": "Max 10 images allowed"}), 400
-                user.images = images
-                user.gallery = images
-            except:
-                return jsonify({"error": "Invalid images format"}), 400
-        
-        # Handle file uploads using uploadFile function
-        if "profile_picture" in request.files:
-            pic = request.files["profile_picture"]
-            if pic.filename != "":
-                filename = secure_filename(pic.filename)
-                # Use uploadFile function instead of local saving
-                pic_url = uploadFile(pic, filename)
-                user.profile_picture = pic_url
-        
-        if "cover_photo" in request.files:
-            cover = request.files["cover_photo"]
-            if cover.filename != "":
-                filename = secure_filename(cover.filename)
-                # Use uploadFile function instead of local saving
-                cover_url = uploadFile(cover, filename)
-                user.cover_photo = cover_url
-        
-        db.session.commit()
-        
-        return jsonify({
-            "message": "Profile updated successfully", 
-            "user": user.serialize()
-        }), 200
-        
-    except Exception as e:
-        return jsonify({"error": f"Failed to update profile: {str(e)}"}), 500
-
-
 # Keep your video upload endpoint as is
 @api.route('/user/profile/videos/upload', methods=['POST'])
 @jwt_required()
@@ -9093,11 +9030,6 @@ def get_creator_content_breakdown():
     # Implementation needed
     pass
 
-@api.route('/artist/analytics', methods=['GET'])
-@jwt_required()
-def get_artist_analytics():
-    # Implementation needed
-    pass
 
 # 1. USER PLAN STATUS - Updated with correct plan checks
 @api.route('/user/plan-status', methods=['GET'])
@@ -11287,3 +11219,252 @@ def on_update_video_status(data):
             'video_enabled': video_enabled,
             'audio_enabled': audio_enabled
         }, room=room_id)
+
+# 1. ARTIST TRACKS ENDPOINT
+@api.route('/artist/tracks', methods=['GET'])
+@jwt_required()
+def get_artist_tracks():
+    """Get all tracks for the current artist"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Assuming you have a Track model
+        # Replace this with your actual Track model query
+        tracks = []  # Track.query.filter_by(artist_id=user_id).all()
+        
+        # Mock data for now - replace with real data
+        mock_tracks = [
+            {
+                "id": 1,
+                "title": "Sample Track 1",
+                "artist_name": "Artist Name",
+                "album": "Sample Album",
+                "artwork": None,
+                "plays": 1500,
+                "likes": 89,
+                "duration": "3:24",
+                "created_at": "2024-01-15T10:30:00Z"
+            },
+            {
+                "id": 2,
+                "title": "Sample Track 2", 
+                "artist_name": "Artist Name",
+                "album": "Sample Album",
+                "artwork": None,
+                "plays": 2300,
+                "likes": 156,
+                "duration": "4:12",
+                "created_at": "2024-01-10T14:20:00Z"
+            }
+        ]
+        
+        return jsonify(mock_tracks), 200
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to fetch tracks: {str(e)}"
+        }), 500
+
+# 2. ARTIST ANALYTICS ENDPOINT  
+@api.route('/artist/analytics', methods=['GET'])
+@jwt_required()
+def get_artist_analytics():
+    """Get analytics data for the current artist"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Mock analytics data - replace with real calculations
+        analytics_data = {
+            "monthly_plays": 15420,
+            "total_streams": 87650,
+            "monthly_listeners": 3240,
+            "total_plays": 125000,
+            "total_followers": 890,
+            "revenue_this_month": 245.80,
+            "top_countries": ["United States", "Canada", "United Kingdom", "Germany", "Australia"]
+        }
+        
+        return jsonify(analytics_data), 200
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to fetch analytics: {str(e)}"
+        }), 500
+
+# 3. ARTIST ALBUMS ENDPOINT (Optional)
+@api.route('/artist/albums', methods=['GET'])
+@jwt_required()
+def get_artist_albums():
+    """Get all albums for the current artist"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Mock albums data
+        albums_data = [
+            {
+                "id": 1,
+                "title": "Sample Album",
+                "artwork": None,
+                "year": 2024,
+                "track_count": 12
+            }
+        ]
+        
+        return jsonify(albums_data), 200
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to fetch albums: {str(e)}"
+        }), 500
+
+# 4. ARTIST PLAYLISTS ENDPOINT (Optional)
+@api.route('/artist/playlists', methods=['GET']) 
+@jwt_required()
+def get_artist_playlists():
+    """Get all playlists for the current artist"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Mock playlists data
+        playlists_data = [
+            {
+                "id": 1,
+                "name": "My Favorites",
+                "cover": None,
+                "track_count": 25,
+                "duration": "1:32:45"
+            }
+        ]
+        
+        return jsonify(playlists_data), 200
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to fetch playlists: {str(e)}"
+        }), 500
+
+# 5. ARTIST ACTIVITY ENDPOINT (Optional)
+@api.route('/artist/activity', methods=['GET'])
+@jwt_required()  
+def get_artist_activity():
+    """Get recent activity for the current artist"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Mock activity data
+        activity_data = [
+            {
+                "type": "track",
+                "message": "New track uploaded: 'Sample Track'",
+                "timestamp": "2 hours ago",
+                "icon": "🎵"
+            },
+            {
+                "type": "like",
+                "message": "50 new likes on 'Previous Track'",
+                "timestamp": "1 day ago", 
+                "icon": "❤️"
+            },
+            {
+                "type": "follower",
+                "message": "25 new followers",
+                "timestamp": "3 days ago",
+                "icon": "👥"
+            }
+        ]
+        
+        return jsonify(activity_data), 200
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to fetch activity: {str(e)}"
+        }), 500
+
+# 6. UPDATE USER PROFILE ENDPOINT
+@api.route('/user/profile', methods=['PUT'])
+@jwt_required()
+def update_user_profile():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    try:
+        # Handle both form data and JSON
+        data = request.form.to_dict() if request.form else {}
+        json_data = request.get_json() if request.is_json else {}
+        data.update(json_data)
+        
+        # Update artist-specific fields
+        for field in ['artist_name', 'bio', 'genre', 'location', 'website', 
+                     'spotify_link', 'apple_music_link', 'youtube_link', 
+                     'instagram_link', 'twitter_link']:
+            if field in data:
+                setattr(user, field, data[field])
+        
+        # Handle social_links as JSON if provided as string
+        if 'social_links' in data:
+            try:
+                if isinstance(data['social_links'], str):
+                    user.social_links = json.loads(data['social_links'])
+                else:
+                    user.social_links = data['social_links']
+            except:
+                return jsonify({"error": "Invalid social_links format"}), 400
+        
+        # Handle file uploads
+        if "profile_picture" in request.files:
+            pic = request.files["profile_picture"]
+            if pic.filename != "":
+                filename = secure_filename(pic.filename)
+                pic_url = uploadFile(pic, filename)
+                user.profile_picture = pic_url
+        
+        if "cover_photo" in request.files:
+            cover = request.files["cover_photo"]
+            if cover.filename != "":
+                filename = secure_filename(cover.filename)
+                cover_url = uploadFile(cover, filename)
+                user.cover_photo = cover_url
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Profile updated successfully",
+            "user": user.serialize()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to update profile: {str(e)}"}), 500
+
+# 7. SERVE STATIC FILES (for local images)
+@api.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    """Serve uploaded files"""
+    return send_from_directory('uploads', filename)
+
+# 8. FIX USER SERIALIZE METHOD
+# Add this method to your User model if it doesn't exist
+def serialize(self):
+    """Serialize user data for JSON response"""
+    return {
+        "id": self.id,
+        "username": self.username,
+        "email": self.email,
+        "artist_name": getattr(self, 'artist_name', None),
+        "bio": getattr(self, 'bio', None),
+        "genre": getattr(self, 'genre', None),
+        "location": getattr(self, 'location', None),
+        "website": getattr(self, 'website', None),
+        "profile_picture": getattr(self, 'profile_picture', None),
+        "avatar_url": getattr(self, 'avatar_url', None),
+        "cover_photo": getattr(self, 'cover_photo', None),
+        "spotify_link": getattr(self, 'spotify_link', None),
+        "apple_music_link": getattr(self, 'apple_music_link', None),
+        "youtube_link": getattr(self, 'youtube_link', None),
+        "instagram_link": getattr(self, 'instagram_link', None),
+        "twitter_link": getattr(self, 'twitter_link', None),
+        "is_verified": getattr(self, 'is_verified', False),
+        "created_at": self.created_at.isoformat() if hasattr(self, 'created_at') and self.created_at else None
+    }
