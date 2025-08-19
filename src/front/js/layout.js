@@ -19,6 +19,9 @@ import HomeFeed from "./pages/HomeFeed";
 import RadioStationDetailPage from "./component/RadioStationDetailPage";
 import GamerProfilePage from "./pages/GamerProfilePage";
 import GamersChatroomPage from "./pages/GamersChatroomPage";
+// Add these imports at the top of your layout.js
+import EditArtistProfilePage from "./pages/EditArtistProfilePage";
+import AlbumDetailPage from "./pages/AlbumDetailPage";
 
 import RadioStationDashboard from "./pages/RadioStationDashboard";
 import RadioStationPage from "./pages/RadioStations";
@@ -63,42 +66,13 @@ import ReleaseList from "./pages/ReleaseList";
 
 import UserVideoChannelPage from "./pages/UserVideoChannelPage";
 import ArtistProfilePage from "./pages/ArtistProfilePage";
+import CollaboratorSplitPage from "./pages/CollaboratorSplitPage";
 
-// ✅ Temporary placeholders
-const CollaboratorSplitPage = () => (
-  <div className="page-container">
-    <h1>Collaborator Split Management</h1>
-    <p>This page is under development.</p>
-  </div>
-);
+import EditGamerProfilePage from "./pages/EditGamerProfilePage";
+import CreateTeamRoomPage from "./pages/CreateTeamRoomPage";
 
-const AlbumDetailPage = () => (
-  <div className="page-container">
-    <h1>Album Details</h1>
-    <p>This page is under development.</p>
-  </div>
-);
 
-const EditGamerProfilePage = () => (
-  <div className="page-container">
-    <h1>✏️ Edit Gamer Profile</h1>
-    <p>Edit your gamer identity.</p>
-  </div>
-);
 
-const CreateTeamRoomPage = () => (
-  <div className="page-container">
-    <h1>➕ Create Team Room</h1>
-    <p>Set up a new squad with invite-only access.</p>
-  </div>
-);
-
-const EditArtistProfilePage = () => (
-  <div className="page-container">
-    <h1>✏️ Edit Artist Profile</h1>
-    <p>Edit your music artist profile and settings.</p>
-  </div>
-);
 
 const Layout = () => {
   const basename = process.env.BASENAME || "";
