@@ -5,7 +5,7 @@ import injectContext, { Context } from "./store/appContext";
 
 import Home from "./pages/home";
 import Login from "./pages/Login";
-import { Signup } from "./pages/Signup";
+import SignupForm from "./component/SignupForm";
 
 import PodcastDashboard from "./pages/PodcastDashboard";
 import PodcastCreate from "./pages/PodcastCreate";
@@ -98,7 +98,7 @@ const Layout = () => {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Signup />} />
+              <Route path="/register" element={<SignupForm />} />
 
               {/* 💰 Pricing Routes - Both paths for compatibility */}
               <Route path="/pricing" element={<PricingPlans />} />
