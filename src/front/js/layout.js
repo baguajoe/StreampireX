@@ -22,6 +22,10 @@ import GamersChatroomPage from "./pages/GamersChatroomPage";
 // Add these imports at the top of your layout.js
 import EditArtistProfilePage from "./pages/EditArtistProfilePage";
 import AlbumDetailPage from "./pages/AlbumDetailPage";
+import VideoChannelDashboard from "./pages/VideoChannelDashboard";
+import VideoChannelProfile from "./pages/VideoChannelProfile";
+import MyVideoChannel from "./pages/MyVideoChannel";
+import VideoUpload from "./pages/VideoUpload";
 
 import RadioStationDashboard from "./pages/RadioStationDashboard";
 import RadioStationPage from "./pages/RadioStations";
@@ -108,6 +112,12 @@ const Layout = () => {
               <Route path="/orders" element={<OrderHistoryPage />} />
               <Route path="/sales-dashboard" element={<SalesDashboard />} />
               <Route path="/cart" element={<ShoppingCart />} />
+              // Video Channel Routes
+              <Route path="/video-dashboard" element={<VideoChannelDashboard />} />
+              <Route path="/profile/video" element={<VideoChannelProfile />} />
+              <Route path="/my-channel" element={<MyVideoChannel />} />
+              <Route path="/upload-video" element={<VideoUpload />} />
+
 
               {/* 📊 Dashboards */}
               <Route path="/creator-dashboard" element={<CreatorDashboard />} />
