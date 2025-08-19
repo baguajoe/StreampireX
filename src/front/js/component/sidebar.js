@@ -140,6 +140,9 @@ const Sidebar = ({ user }) => {
         <ProfileMenuItem to="/profile/artist" className={isActive("/profile/artist") ? "active" : ""}>
           🎵 Artist Profile
         </ProfileMenuItem>
+        <ProfileMenuItem to="/profile/video" className={isActive("/profile/video") ? "active" : ""}>
+          📹 Channel Profile
+        </ProfileMenuItem>
       </div>
 
       {/* Dashboards */}
@@ -155,6 +158,14 @@ const Sidebar = ({ user }) => {
       </MenuItem>
       <MenuItem to="/radio-dashboard" className={isActive("/radio-dashboard") ? "active" : ""}>
         📻 Radio Dashboard
+      </MenuItem>
+      {/* ADD THIS - Video Dashboard */}
+      <MenuItem to="/video-dashboard" className={isActive("/video-dashboard") ? "active" : ""}>
+        📹 Video Dashboard
+      </MenuItem>
+      {/* MOVE THIS - Sales Dashboard from Store section */}
+      <MenuItem to="/sales-dashboard" className={isActive("/sales-dashboard") ? "active" : ""}>
+        💰 Sales Dashboard
       </MenuItem>
       <MenuItem to="/label-dashboard" className={isActive("/label-dashboard") ? "active" : ""}>
         🏢 Label Dashboard
@@ -209,6 +220,13 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/videos" className={isActive("/videos") ? "active" : ""}>
         🎞️ Browse Videos
       </MenuItem>
+      {/* ADD THESE - Video Channel Management */}
+      <MenuItem to="/my-channel" className={isActive("/my-channel") ? "active" : ""}>
+        📹 My Channel
+      </MenuItem>
+      <MenuItem to="/upload-video" className={isActive("/upload-video") ? "active" : ""}>
+        📤 Upload Video
+      </MenuItem>
 
       <SectionHeader>📻 Radio Stations</SectionHeader>
       <MenuItem to="/browse-radio-stations" className={isActive("/browse-radio-stations") ? "active" : ""}>
@@ -241,9 +259,6 @@ const Sidebar = ({ user }) => {
       </MenuItem>
       <MenuItem to="/orders" className={isActive("/orders") ? "active" : ""}>
         📦 Order History
-      </MenuItem>
-      <MenuItem to="/sales-dashboard" className={isActive("/sales-dashboard") ? "active" : ""}>
-        💰 Sales Dashboard
       </MenuItem>
 
       {/* Account */}
