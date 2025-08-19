@@ -8,6 +8,7 @@ const CheckoutPage = () => {
     const [cartItems, setCartItems] = useState([]);
     const [loading, setLoading] = useState(false);
     const [user, setUser] = useState(null);
+    const [isCartEmpty, setIsCartEmpty] = useState(false);
     
     const [billingInfo, setBillingInfo] = useState({
         firstName: "",
@@ -40,15 +41,22 @@ const CheckoutPage = () => {
         total: 0
     });
 
+    // Get backend URL helper
+    const getBackendUrl = () => {
+        return process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || "http://localhost:3001";
+    };
+
     useEffect(() => {
         // Get cart items from location state or localStorage
         const items = location.state?.cartItems || JSON.parse(localStorage.getItem("shopping_cart") || "[]");
         
         if (items.length === 0) {
-            navigate("/marketplace");
+            setIsCartEmpty(true);
+            setCartItems([]);
             return;
         }
         
+        setIsCartEmpty(false);
         setCartItems(items);
         fetchUserInfo();
         calculateOrderSummary(items);
@@ -70,7 +78,8 @@ const CheckoutPage = () => {
 
     const fetchUserInfo = async () => {
         try {
-            const response = await fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+            const backendUrl = getBackendUrl();
+            const response = await fetch(`${backendUrl}/api/user/profile`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${localStorage.getItem("token")}`
@@ -155,11 +164,12 @@ const CheckoutPage = () => {
 
         try {
             setLoading(true);
+            const backendUrl = getBackendUrl();
 
             // For multiple items, we'll process them sequentially
             // In a real app, you'd create a single checkout session for all items
             for (const item of cartItems) {
-                const response = await fetch(`${process.env.BACKEND_URL}/api/marketplace/checkout`, {
+                const response = await fetch(`${backendUrl}/api/marketplace/checkout`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -198,9 +208,10 @@ const CheckoutPage = () => {
         try {
             setLoading(true);
             const purchases = [];
+            const backendUrl = getBackendUrl();
 
             for (const item of cartItems) {
-                const response = await fetch(`${process.env.BACKEND_URL}/api/products/buy/${item.id}`, {
+                const response = await fetch(`${backendUrl}/api/products/buy/${item.id}`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -235,6 +246,64 @@ const CheckoutPage = () => {
         }
     };
 
+    // Render empty cart state
+    if (isCartEmpty) {
+        return (
+            <div className="container mt-4">
+                <div className="row">
+                    <div className="col-12 mb-4">
+                        <nav aria-label="breadcrumb">
+                            <ol className="breadcrumb">
+                                <li className="breadcrumb-item">
+                                    <button className="btn btn-link p-0" onClick={() => navigate("/marketplace")}>
+                                        Marketplace
+                                    </button>
+                                </li>
+                                <li className="breadcrumb-item">
+                                    <button className="btn btn-link p-0" onClick={() => navigate("/cart")}>
+                                        Cart
+                                    </button>
+                                </li>
+                                <li className="breadcrumb-item active">Checkout</li>
+                            </ol>
+                        </nav>
+                        <h2>Checkout</h2>
+                    </div>
+                </div>
+
+                <div className="row justify-content-center">
+                    <div className="col-lg-6">
+                        <div className="card">
+                            <div className="card-body text-center py-5">
+                                <div className="mb-4">
+                                    <i className="fas fa-shopping-cart fa-3x text-muted"></i>
+                                </div>
+                                <h4 className="card-title">Your cart is empty</h4>
+                                <p className="card-text text-muted mb-4">
+                                    Add some items to your cart before checking out.
+                                </p>
+                                <div className="d-grid gap-2 d-md-flex justify-content-md-center">
+                                    <button 
+                                        className="btn btn-primary btn-lg"
+                                        onClick={() => navigate("/marketplace")}
+                                    >
+                                        Browse Products
+                                    </button>
+                                    <button 
+                                        className="btn btn-outline-secondary btn-lg"
+                                        onClick={() => navigate("/cart")}
+                                    >
+                                        View Cart
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="container mt-4">
             <div className="row">
@@ -254,7 +323,7 @@ const CheckoutPage = () => {
                             <li className="breadcrumb-item active">Checkout</li>
                         </ol>
                     </nav>
-                    <h2>🛒 Checkout</h2>
+                    <h2>Checkout</h2>
                 </div>
             </div>
 
@@ -264,7 +333,7 @@ const CheckoutPage = () => {
                     {/* Billing Information */}
                     <div className="card mb-4">
                         <div className="card-header">
-                            <h5 className="mb-0">💳 Billing Information</h5>
+                            <h5 className="mb-0">Billing Information</h5>
                         </div>
                         <div className="card-body">
                             <div className="row">
@@ -363,7 +432,7 @@ const CheckoutPage = () => {
                     {cartItems.some(item => !item.is_digital) && (
                         <div className="card mb-4">
                             <div className="card-header">
-                                <h5 className="mb-0">📦 Shipping Information</h5>
+                                <h5 className="mb-0">Shipping Information</h5>
                             </div>
                             <div className="card-body">
                                 <div className="form-check mb-3">
@@ -455,7 +524,7 @@ const CheckoutPage = () => {
                     {/* Payment Method */}
                     <div className="card mb-4">
                         <div className="card-header">
-                            <h5 className="mb-0">💳 Payment Method</h5>
+                            <h5 className="mb-0">Payment Method</h5>
                         </div>
                         <div className="card-body">
                             <div className="form-check mb-2">
@@ -468,7 +537,7 @@ const CheckoutPage = () => {
                                     onChange={(e) => setPaymentMethod(e.target.value)}
                                 />
                                 <label className="form-check-label">
-                                    💳 Credit/Debit Card (Stripe)
+                                    Credit/Debit Card (Stripe)
                                 </label>
                             </div>
                             <div className="form-check">
@@ -481,7 +550,7 @@ const CheckoutPage = () => {
                                     onChange={(e) => setPaymentMethod(e.target.value)}
                                 />
                                 <label className="form-check-label">
-                                    🔄 Direct Purchase (Platform Credits)
+                                    Direct Purchase (Platform Credits)
                                 </label>
                             </div>
                         </div>
@@ -492,7 +561,7 @@ const CheckoutPage = () => {
                 <div className="col-lg-4">
                     <div className="card position-sticky" style={{ top: "20px" }}>
                         <div className="card-header">
-                            <h5 className="mb-0">📋 Order Summary</h5>
+                            <h5 className="mb-0">Order Summary</h5>
                         </div>
                         <div className="card-body">
                             {/* Cart Items */}
@@ -506,7 +575,7 @@ const CheckoutPage = () => {
                                             </small>
                                             <br />
                                             <span className="badge bg-primary">
-                                                {item.is_digital ? "📥 Digital" : "📦 Physical"}
+                                                {item.is_digital ? "Digital" : "Physical"}
                                             </span>
                                         </div>
                                         <div className="fw-bold">
@@ -547,7 +616,7 @@ const CheckoutPage = () => {
                                         onClick={handleStripeCheckout}
                                         disabled={loading}
                                     >
-                                        {loading ? "Processing..." : "💳 Pay with Stripe"}
+                                        {loading ? "Processing..." : "Pay with Stripe"}
                                     </button>
                                 ) : (
                                     <button
@@ -555,7 +624,7 @@ const CheckoutPage = () => {
                                         onClick={handleDirectPurchase}
                                         disabled={loading}
                                     >
-                                        {loading ? "Processing..." : "🔄 Complete Purchase"}
+                                        {loading ? "Processing..." : "Complete Purchase"}
                                     </button>
                                 )}
                                 
@@ -564,15 +633,15 @@ const CheckoutPage = () => {
                                     onClick={() => navigate("/cart")}
                                     disabled={loading}
                                 >
-                                    ← Back to Cart
+                                    Back to Cart
                                 </button>
                             </div>
 
                             {/* Security Info */}
                             <div className="mt-3 text-center">
                                 <small className="text-muted">
-                                    🔒 Your payment information is secure<br />
-                                    📧 Order confirmation will be sent to your email
+                                    Your payment information is secure<br />
+                                    Order confirmation will be sent to your email
                                 </small>
                             </div>
                         </div>

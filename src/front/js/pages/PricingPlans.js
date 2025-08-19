@@ -1,4 +1,4 @@
-// Fixed PricingPlans.js with correct API endpoints and error handling
+// Complete PricingPlans.js with all original features and improved styling
 
 import React, { useEffect, useState } from "react";
 import { useContext } from "react";
@@ -12,6 +12,7 @@ const PricingPlans = () => {
     const [currentPlan, setCurrentPlan] = useState(null);
     const [error, setError] = useState(null);
     const [selectedBilling, setSelectedBilling] = useState('monthly');
+    const [processingPayment, setProcessingPayment] = useState(null);
 
     useEffect(() => {
         fetchPlans();
@@ -70,7 +71,19 @@ const PricingPlans = () => {
                     includes_podcasts: false,
                     includes_radio: false,
                     includes_music_distribution: false,
-                    includes_gaming_features: true
+                    includes_gaming_features: true,
+                    trial_days: 0
+                },
+                {
+                    id: "fallback-basic",
+                    name: "Basic",
+                    price_monthly: 9.99,
+                    price_yearly: 99.99,
+                    includes_podcasts: true,
+                    includes_radio: false,
+                    includes_music_distribution: false,
+                    includes_gaming_features: true,
+                    trial_days: 7
                 },
                 {
                     id: "fallback-pro",
@@ -80,7 +93,34 @@ const PricingPlans = () => {
                     includes_podcasts: true,
                     includes_radio: true,
                     includes_music_distribution: true,
-                    distribution_uploads_limit: 10
+                    distribution_uploads_limit: 10,
+                    includes_gaming_features: true,
+                    trial_days: 14
+                },
+                {
+                    id: "fallback-premium",
+                    name: "Premium",
+                    price_monthly: 39.99,
+                    price_yearly: 399.99,
+                    includes_podcasts: true,
+                    includes_radio: true,
+                    includes_music_distribution: true,
+                    distribution_uploads_limit: -1,
+                    includes_gaming_features: true,
+                    includes_brand_partnerships: true,
+                    includes_affiliate_marketing: true,
+                    includes_digital_sales: true,
+                    includes_merch_sales: true,
+                    includes_tip_jar: true,
+                    includes_ad_revenue: true,
+                    includes_team_rooms: true,
+                    includes_squad_finder: true,
+                    includes_gaming_analytics: true,
+                    includes_game_streaming: true,
+                    includes_gaming_monetization: true,
+                    includes_live_events: true,
+                    sonosuite_access: true,
+                    trial_days: 30
                 }
             ]);
         } finally {
@@ -123,6 +163,8 @@ const PricingPlans = () => {
         }
 
         try {
+            setProcessingPayment(planId);
+
             // Handle standalone distribution plans
             let actualPlanId = planId;
             if (planId === "artist-distribution") {
@@ -168,6 +210,8 @@ const PricingPlans = () => {
         } catch (error) {
             console.error("❌ Subscription error:", error);
             alert("❌ Failed to process subscription. Please try again.");
+        } finally {
+            setProcessingPayment(null);
         }
     };
 
@@ -220,19 +264,7 @@ const PricingPlans = () => {
         if (plan.includes_radio) features.push("📻 Radio Stations");
         if (plan.includes_live_events) features.push("🎥 Live Streaming");
         
-        // Music Distribution
-        if (plan.includes_music_distribution) {
-            if (plan.distribution_uploads_limit === -1) {
-                features.push("🎵 Unlimited Music Distribution");
-            } else if (plan.distribution_uploads_limit > 0) {
-                features.push(`🎵 ${plan.distribution_uploads_limit} Tracks/Month`);
-            } else {
-                features.push("🎵 Music Distribution Access");
-            }
-        }
-        if (plan.sonosuite_access) features.push("🎼 SonoSuite Dashboard");
-        if (plan.includes_music_distribution) features.push("🌍 150+ Streaming Platforms");
-        if (plan.includes_music_distribution) features.push("💰 Keep 100% Royalties");
+        // Music Distribution features removed - only available as separate service
         
         // Monetization
         if (plan.includes_digital_sales) features.push("🛍️ Digital Sales");
@@ -264,9 +296,9 @@ const PricingPlans = () => {
             case "Basic":
                 return "Free social features + enhanced content creation tools";
             case "Pro":
-                return "Everything free + content creation + limited music distribution";
+                return "Everything in Basic + radio stations and team collaboration";
             case "Premium":
-                return "Complete creator suite + unlimited distribution + monetization";
+                return "Complete creator suite with advanced monetization features";
             default:
                 return "";
         }
@@ -430,6 +462,7 @@ const PricingPlans = () => {
                 {plans.map((plan) => {
                     const isCurrent = isCurrentPlan(plan);
                     const currentPrice = getCurrentPrice(plan);
+                    const isProcessing = processingPayment === plan.id;
                     
                     return (
                         <div key={plan.id} className={`pricing-card ${plan.name.toLowerCase()} ${isCurrent ? 'current-plan' : ''}`}>
@@ -478,17 +511,7 @@ const PricingPlans = () => {
                                 </div>
                             </div>
 
-                            {/* Music Distribution Highlight */}
-                            {plan.includes_music_distribution && (
-                                <div className="music-distribution-highlight">
-                                    <h4>🎵 Music Distribution Included</h4>
-                                    <div className="distribution-features">
-                                        <div>📊 {plan.distribution_uploads_limit === -1 ? 'Unlimited' : `${plan.distribution_uploads_limit} tracks/month`}</div>
-                                        <div>🌍 150+ Platforms</div>
-                                        {plan.sonosuite_access && <div>🎼 SonoSuite Access</div>}
-                                    </div>
-                                </div>
-                            )}
+
 
                             <div className="plan-features">
                                 {getFeatureList(plan).map((feature, index) => (
@@ -507,9 +530,14 @@ const PricingPlans = () => {
                             <button 
                                 className={`subscribe-btn ${plan.name.toLowerCase()} ${isCurrent ? 'current' : ''}`}
                                 onClick={() => handleSubscribe(plan.id)}
-                                disabled={isCurrent}
+                                disabled={isCurrent || isProcessing}
                             >
-                                {isCurrent 
+                                {isProcessing ? (
+                                    <span className="processing">
+                                        <div className="btn-spinner"></div>
+                                        Processing...
+                                    </span>
+                                ) : isCurrent 
                                     ? "✅ Current Plan" 
                                     : plan.name === "Free" 
                                         ? "🚀 Get Started Free" 
@@ -520,6 +548,8 @@ const PricingPlans = () => {
                     );
                 })}
             </div>
+
+
 
             {/* Social Media Success Stats */}
             <div className="social-success-stats">
@@ -552,20 +582,45 @@ const PricingPlans = () => {
                 </div>
             </div>
 
+            {/* FAQ Section */}
+            <div className="pricing-faq">
+                <h2>❓ Frequently Asked Questions</h2>
+                <div className="faq-grid">
+                    <div className="faq-item">
+                        <h4>Can I change plans anytime?</h4>
+                        <p>Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately and we'll prorate any billing differences.</p>
+                    </div>
+                    <div className="faq-item">
+                        <h4>What happens to my content if I downgrade?</h4>
+                        <p>Your existing content remains accessible. However, some advanced features may become unavailable based on your new plan limits.</p>
+                    </div>
+                    <div className="faq-item">
+                        <h4>Do you offer refunds?</h4>
+                        <p>We offer a 30-day money-back guarantee for all paid plans. Contact support if you're not satisfied with your subscription.</p>
+                    </div>
+                    <div className="faq-item">
+                        <h4>Are there any setup fees?</h4>
+                        <p>No setup fees ever! What you see is what you pay. All features are included in your monthly or yearly subscription.</p>
+                    </div>
+                </div>
+            </div>
+
             {/* Debug Info */}
             <div className="debug-info" style={{ 
-                background: '#111', 
+                background: '#f8f9fa', 
                 padding: '1rem', 
                 borderRadius: '8px', 
                 marginTop: '2rem',
                 fontSize: '0.8rem',
-                color: '#888'
+                color: '#666',
+                border: '1px solid #e0e0e0'
             }}>
                 <h4>🔍 Debug Information:</h4>
                 <p>Backend URL: {process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001'}</p>
                 <p>Plans loaded: {plans.length}</p>
                 <p>Current plan: {currentPlan ? currentPlan.name : 'None'}</p>
                 <p>Environment: {process.env.NODE_ENV || 'development'}</p>
+                <p>Selected billing: {selectedBilling}</p>
             </div>
         </div>
     );

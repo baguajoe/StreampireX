@@ -21,8 +21,8 @@ import fitjay from "../../img/fit_jay.png";
 import { io } from "socket.io-client";
 
 // Constants
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
-const SOCKET_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
+const SOCKET_URL = process.env.BACKEND_URL || "http://localhost:3001";
 
 const MOOD_OPTIONS = [
     { id: "chill", emoji: "😌", label: "Chill" },
@@ -697,11 +697,6 @@ const ProfilePage = () => {
     const [postImage, setPostImage] = useState(null);
     const [uploadingPost, setUploadingPost] = useState(false);
 
-    // Photo and Video management state
-    const [selectedItems, setSelectedItems] = useState([]);
-    const [isSelectionMode, setIsSelectionMode] = useState(false);
-    const [uploadingMedia, setUploadingMedia] = useState(false);
-
     // Circle/Following state - Updated from friends to circle
     const [circleMembers, setCircleMembers] = useState(MOCK_CIRCLE_MEMBERS);
     const [following, setFollowing] = useState([]);
@@ -1067,180 +1062,6 @@ const ProfilePage = () => {
             } finally {
                 setUploadingPost(false);
             }
-        }
-    }, []);
-
-    // Media management handlers
-    const handlePhotoUpload = useCallback(async (event) => {
-        const files = Array.from(event.target.files);
-        if (files.length === 0) return;
-
-        try {
-            setUploadingMedia(true);
-            const uploadPromises = files.map(file => uploadToCloudinary(file, 'image'));
-            const uploadedUrls = await Promise.all(uploadPromises);
-            
-            const newPhotos = uploadedUrls.map((url, index) => ({
-                id: Date.now() + index,
-                url: url,
-                caption: `New photo ${index + 1}`,
-                likes: 0,
-                comments: 0,
-                created_at: new Date().toISOString()
-            }));
-
-            setMedia(prev => ({
-                ...prev,
-                userPhotos: [...newPhotos, ...prev.userPhotos]
-            }));
-
-            // Save to backend
-            const token = localStorage.getItem('token');
-            if (token) {
-                await fetch(`${BACKEND_URL}/api/user/photos`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ photos: newPhotos })
-                });
-            }
-        } catch (error) {
-            console.error('Photo upload error:', error);
-            setError('Failed to upload photos');
-        } finally {
-            setUploadingMedia(false);
-        }
-    }, []);
-
-    const handleVideoUpload = useCallback(async (event) => {
-        const files = Array.from(event.target.files);
-        if (files.length === 0) return;
-
-        try {
-            setUploadingMedia(true);
-            const uploadPromises = files.map(file => uploadToCloudinary(file, 'video'));
-            const uploadedUrls = await Promise.all(uploadPromises);
-            
-            const newVideos = uploadedUrls.map((url, index) => ({
-                id: Date.now() + index,
-                title: `New video ${index + 1}`,
-                thumbnail_url: url, // In real app, generate thumbnail
-                video_url: url,
-                duration: '0:00', // In real app, get actual duration
-                views: 0,
-                likes: 0,
-                comments: 0,
-                created_at: new Date().toISOString()
-            }));
-
-            setMedia(prev => ({
-                ...prev,
-                userVideos: [...newVideos, ...prev.userVideos]
-            }));
-
-            // Save to backend
-            const token = localStorage.getItem('token');
-            if (token) {
-                await fetch(`${BACKEND_URL}/api/user/videos`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ videos: newVideos })
-                });
-            }
-        } catch (error) {
-            console.error('Video upload error:', error);
-            setError('Failed to upload videos');
-        } finally {
-            setUploadingMedia(false);
-        }
-    }, []);
-
-    const handleDeleteSelected = useCallback(async (type) => {
-        if (selectedItems.length === 0) return;
-        
-        if (!confirm(`Delete ${selectedItems.length} selected ${type}(s)?`)) return;
-
-        try {
-            if (type === 'photos') {
-                setMedia(prev => ({
-                    ...prev,
-                    userPhotos: prev.userPhotos.filter(photo => !selectedItems.includes(photo.id))
-                }));
-            } else if (type === 'videos') {
-                setMedia(prev => ({
-                    ...prev,
-                    userVideos: prev.userVideos.filter(video => !selectedItems.includes(video.id))
-                }));
-            } else if (type === 'circle') {
-                for (const memberId of selectedItems) {
-                    await handleRemoveFromCircle(memberId);
-                }
-            }
-
-            // Save to backend
-            const token = localStorage.getItem('token');
-            if (token && type !== 'circle') {
-                await fetch(`${BACKEND_URL}/api/user/${type}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ ids: selectedItems })
-                });
-            }
-
-            setSelectedItems([]);
-            setIsSelectionMode(false);
-        } catch (error) {
-            console.error(`Delete ${type} error:`, error);
-            setError(`Failed to delete ${type}`);
-        }
-    }, [selectedItems]);
-
-    const toggleItemSelection = useCallback((itemId) => {
-        setSelectedItems(prev => 
-            prev.includes(itemId) 
-                ? prev.filter(id => id !== itemId)
-                : [...prev, itemId]
-        );
-    }, []);
-
-    const handleRemoveFromCircle = useCallback(async (targetUserId) => {
-        try {
-            const token = localStorage.getItem('token');
-            
-            if (!token) {
-                alert('Please log in to modify your inner circle');
-                return;
-            }
-
-            const response = await fetch(`${BACKEND_URL}/api/profile/inner-circle/remove/${targetUserId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            
-            if (response.ok) {
-                setCircleMembers(prev => prev.filter(member => 
-                    (member.friend_user_id || member.id) !== targetUserId
-                ));
-                return true;
-            } else {
-                const data = await response.json();
-                alert(data.error || 'Failed to remove from inner circle');
-                return false;
-            }
-        } catch (error) {
-            console.error('Error removing from inner circle:', error);
-            alert('Error removing from inner circle');
-            return false;
         }
     }, []);
 
@@ -2235,86 +2056,32 @@ const ProfilePage = () => {
                     {ui.activeTab === 'photos' && (
                         <div className="photos-tab-content">
                             <div className="photos-header">
-                                <h3>Photos ({media.userPhotos.length})</h3>
-                                <div className="photos-actions">
-                                    <button
-                                        onClick={() => setIsSelectionMode(!isSelectionMode)}
-                                        className={`selection-mode-btn ${isSelectionMode ? 'active' : ''}`}
-                                    >
-                                        {isSelectionMode ? 'Cancel' : 'Select'}
-                                    </button>
-                                    {isSelectionMode && selectedItems.length > 0 && (
-                                        <button
-                                            onClick={() => handleDeleteSelected('photos')}
-                                            className="delete-selected-btn"
-                                        >
-                                            Delete ({selectedItems.length})
-                                        </button>
-                                    )}
-                                    <input
-                                        type="file"
-                                        multiple
-                                        accept="image/*"
-                                        onChange={handlePhotoUpload}
-                                        style={{ display: 'none' }}
-                                        id="photo-upload-input"
-                                    />
-                                    <button
-                                        onClick={() => document.getElementById('photo-upload-input').click()}
-                                        className="upload-photo-btn"
-                                        disabled={uploadingMedia}
-                                    >
-                                        {uploadingMedia ? 'Uploading...' : 'Upload Photos'}
-                                    </button>
-                                </div>
+                                <h3>Photos</h3>
+                                <button
+                                    onClick={() => postImageInputRef.current?.click()}
+                                    className="upload-photo-btn"
+                                >
+                                    Upload Photo
+                                </button>
                             </div>
 
                             {media.userPhotos.length > 0 ? (
-                                <div className="photos-grid-layout">
+                                <div className="photos-grid">
                                     {media.userPhotos.map((photo, index) => (
-                                        <div 
-                                            key={photo.id || index} 
-                                            className={`photo-item-card ${isSelectionMode ? 'selectable' : ''} ${selectedItems.includes(photo.id) ? 'selected' : ''}`}
-                                            onClick={() => isSelectionMode && toggleItemSelection(photo.id)}
-                                        >
-                                            {isSelectionMode && (
-                                                <div className="selection-checkbox">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedItems.includes(photo.id)}
-                                                        onChange={() => toggleItemSelection(photo.id)}
-                                                    />
+                                        <div key={photo.id || index} className="photo-item">
+                                            <img
+                                                src={photo.url || photo.image_url}
+                                                alt={photo.caption || `Photo ${index + 1}`}
+                                                className="photo-image"
+                                                onClick={() => {
+                                                    console.log('Open photo viewer for:', photo);
+                                                }}
+                                            />
+                                            <div className="photo-overlay">
+                                                <div className="photo-stats">
+                                                    <span>❤️ {photo.likes || 0}</span>
+                                                    <span>💬 {photo.comments || 0}</span>
                                                 </div>
-                                            )}
-                                            <div className="photo-thumbnail">
-                                                <img
-                                                    src={photo.url || photo.image_url}
-                                                    alt={photo.caption || `Photo ${index + 1}`}
-                                                    className="photo-image"
-                                                    loading="lazy"
-                                                />
-                                                <div className="photo-overlay">
-                                                    <div className="photo-stats">
-                                                        <span>❤️ {photo.likes || 0}</span>
-                                                        <span>💬 {photo.comments || 0}</span>
-                                                    </div>
-                                                    {!isSelectionMode && (
-                                                        <div className="photo-actions">
-                                                            <button 
-                                                                className="view-photo-btn"
-                                                                onClick={() => console.log('View photo:', photo)}
-                                                            >
-                                                                View
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="photo-info">
-                                                <h6 className="photo-caption">{photo.caption || `Photo ${index + 1}`}</h6>
-                                                <p className="photo-date">
-                                                    {photo.created_at ? new Date(photo.created_at).toLocaleDateString() : 'Recently'}
-                                                </p>
                                             </div>
                                         </div>
                                     ))}
@@ -2325,7 +2092,7 @@ const ProfilePage = () => {
                                         <h4>No Photos Yet</h4>
                                         <p>Share your moments by uploading photos</p>
                                         <button
-                                            onClick={() => document.getElementById('photo-upload-input').click()}
+                                            onClick={() => postImageInputRef.current?.click()}
                                             className="upload-first-photo-btn"
                                         >
                                             Upload Your First Photo
@@ -2339,82 +2106,39 @@ const ProfilePage = () => {
                     {ui.activeTab === 'videos' && (
                         <div className="videos-tab-content">
                             <div className="videos-header">
-                                <h3>Videos ({media.userVideos.length})</h3>
-                                <div className="videos-actions">
-                                    <button
-                                        onClick={() => setIsSelectionMode(!isSelectionMode)}
-                                        className={`selection-mode-btn ${isSelectionMode ? 'active' : ''}`}
-                                    >
-                                        {isSelectionMode ? 'Cancel' : 'Select'}
-                                    </button>
-                                    {isSelectionMode && selectedItems.length > 0 && (
-                                        <button
-                                            onClick={() => handleDeleteSelected('videos')}
-                                            className="delete-selected-btn"
-                                        >
-                                            Delete ({selectedItems.length})
-                                        </button>
-                                    )}
-                                    <input
-                                        type="file"
-                                        multiple
-                                        accept="video/*"
-                                        onChange={handleVideoUpload}
-                                        style={{ display: 'none' }}
-                                        id="video-upload-input"
-                                    />
-                                    <button
-                                        onClick={() => document.getElementById('video-upload-input').click()}
-                                        className="upload-video-btn"
-                                        disabled={uploadingMedia}
-                                    >
-                                        {uploadingMedia ? 'Uploading...' : 'Upload Videos'}
-                                    </button>
-                                </div>
+                                <h3>Videos</h3>
+                                <button
+                                    onClick={() => setUi(prev => ({ ...prev, showVideoManager: true }))}
+                                    className="upload-video-btn"
+                                >
+                                    Upload Video
+                                </button>
                             </div>
 
                             {media.userVideos.length > 0 ? (
-                                <div className="videos-grid-layout">
+                                <div className="videos-grid">
                                     {media.userVideos.map((video, index) => (
-                                        <div 
-                                            key={video.id || index} 
-                                            className={`video-item-card ${isSelectionMode ? 'selectable' : ''} ${selectedItems.includes(video.id) ? 'selected' : ''}`}
-                                            onClick={() => isSelectionMode && toggleItemSelection(video.id)}
-                                        >
-                                            {isSelectionMode && (
-                                                <div className="selection-checkbox">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedItems.includes(video.id)}
-                                                        onChange={() => toggleItemSelection(video.id)}
-                                                    />
-                                                </div>
-                                            )}
+                                        <div key={video.id || index} className="video-item">
                                             <div className="video-thumbnail-container">
                                                 <img
                                                     src={video.thumbnail_url || campfire}
                                                     alt={video.title || `Video ${index + 1}`}
                                                     className="video-thumbnail"
-                                                    loading="lazy"
                                                 />
-                                                {!isSelectionMode && (
-                                                    <div className="video-play-overlay">
-                                                        <button className="video-play-btn">▶️</button>
-                                                    </div>
-                                                )}
+                                                <div className="video-play-overlay">
+                                                    <button className="video-play-btn">▶️</button>
+                                                </div>
                                                 <div className="video-duration">
                                                     {video.duration || '0:00'}
-                                                </div>
-                                                <div className="video-overlay">
-                                                    <div className="video-stats">
-                                                        <span>👁️ {formatCount(video.views || 0)}</span>
-                                                        <span>❤️ {video.likes || 0}</span>
-                                                        <span>💬 {video.comments || 0}</span>
-                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="video-info">
                                                 <h6 className="video-title">{video.title || `Video ${index + 1}`}</h6>
+                                                <div className="video-stats">
+                                                    <span>👁️ {formatCount(video.views || 0)} views</span>
+                                                    <span>❤️ {video.likes || 0}</span>
+                                                    <span>💬 {video.comments || 0}</span>
+                                                </div>
                                                 <p className="video-upload-date">
                                                     {video.created_at ? new Date(video.created_at).toLocaleDateString() : 'Recently'}
                                                 </p>
@@ -2428,7 +2152,7 @@ const ProfilePage = () => {
                                         <h4>No Videos Yet</h4>
                                         <p>Share your stories and creativity through videos</p>
                                         <button
-                                            onClick={() => document.getElementById('video-upload-input').click()}
+                                            onClick={() => setUi(prev => ({ ...prev, showVideoManager: true }))}
                                             className="upload-first-video-btn"
                                         >
                                             Upload Your First Video
@@ -2442,120 +2166,64 @@ const ProfilePage = () => {
                     {ui.activeTab === 'circle' && (
                         <div className="circle-tab-content">
                             <div className="circle-header">
-                                <h3>My Circle ({circleMembers.length})</h3>
-                                <div className="circle-actions">
-                                    <button
-                                        onClick={() => setIsSelectionMode(!isSelectionMode)}
-                                        className={`selection-mode-btn ${isSelectionMode ? 'active' : ''}`}
-                                    >
-                                        {isSelectionMode ? 'Cancel' : 'Manage'}
-                                    </button>
-                                    {isSelectionMode && selectedItems.length > 0 && (
-                                        <button
-                                            onClick={() => handleDeleteSelected('circle')}
-                                            className="delete-selected-btn"
-                                        >
-                                            Remove ({selectedItems.length})
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => setUi(prev => ({ ...prev, showAddToCircle: true }))}
-                                        className="add-to-circle-btn"
-                                    >
-                                        Add Members
-                                    </button>
+                                <h3>My Circle</h3>
+                                <div className="circle-stats">
+                                    <span>{circleMembers.length} Circle Members</span>
+                                    <span>{followers.length} Followers</span>
+                                    <span>{following.length} Following</span>
                                 </div>
                             </div>
 
-                            <div className="circle-stats">
-                                <span>{circleMembers.length} Circle Members</span>
-                                <span>{followers.length} Followers</span>
-                                <span>{following.length} Following</span>
-                            </div>
-
-                            {circleMembers.length > 0 ? (
-                                <div className="circle-grid-layout">
-                                    {circleMembers.map((member, index) => (
-                                        <div 
-                                            key={member.friend_user_id || member.id} 
-                                            className={`circle-member-card-enhanced ${isSelectionMode ? 'selectable' : ''} ${selectedItems.includes(member.friend_user_id || member.id) ? 'selected' : ''}`}
-                                            onClick={() => isSelectionMode && toggleItemSelection(member.friend_user_id || member.id)}
-                                        >
-                                            {isSelectionMode && (
-                                                <div className="selection-checkbox">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedItems.includes(member.friend_user_id || member.id)}
-                                                        onChange={() => toggleItemSelection(member.friend_user_id || member.id)}
+                            <div className="circle-sections">
+                                {circleMembers.length > 0 && (
+                                    <div className="circle-section">
+                                        <h4>Inner Circle ({circleMembers.length})</h4>
+                                        <div className="circle-grid">
+                                            {circleMembers.map((member, index) => (
+                                                <div key={member.friend_user_id || member.id} className="circle-member-card">
+                                                    <div className="member-rank">#{index + 1}</div>
+                                                    <img
+                                                        src={member.profile_picture || member.avatar || lady1}
+                                                        alt={member.display_name || member.username}
+                                                        className="member-avatar"
                                                     />
+                                                    <div className="member-info">
+                                                        <h6 className="member-name">
+                                                            {member.display_name || member.username}
+                                                        </h6>
+                                                        <p className="member-mutual">
+                                                            {member.mutual_friends || 0} mutual connections
+                                                        </p>
+                                                        {member.custom_title && (
+                                                            <p className="member-title">"{member.custom_title}"</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="member-actions">
+                                                        <Link to={`/profile/${member.friend_user_id || member.id}`} className="view-member-btn">
+                                                            View Profile
+                                                        </Link>
+                                                        <button className="message-member-btn">
+                                                            Message
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            )}
-                                            <div className="member-rank-badge">#{index + 1}</div>
-                                            <div className="member-avatar-container">
-                                                <img
-                                                    src={member.profile_picture || member.avatar || lady1}
-                                                    alt={member.display_name || member.username}
-                                                    className="member-avatar"
-                                                    loading="lazy"
-                                                />
-                                                <div className="member-status-indicator"></div>
-                                            </div>
-                                            <div className="member-info-detailed">
-                                                <h6 className="member-name">
-                                                    {member.display_name || member.username}
-                                                </h6>
-                                                <p className="member-username">@{member.username || 'user'}</p>
-                                                {member.custom_title && (
-                                                    <p className="member-title">"{member.custom_title}"</p>
-                                                )}
-                                                <div className="member-stats">
-                                                    <span>🎵 {member.track_count || 0}</span>
-                                                    <span>👥 {member.follower_count || member.mutual_friends || 0}</span>
-                                                    <span>❤️ {member.total_likes || 0}</span>
-                                                </div>
-                                                <p className="member-joined">
-                                                    In circle since {member.created_at ? new Date(member.created_at).toLocaleDateString() : 'Recently'}
-                                                </p>
-                                            </div>
-                                            {!isSelectionMode && (
-                                                <div className="member-actions-enhanced">
-                                                    <Link 
-                                                        to={`/profile/${member.friend_user_id || member.id}`} 
-                                                        className="view-member-btn"
-                                                    >
-                                                        View Profile
-                                                    </Link>
-                                                    <button className="message-member-btn">
-                                                        Message
-                                                    </button>
-                                                    <button 
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            handleRemoveFromCircle(member.friend_user_id || member.id);
-                                                        }}
-                                                        className="remove-member-btn"
-                                                    >
-                                                        Remove
-                                                    </button>
-                                                </div>
-                                            )}
+                                            ))}
                                         </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="empty-circle">
-                                    <div className="empty-state">
-                                        <h4>No Circle Members Yet</h4>
-                                        <p>Start building your inner circle by adding your closest connections</p>
-                                        <button 
-                                            onClick={() => setUi(prev => ({ ...prev, showAddToCircle: true }))}
-                                            className="find-members-btn"
-                                        >
-                                            Find Circle Members
-                                        </button>
                                     </div>
-                                </div>
-                            )}
+                                )}
+
+                                {circleMembers.length === 0 && (
+                                    <div className="empty-circle">
+                                        <div className="empty-state">
+                                            <h4>No Circle Members Yet</h4>
+                                            <p>Start building your inner circle by adding your closest connections</p>
+                                            <button className="find-members-btn">
+                                                Find Circle Members
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
