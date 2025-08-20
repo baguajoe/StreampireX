@@ -143,9 +143,10 @@ const MusicDistribution = () => {
         return;
       }
 
-      console.log("Fetching user plan from:", `${process.env.BACKEND_URL}/api/user/plan-status`);
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      console.log("Fetching user plan from:", `${backendUrl}/api/user/plan-status`);
       
-      const response = await fetch(`${process.env.BACKEND_URL}/api/user/plan-status`, {
+      const response = await fetch(`${backendUrl}/api/user/plan-status`, {
         headers: { 
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
@@ -207,8 +208,9 @@ const MusicDistribution = () => {
         throw new Error('Please log in first');
       }
 
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
       const response = await fetch(
-        `${process.env.BACKEND_URL}/api/sonosuite/redirect?return_to=${encodeURIComponent(returnTo)}`,
+        `${backendUrl}/api/sonosuite/redirect?return_to=${encodeURIComponent(returnTo)}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -243,7 +245,8 @@ const MusicDistribution = () => {
         return;
       }
 
-      const response = await fetch(`${process.env.BACKEND_URL}/api/sonosuite/status`, {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      const response = await fetch(`${backendUrl}/api/sonosuite/status`, {
         headers: { 
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
@@ -278,11 +281,13 @@ const MusicDistribution = () => {
   const fetchDistributionData = async () => {
     try {
       const token = localStorage.getItem("token");
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      
       const [statsRes, releasesRes] = await Promise.all([
-        fetch(`${process.env.BACKEND_URL}/api/distribution/stats`, {
+        fetch(`${backendUrl}/api/distribution/stats`, {
           headers: { "Authorization": `Bearer ${token}` }
         }),
-        fetch(`${process.env.BACKEND_URL}/api/distribution/releases`, {
+        fetch(`${backendUrl}/api/distribution/releases`, {
           headers: { "Authorization": `Bearer ${token}` }
         })
       ]);
@@ -306,7 +311,9 @@ const MusicDistribution = () => {
   const fetchUserTracks = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.BACKEND_URL}/user/audio`, {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      
+      const response = await fetch(`${backendUrl}/user/audio`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
@@ -324,8 +331,9 @@ const MusicDistribution = () => {
     try {
       const token = localStorage.getItem("token");
       const userId = store.user?.id;
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
-      const response = await fetch(`${process.env.BACKEND_URL}/api/sonosuite/connect`, {
+      const response = await fetch(`${backendUrl}/api/sonosuite/connect`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -369,7 +377,9 @@ const MusicDistribution = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.BACKEND_URL}/api/sonosuite/connect`, {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      
+      const response = await fetch(`${backendUrl}/api/sonosuite/connect`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -409,7 +419,9 @@ const MusicDistribution = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.BACKEND_URL}/api/sonosuite/disconnect`, {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      
+      const response = await fetch(`${backendUrl}/api/sonosuite/disconnect`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` }
       });
@@ -436,9 +448,10 @@ const MusicDistribution = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
       const response = await fetch(
-        `${process.env.BACKEND_URL}/api/sonosuite/redirect?return_to=${encodeURIComponent(section)}`,
+        `${backendUrl}/api/sonosuite/redirect?return_to=${encodeURIComponent(section)}`,
         {
           headers: { "Authorization": `Bearer ${token}` }
         }
@@ -472,7 +485,9 @@ const MusicDistribution = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`${process.env.BACKEND_URL}/api/music/distribute`, {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      
+      const response = await fetch(`${backendUrl}/api/music/distribute`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

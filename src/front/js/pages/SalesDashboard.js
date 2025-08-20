@@ -27,7 +27,7 @@ const SalesDashboard = () => {
     const fetchSalesData = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${process.env.BACKEND_URL}/api/revenue-analytics?period=${timeFilter}`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/revenue-analytics?period=${timeFilter}`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${localStorage.getItem("token")}`
@@ -56,7 +56,7 @@ const SalesDashboard = () => {
 
     const fetchRecentSales = async () => {
         try {
-            const response = await fetch(`${process.env.BACKEND_URL}/api/user/sales?limit=10`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/sales?limit=10`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${localStorage.getItem("token")}`
@@ -74,7 +74,7 @@ const SalesDashboard = () => {
 
     const fetchMyProducts = async () => {
         try {
-            const response = await fetch(`${process.env.BACKEND_URL}/api/storefront`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/storefront`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${localStorage.getItem("token")}`

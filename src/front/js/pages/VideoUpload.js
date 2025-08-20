@@ -87,7 +87,7 @@ const VideoUpload = () => {
   const checkChannelStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/channel/me`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -110,7 +110,7 @@ const VideoUpload = () => {
     setCreatingChannel(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/channel/create`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/create`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -228,7 +228,7 @@ const VideoUpload = () => {
     formData.append('file', file);
 
     const token = localStorage.getItem('token');
-    const response = await fetch(`${process.env.BACKEND_URL}/api/upload/cloudinary`, {
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload/cloudinary`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -309,7 +309,7 @@ const VideoUpload = () => {
 
       // Submit video data
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/upload`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

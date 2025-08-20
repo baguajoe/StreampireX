@@ -75,18 +75,17 @@ import CollaboratorSplitPage from "./pages/CollaboratorSplitPage";
 import EditGamerProfilePage from "./pages/EditGamerProfilePage";
 import CreateTeamRoomPage from "./pages/CreateTeamRoomPage";
 
-
-
-
 const Layout = () => {
   const basename = process.env.BASENAME || "";
 
-  // ✅ Pull user from context
+  // Pull user from context
   const { store } = useContext(Context);
   const user = store.user;
 
-  if (!process.env.BACKEND_URL || process.env.BACKEND_URL === "")
+  if (!process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL === "")
     return <BackendURL />;
+
+  // rest of your component...
 
   return (
     <Router basename={basename}>

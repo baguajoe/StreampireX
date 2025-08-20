@@ -13,7 +13,7 @@ const StorefrontPage = () => {
     });
 
     useEffect(() => {
-        fetch(`${process.env.BACKEND_URL}/api/storefront`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/storefront`, {
             method: "GET",
             headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
         })
@@ -46,7 +46,7 @@ const StorefrontPage = () => {
         if (newProduct.file) formData.append("file", newProduct.file);
         if (newProduct.image) formData.append("image", newProduct.image);
 
-        fetch(`${process.env.BACKEND_URL}/api/storefront/add-product`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/storefront/add-product`, {
             method: "POST",
             headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
             body: formData
