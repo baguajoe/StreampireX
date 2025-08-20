@@ -23,7 +23,7 @@ const HomeFeed = () => {
         setError(null);
         
         const token = localStorage.getItem("token");
-        const backendUrl = process.env.BACKEND_URL;
+        const backendUrl = process.env.REACT_APP_BACKEND_URL;
         
         // Debug: Log the backend URL
         console.log("Backend URL:", backendUrl);
