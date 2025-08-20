@@ -1234,21 +1234,103 @@ def verify_ticket(event_id):
         "avatar_url": ticket.user.avatar_url if ticket.user else None
     }), 200
 
-@api.route('/podcast/subscribe', methods=['POST'])
+@api.route('/podcast/<int:podcast_id>/subscribe', methods=['POST'])
 @jwt_required()
-def subscribe_to_podcast():
-    user_id = get_jwt_identity()
-    data = request.json
-    podcast_id = data.get("podcast_id")
+def subscribe_to_podcast(podcast_id):
+    """Subscribe to podcast with payment"""
+    try:
+        user_id = get_jwt_identity()
+        podcast = Podcast.query.get(podcast_id)
 
-    if not podcast_id:
-        return jsonify({"error": "Podcast ID required"}), 400
+        if not podcast:
+            return jsonify({"error": "Podcast not found"}), 404
 
-    new_subscription = PodcastSubscription(user_id=user_id, podcast_id=podcast_id)
-    db.session.add(new_subscription)
-    db.session.commit()
+        # Check if already subscribed
+        existing_sub = PodcastSubscription.query.filter_by(
+            user_id=user_id,
+            podcast_id=podcast_id,
+            is_active=True
+        ).first()
+        
+        if existing_sub:
+            return jsonify({"error": "Already subscribed to this podcast"}), 400
 
-    return jsonify({"message": "Subscribed successfully!"}), 200
+        # Get subscription price (you can add this field to Podcast model)
+        subscription_price = getattr(podcast, 'subscription_price', 4.99)  # Default $4.99/month
+        
+        if subscription_price > 0:
+            # Create Stripe subscription
+            try:
+                import stripe
+                stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+                
+                # Create Stripe customer if doesn't exist
+                user = User.query.get(user_id)
+                stripe_customer_id = getattr(user, 'stripe_customer_id', None)
+                
+                if not stripe_customer_id:
+                    customer = stripe.Customer.create(
+                        email=user.email,
+                        name=user.username
+                    )
+                    stripe_customer_id = customer.id
+                    user.stripe_customer_id = stripe_customer_id
+                    db.session.commit()
+                
+                # Create subscription
+                subscription = stripe.Subscription.create(
+                    customer=stripe_customer_id,
+                    items=[{
+                        'price_data': {
+                            'currency': 'usd',
+                            'product_data': {
+                                'name': f"Subscription to {podcast.name}",
+                            },
+                            'unit_amount': int(subscription_price * 100),
+                            'recurring': {'interval': 'month'},
+                        },
+                    }],
+                    payment_behavior='default_incomplete',
+                    expand=['latest_invoice.payment_intent'],
+                )
+                
+                # Create subscription record
+                new_subscription = PodcastSubscription(
+                    user_id=user_id,
+                    podcast_id=podcast_id,
+                    stripe_subscription_id=subscription.id,
+                    amount=subscription_price,
+                    status='pending'
+                )
+                
+                db.session.add(new_subscription)
+                db.session.commit()
+                
+                return jsonify({
+                    "message": "Subscription created",
+                    "client_secret": subscription.latest_invoice.payment_intent.client_secret,
+                    "subscription_id": subscription.id
+                }), 200
+                
+            except Exception as stripe_error:
+                return jsonify({"error": f"Payment setup failed: {str(stripe_error)}"}), 500
+        else:
+            # Free subscription
+            new_subscription = PodcastSubscription(
+                user_id=user_id,
+                podcast_id=podcast_id,
+                amount=0,
+                status='active'
+            )
+            
+            db.session.add(new_subscription)
+            db.session.commit()
+            
+            return jsonify({"message": "Successfully subscribed to free podcast!"}), 200
+            
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Subscription failed: {str(e)}"}), 500
 
 @api.route('/podcast/premium/<int:episode_id>', methods=['GET'])
 @jwt_required()
@@ -2468,56 +2550,114 @@ def get_members():
 @api.route('/products/upload', methods=['POST'])
 @jwt_required()
 def upload_product():
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
+    """Upload new product"""
     try:
-        # Get form data
-        title = request.form.get("title")
-        description = request.form.get("description")
-        price = request.form.get("price")
-        is_digital = request.form.get("is_digital") == "true"
-        stock = request.form.get("stock")
-
-        # Handle image upload using uploadFile
+        user_id = get_jwt_identity()
+        
+        # Handle form data (multipart/form-data for file uploads)
+        title = request.form.get('title')
+        description = request.form.get('description', '')
+        price = float(request.form.get('price', 0))
+        stock = request.form.get('stock')
+        category = request.form.get('category', '')
+        tags = request.form.get('tags', '')
+        is_digital = request.form.get('isDigital', 'false').lower() == 'true'
+        is_active = request.form.get('isActive', 'true').lower() == 'true'
+        
+        # Validation
+        if not title or price <= 0:
+            return jsonify({"error": "Title and valid price are required"}), 400
+        
+        if not is_digital and (not stock or int(stock) <= 0):
+            return jsonify({"error": "Stock quantity required for physical products"}), 400
+        
+        # Handle file uploads
         image_url = None
+        file_url = None
+        
+        # Handle product image
         if 'image' in request.files:
             image_file = request.files['image']
             if image_file and image_file.filename:
-                image_filename = secure_filename(image_file.filename)
-                image_url = uploadFile(image_file, image_filename)
-
-        # Basic field validation
-        if not title or not price or not image_url:
-            return jsonify({"error": "Missing required fields (title, price, image)"}), 400
-
-        # Create product with cloudinary URL
-        new_product = Product(
-            user_id=user_id,
+                filename = secure_filename(image_file.filename)
+                timestamp = int(time.time())
+                image_filename = f"product_{user_id}_{timestamp}_{filename}"
+                
+                # Save to uploads directory
+                os.makedirs('uploads/products/images', exist_ok=True)
+                image_path = os.path.join('uploads/products/images', image_filename)
+                image_file.save(image_path)
+                image_url = f"/uploads/products/images/{image_filename}"
+        
+        # Handle digital product file
+        if is_digital and 'productFile' in request.files:
+            product_file = request.files['productFile']
+            if product_file and product_file.filename:
+                filename = secure_filename(product_file.filename)
+                timestamp = int(time.time())
+                file_filename = f"digital_{user_id}_{timestamp}_{filename}"
+                
+                # Save to uploads directory
+                os.makedirs('uploads/products/files', exist_ok=True)
+                file_path = os.path.join('uploads/products/files', file_filename)
+                product_file.save(file_path)
+                file_url = f"/uploads/products/files/{file_filename}"
+        
+        # Create product
+        product = Product(
+            creator_id=user_id,
             title=title,
             description=description,
-            price=float(price),
+            image_url=image_url or 'https://via.placeholder.com/300x300',
+            file_url=file_url,
+            price=price,
+            stock=int(stock) if not is_digital and stock else None,
             is_digital=is_digital,
-            stock=int(stock) if stock else None,
-            image_url=image_url,  # Store cloudinary URL
-            created_at=datetime.utcnow()
+            sales_revenue=0.0,
+            platform_cut=0.15,  # 15% platform cut
+            creator_earnings=0.0
         )
-
-        db.session.add(new_product)
+        
+        db.session.add(product)
         db.session.commit()
-
+        
         return jsonify({
-            "message": "Product uploaded successfully!",
-            "product": new_product.serialize()
+            "message": "Product created successfully",
+            "product": product.serialize()
         }), 201
-
+        
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Product upload failed: {str(e)}"}), 500
+        return jsonify({"error": f"Failed to create product: {str(e)}"}), 500
 
+@api.route('/products/<int:product_id>', methods=['GET'])
+def get_product_by_id(product_id):
+    """Get single product details"""
+    try:
+        product = Product.query.get(product_id)
+        
+        if not product:
+            return jsonify({"error": "Product not found"}), 404
+        
+        # Get creator info
+        creator = User.query.get(product.creator_id)
+        
+        product_data = product.serialize()
+        product_data['creator'] = {
+            "id": creator.id,
+            "username": creator.username,
+            "display_name": getattr(creator, 'display_name', None),
+            "avatar_url": getattr(creator, 'avatar_url', None)
+        } if creator else None
+        
+        # Get sales count
+        sales_count = Purchase.query.filter_by(product_id=product_id).count()
+        product_data['sales_count'] = sales_count
+        
+        return jsonify(product_data), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to get product: {str(e)}"}), 500
 
 # Note: Remember to update your import statement at the top of routes.py:
 # Change: from cloudinary_setup import uploadFile
@@ -3690,21 +3830,81 @@ def subscribe_to_paid_podcast(podcast_id):
 @api.route('/purchase_podcast', methods=['POST'])
 @jwt_required()
 def purchase_podcast():
-    user_id = get_jwt_identity()
-    data = request.json
-    podcast_id = data.get("podcast_id")
-    podcast = Podcast.query.get(podcast_id)
+    """Purchase individual podcast episode"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.json
+        podcast_id = data.get("podcast_id")
+        episode_id = data.get("episode_id")  # If buying specific episode
+        
+        podcast = Podcast.query.get(podcast_id)
+        if not podcast:
+            return jsonify({"error": "Podcast not found"}), 404
 
-    if not podcast:
-        return jsonify({"error": "Podcast not found"}), 404
+        # Check if episode specified
+        if episode_id:
+            episode = PodcastEpisode.query.get(episode_id)
+            if not episode or episode.podcast_id != podcast_id:
+                return jsonify({"error": "Episode not found"}), 404
+            price = getattr(episode, 'price', 2.99)  # Episode price
+            item_name = f"{podcast.name} - {episode.title}"
+        else:
+            price = getattr(podcast, 'price_per_episode', 2.99)  # Podcast price
+            item_name = podcast.name
 
-    if podcast.price_per_episode:
-        amount = podcast.price_per_episode
-    else:
-        return jsonify({"error": "Podcast not for sale"}), 400
+        if not price or price <= 0:
+            return jsonify({"error": "This content is not for sale"}), 400
 
-    # TODO: Integrate with Stripe payment
-    return jsonify({"message": "Payment processed successfully"}), 200
+        # Check if already purchased
+        existing_purchase = PodcastPurchase.query.filter_by(
+            user_id=user_id,
+            podcast_id=podcast_id,
+            episode_id=episode_id
+        ).first()
+        
+        if existing_purchase:
+            return jsonify({"error": "Already purchased"}), 400
+
+        # Create Stripe payment
+        try:
+            import stripe
+            stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
+            
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'usd',
+                        'product_data': {
+                            'name': item_name,
+                            'description': podcast.description[:100] if podcast.description else '',
+                        },
+                        'unit_amount': int(price * 100),
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=f"{os.getenv('FRONTEND_URL')}/podcast/purchase-success?session_id={{CHECKOUT_SESSION_ID}}",
+                cancel_url=f"{os.getenv('FRONTEND_URL')}/podcast/{podcast_id}",
+                metadata={
+                    'type': 'podcast_purchase',
+                    'podcast_id': str(podcast_id),
+                    'episode_id': str(episode_id) if episode_id else '',
+                    'user_id': str(user_id),
+                    'price': str(price)
+                }
+            )
+            
+            return jsonify({
+                "checkout_url": checkout_session.url,
+                "session_id": checkout_session.id
+            }), 200
+            
+        except Exception as stripe_error:
+            return jsonify({"error": f"Payment failed: {str(stripe_error)}"}), 500
+            
+    except Exception as e:
+        return jsonify({"error": f"Purchase failed: {str(e)}"}), 500
 
 @api.route('/podcast/<int:podcast_id>/create_clip', methods=['POST'])
 @jwt_required()
@@ -4976,42 +5176,6 @@ def update_refund(refund_id):
     db.session.commit()
     return jsonify({"msg": f"Refund {refund.status}"}), 200
 
-@api.route("/revenue-analytics", methods=["GET"])
-@jwt_required()
-def get_revenue_analytics():
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-
-    # Check if the user is an admin
-    is_admin = user.role == 'admin'
-
-    # If not admin, filter by creator_id; if admin, no filtering
-    filters = (Product.creator_id == user_id,) if not is_admin else ()
-
-    # Calculate total revenue
-    total_revenue = db.session.query(func.sum(Product.sales_revenue)).filter(*filters).scalar() or 0
-
-    # Calculate total products sold
-    total_products = Product.query.filter(*filters).count()
-
-    # Calculate total orders
-    total_orders = db.session.query(Order).filter(*filters).count()
-
-    # Optional: Revenue by month (only available for admin or for the creator's own data)
-    revenue_by_month = db.session.query(
-        func.date_trunc('month', Order.created_at).label('month'),
-        func.sum(Order.amount)
-    ).filter(*filters).group_by('month').order_by('month').all()
-
-    # Return the data as a JSON response
-    return jsonify({
-        "total_revenue": round(total_revenue, 2),
-        "total_products": total_products,
-        "total_orders": total_orders,
-        "revenue_by_month": [
-            {"month": str(month), "amount": float(amount)} for month, amount in revenue_by_month
-        ]
-    }), 200
 
 # Function to start recording a stream
 def start_recording(stream_url, output_path):
@@ -5607,46 +5771,58 @@ def stripe_webhook():
 
     return jsonify({"status": "success"}), 200
 
+
 def handle_checkout_completed(session):
     """Handle successful checkout completion"""
     try:
-        user_id = session['metadata']['user_id']
-        plan_id = session['metadata']['plan_id']
-        billing_cycle = session['metadata']['billing_cycle']
-        
-        # Update the pending subscription with Stripe subscription ID
-        subscription = Subscription.query.filter_by(
-            user_id=user_id,
-            plan_id=plan_id,
-            status="pending"
-        ).first()
-        
-        if subscription:
-            # Get the Stripe subscription ID from the session
-            stripe_subscription = stripe.Subscription.retrieve(session['subscription'])
+        # SUBSCRIPTION HANDLING (your existing code)
+        if 'user_id' in session['metadata'] and 'plan_id' in session['metadata']:
+            user_id = session['metadata']['user_id']
+            plan_id = session['metadata']['plan_id']
+            billing_cycle = session['metadata']['billing_cycle']
             
-            subscription.stripe_subscription_id = stripe_subscription.id
-            subscription.status = "active"
-            subscription.start_date = datetime.utcnow()
+            # Update the pending subscription with Stripe subscription ID
+            subscription = Subscription.query.filter_by(
+                user_id=user_id,
+                plan_id=plan_id,
+                status="pending"
+            ).first()
             
-            # Set end date based on billing cycle
-            if billing_cycle == "yearly":
-                subscription.end_date = datetime.utcnow() + timedelta(days=365)
-            else:
-                subscription.end_date = datetime.utcnow() + timedelta(days=30)
-            
-            db.session.commit()
-            
-            # Update user's trial status if they were on trial
-            user = User.query.get(user_id)
-            if user and user.is_on_trial:
-                user.is_on_trial = False
+            if subscription:
+                # Get the Stripe subscription ID from the session
+                stripe_subscription = stripe.Subscription.retrieve(session['subscription'])
+                
+                subscription.stripe_subscription_id = stripe_subscription.id
+                subscription.status = "active"
+                subscription.start_date = datetime.utcnow()
+                
+                # Set end date based on billing cycle
+                if billing_cycle == "yearly":
+                    subscription.end_date = datetime.utcnow() + timedelta(days=365)
+                else:
+                    subscription.end_date = datetime.utcnow() + timedelta(days=30)
+                
                 db.session.commit()
-            
-            print(f"✅ Subscription activated for user {user_id}")
+                
+                # Update user's trial status if they were on trial
+                user = User.query.get(user_id)
+                if user and user.is_on_trial:
+                    user.is_on_trial = False
+                    db.session.commit()
+                
+                print(f"✅ Subscription activated for user {user_id}")
         
+        # NEW: MARKETPLACE PURCHASE HANDLING
+        elif 'product_id' in session['metadata']:
+            handle_marketplace_payment_success(session)
+        
+        # NEW: PODCAST PURCHASE HANDLING
+        elif session['metadata'].get('type') == 'podcast_purchase':
+            handle_podcast_payment_success(session)
+            
     except Exception as e:
         print(f"❌ Error handling checkout completion: {e}")
+
 
 def handle_subscription_created(subscription):
     """Handle when a subscription is created in Stripe"""
@@ -5663,6 +5839,7 @@ def handle_subscription_created(subscription):
             
     except Exception as e:
         print(f"❌ Error handling subscription creation: {e}")
+
 
 def handle_subscription_updated(subscription):
     """Handle subscription updates (plan changes, etc.)"""
@@ -5689,6 +5866,7 @@ def handle_subscription_updated(subscription):
     except Exception as e:
         print(f"❌ Error handling subscription update: {e}")
 
+
 def handle_subscription_cancelled(subscription):
     """Handle subscription cancellation"""
     try:
@@ -5705,6 +5883,7 @@ def handle_subscription_cancelled(subscription):
             
     except Exception as e:
         print(f"❌ Error handling subscription cancellation: {e}")
+
 
 def handle_payment_succeeded(invoice):
     """Handle successful payment"""
@@ -5730,6 +5909,7 @@ def handle_payment_succeeded(invoice):
     except Exception as e:
         print(f"❌ Error handling payment success: {e}")
 
+
 def handle_payment_failed(invoice):
     """Handle failed payment"""
     try:
@@ -5750,7 +5930,71 @@ def handle_payment_failed(invoice):
     except Exception as e:
         print(f"❌ Error handling payment failure: {e}")
 
-# Add this to check subscription status including grace period
+
+# NEW: MARKETPLACE PAYMENT HANDLER
+def handle_marketplace_payment_success(session):
+    """Handle successful marketplace payment"""
+    try:
+        metadata = session['metadata']
+        product_id = int(metadata['product_id'])
+        buyer_id = int(metadata['buyer_id'])
+        creator_id = int(metadata['creator_id'])
+        platform_cut = float(metadata['platform_cut'])
+        creator_earnings = float(metadata['creator_earnings'])
+        
+        # Create purchase record
+        purchase = Purchase(
+            user_id=buyer_id,
+            product_id=product_id,
+            amount=session['amount_total'] / 100,  # Convert from cents
+            platform_cut=platform_cut,
+            creator_earnings=creator_earnings
+        )
+        
+        db.session.add(purchase)
+        
+        # Update product sales
+        product = Product.query.get(product_id)
+        if product:
+            product.sales_revenue += creator_earnings
+            if not product.is_digital and product.stock > 0:
+                product.stock -= 1
+        
+        db.session.commit()
+        print(f"✅ Marketplace purchase completed: Product {product_id}, Buyer {buyer_id}")
+        
+    except Exception as e:
+        print(f"❌ Error handling marketplace payment: {str(e)}")
+        db.session.rollback()
+
+
+# NEW: PODCAST PAYMENT HANDLER
+def handle_podcast_payment_success(session):
+    """Handle successful podcast payment"""
+    try:
+        metadata = session['metadata']
+        podcast_id = int(metadata['podcast_id'])
+        user_id = int(metadata['user_id'])
+        episode_id = int(metadata['episode_id']) if metadata.get('episode_id') else None
+        
+        # Create purchase record
+        purchase = PodcastPurchase(
+            user_id=user_id,
+            podcast_id=podcast_id,
+            episode_id=episode_id,
+            amount=float(metadata['price'])
+        )
+        
+        db.session.add(purchase)
+        db.session.commit()
+        print(f"✅ Podcast purchase completed: Podcast {podcast_id}, User {user_id}")
+        
+    except Exception as e:
+        print(f"❌ Error handling podcast payment: {str(e)}")
+        db.session.rollback()
+
+
+# EXISTING: SUBSCRIPTION STATUS CHECKER
 def is_subscription_active(user_id):
     """Check if user has active subscription including grace period"""
     subscription = Subscription.query.filter_by(
@@ -8825,75 +9069,112 @@ def get_my_inner_circle():
     }), 200
 
 # ⭐ Inner Circle - Add friend to inner circle
-@api.route('/profile/inner-circle/add', methods=['POST'])
+@api.route('/inner-circle/add', methods=['POST'])
 @jwt_required()
 def add_to_inner_circle():
-    """Add a friend to inner circle"""
-    user_id = get_jwt_identity()
-    data = request.json
-    
-    friend_user_id = data.get('friend_user_id')
-    position = data.get('position')  # Optional
-    custom_title = data.get('custom_title', '').strip()[:50]  # Limit title length
-    
-    if not friend_user_id:
-        return jsonify({"error": "Friend user ID is required"}), 400
-    
-    # Verify friend exists and isn't the same user
-    friend = User.query.get(friend_user_id)
-    if not friend:
-        return jsonify({"error": "Friend not found"}), 404
-    
-    if friend_user_id == user_id:
-        return jsonify({"error": "Cannot add yourself to inner circle"}), 400
-    
-    # Check if already in inner circle
-    existing = InnerCircle.query.filter_by(user_id=user_id, friend_user_id=friend_user_id).first()
-    if existing:
-        return jsonify({"error": "Friend already in inner circle"}), 400
-    
-    # Check if inner circle is full (10 members max)
-    current_count = InnerCircle.query.filter_by(user_id=user_id).count()
-    if current_count >= 10 and not position:
-        return jsonify({"error": "Inner circle is full (10 members max)"}), 400
-    
+    """Add user to inner circle"""
     try:
-        user = User.query.get(user_id)
-        new_member = user.add_to_inner_circle(friend_user_id, position, custom_title)
+        user_id = get_jwt_identity()
+        data = request.get_json()
         
-        if not new_member:
-            return jsonify({"error": "Could not add to inner circle"}), 400
+        member_user_id = data.get('user_id')
+        if not member_user_id:
+            return jsonify({"error": "user_id is required"}), 400
         
+        # Check if user exists
+        member_user = User.query.get(member_user_id)
+        if not member_user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Can't add yourself
+        if member_user_id == user_id:
+            return jsonify({"error": "Cannot add yourself to inner circle"}), 400
+        
+        # Check if already in circle
+        existing = InnerCircle.query.filter_by(
+            user_id=user_id,
+            member_user_id=member_user_id
+        ).first()
+        
+        if existing:
+            return jsonify({"error": "User already in inner circle"}), 400
+        
+        # Check circle limit (10 members)
+        current_count = InnerCircle.query.filter_by(user_id=user_id).count()
+        if current_count >= 10:
+            return jsonify({"error": "Inner circle is full (max 10 members)"}), 400
+        
+        # Add to circle
+        new_member = InnerCircle(
+            user_id=user_id,
+            member_user_id=member_user_id,
+            position=current_count + 1
+        )
+        
+        db.session.add(new_member)
         db.session.commit()
         
         return jsonify({
-            "message": "Friend added to inner circle",
-            "member": new_member.serialize()
+            "message": "User added to inner circle",
+            "member": {
+                "id": new_member.id,
+                "user_id": member_user.id,
+                "username": member_user.username,
+                "display_name": getattr(member_user, 'display_name', None),
+                "avatar_url": getattr(member_user, 'avatar_url', None),
+                "position": new_member.position
+            }
         }), 201
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Failed to add to inner circle: {str(e)}"}), 500
 
 # ⭐ Inner Circle - Remove friend from inner circle
-@api.route('/profile/inner-circle/remove/<int:friend_user_id>', methods=['DELETE'])
+@api.route('/inner-circle/search', methods=['GET'])
 @jwt_required()
-def remove_from_inner_circle(friend_user_id):
-    """Remove a friend from inner circle"""
-    user_id = get_jwt_identity()
-    
+def search_users_for_circle():
+    """Search users to add to inner circle"""
     try:
-        user = User.query.get(user_id)
-        success = user.remove_from_inner_circle(friend_user_id)
+        user_id = get_jwt_identity()
+        query = request.args.get('q', '').strip()
         
-        if success:
-            return jsonify({"message": "Friend removed from inner circle"}), 200
-        else:
-            return jsonify({"error": "Friend not found in inner circle"}), 404
-            
+        if not query or len(query) < 2:
+            return jsonify({"users": []}), 200
+        
+        # Get users already in circle
+        existing_circle_ids = db.session.query(InnerCircle.member_user_id)\
+            .filter_by(user_id=user_id).subquery()
+        
+        # Search users not in circle and not self
+        users = User.query.filter(
+            User.id != user_id,  # Not self
+            ~User.id.in_(existing_circle_ids),  # Not already in circle
+            or_(
+                User.username.ilike(f'%{query}%'),
+                User.display_name.ilike(f'%{query}%'),
+                User.artist_name.ilike(f'%{query}%')
+            )
+        ).limit(20).all()
+        
+        search_results = []
+        for user in users:
+            search_results.append({
+                "id": user.id,
+                "username": user.username,
+                "display_name": getattr(user, 'display_name', None),
+                "artist_name": getattr(user, 'artist_name', None),
+                "avatar_url": getattr(user, 'avatar_url', None),
+                "profile_picture": getattr(user, 'profile_picture', None),
+                "bio": getattr(user, 'bio', None)
+            })
+        
+        return jsonify({"users": search_results}), 200
+        
     except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Failed to search users: {str(e)}"}), 500
+    
+
 
 # ⭐ Inner Circle - Reorder inner circle
 @api.route('/profile/inner-circle/reorder', methods=['PUT'])
@@ -9176,63 +9457,8 @@ def get_sonosuite_connection_status():
         }), 200
 
 # 3. SONOSUITE CONNECTION - Updated with better plan checking
-@api.route('/sonosuite/connect', methods=['POST'])
-@jwt_required()
-@plan_required("includes_music_distribution")  # Updated plan requirement
-def connect_sonosuite_account():
-    """Connect StreampireX user to SonoSuite account"""
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-    data = request.get_json()
-    
-    # Validate required fields
-    required_fields = ['sonosuite_email', 'external_id']
-    if not all(field in data for field in required_fields):
-        return jsonify({
-            "error": "Missing required fields",
-            "required": required_fields
-        }), 400
-    
-    # Check if connection already exists
-    existing_connection = SonoSuiteUser.query.filter_by(
-        streampirex_user_id=user_id
-    ).first()
-    
-    if existing_connection:
-        # Update existing connection
-        existing_connection.sonosuite_email = data['sonosuite_email']
-        existing_connection.sonosuite_external_id = data['external_id']
-        existing_connection.is_active = True
-        existing_connection.jwt_secret = SONOSUITE_SHARED_SECRET  # Updated secret
-        
-        db.session.commit()
-        
-        return jsonify({
-            "message": "SonoSuite connection updated successfully",
-            "connection": existing_connection.serialize()
-        }), 200
-    
-    # Create new connection
-    sonosuite_user = SonoSuiteUser(
-        streampirex_user_id=user_id,
-        sonosuite_external_id=data['external_id'],
-        sonosuite_email=data['sonosuite_email'],
-        jwt_secret=SONOSUITE_SHARED_SECRET,  # Updated secret
-        is_active=True
-    )
-    
-    try:
-        db.session.add(sonosuite_user)
-        db.session.commit()
-        
-        return jsonify({
-            "message": "SonoSuite account connected successfully",
-            "connection": sonosuite_user.serialize()
-        }), 201
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": f"Failed to connect SonoSuite account: {str(e)}"}), 500
+
+
 
 # 4. SONOSUITE SSO REDIRECT - Updated with proper URL handling
 @api.route('/sonosuite/redirect', methods=['GET'])
@@ -9422,73 +9648,133 @@ def get_distribution_releases():
 # 8. SUBMIT FOR DISTRIBUTION
 @api.route('/distribution/submit', methods=['POST'])
 @jwt_required()
-@plan_required("includes_music_distribution")
+@plan_required("includes_music_distribution")  # Only paid plans
 def submit_for_distribution():
     """Submit track for distribution through SonoSuite"""
-    user_id = get_jwt_identity()
-    data = request.get_json()
-    
-    # Check if user has SonoSuite connected
-    sonosuite_profile = SonoSuiteUser.query.filter_by(
-        streampirex_user_id=user_id,
-        is_active=True
-    ).first()
-    
-    if not sonosuite_profile:
-        return jsonify({
-            "error": "SonoSuite account not connected",
-            "message": "Please connect your SonoSuite account first"
-        }), 400
-    
-    # Check upload limits
-    upload_check = check_upload_limit(user_id, "music")
-    if not upload_check["allowed"]:
-        return jsonify({
-            "error": "Upload limit reached",
-            "limit_info": upload_check
-        }), 400
-    
-    # Validate required fields
-    required_fields = ['track_id', 'release_title', 'artist_name', 'genre']
-    if not all(field in data for field in required_fields):
-        return jsonify({
-            "error": "Missing required fields",
-            "required": required_fields
-        }), 400
-    
     try:
-        # Here you would integrate with SonoSuite API to submit the track
-        # For now, we'll create a record in our database
+        user_id = get_jwt_identity()
+        data = request.get_json()
         
-        submission = {
-            "user_id": user_id,
-            "track_id": data["track_id"],
-            "release_title": data["release_title"],
-            "artist_name": data["artist_name"],
-            "genre": data["genre"],
-            "release_date": data.get("release_date"),
-            "label": data.get("label", "StreampireX Records"),
-            "explicit": data.get("explicit", False),
-            "platforms": data.get("platforms", []),
-            "territories": data.get("territories", ["worldwide"]),
-            "status": "pending",
-            "submitted_at": datetime.utcnow(),
-            "sonosuite_submission_id": f"spx_{user_id}_{int(time.time())}"
-        }
+        # Check if user has SonoSuite connected
+        sonosuite_profile = SonoSuiteUser.query.filter_by(
+            streampirex_user_id=user_id,
+            is_active=True
+        ).first()
         
-        # TODO: Save to database and integrate with SonoSuite API
+        if not sonosuite_profile:
+            return jsonify({
+                "error": "SonoSuite account not connected",
+                "message": "Please connect your SonoSuite account first"
+            }), 400
+        
+        # Validate required fields
+        required_fields = ['track_id', 'release_title', 'artist_name', 'genre']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        if missing_fields:
+            return jsonify({
+                "error": "Missing required fields",
+                "missing": missing_fields
+            }), 400
+        
+        # Get track details
+        track = Audio.query.filter_by(id=data['track_id'], user_id=user_id).first()
+        if not track:
+            return jsonify({"error": "Track not found or unauthorized"}), 404
+        
+        # Check if track is already distributed
+        existing_distribution = MusicDistribution.query.filter_by(
+            track_id=track.id
+        ).filter(MusicDistribution.status.in_(["pending", "processing", "submitted", "live"])).first()
+        
+        if existing_distribution:
+            return jsonify({
+                "error": "Track is already distributed or being processed",
+                "existing_distribution": existing_distribution.serialize()
+            }), 400
+        
+        # Prepare platform and territory data
+        platforms = data.get('platforms', [
+            'spotify', 'apple_music', 'amazon_music', 'youtube_music', 
+            'deezer', 'tidal', 'pandora', 'shazam'
+        ])
+        territories = data.get('territories', ['worldwide'])
+        
+        # Calculate expected live date (24-48 hours from now)
+        expected_live = datetime.utcnow() + timedelta(hours=48)
+        
+        # Create distribution submission record
+        submission = MusicDistribution(
+            user_id=user_id,
+            track_id=data["track_id"],
+            release_title=data["release_title"],
+            artist_name=data["artist_name"],
+            genre=data["genre"],
+            release_date=data.get("release_date", datetime.utcnow().date()),
+            label=data.get("label", "StreampireX Records"),
+            explicit=data.get("explicit", False),
+            platforms=platforms,
+            territories=territories,
+            status="pending",
+            submitted_at=datetime.utcnow(),
+            expected_live_date=expected_live,
+            sonosuite_submission_id=f"spx_{user_id}_{int(time.time())}"
+        )
+        
+        db.session.add(submission)
+        db.session.commit()
+        
+        # TODO: Here you would integrate with actual SonoSuite API
+        # For now, we'll simulate the submission
         
         return jsonify({
-            "message": "Track submitted successfully for distribution",
-            "submission_id": submission["sonosuite_submission_id"],
-            "status": "pending",
-            "estimated_live_date": "24-48 hours"
+            "message": "✅ Track submitted for distribution successfully",
+            "submission_id": submission.id,
+            "sonosuite_submission_id": submission.sonosuite_submission_id,
+            "expected_live_date": expected_live.isoformat(),
+            "platforms": platforms,
+            "status": "pending"
         }), 201
         
     except Exception as e:
-        return jsonify({
-            "error": f"Failed to submit track: {str(e)}"
-        }), 500
+        db.session.rollback()
+        return jsonify({"error": f"Distribution submission failed: {str(e)}"}), 500
+    
+@api.route('/distribution/status/<int:submission_id>', methods=['GET'])
+@jwt_required()
+def get_distribution_status(submission_id):
+    """Get distribution status"""
+    try:
+        user_id = get_jwt_identity()
+        
+        submission = MusicDistribution.query.filter_by(
+            id=submission_id,
+            user_id=user_id
+        ).first()
+        
+        if not submission:
+            return jsonify({"error": "Distribution submission not found"}), 404
+        
+        return jsonify(submission.serialize()), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to get status: {str(e)}"}), 500
+    
+@api.route('/distribution/my-submissions', methods=['GET'])
+@jwt_required()
+def get_my_distributions():
+    """Get user's distribution submissions"""
+    try:
+        user_id = get_jwt_identity()
+        
+        submissions = MusicDistribution.query.filter_by(user_id=user_id)\
+            .order_by(MusicDistribution.submitted_at.desc()).all()
+        
+        return jsonify([sub.serialize() for sub in submissions]), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to get distributions: {str(e)}"}), 500
+
+
 
 @api.route('/distribution/<int:distribution_id>/status', methods=['PUT'])
 @jwt_required()
@@ -10021,22 +10307,74 @@ def distribute_music():
 
 @api.route('/sonosuite/connect', methods=['POST'])
 @jwt_required()
-@plan_required("sonosuite_access")
 def connect_sonosuite():
-    user_id = get_jwt_identity()
-    data = request.get_json()
+    """Connect user's SonoSuite account"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        email = data.get('email')
+        external_id = data.get('external_id')
+        
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+        
+        # Check if already connected
+        existing = SonoSuiteUser.query.filter_by(
+            streampirex_user_id=user_id,
+            is_active=True
+        ).first()
+        
+        if existing:
+            return jsonify({"error": "SonoSuite account already connected"}), 400
+        
+        # Create connection
+        sonosuite_user = SonoSuiteUser(
+            streampirex_user_id=user_id,
+            sonosuite_email=email,
+            sonosuite_external_id=external_id or f"spx_user_{user_id}",
+            is_active=True
+        )
+        
+        db.session.add(sonosuite_user)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "✅ SonoSuite account connected successfully",
+            "connection": sonosuite_user.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to connect SonoSuite: {str(e)}"}), 500
+                        
+@api.route('/sonosuite/status', methods=['GET'])
+@jwt_required()
+def get_sonosuite_status():
+    """Get SonoSuite connection status"""
+    try:
+        user_id = get_jwt_identity()
+        
+        connection = SonoSuiteUser.query.filter_by(
+            streampirex_user_id=user_id,
+            is_active=True
+        ).first()
+        
+        if connection:
+            return jsonify({
+                "connected": True,
+                "connection": connection.serialize()
+            }), 200
+        else:
+            return jsonify({
+                "connected": False,
+                "connection": None
+            }), 200
             
-                # Create SonoSuite connection
-    sonosuite_user = SonoSuiteUser(
-        streampirex_user_id=user_id,
-        sonosuite_external_id=data["external_id"],
-        sonosuite_email=data["email"],
-        jwt_secret=data["jwt_secret"]
-    )
-    db.session.add(sonosuite_user)
-    db.session.commit()
-                                                                    
-    return jsonify({"message": "🎼 SonoSuite connected successfully"}), 201
+    except Exception as e:
+        return jsonify({"error": f"Failed to get status: {str(e)}"}), 500
+
+
 
 # Video Distribution Routes
 @api.route('/video/distribute', methods=['POST'])
@@ -10092,141 +10430,157 @@ def get_user_plan(user_id):
         return PricingPlan.query.filter_by(name="Free").first()
 
 
-@api.route('/pricing-plans', methods=['GET'])
+@api.route('/pricing/plans', methods=['GET'])
 def get_pricing_plans():
-    """Get all pricing plans for display on the frontend"""
+    """Get all available pricing plans"""
     try:
-        plans = PricingPlan.query.all()
-        
-        if not plans:
-            # If no plans exist, create the default ones
-            create_default_pricing_plans()
-            plans = PricingPlan.query.all()
-            
-        return jsonify([plan.serialize() for plan in plans]), 200
-    except Exception as e:
-        print(f"Error fetching pricing plans: {e}")
-        return jsonify({"error": "Failed to fetch pricing plans"}), 500
-
-def create_default_pricing_plans():
-    """Create the default pricing plans if they don't exist"""
-    try:
-        # Check if plans already exist
-        existing_plans = PricingPlan.query.count()
-        if existing_plans > 0:
-            return
-            
-        print("Creating default pricing plans...")
-        
-        plans_data = [
+        # Define your pricing plans (you can move this to database later)
+        plans = [
             {
+                "id": 1,
                 "name": "Free",
-                "price_monthly": 0.00,
-                "price_yearly": 0.00,
-                "trial_days": 0,
-                "includes_podcasts": False,
-                "includes_radio": False,
-                "includes_digital_sales": False,
-                "includes_merch_sales": False,
+                "price_monthly": 0,
+                "price_yearly": 0,
+                "description": "Perfect for getting started",
+                "includes_podcasts": True,
+                "includes_radio": True,
                 "includes_live_events": False,
-                "includes_tip_jar": False,
+                "includes_digital_sales": True,
+                "includes_merch_sales": False,
+                "includes_tip_jar": True,
                 "includes_ad_revenue": False,
-                "includes_music_distribution": False,
-                "sonosuite_access": False,
-                "distribution_uploads_limit": 0,
+                "includes_brand_partnerships": False,
+                "includes_affiliate_marketing": False,
                 "includes_gaming_features": True,
                 "includes_team_rooms": False,
                 "includes_squad_finder": True,
-                "includes_gaming_analytics": False,
-                "includes_game_streaming": False,
-                "includes_gaming_monetization": False,
-                "includes_video_distribution": False,
-                "video_uploads_limit": 0
-            },
-            {
-                "name": "Basic",
-                "price_monthly": 4.99,
-                "price_yearly": 49.99,
-                "trial_days": 7,
-                "includes_podcasts": True,
-                "includes_radio": True,
-                "includes_digital_sales": False,
-                "includes_merch_sales": False,
-                "includes_live_events": False,
-                "includes_tip_jar": False,
-                "includes_ad_revenue": False,
                 "includes_music_distribution": False,
-                "sonosuite_access": False,
-                "distribution_uploads_limit": 0,
-                "includes_gaming_features": True,
-                "includes_team_rooms": True,
-                "includes_squad_finder": True,
-                "includes_gaming_analytics": True,
-                "includes_game_streaming": False,
-                "includes_gaming_monetization": False,
-                "includes_video_distribution": False,
-                "video_uploads_limit": 0
+                "max_uploads": 5,
+                "max_storage_gb": 1,
+                "features": [
+                    "📱 Multi-Platform Social Posting",
+                    "🎙️ Create Podcasts",
+                    "📻 Radio Stations", 
+                    "🛍️ Digital Sales",
+                    "💰 Fan Tipping",
+                    "🎮 Gaming Community",
+                    "🔍 Squad Finder"
+                ]
             },
             {
-                "name": "Pro",
-                "price_monthly": 14.99,
-                "price_yearly": 149.99,
-                "trial_days": 14,
+                "id": 2,
+                "name": "Creator",
+                "price_monthly": 9.99,
+                "price_yearly": 99.99,
+                "description": "For serious content creators",
                 "includes_podcasts": True,
                 "includes_radio": True,
+                "includes_live_events": True,
                 "includes_digital_sales": True,
                 "includes_merch_sales": True,
-                "includes_live_events": True,
                 "includes_tip_jar": True,
                 "includes_ad_revenue": True,
-                "includes_music_distribution": True,
-                "sonosuite_access": True,
-                "distribution_uploads_limit": 10,  # 10 tracks per month
+                "includes_brand_partnerships": False,
+                "includes_affiliate_marketing": False,
                 "includes_gaming_features": True,
                 "includes_team_rooms": True,
                 "includes_squad_finder": True,
-                "includes_gaming_analytics": True,
-                "includes_game_streaming": True,
-                "includes_gaming_monetization": True,
-                "includes_video_distribution": True,
-                "video_uploads_limit": 5
+                "includes_music_distribution": False,
+                "max_uploads": 50,
+                "max_storage_gb": 10,
+                "features": [
+                    "📱 Multi-Platform Social Posting",
+                    "🎙️ Create Podcasts",
+                    "📻 Radio Stations",
+                    "🎥 Live Streaming",
+                    "🛍️ Digital Sales",
+                    "👕 Merch Store",
+                    "💰 Fan Tipping",
+                    "📺 Ad Revenue Sharing",
+                    "🎮 Gaming Community",
+                    "🏠 Private Team Rooms",
+                    "🔍 Squad Finder"
+                ]
             },
             {
+                "id": 3,
                 "name": "Premium",
-                "price_monthly": 29.99,
-                "price_yearly": 299.99,
-                "trial_days": 30,
+                "price_monthly": 19.99,
+                "price_yearly": 199.99,
+                "description": "Maximum monetization power",
                 "includes_podcasts": True,
                 "includes_radio": True,
+                "includes_live_events": True,
                 "includes_digital_sales": True,
                 "includes_merch_sales": True,
-                "includes_live_events": True,
                 "includes_tip_jar": True,
                 "includes_ad_revenue": True,
-                "includes_music_distribution": True,
-                "sonosuite_access": True,
-                "distribution_uploads_limit": -1,  # Unlimited
+                "includes_brand_partnerships": True,
+                "includes_affiliate_marketing": True,
                 "includes_gaming_features": True,
                 "includes_team_rooms": True,
                 "includes_squad_finder": True,
-                "includes_gaming_analytics": True,
-                "includes_game_streaming": True,
-                "includes_gaming_monetization": True,
-                "includes_video_distribution": True,
-                "video_uploads_limit": -1  # Unlimited
+                "includes_music_distribution": False,
+                "max_uploads": 999,
+                "max_storage_gb": 100,
+                "features": [
+                    "📱 Multi-Platform Social Posting",
+                    "🎙️ Create Podcasts",
+                    "📻 Radio Stations",
+                    "🎥 Live Streaming", 
+                    "🛍️ Digital Sales",
+                    "👕 Merch Store",
+                    "💰 Fan Tipping",
+                    "📺 Ad Revenue Sharing",
+                    "🤝 Brand Partnership Hub",
+                    "💼 Affiliate Marketing Tools",
+                    "🎮 Gaming Community",
+                    "🏠 Private Team Rooms",
+                    "🔍 Squad Finder"
+                ]
             }
         ]
         
-        for plan_data in plans_data:
-            plan = PricingPlan(**plan_data)
-            db.session.add(plan)
-            
-        db.session.commit()
-        print("✅ Default pricing plans created successfully!")
+        return jsonify({"plans": plans}), 200
         
     except Exception as e:
-        db.session.rollback()
-        print(f"❌ Error creating default pricing plans: {e}")
+        return jsonify({"error": f"Failed to fetch plans: {str(e)}"}), 500
+
+@api.route('/user/current-plan', methods=['GET'])
+@jwt_required()
+def get_current_user_plan():
+    """Get current user's plan"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Check if user has an active subscription
+        subscription = UserSubscription.query.filter_by(
+            user_id=user_id,
+            is_active=True
+        ).first()
+        
+        if subscription:
+            # Get plan details from PricingPlan model if you have it
+            plan = PricingPlan.query.get(subscription.plan_id)
+            if plan:
+                return jsonify({
+                    "plan": plan.serialize(),
+                    "subscription": subscription.serialize()
+                }), 200
+        
+        # Default to free plan
+        return jsonify({
+            "plan": {
+                "id": 1,
+                "name": "Free",
+                "price_monthly": 0,
+                "description": "Free plan"
+            },
+            "subscription": None
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to get current plan: {str(e)}"}), 500
 
 # ADD THESE NEW ROUTES TO YOUR routes.py - NO CONFLICTS
 
@@ -10752,33 +11106,41 @@ def get_top_users():
 
 # ============ MODIFIED INNER CIRCLE ROUTES (USING YOUR EXISTING MODEL) ============
 
-@api.route('/inner-circle/<int:user_id>', methods=['GET'])
+@api.route('/inner-circle', methods=['GET'])
 @jwt_required()
-def get_inner_circle_for_profile(user_id):
-    """Get inner circle members for ProfilePage.js (uses your existing model)"""
+def get_inner_circle():
+    """Get user's inner circle"""
     try:
-        # Use your existing InnerCircle model with position ordering
-        inner_circle = InnerCircle.query.filter_by(user_id=user_id)\
-                                       .order_by(InnerCircle.position)\
-                                       .all()
+        user_id = get_jwt_identity()
+        
+        # Get inner circle members
+        inner_circle = InnerCircle.query.filter_by(user_id=user_id).all()
         
         members = []
-        for ic in inner_circle:
-            # Adapt to what ProfilePage.js expects
-            member_data = {
-                'id': ic.friend.id if ic.friend else ic.friend_user_id,
-                'username': ic.friend.username if ic.friend else f"User_{ic.friend_user_id}",
-                'display_name': getattr(ic.friend, 'artist_name', None) or getattr(ic.friend, 'display_name', None) or ic.friend.username if ic.friend else None,
-                'profile_picture': getattr(ic.friend, 'avatar_url', None) or getattr(ic.friend, 'profile_picture', None) if ic.friend else None,
-                'bio': getattr(ic.friend, 'bio', None) if ic.friend else None,
-                'track_count': Video.query.filter_by(user_id=ic.friend_user_id).count() if ic.friend else 0,
-                'follower_count': getattr(ic.friend, 'follower_count', 0) if ic.friend else 0,
-                'position': ic.position,
-                'custom_title': ic.custom_title
-            }
-            members.append(member_data)
+        for circle_member in inner_circle:
+            member_user = User.query.get(circle_member.member_user_id)
+            if member_user:
+                members.append({
+                    "id": circle_member.id,
+                    "user_id": member_user.id,
+                    "username": member_user.username,
+                    "display_name": getattr(member_user, 'display_name', None),
+                    "avatar_url": getattr(member_user, 'avatar_url', None),
+                    "profile_picture": getattr(member_user, 'profile_picture', None),
+                    "artist_name": getattr(member_user, 'artist_name', None),
+                    "bio": getattr(member_user, 'bio', None),
+                    "added_at": circle_member.created_at.isoformat(),
+                    "position": circle_member.position or len(members) + 1
+                })
         
-        return jsonify({"members": members}), 200
+        # Sort by position
+        members.sort(key=lambda x: x['position'])
+        
+        return jsonify({
+            "inner_circle": members,
+            "count": len(members),
+            "max_members": 10
+        }), 200
         
     except Exception as e:
         return jsonify({"error": f"Failed to get inner circle: {str(e)}"}), 500
@@ -11578,3 +11940,350 @@ def upload_video_json():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Failed to upload video: {str(e)}"}), 500
+
+# Add these endpoints to your routes.py file
+
+# 1. GET USER SALES - Recent sales transactions
+@api.route('/user/sales', methods=['GET'])
+@jwt_required()
+def get_user_sales():
+    """Get recent sales transactions for a user"""
+    try:
+        user_id = get_jwt_identity()
+        limit = request.args.get('limit', 10, type=int)
+        page = request.args.get('page', 1, type=int)
+        
+        # Get all purchases where the user is the creator of the product
+        sales_query = db.session.query(Purchase, Product, User)\
+            .join(Product, Purchase.product_id == Product.id)\
+            .join(User, Purchase.user_id == User.id)\
+            .filter(Product.creator_id == user_id)\
+            .order_by(Purchase.purchased_at.desc())
+        
+        # Apply pagination
+        offset = (page - 1) * limit
+        sales = sales_query.offset(offset).limit(limit).all()
+        
+        # Format the response
+        sales_data = []
+        for purchase, product, buyer in sales:
+            sales_data.append({
+                "id": purchase.id,
+                "product_id": product.id,
+                "product_title": product.title,
+                "product_image": product.image_url,
+                "buyer_id": buyer.id,
+                "buyer_username": buyer.username,
+                "buyer_email": buyer.email,
+                "amount": purchase.amount,
+                "platform_cut": purchase.platform_cut,
+                "creator_earnings": purchase.creator_earnings,
+                "purchased_at": purchase.purchased_at.isoformat(),
+                "is_digital": product.is_digital,
+                "status": "completed"  # You can add status field to Purchase model if needed
+            })
+        
+        # Get total count for pagination
+        total_sales = sales_query.count()
+        has_next = offset + limit < total_sales
+        has_prev = page > 1
+        
+        return jsonify({
+            "sales": sales_data,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total": total_sales,
+                "has_next": has_next,
+                "has_prev": has_prev,
+                "pages": (total_sales + limit - 1) // limit
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch sales: {str(e)}"}), 500
+
+
+# 2. ENHANCED REVENUE ANALYTICS - Fixed to include missing fields
+@api.route("/revenue-analytics", methods=["GET"])
+@jwt_required()
+def get_revenue_analytics():
+    """Get comprehensive revenue analytics for a user"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        period = request.args.get('period', 'all')  # all, week, month, year
+        
+        # Check if the user is an admin
+        is_admin = hasattr(user, 'role') and user.role == 'admin'
+        
+        # Date filtering based on period
+        date_filter = None
+        if period == 'week':
+            date_filter = datetime.utcnow() - timedelta(days=7)
+        elif period == 'month':
+            date_filter = datetime.utcnow() - timedelta(days=30)
+        elif period == 'year':
+            date_filter = datetime.utcnow() - timedelta(days=365)
+        
+        if is_admin:
+            # Admin sees all revenue data
+            # Total revenue from all purchases
+            revenue_query = db.session.query(func.sum(Purchase.amount))
+            platform_cut_query = db.session.query(func.sum(Purchase.platform_cut))
+            creator_earnings_query = db.session.query(func.sum(Purchase.creator_earnings))
+            orders_query = db.session.query(func.count(Purchase.id))
+            products_query = db.session.query(func.count(Product.id))
+            
+            if date_filter:
+                revenue_query = revenue_query.filter(Purchase.purchased_at >= date_filter)
+                platform_cut_query = platform_cut_query.filter(Purchase.purchased_at >= date_filter)
+                creator_earnings_query = creator_earnings_query.filter(Purchase.purchased_at >= date_filter)
+                orders_query = orders_query.filter(Purchase.purchased_at >= date_filter)
+                products_query = products_query.filter(Product.created_at >= date_filter)
+            
+            total_revenue = revenue_query.scalar() or 0
+            total_platform_cut = platform_cut_query.scalar() or 0
+            total_creator_earnings = creator_earnings_query.scalar() or 0
+            total_orders = orders_query.scalar() or 0
+            total_products = products_query.scalar() or 0
+            
+        else:
+            # User sees only their revenue data
+            # Revenue from products they created that were purchased
+            revenue_query = db.session.query(func.sum(Purchase.amount))\
+                .join(Product, Purchase.product_id == Product.id)\
+                .filter(Product.creator_id == user_id)
+            
+            platform_cut_query = db.session.query(func.sum(Purchase.platform_cut))\
+                .join(Product, Purchase.product_id == Product.id)\
+                .filter(Product.creator_id == user_id)
+            
+            creator_earnings_query = db.session.query(func.sum(Purchase.creator_earnings))\
+                .join(Product, Purchase.product_id == Product.id)\
+                .filter(Product.creator_id == user_id)
+            
+            orders_query = db.session.query(func.count(Purchase.id))\
+                .join(Product, Purchase.product_id == Product.id)\
+                .filter(Product.creator_id == user_id)
+            
+            products_query = db.session.query(func.count(Product.id))\
+                .filter(Product.creator_id == user_id)
+            
+            if date_filter:
+                revenue_query = revenue_query.filter(Purchase.purchased_at >= date_filter)
+                platform_cut_query = platform_cut_query.filter(Purchase.purchased_at >= date_filter)
+                creator_earnings_query = creator_earnings_query.filter(Purchase.purchased_at >= date_filter)
+                orders_query = orders_query.filter(Purchase.purchased_at >= date_filter)
+                products_query = products_query.filter(Product.created_at >= date_filter)
+            
+            total_revenue = revenue_query.scalar() or 0
+            total_platform_cut = platform_cut_query.scalar() or 0
+            total_creator_earnings = creator_earnings_query.scalar() or 0
+            total_orders = orders_query.scalar() or 0
+            total_products = products_query.scalar() or 0
+        
+        # Calculate additional metrics
+        avg_order_value = total_revenue / total_orders if total_orders > 0 else 0
+        
+        # Get revenue by month for the chart (last 12 months)
+        revenue_by_month = []
+        for i in range(11, -1, -1):
+            month_start = datetime.now().replace(day=1) - timedelta(days=i*30)
+            month_end = month_start + timedelta(days=30)
+            
+            month_revenue_query = db.session.query(func.sum(Purchase.amount))\
+                .filter(Purchase.purchased_at >= month_start)\
+                .filter(Purchase.purchased_at < month_end)
+            
+            if not is_admin:
+                month_revenue_query = month_revenue_query\
+                    .join(Product, Purchase.product_id == Product.id)\
+                    .filter(Product.creator_id == user_id)
+            
+            month_revenue = month_revenue_query.scalar() or 0
+            
+            revenue_by_month.append({
+                "month": month_start.strftime("%Y-%m"),
+                "amount": float(month_revenue)
+            })
+        
+        return jsonify({
+            "total_revenue": float(total_revenue),
+            "total_products": total_products,
+            "total_orders": total_orders,
+            "platform_cut": float(total_platform_cut),
+            "creator_earnings": float(total_creator_earnings),
+            "avg_order_value": float(avg_order_value),
+            "revenue_by_month": revenue_by_month,
+            "period": period
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch revenue analytics: {str(e)}"}), 500
+
+
+# 3. SALES PERFORMANCE METRICS
+@api.route('/sales/performance', methods=['GET'])
+@jwt_required()
+def get_sales_performance():
+    """Get detailed sales performance metrics"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        # Check if admin
+        is_admin = hasattr(user, 'role') and user.role == 'admin'
+        
+        if is_admin:
+            # Admin gets platform-wide metrics
+            products_query = Product.query
+            purchases_query = Purchase.query
+        else:
+            # User gets their own metrics
+            products_query = Product.query.filter_by(creator_id=user_id)
+            purchases_query = Purchase.query.join(Product).filter(Product.creator_id == user_id)
+        
+        # Top performing products
+        top_products = db.session.query(
+            Product.id,
+            Product.title,
+            Product.image_url,
+            Product.price,
+            func.count(Purchase.id).label('sales_count'),
+            func.sum(Purchase.amount).label('total_revenue'),
+            func.sum(Purchase.creator_earnings).label('creator_revenue')
+        ).outerjoin(Purchase, Product.id == Purchase.product_id)
+        
+        if not is_admin:
+            top_products = top_products.filter(Product.creator_id == user_id)
+        
+        top_products = top_products.group_by(Product.id)\
+            .order_by(func.sum(Purchase.amount).desc())\
+            .limit(10).all()
+        
+        top_products_data = []
+        for product in top_products:
+            top_products_data.append({
+                "id": product.id,
+                "title": product.title,
+                "image_url": product.image_url,
+                "price": float(product.price),
+                "sales_count": product.sales_count or 0,
+                "total_revenue": float(product.total_revenue or 0),
+                "creator_revenue": float(product.creator_revenue or 0)
+            })
+        
+        # Conversion rates
+        total_products = products_query.count()
+        products_with_sales = db.session.query(Product.id)\
+            .join(Purchase, Product.id == Purchase.product_id)
+        
+        if not is_admin:
+            products_with_sales = products_with_sales.filter(Product.creator_id == user_id)
+        
+        products_with_sales_count = products_with_sales.distinct().count()
+        conversion_rate = (products_with_sales_count / total_products * 100) if total_products > 0 else 0
+        
+        # Sales by product type
+        digital_sales = purchases_query.join(Product).filter(Product.is_digital == True).count()
+        physical_sales = purchases_query.join(Product).filter(Product.is_digital == False).count()
+        
+        # Recent sales trends (last 30 days vs previous 30 days)
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        sixty_days_ago = datetime.utcnow() - timedelta(days=60)
+        
+        recent_sales_query = purchases_query.filter(Purchase.purchased_at >= thirty_days_ago)
+        previous_sales_query = purchases_query.filter(
+            Purchase.purchased_at >= sixty_days_ago,
+            Purchase.purchased_at < thirty_days_ago
+        )
+        
+        recent_sales_count = recent_sales_query.count()
+        previous_sales_count = previous_sales_query.count()
+        
+        sales_growth = ((recent_sales_count - previous_sales_count) / previous_sales_count * 100) \
+                      if previous_sales_count > 0 else 0
+        
+        # Average days to first sale for new products
+        avg_days_to_sale = db.session.query(
+            func.avg(func.julianday(Purchase.purchased_at) - func.julianday(Product.created_at))
+        ).join(Product, Purchase.product_id == Product.id)
+        
+        if not is_admin:
+            avg_days_to_sale = avg_days_to_sale.filter(Product.creator_id == user_id)
+        
+        avg_days_to_sale = avg_days_to_sale.scalar() or 0
+        
+        return jsonify({
+            "top_products": top_products_data,
+            "conversion_rate": round(conversion_rate, 2),
+            "digital_sales": digital_sales,
+            "physical_sales": physical_sales,
+            "sales_growth": round(sales_growth, 2),
+            "avg_days_to_first_sale": round(float(avg_days_to_sale), 1),
+            "total_products": total_products,
+            "products_with_sales": products_with_sales_count
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch sales performance: {str(e)}"}), 500
+
+
+# 4. BONUS: GET SALES BY DATE RANGE
+@api.route('/sales/by-date', methods=['GET'])
+@jwt_required()
+def get_sales_by_date():
+    """Get sales data for a specific date range"""
+    try:
+        user_id = get_jwt_identity()
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        if not start_date or not end_date:
+            return jsonify({"error": "start_date and end_date are required"}), 400
+        
+        try:
+            start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+        except ValueError:
+            return jsonify({"error": "Invalid date format. Use ISO format"}), 400
+        
+        # Get sales in date range
+        sales_query = db.session.query(Purchase, Product)\
+            .join(Product, Purchase.product_id == Product.id)\
+            .filter(Product.creator_id == user_id)\
+            .filter(Purchase.purchased_at >= start_date)\
+            .filter(Purchase.purchased_at <= end_date)\
+            .order_by(Purchase.purchased_at.desc())
+        
+        sales = sales_query.all()
+        
+        sales_data = []
+        total_revenue = 0
+        total_creator_earnings = 0
+        
+        for purchase, product in sales:
+            sales_data.append({
+                "id": purchase.id,
+                "product_title": product.title,
+                "amount": purchase.amount,
+                "creator_earnings": purchase.creator_earnings,
+                "purchased_at": purchase.purchased_at.isoformat()
+            })
+            total_revenue += purchase.amount
+            total_creator_earnings += purchase.creator_earnings
+        
+        return jsonify({
+            "sales": sales_data,
+            "summary": {
+                "total_sales": len(sales_data),
+                "total_revenue": float(total_revenue),
+                "total_creator_earnings": float(total_creator_earnings),
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat()
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch sales by date: {str(e)}"}), 500
