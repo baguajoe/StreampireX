@@ -26,15 +26,13 @@ const PricingPlans = () => {
             setLoading(true);
             setError(null);
 
-            // Get backend URL with multiple fallbacks
-            const backendUrl = process.env.REACT_APP_BACKEND_URL || 
-                              process.env.BACKEND_URL || 
-                              'http://localhost:3001';
+            // Use consistent backend URL
+            const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
             
             console.log("🔍 Attempting to fetch from:", `${backendUrl}/api/pricing-plans`);
             
-            // ✅ FIXED: Use the correct endpoint to GET pricing plans
-            const response = await fetch(`${backendUrl}/api/pricing-plans`, {
+            // Updated to match backend route: /pricing/plans
+            const response = await fetch(`${backendUrl}/api/pricing/plans`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -50,7 +48,10 @@ const PricingPlans = () => {
             const data = await response.json();
             console.log("✅ Pricing plans fetched successfully:", data);
             
-            if (Array.isArray(data) && data.length > 0) {
+            // Handle response format: backend returns {plans: [...]}
+            if (data.plans && Array.isArray(data.plans) && data.plans.length > 0) {
+                setPlans(data.plans);
+            } else if (Array.isArray(data) && data.length > 0) {
                 setPlans(data);
             } else {
                 console.warn("⚠️ No pricing plans returned from API");
@@ -131,9 +132,7 @@ const PricingPlans = () => {
     const fetchCurrentPlan = async () => {
         try {
             const token = localStorage.getItem("token");
-            const backendUrl = process.env.REACT_APP_BACKEND_URL || 
-                              process.env.BACKEND_URL || 
-                              'http://localhost:3001';
+            const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
                               
             console.log("🔍 Fetching current plan from:", `${backendUrl}/api/user/plan-status`);
             
@@ -175,9 +174,7 @@ const PricingPlans = () => {
 
             console.log("🔄 Subscribing to plan:", actualPlanId);
 
-            const backendUrl = process.env.REACT_APP_BACKEND_URL || 
-                              process.env.BACKEND_URL || 
-                              'http://localhost:3001';
+            const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
             const res = await fetch(`${backendUrl}/api/subscriptions/subscribe`, {
                 method: 'POST',
@@ -218,9 +215,7 @@ const PricingPlans = () => {
     // Test backend connection
     const testConnection = async () => {
         try {
-            const backendUrl = process.env.REACT_APP_BACKEND_URL || 
-                              process.env.BACKEND_URL || 
-                              'http://localhost:3001';
+            const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
                               
             console.log("🧪 Testing connection to:", backendUrl);
             
@@ -247,7 +242,7 @@ const PricingPlans = () => {
     const getFeatureList = (plan) => {
         const features = [];
         
-        // 📱 SOCIAL MEDIA FEATURES (FREE FOR ALL PLANS)
+        // Social Media Features (FREE FOR ALL PLANS)
         features.push("📱 Multi-Platform Social Posting");
         features.push("🐦 Twitter/X Integration");
         features.push("📸 Instagram Stories & Reels");
@@ -263,8 +258,6 @@ const PricingPlans = () => {
         if (plan.includes_podcasts) features.push("🎙️ Create Podcasts");
         if (plan.includes_radio) features.push("📻 Radio Stations");
         if (plan.includes_live_events) features.push("🎥 Live Streaming");
-        
-        // Music Distribution features removed - only available as separate service
         
         // Monetization
         if (plan.includes_digital_sales) features.push("🛍️ Digital Sales");
@@ -293,14 +286,12 @@ const PricingPlans = () => {
         switch(plan.name) {
             case "Free":
                 return "Full social media features + gaming community access for everyone";
-            case "Basic":
+            case "Creator":
                 return "Free social features + enhanced content creation tools";
-            case "Pro":
-                return "Everything in Basic + radio stations and team collaboration";
             case "Premium":
                 return "Complete creator suite with advanced monetization features";
             default:
-                return "";
+                return plan.description || "";
         }
     };
 
@@ -342,7 +333,7 @@ const PricingPlans = () => {
                     
                     <div className="connection-troubleshooting">
                         <h3>🔧 Connection Troubleshooting</h3>
-                        <p>Backend URL: <code>{process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001'}</code></p>
+                        <p>Backend URL: <code>{process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}</code></p>
                         
                         <div className="troubleshooting-steps">
                             <h4>Debug Steps:</h4>
@@ -467,7 +458,7 @@ const PricingPlans = () => {
                     return (
                         <div key={plan.id} className={`pricing-card ${plan.name.toLowerCase()} ${isCurrent ? 'current-plan' : ''}`}>
                             {/* Popular Badge */}
-                            {plan.name === "Pro" && (
+                            {(plan.name === "Pro" || plan.name === "Creator") && (
                                 <div className="popular-badge">
                                     ⭐ MOST POPULAR
                                 </div>
@@ -511,10 +502,12 @@ const PricingPlans = () => {
                                 </div>
                             </div>
 
-
-
                             <div className="plan-features">
-                                {getFeatureList(plan).map((feature, index) => (
+                                {plan.features ? plan.features.map((feature, index) => (
+                                    <div key={index} className="feature-item">
+                                        ✅ {feature}
+                                    </div>
+                                )) : getFeatureList(plan).map((feature, index) => (
                                     <div key={index} className="feature-item">
                                         ✅ {feature}
                                     </div>
@@ -548,8 +541,6 @@ const PricingPlans = () => {
                     );
                 })}
             </div>
-
-
 
             {/* Social Media Success Stats */}
             <div className="social-success-stats">
@@ -616,7 +607,7 @@ const PricingPlans = () => {
                 border: '1px solid #e0e0e0'
             }}>
                 <h4>🔍 Debug Information:</h4>
-                <p>Backend URL: {process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001'}</p>
+                <p>Backend URL: {process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}</p>
                 <p>Plans loaded: {plans.length}</p>
                 <p>Current plan: {currentPlan ? currentPlan.name : 'None'}</p>
                 <p>Environment: {process.env.NODE_ENV || 'development'}</p>

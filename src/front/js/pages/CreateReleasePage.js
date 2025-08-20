@@ -18,7 +18,7 @@ const CreateReleasePage = () => {
   useEffect(() => {
     const fetchTracks = async () => {
       try {
-        const res = await fetch(`${process.env.BACKEND_URL}/api/artist/tracks`, {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/tracks`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
         const data = await res.json();
@@ -53,7 +53,7 @@ const CreateReleasePage = () => {
     });
 
     try {
-      const res = await fetch(`${process.env.BACKEND_URL}/api/create-release`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/create-release`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`
