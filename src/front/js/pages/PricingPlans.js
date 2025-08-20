@@ -29,9 +29,8 @@ const PricingPlans = () => {
             // Use consistent backend URL
             const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
             
-            console.log("🔍 Attempting to fetch from:", `${backendUrl}/api/pricing-plans`);
+            console.log("🔍 Attempting to fetch from:", `${backendUrl}/api/pricing/plans`);
             
-            // Updated to match backend route: /pricing/plans
             const response = await fetch(`${backendUrl}/api/pricing/plans`, {
                 method: 'GET',
                 headers: {
@@ -62,51 +61,57 @@ const PricingPlans = () => {
             console.error("❌ Error fetching pricing plans:", err);
             setError(`Failed to load pricing plans: ${err.message}`);
             
-            // Set fallback plans for development/testing
+            // Set fallback plans with all 6 plans including distribution
             setPlans([
                 {
                     id: "fallback-free",
                     name: "Free",
                     price_monthly: 0,
                     price_yearly: 0,
-                    includes_podcasts: false,
-                    includes_radio: false,
+                    includes_podcasts: true,
+                    includes_radio: true,
                     includes_music_distribution: false,
                     includes_gaming_features: true,
-                    trial_days: 0
+                    trial_days: 0,
+                    description: "Perfect for getting started"
                 },
                 {
                     id: "fallback-basic",
                     name: "Basic",
-                    price_monthly: 9.99,
-                    price_yearly: 99.99,
+                    price_monthly: 12.99,
+                    price_yearly: 129.99,
                     includes_podcasts: true,
-                    includes_radio: false,
+                    includes_radio: true,
+                    includes_live_events: true,
                     includes_music_distribution: false,
                     includes_gaming_features: true,
-                    trial_days: 7
+                    trial_days: 7,
+                    description: "Enhanced features for growing creators"
                 },
                 {
                     id: "fallback-pro",
                     name: "Pro", 
-                    price_monthly: 19.99,
-                    price_yearly: 199.99,
+                    price_monthly: 21.99,
+                    price_yearly: 219.99,
                     includes_podcasts: true,
                     includes_radio: true,
-                    includes_music_distribution: true,
-                    distribution_uploads_limit: 10,
+                    includes_live_events: true,
+                    includes_merch_sales: true,
+                    includes_ad_revenue: true,
+                    includes_music_distribution: false,
                     includes_gaming_features: true,
-                    trial_days: 14
+                    trial_days: 14,
+                    description: "Professional tools for serious creators"
                 },
                 {
                     id: "fallback-premium",
                     name: "Premium",
-                    price_monthly: 39.99,
-                    price_yearly: 399.99,
+                    price_monthly: 29.99,
+                    price_yearly: 299.99,
                     includes_podcasts: true,
                     includes_radio: true,
-                    includes_music_distribution: true,
-                    distribution_uploads_limit: -1,
+                    includes_live_events: true,
+                    includes_music_distribution: false,
                     includes_gaming_features: true,
                     includes_brand_partnerships: true,
                     includes_affiliate_marketing: true,
@@ -116,12 +121,34 @@ const PricingPlans = () => {
                     includes_ad_revenue: true,
                     includes_team_rooms: true,
                     includes_squad_finder: true,
-                    includes_gaming_analytics: true,
-                    includes_game_streaming: true,
-                    includes_gaming_monetization: true,
-                    includes_live_events: true,
-                    sonosuite_access: true,
-                    trial_days: 30
+                    trial_days: 30,
+                    description: "Maximum monetization power"
+                },
+                {
+                    id: "fallback-artist-distribution",
+                    name: "Artist Distribution",
+                    price_monthly: 21.99,
+                    price_yearly: 21.99, // Same price yearly
+                    includes_podcasts: false,
+                    includes_radio: false,
+                    includes_live_events: false,
+                    includes_music_distribution: true,
+                    includes_gaming_features: false,
+                    trial_days: 0,
+                    description: "Music distribution for independent artists"
+                },
+                {
+                    id: "fallback-label-distribution",
+                    name: "Label Distribution",
+                    price_monthly: 74.99,
+                    price_yearly: 74.99, // Same price yearly
+                    includes_podcasts: false,
+                    includes_radio: false,
+                    includes_live_events: false,
+                    includes_music_distribution: true,
+                    includes_gaming_features: false,
+                    trial_days: 0,
+                    description: "Music distribution for record labels"
                 }
             ]);
         } finally {
@@ -166,9 +193,9 @@ const PricingPlans = () => {
 
             // Handle standalone distribution plans
             let actualPlanId = planId;
-            if (planId === "artist-distribution") {
+            if (planId === "artist-distribution" || planId === "fallback-artist-distribution") {
                 actualPlanId = "standalone-artist";
-            } else if (planId === "label-distribution") {
+            } else if (planId === "label-distribution" || planId === "fallback-label-distribution") {
                 actualPlanId = "standalone-label";
             }
 
@@ -242,17 +269,44 @@ const PricingPlans = () => {
     const getFeatureList = (plan) => {
         const features = [];
         
-        // Social Media Features (FREE FOR ALL PLANS)
-        features.push("📱 Multi-Platform Social Posting");
-        features.push("🐦 Twitter/X Integration");
-        features.push("📸 Instagram Stories & Reels");
-        features.push("🎬 TikTok Auto-Posting");
-        features.push("📺 YouTube Integration");
-        features.push("📘 Facebook & LinkedIn");
-        features.push("📅 Content Scheduling");
-        features.push("📊 Social Media Analytics");
-        features.push("🤖 AI Content Optimization");
-        features.push("📈 Cross-Platform Dashboard");
+        // Distribution plans have different features
+        if (plan.name === "Artist Distribution") {
+            return [
+                "🎵 Global Music Distribution",
+                "📊 Streaming Analytics", 
+                "💰 100% Royalty Retention",
+                "📈 Performance Tracking",
+                "🎧 Spotify, Apple Music, etc.",
+                "⚡ 24-48 Hour Distribution"
+            ];
+        }
+        
+        if (plan.name === "Label Distribution") {
+            return [
+                "🎵 Unlimited Artist Distribution",
+                "🏷️ Label Management Tools",
+                "📊 Multi-Artist Analytics",
+                "💰 Revenue Split Management", 
+                "📈 Label Performance Dashboard",
+                "🎧 All Major Platforms",
+                "⚡ Priority Distribution",
+                "🎤 Artist Roster Management"
+            ];
+        }
+        
+        // Regular plans - Social Media Features (FREE FOR ALL PLANS)
+        if (plan.name !== "Artist Distribution" && plan.name !== "Label Distribution") {
+            features.push("📱 Multi-Platform Social Posting");
+            features.push("🐦 Twitter/X Integration");
+            features.push("📸 Instagram Stories & Reels");
+            features.push("🎬 TikTok Auto-Posting");
+            features.push("📺 YouTube Integration");
+            features.push("📘 Facebook & LinkedIn");
+            features.push("📅 Content Scheduling");
+            features.push("📊 Social Media Analytics");
+            features.push("🤖 AI Content Optimization");
+            features.push("📈 Cross-Platform Dashboard");
+        }
         
         // Core Content Creation
         if (plan.includes_podcasts) features.push("🎙️ Create Podcasts");
@@ -286,10 +340,18 @@ const PricingPlans = () => {
         switch(plan.name) {
             case "Free":
                 return "Full social media features + gaming community access for everyone";
-            case "Creator":
-                return "Free social features + enhanced content creation tools";
+            case "Basic":
+                return "Enhanced features for growing creators";
+            case "Pro":
+                return "Professional tools for serious creators";
             case "Premium":
                 return "Complete creator suite with advanced monetization features";
+            case "Artist Distribution":
+                return "Music distribution for independent artists";
+            case "Label Distribution":
+                return "Music distribution for record labels";
+            case "Creator":
+                return "Free social features + enhanced content creation tools";
             default:
                 return plan.description || "";
         }
@@ -297,17 +359,39 @@ const PricingPlans = () => {
 
     const getYearlySavings = (plan) => {
         if (plan.price_monthly === 0) return 0;
+        // Distribution plans don't have yearly savings (same price)
+        if (plan.name === "Artist Distribution" || plan.name === "Label Distribution") return 0;
         const monthlyTotal = plan.price_monthly * 12;
         return monthlyTotal - plan.price_yearly;
     };
 
     const getCurrentPrice = (plan) => {
+        // Distribution plans are yearly-only pricing
+        if (plan.name === "Artist Distribution" || plan.name === "Label Distribution") {
+            return selectedBilling === 'yearly' ? plan.price_yearly : plan.price_yearly;
+        }
         return selectedBilling === 'yearly' ? plan.price_yearly / 12 : plan.price_monthly;
+    };
+
+    const getPricePeriod = (plan) => {
+        // Distribution plans are yearly-only
+        if (plan.name === "Artist Distribution" || plan.name === "Label Distribution") {
+            return "/year";
+        }
+        return selectedBilling === 'yearly' ? '/month' : '/month';
     };
 
     const isCurrentPlan = (plan) => {
         return currentPlan && currentPlan.id === plan.id;
     };
+
+    // Separate regular plans from distribution plans
+    const regularPlans = plans.filter(plan => 
+        plan.name !== "Artist Distribution" && plan.name !== "Label Distribution"
+    );
+    const distributionPlans = plans.filter(plan => 
+        plan.name === "Artist Distribution" || plan.name === "Label Distribution"
+    );
 
     if (loading) {
         return (
@@ -448,99 +532,169 @@ const PricingPlans = () => {
                 </div>
             </div>
 
-            {/* Plans Grid */}
-            <div className="pricing-grid">
-                {plans.map((plan) => {
-                    const isCurrent = isCurrentPlan(plan);
-                    const currentPrice = getCurrentPrice(plan);
-                    const isProcessing = processingPayment === plan.id;
-                    
-                    return (
-                        <div key={plan.id} className={`pricing-card ${plan.name.toLowerCase()} ${isCurrent ? 'current-plan' : ''}`}>
-                            {/* Popular Badge */}
-                            {(plan.name === "Pro" || plan.name === "Creator") && (
-                                <div className="popular-badge">
-                                    ⭐ MOST POPULAR
-                                </div>
-                            )}
-
-                            {/* Current Plan Badge */}
-                            {isCurrent && (
-                                <div className="current-badge">
-                                    ✅ CURRENT PLAN
-                                </div>
-                            )}
-
-                            <div className="plan-header">
-                                <h2>{plan.name}</h2>
-                                <p className="plan-description">{getPlanDescription(plan)}</p>
-                            </div>
-                            
-                            <div className="plan-pricing">
-                                <div className="monthly-price">
-                                    <span className="price">${currentPrice.toFixed(2)}</span>
-                                    <span className="period">/{selectedBilling === 'yearly' ? 'month' : 'month'}</span>
-                                </div>
-                                {selectedBilling === 'yearly' && plan.price_yearly > 0 && (
-                                    <div className="yearly-price">
-                                        <span className="yearly-label">Billed ${plan.price_yearly} yearly</span>
-                                        {getYearlySavings(plan) > 0 && (
-                                            <span className="savings">Save ${getYearlySavings(plan).toFixed(2)}</span>
-                                        )}
+            {/* Main Creator Plans Grid */}
+            <div className="pricing-section">
+                <h2>🎨 Creator Plans</h2>
+                <div className="pricing-grid">
+                    {regularPlans.map((plan) => {
+                        const isCurrent = isCurrentPlan(plan);
+                        const currentPrice = getCurrentPrice(plan);
+                        const isProcessing = processingPayment === plan.id;
+                        
+                        return (
+                            <div key={plan.id} className={`pricing-card ${plan.name.toLowerCase().replace(/\s+/g, '-')} ${isCurrent ? 'current-plan' : ''}`}>
+                                {/* Popular Badge */}
+                                {(plan.name === "Pro" || plan.name === "Creator") && (
+                                    <div className="popular-badge">
+                                        ⭐ MOST POPULAR
                                     </div>
                                 )}
-                            </div>
 
-                            {/* Social Media Features Highlight - FREE FOR ALL */}
-                            <div className="social-media-highlight">
-                                <h4>📱 Social Media Features (FREE)</h4>
-                                <div className="social-features">
-                                    <div>🚀 Post to all platforms at once</div>
-                                    <div>📅 Smart scheduling & automation</div>
-                                    <div>📊 Analytics across all networks</div>
-                                    <div>🤖 AI content optimization</div>
-                                </div>
-                            </div>
-
-                            <div className="plan-features">
-                                {plan.features ? plan.features.map((feature, index) => (
-                                    <div key={index} className="feature-item">
-                                        ✅ {feature}
+                                {/* Current Plan Badge */}
+                                {isCurrent && (
+                                    <div className="current-badge">
+                                        ✅ CURRENT PLAN
                                     </div>
-                                )) : getFeatureList(plan).map((feature, index) => (
-                                    <div key={index} className="feature-item">
-                                        ✅ {feature}
-                                    </div>
-                                ))}
-                            </div>
+                                )}
 
-                            {plan.trial_days > 0 && (
-                                <div className="trial-info">
-                                    🆓 {plan.trial_days} day free trial
+                                <div className="plan-header">
+                                    <h2>{plan.name}</h2>
+                                    <p className="plan-description">{getPlanDescription(plan)}</p>
                                 </div>
-                            )}
+                                
+                                <div className="plan-pricing">
+                                    <div className="monthly-price">
+                                        <span className="price">${currentPrice.toFixed(2)}</span>
+                                        <span className="period">{getPricePeriod(plan)}</span>
+                                    </div>
+                                    {selectedBilling === 'yearly' && plan.price_yearly > 0 && getYearlySavings(plan) > 0 && (
+                                        <div className="yearly-price">
+                                            <span className="yearly-label">Billed ${plan.price_yearly} yearly</span>
+                                            <span className="savings">Save ${getYearlySavings(plan).toFixed(2)}</span>
+                                        </div>
+                                    )}
+                                </div>
 
-                            <button 
-                                className={`subscribe-btn ${plan.name.toLowerCase()} ${isCurrent ? 'current' : ''}`}
-                                onClick={() => handleSubscribe(plan.id)}
-                                disabled={isCurrent || isProcessing}
-                            >
-                                {isProcessing ? (
-                                    <span className="processing">
-                                        <div className="btn-spinner"></div>
-                                        Processing...
-                                    </span>
-                                ) : isCurrent 
-                                    ? "✅ Current Plan" 
-                                    : plan.name === "Free" 
-                                        ? "🚀 Get Started Free" 
-                                        : `Subscribe to ${plan.name}`
-                                }
-                            </button>
-                        </div>
-                    );
-                })}
+                                {/* Social Media Features Highlight - FREE FOR ALL */}
+                                <div className="social-media-highlight">
+                                    <h4>📱 Social Media Features (FREE)</h4>
+                                    <div className="social-features">
+                                        <div>🚀 Post to all platforms at once</div>
+                                        <div>📅 Smart scheduling & automation</div>
+                                        <div>📊 Analytics across all networks</div>
+                                        <div>🤖 AI content optimization</div>
+                                    </div>
+                                </div>
+
+                                <div className="plan-features">
+                                    {plan.features ? plan.features.map((feature, index) => (
+                                        <div key={index} className="feature-item">
+                                            ✅ {feature}
+                                        </div>
+                                    )) : getFeatureList(plan).map((feature, index) => (
+                                        <div key={index} className="feature-item">
+                                            ✅ {feature}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {plan.trial_days > 0 && (
+                                    <div className="trial-info">
+                                        🆓 {plan.trial_days} day free trial
+                                    </div>
+                                )}
+
+                                <button 
+                                    className={`subscribe-btn ${plan.name.toLowerCase().replace(/\s+/g, '-')} ${isCurrent ? 'current' : ''}`}
+                                    onClick={() => handleSubscribe(plan.id)}
+                                    disabled={isCurrent || isProcessing}
+                                >
+                                    {isProcessing ? (
+                                        <span className="processing">
+                                            <div className="btn-spinner"></div>
+                                            Processing...
+                                        </span>
+                                    ) : isCurrent 
+                                        ? "✅ Current Plan" 
+                                        : plan.name === "Free" 
+                                            ? "🚀 Get Started Free" 
+                                            : `Subscribe to ${plan.name}`
+                                    }
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
+
+            {/* Music Distribution Plans */}
+            {distributionPlans.length > 0 && (
+                <div className="pricing-section distribution-section">
+                    <h2>🎵 Music Distribution Plans</h2>
+                    <p className="section-subtitle">Distribute your music globally to 150+ platforms</p>
+                    <div className="pricing-grid distribution-grid">
+                        {distributionPlans.map((plan) => {
+                            const isCurrent = isCurrentPlan(plan);
+                            const currentPrice = getCurrentPrice(plan);
+                            const isProcessing = processingPayment === plan.id;
+                            
+                            return (
+                                <div key={plan.id} className={`pricing-card distribution-card ${plan.name.toLowerCase().replace(/\s+/g, '-')} ${isCurrent ? 'current-plan' : ''}`}>
+                                    {/* Current Plan Badge */}
+                                    {isCurrent && (
+                                        <div className="current-badge">
+                                            ✅ CURRENT PLAN
+                                        </div>
+                                    )}
+
+                                    <div className="plan-header">
+                                        <h2>{plan.name}</h2>
+                                        <p className="plan-description">{getPlanDescription(plan)}</p>
+                                    </div>
+                                    
+                                    <div className="plan-pricing">
+                                        <div className="monthly-price">
+                                            <span className="price">${currentPrice.toFixed(2)}</span>
+                                            <span className="period">/year</span>
+                                        </div>
+                                        <div className="yearly-price">
+                                            <span className="yearly-label">Annual billing only</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="plan-features">
+                                        {plan.features ? plan.features.map((feature, index) => (
+                                            <div key={index} className="feature-item">
+                                                ✅ {feature}
+                                            </div>
+                                        )) : getFeatureList(plan).map((feature, index) => (
+                                            <div key={index} className="feature-item">
+                                                ✅ {feature}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <button 
+                                        className={`subscribe-btn distribution-btn ${plan.name.toLowerCase().replace(/\s+/g, '-')} ${isCurrent ? 'current' : ''}`}
+                                        onClick={() => handleSubscribe(plan.id)}
+                                        disabled={isCurrent || isProcessing}
+                                    >
+                                        {isProcessing ? (
+                                            <span className="processing">
+                                                <div className="btn-spinner"></div>
+                                                Processing...
+                                            </span>
+                                        ) : isCurrent 
+                                            ? "✅ Current Plan" 
+                                            : `Subscribe to ${plan.name}`
+                                        }
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Social Media Success Stats */}
             <div className="social-success-stats">
@@ -590,8 +744,8 @@ const PricingPlans = () => {
                         <p>We offer a 30-day money-back guarantee for all paid plans. Contact support if you're not satisfied with your subscription.</p>
                     </div>
                     <div className="faq-item">
-                        <h4>Are there any setup fees?</h4>
-                        <p>No setup fees ever! What you see is what you pay. All features are included in your monthly or yearly subscription.</p>
+                        <h4>Are distribution plans monthly or yearly?</h4>
+                        <p>Music distribution plans are billed annually only. Creator plans can be billed monthly or yearly with savings.</p>
                     </div>
                 </div>
             </div>
@@ -609,6 +763,8 @@ const PricingPlans = () => {
                 <h4>🔍 Debug Information:</h4>
                 <p>Backend URL: {process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}</p>
                 <p>Plans loaded: {plans.length}</p>
+                <p>Regular plans: {regularPlans.length}</p>
+                <p>Distribution plans: {distributionPlans.length}</p>
                 <p>Current plan: {currentPlan ? currentPlan.name : 'None'}</p>
                 <p>Environment: {process.env.NODE_ENV || 'development'}</p>
                 <p>Selected billing: {selectedBilling}</p>
