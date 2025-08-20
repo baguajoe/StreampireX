@@ -10434,7 +10434,6 @@ def get_user_plan(user_id):
 def get_pricing_plans():
     """Get all available pricing plans"""
     try:
-        # Define your pricing plans (you can move this to database later)
         plans = [
             {
                 "id": 1,
@@ -10469,10 +10468,43 @@ def get_pricing_plans():
             },
             {
                 "id": 2,
-                "name": "Creator",
-                "price_monthly": 9.99,
-                "price_yearly": 99.99,
-                "description": "For serious content creators",
+                "name": "Basic",
+                "price_monthly": 12.99,  # You decide this price
+                "price_yearly": 129.99,  # ~17% savings
+                "description": "Enhanced features for growing creators",
+                "includes_podcasts": True,
+                "includes_radio": True,
+                "includes_live_events": True,
+                "includes_digital_sales": True,
+                "includes_merch_sales": False,
+                "includes_tip_jar": True,
+                "includes_ad_revenue": False,
+                "includes_brand_partnerships": False,
+                "includes_affiliate_marketing": False,
+                "includes_gaming_features": True,
+                "includes_team_rooms": True,
+                "includes_squad_finder": True,
+                "includes_music_distribution": False,
+                "max_uploads": 25,
+                "max_storage_gb": 5,
+                "features": [
+                    "📱 Multi-Platform Social Posting",
+                    "🎙️ Create Podcasts",
+                    "📻 Radio Stations",
+                    "🎥 Live Streaming",
+                    "🛍️ Digital Sales",
+                    "💰 Fan Tipping",
+                    "🎮 Gaming Community",
+                    "🏠 Private Team Rooms",
+                    "🔍 Squad Finder"
+                ]
+            },
+            {
+                "id": 3,
+                "name": "Pro",
+                "price_monthly": 21.99,
+                "price_yearly": 219.99,  # ~17% savings
+                "description": "Professional tools for serious creators",
                 "includes_podcasts": True,
                 "includes_radio": True,
                 "includes_live_events": True,
@@ -10486,8 +10518,8 @@ def get_pricing_plans():
                 "includes_team_rooms": True,
                 "includes_squad_finder": True,
                 "includes_music_distribution": False,
-                "max_uploads": 50,
-                "max_storage_gb": 10,
+                "max_uploads": 100,
+                "max_storage_gb": 25,
                 "features": [
                     "📱 Multi-Platform Social Posting",
                     "🎙️ Create Podcasts",
@@ -10503,10 +10535,10 @@ def get_pricing_plans():
                 ]
             },
             {
-                "id": 3,
+                "id": 4,
                 "name": "Premium",
-                "price_monthly": 19.99,
-                "price_yearly": 199.99,
+                "price_monthly": 29.99,
+                "price_yearly": 299.99,  # ~17% savings
                 "description": "Maximum monetization power",
                 "includes_podcasts": True,
                 "includes_radio": True,
@@ -10537,6 +10569,68 @@ def get_pricing_plans():
                     "🎮 Gaming Community",
                     "🏠 Private Team Rooms",
                     "🔍 Squad Finder"
+                ]
+            },
+            {
+                "id": 5,
+                "name": "Artist Distribution",
+                "price_monthly": 21.99,
+                "price_yearly": 21.99,  # Same price yearly
+                "description": "Music distribution for independent artists",
+                "includes_podcasts": False,
+                "includes_radio": False,
+                "includes_live_events": False,
+                "includes_digital_sales": False,
+                "includes_merch_sales": False,
+                "includes_tip_jar": False,
+                "includes_ad_revenue": False,
+                "includes_brand_partnerships": False,
+                "includes_affiliate_marketing": False,
+                "includes_gaming_features": False,
+                "includes_team_rooms": False,
+                "includes_squad_finder": False,
+                "includes_music_distribution": True,
+                "max_uploads": 999,
+                "max_storage_gb": 50,
+                "features": [
+                    "🎵 Global Music Distribution",
+                    "📊 Streaming Analytics",
+                    "💰 100% Royalty Retention",
+                    "📈 Performance Tracking",
+                    "🎧 Spotify, Apple Music, etc.",
+                    "⚡ 24-48 Hour Distribution"
+                ]
+            },
+            {
+                "id": 6,
+                "name": "Label Distribution",
+                "price_monthly": 74.99,
+                "price_yearly": 74.99,  # Same price yearly
+                "description": "Music distribution for record labels",
+                "includes_podcasts": False,
+                "includes_radio": False,
+                "includes_live_events": False,
+                "includes_digital_sales": False,
+                "includes_merch_sales": False,
+                "includes_tip_jar": False,
+                "includes_ad_revenue": False,
+                "includes_brand_partnerships": False,
+                "includes_affiliate_marketing": False,
+                "includes_gaming_features": False,
+                "includes_team_rooms": False,
+                "includes_squad_finder": False,
+                "includes_music_distribution": True,
+                "max_uploads": 999,
+                "max_storage_gb": 500,
+                "features": [
+                    "🎵 Unlimited Artist Distribution",
+                    "🏷️ Label Management Tools",
+                    "📊 Multi-Artist Analytics",
+                    "💰 Revenue Split Management",
+                    "📈 Label Performance Dashboard",
+                    "🎧 All Major Platforms",
+                    "⚡ Priority Distribution",
+                    "🎤 Artist Roster Management"
                 ]
             }
         ]
