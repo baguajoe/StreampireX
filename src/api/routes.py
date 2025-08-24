@@ -2234,63 +2234,55 @@ os.makedirs(TRACKS_FOLDER, exist_ok=True)
 
 @api.route("/signup", methods=["POST"])
 def create_signup():
-    email = request.form.get("email")
-    username = request.form.get("username")
-    password = request.form.get("password")
-    role = request.form.get("role", "Listener")
-    artist_name = request.form.get("artist_name")
-    own_rights = request.form.get("own_rights")
-    industry = request.form.get("industry")
-
+    # Handle both JSON and form data
+    if request.is_json:
+        data = request.get_json()
+        email = data.get("email")
+        password = data.get("password")
+        first_name = data.get("first_name")
+        last_name = data.get("last_name")
+        username = data.get("username")
+        role = data.get("role", "Listener")
+    else:
+        # Existing form data handling
+        email = request.form.get("email")
+        password = request.form.get("password")
+        username = request.form.get("username")
+        role = request.form.get("role", "Listener")
     
-
-    # Check if Email Already Exists
+    # Add validation
+    if not email or not password:
+        return jsonify({"error": "Email and password are required"}), 400
+    
+    # Check if user exists
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "User already exists"}), 400
-
+    
+    # Hash password
     hashed_password = generate_password_hash(password)
-
-    # Handle Profile Picture Upload
-    profile_picture = request.files.get("profile_picture")
-    profile_pic_url = None
-    if profile_picture:
-        filename = secure_filename(profile_picture.filename)
-        file_path = os.path.join(PROFILE_PIC_FOLDER, filename)
-        profile_picture.save(file_path)
-        profile_pic_url = f"/uploads/profile_pictures/{filename}"
-
-    # Handle Sample Track Upload
-    sample_track = request.files.get("sample_track")
-    sample_track_url = None
-    if sample_track:
-        filename = secure_filename(sample_track.filename)
-        file_path = os.path.join(TRACKS_FOLDER, filename)
-        sample_track.save(file_path)
-        sample_track_url = f"/uploads/sample_tracks/{filename}"
+    
+    # Handle role
     role_exist = Role.query.filter_by(name=role).first()
-    new_role = None
     if not role_exist:
-        new_role=Role(name=role)
+        new_role = Role(name=role)
         db.session.add(new_role)
         db.session.commit()
-        db.session.refresh(new_role)
-
-    # Create New User
+        role_id = new_role.id
+    else:
+        role_id = role_exist.id
+    
+    # Create new user
     new_user = User(
         email=email,
-        username=username,
+        username=username or email.split('@')[0],  # Use email prefix if no username
         password_hash=hashed_password,
-        role_id=new_role.id if new_role else role_exist.id,
-        artist_name=artist_name,
-        industry=industry,
-        
-        
+        role_id=role_id,
     )
-
+    
     db.session.add(new_user)
     db.session.commit()
-
-    return jsonify({"message": "User created successfully!"}), 201
+    
+    return jsonify({"message": "Account created successfully"}), 201
 
 @api.route('/login', methods=['POST'])
 def login():
@@ -12381,3 +12373,13 @@ def get_sales_by_date():
         
     except Exception as e:
         return jsonify({"error": f"Failed to fetch sales by date: {str(e)}"}), 500
+
+
+@api.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({
+        "status": "ok",
+        "message": "SpectraSphere API is running",
+        "timestamp": datetime.utcnow().isoformat()
+    }), 200
+
