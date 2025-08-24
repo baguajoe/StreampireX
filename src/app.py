@@ -375,6 +375,11 @@ def sitemap():
 
 @app.route('/<path:path>')
 def serve_any_other_file(path):
+    # Don't serve frontend for API routes
+    if path.startswith('api/'):
+        from flask import abort
+        abort(404)
+    
     # Don't override requests to Flask static assets
     if path.startswith("static/"):
         return send_from_directory(app.static_folder, path)
@@ -396,10 +401,6 @@ def restrict_admin_to_basic_auth():
             'You have to login with proper credentials', 401,
             {'WWW-Authenticate': 'Basic realm="Login Required"'})
         
-
-
-
-
 # Usage: flask init-pricing
 
 # ✅ Run the app

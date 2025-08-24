@@ -8,7 +8,16 @@
 	"main": "index.js",
 	"scripts": {
 		"start": "webpack-dev-server --config webpack.dev.js --port 3000",
-		"build": "webpack --config webpack.prod.js"
+		"build": "webpack --config webpack.prod.js",
+		"test": "playwright test",
+		"test:api": "playwright test tests/api --project=api-tests",
+		"test:frontend": "playwright test tests/frontend --project=frontend-tests", 
+		"test:debug": "playwright test --debug",
+		"test:headed": "playwright test --headed",
+		"test:ui": "playwright test --ui",
+		"test:report": "playwright show-report",
+		"test:install": "playwright install",
+		"test:health": "curl -f http://localhost:3001/health || echo 'Backend not running'"
 	},
 	"author": {
 		"name": "Alejandro Sanchez",
