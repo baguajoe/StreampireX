@@ -3515,224 +3515,192 @@ def update_social_links():
 @api.route('/profile/radio/create', methods=['POST'])
 @jwt_required()
 def create_radio_station_profile():
+    """Create radio station with comprehensive features using Cloudinary (FIXED VERSION)"""
     user_id = get_jwt_identity()
+    
     try:
-        data = request.form
+        # Get form data
+        data = request.form.to_dict()
         name = data.get("name")
+        
         if not name:
             return jsonify({"error": "Radio station name is required"}), 400
 
         description = data.get("description", "")
-        category = data.get("category", "")
-        
-        # ✅ VALIDATE FILE SIZES BEFORE PROCESSING
-        if 'logo' in request.files:
-            logo_file = request.files['logo']
-            if logo_file and logo_file.filename:
-                # Check file size (50MB limit for logos)
-                if logo_file.content_length and logo_file.content_length > 50 * 1024 * 1024:
-                    print("CONTENT TOO LARGE")
-                    return jsonify({"error": "Logo file too large (max 50MB)"}), 413
-                
-                # Check file in memory size if content_length not available
-                logo_file.seek(0, 2)  # Seek to end
-                file_size = logo_file.tell()
-                logo_file.seek(0)  # Reset to beginning
-                
-                if file_size > 50 * 1024 * 1024:
-                    print("CONTENT TOO LARGE")
-                    return jsonify({"error": "Logo file too large (max 50MB)"}), 413
+        category = data.get("category", "Music")
+        target_audience = data.get("targetAudience", "")
+        broadcast_hours = data.get("broadcastHours", "24/7")
+        is_explicit = data.get("isExplicit", "false").lower() == "true"
+        tags = data.get("tags", "[]")
+        welcome_message = data.get("welcomeMessage", "")
+        social_links = data.get("socialLinks", "{}")
 
-        if 'cover' in request.files:
-            cover_file = request.files['cover']
-            if cover_file and cover_file.filename:
-                # Check file size (50MB limit for covers)
-                if cover_file.content_length and cover_file.content_length > 50 * 1024 * 1024:
-                    print("CONTENT TOO LARGE")
-                    return jsonify({"error": "Cover file too large (max 50MB)"}), 413
-                
-                cover_file.seek(0, 2)
-                file_size = cover_file.tell()
-                cover_file.seek(0)
-                
-                if file_size > 50 * 1024 * 1024:
-                    print("CONTENT TOO LARGE")
-                    return jsonify({"error": "Cover file too large (max 50MB)"}), 413
+        # Parse JSON strings
+        try:
+            tags_list = json.loads(tags) if tags else []
+            social_links_dict = json.loads(social_links) if social_links else {}
+        except:
+            tags_list = []
+            social_links_dict = {}
 
-        if 'initialMix' in request.files:
-            mix_file = request.files['initialMix']
-            if mix_file and mix_file.filename:
-                # Check file size (150MB limit for audio)
-                if mix_file.content_length and mix_file.content_length > 150 * 1024 * 1024:
-                    return jsonify({"error": "Audio file too large (max 150MB)"}), 413
-                
-                mix_file.seek(0, 2)
-                file_size = mix_file.tell()
-                mix_file.seek(0)
-                
-                if file_size > 150 * 1024 * 1024:
-                    return jsonify({"error": "Audio file too large (max 150MB)"}), 413
-
-        # 🔥 FIXED: Use Cloudinary instead of local storage
+        # Initialize URLs
         logo_url = None
         cover_url = None
         initial_mix_url = None
         mix_filename = None
 
+        # ✅ Handle logo upload with Cloudinary (FIXED)
         if 'logo' in request.files:
             logo_file = request.files['logo']
             if logo_file and logo_file.filename:
+                # File size validation (50MB limit)
+                logo_file.seek(0, 2)
+                file_size = logo_file.tell()
+                logo_file.seek(0)
+                
+                if file_size > 50 * 1024 * 1024:
+                    return jsonify({"error": "Logo file too large (max 50MB)"}), 413
+                
                 logo_filename = secure_filename(logo_file.filename)
                 logo_url = uploadFile(logo_file, logo_filename)  # ✅ Use Cloudinary
                 print(f"✅ Logo uploaded to Cloudinary: {logo_url}")
 
+        # ✅ Handle cover upload with Cloudinary (FIXED)
         if 'cover' in request.files:
             cover_file = request.files['cover']
             if cover_file and cover_file.filename:
+                # File size validation (50MB limit)
+                cover_file.seek(0, 2)
+                file_size = cover_file.tell()
+                cover_file.seek(0)
+                
+                if file_size > 50 * 1024 * 1024:
+                    return jsonify({"error": "Cover file too large (max 50MB)"}), 413
+                
                 cover_filename = secure_filename(cover_file.filename)
                 cover_url = uploadFile(cover_file, cover_filename)  # ✅ Use Cloudinary
                 print(f"✅ Cover uploaded to Cloudinary: {cover_url}")
 
+        # ✅ Handle initial mix upload with Cloudinary (FIXED)
         if 'initialMix' in request.files:
             mix_file = request.files['initialMix']
             if mix_file and mix_file.filename:
+                # File size validation (200MB limit for audio)
+                mix_file.seek(0, 2)
+                file_size = mix_file.tell()
+                mix_file.seek(0)
+                
+                if file_size > 200 * 1024 * 1024:
+                    return jsonify({"error": "Audio file too large (max 200MB)"}), 413
+                
+                # Validate file type
+                allowed_types = ['audio/mpeg', 'audio/wav', 'audio/flac', 'audio/m4a', 'audio/mp3']
+                if mix_file.content_type not in allowed_types:
+                    return jsonify({"error": "Invalid audio file type. Allowed: MP3, WAV, FLAC, M4A"}), 400
+                
                 mix_filename = secure_filename(mix_file.filename)
                 initial_mix_url = uploadFile(mix_file, mix_filename)  # ✅ Use Cloudinary
                 print(f"✅ Audio uploaded to Cloudinary: {initial_mix_url}")
 
+        # Get creator info
         creator = User.query.get(user_id)
         creator_name = creator.username if creator else "Unknown"
 
-        # ✅ Create station with Cloudinary URLs
+        # ✅ Create station with Cloudinary URLs (FIXED - removed audio_url)
         new_station = RadioStation(
             user_id=user_id,
             name=name,
             description=description,
             logo_url=logo_url,                    # ✅ Cloudinary URL
             cover_image_url=cover_url,            # ✅ Cloudinary URL
+            stream_url=initial_mix_url,           # ✅ Primary stream URL
+            loop_audio_url=initial_mix_url,       # ✅ Loop audio URL
             is_public=True,
+            is_live=True if initial_mix_url else False,  # Only live if has audio
             genres=[category] if category else ["Music"],
+            preferred_genres=tags_list,           # Use tags as preferred genres
             creator_name=creator_name,
             created_at=datetime.utcnow(),
-            audio_file_name=mix_filename
+            audio_file_name=mix_filename,
+            followers_count=0,
+            is_loop_enabled=True if initial_mix_url else False
         )
 
         db.session.add(new_station)
-        db.session.flush()
+        db.session.flush()  # Get station ID
 
-        # ✅ Setup audio with Cloudinary URL
+        # ✅ Create Audio record if initial mix was uploaded (FIXED)
         if initial_mix_url:
             mix_title = data.get("mixTitle", f"{name} - Initial Mix")
-
+            mix_description = data.get("mixDescription", "Initial mix for radio station")
+            
             initial_audio = Audio(
                 user_id=user_id,
                 title=mix_title,
-                description=data.get("mixDescription", ""),
+                description=mix_description,
                 file_url=initial_mix_url,  # ✅ Cloudinary URL
-                uploaded_at=datetime.utcnow()
+                uploaded_at=datetime.utcnow(),
+                genre=category,  # ✅ This field exists
+                album=f"{name} - Station Mix"  # ✅ This field exists
             )
+            
             db.session.add(initial_audio)
-            db.session.flush()
 
-            playlist_entry = RadioPlaylist(
-                station_id=new_station.id,
-                audio_id=initial_audio.id
-            )
-            db.session.add(playlist_entry)
-
-            # ✅ Get duration (simplified since file is on Cloudinary)
-            duration = data.get("duration", "03:00")  # Use form data or default
-
-            track_info = {
-                "id": initial_audio.id,
-                "title": mix_title,
-                "artist": data.get("djName", creator_name),
-                "duration": duration,
-                "file_url": initial_mix_url,  # ✅ Cloudinary URL
-                "bpm": data.get("bpm", ""),
-                "mood": data.get("mood", ""),
-                "sub_genres": data.get("subGenres", "")
-            }
-
+            # ✅ Create playlist schedule for the station (FIXED)
             playlist_schedule = {
-                "tracks": [track_info],
-                "total_tracks": 1,
+                "tracks": [
+                    {
+                        "id": initial_audio.id if hasattr(initial_audio, 'id') else 1,
+                        "title": mix_title,
+                        "artist": data.get("djName", creator_name),  # ✅ Fixed: use data.get() instead of undefined dj_name
+                        "duration": data.get("duration", "03:00"),  # Default duration
+                        "file_url": initial_mix_url,
+                        "bpm": data.get("bpm", ""),
+                        "mood": data.get("mood", ""),
+                        "sub_genres": data.get("subGenres", "").split(',') if data.get("subGenres") else []
+                    }
+                ],
+                "loop_mode": True,
+                "shuffle": False,
                 "created_at": datetime.utcnow().isoformat()
             }
-
-            # ✅ Setup station with proper URLs
             new_station.playlist_schedule = playlist_schedule
-            new_station.is_loop_enabled = True
-            new_station.loop_duration_minutes = 180
-            new_station.loop_started_at = datetime.utcnow()
-            new_station.is_live = True
-            new_station.now_playing_metadata = track_info
-            new_station.loop_audio_url = initial_mix_url  # ✅ Cloudinary URL
 
-            print(f"✅ Setup audio loop: {mix_title} ({duration}) for station {new_station.name}")
-            print(f"✅ Audio Cloudinary URL: {initial_mix_url}")
+            # ✅ Set loop start time if audio was uploaded
+            new_station.loop_started_at = datetime.utcnow()
 
         db.session.commit()
 
-        # ✅ Enhanced response with debug info
+        # ✅ Build comprehensive response
         response_data = {
-            "message": "Radio station created successfully with audio loop!" if initial_mix_url else "Radio station created successfully!",
-            "station": {
-                "id": new_station.id,
-                "name": new_station.name,
-                "description": new_station.description,
-                "logo_url": new_station.logo_url,
-                "cover_url": new_station.cover_image_url,
-                "stream_url": initial_mix_url,  # ✅ For compatibility
-                "loop_audio_url": new_station.loop_audio_url,
-                "is_live": new_station.is_live,
-                "is_loop_enabled": new_station.is_loop_enabled,
-                "creator_name": new_station.creator_name
-            },
-            "audio_loop_enabled": new_station.is_loop_enabled,
-            "now_playing": new_station.get_current_track() if hasattr(new_station, 'get_current_track') else track_info if initial_mix_url else None
+            "message": "Radio station created successfully with enhanced features!" if initial_mix_url else "Radio station created successfully!",
+            "station": new_station.serialize(),
+            "redirect_url": f"/radio/{new_station.id}",
+            "features": {
+                "cloudinary_storage": True,
+                "playlist_scheduling": bool(initial_mix_url),
+                "loop_enabled": new_station.is_loop_enabled,
+                "enhanced_metadata": True
+            }
         }
 
-        # 🎯 DEBUG INFO
-        print(f"🎯 DEBUG Station Created:")
+        print(f"✅ Enhanced radio station created:")
+        print(f"   ID: {new_station.id}")
         print(f"   Name: {new_station.name}")
         print(f"   Logo URL: {new_station.logo_url}")
         print(f"   Cover URL: {new_station.cover_image_url}")
         print(f"   Audio URL: {new_station.loop_audio_url}")
         print(f"   Is Live: {new_station.is_live}")
+        print(f"   Loop Enabled: {new_station.is_loop_enabled}")
 
         return jsonify(response_data), 201
 
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error creating radio station: {str(e)}")
+        print(f"❌ Error creating enhanced radio station: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": f"Failed to create station: {str(e)}"}), 500
-
-
-# ✅ Updated duration helper function (simplified for Cloudinary)
-def get_track_duration_from_file(file_path_or_url):
-    """
-    Get track duration - simplified since files are on Cloudinary
-    """
-    # For Cloudinary files, we can't easily get duration server-side
-    # So we'll use default or client-provided duration
-    try:
-        # If it's a local file path (fallback)
-        if not file_path_or_url.startswith('http'):
-            from mutagen import File
-            audio_file = File(file_path_or_url)
-            if audio_file and hasattr(audio_file, 'info'):
-                total_seconds = int(audio_file.info.length)
-                minutes = total_seconds // 60
-                seconds = total_seconds % 60
-                return f"{minutes:02d}:{seconds:02d}"
-    except Exception as e:
-        print(f"Could not get duration: {e}")
-
-    # Default duration for Cloudinary files
-    return "03:00"
 
 @api.route('/admin/migrate-stations-to-cloudinary', methods=['POST'])
 @jwt_required()
