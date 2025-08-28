@@ -288,12 +288,86 @@ def on_connect(auth):
     emit('listener_count', {'count': listener_count}, broadcast=True)
 
 @socketio.on('disconnect')
-def handle_disconnect():
+def handle_disconnect():  # Remove any parameters here
     global listener_count
     user_id = connected_users.pop(request.sid, None)
     listener_count = max(listener_count - 1, 0)
     print(f"{user_id} disconnected (sid={request.sid})")
     emit('listener_count', {'count': listener_count}, broadcast=True)
+
+# Add these WebRTC socket event handlers after your existing handlers
+
+@socketio.on('join_webrtc_room')
+def on_join_webrtc_room(data):
+    """Handle users joining WebRTC rooms"""
+    from flask_socketio import join_room, emit
+    room_id = data.get('roomId')
+    user_id = data.get('userId')
+    user_name = data.get('userName')
+    
+    join_room(f'webrtc_{room_id}')
+    
+    # Notify other users in the room
+    emit('user-joined', {
+        'userId': user_id,
+        'userName': user_name
+    }, room=f'webrtc_{room_id}', include_self=False)
+    
+    print(f"User {user_name} joined WebRTC room: {room_id}")
+
+@socketio.on('leave_webrtc_room')
+def on_leave_webrtc_room(room_id):
+    """Handle users leaving WebRTC rooms"""
+    from flask_socketio import leave_room, emit
+    
+    user_id = connected_users.get(request.sid)
+    leave_room(f'webrtc_{room_id}')
+    
+    # Notify other users in the room
+    emit('user-left', {
+        'userId': user_id
+    }, room=f'webrtc_{room_id}')
+    
+    print(f"User {user_id} left WebRTC room: {room_id}")
+
+@socketio.on('webrtc-offer')
+def on_webrtc_offer(data):
+    """Handle WebRTC offers"""
+    from flask_socketio import emit
+    room_id = data.get('roomId')
+    offer = data.get('offer')
+    from_user = data.get('from')
+    
+    emit('webrtc-offer', {
+        'offer': offer,
+        'from': from_user
+    }, room=f'webrtc_{room_id}', include_self=False)
+
+@socketio.on('webrtc-answer')
+def on_webrtc_answer(data):
+    """Handle WebRTC answers"""
+    from flask_socketio import emit
+    room_id = data.get('roomId')
+    answer = data.get('answer')
+    from_user = data.get('from')
+    
+    emit('webrtc-answer', {
+        'answer': answer,
+        'from': from_user
+    }, room=f'webrtc_{room_id}', include_self=False)
+
+@socketio.on('webrtc-ice-candidate')
+def on_webrtc_ice_candidate(data):
+    """Handle WebRTC ICE candidates"""
+    from flask_socketio import emit
+    room_id = data.get('roomId')
+    candidate = data.get('candidate')
+    from_user = data.get('from')
+    
+    emit('webrtc-ice-candidate', {
+        'candidate': candidate,
+        'from': from_user
+    }, room=f'webrtc_{room_id}', include_self=False)
 
 @socketio.on('send_message')
 def handle_message(data):

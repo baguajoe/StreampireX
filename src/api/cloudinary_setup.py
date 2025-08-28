@@ -19,7 +19,7 @@ def uploadFile(file, filename):
 
   # Upload the image.
   # Set the asset's public ID and allow overwriting the asset with new versions
-  upload_result = cloudinary.uploader.upload(file, public_id = filename, unique_filename = True, overwrite=False)
+  upload_result = cloudinary.uploader.upload(file, public_id = filename, unique_filename = True, overwrite=False, resource_type="auto")
 
   # Build the URL for the image and save it in the variable 'srcURL'
   srcURL = upload_result["secure_url"]
