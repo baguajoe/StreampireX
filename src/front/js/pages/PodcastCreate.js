@@ -17,7 +17,7 @@ const PodcastCreate = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`${process.env.BACKEND_URL}/api/podcasts/categories`)
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcasts/categories`)
       .then((res) => res.json())
       .then((data) => setCategories(data))
       .catch((err) => console.error("Error fetching categories:", err));
@@ -47,7 +47,7 @@ const PodcastCreate = () => {
     if (scheduledRelease) formData.append("scheduled_release", scheduledRelease);
 
     try {
-      const response = await fetch(`${process.env.BACKEND_URL}/api/upload_podcast`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload_podcast`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
