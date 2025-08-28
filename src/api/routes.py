@@ -943,40 +943,133 @@ def download_podcast_episode(episode_id):
 @jwt_required()
 def upload_podcast():
     user_id = get_jwt_identity()
+    
+    # File type validation constants
+    ALLOWED_AUDIO_TYPES = {'mp3', 'wav', 'flac', 'm4a', 'aac'}
+    ALLOWED_VIDEO_TYPES = {'mp4', 'mov', 'avi', 'mkv', 'webm'}
+    ALLOWED_IMAGE_TYPES = {'jpg', 'jpeg', 'png', 'webp'}
+    MAX_AUDIO_SIZE = 500 * 1024 * 1024  # 500MB
+    MAX_VIDEO_SIZE = 2 * 1024 * 1024 * 1024  # 2GB
+    MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
+    
+    def validate_file_type_and_size(file, allowed_types, max_size, file_type_name):
+        """Validate file type and size"""
+        if not file or not hasattr(file, 'filename') or file.filename == '':
+            return None, f"No {file_type_name} file provided"
+        
+        # Check file extension (case-insensitive)
+        if '.' not in file.filename:
+            return None, f"Invalid {file_type_name} file - no extension found"
+            
+        file_ext = file.filename.rsplit('.', 1)[1].lower()
+        if file_ext not in allowed_types:
+            return None, f"Invalid {file_type_name} format. Allowed: {', '.join(allowed_types)}"
+        
+        # Check file size by seeking to end
+        original_position = file.tell()  # Remember current position
+        file.seek(0, 2)  # Seek to end
+        file_size = file.tell()
+        file.seek(original_position)  # Reset to original position
+        
+        if file_size > max_size:
+            size_mb = max_size // (1024 * 1024)
+            return None, f"{file_type_name.capitalize()} file too large. Maximum size: {size_mb}MB"
+        
+        if file_size == 0:
+            return None, f"{file_type_name.capitalize()} file is empty"
+        
+        return True, None
+
     try:
-        title = request.form.get("title")
-        description = request.form.get("description")
+        # Extract and validate form data
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "").strip()
         category = request.form.get("category", "General")
         subscription_tier = request.form.get("subscription_tier", "Free")
         streaming_enabled = request.form.get("streaming_enabled") == "true"
         scheduled_release = request.form.get("scheduled_release")
-
+        
+        # Basic validation
+        if not title:
+            return jsonify({"error": "Podcast title is required"}), 400
+        
+        if len(title) > 255:
+            return jsonify({"error": "Title too long (max 255 characters)"}), 400
+        
+        # Get uploaded files
         cover_art = request.files.get("cover_art")
         audio_file = request.files.get("audio")
         video_file = request.files.get("video")
-
+        
+        print(f"DEBUG: Received files - Audio: {audio_file.filename if audio_file else 'None'}, Video: {video_file.filename if video_file else 'None'}, Cover: {cover_art.filename if cover_art else 'None'}")
+        
+        # Validate that at least one media file is provided
+        if not audio_file and not video_file:
+            return jsonify({"error": "Either audio or video file is required"}), 400
+        
+        # Initialize variables
         audio_url, video_url, cover_url, duration = None, None, None, None
         audio_file_name, video_file_name = None, None
-
-        # Handle cover art upload using uploadFile
-        if cover_art:
-            cover_filename = secure_filename(cover_art.filename)
-            cover_url = uploadFile(cover_art, cover_filename)
-
-        # Handle audio file upload using uploadFile
-        if audio_file:
-            audio_file_name = secure_filename(audio_file.filename)
-            audio_url = uploadFile(audio_file, audio_file_name)
-
-            # Note: Duration detection would need to be handled separately
-            # as uploadFile doesn't return metadata like cloudinary.uploader.upload_large
-
-        # Handle video file upload using uploadFile
-        if video_file:
-            video_file_name = secure_filename(video_file.filename)
-            video_url = uploadFile(video_file, video_file_name)
-
-        # Create podcast with cloudinary URLs
+        
+        # Validate and upload cover art (optional)
+        if cover_art and cover_art.filename:
+            print(f"DEBUG: Validating cover art: {cover_art.filename}")
+            is_valid, error_msg = validate_file_type_and_size(cover_art, ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE, "image")
+            if error_msg:
+                return jsonify({"error": f"Cover art error: {error_msg}"}), 400
+            
+            try:
+                cover_filename = secure_filename(cover_art.filename)
+                cover_url = uploadFile(cover_art, f"podcast_covers/{user_id}_{cover_filename}")
+                print(f"SUCCESS: Cover art uploaded to: {cover_url}")
+            except Exception as e:
+                print(f"ERROR: Cover art upload failed: {e}")
+                return jsonify({"error": f"Cover art upload failed: {str(e)}"}), 500
+        
+        # Validate and upload audio file
+        if audio_file and audio_file.filename:
+            print(f"DEBUG: Validating audio file: {audio_file.filename}")
+            is_valid, error_msg = validate_file_type_and_size(audio_file, ALLOWED_AUDIO_TYPES, MAX_AUDIO_SIZE, "audio")
+            if error_msg:
+                return jsonify({"error": f"Audio file error: {error_msg}"}), 400
+            
+            try:
+                audio_file_name = secure_filename(audio_file.filename)
+                audio_url = uploadFile(audio_file, f"podcast_audio/{user_id}_{audio_file_name}")
+                print(f"SUCCESS: Audio uploaded to: {audio_url}")
+                
+            except Exception as e:
+                print(f"ERROR: Audio upload failed: {e}")
+                return jsonify({"error": f"Audio file upload failed: {str(e)}"}), 500
+        
+        # Validate and upload video file
+        if video_file and video_file.filename:
+            print(f"DEBUG: Validating video file: {video_file.filename}")
+            is_valid, error_msg = validate_file_type_and_size(video_file, ALLOWED_VIDEO_TYPES, MAX_VIDEO_SIZE, "video")
+            if error_msg:
+                return jsonify({"error": f"Video file error: {error_msg}"}), 400
+            
+            try:
+                video_file_name = secure_filename(video_file.filename)
+                video_url = uploadFile(video_file, f"podcast_videos/{user_id}_{video_file_name}")
+                print(f"SUCCESS: Video uploaded to: {video_url}")
+            except Exception as e:
+                print(f"ERROR: Video upload failed: {e}")
+                return jsonify({"error": f"Video file upload failed: {str(e)}"}), 500
+        
+        # Parse scheduled release date
+        parsed_scheduled_release = None
+        if scheduled_release:
+            try:
+                if 'T' in scheduled_release:
+                    parsed_scheduled_release = datetime.fromisoformat(scheduled_release.replace('Z', '+00:00'))
+                else:
+                    parsed_scheduled_release = datetime.strptime(scheduled_release, '%Y-%m-%dT%H:%M')
+            except ValueError as ve:
+                print(f"WARNING: Invalid scheduled release date format: {scheduled_release}, error: {ve}")
+                parsed_scheduled_release = None
+        
+        # Create podcast record
         new_podcast = Podcast(
             creator_id=user_id,
             title=title,
@@ -984,44 +1077,109 @@ def upload_podcast():
             category=category,
             audio_file_name=audio_file_name,
             video_file_name=video_file_name,
-            audio_url=audio_url,      # Store cloudinary URL
-            video_url=video_url,      # Store cloudinary URL
-            cover_art_url=cover_url,  # Store cloudinary URL
+            audio_url=audio_url,
+            video_url=video_url,
+            cover_art_url=cover_url,
             duration=duration,
             subscription_tier=subscription_tier,
             streaming_enabled=streaming_enabled,
-            scheduled_release=datetime.fromisoformat(scheduled_release) if scheduled_release else None
+            scheduled_release=parsed_scheduled_release
         )
+        
         db.session.add(new_podcast)
+        db.session.flush()  # Get the podcast ID without committing
+        
+        print(f"SUCCESS: Created podcast with ID: {new_podcast.id}")
+        
+        # Create separate episodes for each media type
+        episodes_created = []
+        
+        # Create video episode if video was uploaded
+        if video_url:
+            try:
+                video_episode = PodcastEpisode(
+                    podcast_id=new_podcast.id,
+                    user_id=user_id,
+                    title=f"{title} - Video Episode",
+                    description=description,
+                    file_url=video_url,
+                    cover_art_url=cover_url,
+                    duration=duration,
+                    is_published=True,
+                    release_date=datetime.utcnow(),
+                )
+                db.session.add(video_episode)
+                episodes_created.append("video")
+                print(f"SUCCESS: Created video episode for podcast {new_podcast.id}")
+            except Exception as episode_error:
+                print(f"WARNING: Failed to create video episode: {episode_error}")
+        
+        # Create audio episode if audio was uploaded
+        if audio_url:
+            try:
+                audio_episode = PodcastEpisode(
+                    podcast_id=new_podcast.id,
+                    user_id=user_id,
+                    title=f"{title} - Audio Episode",
+                    description=description,
+                    file_url=audio_url,
+                    cover_art_url=cover_url,
+                    duration=duration,
+                    is_published=True,
+                    release_date=datetime.utcnow(),
+                )
+                db.session.add(audio_episode)
+                episodes_created.append("audio")
+                print(f"SUCCESS: Created audio episode for podcast {new_podcast.id}")
+            except Exception as episode_error:
+                print(f"WARNING: Failed to create audio episode: {episode_error}")
+        
+        # Commit all changes
         db.session.commit()
-
-        # Auto-create first episode if audio or video is included
-        if audio_url or video_url:
-            episode = PodcastEpisode(
-                podcast_id=new_podcast.id,
-                user_id=user_id,
-                title=f"{title} - Episode 1",
-                description=description,
-                file_url=audio_url or video_url,  # Store cloudinary URL
-                cover_art_url=cover_url,          # Store cloudinary URL
-                duration=duration,
-                is_published=True,
-                release_date=datetime.utcnow(),
-            )
-            db.session.add(episode)
-            db.session.commit()
-
-        return jsonify({
-            "message": "Podcast and episode uploaded successfully",
+        print(f"SUCCESS: All changes committed to database")
+        
+        # Prepare response
+        response_data = {
+            "message": "Podcast uploaded successfully",
             "podcast_id": new_podcast.id,
-            "audio_url": audio_url,
-            "video_url": video_url,
-            "cover_url": cover_url
-        }), 201
-
+            "episodes_created": episodes_created,
+            "podcast": {
+                "id": new_podcast.id,
+                "title": title,
+                "description": description,
+                "category": category,
+                "subscription_tier": subscription_tier,
+                "streaming_enabled": streaming_enabled
+            }
+        }
+        
+        # Add URLs to response if they exist
+        if audio_url:
+            response_data["audio_url"] = audio_url
+        if video_url:
+            response_data["video_url"] = video_url
+        if cover_url:
+            response_data["cover_url"] = cover_url
+        
+        return jsonify(response_data), 201
+        
     except Exception as e:
+        # Rollback any database changes
         db.session.rollback()
-        return jsonify({"error": f"Podcast upload failed: {str(e)}"}), 500
+        
+        # Log the full error for debugging
+        import traceback
+        print("=== PODCAST UPLOAD ERROR ===")
+        print(f"Error: {str(e)}")
+        print("Traceback:")
+        traceback.print_exc()
+        print("=== END ERROR ===")
+        
+        # Return error to client
+        return jsonify({
+            "error": "Podcast upload failed. Please try again.",
+            "details": str(e)
+        }), 500
 
 @api.route('/upload_episode', methods=['POST'])
 @jwt_required()

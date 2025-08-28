@@ -82,8 +82,8 @@ const Layout = () => {
   const { store } = useContext(Context);
   const user = store.user;
 
-  // if (!process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL === "")
-  // return <BackendURL />;
+  if (!process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL === "")
+    return <BackendURL />;
 
   // rest of your component...
 
@@ -111,11 +111,13 @@ const Layout = () => {
               <Route path="/orders" element={<OrderHistoryPage />} />
               <Route path="/sales-dashboard" element={<SalesDashboard />} />
               <Route path="/cart" element={<ShoppingCart />} />
-              {/* Video Channel Routes */}
+              // Video Channel Routes
               <Route path="/video-dashboard" element={<VideoChannelDashboard />} />
               <Route path="/profile/video" element={<VideoChannelProfile />} />
               <Route path="/my-channel" element={<MyVideoChannel />} />
               <Route path="/upload-video" element={<VideoUpload />} />
+
+
               {/* 📊 Dashboards */}
               <Route path="/creator-dashboard" element={<CreatorDashboard />} />
 

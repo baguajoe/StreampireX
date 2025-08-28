@@ -1,0 +1,61 @@
+# Page snapshot
+
+```yaml
+- main:
+  - heading "You are about to access a development port served by someone's codespace" [level=2]
+  - list:
+    - listitem:
+      - group:
+        - button "Only continue to visit the website if you trust whoever sent you the link"
+    - listitem:
+      - paragraph: Personal information you disclose such as credit card numbers or passwords may be available to the developer of this site
+      - paragraph: Note that this warning will only be shown once per codespace session.
+  - link "Report unsafe page":
+    - /url: https://support.github.com/contact/report-abuse?category=report-abuse
+  - button "Continue"
+  - paragraph:
+    - text: "Next: You'll be redirected to:"
+    - link "studious-space-goggles-r4rp7v96jgr62x5j-3000.app.github.dev":
+      - /url: "#"
+- contentinfo:
+  - heading "Footer" [level=2]
+  - link "Homepage":
+    - /url: https://github.com
+  - text: © 2025 GitHub, Inc.
+  - navigation "Footer":
+    - heading "Footer navigation" [level=3]
+    - list "Footer navigation":
+      - listitem:
+        - link "Terms":
+          - /url: https://docs.github.com/site-policy/github-terms/github-terms-of-service
+      - listitem:
+        - link "Privacy":
+          - /url: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
+      - listitem:
+        - link "Security":
+          - /url: https://github.com/security
+      - listitem:
+        - link "Status":
+          - /url: https://www.githubstatus.com/
+      - listitem:
+        - link "Docs":
+          - /url: https://docs.github.com
+      - listitem:
+        - link "Contact GitHub":
+          - /url: https://support.github.com?tags=dotcom-footer
+      - listitem:
+        - link "Pricing":
+          - /url: https://github.com/pricing
+      - listitem:
+        - link "API":
+          - /url: https://docs.github.com
+      - listitem:
+        - link "Training":
+          - /url: https://services.github.com
+      - listitem:
+        - link "Blog":
+          - /url: https://github.blog
+      - listitem:
+        - link "About":
+          - /url: https://github.com/about
+```

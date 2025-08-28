@@ -20,10 +20,22 @@ const PodcastDashboard = () => {
         donations: 0
     });
 
+    // Helper function to check if URL is a video file
+    const isVideoFile = (url) => {
+        if (!url) return false;
+        return url.match(/\.(mp4|mov|avi|mkv|webm|m4v|3gp|flv)$/i);
+    };
+
+    // Helper function to check if URL is an audio file
+    const isAudioFile = (url) => {
+        if (!url) return false;
+        return url.match(/\.(mp3|wav|flac|m4a|aac|ogg|wma)$/i);
+    };
+
     useEffect(() => {
         const fetchPodcasts = async () => {
             try {
-                const res = await fetch(`${process.env.BACKEND_URL}/api/podcast/dashboard`, {
+                const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast/dashboard`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
                 });
                 if (!res.ok) throw new Error(`Status: ${res.status}`);
@@ -40,21 +52,133 @@ const PodcastDashboard = () => {
     }, []);
 
     const loadEpisodes = (podcastId) => {
+        console.log("Loading episodes for podcast:", podcastId);
         setSelectedPodcast(podcastId);
-        fetch(`${process.env.BACKEND_URL}/api/podcasts/${podcastId}/episodes`)
-            .then(res => res.json())
-            .then(data => setEpisodes(data))
-            .catch(error => console.error('Error fetching episodes:', error));
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast/${podcastId}/episodes`)
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                console.log("Episodes loaded:", data);
+                setEpisodes(data);
+            })
+            .catch(error => {
+                console.error('Error fetching episodes:', error);
+                setEpisodes([]);
+            });
     };
 
     const deletePodcast = (podcastId) => {
         if (!window.confirm('Are you sure you want to delete this podcast?')) return;
-        fetch(`${process.env.BACKEND_URL}/api/podcasts/${podcastId}`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcasts/${podcastId}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         })
             .then(() => setPodcasts(podcasts.filter((p) => p.id !== podcastId)))
             .catch((error) => console.error('Error deleting podcast:', error));
+    };
+
+    const deleteEpisode = (episodeId) => {
+        if (!window.confirm('Are you sure you want to delete this episode?')) return;
+        
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/episodes/${episodeId}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        })
+            .then(() => {
+                setEpisodes(episodes.filter((ep) => ep.id !== episodeId));
+            })
+            .catch((error) => console.error('Error deleting episode:', error));
+    };
+
+    // Enhanced media renderer that handles both audio and video
+    const renderMediaPlayer = (episode) => {
+        if (!episode.file_url) {
+            return <p style={{color: '#666', fontStyle: 'italic'}}>No media file available</p>;
+        }
+
+        console.log("Rendering media for episode:", episode.title, "URL:", episode.file_url);
+
+        if (isVideoFile(episode.file_url)) {
+            return (
+                <div className="video-container" style={{margin: '10px 0'}}>
+                    <video 
+                        controls 
+                        style={{ 
+                            width: '100%', 
+                            maxWidth: '600px', 
+                            height: 'auto',
+                            borderRadius: '8px'
+                        }}
+                        preload="metadata"
+                    >
+                        <source src={episode.file_url} type="video/mp4" />
+                        <source src={episode.file_url} type="video/webm" />
+                        <source src={episode.file_url} type="video/ogg" />
+                        Your browser does not support the video element.
+                    </video>
+                </div>
+            );
+        } else if (isAudioFile(episode.file_url)) {
+            return (
+                <div className="audio-container" style={{margin: '10px 0'}}>
+                    <audio 
+                        controls 
+                        style={{ 
+                            width: '100%', 
+                            maxWidth: '500px' 
+                        }}
+                        preload="metadata"
+                    >
+                        <source src={episode.file_url} type="audio/mpeg" />
+                        <source src={episode.file_url} type="audio/wav" />
+                        <source src={episode.file_url} type="audio/ogg" />
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+            );
+        } else {
+            // Fallback for unknown file types - try both video and audio
+            return (
+                <div className="media-container" style={{margin: '10px 0'}}>
+                    <video 
+                        controls 
+                        style={{ 
+                            width: '100%', 
+                            maxWidth: '600px', 
+                            height: 'auto',
+                            borderRadius: '8px'
+                        }}
+                        preload="metadata"
+                        onError={(e) => {
+                            console.log("Video failed, trying audio...");
+                            // If video fails, hide it and show audio player
+                            e.target.style.display = 'none';
+                            const audioElement = e.target.nextElementSibling;
+                            if (audioElement) {
+                                audioElement.style.display = 'block';
+                            }
+                        }}
+                    >
+                        <source src={episode.file_url} />
+                        Your browser does not support the video element.
+                    </video>
+                    <audio 
+                        controls 
+                        style={{ 
+                            width: '100%', 
+                            maxWidth: '500px',
+                            display: 'none' // Hidden by default, shown if video fails
+                        }}
+                        preload="metadata"
+                    >
+                        <source src={episode.file_url} />
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+            );
+        }
     };
 
     if (loading) return <p className="loading">Loading your podcasts...</p>;
@@ -88,13 +212,22 @@ const PodcastDashboard = () => {
                         {podcasts.map((podcast) => (
                             <div key={podcast.id} className="podcast-card">
                                 <img
-                                    src={podcast.cover_art_url}
+                                    src={podcast.cover_art_url || '/default-podcast-cover.png'}
                                     alt={podcast.title}
                                     className="podcast-cover"
+                                    onError={(e) => {
+                                        e.target.src = '/default-podcast-cover.png';
+                                    }}
                                 />
                                 <div className="podcast-content">
                                     <h3>{podcast.title}</h3>
                                     <p>{podcast.description}</p>
+                                    <div className="podcast-metadata">
+                                        <span className="podcast-category">{podcast.category}</span>
+                                        {podcast.subscription_tier && (
+                                            <span className="podcast-tier">{podcast.subscription_tier}</span>
+                                        )}
+                                    </div>
                                     <div className="podcast-actions">
                                         <button onClick={() => loadEpisodes(podcast.id)} className="btn-primary">
                                             View Episodes
@@ -128,12 +261,49 @@ const PodcastDashboard = () => {
                         <ul className="episode-list">
                             {episodes.map((episode) => (
                                 <li key={episode.id} className="episode-item">
-                                    <strong>{episode.title}</strong>
-                                    <audio controls>
-                                        <source src={episode.file_url} type="audio/mp3" />
-                                        Your browser does not support the audio element.
-                                    </audio>
-                                    <button className="btn-delete">🗑 Delete</button>
+                                    <div className="episode-header">
+                                        <h4>{episode.title || 'Untitled Episode'}</h4>
+                                        <div className="episode-actions">
+                                            <button 
+                                                onClick={() => deleteEpisode(episode.id)} 
+                                                className="btn-delete btn-small"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    {episode.description && (
+                                        <p className="episode-description">{episode.description}</p>
+                                    )}
+                                    
+                                    <div className="episode-metadata">
+                                        {episode.duration && (
+                                            <span className="episode-duration">Duration: {episode.duration}s</span>
+                                        )}
+                                        {episode.release_date && (
+                                            <span className="episode-date">
+                                                Released: {new Date(episode.release_date).toLocaleDateString()}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="episode-media">
+                                        {renderMediaPlayer(episode)}
+                                    </div>
+
+                                    {episode.file_url && (
+                                        <div className="episode-download">
+                                            <a 
+                                                href={episode.file_url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="download-link"
+                                            >
+                                                Download {isVideoFile(episode.file_url) ? 'Video' : 'Audio'}
+                                            </a>
+                                        </div>
+                                    )}
                                 </li>
                             ))}
                         </ul>
