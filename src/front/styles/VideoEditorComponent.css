@@ -10,36 +10,36 @@
   --editor-bg-selected: #0e639c;
   --editor-border: #3f3f46;
   --editor-border-light: #4b4b52;
-  
+
   /* Text Colors */
   --editor-text-primary: #cccccc;
   --editor-text-secondary: #969696;
   --editor-text-muted: #6d6d6d;
   --editor-text-bright: #ffffff;
-  
+
   /* Accent Colors */
   --editor-accent-blue: #007acc;
   --editor-accent-green: #00d4aa;
   --editor-accent-red: #ff6b6b;
   --editor-accent-orange: #ff9500;
   --editor-accent-purple: #b180d7;
-  
+
   /* Timeline Colors */
   --timeline-bg: #1e2127;
   --timeline-ruler: #2a2d35;
   --timeline-header: #252830;
   --timeline-track-even: #2a2d35;
   --timeline-track-odd: #1e2127;
-  
+
   /* Playhead */
   --playhead-color: #ffd700;
   --playhead-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-  
+
   /* Shadows and Effects */
   --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.2);
   --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.3);
   --shadow-heavy: 0 8px 16px rgba(0, 0, 0, 0.4);
-  
+
   /* Transitions */
   --transition-fast: all 0.15s ease;
   --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -727,6 +727,59 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
+/* Timeline Transitions */
+.timeline-transition {
+  position: absolute;
+  top: 2px;
+  height: 44px;
+  border-radius: 6px;
+  cursor: pointer;
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.2) 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.2) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-style: dashed;
+  overflow: hidden;
+  transition: var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+  z-index: 10;
+}
+
+.timeline-transition:hover {
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.3) 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0.3) 100%);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
+}
+
+.transition-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.transition-icon {
+  margin-bottom: 2px;
+  opacity: 0.9;
+}
+
+.transition-label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
 /* Hidden file input */
 .hidden-file-input {
   display: none;
@@ -775,13 +828,13 @@
     width: 200px;
     min-width: 200px;
   }
-  
+
   .track-headers-spacer,
   .track-headers-column {
     width: 200px;
     min-width: 200px;
   }
-  
+
   .timeline-playhead {
     left: calc(200px + var(--playhead-position, 0px));
   }
@@ -791,23 +844,23 @@
   .editor-main-layout {
     flex-direction: column;
   }
-  
+
   .editor-left-panel {
     width: 100%;
     height: 200px;
     border-right: none;
     border-bottom: 1px solid var(--editor-border);
   }
-  
+
   .editor-toolbar {
     flex-direction: row;
     padding: 12px;
   }
-  
+
   .toolbar-section {
     flex: 1;
   }
-  
+
   .tool-grid {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -815,9 +868,17 @@
 
 /* Animation for smooth interactions */
 @keyframes clipSelect {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.02);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .timeline-clip.selected {
@@ -841,5 +902,25 @@
     --editor-bg-panel: #1a1a1a;
     --editor-text-primary: #ffffff;
     --editor-border: #666666;
+  }
+
+  /* Timeline Transitions */
+  .timeline-transition {
+    position: absolute;
+    top: 2px;
+    height: 44px;
+    border-radius: 6px;
+    cursor: pointer;
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.2) 100%);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-style: dashed;
+    overflow: hidden;
+    transition: var(--transition-fast);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
+    z-index: 10;
   }
 }
