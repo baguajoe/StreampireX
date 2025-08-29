@@ -71,6 +71,7 @@ import ReleaseList from "./pages/ReleaseList";
 import UserVideoChannelPage from "./pages/UserVideoChannelPage";
 import ArtistProfilePage from "./pages/ArtistProfilePage";
 import CollaboratorSplitPage from "./pages/CollaboratorSplitPage";
+import VideoEditor from "./pages/VideoEditor";
 
 import EditGamerProfilePage from "./pages/EditGamerProfilePage";
 import CreateTeamRoomPage from "./pages/CreateTeamRoomPage";
@@ -116,6 +117,8 @@ const Layout = () => {
               <Route path="/profile/video" element={<VideoChannelProfile />} />
               <Route path="/my-channel" element={<MyVideoChannel />} />
               <Route path="/upload-video" element={<VideoUpload />} />
+              <Route path="/video-editor" element={<VideoEditor />} />
+              
               {/* 📊 Dashboards */}
               <Route path="/creator-dashboard" element={<CreatorDashboard />} />
 

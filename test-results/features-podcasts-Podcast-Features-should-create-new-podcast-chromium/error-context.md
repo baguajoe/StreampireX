@@ -1,0 +1,156 @@
+# Page snapshot
+
+```yaml
+- navigation:
+  - link "StreampireX":
+    - /url: /
+    - img "StreampireX"
+  - link "Home":
+    - /url: /
+  - link "Pricing":
+    - /url: /pricing-plans
+  - link "Podcasts":
+    - /url: /browse-podcast-categories
+  - link "Videos":
+    - /url: /videos
+  - link "Radio":
+    - /url: /browse-radio-stations
+  - link "Live":
+    - /url: /live-streams
+  - link "Login":
+    - /url: /login
+  - link "Sign Up":
+    - /url: /register
+- heading "👤 User" [level=4]
+- link "🏠 Home Feed":
+  - /url: /home-feed
+- link "👤 Regular Profile":
+  - /url: /profile
+- link "🎮 Gamer Profile":
+  - /url: /profile/gamer
+- link "🎵 Artist Profile":
+  - /url: /profile/artist
+- link "📹 Channel Profile":
+  - /url: /profile/video
+- heading "📊 Dashboards" [level=4]
+- link "🚀 Creator Dashboard":
+  - /url: /creator-dashboard
+- link "🎤 Artist Dashboard":
+  - /url: /artist-dashboard
+- link "🎧 Podcast Dashboard":
+  - /url: /podcast-dashboard
+- link "📻 Radio Dashboard":
+  - /url: /radio-dashboard
+- link "📹 Video Dashboard":
+  - /url: /video-dashboard
+- link "💰 Sales Dashboard":
+  - /url: /sales-dashboard
+- link "🏢 Label Dashboard":
+  - /url: /label-dashboard
+- heading "🎤 Indie Artists" [level=4]
+- link "🌍 Music Distribution":
+  - /url: /music-distribution
+- link "🔍 Search Artists":
+  - /url: /search
+- link "👥 Collaborator Splits":
+  - /url: /collaborator-splits
+- heading "🎮 Gamers 🔽" [level=4]
+- link "💬 Gamer Chatrooms 3":
+  - /url: /gamers/chat
+- link "🧑‍🤝‍🧑 Team Room 1":
+  - /url: /team-room
+- link "🔍 Find Squads":
+  - /url: /squad-finder
+- heading "🎧 Podcasts" [level=4]
+- link "🎙️ Create Podcast":
+  - /url: /podcast-create
+- link "🎧 Browse Categories":
+  - /url: /browse-podcast-categories
+- heading "🎬 Videos" [level=4]
+- link "🎞️ Browse Videos":
+  - /url: /videos
+- link "📹 My Channel":
+  - /url: /my-channel
+- link "📤 Upload Video":
+  - /url: /upload-video
+- heading "📻 Radio Stations" [level=4]
+- link "📻 Browse Stations":
+  - /url: /browse-radio-stations
+- link "➕ Create Station":
+  - /url: /create-radio
+- heading "🎥 Live Streaming" [level=4]
+- link "📡 Live Streams":
+  - /url: /live-streams
+- link "🎶 Live Concerts":
+  - /url: /live-concerts
+- heading "🛍️ Store & Marketplace" [level=4]
+- link "🛒 Browse Marketplace":
+  - /url: /marketplace
+- link "🛒 Shopping Cart":
+  - /url: /cart
+- link "💳 Checkout":
+  - /url: /checkout
+- link "🏪 My Storefront":
+  - /url: /storefront
+- link "📦 Order History":
+  - /url: /orders
+- heading "👤 Account" [level=4]
+- link "⚙️ Settings":
+  - /url: /settings
+- main:
+  - heading "🎙️ Create a Podcast" [level=1]
+  - text: "📌 Title:"
+  - textbox: My Test Podcast
+  - text: "📝 Description:"
+  - textbox: A great test podcast about technology and innovation
+  - text: "📂 Category:"
+  - combobox:
+    - option "Select a Category" [selected]
+    - option "True Crime & Investigative Journalism"
+    - option "Celebrity Gossip & Reality TV"
+    - option "Education & Learning"
+    - option "Comedy & Stand-Up"
+    - option "Tabletop & Board Games"
+    - option "Film & TV Reviews"
+    - option "Technology & Innovation"
+    - option "Health & Wellness"
+    - option "Business & Finance"
+    - option "Sports & Recreation"
+  - text: "🌐 Language:"
+  - combobox:
+    - option "English" [selected]
+    - option "Spanish"
+    - option "French"
+    - option "German"
+  - text: "🎨 Cover Art:"
+  - button "Choose File"
+  - text: "🎵 Podcast Audio:"
+  - button "Choose File"
+  - text: "🎥 Podcast Video (optional):"
+  - button "Choose File"
+  - text: "🔴 Enable Live Podcast Streaming:"
+  - checkbox
+  - text: "📅 Schedule Release:"
+  - textbox
+  - text: "💰 Monetization Tier:"
+  - combobox:
+    - option "Free" [selected]
+    - option "Tier 1 - $5/month"
+    - option "Tier 2 - $10/month"
+    - option "Tier 3 - $20/month"
+  - button "📤 Upload Podcast"
+- contentinfo:
+  - paragraph:
+    - text: Made with  by
+    - link "Eye Forge Studios":
+      - /url: https://www.eyeforgestudios.com/
+      - strong: Eye Forge Studios
+  - link "Terms":
+    - /url: /terms
+  - text: "|"
+  - link "Privacy":
+    - /url: /privacy
+  - text: "|"
+  - link "Support":
+    - /url: /support
+```

@@ -1,0 +1,203 @@
+# Page snapshot
+
+```yaml
+- navigation:
+  - link "StreampireX":
+    - /url: /
+    - img "StreampireX"
+  - link "Home":
+    - /url: /
+  - link "Pricing":
+    - /url: /pricing-plans
+  - link "Podcasts":
+    - /url: /browse-podcast-categories
+  - link "Videos":
+    - /url: /videos
+  - link "Radio":
+    - /url: /browse-radio-stations
+  - link "Live":
+    - /url: /live-streams
+  - link "Login":
+    - /url: /login
+  - link "Sign Up":
+    - /url: /register
+- heading "👤 User" [level=4]
+- link "🏠 Home Feed":
+  - /url: /home-feed
+- link "👤 Regular Profile":
+  - /url: /profile
+- link "🎮 Gamer Profile":
+  - /url: /profile/gamer
+- link "🎵 Artist Profile":
+  - /url: /profile/artist
+- link "📹 Channel Profile":
+  - /url: /profile/video
+- heading "📊 Dashboards" [level=4]
+- link "🚀 Creator Dashboard":
+  - /url: /creator-dashboard
+- link "🎤 Artist Dashboard":
+  - /url: /artist-dashboard
+- link "🎧 Podcast Dashboard":
+  - /url: /podcast-dashboard
+- link "📻 Radio Dashboard":
+  - /url: /radio-dashboard
+- link "📹 Video Dashboard":
+  - /url: /video-dashboard
+- link "💰 Sales Dashboard":
+  - /url: /sales-dashboard
+- link "🏢 Label Dashboard":
+  - /url: /label-dashboard
+- heading "🎤 Indie Artists" [level=4]
+- link "🌍 Music Distribution":
+  - /url: /music-distribution
+- link "🔍 Search Artists":
+  - /url: /search
+- link "👥 Collaborator Splits":
+  - /url: /collaborator-splits
+- heading "🎮 Gamers 🔽" [level=4]
+- link "💬 Gamer Chatrooms 3":
+  - /url: /gamers/chat
+- link "🧑‍🤝‍🧑 Team Room 1":
+  - /url: /team-room
+- link "🔍 Find Squads":
+  - /url: /squad-finder
+- heading "🎧 Podcasts" [level=4]
+- link "🎙️ Create Podcast":
+  - /url: /podcast-create
+- link "🎧 Browse Categories":
+  - /url: /browse-podcast-categories
+- heading "🎬 Videos" [level=4]
+- link "🎞️ Browse Videos":
+  - /url: /videos
+- link "📹 My Channel":
+  - /url: /my-channel
+- link "📤 Upload Video":
+  - /url: /upload-video
+- heading "📻 Radio Stations" [level=4]
+- link "📻 Browse Stations":
+  - /url: /browse-radio-stations
+- link "➕ Create Station":
+  - /url: /create-radio
+- heading "🎥 Live Streaming" [level=4]
+- link "📡 Live Streams":
+  - /url: /live-streams
+- link "🎶 Live Concerts":
+  - /url: /live-concerts
+- heading "🛍️ Store & Marketplace" [level=4]
+- link "🛒 Browse Marketplace":
+  - /url: /marketplace
+- link "🛒 Shopping Cart":
+  - /url: /cart
+- link "💳 Checkout":
+  - /url: /checkout
+- link "🏪 My Storefront":
+  - /url: /storefront
+- link "📦 Order History":
+  - /url: /orders
+- heading "👤 Account" [level=4]
+- link "⚙️ Settings":
+  - /url: /settings
+- main:
+  - heading "Create a New Radio Station" [level=2]
+  - heading "Basic Information" [level=3]
+  - textbox "Enter Radio Station Name *"
+  - textbox "Enter Description *"
+  - combobox:
+    - option "Select a Category *" [selected]
+    - option "Top 40 & Pop Hits"
+    - option "Classic Pop"
+    - option "K-Pop & J-Pop"
+    - option "Indie & Alternative Pop"
+    - option "Classic Rock"
+    - option "Hard Rock & Metal"
+    - option "Alternative Rock"
+    - option "Punk Rock"
+    - option "Grunge"
+    - option "Hip-Hop & Rap"
+    - option "R&B & Soul"
+    - option "Neo-Soul"
+    - option "Old-School Hip-Hop"
+    - option "EDM"
+    - option "House & Deep House"
+    - option "Techno"
+    - option "Trance"
+    - option "Drum & Bass"
+    - option "Dubstep"
+    - option "Lo-Fi"
+    - option "Smooth Jazz"
+    - option "Classic Jazz"
+    - option "Blues & Soul Blues"
+    - option "Jazz Fusion"
+    - option "Swing & Big Band"
+    - option "Classical & Opera"
+    - option "Film Scores & Soundtracks"
+    - option "Instrumental & Piano Music"
+    - option "Reggaeton"
+    - option "Salsa & Merengue"
+    - option "Cumbia & Bachata"
+    - option "Afrobeat"
+    - option "Modern Country"
+    - option "Classic Country"
+    - option "Americana"
+    - option "Bluegrass"
+    - option "Reggae"
+    - option "Dancehall"
+    - option "Roots Reggae"
+    - option "50s & 60s Classics"
+    - option "70s & 80s Hits"
+    - option "90s & 2000s Throwbacks"
+    - option "Afrobeat"
+    - option "Caribbean & Soca"
+    - option "French Chanson"
+    - option "Bollywood & Indian"
+    - option "Lo-Fi"
+    - option "Meditation & Relaxation"
+    - option "ASMR & White Noise"
+    - option "Gaming OSTs"
+    - option "Holiday Music"
+  - heading "Upload Your Initial Mix *" [level=3]
+  - paragraph: Upload a mix or playlist to get your station started. This will be the first thing listeners hear!
+  - text: 🎧
+  - paragraph:
+    - strong: Click to upload your mix
+  - paragraph: MP3, WAV, or other audio formats • Max 120MB
+  - heading "Station Visuals" [level=3]
+  - heading "Station Logo *" [level=4]
+  - paragraph: Click to upload logo
+  - paragraph: Square image, max 2MB
+  - heading "Cover Image (Optional)" [level=4]
+  - paragraph: Click to upload cover
+  - paragraph: Banner image, max 5MB
+  - heading "Audience & Content" [level=3]
+  - textbox "Target Audience *"
+  - combobox:
+    - option "24/7 Broadcasting" [selected]
+    - option "Morning Hours"
+    - option "Evening Hours"
+    - option "Weekends Only"
+    - option "Custom Schedule"
+  - checkbox "Contains explicit content"
+  - text: Contains explicit content
+  - textbox "Tags (comma-separated)"
+  - textbox "Welcome Message for Listeners"
+  - heading "Social Media Links" [level=3]
+  - textbox "Website URL"
+  - textbox "Instagram Handle"
+  - textbox "Twitter Handle"
+  - button "Create Station"
+  - paragraph: After creating your station, you'll be able to upload more music and manage your playlists.
+- contentinfo:
+  - paragraph:
+    - text: Made with  by
+    - link "Eye Forge Studios":
+      - /url: https://www.eyeforgestudios.com/
+      - strong: Eye Forge Studios
+  - link "Terms":
+    - /url: /terms
+  - text: "|"
+  - link "Privacy":
+    - /url: /privacy
+  - text: "|"
+  - link "Support":
+    - /url: /support
+```
