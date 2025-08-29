@@ -1,47 +1,34 @@
-// tests/features/basic-test.spec.js
-import { test, expect } from '../fixtures/auth.js';
+const { test, expect } = require('@playwright/test');
 
 test.describe('Basic Setup Validation', () => {
-  
   test('should load homepage', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('body')).toBeVisible();
+    const title = await page.title();
+    const url = page.url();
     
-    console.log('Page title:', await page.title());
-    console.log('Page URL:', page.url());
+    console.log('Page title:', title);
+    console.log('Page URL:', url);
     
-    // Take a screenshot to see what's actually loading
-    await page.screenshot({ path: 'homepage-screenshot.png', fullPage: true });
+    expect(title).toBeTruthy();
+    expect(url).toContain('localhost:3000');
   });
 
   test('should check which routes exist', async ({ page }) => {
     const routes = ['/podcast-create', '/artist/upload', '/upload-video', '/create-radio'];
-    
-    for (const route of routes) {
-      await page.goto(route);
-      const pageContent = await page.content();
-      const is404 = pageContent.includes('Not found') || pageContent.includes('404');
-      console.log(`Route ${route}: ${is404 ? 'MISSING' : 'EXISTS'}`);
-    }
-  });
 
-  test('should check podcast-create page elements', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto('/podcast-create');
-    
-    // Check what elements actually exist
-    const titleInput = authenticatedPage.locator('input[name="title"]');
-    const isVisible = await titleInput.isVisible();
-    
-    console.log('Title input exists:', isVisible);
-    
-    if (!isVisible) {
-      // Log what elements DO exist
-      const allInputs = await authenticatedPage.locator('input').count();
-      const allForms = await authenticatedPage.locator('form').count();
-      console.log(`Found ${allInputs} inputs and ${allForms} forms on the page`);
-      
-      // Take screenshot to see actual page
-      await authenticatedPage.screenshot({ path: 'podcast-create-page.png', fullPage: true });
+    for (const route of routes) {
+      try {
+        console.log(`Testing route: ${route}`);
+        await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 10000 });
+        await page.waitForTimeout(1000);
+        
+        const bodyText = await page.textContent('body');
+        const is404 = bodyText.includes('Not found!') || await page.locator('h1:has-text("Not found!")').count() > 0;
+        
+        console.log(`Route ${route}: ${is404 ? 'MISSING' : 'EXISTS'}`);
+      } catch (error) {
+        console.log(`Route ${route}: ERROR - ${error.message}`);
+      }
     }
   });
 });

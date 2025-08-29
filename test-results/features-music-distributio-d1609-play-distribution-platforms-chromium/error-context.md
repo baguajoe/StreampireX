@@ -1,0 +1,212 @@
+# Page snapshot
+
+```yaml
+- navigation:
+  - link "StreampireX":
+    - /url: /
+    - img "StreampireX"
+  - link "Home":
+    - /url: /
+  - link "Pricing":
+    - /url: /pricing-plans
+  - link "Podcasts":
+    - /url: /browse-podcast-categories
+  - link "Videos":
+    - /url: /videos
+  - link "Radio":
+    - /url: /browse-radio-stations
+  - link "Live":
+    - /url: /live-streams
+  - link "Login":
+    - /url: /login
+  - link "Sign Up":
+    - /url: /register
+- heading "👤 User" [level=4]
+- link "🏠 Home Feed":
+  - /url: /home-feed
+- link "👤 Regular Profile":
+  - /url: /profile
+- link "🎮 Gamer Profile":
+  - /url: /profile/gamer
+- link "🎵 Artist Profile":
+  - /url: /profile/artist
+- link "📹 Channel Profile":
+  - /url: /profile/video
+- heading "📊 Dashboards" [level=4]
+- link "🚀 Creator Dashboard":
+  - /url: /creator-dashboard
+- link "🎤 Artist Dashboard":
+  - /url: /artist-dashboard
+- link "🎧 Podcast Dashboard":
+  - /url: /podcast-dashboard
+- link "📻 Radio Dashboard":
+  - /url: /radio-dashboard
+- link "📹 Video Dashboard":
+  - /url: /video-dashboard
+- link "💰 Sales Dashboard":
+  - /url: /sales-dashboard
+- link "🏢 Label Dashboard":
+  - /url: /label-dashboard
+- heading "🎤 Indie Artists" [level=4]
+- link "🌍 Music Distribution":
+  - /url: /music-distribution
+- link "🔍 Search Artists":
+  - /url: /search
+- link "👥 Collaborator Splits":
+  - /url: /collaborator-splits
+- heading "🎮 Gamers 🔽" [level=4]
+- link "💬 Gamer Chatrooms 3":
+  - /url: /gamers/chat
+- link "🧑‍🤝‍🧑 Team Room 1":
+  - /url: /team-room
+- link "🔍 Find Squads":
+  - /url: /squad-finder
+- heading "🎧 Podcasts" [level=4]
+- link "🎙️ Create Podcast":
+  - /url: /podcast-create
+- link "🎧 Browse Categories":
+  - /url: /browse-podcast-categories
+- heading "🎬 Videos" [level=4]
+- link "🎞️ Browse Videos":
+  - /url: /videos
+- link "📹 My Channel":
+  - /url: /my-channel
+- link "📤 Upload Video":
+  - /url: /upload-video
+- heading "📻 Radio Stations" [level=4]
+- link "📻 Browse Stations":
+  - /url: /browse-radio-stations
+- link "➕ Create Station":
+  - /url: /create-radio
+- heading "🎥 Live Streaming" [level=4]
+- link "📡 Live Streams":
+  - /url: /live-streams
+- link "🎶 Live Concerts":
+  - /url: /live-concerts
+- heading "🛍️ Store & Marketplace" [level=4]
+- link "🛒 Browse Marketplace":
+  - /url: /marketplace
+- link "🛒 Shopping Cart":
+  - /url: /cart
+- link "💳 Checkout":
+  - /url: /checkout
+- link "🏪 My Storefront":
+  - /url: /storefront
+- link "📦 Order History":
+  - /url: /orders
+- heading "👤 Account" [level=4]
+- link "⚙️ Settings":
+  - /url: /settings
+- main:
+  - heading "🎵 Global Music Distribution" [level=1]
+  - paragraph: Distribute your music to 150+ platforms worldwide with StreampireX
+  - heading "🎵 Choose Your Distribution Plan" [level=2]
+  - paragraph: Select the plan that fits your music distribution needs
+  - heading "🆓 Free Plan" [level=3]
+  - paragraph: $0
+  - paragraph: Listen, follow, gaming community
+  - paragraph: ❌ No music distribution
+  - link "Current Plan":
+    - /url: /pricing/plans
+  - text: POPULAR
+  - heading "⭐ Pro Plan" [level=3]
+  - paragraph: $21.99
+  - paragraph: /month
+  - paragraph: Upload content, livestreaming, analytics
+  - text: ✅ Limited Music Distribution ✅ SonoSuite Access ✅ Create Podcasts ✅ Radio Stations
+  - link "Choose Pro Plan":
+    - /url: /pricing
+  - heading "💎 Premium Plan" [level=3]
+  - paragraph: $39.99
+  - paragraph: /month
+  - paragraph: Full creators, sell merch, marketplace
+  - text: ✅ Unlimited Music Distribution ✅ Digital & Merch Sales ✅ Live Events ✅ All Pro Features
+  - link "Upgrade to Premium":
+    - /url: /pricing/plans
+  - heading "🎵 Standalone Music Distribution" [level=3]
+  - paragraph: Don't need other features? Get music distribution only.
+  - paragraph: Artist Distribution
+  - paragraph: $22.99
+  - link "Choose Artist":
+    - /url: /pricing/plans
+  - paragraph: Label Distribution
+  - paragraph: $74.99
+  - link "Choose Label":
+    - /url: /pricing/plans
+  - link "🎯 Choose a Plan & Start Distributing":
+    - /url: /pricing
+  - heading "🎵 Unlock Global Music Distribution" [level=2]
+  - paragraph: Distribute your music to 150+ platforms including Spotify, Apple Music, Amazon Music, and more!
+  - text: ✅ Global music distribution ✅ Keep 100% of your royalties ✅ Detailed analytics and reporting ✅ Release scheduling ✅ Social media integration ✅ YouTube Content ID protection
+  - link "🚀 Choose a Plan - Start Distributing":
+    - /url: /pricing
+  - link "View All Plans":
+    - /url: /pricing
+  - heading "🎵 Supported Streaming Platforms" [level=2]
+  - text: 🎵
+  - heading "Spotify" [level=4]
+  - paragraph: 2.4M streams
+  - text: 🍎
+  - heading "Apple Music" [level=4]
+  - paragraph: 1.8M streams
+  - text: 📦
+  - heading "Amazon Music" [level=4]
+  - paragraph: 1.2M streams
+  - text: 📺
+  - heading "YouTube Music" [level=4]
+  - paragraph: 3.1M streams
+  - text: 🎼
+  - heading "Deezer" [level=4]
+  - paragraph: 890K streams
+  - text: 🌊
+  - heading "Tidal" [level=4]
+  - paragraph: 650K streams
+  - text: 📻
+  - heading "Pandora" [level=4]
+  - paragraph: Coming Soon
+  - text: ☁️
+  - heading "SoundCloud" [level=4]
+  - paragraph: 1.5M streams
+  - text: 🎪
+  - heading "Bandcamp" [level=4]
+  - paragraph: 320K streams
+  - text: 🎵
+  - heading "TikTok" [level=4]
+  - paragraph: 5.2M streams
+  - text: 📸
+  - heading "Instagram" [level=4]
+  - paragraph: 2.8M streams
+  - text: 👥
+  - heading "Facebook" [level=4]
+  - paragraph: 1.1M streams
+  - heading "🚀 How Distribution Works" [level=2]
+  - text: 1 🎵
+  - heading "Upload Your Music" [level=3]
+  - paragraph: Upload your high-quality audio files and artwork through StreampireX
+  - text: 2 📝
+  - heading "Add Release Details" [level=3]
+  - paragraph: Fill in artist info, release date, genre, and platform preferences
+  - text: 3 🔄
+  - heading "Review & Submit" [level=3]
+  - paragraph: Review your submission and send to our distribution network
+  - text: 4 🚀
+  - heading "Go Live" [level=3]
+  - paragraph: Your music goes live on 150+ platforms worldwide within 24-48 hours
+  - text: 5 📊
+  - heading "Track Performance" [level=3]
+  - paragraph: Monitor streams, earnings, and analytics across all platforms
+- contentinfo:
+  - paragraph:
+    - text: Made with  by
+    - link "Eye Forge Studios":
+      - /url: https://www.eyeforgestudios.com/
+      - strong: Eye Forge Studios
+  - link "Terms":
+    - /url: /terms
+  - text: "|"
+  - link "Privacy":
+    - /url: /privacy
+  - text: "|"
+  - link "Support":
+    - /url: /support
+```

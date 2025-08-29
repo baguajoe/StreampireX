@@ -1,0 +1,187 @@
+# Page snapshot
+
+```yaml
+- navigation:
+  - link "StreampireX":
+    - /url: /
+    - img "StreampireX"
+  - link "Home":
+    - /url: /
+  - link "Pricing":
+    - /url: /pricing-plans
+  - link "Podcasts":
+    - /url: /browse-podcast-categories
+  - link "Videos":
+    - /url: /videos
+  - link "Radio":
+    - /url: /browse-radio-stations
+  - link "Live":
+    - /url: /live-streams
+  - link "Login":
+    - /url: /login
+  - link "Sign Up":
+    - /url: /register
+- heading "👤 User" [level=4]
+- link "🏠 Home Feed":
+  - /url: /home-feed
+- link "👤 Regular Profile":
+  - /url: /profile
+- link "🎮 Gamer Profile":
+  - /url: /profile/gamer
+- link "🎵 Artist Profile":
+  - /url: /profile/artist
+- link "📹 Channel Profile":
+  - /url: /profile/video
+- heading "📊 Dashboards" [level=4]
+- link "🚀 Creator Dashboard":
+  - /url: /creator-dashboard
+- link "🎤 Artist Dashboard":
+  - /url: /artist-dashboard
+- link "🎧 Podcast Dashboard":
+  - /url: /podcast-dashboard
+- link "📻 Radio Dashboard":
+  - /url: /radio-dashboard
+- link "📹 Video Dashboard":
+  - /url: /video-dashboard
+- link "💰 Sales Dashboard":
+  - /url: /sales-dashboard
+- link "🏢 Label Dashboard":
+  - /url: /label-dashboard
+- heading "🎤 Indie Artists" [level=4]
+- link "🌍 Music Distribution":
+  - /url: /music-distribution
+- link "🔍 Search Artists":
+  - /url: /search
+- link "👥 Collaborator Splits":
+  - /url: /collaborator-splits
+- heading "🎮 Gamers 🔽" [level=4]
+- link "💬 Gamer Chatrooms 3":
+  - /url: /gamers/chat
+- link "🧑‍🤝‍🧑 Team Room 1":
+  - /url: /team-room
+- link "🔍 Find Squads":
+  - /url: /squad-finder
+- heading "🎧 Podcasts" [level=4]
+- link "🎙️ Create Podcast":
+  - /url: /podcast-create
+- link "🎧 Browse Categories":
+  - /url: /browse-podcast-categories
+- heading "🎬 Videos" [level=4]
+- link "🎞️ Browse Videos":
+  - /url: /videos
+- link "📹 My Channel":
+  - /url: /my-channel
+- link "📤 Upload Video":
+  - /url: /upload-video
+- heading "📻 Radio Stations" [level=4]
+- link "📻 Browse Stations":
+  - /url: /browse-radio-stations
+- link "➕ Create Station":
+  - /url: /create-radio
+- heading "🎥 Live Streaming" [level=4]
+- link "📡 Live Streams":
+  - /url: /live-streams
+- link "🎶 Live Concerts":
+  - /url: /live-concerts
+- heading "🛍️ Store & Marketplace" [level=4]
+- link "🛒 Browse Marketplace":
+  - /url: /marketplace
+- link "🛒 Shopping Cart":
+  - /url: /cart
+- link "💳 Checkout":
+  - /url: /checkout
+- link "🏪 My Storefront":
+  - /url: /storefront
+- link "📦 Order History":
+  - /url: /orders
+- heading "👤 Account" [level=4]
+- link "⚙️ Settings":
+  - /url: /settings
+- main:
+  - heading "💰 Choose Your Plan" [level=1]
+  - paragraph: Start with our free plan or unlock music distribution and creator features
+  - button "Monthly"
+  - button "YearlySave up to 25%"
+  - heading "📱 Complete Social Media Suite - FREE FOR EVERYONE" [level=2]
+  - paragraph: Unlike other platforms, StreampireX includes powerful social media tools with every plan
+  - text: 🐦 Twitter/X 📸 Instagram 🎬 TikTok 📺 YouTube 📘 Facebook 💼 LinkedIn 👻 Snapchat 📌 Pinterest 🆓
+  - heading "100% Free Social Features" [level=4]
+  - paragraph: Full social media management included with every plan - no hidden fees
+  - text: 📈
+  - heading "Unified Analytics" [level=4]
+  - paragraph: Track performance across all platforms in one comprehensive dashboard
+  - text: ⏰
+  - heading "Smart Automation" [level=4]
+  - paragraph: Schedule posts, optimize timing, and manage everything from one place
+  - heading "🎨 Creator Plans" [level=2]
+  - heading "Free" [level=2]
+  - paragraph: Full social media features + gaming community access for everyone
+  - text: $0.00 /month
+  - heading "📱 Social Media Features (FREE)" [level=4]
+  - text: 🚀 Post to all platforms at once 📅 Smart scheduling & automation 📊 Analytics across all networks 🤖 AI content optimization ✅ 📱 Multi-Platform Social Posting ✅ 🎙️ Create Podcasts ✅ 📻 Radio Stations ✅ 🛍️ Digital Sales ✅ 💰 Fan Tipping ✅ 🎮 Gaming Community ✅ 🔍 Squad Finder
+  - button "🚀 Get Started Free"
+  - heading "Basic" [level=2]
+  - paragraph: Enhanced features for growing creators
+  - text: $12.99 /month
+  - heading "📱 Social Media Features (FREE)" [level=4]
+  - text: 🚀 Post to all platforms at once 📅 Smart scheduling & automation 📊 Analytics across all networks 🤖 AI content optimization ✅ 📱 Multi-Platform Social Posting ✅ 🎙️ Create Podcasts ✅ 📻 Radio Stations ✅ 🎥 Live Streaming ✅ 🛍️ Digital Sales ✅ 💰 Fan Tipping ✅ 🎮 Gaming Community ✅ 🏠 Private Team Rooms ✅ 🔍 Squad Finder
+  - button "Subscribe to Basic"
+  - text: ⭐ MOST POPULAR
+  - heading "Pro" [level=2]
+  - paragraph: Professional tools for serious creators
+  - text: $21.99 /month
+  - heading "📱 Social Media Features (FREE)" [level=4]
+  - text: 🚀 Post to all platforms at once 📅 Smart scheduling & automation 📊 Analytics across all networks 🤖 AI content optimization ✅ 📱 Multi-Platform Social Posting ✅ 🎙️ Create Podcasts ✅ 📻 Radio Stations ✅ 🎥 Live Streaming ✅ 🛍️ Digital Sales ✅ 👕 Merch Store ✅ 💰 Fan Tipping ✅ 📺 Ad Revenue Sharing ✅ 🎮 Gaming Community ✅ 🏠 Private Team Rooms ✅ 🔍 Squad Finder
+  - button "Subscribe to Pro"
+  - heading "Premium" [level=2]
+  - paragraph: Complete creator suite with advanced monetization features
+  - text: $29.99 /month
+  - heading "📱 Social Media Features (FREE)" [level=4]
+  - text: 🚀 Post to all platforms at once 📅 Smart scheduling & automation 📊 Analytics across all networks 🤖 AI content optimization ✅ 📱 Multi-Platform Social Posting ✅ 🎙️ Create Podcasts ✅ 📻 Radio Stations ✅ 🎥 Live Streaming ✅ 🛍️ Digital Sales ✅ 👕 Merch Store ✅ 💰 Fan Tipping ✅ 📺 Ad Revenue Sharing ✅ 🤝 Brand Partnership Hub ✅ 💼 Affiliate Marketing Tools ✅ 🎮 Gaming Community ✅ 🏠 Private Team Rooms ✅ 🔍 Squad Finder
+  - button "Subscribe to Premium"
+  - heading "🎵 Music Distribution Plans" [level=2]
+  - paragraph: Distribute your music globally to 150+ platforms
+  - heading "Artist Distribution" [level=2]
+  - paragraph: Music distribution for independent artists
+  - text: $21.99 /year Annual billing only ✅ 🎵 Global Music Distribution ✅ 📊 Streaming Analytics ✅ 💰 100% Royalty Retention ✅ 📈 Performance Tracking ✅ 🎧 Spotify, Apple Music, etc. ✅ ⚡ 24-48 Hour Distribution
+  - button "Subscribe to Artist Distribution"
+  - heading "Label Distribution" [level=2]
+  - paragraph: Music distribution for record labels
+  - text: $74.99 /year Annual billing only ✅ 🎵 Unlimited Artist Distribution ✅ 🏷️ Label Management Tools ✅ 📊 Multi-Artist Analytics ✅ 💰 Revenue Split Management ✅ 📈 Label Performance Dashboard ✅ 🎧 All Major Platforms ✅ ⚡ Priority Distribution ✅ 🎤 Artist Roster Management
+  - button "Subscribe to Label Distribution"
+  - heading "📈 Why Creators Choose StreampireX Social Features" [level=2]
+  - text: FREE Social media tools included with every plan 15+ Platforms connected post everywhere at once 85% Time saved on social media management 24/7 Automation schedule weeks in advance
+  - heading "🎯 The Only Platform That Includes Social Media Management for FREE" [level=3]
+  - paragraph: While others charge $50-200/month for social media tools, we include everything free!
+  - heading "❓ Frequently Asked Questions" [level=2]
+  - heading "Can I change plans anytime?" [level=4]
+  - paragraph: Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately and we'll prorate any billing differences.
+  - heading "What happens to my content if I downgrade?" [level=4]
+  - paragraph: Your existing content remains accessible. However, some advanced features may become unavailable based on your new plan limits.
+  - heading "Do you offer refunds?" [level=4]
+  - paragraph: We offer a 30-day money-back guarantee for all paid plans. Contact support if you're not satisfied with your subscription.
+  - heading "Are distribution plans monthly or yearly?" [level=4]
+  - paragraph: Music distribution plans are billed annually only. Creator plans can be billed monthly or yearly with savings.
+  - heading "🔍 Debug Information:" [level=4]
+  - paragraph: "Backend URL: https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev"
+  - paragraph: "Plans loaded: 6"
+  - paragraph: "Regular plans: 4"
+  - paragraph: "Distribution plans: 2"
+  - paragraph: "Current plan: None"
+  - paragraph: "Environment: development"
+  - paragraph: "Selected billing: monthly"
+- contentinfo:
+  - paragraph:
+    - text: Made with  by
+    - link "Eye Forge Studios":
+      - /url: https://www.eyeforgestudios.com/
+      - strong: Eye Forge Studios
+  - link "Terms":
+    - /url: /terms
+  - text: "|"
+  - link "Privacy":
+    - /url: /privacy
+  - text: "|"
+  - link "Support":
+    - /url: /support
+```

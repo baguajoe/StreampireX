@@ -227,6 +227,9 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/upload-video" className={isActive("/upload-video") ? "active" : ""}>
         📤 Upload Video
       </MenuItem>
+      <MenuItem to="/video-editor" className={isActive("/video-editor") ? "active" : ""}>
+        🎬 Video Editor
+      </MenuItem>
 
       <SectionHeader>📻 Radio Stations</SectionHeader>
       <MenuItem to="/browse-radio-stations" className={isActive("/browse-radio-stations") ? "active" : ""}>

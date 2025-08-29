@@ -1539,12 +1539,12 @@ class PricingPlan(db.Model):
     includes_tip_jar = db.Column(db.Boolean, default=False)
     includes_ad_revenue = db.Column(db.Boolean, default=False)
     
-    # NEW: Music Distribution Features
+    # Music Distribution Features
     includes_music_distribution = db.Column(db.Boolean, default=False)
     sonosuite_access = db.Column(db.Boolean, default=False)
     distribution_uploads_limit = db.Column(db.Integer, default=0)  # Number of tracks per month
     
-    # NEW: Gaming Features
+    # Gaming Features
     includes_gaming_features = db.Column(db.Boolean, default=False)
     includes_team_rooms = db.Column(db.Boolean, default=False)
     includes_squad_finder = db.Column(db.Boolean, default=False)
@@ -1552,12 +1552,71 @@ class PricingPlan(db.Model):
     includes_game_streaming = db.Column(db.Boolean, default=False)
     includes_gaming_monetization = db.Column(db.Boolean, default=False)
     
-    # NEW: Video Distribution Features
+    # Video Distribution Features
     includes_video_distribution = db.Column(db.Boolean, default=False)
     video_uploads_limit = db.Column(db.Integer, default=0)  # Videos per month
     
+    # NEW: Video Editor Limits
+    video_clip_max_size = db.Column(db.BigInteger, default=500*1024*1024)  # 500MB default
+    audio_clip_max_size = db.Column(db.BigInteger, default=100*1024*1024)  # 100MB default
+    image_max_size = db.Column(db.BigInteger, default=10*1024*1024)        # 10MB default
+    project_total_max_size = db.Column(db.BigInteger, default=2*1024*1024*1024)  # 2GB default
+    
+    max_clips_per_track = db.Column(db.Integer, default=10)
+    max_tracks_per_project = db.Column(db.Integer, default=5)
+    max_projects = db.Column(db.Integer, default=3)
+    
+    # Export Features
+    export_formats = db.Column(JSON, default=['mp4'])  # Allowed export formats
+    max_export_quality = db.Column(db.String(10), default='720p')  # 720p, 1080p, 4k, 8k
+    max_export_duration = db.Column(db.Integer, default=3600)  # seconds
+    
+    # Platform Export Features
+    platform_export_enabled = db.Column(db.Boolean, default=False)
+    allowed_platforms = db.Column(JSON, default=['youtube'])  # youtube, instagram, tiktok, etc.
+    
+    # Advanced Features
+    audio_separation_enabled = db.Column(db.Boolean, default=False)
+    advanced_effects_enabled = db.Column(db.Boolean, default=False)
+    collaboration_enabled = db.Column(db.Boolean, default=False)
+    priority_export_enabled = db.Column(db.Boolean, default=False)
+    
+    # Additional metadata
+    sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def get_file_size_limit(self, file_type):
+        """Get file size limit for specific file type"""
+        size_mapping = {
+            'video': self.video_clip_max_size,
+            'audio': self.audio_clip_max_size,
+            'image': self.image_max_size
+        }
+        return size_mapping.get(file_type, self.video_clip_max_size)
+    
+    def can_export_to_platform(self, platform):
+        """Check if plan allows export to specific platform"""
+        if not self.platform_export_enabled:
+            return False
+        
+        return platform in (self.allowed_platforms or [])
+    
+    def can_use_quality(self, quality):
+        """Check if plan allows specific export quality"""
+        quality_hierarchy = {
+            '480p': 1,
+            '720p': 2, 
+            '1080p': 3,
+            '4k': 4,
+            '8k': 5
+        }
+        
+        max_level = quality_hierarchy.get(self.max_export_quality, 2)
+        requested_level = quality_hierarchy.get(quality, 2)
+        
+        return requested_level <= max_level
+    
     def serialize(self):
         return {
             "id": self.id,
@@ -1592,8 +1651,224 @@ class PricingPlan(db.Model):
             "includes_video_distribution": self.includes_video_distribution,
             "video_uploads_limit": self.video_uploads_limit,
             
-            "created_at": self.created_at.isoformat()
+            # Video Editor Limits
+            "video_editor_limits": {
+                "video_clip_max_size": self.video_clip_max_size,
+                "audio_clip_max_size": self.audio_clip_max_size,
+                "image_max_size": self.image_max_size,
+                "project_total_max_size": self.project_total_max_size,
+                "max_clips_per_track": self.max_clips_per_track,
+                "max_tracks_per_project": self.max_tracks_per_project,
+                "max_projects": self.max_projects,
+                "export_formats": self.export_formats,
+                "max_export_quality": self.max_export_quality,
+                "max_export_duration": self.max_export_duration
+            },
+            
+            # Video Editor Features
+            "video_editor_features": {
+                "platform_export_enabled": self.platform_export_enabled,
+                "allowed_platforms": self.allowed_platforms,
+                "audio_separation_enabled": self.audio_separation_enabled,
+                "advanced_effects_enabled": self.advanced_effects_enabled,
+                "collaboration_enabled": self.collaboration_enabled,
+                "priority_export_enabled": self.priority_export_enabled
+            },
+            
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
+
+
+# ============ DATABASE MIGRATION SQL ============
+# Run this SQL to add the new columns to your existing pricing_plans table:
+
+MIGRATION_SQL = """
+-- Add video editing columns to existing pricing_plans table
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS video_clip_max_size BIGINT DEFAULT 524288000;
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS audio_clip_max_size BIGINT DEFAULT 104857600;  
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS image_max_size BIGINT DEFAULT 10485760;
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS project_total_max_size BIGINT DEFAULT 2147483648;
+
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS max_clips_per_track INTEGER DEFAULT 10;
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS max_tracks_per_project INTEGER DEFAULT 5;
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS max_projects INTEGER DEFAULT 3;
+
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS export_formats JSON DEFAULT '["mp4"]';
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS max_export_quality VARCHAR(10) DEFAULT '720p';
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS max_export_duration INTEGER DEFAULT 3600;
+
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS platform_export_enabled BOOLEAN DEFAULT FALSE;
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS allowed_platforms JSON DEFAULT '["youtube"]';
+
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS audio_separation_enabled BOOLEAN DEFAULT FALSE;
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS advanced_effects_enabled BOOLEAN DEFAULT FALSE;
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS collaboration_enabled BOOLEAN DEFAULT FALSE;
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS priority_export_enabled BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_pricing_plans_active ON pricing_plans(is_active);
+CREATE INDEX IF NOT EXISTS idx_pricing_plans_sort ON pricing_plans(sort_order);
+
+-- Update existing plans with default video editor values
+UPDATE pricing_plans SET 
+    video_clip_max_size = CASE 
+        WHEN name = 'Free' THEN 524288000 
+        WHEN name = 'Basic' THEN 2147483648 
+        WHEN name = 'Premium' THEN 5368709120 
+        WHEN name = 'Professional' THEN 21474836480 
+        ELSE 524288000 
+    END,
+    audio_clip_max_size = CASE 
+        WHEN name = 'Free' THEN 104857600 
+        WHEN name = 'Basic' THEN 524288000 
+        WHEN name = 'Premium' THEN 1073741824 
+        WHEN name = 'Professional' THEN 2147483648 
+        ELSE 104857600 
+    END,
+    max_projects = CASE 
+        WHEN name = 'Free' THEN 3 
+        WHEN name = 'Basic' THEN 10 
+        WHEN name = 'Premium' THEN 50 
+        WHEN name = 'Professional' THEN -1 
+        ELSE 3 
+    END,
+    max_tracks_per_project = CASE 
+        WHEN name = 'Free' THEN 5 
+        WHEN name = 'Basic' THEN 10 
+        WHEN name = 'Premium' THEN 20 
+        WHEN name = 'Professional' THEN -1 
+        ELSE 5 
+    END,
+    max_export_quality = CASE 
+        WHEN name = 'Free' THEN '720p' 
+        WHEN name = 'Basic' THEN '1080p' 
+        WHEN name = 'Premium' THEN '4k' 
+        WHEN name = 'Professional' THEN '8k' 
+        ELSE '720p' 
+    END,
+    platform_export_enabled = CASE 
+        WHEN name = 'Free' THEN TRUE 
+        ELSE TRUE 
+    END,
+    allowed_platforms = CASE 
+        WHEN name = 'Free' THEN '["youtube"]' 
+        WHEN name = 'Basic' THEN '["youtube", "instagram", "tiktok", "facebook"]' 
+        WHEN name = 'Premium' THEN '["youtube", "instagram", "tiktok", "facebook", "twitter"]' 
+        WHEN name = 'Professional' THEN '["youtube", "instagram", "tiktok", "facebook", "twitter", "vimeo", "linkedin"]' 
+        ELSE '["youtube"]' 
+    END,
+    audio_separation_enabled = CASE 
+        WHEN name IN ('Basic', 'Premium', 'Professional') THEN TRUE 
+        ELSE FALSE 
+    END,
+    advanced_effects_enabled = CASE 
+        WHEN name IN ('Premium', 'Professional') THEN TRUE 
+        ELSE FALSE 
+    END
+WHERE name IN ('Free', 'Basic', 'Premium', 'Professional');
+"""
+
+
+# ============ SEEDING FUNCTION ============
+def seed_video_editing_plans():
+    """Create or update video editing pricing plans"""
+    plans_data = [
+        {
+            "name": "Free",
+            "description": "Basic video editing for personal use",
+            "price_monthly": 0.00,
+            "price_yearly": 0.00,
+            "video_clip_max_size": 500 * 1024 * 1024,        # 500MB
+            "audio_clip_max_size": 100 * 1024 * 1024,        # 100MB
+            "project_total_max_size": 2 * 1024 * 1024 * 1024, # 2GB
+            "max_clips_per_track": 10,
+            "max_tracks_per_project": 5,
+            "max_projects": 3,
+            "export_formats": ["mp4"],
+            "max_export_quality": "720p",
+            "platform_export_enabled": True,
+            "allowed_platforms": ["youtube"],
+            "audio_separation_enabled": False,
+            "advanced_effects_enabled": False,
+        },
+        {
+            "name": "Basic",
+            "description": "Enhanced video editing with HD export",
+            "price_monthly": 9.99,
+            "price_yearly": 99.99,
+            "video_clip_max_size": 2 * 1024 * 1024 * 1024,   # 2GB
+            "audio_clip_max_size": 500 * 1024 * 1024,        # 500MB
+            "project_total_max_size": 10 * 1024 * 1024 * 1024, # 10GB
+            "max_clips_per_track": 25,
+            "max_tracks_per_project": 10,
+            "max_projects": 10,
+            "export_formats": ["mp4", "mov", "avi"],
+            "max_export_quality": "1080p",
+            "platform_export_enabled": True,
+            "allowed_platforms": ["youtube", "instagram", "tiktok", "facebook"],
+            "audio_separation_enabled": True,
+            "advanced_effects_enabled": False,
+        },
+        {
+            "name": "Premium",
+            "description": "Professional video editing with 4K export",
+            "price_monthly": 29.99,
+            "price_yearly": 299.99,
+            "video_clip_max_size": 5 * 1024 * 1024 * 1024,   # 5GB
+            "audio_clip_max_size": 1024 * 1024 * 1024,       # 1GB
+            "project_total_max_size": 50 * 1024 * 1024 * 1024, # 50GB
+            "max_clips_per_track": 50,
+            "max_tracks_per_project": 20,
+            "max_projects": 50,
+            "export_formats": ["mp4", "mov", "avi", "webm", "mkv"],
+            "max_export_quality": "4k",
+            "platform_export_enabled": True,
+            "allowed_platforms": ["youtube", "instagram", "tiktok", "facebook", "twitter"],
+            "audio_separation_enabled": True,
+            "advanced_effects_enabled": True,
+        },
+        {
+            "name": "Professional",
+            "description": "Enterprise-grade video editing with unlimited projects",
+            "price_monthly": 99.99,
+            "price_yearly": 999.99,
+            "video_clip_max_size": 20 * 1024 * 1024 * 1024,  # 20GB
+            "audio_clip_max_size": 2 * 1024 * 1024 * 1024,   # 2GB
+            "project_total_max_size": 500 * 1024 * 1024 * 1024, # 500GB
+            "max_clips_per_track": -1,  # Unlimited
+            "max_tracks_per_project": -1,  # Unlimited
+            "max_projects": -1,  # Unlimited
+            "export_formats": ["mp4", "mov", "avi", "webm", "mkv", "prores"],
+            "max_export_quality": "8k",
+            "platform_export_enabled": True,
+            "allowed_platforms": ["youtube", "instagram", "tiktok", "facebook", "twitter", "vimeo", "linkedin"],
+            "audio_separation_enabled": True,
+            "advanced_effects_enabled": True,
+            "collaboration_enabled": True,
+            "priority_export_enabled": True,
+        }
+    ]
+    
+    for plan_data in plans_data:
+        existing_plan = PricingPlan.query.filter_by(name=plan_data["name"]).first()
+        
+        if existing_plan:
+            # Update existing plan
+            for key, value in plan_data.items():
+                if hasattr(existing_plan, key):
+                    setattr(existing_plan, key, value)
+        else:
+            # Create new plan
+            new_plan = PricingPlan(**plan_data)
+            db.session.add(new_plan)
+    
+    db.session.commit()
+    print("Video editing pricing plans seeded successfully!")
+
 
 class SonoSuiteUser(db.Model):
     id = db.Column(db.Integer, primary_key=True)
