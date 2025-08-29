@@ -17,7 +17,6 @@ const Login = () => {
     } else {
       alert('Login failed: ' + data.error);
     }
-
   };
 
   return (
@@ -26,18 +25,20 @@ const Login = () => {
         <h1>Login</h1>
         <input
           type="email"
+          name="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          autoComplete="username" // Add autocomplete attribute
+          autoComplete="username"
           required
         />
         <input
           type="password"
+          name="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password" // Add autocomplete attribute
+          autoComplete="current-password"
           required
         />
         <button type="submit">Login</button>
