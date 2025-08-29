@@ -127,7 +127,7 @@ const Layout = () => {
               <Route path="/podcast/episode/:id" element={<PodcastEpisodePage />} />
               <Route path="/podcast/profile/:username/:podcastId" element={<PodcastProfile />} />
               <Route path="/podcast-category/:category" element={<PodcastCategoryPage />} />
-              <Route path="/podcast/:podcast_id" element={<PodcastDetailPage />} />
+              <Route path="/podcast/:id" element={<PodcastDetailPage />} />
               <Route path="/user/:userId/videos" element={<UserVideoChannelPage />} />
 
 

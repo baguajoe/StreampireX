@@ -74,19 +74,27 @@ const PodcastCreate = () => {
       <h1>🎙️ Create a Podcast</h1>
 
       <label>📌 Title:</label>
-      <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <input type="text" name="title" value={title} onChange={(e) => setTitle(e.target.value)} />
 
       <label>📝 Description:</label>
-      <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+      <textarea name="description" value={description} onChange={(e) => setDescription(e.target.value)} />
 
       <label>📂 Category:</label>
-      <select value={category} onChange={(e) => setCategory(e.target.value)}>
+      <select name="category" value={category} onChange={(e) => setCategory(e.target.value)}>
         <option value="">Select a Category</option>
         {categories.map((cat) => (
           <option key={cat.id} value={cat.slug}>
             {cat.name}
           </option>
         ))}
+      </select>
+
+      <label>🌐 Language:</label>
+      <select name="language" defaultValue="en">
+        <option value="en">English</option>
+        <option value="es">Spanish</option>
+        <option value="fr">French</option>
+        <option value="de">German</option>
       </select>
 
       <label>🎨 Cover Art:</label>

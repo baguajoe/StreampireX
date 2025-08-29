@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Play, Pause, Heart, Share2, Download, Clock } from "lucide-react";
+import { Link, useParams } from "react-router-dom";
 
 const PodcastDetailPage = ({ podcastId = "101" }) => {
-  const id = podcastId;
+  const { id } = useParams();
   const [podcast, setPodcast] = useState(null);
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,10 +59,10 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
         setPodcast(mockPodcast);
         setEpisodes(mockEpisodes);
         setLoading(false);
-        return;
+
 
         // Real API calls (commented out for demo)
-        /*
+
         const backendUrl =
           process.env.REACT_APP_BACKEND_URL ||
           process.env.BACKEND_URL ||
@@ -70,7 +71,7 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
         // Updated API endpoints based on project knowledge
         const [podcastRes, episodesRes] = await Promise.all([
           fetch(`${backendUrl}/api/podcasts/${id}`),
-          fetch(`${backendUrl}/api/podcasts/${id}/episodes`)
+          fetch(`${backendUrl}/api/podcast/${id}/episodes`)
         ]);
 
         if (!podcastRes.ok) throw new Error("Podcast not found");
@@ -81,7 +82,7 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
           const episodesData = await episodesRes.json();
           setEpisodes(episodesData);
         }
-        */
+
       } catch (err) {
         console.error("Error fetching podcast or episodes:", err);
         setError(err.message);
@@ -142,7 +143,7 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
         <div className="text-center">
           <h2 className="text-3xl font-bold mb-4">Podcast Not Found</h2>
           <p className="text-gray-400 mb-6">{error || "Something went wrong."}</p>
-          <button 
+          <button
             onClick={handleBack}
             className="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg transition-colors"
           >
@@ -157,7 +158,7 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
       {/* Header */}
       <div className="p-6">
-        <button 
+        <button
           onClick={handleBack}
           className="flex items-center text-gray-300 hover:text-white transition-colors mb-6"
         >
@@ -173,18 +174,18 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
               className="w-72 h-72 object-cover rounded-2xl shadow-2xl"
             />
           </div>
-          
+
           <div className="flex-grow">
             <div className="mb-4">
               <span className="inline-block bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-medium mb-4">
                 {podcast.category}
               </span>
             </div>
-            
+
             <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white to-purple-300 bg-clip-text text-transparent">
               {podcast.title}
             </h1>
-            
+
             <p className="text-gray-300 text-lg leading-relaxed mb-6">
               {podcast.description}
             </p>
@@ -193,16 +194,15 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
             <div className="flex flex-wrap gap-4">
               <button
                 onClick={handleLike}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all ${
-                  liked 
-                    ? 'bg-red-600 hover:bg-red-700' 
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all ${liked
+                    ? 'bg-red-600 hover:bg-red-700'
                     : 'bg-gray-700 hover:bg-gray-600'
-                }`}
+                  }`}
               >
                 <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
                 {liked ? 'Liked' : 'Like'}
               </button>
-              
+
               <button
                 onClick={handleShare}
                 className="flex items-center gap-2 px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
@@ -210,7 +210,7 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
                 <Share2 className="w-5 h-5" />
                 Share
               </button>
-              
+
               <button className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
                 <Download className="w-5 h-5" />
                 Subscribe
@@ -235,7 +235,7 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
         {/* Episodes Section */}
         <div className="mt-12">
           <h2 className="text-2xl font-bold mb-6">Episodes</h2>
-          
+
           {episodes.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-400 text-lg mb-4">No episodes available yet</div>
@@ -244,8 +244,8 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
           ) : (
             <div className="space-y-4">
               {episodes.map((episode, index) => (
-                <div 
-                  key={episode.id} 
+                <div
+                  key={episode.id}
                   className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 hover:bg-gray-800/70 transition-all duration-300"
                 >
                   <div className="flex items-start gap-4">
@@ -259,7 +259,7 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
                         <Play className="w-6 h-6 ml-1" />
                       )}
                     </button>
-                    
+
                     <div className="flex-grow">
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="text-xl font-semibold text-white">
@@ -271,30 +271,41 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
                           </span>
                         )}
                       </div>
-                      
+
                       {episode.description && (
                         <p className="text-gray-300 mb-4 leading-relaxed">
                           {episode.description}
                         </p>
                       )}
-                      
+
                       {episode.file_url && (
                         <div className="mt-4">
-                          <audio 
-                            controls 
-                            className="w-full h-10"
-                            style={{
-                              filter: 'sepia(1) hue-rotate(240deg) saturate(2) brightness(0.8)',
-                            }}
-                          >
-                            <source src={episode.file_url} type="audio/mp3" />
-                            <source src={episode.file_url} type="audio/wav" />
-                            <source src={episode.file_url} type="audio/ogg" />
-                            Your browser does not support the audio element.
-                          </audio>
+                          {episode.file_url.match(/\.(mp4|mov)$/i) ? (
+                            <video
+                              controls
+                              className="w-full"
+                
+                            >
+                              <source src={episode.file_url} type="video/mp4" />
+                              <source src={episode.file_url} type="video/quicktime" />
+                              Your browser does not support the video element.
+                            </video>
+                          ) : (
+                            <audio
+                              controls
+                              className="w-full h-10"
+                              style={{
+                                filter: 'sepia(1) hue-rotate(240deg) saturate(2) brightness(0.8)',
+                              }}
+                            >
+                              <source src={episode.file_url} type="audio/mp3" />
+                              <source src={episode.file_url} type="audio/wav" />
+                              <source src={episode.file_url} type="audio/ogg" />
+                              Your browser does not support the audio element.
+                            </audio>
+                          )}
                         </div>
                       )}
-                      
                       {episode.uploaded_at && (
                         <div className="mt-3 text-sm text-gray-500">
                           Published: {new Date(episode.uploaded_at).toLocaleDateString()}
@@ -312,7 +323,7 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
         <div className="mt-16">
           <h2 className="text-2xl font-bold mb-6">More in {podcast.category}</h2>
           <div className="text-gray-400">
-            <Link 
+            <Link
               to={`/podcast-category/${encodeURIComponent(podcast.category)}`}
               className="text-purple-400 hover:text-purple-300 transition-colors"
             >
