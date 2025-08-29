@@ -16,7 +16,7 @@ const BrowsePodcastCategories = () => {
 
   const [categories] = useState([
     "True Crime & Investigation",
-    "Comedy & Entertainment",
+    "Comedy & Entertainment", 
     "Technology & Innovation",
     "Health & Wellness",
     "Business & Finance",
@@ -34,6 +34,26 @@ const BrowsePodcastCategories = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Category mapping function to convert API categories to display categories
+  const getCategoryDisplayName = (apiCategory) => {
+    const categoryMap = {
+      'film-tv-reviews': 'Arts & Culture',
+      'health-wellness': 'Health & Wellness',
+      'education-learning': 'Education & Learning',
+      'tabletop-board-games': 'Sports & Recreation',
+      'celebrity-gossip-reality-tv': 'Comedy & Entertainment',
+      'comedy-stand-up': 'Comedy & Entertainment',
+      'technology': 'Technology & Innovation',
+      'business': 'Business & Finance',
+      'true-crime': 'True Crime & Investigation',
+      'news': 'News & Politics',
+      'science': 'Science & Nature',
+      'history': 'History & Biography'
+    };
+    
+    return categoryMap[apiCategory] || 'Society & Philosophy';
+  };
 
   // 🎯 SEED PODCASTS - Your minimal real content (1-2 per major category)
   const seedPodcasts = [
@@ -53,7 +73,7 @@ const BrowsePodcastCategories = () => {
       id: "seed_business",
       title: "Creator Economy Insights",
       description: "Building sustainable creator businesses",
-      category: "Business & Finance",
+      category: "Business & Finance", 
       image: podcast2,
       creator_name: "StreampireX",
       episode_count: 3,
@@ -90,7 +110,7 @@ const BrowsePodcastCategories = () => {
       }
 
       const data = await response.json();
-
+      
       // Handle different API response formats
       let podcasts = [];
       if (Array.isArray(data)) {
@@ -108,7 +128,7 @@ const BrowsePodcastCategories = () => {
           id: podcast.id,
           title: podcast.title || 'Untitled Podcast',
           description: podcast.description || 'A great podcast on StreampireX',
-          category: podcast.category || podcast.genre || 'Entertainment',
+          category: getCategoryDisplayName(podcast.category),
           image: podcast.cover_art_url || podcast.image || podcast.cover_image || podcast.thumbnail_url || '/default-podcast.png',
           creator_name: podcast.creator_name || podcast.host || 'Community Creator',
           episode_count: podcast.episode_count || podcast.episodes?.length || 0,
@@ -125,13 +145,13 @@ const BrowsePodcastCategories = () => {
 
     } catch (error) {
       console.error(`❌ User podcasts API attempt ${attempt} failed:`, error.message);
-
+      
       if (attempt < 3) {
         console.log(`🔄 Retrying in 2s... (${attempt}/3)`);
         await new Promise(resolve => setTimeout(resolve, 2000));
         return fetchUserPodcasts(attempt + 1);
       }
-
+      
       throw error;
     }
   };
@@ -146,7 +166,7 @@ const BrowsePodcastCategories = () => {
 
       // Example: If you had podcast API access
       // const response = await fetch('https://api.podcastindex.org/api/1.0/search/byterm?q=technology&max=6');
-
+      
       // For now, we'll create some fallback structure
       const fallbackPodcasts = [
         {
@@ -161,7 +181,7 @@ const BrowsePodcastCategories = () => {
           duration: '30-45 min'
         },
         {
-          id: 'ext_comedy_1',
+          id: 'ext_comedy_1', 
           title: 'International Comedy',
           description: 'Comedy from comedians worldwide',
           category: 'Comedy & Entertainment',
@@ -192,7 +212,7 @@ const BrowsePodcastCategories = () => {
       try {
         // Try to load user podcasts first
         await fetchUserPodcasts();
-
+        
         // Load external podcasts as fallback (non-blocking)
         fetchExternalPodcasts().catch(err => {
           console.log('External podcasts failed but continuing...', err.message);
@@ -201,7 +221,7 @@ const BrowsePodcastCategories = () => {
       } catch (userPodcastError) {
         console.error('❌ Failed to load user podcasts:', userPodcastError.message);
         setError('Unable to load community podcasts. Showing featured content only.');
-
+        
         // Still try external as fallback
         await fetchExternalPodcasts();
       } finally {
@@ -224,11 +244,26 @@ const BrowsePodcastCategories = () => {
   // 🔍 FILTERING LOGIC
   const filteredPodcasts = React.useMemo(() => {
     if (!selectedCategory) return allAvailablePodcasts;
-
-    return allAvailablePodcasts.filter(podcast =>
+    
+    return allAvailablePodcasts.filter(podcast => 
       podcast.category === selectedCategory
     );
   }, [selectedCategory, allAvailablePodcasts]);
+
+  // Group podcasts by category for organized display
+  const podcastsByCategory = React.useMemo(() => {
+    const grouped = {};
+    
+    allAvailablePodcasts.forEach(podcast => {
+      const category = podcast.category;
+      if (!grouped[category]) {
+        grouped[category] = [];
+      }
+      grouped[category].push(podcast);
+    });
+    
+    return grouped;
+  }, [allAvailablePodcasts]);
 
   // 📱 SCROLL CONTROLS
   const scrollLeft = () => {
@@ -261,7 +296,7 @@ const BrowsePodcastCategories = () => {
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🎙️</div>
             <h4>No podcasts in this category yet!</h4>
             <p>Be the first to create a podcast here</p>
-            <button
+            <button 
               onClick={() => navigate('/create-podcast')}
               style={{
                 background: '#00ffc8',
@@ -340,7 +375,7 @@ const BrowsePodcastCategories = () => {
                 )}
 
                 <img
-                  src={podcast.image}  // Use this instead
+                  src={podcast.image}
                   alt={podcast.title}
                   className="podcast-img"
                   onError={(e) => {
@@ -350,7 +385,7 @@ const BrowsePodcastCategories = () => {
                 <h3 className="podcast-title">{podcast.title}</h3>
                 <span className="podcast-label">{podcast.category}</span>
                 <p className="podcast-desc">{podcast.description}</p>
-
+                
                 {/* Creator and episode info */}
                 <div style={{ fontSize: '12px', color: '#888', marginTop: '5px' }}>
                   <p>by {podcast.creator_name}</p>
@@ -371,7 +406,7 @@ const BrowsePodcastCategories = () => {
   const handleRetry = () => {
     setError(null);
     setLoading(true);
-
+    
     const loadAllPodcasts = async () => {
       try {
         await fetchUserPodcasts();
@@ -382,7 +417,7 @@ const BrowsePodcastCategories = () => {
         setLoading(false);
       }
     };
-
+    
     loadAllPodcasts();
   };
 
@@ -410,7 +445,7 @@ const BrowsePodcastCategories = () => {
           textAlign: 'center'
         }}>
           <p>⚠️ {error}</p>
-          <button
+          <button 
             onClick={handleRetry}
             style={{
               background: '#00ffc8',
@@ -475,23 +510,24 @@ const BrowsePodcastCategories = () => {
       {!loading && (
         <>
           {selectedCategory ? (
-            // Filtered view
+            // Filtered view - show only selected category
             renderSection(`🎯 ${selectedCategory}`, filteredPodcasts)
           ) : (
-            // All sections view
+            // All sections view - show podcasts organized by categories
             <>
               {renderSection("🏢 StreampireX Originals", seedPodcasts)}
-
-              {userPodcasts.length > 0 && (
-                renderSection("🎙️ Community Podcasts", userPodcasts.slice(0, 12))
-              )}
-
+              
+              {/* Render each category with its podcasts */}
+              {categories.map(category => {
+                const categoryPodcasts = userPodcasts.filter(podcast => podcast.category === category);
+                if (categoryPodcasts.length > 0) {
+                  return renderSection(`📂 ${category}`, categoryPodcasts, false);
+                }
+                return null;
+              })}
+              
               {externalPodcasts.length > 0 && (
                 renderSection("🌐 Featured Global Podcasts", externalPodcasts)
-              )}
-
-              {userPodcasts.length > 12 && (
-                renderSection("📈 More Community Shows", userPodcasts.slice(12))
               )}
 
               {/* Empty state for new platforms */}
@@ -506,7 +542,7 @@ const BrowsePodcastCategories = () => {
                   <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎙️</div>
                   <h3>Ready to Start Your Podcast?</h3>
                   <p>StreampireX is the perfect platform for podcasters. Create your show and reach new audiences!</p>
-                  <button
+                  <button 
                     onClick={() => navigate('/create-podcast')}
                     style={{
                       background: '#00ffc8',
@@ -535,9 +571,9 @@ const BrowsePodcastCategories = () => {
             fontSize: '14px'
           }}>
             <p>
-              {allAvailablePodcasts.length} total podcasts •
-              {seedPodcasts.length} originals •
-              {userPodcasts.length} community •
+              {allAvailablePodcasts.length} total podcasts • 
+              {seedPodcasts.length} originals • 
+              {userPodcasts.length} community • 
               {externalPodcasts.length} featured
             </p>
             <p style={{ marginTop: '5px' }}>
