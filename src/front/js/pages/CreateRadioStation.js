@@ -26,7 +26,7 @@ const CreateRadioStation = () => {
     const [logoPreview, setLogoPreview] = useState(null);
     const [coverPreview, setCoverPreview] = useState(null);
 
-    // ✅ NEW: Audio/Mix upload states
+    // Audio/Mix upload states
     const [initialMixFile, setInitialMixFile] = useState(null);
     const [mixTitle, setMixTitle] = useState("");
     const [mixDescription, setMixDescription] = useState("");
@@ -35,6 +35,19 @@ const CreateRadioStation = () => {
     const [mood, setMood] = useState("");
     const [subGenres, setSubGenres] = useState("");
     const [audioPreview, setAudioPreview] = useState(null);
+    
+    // Tracklist for royalty reporting
+    const [tracklist, setTracklist] = useState([{
+        songTitle: "",
+        artistName: "",
+        albumName: "",
+        recordLabel: "",
+        publisherName: "",
+        songwriterNames: "",
+        playOrderNumber: 1,
+        approximateStartTime: "0:00",
+        approximateDuration: "3:30"
+    }]);
 
     // Refs for file inputs
     const logoInputRef = useRef(null);
@@ -52,20 +65,20 @@ const CreateRadioStation = () => {
         const fetchCategories = async () => {
             try {
                 const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001';
-                console.log("🔍 Fetching categories from:", `${backendUrl}/api/radio/categories`);
+                console.log("Fetching categories from:", `${backendUrl}/api/radio/categories`);
 
                 const response = await fetch(`${backendUrl}/api/radio/categories`);
-                console.log("📡 Categories response status:", response.status);
+                console.log("Categories response status:", response.status);
 
                 if (!response.ok) {
                     throw new Error(`Failed to fetch categories: ${response.status} ${response.statusText}`);
                 }
 
                 const data = await response.json();
-                console.log("📋 Categories data:", data);
+                console.log("Categories data:", data);
                 setCategories(data);
             } catch (error) {
-                console.error("❌ Error fetching categories:", error);
+                console.error("Error fetching categories:", error);
                 // Fallback to hardcoded categories if API fails
                 const fallbackCategories = [
                     "Top 40 & Pop Hits", "Classic Pop", "K-Pop & J-Pop", "Indie & Alternative Pop",
@@ -81,7 +94,7 @@ const CreateRadioStation = () => {
                     "Talk Radio", "News", "Sports", "Comedy"
                 ];
                 setCategories(fallbackCategories);
-                setMessage("⚠️ Using offline categories - some features may be limited.");
+                setMessage("Using offline categories - some features may be limited.");
             }
         };
 
@@ -102,7 +115,7 @@ const CreateRadioStation = () => {
         const file = e.target.files[0];
         if (file) {
             if (file.size > 2 * 1024 * 1024) {
-                setMessage("❗ Logo image must be less than 2MB");
+                setMessage("Logo image must be less than 2MB");
                 return;
             }
 
@@ -117,7 +130,7 @@ const CreateRadioStation = () => {
         const file = e.target.files[0];
         if (file) {
             if (file.size > 5 * 1024 * 1024) {
-                setMessage("❗ Cover image must be less than 5MB");
+                setMessage("Cover image must be less than 5MB");
                 return;
             }
 
@@ -127,7 +140,7 @@ const CreateRadioStation = () => {
         }
     };
 
-    // ✅ NEW: Function to handle audio file selection
+    // Function to handle audio file selection
     const handleAudioChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -138,7 +151,7 @@ const CreateRadioStation = () => {
             return;
         }
 
-        console.log("✅ Audio file selected:", file.name, "Size:", file.size);
+        console.log("Audio file selected:", file.name, "Size:", file.size);
 
         setInitialMixFile(file);
 
@@ -171,27 +184,120 @@ const CreateRadioStation = () => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
+    // Functions to handle tracklist for royalty compliance
+    const addTrackToList = () => {
+        const newTrack = {
+            songTitle: "",
+            artistName: "",
+            albumName: "",
+            recordLabel: "",
+            publisherName: "",
+            songwriterNames: "",
+            playOrderNumber: tracklist.length + 1,
+            approximateStartTime: "0:00",
+            approximateDuration: "3:30"
+        };
+        setTracklist([...tracklist, newTrack]);
+    };
+
+    const removeTrackFromList = (index) => {
+        if (tracklist.length > 1) {
+            const updatedTracklist = tracklist.filter((_, i) => i !== index);
+            // Update play order numbers
+            const reorderedTracklist = updatedTracklist.map((track, i) => ({
+                ...track,
+                playOrderNumber: i + 1
+            }));
+            setTracklist(reorderedTracklist);
+        }
+    };
+
+    const updateTrack = (index, field, value) => {
+        const updatedTracklist = tracklist.map((track, i) => 
+            i === index ? { ...track, [field]: value } : track
+        );
+        setTracklist(updatedTracklist);
+    };
+
+    const validateTracklist = () => {
+        if (tracklist.length === 0) {
+            return "At least one track must be listed for royalty compliance";
+        }
+
+        for (let i = 0; i < tracklist.length; i++) {
+            const track = tracklist[i];
+            if (!track.songTitle.trim()) {
+                return `Track ${i + 1}: Song title is required`;
+            }
+            if (!track.artistName.trim()) {
+                return `Track ${i + 1}: Artist name is required`;
+            }
+            if (!track.songwriterNames.trim()) {
+                return `Track ${i + 1}: Songwriter name(s) required for royalty reporting`;
+            }
+        }
+        return null;
+    };
+
     // Function to create a new radio station
     const createStation = async () => {
-        // Validate required fields
-        if (!stationName.trim() || !category || !targetAudience.trim()) {
-            setMessage("❗ Station name, category, and target audience are required!");
+        // Validate required fields - MANDATORY METADATA
+        if (!stationName.trim()) {
+            setMessage("Station name is required!");
+            return;
+        }
+
+        if (!description.trim()) {
+            setMessage("Station description is required!");
+            return;
+        }
+
+        if (!category) {
+            setMessage("Category selection is required!");
+            return;
+        }
+
+        if (!targetAudience.trim()) {
+            setMessage("Target audience is required!");
             return;
         }
 
         if (!logoImage) {
-            setMessage("❗ Please upload a logo for your station!");
+            setMessage("Please upload a logo for your station!");
             return;
         }
 
-        // ✅ NEW: Validate initial mix upload
+        // Validate initial mix upload - MANDATORY
         if (!initialMixFile) {
-            setMessage("❗ Please upload an initial mix to get your station started!");
+            setMessage("Please upload an initial mix to get your station started!");
+            return;
+        }
+
+        // Validate mix metadata - MANDATORY
+        if (!mixTitle.trim()) {
+            setMessage("Mix title is required!");
+            return;
+        }
+
+        if (!mixDescription.trim()) {
+            setMessage("Mix description is required!");
+            return;
+        }
+
+        if (!djName.trim()) {
+            setMessage("DJ name is required!");
+            return;
+        }
+
+        // Validate tracklist for royalty compliance
+        const tracklistError = validateTracklist();
+        if (tracklistError) {
+            setMessage(tracklistError);
             return;
         }
 
         setLoading(true);
-        setMessage("🔄 Creating your radio station...");
+        setMessage("Creating your radio station...");
 
         try {
             const formData = new FormData();
@@ -211,7 +317,7 @@ const CreateRadioStation = () => {
             if (logoImage) formData.append("logo", logoImage);
             if (coverImage) formData.append("cover", coverImage);
 
-            // ✅ NEW: Audio and mix metadata
+            // Audio and mix metadata
             if (initialMixFile) formData.append("initialMix", initialMixFile);
             formData.append("mixTitle", mixTitle.trim());
             formData.append("mixDescription", mixDescription.trim());
@@ -219,12 +325,15 @@ const CreateRadioStation = () => {
             formData.append("bpm", bpm.trim());
             formData.append("mood", mood.trim());
             formData.append("subGenres", subGenres.trim());
+            
+            // Tracklist for royalty compliance
+            formData.append("tracklist", JSON.stringify(tracklist));
 
             const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || "http://localhost:3001";
             const endpoint = `${backendUrl}/api/profile/radio/create`;
 
-            console.log("🚀 Creating station with endpoint:", endpoint);
-            console.log("📦 FormData contents:");
+            console.log("Creating station with endpoint:", endpoint);
+            console.log("FormData contents:");
             for (let [key, value] of formData.entries()) {
                 if (value instanceof File) {
                     console.log(`${key}: File(${value.name}, ${formatFileSize(value.size)})`);
@@ -241,13 +350,13 @@ const CreateRadioStation = () => {
                 body: formData,
             });
 
-            console.log("📡 Response status:", response.status, response.statusText);
+            console.log("Response status:", response.status, response.statusText);
 
             const data = await response.json();
-            console.log("📄 Response data:", data);
+            console.log("Response data:", data);
 
             if (response.ok) {
-                setMessage("🎶 Radio station created successfully!");
+                setMessage("Radio station created successfully!");
 
                 // Reset all form fields
                 setStationName("");
@@ -273,8 +382,21 @@ const CreateRadioStation = () => {
                 setMood("");
                 setSubGenres("");
                 setAudioPreview(null);
+                
+                // Reset tracklist
+                setTracklist([{
+                    songTitle: "",
+                    artistName: "",
+                    albumName: "",
+                    recordLabel: "",
+                    publisherName: "",
+                    songwriterNames: "",
+                    playOrderNumber: 1,
+                    approximateStartTime: "0:00",
+                    approximateDuration: "3:30"
+                }]);
 
-                setMessage("🎶 Radio station created successfully! Redirecting to browse stations...");
+                setMessage("Radio station created successfully! Redirecting to browse stations...");
 
                 // Redirect to browse stations after short delay
                 setTimeout(() => {
@@ -284,19 +406,19 @@ const CreateRadioStation = () => {
                 throw new Error(data.error || data.message || "Failed to create radio station");
             }
         } catch (error) {
-            console.error("❌ Error creating radio station:", error);
+            console.error("Error creating radio station:", error);
 
             // More detailed error messages
             if (error.message.includes('fetch')) {
-                setMessage("❌ Could not connect to server. Please check your connection and try again.");
+                setMessage("Could not connect to server. Please check your connection and try again.");
             } else if (error.message.includes('401')) {
-                setMessage("❌ Authentication error. Please log in again.");
+                setMessage("Authentication error. Please log in again.");
             } else if (error.message.includes('413')) {
-                setMessage("❌ Files too large. Please reduce file sizes and try again.");
+                setMessage("Files too large. Please reduce file sizes and try again.");
             } else if (error.message.includes('500')) {
-                setMessage("❌ Server error. Please try again later.");
+                setMessage("Server error. Please try again later.");
             } else {
-                setMessage(`❌ Error: ${error.message}`);
+                setMessage(`Error: ${error.message}`);
             }
         } finally {
             setLoading(false);
@@ -305,14 +427,14 @@ const CreateRadioStation = () => {
 
     return (
         <div style={styles.container}>
-            <h2>Create a New Radio Station 🎙️</h2>
+            <h2>Create a New Radio Station</h2>
 
             {message && (
                 <p style={{
                     ...styles.message,
-                    color: message.includes('❌') ? '#dc3545' :
-                        message.includes('⚠️') ? '#ffc107' :
-                            message.includes('🔄') ? '#007bff' : '#28a745'
+                    color: message.includes('Error') || message.includes('required') || message.includes('must') ? '#dc3545' :
+                        message.includes('Using offline') ? '#ffc107' :
+                            message.includes('Creating') ? '#007bff' : '#28a745'
                 }}>
                     {message}
                 </p>
@@ -330,23 +452,23 @@ const CreateRadioStation = () => {
                 />
 
                 <textarea
-                    placeholder="Enter Description (optional)"
+                    placeholder="Enter Description *"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     style={styles.textarea}
                 ></textarea>
 
                 <select value={category} onChange={(e) => setCategory(e.target.value)} style={styles.select}>
-                    <option value="">🎵 Select a Category *</option>
+                    <option value="">Select a Category *</option>
                     {categories.map((cat, index) => (
                         <option key={index} value={cat}>{cat}</option>
                     ))}
                 </select>
             </div>
 
-            {/* ✅ NEW: Initial Mix Upload Section */}
+            {/* Initial Mix Upload Section */}
             <div style={styles.formSection}>
-                <h3>🎧 Upload Your Initial Mix *</h3>
+                <h3>Upload Your Initial Mix *</h3>
                 <p style={styles.sectionDescription}>
                     Upload a mix or playlist to get your station started. This will be the first thing listeners hear!
                 </p>
@@ -390,7 +512,7 @@ const CreateRadioStation = () => {
                     />
                 </div>
 
-                {/* Mix Metadata */}
+                {/* Mix Metadata - MANDATORY FIELDS */}
                 {initialMixFile && (
                     <div style={styles.mixMetadata}>
                         <h4>Mix Details</h4>
@@ -403,10 +525,17 @@ const CreateRadioStation = () => {
                             style={styles.input}
                         />
 
+                        <textarea
+                            placeholder="Mix Description *"
+                            value={mixDescription}
+                            onChange={(e) => setMixDescription(e.target.value)}
+                            style={styles.textarea}
+                        />
+
                         <div style={styles.rowInputs}>
                             <input
                                 type="text"
-                                placeholder="DJ Name (optional)"
+                                placeholder="DJ Name *"
                                 value={djName}
                                 onChange={(e) => setDjName(e.target.value)}
                                 style={styles.inputHalf}
@@ -437,12 +566,123 @@ const CreateRadioStation = () => {
                             />
                         </div>
 
-                        <textarea
-                            placeholder="Tracklist or Mix Notes (optional)"
-                            value={mixDescription}
-                            onChange={(e) => setMixDescription(e.target.value)}
-                            style={styles.textarea}
-                        ></textarea>
+                        {/* MANDATORY TRACKLIST FOR ROYALTY COMPLIANCE */}
+                        <div style={styles.tracklistSection}>
+                            <div style={styles.tracklistHeader}>
+                                <h4>Tracklist * (Required for BMI/ASCAP Royalty Reporting)</h4>
+                                <p style={styles.complianceNote}>
+                                    Complete track information is legally required for proper royalty distribution to artists, songwriters, and publishers.
+                                </p>
+                            </div>
+
+                            {tracklist.map((track, index) => (
+                                <div key={index} style={styles.trackItem}>
+                                    <div style={styles.trackHeader}>
+                                        <h5>Track {track.playOrderNumber}</h5>
+                                        {tracklist.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => removeTrackFromList(index)}
+                                                style={styles.removeTrackBtn}
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Required Fields */}
+                                    <div style={styles.rowInputs}>
+                                        <input
+                                            type="text"
+                                            placeholder="Song Title *"
+                                            value={track.songTitle}
+                                            onChange={(e) => updateTrack(index, 'songTitle', e.target.value)}
+                                            style={styles.inputHalf}
+                                            required
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Artist Name *"
+                                            value={track.artistName}
+                                            onChange={(e) => updateTrack(index, 'artistName', e.target.value)}
+                                            style={styles.inputHalf}
+                                            required
+                                        />
+                                    </div>
+
+                                    <input
+                                        type="text"
+                                        placeholder="Songwriter(s) * (Required for royalties - separate multiple with commas)"
+                                        value={track.songwriterNames}
+                                        onChange={(e) => updateTrack(index, 'songwriterNames', e.target.value)}
+                                        style={styles.input}
+                                        required
+                                    />
+
+                                    {/* Additional Metadata */}
+                                    <div style={styles.rowInputs}>
+                                        <input
+                                            type="text"
+                                            placeholder="Album Name (if applicable)"
+                                            value={track.albumName}
+                                            onChange={(e) => updateTrack(index, 'albumName', e.target.value)}
+                                            style={styles.inputHalf}
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Record Label (if known)"
+                                            value={track.recordLabel}
+                                            onChange={(e) => updateTrack(index, 'recordLabel', e.target.value)}
+                                            style={styles.inputHalf}
+                                        />
+                                    </div>
+
+                                    <div style={styles.rowInputs}>
+                                        <input
+                                            type="text"
+                                            placeholder="Publisher (if known)"
+                                            value={track.publisherName}
+                                            onChange={(e) => updateTrack(index, 'publisherName', e.target.value)}
+                                            style={styles.inputHalf}
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Duration (e.g., 3:45)"
+                                            value={track.approximateDuration}
+                                            onChange={(e) => updateTrack(index, 'approximateDuration', e.target.value)}
+                                            style={styles.inputHalf}
+                                        />
+                                    </div>
+
+                                    <input
+                                        type="text"
+                                        placeholder="Start Time in Mix (e.g., 0:00, 3:45)"
+                                        value={track.approximateStartTime}
+                                        onChange={(e) => updateTrack(index, 'approximateStartTime', e.target.value)}
+                                        style={styles.input}
+                                    />
+                                </div>
+                            ))}
+
+                            <button
+                                type="button"
+                                onClick={addTrackToList}
+                                style={styles.addTrackBtn}
+                            >
+                                Add Another Track
+                            </button>
+
+                            <div style={styles.royaltyNotice}>
+                                <p><strong>Important:</strong> This tracklist will be used for:</p>
+                                <ul>
+                                    <li>BMI & ASCAP royalty reporting</li>
+                                    <li>SoundExchange digital performance royalties</li>
+                                    <li>Mechanical license compliance</li>
+                                    <li>Artist and songwriter credit attribution</li>
+                                </ul>
+                                <p>Incomplete information may result in legal compliance issues and unpaid royalties to rights holders.</p>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -573,7 +813,7 @@ const CreateRadioStation = () => {
             </div>
 
             <button onClick={createStation} style={styles.button} disabled={loading}>
-                {loading ? "⏳ Creating Station..." : "📡 Create Station"}
+                {loading ? "Creating Station..." : "Create Station"}
             </button>
 
             <p style={styles.nextStepsInfo}>
@@ -583,7 +823,7 @@ const CreateRadioStation = () => {
     );
 };
 
-// 🎨 Enhanced Styling with new audio upload styles
+// Enhanced Styling with audio upload styles
 const styles = {
     container: {
         maxWidth: "700px",
@@ -706,7 +946,7 @@ const styles = {
         color: "#666",
         margin: "0"
     },
-    // ✅ NEW: Audio upload styles
+    // Audio upload styles
     audioUploadContainer: {
         marginBottom: "15px"
     },
@@ -750,6 +990,63 @@ const styles = {
         padding: "15px",
         borderRadius: "8px",
         border: "1px solid #e0e0e0"
+    },
+    tracklistSection: {
+        marginTop: "20px",
+        padding: "15px",
+        backgroundColor: "#f8f9fa",
+        borderRadius: "8px",
+        border: "2px solid #007bff"
+    },
+    tracklistHeader: {
+        marginBottom: "15px",
+        textAlign: "center"
+    },
+    complianceNote: {
+        fontSize: "12px",
+        color: "#666",
+        fontStyle: "italic",
+        margin: "5px 0"
+    },
+    trackItem: {
+        backgroundColor: "#fff",
+        padding: "15px",
+        marginBottom: "15px",
+        borderRadius: "6px",
+        border: "1px solid #ddd"
+    },
+    trackHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "10px"
+    },
+    removeTrackBtn: {
+        padding: "5px 10px",
+        backgroundColor: "#dc3545",
+        color: "white",
+        border: "none",
+        borderRadius: "4px",
+        cursor: "pointer",
+        fontSize: "12px"
+    },
+    addTrackBtn: {
+        width: "100%",
+        padding: "10px",
+        backgroundColor: "#007bff",
+        color: "white",
+        border: "none",
+        borderRadius: "4px",
+        cursor: "pointer",
+        fontSize: "14px",
+        marginBottom: "15px"
+    },
+    royaltyNotice: {
+        backgroundColor: "#fff3cd",
+        border: "1px solid #ffeaa7",
+        borderRadius: "4px",
+        padding: "15px",
+        fontSize: "12px"
     },
     nextStepsInfo: {
         textAlign: "center",
