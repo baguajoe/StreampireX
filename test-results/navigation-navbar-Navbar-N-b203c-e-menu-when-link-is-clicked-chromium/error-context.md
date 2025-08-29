@@ -1,0 +1,223 @@
+# Page snapshot
+
+```yaml
+- navigation:
+  - link "StreampireX":
+    - /url: /
+    - img "StreampireX"
+  - button
+  - link "Home":
+    - /url: /
+  - link "Pricing":
+    - /url: /pricing-plans
+  - link "Podcasts":
+    - /url: /browse-podcast-categories
+  - link "Videos":
+    - /url: /videos
+  - link "Radio":
+    - /url: /browse-radio-stations
+  - link "Live":
+    - /url: /live-streams
+  - link "Login":
+    - /url: /login
+  - link "Sign Up":
+    - /url: /register
+- heading "👤 User" [level=4]
+- link "🏠 Home Feed":
+  - /url: /home-feed
+- link "👤 Regular Profile":
+  - /url: /profile
+- link "🎮 Gamer Profile":
+  - /url: /profile/gamer
+- link "🎵 Artist Profile":
+  - /url: /profile/artist
+- link "📹 Channel Profile":
+  - /url: /profile/video
+- heading "📊 Dashboards" [level=4]
+- link "🚀 Creator Dashboard":
+  - /url: /creator-dashboard
+- link "🎤 Artist Dashboard":
+  - /url: /artist-dashboard
+- link "🎧 Podcast Dashboard":
+  - /url: /podcast-dashboard
+- link "📻 Radio Dashboard":
+  - /url: /radio-dashboard
+- link "📹 Video Dashboard":
+  - /url: /video-dashboard
+- link "💰 Sales Dashboard":
+  - /url: /sales-dashboard
+- link "🏢 Label Dashboard":
+  - /url: /label-dashboard
+- heading "🎤 Indie Artists" [level=4]
+- link "🌍 Music Distribution":
+  - /url: /music-distribution
+- link "🔍 Search Artists":
+  - /url: /search
+- link "👥 Collaborator Splits":
+  - /url: /collaborator-splits
+- heading "🎮 Gamers 🔽" [level=4]
+- link "💬 Gamer Chatrooms 3":
+  - /url: /gamers/chat
+- link "🧑‍🤝‍🧑 Team Room 1":
+  - /url: /team-room
+- link "🔍 Find Squads":
+  - /url: /squad-finder
+- heading "🎧 Podcasts" [level=4]
+- link "🎙️ Create Podcast":
+  - /url: /podcast-create
+- link "🎧 Browse Categories":
+  - /url: /browse-podcast-categories
+- heading "🎬 Videos" [level=4]
+- link "🎞️ Browse Videos":
+  - /url: /videos
+- link "📹 My Channel":
+  - /url: /my-channel
+- link "📤 Upload Video":
+  - /url: /upload-video
+- heading "📻 Radio Stations" [level=4]
+- link "📻 Browse Stations":
+  - /url: /browse-radio-stations
+- link "➕ Create Station":
+  - /url: /create-radio
+- heading "🎥 Live Streaming" [level=4]
+- link "📡 Live Streams":
+  - /url: /live-streams
+- link "🎶 Live Concerts":
+  - /url: /live-concerts
+- heading "🛍️ Store & Marketplace" [level=4]
+- link "🛒 Browse Marketplace":
+  - /url: /marketplace
+- link "🛒 Shopping Cart":
+  - /url: /cart
+- link "💳 Checkout":
+  - /url: /checkout
+- link "🏪 My Storefront":
+  - /url: /storefront
+- link "📦 Order History":
+  - /url: /orders
+- heading "👤 Account" [level=4]
+- link "⚙️ Settings":
+  - /url: /settings
+- main:
+  - heading "🔥 Welcome to StreampireX" [level=1]
+  - paragraph: The ultimate creator platform for music distribution, streaming, podcasts, radio, gaming communities, and social monetization.
+  - button "Get Started"
+  - button "Log In"
+  - text: 🎸
+  - heading "What You Can Do 🎯" [level=2]
+  - heading "🌍 Global Music Distribution" [level=4]
+  - paragraph: Distribute your music to 150+ platforms including Spotify, Apple Music, Amazon Music, YouTube Music, and more worldwide.
+  - heading "🎧 Stream Music" [level=4]
+  - paragraph: Upload tracks, share albums, and build your fanbase with our built-in streaming platform.
+  - heading "🎙️ Launch Podcasts" [level=4]
+  - paragraph: Host episodes, monetize content, and reach new audiences across podcast directories.
+  - heading "📻 24/7 Plamix Radio Streams" [level=4]
+  - paragraph: Create your own radio station with continuous streaming, accept song submissions, and build a loyal listener base around the clock.
+  - heading "🎮 Gaming Community Hub" [level=4]
+  - paragraph: Connect with gamers, join squads, find teammates, stream gameplay, and discover crossplay-compatible games across all platforms.
+  - heading "🌐 Social Media Integration" [level=4]
+  - paragraph: Share your content across TikTok, Instagram, Facebook, and more. Build your social presence and engage with fans everywhere.
+  - heading "💰 Performance Rights & Royalties" [level=4]
+  - paragraph: Collect performance royalties from radio, streaming, and live venues through registered performance rights organizations and digital collection services.
+  - heading "🛍️ Sell Products & Merch" [level=4]
+  - paragraph: Create merchandise, sell digital goods, and get paid instantly with Stripe integration.
+  - heading "📊 Advanced Analytics" [level=4]
+  - paragraph: Monitor streams, revenue, demographics, gamer stats, and audience behavior across all platforms.
+  - heading "⚡ Fast Release Process" [level=4]
+  - paragraph: Get your music live on major platforms in 24-48 hours with our streamlined upload system.
+  - heading "🎥 Live Streaming & Gaming" [level=4]
+  - paragraph: Stream your gameplay, host live shows, and share your screen with squad members in real-time.
+  - heading "🤝 Squad Finder & Team Rooms" [level=4]
+  - paragraph: Find gaming teammates by skill level, create private squad rooms, and coordinate with your gaming community.
+  - heading "🚀 Distribute & Connect Everywhere" [level=2]
+  - paragraph: Your content will be available on all major streaming platforms, social networks, and gaming communities
+  - heading "🎵 Music Streaming" [level=4]
+  - list:
+    - listitem: Spotify
+    - listitem: Apple Music
+    - listitem: Amazon Music
+    - listitem: YouTube Music
+    - listitem: Deezer
+    - listitem: Tidal
+  - heading "🌐 Social & Video" [level=4]
+  - list:
+    - listitem: TikTok
+    - listitem: Instagram
+    - listitem: Facebook
+    - listitem: YouTube Content ID
+    - listitem: Snapchat
+    - listitem: Twitter/X
+  - heading "🎮 Gaming Platforms" [level=4]
+  - list:
+    - listitem: Steam
+    - listitem: PlayStation Network
+    - listitem: Xbox Live
+    - listitem: Nintendo Switch
+    - listitem: Epic Games
+    - listitem: Discord Integration
+  - heading "📡 Radio & Streaming" [level=4]
+  - list:
+    - listitem: Plamix 24/7 Radio
+    - listitem: SiriusXM
+    - listitem: Pandora
+    - listitem: iHeartRadio
+    - listitem: Shazam
+    - listitem: SoundCloud
+  - heading "🎮 Gaming Community Features" [level=3]
+  - text: 🔍
+  - strong: Squad Finder
+  - paragraph: Find teammates by game, skill level, and region
+  - text: 🏠
+  - strong: Team Rooms
+  - paragraph: Private spaces for your squad with voice chat and screen sharing
+  - text: 🎥
+  - strong: Live Game Streaming
+  - paragraph: Stream your gameplay to Twitch, YouTube, and more
+  - text: 🎯
+  - strong: Crossplay Games
+  - paragraph: Discover games that support crossplay across all platforms
+  - heading "📻 24/7 Plamix Radio" [level=3]
+  - text: 📡
+  - strong: Always-On Broadcasting
+  - paragraph: Your radio station streams 24/7 with continuous music
+  - text: 🎵
+  - strong: Song Submissions
+  - paragraph: Accept tracks from artists and curate your station's sound
+  - text: 👥
+  - strong: Live Listener Count
+  - paragraph: See real-time listener engagement and build your audience
+  - text: 💰
+  - strong: Monetization
+  - paragraph: Earn revenue through ads, subscriptions, and premium content
+  - heading "🌐 Social Media Power" [level=3]
+  - text: 📱
+  - strong: Multi-Platform Sharing
+  - paragraph: Post your content across all social networks simultaneously
+  - text: 📈
+  - strong: Viral Content Tools
+  - paragraph: Optimize your posts for maximum engagement and reach
+  - text: 💬
+  - strong: Community Engagement
+  - paragraph: Interact with fans, respond to comments, and build relationships
+  - text: 🎯
+  - strong: Targeted Promotion
+  - paragraph: Reach the right audience with smart targeting and analytics
+  - heading "Ready to Share Your Voice with the World?" [level=2]
+  - paragraph: Create, distribute, game, and grow your creative career on StreampireX.
+  - button "Start Your Journey Today"
+  - paragraph: © 2025 StreampireX. All rights reserved.
+- contentinfo:
+  - paragraph:
+    - text: Made with  by
+    - link "Eye Forge Studios":
+      - /url: https://www.eyeforgestudios.com/
+      - strong: Eye Forge Studios
+  - link "Terms":
+    - /url: /terms
+  - text: "|"
+  - link "Privacy":
+    - /url: /privacy
+  - text: "|"
+  - link "Support":
+    - /url: /support
+```

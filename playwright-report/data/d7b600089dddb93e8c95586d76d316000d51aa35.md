@@ -1,0 +1,287 @@
+# Page snapshot
+
+```yaml
+- navigation:
+  - link "StreampireX":
+    - /url: /
+    - img "StreampireX"
+  - link "Home":
+    - /url: /
+  - link "Pricing":
+    - /url: /pricing-plans
+  - link "Podcasts":
+    - /url: /browse-podcast-categories
+  - link "Videos":
+    - /url: /videos
+  - link "Radio":
+    - /url: /browse-radio-stations
+  - link "Live":
+    - /url: /live-streams
+  - link "Login":
+    - /url: /login
+  - link "Sign Up":
+    - /url: /register
+- heading "👤 User" [level=4]
+- link "🏠 Home Feed":
+  - /url: /home-feed
+- link "👤 Regular Profile":
+  - /url: /profile
+- link "🎮 Gamer Profile":
+  - /url: /profile/gamer
+- link "🎵 Artist Profile":
+  - /url: /profile/artist
+- link "📹 Channel Profile":
+  - /url: /profile/video
+- heading "📊 Dashboards" [level=4]
+- link "🚀 Creator Dashboard":
+  - /url: /creator-dashboard
+- link "🎤 Artist Dashboard":
+  - /url: /artist-dashboard
+- link "🎧 Podcast Dashboard":
+  - /url: /podcast-dashboard
+- link "📻 Radio Dashboard":
+  - /url: /radio-dashboard
+- link "📹 Video Dashboard":
+  - /url: /video-dashboard
+- link "💰 Sales Dashboard":
+  - /url: /sales-dashboard
+- link "🏢 Label Dashboard":
+  - /url: /label-dashboard
+- heading "🎤 Indie Artists" [level=4]
+- link "🌍 Music Distribution":
+  - /url: /music-distribution
+- link "🔍 Search Artists":
+  - /url: /search
+- link "👥 Collaborator Splits":
+  - /url: /collaborator-splits
+- heading "🎮 Gamers 🔽" [level=4]
+- link "💬 Gamer Chatrooms 3":
+  - /url: /gamers/chat
+- link "🧑‍🤝‍🧑 Team Room 1":
+  - /url: /team-room
+- link "🔍 Find Squads":
+  - /url: /squad-finder
+- heading "🎧 Podcasts" [level=4]
+- link "🎙️ Create Podcast":
+  - /url: /podcast-create
+- link "🎧 Browse Categories":
+  - /url: /browse-podcast-categories
+- heading "🎬 Videos" [level=4]
+- link "🎞️ Browse Videos":
+  - /url: /videos
+- link "📹 My Channel":
+  - /url: /my-channel
+- link "📤 Upload Video":
+  - /url: /upload-video
+- heading "📻 Radio Stations" [level=4]
+- link "📻 Browse Stations":
+  - /url: /browse-radio-stations
+- link "➕ Create Station":
+  - /url: /create-radio
+- heading "🎥 Live Streaming" [level=4]
+- link "📡 Live Streams":
+  - /url: /live-streams
+- link "🎶 Live Concerts":
+  - /url: /live-concerts
+- heading "🛍️ Store & Marketplace" [level=4]
+- link "🛒 Browse Marketplace":
+  - /url: /marketplace
+- link "🛒 Shopping Cart":
+  - /url: /cart
+- link "💳 Checkout":
+  - /url: /checkout
+- link "🏪 My Storefront":
+  - /url: /storefront
+- link "📦 Order History":
+  - /url: /orders
+- heading "👤 Account" [level=4]
+- link "⚙️ Settings":
+  - /url: /settings
+- main:
+  - heading "📡 Browse Radio Stations" [level=1]
+  - button "‹"
+  - text: All Stations Lo-Fi Jazz Reggae Electronic Talk Radio Rock Hip Hop Classical Indie Ambient Soul ! R&B ! Funk ! Country ! Latin ! Afrobeats ! K-Pop ! Pop ! House ! Techno ! Dubstep ! News Sports ! Spiritual !
+  - button "›"
+  - heading "🏢 StreampireX Official" [level=2]
+  - link "✅ OFFICIAL 🔴 LIVE StreampireX LoFi StreampireX LoFi Lo-Fi Official StreampireX lo-fi station for study and focus by StreampireX":
+    - /url: /radio/station/seed_lofi/dynamic
+    - text: ✅ OFFICIAL 🔴 LIVE
+    - img "StreampireX LoFi"
+    - heading "StreampireX LoFi" [level=3]
+    - text: Lo-Fi
+    - paragraph: Official StreampireX lo-fi station for study and focus
+    - paragraph: by StreampireX
+  - link "✅ OFFICIAL 🔴 LIVE StreampireX News StreampireX News News Breaking news and tech updates by StreampireX":
+    - /url: /radio/station/seed_news/dynamic
+    - text: ✅ OFFICIAL 🔴 LIVE
+    - img "StreampireX News"
+    - heading "StreampireX News" [level=3]
+    - text: News
+    - paragraph: Breaking news and tech updates
+    - paragraph: by StreampireX
+  - link "✅ OFFICIAL 🔴 LIVE StreampireX Electronic StreampireX Electronic Electronic Latest electronic and EDM hits by StreampireX":
+    - /url: /radio/station/seed_electronic/dynamic
+    - text: ✅ OFFICIAL 🔴 LIVE
+    - img "StreampireX Electronic"
+    - heading "StreampireX Electronic" [level=3]
+    - text: Electronic
+    - paragraph: Latest electronic and EDM hits
+    - paragraph: by StreampireX
+  - heading "🎙️ Community Stations" [level=2]
+  - link "🔴 LIVE eye eye eye eye eye eye eye eye Hip-Hop & Rap FINLNLNLFN;L by tt2":
+    - /url: /radio/station/6/dynamic
+    - text: 🔴 LIVE
+    - img "eye eye eye eye"
+    - heading "eye eye eye eye" [level=3]
+    - text: Hip-Hop & Rap
+    - paragraph: FINLNLNLFN;L
+    - paragraph: by tt2
+  - link "🔴 LIVE Eye of Eyes Eye of Eyes Hard Rock & Metal ddddddddd by tt2":
+    - /url: /radio/station/5/dynamic
+    - text: 🔴 LIVE
+    - img "Eye of Eyes"
+    - heading "Eye of Eyes" [level=3]
+    - text: Hard Rock & Metal
+    - paragraph: ddddddddd
+    - paragraph: by tt2
+  - link "Eye Eye Eye Eye Hip-Hop & Rap vdvd cscscs wdwdwd by tt2":
+    - /url: /radio/station/4/dynamic
+    - img "Eye Eye"
+    - heading "Eye Eye" [level=3]
+    - text: Hip-Hop & Rap
+    - paragraph: vdvd cscscs wdwdwd
+    - paragraph: by tt2
+  - link "🔴 LIVE tttyyy tttyyy Indie & Alternative Pop yyyyhhh by tt2":
+    - /url: /radio/station/3/dynamic
+    - text: 🔴 LIVE
+    - img "tttyyy"
+    - heading "tttyyy" [level=3]
+    - text: Indie & Alternative Pop
+    - paragraph: yyyyhhh
+    - paragraph: by tt2
+  - heading "🌐 Discover Global Radio" [level=2]
+  - link "🔴 LIVE 🌐 GLOBAL Classic Vinyl HD Classic Vinyl HD Jazz The United States Of America Jazz station by The United States Of America 👥 204":
+    - /url: /radio/station/external_d1a54d2e-623e-4970-ab11-35f7b56c5ec3/external
+    - text: 🔴 LIVE 🌐 GLOBAL
+    - img "Classic Vinyl HD"
+    - heading "Classic Vinyl HD" [level=3]
+    - text: Jazz
+    - paragraph: The United States Of America Jazz station
+    - paragraph: by The United States Of America
+    - paragraph: 👥 204
+  - link "🔴 LIVE 🌐 GLOBAL Adroit Jazz Underground Adroit Jazz Underground Jazz The United States Of America Jazz station by The United States Of America 👥 70":
+    - /url: /radio/station/external_ea8059be-d119-4de3-b27b-0d9bd6aedb17/external
+    - text: 🔴 LIVE 🌐 GLOBAL
+    - img "Adroit Jazz Underground"
+    - heading "Adroit Jazz Underground" [level=3]
+    - text: Jazz
+    - paragraph: The United States Of America Jazz station
+    - paragraph: by The United States Of America
+    - paragraph: 👥 70
+  - link "🔴 LIVE 🌐 GLOBAL Adroit Jazz Underground HD Opus Adroit Jazz Underground HD Opus Jazz The United States Of America Jazz station by The United States Of America 👥 33":
+    - /url: /radio/station/external_2ce23ee2-95c5-407d-9df8-54c3cdde2825/external
+    - text: 🔴 LIVE 🌐 GLOBAL
+    - img "Adroit Jazz Underground HD Opus"
+    - heading "Adroit Jazz Underground HD Opus" [level=3]
+    - text: Jazz
+    - paragraph: The United States Of America Jazz station
+    - paragraph: by The United States Of America
+    - paragraph: 👥 33
+  - link "🔴 LIVE 🌐 GLOBAL Classic Vinyl HD Opus Classic Vinyl HD Opus Jazz The United States Of America Jazz station by The United States Of America 👥 18":
+    - /url: /radio/station/external_6ce8da92-859f-4f96-a5e4-503c1ddfbfbf/external
+    - text: 🔴 LIVE 🌐 GLOBAL
+    - img "Classic Vinyl HD Opus"
+    - heading "Classic Vinyl HD Opus" [level=3]
+    - text: Jazz
+    - paragraph: The United States Of America Jazz station
+    - paragraph: by The United States Of America
+    - paragraph: 👥 18
+  - link "🔴 LIVE 🌐 GLOBAL - 0 N - Smooth Jazz on Radio - 0 N - Smooth Jazz on Radio Jazz Germany Jazz station by Germany 👥 9":
+    - /url: /radio/station/external_389011a1-3a96-11e9-9b4e-52543be04c81/external
+    - text: 🔴 LIVE 🌐 GLOBAL
+    - img "- 0 N - Smooth Jazz on Radio"
+    - heading "- 0 N - Smooth Jazz on Radio" [level=3]
+    - text: Jazz
+    - paragraph: Germany Jazz station
+    - paragraph: by Germany
+    - paragraph: 👥 9
+  - link "🔴 LIVE 🌐 GLOBAL AIRPORT LOUNGE RADIO AIRPORT LOUNGE RADIO Jazz Canada Jazz station by Canada 👥 8":
+    - /url: /radio/station/external_02569932-0b3c-4938-9d3e-b00b2158d40b/external
+    - text: 🔴 LIVE 🌐 GLOBAL
+    - img "AIRPORT LOUNGE RADIO"
+    - heading "AIRPORT LOUNGE RADIO" [level=3]
+    - text: Jazz
+    - paragraph: Canada Jazz station
+    - paragraph: by Canada
+    - paragraph: 👥 8
+  - 'link "🔴 LIVE 🌐 GLOBAL # TOP 100 CLUB CHARTS - DANCE & DJ MIX RADIO - 24 HOURS NON-STOP MUSIC @ TikTok Hits, Ibiza House, Sunset Lounge, Melodic Music, EDM, Deep House, Dance Music, Techno & Hypertechno, Rave Charts, Top 40 Charts, Latin, Reggaeton Music, Moombahton, Urban Hits, HipHop, Party & Clubbing Radio, Trending Chartmusic, R&B, Urban, Mixtape - & LIVE DJ SET # TOP 100 CLUB CHARTS - DANCE & DJ MIX RADIO - 24 HOURS NON-STOP MUSIC @ TikTok Hits, Ibiza House, Sunset Lounge, Melodic Music, EDM, Deep House, Dance Music, Techno & Hypertechno, Rave Charts, Top 40 Charts, Latin, Reggaeton Music, Moombahton, Urban Hits, HipHop, Party & Clubbing Radio, Trending Chartmusic, R&B, Urban, Mixtape - & LIVE DJ SET Reggae Germany Reggae station by Germany 👥 18"':
+    - /url: /radio/station/external_dd98c499-a0c4-4019-a35e-99caa6940407/external
+    - text: 🔴 LIVE 🌐 GLOBAL
+    - img "# TOP 100 CLUB CHARTS - DANCE & DJ MIX RADIO - 24 HOURS NON-STOP MUSIC @ TikTok Hits, Ibiza House, Sunset Lounge, Melodic Music, EDM, Deep House, Dance Music, Techno & Hypertechno, Rave Charts, Top 40 Charts, Latin, Reggaeton Music, Moombahton, Urban Hits, HipHop, Party & Clubbing Radio, Trending Chartmusic, R&B, Urban, Mixtape - & LIVE DJ SET"
+    - heading "# TOP 100 CLUB CHARTS - DANCE & DJ MIX RADIO - 24 HOURS NON-STOP MUSIC @ TikTok Hits, Ibiza House, Sunset Lounge, Melodic Music, EDM, Deep House, Dance Music, Techno & Hypertechno, Rave Charts, Top 40 Charts, Latin, Reggaeton Music, Moombahton, Urban Hits, HipHop, Party & Clubbing Radio, Trending Chartmusic, R&B, Urban, Mixtape - & LIVE DJ SET" [level=3]
+    - text: Reggae
+    - paragraph: Germany Reggae station
+    - paragraph: by Germany
+    - paragraph: 👥 18
+  - link "🔴 LIVE 🌐 GLOBAL _DEEJAY REMIXE_ Your Radio for finest House, EDM, Electro, Dance, Mashup, Hypertechno, Techno, Bootleg, Charts, Top40, Chillout, Lounge, HipHop, Urban & Latin Party DJ Remixes! _DEEJAY REMIXE_ Your Radio for finest House, EDM, Electro, Dance, Mashup, Hypertechno, Techno, Bootleg, Charts, Top40, Chillout, Lounge, HipHop, Urban & Latin Party DJ Remixes! Reggae Germany Reggae station by Germany 👥 8":
+    - /url: /radio/station/external_be26f3f5-1ee1-4661-a3de-4544fc29e833/external
+    - text: 🔴 LIVE 🌐 GLOBAL
+    - img "_DEEJAY REMIXE_ Your Radio for finest House, EDM, Electro, Dance, Mashup, Hypertechno, Techno, Bootleg, Charts, Top40, Chillout, Lounge, HipHop, Urban & Latin Party DJ Remixes!"
+    - heading "_DEEJAY REMIXE_ Your Radio for finest House, EDM, Electro, Dance, Mashup, Hypertechno, Techno, Bootleg, Charts, Top40, Chillout, Lounge, HipHop, Urban & Latin Party DJ Remixes!" [level=3]
+    - text: Reggae
+    - paragraph: Germany Reggae station
+    - paragraph: by Germany
+    - paragraph: 👥 8
+  - 'link "🔴 LIVE 🌐 GLOBAL # TOP 100 DJ CHARTS - DJ REMIX & CHARTS RADIO @ TikTok Charts, Electronic Music, EDM, House, Deep House, Dance Music, Techno & Hypertechno, Top40, Latin Charts, Reggaeton, Urban, HipHop, Club & Party Radio - & LIVE DJ SETS # TOP 100 DJ CHARTS - DJ REMIX & CHARTS RADIO @ TikTok Charts, Electronic Music, EDM, House, Deep House, Dance Music, Techno & Hypertechno, Top40, Latin Charts, Reggaeton, Urban, HipHop, Club & Party Radio - & LIVE DJ SETS Reggae Germany Reggae station by Germany 👥 8"':
+    - /url: /radio/station/external_5bc44bcd-7481-40e1-b503-bb92b936f4cf/external
+    - text: 🔴 LIVE 🌐 GLOBAL
+    - img "# TOP 100 DJ CHARTS - DJ REMIX & CHARTS RADIO @ TikTok Charts, Electronic Music, EDM, House, Deep House, Dance Music, Techno & Hypertechno, Top40, Latin Charts, Reggaeton, Urban, HipHop, Club & Party Radio - & LIVE DJ SETS"
+    - heading "# TOP 100 DJ CHARTS - DJ REMIX & CHARTS RADIO @ TikTok Charts, Electronic Music, EDM, House, Deep House, Dance Music, Techno & Hypertechno, Top40, Latin Charts, Reggaeton, Urban, HipHop, Club & Party Radio - & LIVE DJ SETS" [level=3]
+    - text: Reggae
+    - paragraph: Germany Reggae station
+    - paragraph: by Germany
+    - paragraph: 👥 8
+  - link "🔴 LIVE 🌐 GLOBAL SABROSITA Ciudad de México - 590 AM - XEPH-AM - NRM Comunicaciones - Ciudad de México SABROSITA Ciudad de México - 590 AM - XEPH-AM - NRM Comunicaciones - Ciudad de México Reggae Mexico Reggae station by Mexico 👥 7":
+    - /url: /radio/station/external_12a970e2-443a-4640-8775-5c6b0f238c4a/external
+    - text: 🔴 LIVE 🌐 GLOBAL
+    - img "SABROSITA Ciudad de México - 590 AM - XEPH-AM - NRM Comunicaciones - Ciudad de México"
+    - heading "SABROSITA Ciudad de México - 590 AM - XEPH-AM - NRM Comunicaciones - Ciudad de México" [level=3]
+    - text: Reggae
+    - paragraph: Mexico Reggae station
+    - paragraph: by Mexico
+    - paragraph: 👥 7
+  - link "🔴 LIVE 🌐 GLOBAL REGGAE CHILL CAFE REGGAE CHILL CAFE Reggae Canada Reggae station by Canada 👥 7":
+    - /url: /radio/station/external_a3253a96-a1ba-4cf5-bf4b-ec7988afcfd3/external
+    - text: 🔴 LIVE 🌐 GLOBAL
+    - img "REGGAE CHILL CAFE"
+    - heading "REGGAE CHILL CAFE" [level=3]
+    - text: Reggae
+    - paragraph: Canada Reggae station
+    - paragraph: by Canada
+    - paragraph: 👥 7
+  - link "🔴 LIVE 🌐 GLOBAL SomaFM Heavyweight Reggae (256k MP3) SomaFM Heavyweight Reggae (256k MP3) Reggae The United States Of America Reggae station by The United States Of America 👥 7":
+    - /url: /radio/station/external_701106b9-59e3-11ea-be63-52543be04c81/external
+    - text: 🔴 LIVE 🌐 GLOBAL
+    - img "SomaFM Heavyweight Reggae (256k MP3)"
+    - heading "SomaFM Heavyweight Reggae (256k MP3)" [level=3]
+    - text: Reggae
+    - paragraph: The United States Of America Reggae station
+    - paragraph: by The United States Of America
+    - paragraph: 👥 7
+  - paragraph: 55 total stations •3 official •4 community •48 global
+  - paragraph: Platform is growing - be part of the early creator community! 🚀
+- contentinfo:
+  - paragraph:
+    - text: Made with  by
+    - link "Eye Forge Studios":
+      - /url: https://www.eyeforgestudios.com/
+      - strong: Eye Forge Studios
+  - link "Terms":
+    - /url: /terms
+  - text: "|"
+  - link "Privacy":
+    - /url: /privacy
+  - text: "|"
+  - link "Support":
+    - /url: /support
+```

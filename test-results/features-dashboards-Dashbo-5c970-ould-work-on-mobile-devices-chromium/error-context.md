@@ -1,0 +1,180 @@
+# Page snapshot
+
+```yaml
+- navigation:
+  - link "StreampireX":
+    - /url: /
+    - img "StreampireX"
+  - button
+  - link "Login":
+    - /url: /login
+  - link "Sign Up":
+    - /url: /register
+- heading "👤 User" [level=4]
+- link "🏠 Home Feed":
+  - /url: /home-feed
+- link "👤 Regular Profile":
+  - /url: /profile
+- link "🎮 Gamer Profile":
+  - /url: /profile/gamer
+- link "🎵 Artist Profile":
+  - /url: /profile/artist
+- link "📹 Channel Profile":
+  - /url: /profile/video
+- heading "📊 Dashboards" [level=4]
+- link "🚀 Creator Dashboard":
+  - /url: /creator-dashboard
+- link "🎤 Artist Dashboard":
+  - /url: /artist-dashboard
+- link "🎧 Podcast Dashboard":
+  - /url: /podcast-dashboard
+- link "📻 Radio Dashboard":
+  - /url: /radio-dashboard
+- link "📹 Video Dashboard":
+  - /url: /video-dashboard
+- link "💰 Sales Dashboard":
+  - /url: /sales-dashboard
+- link "🏢 Label Dashboard":
+  - /url: /label-dashboard
+- heading "🎤 Indie Artists" [level=4]
+- link "🌍 Music Distribution":
+  - /url: /music-distribution
+- link "🔍 Search Artists":
+  - /url: /search
+- link "👥 Collaborator Splits":
+  - /url: /collaborator-splits
+- heading "🎮 Gamers 🔽" [level=4]
+- link "💬 Gamer Chatrooms 3":
+  - /url: /gamers/chat
+- link "🧑‍🤝‍🧑 Team Room 1":
+  - /url: /team-room
+- link "🔍 Find Squads":
+  - /url: /squad-finder
+- heading "🎧 Podcasts" [level=4]
+- link "🎙️ Create Podcast":
+  - /url: /podcast-create
+- link "🎧 Browse Categories":
+  - /url: /browse-podcast-categories
+- heading "🎬 Videos" [level=4]
+- link "🎞️ Browse Videos":
+  - /url: /videos
+- link "📹 My Channel":
+  - /url: /my-channel
+- link "📤 Upload Video":
+  - /url: /upload-video
+- heading "📻 Radio Stations" [level=4]
+- link "📻 Browse Stations":
+  - /url: /browse-radio-stations
+- link "➕ Create Station":
+  - /url: /create-radio
+- heading "🎥 Live Streaming" [level=4]
+- link "📡 Live Streams":
+  - /url: /live-streams
+- link "🎶 Live Concerts":
+  - /url: /live-concerts
+- heading "🛍️ Store & Marketplace" [level=4]
+- link "🛒 Browse Marketplace":
+  - /url: /marketplace
+- link "🛒 Shopping Cart":
+  - /url: /cart
+- link "💳 Checkout":
+  - /url: /checkout
+- link "🏪 My Storefront":
+  - /url: /storefront
+- link "📦 Order History":
+  - /url: /orders
+- heading "👤 Account" [level=4]
+- link "⚙️ Settings":
+  - /url: /settings
+- main:
+  - img "Creator Profile"
+  - heading "🚀 Creator Dashboard" [level=1]
+  - paragraph: Loading...
+  - text: Pro Creator
+  - heading "📊 Overview Metrics" [level=2]
+  - text: 💰
+  - heading "Total Earnings" [level=3]
+  - paragraph: $0.00
+  - text: +0% this month 👥
+  - heading "Total Followers" [level=3]
+  - paragraph: "0"
+  - text: Across all platforms 📝
+  - heading "Total Content" [level=3]
+  - paragraph: "0"
+  - text: All types combined 📈
+  - heading "Total Views" [level=3]
+  - paragraph: "0"
+  - text: All content types
+  - heading "⚡ Quick Actions" [level=2]
+  - link "🎙️ Create Podcast":
+    - /url: /podcast-create
+  - link "🎵 Upload Music":
+    - /url: /upload-music
+  - link "📻 Create Radio Station":
+    - /url: /create-radio
+  - link "🎥 Go Live":
+    - /url: /live-studio
+  - heading "📱 Social Media Shares" [level=3]
+  - img
+  - heading "📊 Content Breakdown" [level=3]
+  - img
+  - heading "📈 Monthly Growth Trend" [level=3]
+  - img
+  - heading "🕒 Recent Activity" [level=2]
+  - text: 🎙️
+  - paragraph:
+    - strong: Tech Talk
+    - text: was published
+  - text: 2 hours ago 🎵
+  - paragraph:
+    - strong: Chill Beats
+    - text: was uploaded
+  - text: 1 day ago 📻
+  - paragraph:
+    - strong: Jazz FM
+    - text: was went live
+  - text: 2 days ago 🎥
+  - paragraph:
+    - strong: AMA
+    - text: was streamed
+  - text: 3 days ago
+  - heading "🎯 Specialized Dashboards" [level=2]
+  - link "🎤 Artist Dashboard Manage your music, tracks, and artist profile 0 tracks":
+    - /url: /artist-dashboard
+    - text: 🎤
+    - heading "Artist Dashboard" [level=3]
+    - paragraph: Manage your music, tracks, and artist profile
+    - text: 0 tracks
+  - link "🎧 Podcast Dashboard Create episodes, manage shows, and grow your audience 0 episodes":
+    - /url: /podcast-dashboard
+    - text: 🎧
+    - heading "Podcast Dashboard" [level=3]
+    - paragraph: Create episodes, manage shows, and grow your audience
+    - text: 0 episodes
+  - link "📻 Radio Dashboard Manage your 24/7 radio stations and playlists 0 stations":
+    - /url: /radio-dashboard
+    - text: 📻
+    - heading "Radio Dashboard" [level=3]
+    - paragraph: Manage your 24/7 radio stations and playlists
+    - text: 0 stations
+  - link "🌍 Music Distribution Distribute to Spotify, Apple Music, and 150+ platforms Global reach":
+    - /url: /music-distribution
+    - text: 🌍
+    - heading "Music Distribution" [level=3]
+    - paragraph: Distribute to Spotify, Apple Music, and 150+ platforms
+    - text: Global reach
+- contentinfo:
+  - paragraph:
+    - text: Made with  by
+    - link "Eye Forge Studios":
+      - /url: https://www.eyeforgestudios.com/
+      - strong: Eye Forge Studios
+  - link "Terms":
+    - /url: /terms
+  - text: "|"
+  - link "Privacy":
+    - /url: /privacy
+  - text: "|"
+  - link "Support":
+    - /url: /support
+```
