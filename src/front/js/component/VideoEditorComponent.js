@@ -2,503 +2,208 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, Pause, Square, RotateCcw, Download, Upload, Volume2, VolumeX, 
   Eye, EyeOff, Lock, Unlock, Plus, Trash2, Scissors, Copy, Move, Settings, 
-  Music, Video, AudioWaveform, Share2, Save, FileVideo, FileAudio, Youtube, 
-  Instagram, Facebook, Twitter, ChevronDown, ChevronUp, Layers, Zap, Filter, 
-  Palette, Tv, AlertTriangle, Crown, Star, Bolt, Info, MousePointer, Hand, 
-  Type, Square as RectangleTool, Circle, Pen, Eraser, Crop, RotateCw, FlipHorizontal,
-  ZoomIn, ZoomOut, Grid, Minimize2, Maximize2, MoreVertical, X
+  Music, Video, AudioWaveform, Save, Youtube, Instagram, Facebook, Twitter, 
+  ChevronDown, ChevronUp, Layers, Zap, Filter, 
+  Palette, Tv, Info, MousePointer, Hand, Type, 
+  Circle, Pen, Eraser, Crop, RotateCw, FlipHorizontal,
+  ZoomIn, ZoomOut, Grid, Minimize2, Maximize2, MoreVertical, X, Crown, Star, Bolt,
+  Sliders, Image, Wand2, Sparkles, Sun, Droplets, Contrast,
+  RefreshCw, SkipForward, Rewind, FastForward, Monitor, Camera
 } from 'lucide-react';
 
-// Import the CSS file - make sure this path matches your CSS file location
-import '../../styles/VideoEditorComponent.css';
-
 const VideoEditorComponent = () => {
-  // State management
-  const [project, setProject] = useState(null);
-  const [tracks, setTracks] = useState([]);
-  const [selectedClip, setSelectedClip] = useState(null);
-  const [selectedTrack, setSelectedTrack] = useState(null);
-  const [selectedTool, setSelectedTool] = useState('select');
+  // Core state
+  const [project, setProject] = useState({
+    title: 'Untitled Project',
+    duration: 300,
+    frameRate: 30,
+    resolution: { width: 1920, height: 1080 }
+  });
+  
+  const [tracks, setTracks] = useState([
+    {
+      id: 1,
+      name: 'Video 1',
+      type: 'video',
+      visible: true,
+      muted: false,
+      locked: false,
+      color: '#4a9eff',
+      clips: [
+        {
+          id: 1,
+          title: 'Main_Clip.mp4',
+          startTime: 30,
+          duration: 120,
+          type: 'video'
+        }
+      ]
+    },
+    {
+      id: 2,
+      name: 'Audio 1',
+      type: 'audio',
+      visible: true,
+      muted: false,
+      locked: false,
+      color: '#00d4aa',
+      clips: [
+        {
+          id: 2,
+          title: 'Background_Music.wav',
+          startTime: 30,
+          duration: 120,
+          type: 'audio'
+        }
+      ]
+    }
+  ]);
+
+  // Transitions state
+  const [transitions, setTransitions] = useState([
+    {
+      id: 1,
+      type: 'fade',
+      name: 'Fade',
+      startTime: 148,
+      duration: 2,
+      trackId: 1,
+      icon: 'Zap'
+    }
+  ]);
+
+  const [availableTransitions] = useState([
+    { id: 'fade', name: 'Fade', icon: Zap, duration: 2000, description: 'Smooth fade between clips' },
+    { id: 'dissolve', name: 'Dissolve', icon: Circle, duration: 1500, description: 'Gradual dissolve effect' },
+    { id: 'wipe', name: 'Wipe', icon: Move, duration: 1000, description: 'Directional wipe transition' },
+    { id: 'slide', name: 'Slide', icon: FlipHorizontal, duration: 800, description: 'Slide transition' },
+    { id: 'zoom', name: 'Zoom', icon: ZoomIn, duration: 1200, description: 'Zoom in/out transition' },
+    { id: 'spin', name: 'Spin', icon: RotateCw, duration: 1500, description: 'Spinning transition effect' }
+  ]);
+
+  // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(300); // 5 minutes for demo
+  const [duration] = useState(300);
+  const [selectedTool, setSelectedTool] = useState('select');
+  const [selectedClip, setSelectedClip] = useState(null);
+  const [selectedTransition, setSelectedTransition] = useState(null);
   const [zoom, setZoom] = useState(1);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [showPlatformModal, setShowPlatformModal] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [exportProgress, setExportProgress] = useState(0);
-  const [isExporting, setIsExporting] = useState(false);
-  const [mediaLibrary, setMediaLibrary] = useState([]);
-  const [showMediaLibrary, setShowMediaLibrary] = useState(false);
-  
-  // User tier and limits
-  const [userTier, setUserTier] = useState('free');
-  const [userLimits, setUserLimits] = useState(null);
-  const [userUsage, setUserUsage] = useState(null);
-  const [showLimitsModal, setShowLimitsModal] = useState(false);
-  const [availablePlans, setAvailablePlans] = useState([]);
+  const [draggedTransition, setDraggedTransition] = useState(null);
 
-  // Layout state
-  const [leftPanelWidth, setLeftPanelWidth] = useState(240);
-  const [timelineHeight, setTimelineHeight] = useState(300);
+  // User tier
+  const [userTier] = useState('premium');
+
+  // UI state
+  const [showSnapToGrid, setShowSnapToGrid] = useState(true);
+  const [showAudioWaveforms, setShowAudioWaveforms] = useState(true);
+  const [activeEffects, setActiveEffects] = useState({});
+  const [showEffectsPanel, setShowEffectsPanel] = useState(false);
+  const [showTransitionsPanel, setShowTransitionsPanel] = useState(true);
 
   const timelineRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // API Base URL
-  const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
-
-  // Tool definitions
+  // Tools configuration
   const tools = [
-    { id: 'select', icon: MousePointer, name: 'Selection Tool', shortcut: 'V' },
-    { id: 'razor', icon: Scissors, name: 'Razor Tool', shortcut: 'C' },
-    { id: 'hand', icon: Hand, name: 'Hand Tool', shortcut: 'H' },
-    { id: 'text', icon: Type, name: 'Text Tool', shortcut: 'T' },
-    { id: 'rectangle', icon: RectangleTool, name: 'Rectangle', shortcut: 'R' },
-    { id: 'circle', icon: Circle, name: 'Ellipse', shortcut: 'E' },
-    { id: 'pen', icon: Pen, name: 'Pen Tool', shortcut: 'P' }
+    { id: 'select', icon: MousePointer, name: 'Selection Tool' },
+    { id: 'razor', icon: Scissors, name: 'Razor Tool' },
+    { id: 'hand', icon: Hand, name: 'Hand Tool' },
+    { id: 'text', icon: Type, name: 'Text Tool' }
   ];
 
-  // Tier configurations
-  const tierConfig = {
-    free: {
-      name: 'Free',
-      color: '#6c757d',
-      icon: Info,
-      features: ['Basic editing', '720p export', 'MP4 format only', '2 video tracks']
-    },
-    basic: {
-      name: 'Basic',
-      color: '#17a2b8',
-      icon: Star,
-      features: ['HD editing', '1080p export', 'Multiple formats', '8 video tracks']
-    },
-    premium: {
-      name: 'Premium',
-      color: '#28a745',
-      icon: Crown,
-      features: ['4K editing', 'Professional effects', 'Unlimited tracks', 'Multi-platform export']
-    },
-    professional: {
-      name: 'Professional',
-      color: '#ffc107',
-      icon: Bolt,
-      features: ['8K editing', 'Advanced codecs', 'Team collaboration', 'Priority support']
-    }
-  };
-
-  // Platform export options with tier restrictions
-  const platforms = [
-    { 
-      id: 'youtube', 
-      name: 'YouTube', 
-      icon: Youtube, 
-      minTier: 'free',
-      formats: ['mp4'], 
-      maxSize: '128GB', 
-      maxDuration: '12h', 
-      requirements: '1080p recommended' 
-    },
-    { 
-      id: 'instagram', 
-      name: 'Instagram', 
-      icon: Instagram, 
-      minTier: 'basic',
-      formats: ['mp4', 'mov'], 
-      maxSize: '4GB', 
-      maxDuration: '60s (Reels)', 
-      requirements: '1080x1920 (Stories), 1080x1080 (Posts)' 
-    },
-    { 
-      id: 'tiktok', 
-      name: 'TikTok', 
-      icon: Tv, 
-      minTier: 'basic',
-      formats: ['mp4', 'mov'], 
-      maxSize: '287.6MB', 
-      maxDuration: '10m', 
-      requirements: '1080x1920, 30fps' 
-    },
-    { 
-      id: 'facebook', 
-      name: 'Facebook', 
-      icon: Facebook, 
-      minTier: 'basic',
-      formats: ['mp4', 'mov'], 
-      maxSize: '4GB', 
-      maxDuration: '4h', 
-      requirements: '1080p recommended' 
-    },
-    { 
-      id: 'twitter', 
-      name: 'Twitter/X', 
-      icon: Twitter, 
-      minTier: 'premium',
-      formats: ['mp4'], 
-      maxSize: '512MB', 
-      maxDuration: '2m20s', 
-      requirements: '1920x1080 max' 
-    }
+  // Effects library
+  const effects = [
+    // Video Effects
+    { id: 'brightness', name: 'Brightness', icon: Sun, category: 'color' },
+    { id: 'contrast', name: 'Contrast', icon: Contrast, category: 'color' },
+    { id: 'saturation', name: 'Saturation', icon: Droplets, category: 'color' },
+    { id: 'blur', name: 'Blur', icon: Circle, category: 'filter' },
+    { id: 'sharpen', name: 'Sharpen', icon: Zap, category: 'filter' },
+    // Audio Effects
+    { id: 'reverb', name: 'Reverb', icon: AudioWaveform, category: 'audio' },
+    { id: 'echo', name: 'Echo', icon: RefreshCw, category: 'audio' }
   ];
 
-  // Initialize project and load user limits
-  useEffect(() => {
-    initializeProject();
-    loadUserLimits();
-    loadMediaLibrary();
-    loadAvailablePlans();
-  }, []);
+  // Media library
+  const [mediaLibrary] = useState([
+    { id: 1, name: 'Interview_Setup.mp4', type: 'video', duration: '5:23' },
+    { id: 2, name: 'Background_Music.wav', type: 'audio', duration: '3:45' },
+    { id: 3, name: 'Logo_Animation.mov', type: 'video', duration: '0:08' }
+  ]);
 
-  const loadUserLimits = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/api/user/video-editor/limits`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setUserTier(data.user_tier);
-        setUserLimits(data.limits);
-        setUserUsage(data.usage);
-      } else {
-        // Fallback data for demo
-        setUserLimits({
-          max_projects: 3,
-          max_tracks_per_project: 2,
-          video_clip_max_size: 500 * 1024 * 1024, // 500MB
-          project_total_max_size: 2 * 1024 * 1024 * 1024, // 2GB
-          max_export_quality: '720p'
-        });
-        setUserUsage({
-          current_projects: 1,
-          current_total_size: 250 * 1024 * 1024 // 250MB
-        });
-      }
-    } catch (error) {
-      console.error('Failed to load user limits:', error);
-      // Fallback data
-      setUserLimits({
-        max_projects: 3,
-        max_tracks_per_project: 2,
-        video_clip_max_size: 500 * 1024 * 1024,
-        project_total_max_size: 2 * 1024 * 1024 * 1024,
-        max_export_quality: '720p'
-      });
-      setUserUsage({
-        current_projects: 1,
-        current_total_size: 250 * 1024 * 1024
-      });
-    }
-  };
+  // Transition functions
+  const addTransition = (transitionType, startTime, trackId) => {
+    const transitionData = availableTransitions.find(t => t.id === transitionType);
+    if (!transitionData) return;
 
-  const loadAvailablePlans = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/video-editor/plans`);
-      if (response.ok) {
-        const data = await response.json();
-        setAvailablePlans(data.plans || [
-          { id: 1, name: 'Basic', price_monthly: 9.99 },
-          { id: 2, name: 'Premium', price_monthly: 19.99 },
-          { id: 3, name: 'Professional', price_monthly: 39.99 }
-        ]);
-      }
-    } catch (error) {
-      console.error('Failed to load available plans:', error);
-      setAvailablePlans([
-        { id: 1, name: 'Basic', price_monthly: 9.99 },
-        { id: 2, name: 'Premium', price_monthly: 19.99 },
-        { id: 3, name: 'Professional', price_monthly: 39.99 }
-      ]);
-    }
-  };
-
-  const initializeProject = async () => {
-    const sampleProject = {
-      id: 1,
-      title: 'Video Podcast Test Footage 2',
-      duration: 300,
-      frameRate: 30,
-      resolution: { width: 1920, height: 1080 }
-    };
-
-    const sampleTracks = [
-      {
-        id: 1,
-        name: 'V2',
-        type: 'video',
-        order: 0,
-        visible: true,
-        muted: false,
-        locked: false,
-        volume: 1.0,
-        color: '#4a9eff',
-        clips: []
-      },
-      {
-        id: 2,
-        name: 'V1',
-        type: 'video',
-        order: 1,
-        visible: true,
-        muted: false,
-        locked: false,
-        volume: 1.0,
-        color: '#00d4aa',
-        clips: [
-          {
-            id: 1,
-            title: 'Video Podcast Test Footage 1.mov.mp4',
-            startTime: 30,
-            duration: 120,
-            type: 'video'
-          }
-        ]
-      },
-      {
-        id: 3,
-        name: 'A2',
-        type: 'audio',
-        order: 2,
-        visible: true,
-        muted: false,
-        locked: false,
-        volume: 0.7,
-        color: '#ff6b6b',
-        clips: []
-      },
-      {
-        id: 4,
-        name: 'A1',
-        type: 'audio',
-        order: 3,
-        visible: true,
-        muted: false,
-        locked: false,
-        volume: 0.8,
-        color: '#4ecdc4',
-        clips: [
-          {
-            id: 2,
-            title: 'Audio Track 1',
-            startTime: 30,
-            duration: 120,
-            type: 'audio'
-          }
-        ]
-      },
-      {
-        id: 5,
-        name: 'Mix',
-        type: 'master',
-        order: 4,
-        visible: true,
-        muted: false,
-        locked: false,
-        volume: 1.0,
-        color: '#95a5a6',
-        clips: []
-      }
-    ];
-
-    setProject(sampleProject);
-    setTracks(sampleTracks);
-  };
-
-  const loadMediaLibrary = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/api/media-assets`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setMediaLibrary(data.assets || []);
-      } else {
-        // Fallback demo data
-        setMediaLibrary([
-          { id: 1, name: 'Clip 1.mp4', type: 'video', size: 50 * 1024 * 1024 },
-          { id: 2, name: 'Audio.wav', type: 'audio', size: 20 * 1024 * 1024 }
-        ]);
-      }
-    } catch (error) {
-      console.error('Failed to load media library:', error);
-      setMediaLibrary([
-        { id: 1, name: 'Clip 1.mp4', type: 'video', size: 50 * 1024 * 1024 },
-        { id: 2, name: 'Audio.wav', type: 'audio', size: 20 * 1024 * 1024 }
-      ]);
-    }
-  };
-
-  // Check if user can perform action based on tier
-  const checkTierLimit = (action) => {
-    if (!userLimits) return { allowed: true };
-
-    switch (action) {
-      case 'add_track':
-        if (userLimits.max_tracks_per_project !== -1 && tracks.length >= userLimits.max_tracks_per_project) {
-          return {
-            allowed: false,
-            message: `Track limit reached (${userLimits.max_tracks_per_project}). Upgrade to add more tracks.`,
-            upgradeRequired: true
-          };
-        }
-        break;
-      case 'add_project':
-        if (userUsage && userLimits.max_projects !== -1 && userUsage.current_projects >= userLimits.max_projects) {
-          return {
-            allowed: false,
-            message: `Project limit reached (${userLimits.max_projects}). Upgrade to create more projects.`,
-            upgradeRequired: true
-          };
-        }
-        break;
-      case 'export_4k':
-        if (userLimits.max_export_quality !== '4k' && userLimits.max_export_quality !== '8k') {
-          return {
-            allowed: false,
-            message: 'Upgrade to premium for 4K export.',
-            upgradeRequired: true
-          };
-        }
-        break;
-    }
-
-    return { allowed: true };
-  };
-
-  // File upload with size validation
-  const handleFileUpload = async (file, type = 'video') => {
-    if (!file) return;
-
-    // Check file size based on tier
-    const maxSize = userLimits?.[`${type}_clip_max_size`] || (500 * 1024 * 1024); // 500MB default
-    
-    if (file.size > maxSize) {
-      const tierName = tierConfig[userTier]?.name || 'Free';
-      alert(`File too large for ${tierName} tier. Maximum size: ${formatBytes(maxSize)}. Current file: ${formatBytes(file.size)}`);
-      setShowUpgradeModal(true);
-      return;
-    }
-
-    // Upload file
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', type);
-
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/api/media-assets/upload`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setMediaLibrary(prev => [...prev, data.asset]);
-        
-        if (data.remaining_limits) {
-          setUserUsage(data.remaining_limits);
-        }
-        
-        alert('File uploaded successfully!');
-      } else {
-        const error = await response.json();
-        if (error.upgrade_required) {
-          setShowUpgradeModal(true);
-        }
-        alert(error.error || 'Upload failed');
-      }
-    } catch (error) {
-      console.error('Upload failed:', error);
-      // Demo functionality - just add to media library
-      const newAsset = {
-        id: Date.now(),
-        name: file.name,
-        type: file.type.startsWith('video') ? 'video' : 'audio',
-        size: file.size
-      };
-      setMediaLibrary(prev => [...prev, newAsset]);
-      alert('File uploaded successfully! (Demo mode)');
-    }
-  };
-
-  const addTrack = async () => {
-    const limitCheck = checkTierLimit('add_track');
-    if (!limitCheck.allowed) {
-      alert(limitCheck.message);
-      if (limitCheck.upgradeRequired) {
-        setShowUpgradeModal(true);
-      }
-      return;
-    }
-
-    const newTrack = {
+    const newTransition = {
       id: Date.now(),
-      name: `Track ${tracks.length + 1}`,
-      type: 'video',
-      order: tracks.length,
-      visible: true,
-      muted: false,
-      locked: false,
-      volume: 1.0,
-      color: '#9b59b6',
-      clips: []
+      type: transitionType,
+      name: transitionData.name,
+      startTime,
+      duration: transitionData.duration / 1000, // Convert to seconds
+      trackId,
+      icon: transitionData.icon.name
     };
 
-    setTracks(prev => [...prev, newTrack]);
+    setTransitions(prev => [...prev, newTransition]);
   };
 
-  const initiateUpgrade = async (planId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/api/user/video-editor/subscription/upgrade`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          plan_id: planId,
-          billing_cycle: 'monthly'
-        })
-      });
+  const removeTransition = (transitionId) => {
+    setTransitions(prev => prev.filter(t => t.id !== transitionId));
+  };
 
-      if (response.ok) {
-        const data = await response.json();
-        window.location.href = data.checkout_url;
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to initiate upgrade');
-      }
-    } catch (error) {
-      console.error('Failed to initiate upgrade:', error);
-      alert('Upgrade feature available in production version');
+  const updateTransition = (transitionId, updates) => {
+    setTransitions(prev => prev.map(t => 
+      t.id === transitionId ? { ...t, ...updates } : t
+    ));
+  };
+
+  // Drag and drop handlers
+  const handleTransitionDragStart = (e, transitionType) => {
+    setDraggedTransition(transitionType);
+    e.dataTransfer.setData('transition-type', transitionType);
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+
+  const handleTimelineDragOver = (e) => {
+    if (draggedTransition) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
     }
   };
 
-  const formatBytes = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  const handleTimelineDrop = (e, trackId) => {
+    e.preventDefault();
+    if (!draggedTransition || !timelineRef.current) return;
+
+    const rect = timelineRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const timelineWidth = rect.width;
+    const dropTime = (x / timelineWidth) * duration;
+
+    addTransition(draggedTransition, dropTime, trackId);
+    setDraggedTransition(null);
   };
 
-  const formatTime = (seconds) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    const frames = Math.floor((seconds % 1) * 30); // 30fps
-    
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
-    }
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
+  // Calculate time from mouse position
+  const calculateTimeFromPosition = (clientX) => {
+    if (!timelineRef.current) return 0;
+    const rect = timelineRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const timelineWidth = rect.width;
+    return (x / timelineWidth) * duration;
   };
 
+  // Playback controls
+  const playPause = () => setIsPlaying(!isPlaying);
+  const stop = () => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+  };
+
+  // Timeline interaction
   const handleTimelineClick = (e) => {
     if (!timelineRef.current) return;
     const rect = timelineRef.current.getBoundingClientRect();
@@ -508,512 +213,57 @@ const VideoEditorComponent = () => {
     setCurrentTime(Math.max(0, Math.min(duration, clickTime)));
   };
 
-  const playPause = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const stop = () => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-  };
-
-  const startExport = () => {
-    setIsExporting(true);
-    setExportProgress(0);
+  // Utility functions
+  const formatTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    const frames = Math.floor((seconds % 1) * 30);
     
-    // Simulate export progress
-    const interval = setInterval(() => {
-      setExportProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsExporting(false);
-          setShowExportModal(false);
-          alert('Export completed successfully!');
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 500);
+    if (hours > 0) {
+      return `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}:${String(frames).padStart(2,'0')}`;
+    }
+    return `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}:${String(frames).padStart(2,'0')}`;
   };
 
-  const TierBadge = ({ tier }) => {
-    const config = tierConfig[tier];
-    if (!config) return null;
-
-    const Icon = config.icon;
-    return (
-      <div className="tier-badge-small" style={{ color: config.color }}>
-        <Icon size={12} />
-        {config.name}
-      </div>
-    );
+  const getTierIcon = () => {
+    switch(userTier) {
+      case 'professional': return <Crown size={12} />;
+      case 'premium': return <Star size={12} />;
+      default: return <Info size={12} />;
+    }
   };
 
-  const LimitsModal = () => (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h3 className="modal-title">Your Limits</h3>
-          <TierBadge tier={userTier} />
-        </div>
-        
-        {userLimits && userUsage ? (
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '8px', color: 'var(--editor-text-secondary)' }}>
-                <span>Projects</span>
-                <span>
-                  {userUsage.current_projects} / {userLimits.max_projects === -1 ? '∞' : userLimits.max_projects}
-                </span>
-              </div>
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill progress-blue"
-                  style={{ 
-                    width: userLimits.max_projects === -1 ? '0%' : 
-                    `${Math.min(100, (userUsage.current_projects / userLimits.max_projects) * 100)}%` 
-                  }}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '8px', color: 'var(--editor-text-secondary)' }}>
-                <span>Storage Used</span>
-                <span>{formatBytes(userUsage.current_total_size)} / {formatBytes(userLimits.project_total_max_size)}</span>
-              </div>
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill progress-green"
-                  style={{ 
-                    width: `${Math.min(100, (userUsage.current_total_size / userLimits.project_total_max_size) * 100)}%` 
-                  }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '8px', color: 'var(--editor-text-secondary)' }}>
-                <span>Max Video File Size</span>
-                <span>{formatBytes(userLimits.video_clip_max_size)}</span>
-              </div>
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '8px', color: 'var(--editor-text-secondary)' }}>
-                <span>Max Export Quality</span>
-                <span>{userLimits.max_export_quality}</span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div style={{ color: 'var(--editor-text-secondary)', textAlign: 'center', padding: '20px' }}>
-            Loading limits...
-          </div>
-        )}
-        
-        <div style={{ marginTop: '32px', display: 'flex', gap: '12px', position: 'relative', zIndex: 1 }}>
-          <button
-            onClick={() => setShowUpgradeModal(true)}
-            className="export-btn-top"
-            style={{ flex: 1 }}
-          >
-            Upgrade Plan
-          </button>
-          <button
-            onClick={() => setShowLimitsModal(false)}
-            className="control-btn-small"
-            style={{ flex: 1 }}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const UpgradeModal = () => (
-    <div className="modal-overlay">
-      <div className="modal-content upgrade-modal">
-        <div className="modal-header">
-          <h3 className="modal-title">Upgrade Your Video Editor Plan</h3>
-          <button
-            onClick={() => setShowUpgradeModal(false)}
-            className="preview-control-btn"
-          >
-            <X size={16} />
-          </button>
-        </div>
-        
-        <div className="plans-grid">
-          {availablePlans.map((plan) => {
-            const tierKey = plan.name.toLowerCase();
-            const config = tierConfig[tierKey] || tierConfig.free;
-            const Icon = config.icon;
-            const isCurrentTier = tierKey === userTier;
-            
-            return (
-              <div 
-                key={plan.id}
-                className={`plan-card ${isCurrentTier ? 'plan-card-current' : ''}`}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', justifyContent: 'center' }}>
-                  <Icon size={24} style={{ color: config.color, marginRight: '8px' }} />
-                  <h4 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: config.color }}>
-                    {plan.name}
-                  </h4>
-                  {isCurrentTier && <span style={{ marginLeft: '8px', fontSize: '0.75rem', background: config.color, color: 'white', padding: '4px 8px', borderRadius: '4px' }}>Current</span>}
-                </div>
-                
-                <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--editor-text-primary)' }}>${plan.price_monthly}</div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--editor-text-secondary)' }}>per month</div>
-                </div>
-                
-                <ul style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.875rem', marginBottom: '32px', listStyle: 'none', padding: 0 }}>
-                  {config.features.map((feature, index) => (
-                    <li key={index} style={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ color: '#4ade80', marginRight: '8px', fontWeight: 'bold' }}>✓</span>
-                      <span style={{ color: 'var(--editor-text-secondary)' }}>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                {!isCurrentTier && (
-                  <button 
-                    className="export-btn-top"
-                    style={{ width: '100%' }}
-                    onClick={() => initiateUpgrade(plan.id)}
-                  >
-                    Upgrade to {plan.name}
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-
-  const ExportModal = () => (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h3 className="modal-title">Export Video</h3>
-          <button
-            onClick={() => setShowExportModal(false)}
-            className="preview-control-btn"
-          >
-            <X size={16} />
-          </button>
-        </div>
-        
-        {isExporting ? (
-          <div style={{ position: 'relative', zIndex: 1, padding: '20px', textAlign: 'center' }}>
-            <h4>Exporting...</h4>
-            <div className="progress-bar" style={{ marginTop: '20px' }}>
-              <div 
-                className="progress-fill progress-green"
-                style={{ width: `${exportProgress}%` }}
-              />
-            </div>
-            <p style={{ marginTop: '10px', color: 'var(--editor-text-secondary)' }}>
-              {exportProgress}% Complete
-            </p>
-          </div>
-        ) : (
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: 'var(--editor-text-primary)' }}>
-                Export Quality
-              </label>
-              <select style={{ width: '100%', padding: '8px', background: 'var(--editor-bg-panel)', color: 'var(--editor-text-primary)', border: '1px solid var(--editor-border)', borderRadius: '4px' }}>
-                <option value="720p">720p HD</option>
-                <option value="1080p" disabled={userTier === 'free'}>1080p Full HD {userTier === 'free' && '(Premium)'}</option>
-                <option value="4k" disabled={userTier !== 'premium' && userTier !== 'professional'}>4K Ultra HD (Premium+)</option>
-              </select>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: 'var(--editor-text-primary)' }}>
-                Format
-              </label>
-              <select style={{ width: '100%', padding: '8px', background: 'var(--editor-bg-panel)', color: 'var(--editor-text-primary)', border: '1px solid var(--editor-border)', borderRadius: '4px' }}>
-                <option value="mp4">MP4</option>
-                <option value="mov" disabled={userTier === 'free'}>MOV (Basic+)</option>
-                <option value="avi" disabled={userTier === 'free'}>AVI (Basic+)</option>
-              </select>
-            </div>
-
-            <div style={{ marginTop: '32px', display: 'flex', gap: '12px' }}>
-              <button
-                onClick={startExport}
-                className="export-btn-top"
-                style={{ flex: 1 }}
-              >
-                Start Export
-              </button>
-              <button
-                onClick={() => setShowExportModal(false)}
-                className="control-btn-small"
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const ToolbarComponent = () => (
-    <div className="editor-toolbar">
-      <div className="toolbar-section">
-        <h4>Tools</h4>
-        <div className="tool-grid">
-          {tools.map(tool => {
-            const Icon = tool.icon;
-            return (
-              <button
-                key={tool.id}
-                className={`tool-btn ${selectedTool === tool.id ? 'active' : ''}`}
-                onClick={() => setSelectedTool(tool.id)}
-                title={`${tool.name} (${tool.shortcut})`}
-              >
-                <Icon size={18} />
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="toolbar-section">
-        <h4>Effects</h4>
-        <div className="effect-list">
-          <div className="effect-item" draggable>
-            <Zap size={16} />
-            <span>Transition</span>
-          </div>
-          <div className="effect-item" draggable>
-            <Palette size={16} />
-            <span>Color</span>
-          </div>
-          <div className="effect-item" draggable>
-            <Filter size={16} />
-            <span>Blur</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="toolbar-section">
-        <h4>Media</h4>
-        <div className="media-browser">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="import-btn"
-          >
-            <Upload size={16} />
-            Import Media
-          </button>
-          <div className="media-list">
-            {mediaLibrary.slice(0, 5).map(asset => (
-              <div key={asset.id} className="media-item" draggable>
-                {asset.type === 'video' ? <Video size={16} /> : <Music size={16} />}
-                <span>{asset.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="toolbar-section">
-        <button
-          onClick={() => setShowLimitsModal(true)}
-          className="import-btn"
-          style={{ background: 'var(--editor-bg-hover)' }}
+  const generateTimeMarkers = () => {
+    const markers = [];
+    const pixelsPerSecond = 2 * zoom;
+    const markerInterval = zoom < 0.5 ? 30 : zoom < 1 ? 10 : zoom < 2 ? 5 : 1;
+    
+    for (let i = 0; i <= duration; i += markerInterval) {
+      markers.push(
+        <div 
+          key={i}
+          className="time-marker-ruler" 
+          style={{ left: `${i * pixelsPerSecond}px` }}
         >
-          <Info size={16} />
-          View Limits
-        </button>
-      </div>
-    </div>
-  );
-
-  const TrackHeaderComponent = ({ track, index }) => (
-    <div className="track-header-container">
-      <div className="track-controls-left">
-        <div className="track-label-container">
-          <div className="track-name-label">{track.name}</div>
-          {track.type === 'master' ? (
-            <Volume2 size={14} className="track-type-icon" />
-          ) : track.type === 'video' ? (
-            <Video size={14} className="track-type-icon" />
-          ) : (
-            <Music size={14} className="track-type-icon" />
-          )}
+          <div className="time-marker-line" />
+          <div className="time-marker-text">{formatTime(i)}</div>
         </div>
-        <div className="track-control-buttons">
-          <button
-            className={`track-toggle-btn ${!track.muted ? 'active' : ''}`}
-            onClick={() => {
-              const updatedTracks = tracks.map(t => 
-                t.id === track.id ? {...t, muted: !t.muted} : t
-              );
-              setTracks(updatedTracks);
-            }}
-            title="Toggle Mute"
-          >
-            {track.muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
-          </button>
-          {track.type !== 'audio' && track.type !== 'master' && (
-            <button
-              className={`track-toggle-btn ${track.visible ? 'active' : ''}`}
-              onClick={() => {
-                const updatedTracks = tracks.map(t => 
-                  t.id === track.id ? {...t, visible: !t.visible} : t
-                );
-                setTracks(updatedTracks);
-              }}
-              title="Toggle Visibility"
-            >
-              {track.visible ? <Eye size={12} /> : <EyeOff size={12} />}
-            </button>
-          )}
-          <button
-            className={`track-toggle-btn ${track.locked ? 'active' : ''}`}
-            onClick={() => {
-              const updatedTracks = tracks.map(t => 
-                t.id === track.id ? {...t, locked: !t.locked} : t
-              );
-              setTracks(updatedTracks);
-            }}
-            title="Toggle Lock"
-          >
-            {track.locked ? <Lock size={12} /> : <Unlock size={12} />}
-          </button>
-          {tracks.length > 2 && (
-            <button
-              className="track-toggle-btn"
-              onClick={() => {
-                setTracks(tracks.filter(t => t.id !== track.id));
-              }}
-              title="Delete Track"
-            >
-              <Trash2 size={12} />
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+      );
+    }
+    return markers;
+  };
 
-  const TimelineTrackComponent = ({ track, index }) => (
-    <div className="timeline-track-row">
-      <div 
-        className="track-timeline-area"
-        style={{ 
-          width: `${duration * zoom * 4}px`, 
-          minWidth: '100%',
-          backgroundColor: index % 2 === 0 ? '#2a2d35' : '#1e2127'
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          const mediaData = e.dataTransfer.getData('media');
-          if (mediaData) {
-            const media = JSON.parse(mediaData);
-            console.log(`Add ${media.name} to ${track.name}`);
-          }
-        }}
-        onDragOver={(e) => e.preventDefault()}
-      >
-        {track.clips.map(clip => (
-          <div
-            key={clip.id}
-            className={`timeline-clip ${selectedClip?.id === clip.id ? 'selected' : ''}`}
-            style={{
-              left: `${clip.startTime * zoom * 4}px`,
-              width: `${clip.duration * zoom * 4}px`,
-              backgroundColor: track.color,
-              borderColor: track.color
-            }}
-            onClick={() => setSelectedClip(clip)}
-          >
-            <div className="clip-content-timeline">
-              <div className="clip-title-timeline">{clip.title}</div>
-              {clip.type === 'audio' && (
-                <div className="audio-waveform">
-                  <AudioWaveform size={12} />
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-        
-        {track.clips.length === 0 && (
-          <div className="empty-track-message">
-            {/* Empty track - ready for content */}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const TimelineComponent = () => (
-    <div className="timeline-main-container">
-      {/* Timeline Ruler */}
-      <div className="timeline-ruler-container">
-        <div className="track-headers-spacer"></div>
-        <div className="timeline-ruler-scroll">
-          <div 
-            className="timeline-ruler" 
-            style={{ width: `${duration * zoom * 4}px` }}
-          >
-            {Array.from({ length: Math.ceil(duration / 10) + 1 }, (_, i) => (
-              <div
-                key={i}
-                className="time-marker-ruler"
-                style={{ left: `${i * 10 * zoom * 4}px` }}
-              >
-                <div className="time-marker-line"></div>
-                <div className="time-marker-text">{formatTime(i * 10)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Playhead */}
-      <div
-        className="timeline-playhead"
-        style={{
-          left: `${240 + currentTime * zoom * 4}px`
-        }}
-      />
-
-      {/* Track Area */}
-      <div className="timeline-tracks-container">
-        <div className="track-headers-column">
-          {tracks.map((track, index) => (
-            <TrackHeaderComponent key={track.id} track={track} index={index} />
-          ))}
-        </div>
-
-        <div className="timeline-tracks-scroll">
-          <div 
-            className="timeline-tracks-content"
-            ref={timelineRef}
-            onClick={handleTimelineClick}
-          >
-            {tracks.map((track, index) => (
-              <TimelineTrackComponent key={track.id} track={track} index={index} />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  // Effect application function
+  const applyEffect = (clipId, effectId, value) => {
+    setActiveEffects(prev => ({
+      ...prev,
+      [clipId]: {
+        ...prev[clipId],
+        [effectId]: value
+      }
+    }));
+  };
 
   return (
     <div className="video-editor-pro">
@@ -1021,61 +271,37 @@ const VideoEditorComponent = () => {
       <div className="editor-menu-bar">
         <div className="menu-section">
           <div className="project-info">
-            <h2>{project?.title || 'Untitled Project'}</h2>
-            <TierBadge tier={userTier} />
+            <h2>{project.title}</h2>
+            <div className="tier-badge-small">
+              {getTierIcon()}
+              {userTier}
+            </div>
           </div>
         </div>
 
         <div className="menu-section">
           <div className="playback-controls-top">
-            <button
-              onClick={() => setCurrentTime(Math.max(0, currentTime - 10))}
-              className="control-btn-small"
-              title="Previous 10s"
-            >
-              <RotateCcw size={16} />
+            <button onClick={stop} className="control-btn-small">
+              <Square size={14} />
             </button>
-            <button
-              onClick={playPause}
-              className="control-btn-play-small"
-            >
+            <button onClick={() => setCurrentTime(Math.max(0, currentTime - 10))} className="control-btn-small">
+              <Rewind size={14} />
+            </button>
+            <button onClick={playPause} className="control-btn-play-small">
               {isPlaying ? <Pause size={16} /> : <Play size={16} />}
             </button>
-            <button
-              onClick={stop}
-              className="control-btn-small"
-            >
-              <Square size={16} />
-            </button>
-            <button
-              onClick={() => setCurrentTime(Math.min(duration, currentTime + 10))}
-              className="control-btn-small"
-              title="Forward 10s"
-            >
-              <RotateCw size={16} />
+            <button onClick={() => setCurrentTime(Math.min(duration, currentTime + 10))} className="control-btn-small">
+              <FastForward size={14} />
             </button>
           </div>
-        </div>
-
-        <div className="menu-section">
           <div className="timeline-display">
             {formatTime(currentTime)} / {formatTime(duration)}
           </div>
         </div>
 
         <div className="menu-section">
-          <button
-            onClick={addTrack}
-            className="control-btn-small"
-            title="Add Track"
-          >
-            <Plus size={16} />
-          </button>
-          <button
-            onClick={() => setShowExportModal(true)}
-            className="export-btn-top"
-          >
-            <Download size={16} />
+          <button className="export-btn-top">
+            <Download size={14} />
             Export
           </button>
         </div>
@@ -1083,103 +309,1495 @@ const VideoEditorComponent = () => {
 
       {/* Main Editor Layout */}
       <div className="editor-main-layout">
-        {/* Left Sidebar - Tools */}
+        {/* Left Panel - Tools & Media */}
         <div className="editor-left-panel">
-          <ToolbarComponent />
+          <div className="editor-toolbar">
+            {/* Tools Section */}
+            <div className="toolbar-section">
+              <h4>Tools</h4>
+              <div className="tool-grid">
+                {tools.map(tool => {
+                  const Icon = tool.icon;
+                  return (
+                    <button
+                      key={tool.id}
+                      className={`tool-btn ${selectedTool === tool.id ? 'active' : ''}`}
+                      onClick={() => setSelectedTool(tool.id)}
+                      title={tool.name}
+                    >
+                      <Icon size={16} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Transitions Section */}
+            <div className="toolbar-section">
+              <h4>Transitions</h4>
+              <button 
+                className="import-btn" 
+                onClick={() => setShowTransitionsPanel(!showTransitionsPanel)}
+                style={{marginBottom: '12px'}}
+              >
+                <Wand2 size={14} />
+                {showTransitionsPanel ? 'Hide' : 'Show'} Transitions
+              </button>
+              {showTransitionsPanel && (
+                <div className="transitions-list">
+                  {availableTransitions.map(transition => {
+                    const Icon = transition.icon;
+                    return (
+                      <div 
+                        key={transition.id} 
+                        className="transition-item"
+                        draggable
+                        onDragStart={(e) => handleTransitionDragStart(e, transition.id)}
+                        title={transition.description}
+                      >
+                        <Icon size={14} />
+                        <div className="transition-info">
+                          <span className="transition-name">{transition.name}</span>
+                          <span className="transition-duration">{transition.duration}ms</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Effects Section */}
+            <div className="toolbar-section">
+              <h4>Effects</h4>
+              <div className="effect-list">
+                {effects.map(effect => {
+                  const Icon = effect.icon;
+                  return (
+                    <div key={effect.id} className="effect-item">
+                      <Icon size={14} />
+                      <span>{effect.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Media Library */}
+            <div className="toolbar-section">
+              <h4>Media</h4>
+              <button className="import-btn" onClick={() => fileInputRef.current?.click()}>
+                <Upload size={14} />
+                Import Media
+              </button>
+              <button 
+                className="import-btn" 
+                onClick={() => setShowEffectsPanel(!showEffectsPanel)}
+                style={{marginBottom: '12px'}}
+              >
+                <Wand2 size={14} />
+                Effects Panel
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden-file-input"
+                accept="video/*,audio/*"
+                multiple
+              />
+              <div className="media-list">
+                {mediaLibrary.map(media => {
+                  const Icon = media.type === 'video' ? Video : AudioWaveform;
+                  return (
+                    <div key={media.id} className="media-item">
+                      <Icon size={14} />
+                      <div>
+                        <div style={{fontSize: '11px', fontWeight: '500'}}>{media.name}</div>
+                        <div style={{fontSize: '10px', opacity: 0.7}}>{media.duration}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Center Area - Preview */}
+        {/* Center Panel - Preview */}
         <div className="editor-center-panel">
           <div className="preview-area">
             <div className="preview-container">
               <div className="preview-screen">
                 <div className="preview-content">
                   <div className="preview-placeholder">
-                    <Video size={48} />
-                    <p>Video Preview</p>
-                    <p className="preview-resolution">1920 x 1080</p>
+                    <Monitor size={48} />
+                    <p>Program Monitor</p>
+                    <div className="preview-resolution">1920 x 1080 • 30fps</div>
                   </div>
                 </div>
               </div>
               <div className="preview-controls">
                 <button className="preview-control-btn">
-                  <ZoomOut size={16} />
+                  <ZoomOut size={14} />
                 </button>
-                <span className="zoom-display">100%</span>
+                <div className="zoom-display">100%</div>
                 <button className="preview-control-btn">
-                  <ZoomIn size={16} />
+                  <ZoomIn size={14} />
                 </button>
-                <div className="preview-spacer"></div>
+                <div className="preview-spacer" />
                 <button className="preview-control-btn">
-                  <Grid size={16} />
+                  <Settings size={14} />
                 </button>
-                <button className="preview-control-btn">
-                  <Maximize2 size={16} />
+              </div>
+            </div>
+          </div>
+
+          {/* Timeline Section */}
+          <div className="editor-timeline-section">
+            {/* Timeline Controls */}
+            <div className="timeline-controls-bar">
+              <div className="timeline-zoom-controls">
+                <button className="zoom-btn" onClick={() => setZoom(Math.max(0.1, zoom - 0.2))}>
+                  <ZoomOut size={12} />
                 </button>
+                <div className="zoom-slider-container">
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="5"
+                    step="0.1"
+                    value={zoom}
+                    onChange={(e) => setZoom(parseFloat(e.target.value))}
+                    className="zoom-slider-pro"
+                  />
+                </div>
+                <button className="zoom-btn" onClick={() => setZoom(Math.min(5, zoom + 0.2))}>
+                  <ZoomIn size={12} />
+                </button>
+                <div className="zoom-display-pro">{Math.round(zoom * 100)}%</div>
+              </div>
+
+              <div className="timeline-options">
+                <button 
+                  className={`timeline-option-btn ${showSnapToGrid ? 'active' : ''}`}
+                  onClick={() => setShowSnapToGrid(!showSnapToGrid)}
+                >
+                  <Grid size={12} />
+                  Snap
+                </button>
+                <button 
+                  className={`timeline-option-btn ${showAudioWaveforms ? 'active' : ''}`}
+                  onClick={() => setShowAudioWaveforms(!showAudioWaveforms)}
+                >
+                  <AudioWaveform size={12} />
+                  Waveforms
+                </button>
+              </div>
+            </div>
+
+            {/* Timeline Main */}
+            <div className="timeline-main-container">
+              {/* Ruler */}
+              <div className="timeline-ruler-container">
+                <div className="track-headers-spacer" />
+                <div className="timeline-ruler-scroll">
+                  <div 
+                    className="timeline-ruler" 
+                    style={{ width: `${duration * 2 * zoom}px` }}
+                  >
+                    {generateTimeMarkers()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Tracks */}
+              <div className="timeline-tracks-container">
+                <div className="track-headers-column">
+                  {tracks.map(track => (
+                    <div key={track.id} className="track-header-container">
+                      <div className="track-controls-left">
+                        <div className="track-label-container">
+                          <div className="track-type-icon">
+                            {track.type === 'video' ? <Video size={14} /> : <AudioWaveform size={14} />}
+                          </div>
+                          <div className="track-name-label">{track.name}</div>
+                        </div>
+                        <div className="track-control-buttons">
+                          <button 
+                            className={`track-toggle-btn ${track.muted ? '' : 'active'}`}
+                            onClick={() => setTracks(tracks.map(t => t.id === track.id ? {...t, muted: !t.muted} : t))}
+                          >
+                            {track.muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                          </button>
+                          <button 
+                            className={`track-toggle-btn ${track.visible ? 'active' : ''}`}
+                            onClick={() => setTracks(tracks.map(t => t.id === track.id ? {...t, visible: !t.visible} : t))}
+                          >
+                            {track.visible ? <Eye size={12} /> : <EyeOff size={12} />}
+                          </button>
+                          <button 
+                            className={`track-toggle-btn ${track.locked ? 'active' : ''}`}
+                            onClick={() => setTracks(tracks.map(t => t.id === track.id ? {...t, locked: !t.locked} : t))}
+                          >
+                            {track.locked ? <Lock size={12} /> : <Unlock size={12} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="timeline-tracks-scroll">
+                  <div 
+                    className="timeline-tracks-content" 
+                    style={{ width: `${duration * 2 * zoom}px` }}
+                    ref={timelineRef}
+                    onClick={handleTimelineClick}
+                    onDragOver={handleTimelineDragOver}
+                  >
+                    {/* Playhead */}
+                    <div 
+                      className="timeline-playhead"
+                      style={{ left: `${currentTime * 2 * zoom}px` }}
+                    />
+
+                    {/* Track Rows */}
+                    {tracks.map((track, index) => (
+                      <div 
+                        key={track.id} 
+                        className="timeline-track-row"
+                        onDrop={(e) => handleTimelineDrop(e, track.id)}
+                        onDragOver={handleTimelineDragOver}
+                      >
+                        <div className="track-timeline-area">
+                          {track.clips.length === 0 ? (
+                            <div className="empty-track-message">
+                              Drop media here
+                            </div>
+                          ) : (
+                            track.clips.map(clip => {
+                              const leftPosition = clip.startTime * 2 * zoom;
+                              const width = clip.duration * 2 * zoom;
+                              
+                              return (
+                                <div
+                                  key={clip.id}
+                                  className={`timeline-clip ${selectedClip?.id === clip.id ? 'selected' : ''}`}
+                                  style={{
+                                    left: `${leftPosition}px`,
+                                    width: `${width}px`,
+                                    backgroundColor: track.color
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedClip(clip);
+                                  }}
+                                >
+                                  <div className="clip-content-timeline">
+                                    <div className="clip-title-timeline">
+                                      {clip.title}
+                                    </div>
+                                    {track.type === 'audio' && showAudioWaveforms && (
+                                      <div className="audio-waveform">
+                                        <AudioWaveform size={12} />
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+
+                          {/* Render Transitions for this track */}
+                          {transitions
+                            .filter(transition => transition.trackId === track.id)
+                            .map(transition => {
+                              const leftPosition = transition.startTime * 2 * zoom;
+                              const width = transition.duration * 2 * zoom;
+                              const IconComponent = transition.icon === 'Zap' ? Zap : 
+                                                   transition.icon === 'Circle' ? Circle :
+                                                   transition.icon === 'Move' ? Move :
+                                                   transition.icon === 'FlipHorizontal' ? FlipHorizontal :
+                                                   transition.icon === 'ZoomIn' ? ZoomIn :
+                                                   transition.icon === 'RotateCw' ? RotateCw : Zap;
+                              
+                              return (
+                                <div
+                                  key={transition.id}
+                                  className={`timeline-transition ${selectedTransition?.id === transition.id ? 'selected' : ''}`}
+                                  style={{
+                                    left: `${leftPosition}px`,
+                                    width: `${width}px`
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedTransition(transition);
+                                  }}
+                                  onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    if (window.confirm('Delete this transition?')) {
+                                      removeTransition(transition.id);
+                                    }
+                                  }}
+                                >
+                                  <div className="transition-content">
+                                    <IconComponent size={14} className="transition-icon" />
+                                    <div className="transition-label">{transition.name}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Timeline Area */}
-      <div className="editor-timeline-section" style={{ height: '300px' }}>
-        <div className="timeline-controls-bar">
-          <div className="timeline-zoom-controls">
-            <button
-              onClick={() => setZoom(Math.max(0.1, zoom - 0.1))}
-              className="zoom-btn"
-            >
-              <Minimize2 size={14} />
-            </button>
-            <div className="zoom-slider-container">
-              <input
-                type="range"
-                min="0.1"
-                max="3"
-                step="0.1"
-                value={zoom}
-                onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="zoom-slider-pro"
+      {/* Effects Panel */}
+      {showEffectsPanel && selectedClip && (
+        <div className="effects-panel">
+          <h4>Effects for {selectedClip.title}</h4>
+          {effects.map(effect => (
+            <div key={effect.id} className="effect-control">
+              <label>{effect.name}</label>
+              <input 
+                type="range" 
+                min="0" 
+                max="100" 
+                onChange={(e) => applyEffect(selectedClip.id, effect.id, e.target.value)}
               />
             </div>
-            <button
-              onClick={() => setZoom(Math.min(3, zoom + 0.1))}
-              className="zoom-btn"
-            >
-              <Maximize2 size={14} />
-            </button>
-            <span className="zoom-display-pro">{(zoom * 100).toFixed(0)}%</span>
-          </div>
+          ))}
+        </div>
+      )}
 
-          <div className="timeline-options">
-            <button className="timeline-option-btn active">
-              <Layers size={14} />
-              Tracks
+      {/* Transitions Panel */}
+      {selectedTransition && (
+        <div className="transitions-panel">
+          <div className="panel-header">
+            <h4>Transition Properties</h4>
+            <button onClick={() => setSelectedTransition(null)}>
+              <X size={14} />
             </button>
-            <button className="timeline-option-btn">
-              <AudioWaveform size={14} />
-              Audio
+          </div>
+          <div className="transition-properties">
+            <div className="property-group">
+              <label>Duration (seconds)</label>
+              <input 
+                type="number" 
+                min="0.1" 
+                max="10" 
+                step="0.1"
+                value={selectedTransition.duration}
+                onChange={(e) => updateTransition(selectedTransition.id, { duration: parseFloat(e.target.value) })}
+              />
+            </div>
+            <div className="property-group">
+              <label>Start Time</label>
+              <input 
+                type="number" 
+                min="0" 
+                max={duration}
+                step="0.1"
+                value={selectedTransition.startTime}
+                onChange={(e) => updateTransition(selectedTransition.id, { startTime: parseFloat(e.target.value) })}
+              />
+            </div>
+            <button 
+              className="delete-transition-btn"
+              onClick={() => {
+                removeTransition(selectedTransition.id);
+                setSelectedTransition(null);
+              }}
+            >
+              <Trash2 size={14} />
+              Delete Transition
             </button>
           </div>
         </div>
+      )}
 
-        <TimelineComponent />
-      </div>
+      {/* Custom Styles */}
+      <style jsx>{`
+        /* Professional Video Editor CSS - Enhanced with Transitions */
 
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="video/*,audio/*,image/*"
-        onChange={(e) => handleFileUpload(e.target.files[0])}
-        className="hidden-file-input"
-      />
+        /* CSS Variables for Professional Video Editor Theme */
+        :root {
+          /* Dark Theme Colors - Matching Professional Video Editors */
+          --editor-bg-dark: #1e1e1e;
+          --editor-bg-darker: #181818;
+          --editor-bg-panel: #2d2d30;
+          --editor-bg-hover: #3e3e42;
+          --editor-bg-selected: #0e639c;
+          --editor-border: #3f3f46;
+          --editor-border-light: #4b4b52;
+          
+          /* Text Colors */
+          --editor-text-primary: #cccccc;
+          --editor-text-secondary: #969696;
+          --editor-text-muted: #6d6d6d;
+          --editor-text-bright: #ffffff;
+          
+          /* Accent Colors */
+          --editor-accent-blue: #007acc;
+          --editor-accent-green: #00d4aa;
+          --editor-accent-red: #ff6b6b;
+          --editor-accent-orange: #ff9500;
+          --editor-accent-purple: #b180d7;
+          
+          /* Timeline Colors */
+          --timeline-bg: #1e2127;
+          --timeline-ruler: #2a2d35;
+          --timeline-header: #252830;
+          --timeline-track-even: #2a2d35;
+          --timeline-track-odd: #1e2127;
+          
+          /* Playhead */
+          --playhead-color: #ffd700;
+          --playhead-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+          
+          /* Transitions */
+          --transition-color: rgba(255, 255, 255, 0.2);
+          --transition-border: rgba(255, 255, 255, 0.4);
+          --transition-hover: rgba(255, 255, 255, 0.3);
+          
+          /* Shadows and Effects */
+          --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.2);
+          --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.3);
+          --shadow-heavy: 0 8px 16px rgba(0, 0, 0, 0.4);
+          
+          /* Transitions */
+          --transition-fast: all 0.15s ease;
+          --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-      {/* Modals */}
-      {showLimitsModal && <LimitsModal />}
-      {showUpgradeModal && <UpgradeModal />}
-      {showExportModal && <ExportModal />}
+        /* Main Video Editor Container */
+        .video-editor-pro {
+          width: 100vw;
+          height: 100vh;
+          background: var(--editor-bg-dark);
+          color: var(--editor-text-primary);
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          font-size: 13px;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        /* Top Menu Bar */
+        .editor-menu-bar {
+          height: 60px;
+          background: var(--editor-bg-panel);
+          border-bottom: 1px solid var(--editor-border);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 20px;
+          flex-shrink: 0;
+        }
+
+        .menu-section {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .project-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .project-info h2 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 500;
+          color: var(--editor-text-bright);
+        }
+
+        .tier-badge-small {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 8px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 500;
+          text-transform: uppercase;
+        }
+
+        .playback-controls-top {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .control-btn-small,
+        .control-btn-play-small {
+          width: 32px;
+          height: 32px;
+          border: none;
+          border-radius: 4px;
+          background: var(--editor-bg-hover);
+          color: var(--editor-text-primary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition-fast);
+        }
+
+        .control-btn-play-small {
+          background: var(--editor-accent-blue);
+          color: white;
+        }
+
+        .control-btn-small:hover,
+        .control-btn-play-small:hover {
+          background: var(--editor-bg-selected);
+          color: white;
+        }
+
+        .timeline-display {
+          font-family: 'Consolas', 'Monaco', monospace;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--editor-text-bright);
+          background: var(--editor-bg-darker);
+          padding: 8px 12px;
+          border-radius: 4px;
+          border: 1px solid var(--editor-border);
+        }
+
+        .export-btn-top {
+          padding: 8px 16px;
+          background: var(--editor-accent-green);
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          transition: var(--transition-fast);
+        }
+
+        .export-btn-top:hover {
+          background: var(--editor-accent-blue);
+        }
+
+        /* Main Editor Layout */
+        .editor-main-layout {
+          display: flex;
+          flex: 1;
+          min-height: 0;
+        }
+
+        /* Left Panel - Tools */
+        .editor-left-panel {
+          width: 240px;
+          min-width: 240px;
+          background: var(--editor-bg-panel);
+          border-right: 1px solid var(--editor-border);
+          display: flex;
+          flex-direction: column;
+          overflow-y: auto;
+        }
+
+        .editor-toolbar {
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .toolbar-section h4 {
+          margin: 0 0 12px 0;
+          color: var(--editor-text-bright);
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .tool-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 6px;
+        }
+
+        .tool-btn {
+          width: 40px;
+          height: 40px;
+          border: 1px solid var(--editor-border);
+          border-radius: 4px;
+          background: var(--editor-bg-dark);
+          color: var(--editor-text-primary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition-fast);
+        }
+
+        .tool-btn:hover {
+          background: var(--editor-bg-hover);
+          border-color: var(--editor-border-light);
+        }
+
+        .tool-btn.active {
+          background: var(--editor-accent-blue);
+          border-color: var(--editor-accent-blue);
+          color: white;
+        }
+
+        /* Transitions List */
+        .transitions-list {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          margin-bottom: 12px;
+        }
+
+        .transition-item {
+          padding: 8px 12px;
+          background: var(--editor-bg-dark);
+          border: 1px solid var(--editor-border);
+          border-radius: 4px;
+          cursor: grab;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          transition: var(--transition-fast);
+          font-size: 12px;
+        }
+
+        .transition-item:hover {
+          background: var(--editor-bg-hover);
+          border-color: var(--editor-border-light);
+        }
+
+        .transition-item:active {
+          cursor: grabbing;
+        }
+
+        .transition-info {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+        }
+
+        .transition-name {
+          font-weight: 500;
+          color: var(--editor-text-primary);
+        }
+
+        .transition-duration {
+          font-size: 10px;
+          color: var(--editor-text-muted);
+        }
+
+        .effect-list,
+        .media-list {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .effect-item,
+        .media-item {
+          padding: 8px 12px;
+          background: var(--editor-bg-dark);
+          border: 1px solid var(--editor-border);
+          border-radius: 4px;
+          cursor: grab;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          transition: var(--transition-fast);
+          font-size: 12px;
+        }
+
+        .effect-item:hover,
+        .media-item:hover {
+          background: var(--editor-bg-hover);
+          border-color: var(--editor-border-light);
+        }
+
+        .effect-item:active,
+        .media-item:active {
+          cursor: grabbing;
+        }
+
+        .import-btn {
+          width: 100%;
+          padding: 10px;
+          background: var(--editor-accent-blue);
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          margin-bottom: 12px;
+          transition: var(--transition-fast);
+        }
+
+        .import-btn:hover {
+          background: var(--editor-bg-selected);
+        }
+
+        /* Center Panel - Preview */
+        .editor-center-panel {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          background: var(--editor-bg-dark);
+          min-width: 0;
+        }
+
+        .preview-area {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          padding: 20px;
+        }
+
+        .preview-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          background: var(--editor-bg-darker);
+          border: 1px solid var(--editor-border);
+          border-radius: 4px;
+          overflow: hidden;
+        }
+
+        .preview-screen {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #000;
+          position: relative;
+          min-height: 300px;
+        }
+
+        .preview-content {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .preview-placeholder {
+          text-align: center;
+          color: var(--editor-text-muted);
+        }
+
+        .preview-placeholder p {
+          margin: 8px 0 4px 0;
+          font-size: 14px;
+        }
+
+        .preview-resolution {
+          font-size: 12px;
+          color: var(--editor-text-secondary);
+        }
+
+        .preview-controls {
+          height: 40px;
+          background: var(--editor-bg-panel);
+          border-top: 1px solid var(--editor-border);
+          display: flex;
+          align-items: center;
+          padding: 0 12px;
+          gap: 12px;
+        }
+
+        .preview-control-btn {
+          width: 28px;
+          height: 28px;
+          border: none;
+          border-radius: 3px;
+          background: var(--editor-bg-dark);
+          color: var(--editor-text-primary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition-fast);
+        }
+
+        .preview-control-btn:hover {
+          background: var(--editor-bg-hover);
+        }
+
+        .zoom-display {
+          font-size: 12px;
+          color: var(--editor-text-secondary);
+          font-family: 'Consolas', monospace;
+        }
+
+        .preview-spacer {
+          flex: 1;
+        }
+
+        /* Timeline Section */
+        .editor-timeline-section {
+          background: var(--timeline-bg);
+          border-top: 1px solid var(--editor-border);
+          display: flex;
+          flex-direction: column;
+          min-height: 250px;
+          resize: vertical;
+          overflow: hidden;
+        }
+
+        .timeline-controls-bar {
+          height: 36px;
+          background: var(--timeline-header);
+          border-bottom: 1px solid var(--editor-border);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 16px;
+          flex-shrink: 0;
+        }
+
+        .timeline-zoom-controls {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .zoom-btn {
+          width: 24px;
+          height: 24px;
+          border: none;
+          border-radius: 3px;
+          background: var(--editor-bg-dark);
+          color: var(--editor-text-primary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition-fast);
+        }
+
+        .zoom-btn:hover {
+          background: var(--editor-bg-hover);
+        }
+
+        .zoom-slider-container {
+          width: 100px;
+        }
+
+        .zoom-slider-pro {
+          width: 100%;
+          height: 4px;
+          background: var(--editor-bg-dark);
+          border-radius: 2px;
+          outline: none;
+          cursor: pointer;
+          appearance: none;
+        }
+
+        .zoom-slider-pro::-webkit-slider-thumb {
+          appearance: none;
+          width: 12px;
+          height: 12px;
+          background: var(--editor-accent-blue);
+          border-radius: 50%;
+          cursor: pointer;
+        }
+
+        .zoom-display-pro {
+          font-size: 11px;
+          color: var(--editor-text-secondary);
+          font-family: 'Consolas', monospace;
+          min-width: 35px;
+        }
+
+        .timeline-options {
+          display: flex;
+          gap: 2px;
+        }
+
+        .timeline-option-btn {
+          padding: 6px 12px;
+          background: var(--editor-bg-dark);
+          border: 1px solid var(--editor-border);
+          color: var(--editor-text-secondary);
+          font-size: 11px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          transition: var(--transition-fast);
+        }
+
+        .timeline-option-btn:first-child {
+          border-radius: 3px 0 0 3px;
+        }
+
+        .timeline-option-btn:last-child {
+          border-radius: 0 3px 3px 0;
+        }
+
+        .timeline-option-btn.active {
+          background: var(--editor-accent-blue);
+          border-color: var(--editor-accent-blue);
+          color: white;
+        }
+
+        .timeline-option-btn:hover:not(.active) {
+          background: var(--editor-bg-hover);
+        }
+
+        /* Timeline Main Container */
+        .timeline-main-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          position: relative;
+        }
+
+        /* Timeline Ruler */
+        .timeline-ruler-container {
+          height: 32px;
+          display: flex;
+          background: var(--timeline-ruler);
+          border-bottom: 1px solid var(--editor-border);
+          flex-shrink: 0;
+        }
+
+        .track-headers-spacer {
+          width: 240px;
+          min-width: 240px;
+          background: var(--timeline-header);
+          border-right: 1px solid var(--editor-border);
+        }
+
+        .timeline-ruler-scroll {
+          flex: 1;
+          overflow-x: auto;
+          overflow-y: hidden;
+        }
+
+        .timeline-ruler {
+          height: 100%;
+          position: relative;
+          min-width: 100%;
+        }
+
+        .time-marker-ruler {
+          position: absolute;
+          top: 0;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .time-marker-line {
+          width: 1px;
+          height: 12px;
+          background: var(--editor-border-light);
+        }
+
+        .time-marker-text {
+          font-size: 10px;
+          color: var(--editor-text-secondary);
+          font-family: 'Consolas', monospace;
+          margin-top: 4px;
+        }
+
+        /* Playhead */
+        .timeline-playhead {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: var(--playhead-color);
+          box-shadow: var(--playhead-shadow);
+          z-index: 100;
+          pointer-events: none;
+        }
+
+        .timeline-playhead::before {
+          content: '';
+          position: absolute;
+          top: -6px;
+          left: -6px;
+          width: 14px;
+          height: 14px;
+          background: var(--playhead-color);
+          clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+
+        /* Track Area */
+        .timeline-tracks-container {
+          flex: 1;
+          display: flex;
+          overflow: hidden;
+        }
+
+        .track-headers-column {
+          width: 240px;
+          min-width: 240px;
+          background: var(--timeline-header);
+          border-right: 1px solid var(--editor-border);
+          overflow-y: auto;
+        }
+
+        .timeline-tracks-scroll {
+          flex: 1;
+          overflow: auto;
+        }
+
+        .timeline-tracks-content {
+          min-width: 100%;
+          cursor: crosshair;
+        }
+
+        /* Track Headers */
+        .track-header-container {
+          height: 48px;
+          border-bottom: 1px solid var(--editor-border);
+          display: flex;
+          align-items: center;
+          padding: 0 12px;
+          background: var(--timeline-header);
+        }
+
+        .track-controls-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+        }
+
+        .track-label-container {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1;
+        }
+
+        .track-name-label {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--editor-text-bright);
+        }
+
+        .track-type-icon {
+          color: var(--editor-text-secondary);
+        }
+
+        .track-control-buttons {
+          display: flex;
+          gap: 4px;
+        }
+
+        .track-toggle-btn {
+          width: 24px;
+          height: 24px;
+          border: none;
+          border-radius: 3px;
+          background: transparent;
+          color: var(--editor-text-secondary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition-fast);
+        }
+
+        .track-toggle-btn:hover {
+          background: var(--editor-bg-hover);
+        }
+
+        .track-toggle-btn.active {
+          color: var(--editor-accent-blue);
+        }
+
+        /* Timeline Tracks */
+        .timeline-track-row {
+          height: 48px;
+          border-bottom: 1px solid var(--editor-border);
+          position: relative;
+        }
+
+        .track-timeline-area {
+          height: 100%;
+          position: relative;
+          cursor: crosshair;
+        }
+
+        .empty-track-message {
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--editor-text-muted);
+          font-size: 11px;
+          pointer-events: none;
+        }
+
+        /* Timeline Clips */
+        .timeline-clip {
+          position: absolute;
+          top: 4px;
+          height: 40px;
+          border-radius: 4px;
+          cursor: pointer;
+          border: 2px solid transparent;
+          overflow: hidden;
+          transition: var(--transition-fast);
+          box-shadow: var(--shadow-light);
+        }
+
+        .timeline-clip:hover {
+          filter: brightness(1.1);
+          box-shadow: var(--shadow-medium);
+        }
+
+        .timeline-clip.selected {
+          border-color: white;
+          box-shadow: 0 0 0 2px var(--editor-accent-blue), var(--shadow-medium);
+        }
+
+        .clip-content-timeline {
+          height: 100%;
+          padding: 4px 8px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          background: rgba(0, 0, 0, 0.3);
+        }
+
+        .clip-title-timeline {
+          font-size: 11px;
+          font-weight: 500;
+          color: white;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+        }
+
+        .audio-waveform {
+          align-self: flex-end;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Timeline Transitions - Enhanced */
+        .timeline-transition {
+          position: absolute;
+          top: 2px;
+          height: 44px;
+          border-radius: 6px;
+          cursor: pointer;
+          background: linear-gradient(135deg,
+              var(--transition-color) 0%,
+              rgba(255, 255, 255, 0.1) 50%,
+              var(--transition-color) 100%);
+          border: 2px solid var(--transition-border);
+          border-style: dashed;
+          overflow: hidden;
+          transition: var(--transition-fast);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+          backdrop-filter: blur(5px);
+          z-index: 10;
+        }
+
+        .timeline-transition:hover {
+          background: linear-gradient(135deg,
+              var(--transition-hover) 0%,
+              rgba(255, 255, 255, 0.2) 50%,
+              var(--transition-hover) 100%);
+          border-color: rgba(255, 255, 255, 0.6);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+          transform: translateY(-1px);
+        }
+
+        .timeline-transition.selected {
+          border-color: var(--editor-accent-blue);
+          border-style: solid;
+          box-shadow: 0 0 0 2px var(--editor-accent-blue), 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .transition-content {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+        }
+
+        .transition-icon {
+          margin-bottom: 2px;
+          opacity: 0.9;
+        }
+
+        .transition-label {
+          font-size: 9px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          opacity: 0.8;
+        }
+
+        /* Transitions Panel */
+        .transitions-panel {
+          position: fixed;
+          right: 20px;
+          top: 80px;
+          width: 300px;
+          background: var(--editor-bg-panel);
+          border: 1px solid var(--editor-border);
+          border-radius: 4px;
+          padding: 16px;
+          z-index: 200;
+          box-shadow: var(--shadow-medium);
+        }
+
+        .panel-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+
+        .panel-header h4 {
+          margin: 0;
+          color: var(--editor-text-bright);
+          font-size: 14px;
+        }
+
+        .panel-header button {
+          background: none;
+          border: none;
+          color: var(--editor-text-secondary);
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 3px;
+          transition: var(--transition-fast);
+        }
+
+        .panel-header button:hover {
+          background: var(--editor-bg-hover);
+          color: var(--editor-text-primary);
+        }
+
+        .transition-properties {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .property-group {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .property-group label {
+          font-size: 12px;
+          color: var(--editor-text-primary);
+          font-weight: 500;
+        }
+
+        .property-group input {
+          padding: 6px 8px;
+          background: var(--editor-bg-dark);
+          border: 1px solid var(--editor-border);
+          border-radius: 3px;
+          color: var(--editor-text-primary);
+          font-size: 12px;
+        }
+
+        .property-group input:focus {
+          outline: none;
+          border-color: var(--editor-accent-blue);
+        }
+
+        .delete-transition-btn {
+          padding: 8px 12px;
+          background: var(--editor-accent-red);
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          margin-top: 8px;
+          transition: var(--transition-fast);
+        }
+
+        .delete-transition-btn:hover {
+          background: #ff5252;
+        }
+
+        /* Hidden file input */
+        .hidden-file-input {
+          display: none;
+        }
+
+        /* Effects Panel */
+        .effects-panel {
+          position: fixed;
+          right: 20px;
+          top: 80px;
+          width: 300px;
+          background: var(--editor-bg-panel);
+          border: 1px solid var(--editor-border);
+          border-radius: 4px;
+          padding: 16px;
+          z-index: 200;
+          box-shadow: var(--shadow-medium);
+        }
+
+        .effects-panel h4 {
+          margin: 0 0 16px 0;
+          color: var(--editor-text-bright);
+          font-size: 14px;
+        }
+
+        .effect-control {
+          margin-bottom: 12px;
+        }
+
+        .effect-control label {
+          display: block;
+          font-size: 12px;
+          margin-bottom: 4px;
+          color: var(--editor-text-primary);
+        }
+
+        .effect-control input[type="range"] {
+          width: 100%;
+          height: 4px;
+          background: var(--editor-bg-dark);
+          border-radius: 2px;
+          outline: none;
+          appearance: none;
+        }
+
+        .effect-control input[type="range"]::-webkit-slider-thumb {
+          appearance: none;
+          width: 12px;
+          height: 12px;
+          background: var(--editor-accent-blue);
+          border-radius: 50%;
+          cursor: pointer;
+        }
+
+        /* Scrollbar Styling */
+        .timeline-tracks-scroll::-webkit-scrollbar,
+        .timeline-ruler-scroll::-webkit-scrollbar,
+        .track-headers-column::-webkit-scrollbar,
+        .editor-left-panel::-webkit-scrollbar {
+          width: 12px;
+          height: 12px;
+        }
+
+        .timeline-tracks-scroll::-webkit-scrollbar-track,
+        .timeline-ruler-scroll::-webkit-scrollbar-track,
+        .track-headers-column::-webkit-scrollbar-track,
+        .editor-left-panel::-webkit-scrollbar-track {
+          background: var(--editor-bg-dark);
+        }
+
+        .timeline-tracks-scroll::-webkit-scrollbar-thumb,
+        .timeline-ruler-scroll::-webkit-scrollbar-thumb,
+        .track-headers-column::-webkit-scrollbar-thumb,
+        .editor-left-panel::-webkit-scrollbar-thumb {
+          background: var(--editor-border-light);
+          border-radius: 6px;
+          border: 2px solid var(--editor-bg-dark);
+        }
+
+        .timeline-tracks-scroll::-webkit-scrollbar-thumb:hover,
+        .timeline-ruler-scroll::-webkit-scrollbar-thumb:hover,
+        .track-headers-column::-webkit-scrollbar-thumb:hover,
+        .editor-left-panel::-webkit-scrollbar-thumb:hover {
+          background: var(--editor-text-secondary);
+        }
+
+        .timeline-tracks-scroll::-webkit-scrollbar-corner,
+        .timeline-ruler-scroll::-webkit-scrollbar-corner {
+          background: var(--editor-bg-dark);
+        }
+
+        /* Animation for smooth interactions */
+        @keyframes clipSelect {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+          100% { transform: scale(1); }
+        }
+
+        .timeline-clip.selected {
+          animation: clipSelect 0.3s ease;
+        }
+
+        @keyframes transitionAdd {
+          0% { opacity: 0; transform: scale(0.8); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+
+        .timeline-transition {
+          animation: transitionAdd 0.2s ease;
+        }
+
+        /* Focus styles for accessibility */
+        .tool-btn:focus,
+        .control-btn-small:focus,
+        .control-btn-play-small:focus,
+        .timeline-option-btn:focus,
+        .track-toggle-btn:focus {
+          outline: 2px solid var(--editor-accent-blue);
+          outline-offset: 2px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1024px) {
+          .editor-left-panel {
+            width: 200px;
+            min-width: 200px;
+          }
+          
+          .track-headers-spacer,
+          .track-headers-column {
+            width: 200px;
+            min-width: 200px;
+          }
+          
+          .transitions-panel,
+          .effects-panel {
+            width: 250px;
+          }
+        }
+      `}</style>
     </div>
   );
 };
