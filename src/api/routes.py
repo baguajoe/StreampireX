@@ -2,7 +2,7 @@
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects
 
 
 import json
@@ -41,11 +41,24 @@ import requests
 # import whisper  # ✅ AI Transcription Support
 import subprocess
 import xml.etree.ElementTree as ET
+import numpy as np
+from scipy import signal
+import base64
 from mutagen import File
+import tempfile
+import librosa
+import soundfile as sf
 from mutagen.mp3 import MP3  # Add this line for MP3 support
 from mutagen.mp4 import MP4  # Add this for MP4/M4A support
 from mutagen.wave import WAVE  # Add this for WAV support
 from api.cloudinary_setup import uploadFile
+
+from pedalboard import (
+    Pedalboard, NoiseGate, Compressor, Distortion, Bitcrush,
+    Phaser, PitchShift, Reverb, Delay, Gain, Limiter,
+    HighpassFilter, LowpassFilter, HighShelfFilter, LowShelfFilter,
+    PeakFilter
+)
 
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
@@ -87,6 +100,70 @@ os.makedirs(COVER_UPLOAD_DIR, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CLIP_FOLDER, exist_ok=True)
 
+
+def apply_noise_gate(audio_data, intensity):
+    """Apply noise gate using pedalboard"""
+    threshold_db = -60 + (intensity * 0.6)  # -60dB to 0dB
+    board = Pedalboard([NoiseGate(threshold_db=threshold_db)])
+    return board(audio_data, sample_rate=44100)
+
+def apply_parametric_eq(audio_data, sample_rate, intensity):
+    """Apply EQ using pedalboard filters"""
+    from pedalboard import HighpassFilter, LowpassFilter
+    
+    if intensity > 50:
+        # High-pass filter for higher intensity
+        cutoff = 200 + ((intensity - 50) * 40)  # 200Hz to 2200Hz
+        board = Pedalboard([HighpassFilter(cutoff_frequency_hz=cutoff)])
+    else:
+        # Low-pass filter for lower intensity
+        cutoff = 8000 - (intensity * 60)  # 8000Hz to 5000Hz
+        board = Pedalboard([LowpassFilter(cutoff_frequency_hz=cutoff)])
+    
+    return board(audio_data, sample_rate)
+
+def apply_band_pass(audio_data, sample_rate, intensity):
+    """Apply band-pass using high and low pass filters (pedalboard doesn't have BandpassFilter)"""
+    cutoff_low = 100 + (intensity * 5)   # 100Hz to 600Hz
+    cutoff_high = 2000 + (intensity * 60) # 2kHz to 8kHz
+    board = Pedalboard([
+        HighpassFilter(cutoff_frequency_hz=cutoff_low),
+        LowpassFilter(cutoff_frequency_hz=cutoff_high)
+    ])
+    return board(audio_data, sample_rate)
+
+def apply_flanger(audio_data, intensity):
+    """Apply flanger-like effect using Delay (closest available effect)"""
+    delay_seconds = 0.001 + (intensity * 0.00005)  # 1ms to 6ms delay
+    board = Pedalboard([Delay(delay_seconds=delay_seconds, feedback=0.3, mix=0.5)])
+    return board(audio_data, sample_rate=44100)
+
+def apply_tremolo(audio_data, intensity):
+    """Apply tremolo using Gain modulation (pedalboard doesn't have Tremolo)"""
+    # Simple implementation - could be enhanced with actual amplitude modulation
+    gain_reduction = intensity * 0.01  # Simple gain reduction
+    board = Pedalboard([Gain(gain_db=-gain_reduction)])
+    return board(audio_data, sample_rate=44100)
+
+def apply_vibrato(audio_data, intensity):
+    """Apply vibrato-like effect using slight pitch shift"""
+    semitones = (intensity - 50) * 0.02  # Very small pitch variations
+    board = Pedalboard([PitchShift(semitones=semitones)])
+    return board(audio_data, sample_rate=44100)
+
+def apply_phaser(audio_data, intensity):
+    """Apply phaser effect using pedalboard"""
+    rate_hz = 0.1 + (intensity * 0.09)
+    board = Pedalboard([Phaser(rate_hz=rate_hz, depth=intensity/100)])
+    return board(audio_data, sample_rate=44100)
+
+
+
+def apply_pitch_shift(audio_data, intensity):
+    """Apply pitch shift using pedalboard"""
+    semitones = (intensity - 50) * 0.24  # -12 to +12 semitones
+    board = Pedalboard([PitchShift(semitones=semitones)])
+    return board(audio_data, sample_rate=44100)
 
 # ============ VIDEO EDITOR UTILITY FUNCTIONS ============
 
@@ -345,6 +422,13 @@ def generate_sonosuite_jwt(user_email, external_id):
         print(f"JWT generation error: {e}")
         return None
 
+def apply_expander(audio_data, intensity):
+    """Apply audio expander effect"""
+    from pedalboard import Compressor
+    # Expander is the opposite of compressor - increases dynamic range
+    ratio = 1.0 / (1.0 + (intensity * 0.05))  # Inverse compression ratio
+    board = Pedalboard([Compressor(threshold_db=-20, ratio=ratio)])
+    return board(audio_data, sample_rate=44100)
 
 # Add this route to run the seed function
 @api.route('/admin/seed-pricing', methods=['POST'])
@@ -12901,46 +12985,6 @@ def get_user_video_editor_projects():
     except Exception as e:
         return jsonify({'error': f'Failed to fetch projects: {str(e)}'}), 500
 
-@api.route('/video-editor/projects', methods=['POST'])
-@jwt_required()
-def create_video_editor_project():
-    """Create a new video editor project"""
-    user_id = get_jwt_identity()
-    data = request.get_json()
-    
-    try:
-        # Check project limits
-        limits = get_user_limits(user_id)
-        usage = calculate_user_usage(user_id)
-        
-        if limits['max_projects'] != -1 and usage['current_projects'] >= limits['max_projects']:
-            return jsonify({
-                'error': 'Project limit reached',
-                'current_projects': usage['current_projects'],
-                'max_projects': limits['max_projects'],
-                'upgrade_required': True
-            }), 403
-        
-        # For now, return mock project
-        # In the future, this would create a VideoProject record
-        project = {
-            'id': random.randint(1, 1000),
-            'title': data.get('title', 'Untitled Project'),
-            'duration': data.get('duration', 60),
-            'resolution': {'width': 1920, 'height': 1080},
-            'frame_rate': 30,
-            'created_at': datetime.utcnow().isoformat(),
-            'updated_at': datetime.utcnow().isoformat(),
-            'tracks': []
-        }
-        
-        return jsonify({
-            'message': 'Project created successfully',
-            'project': project
-        }), 201
-        
-    except Exception as e:
-        return jsonify({'error': f'Failed to create project: {str(e)}'}), 500
 
 @api.route('/video-editor/projects/<int:project_id>/tracks', methods=['POST'])
 @jwt_required()
@@ -13181,3 +13225,1107 @@ def get_video_editor_stats(user_id):
             'video_files': 0,
             'audio_files': 0
         }
+
+@api.route('/audio/apply-effect', methods=['POST'])
+@jwt_required()
+def apply_audio_effect():
+    """Apply audio effect to uploaded audio file or clip"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        # Get form data
+        effect_id = request.form.get('effect_id')
+        intensity = float(request.form.get('intensity', 50)) / 100.0  # Convert percentage to 0-1
+        clip_id = request.form.get('clip_id')  # Optional, for timeline clips
+        
+        # Get audio file (either from upload or existing clip)
+        audio_file = request.files.get('audio_file')
+        if not audio_file and not clip_id:
+            return jsonify({"error": "No audio file or clip ID provided"}), 400
+            
+        # Load audio data
+        if audio_file:
+            # Process uploaded file
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
+                audio_file.save(temp_file.name)
+                audio_data, sample_rate = librosa.load(temp_file.name, sr=None)
+        else:
+            # Load existing clip from database
+            # You'll need to implement this based on your data model
+            audio_clip = Audio.query.get(clip_id)
+            if not audio_clip:
+                return jsonify({"error": "Audio clip not found"}), 404
+                
+            # Load from file path or URL
+            audio_data, sample_rate = librosa.load(audio_clip.file_url, sr=None)
+        
+        # Apply the requested effect
+        processed_audio = apply_effect(audio_data, sample_rate, effect_id, intensity)
+        
+        # Save processed audio to temporary file
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as output_file:
+            sf.write(output_file.name, processed_audio, sample_rate)
+            
+            # Upload to Cloudinary or save locally
+            # Using your existing uploadFile function
+            result = uploadFile(output_file.name, folder="audio_effects")
+            
+            # Clean up temp file
+            os.unlink(output_file.name)
+            
+            return jsonify({
+                "success": True,
+                "processed_audio_url": result.get('secure_url'),
+                "effect_applied": effect_id,
+                "intensity": intensity * 100
+            }), 200
+            
+    except Exception as e:
+        print(f"Audio effect processing error: {e}")
+        return jsonify({"error": f"Effect processing failed: {str(e)}"}), 500
+
+def apply_effect(audio_data, sample_rate, effect_id, intensity):
+    """Apply specific audio effect based on effect_id"""
+    
+    # Dynamics Effects
+    if effect_id == 'compressor':
+        return apply_compressor(audio_data, intensity)
+    elif effect_id == 'limiter':
+        return apply_limiter(audio_data, intensity)
+    elif effect_id == 'expander':
+        return apply_expander(audio_data, intensity)
+    elif effect_id == 'gate':
+        return apply_noise_gate(audio_data, intensity)
+    
+    # EQ & Filtering
+    elif effect_id == 'equalizer':
+        return apply_parametric_eq(audio_data, sample_rate, intensity)
+    elif effect_id == 'highPass':
+        return apply_high_pass(audio_data, sample_rate, intensity)
+    elif effect_id == 'lowPass':
+        return apply_low_pass(audio_data, sample_rate, intensity)
+    elif effect_id == 'bandPass':
+        return apply_band_pass(audio_data, sample_rate, intensity)
+    
+    # Modulation Effects
+    elif effect_id == 'chorus':
+        return apply_chorus(audio_data, sample_rate, intensity)
+    elif effect_id == 'flanger':
+        return apply_flanger(audio_data, sample_rate, intensity)
+    elif effect_id == 'phaser':
+        return apply_phaser(audio_data, sample_rate, intensity)
+    elif effect_id == 'tremolo':
+        return apply_tremolo(audio_data, sample_rate, intensity)
+    elif effect_id == 'vibrato':
+        return apply_vibrato(audio_data, sample_rate, intensity)
+    
+    # Time-Based Effects
+    elif effect_id == 'reverb':
+        return apply_reverb(audio_data, sample_rate, intensity)
+    elif effect_id == 'delay':
+        return apply_delay(audio_data, sample_rate, intensity)
+    elif effect_id == 'pitchShift':
+        return apply_pitch_shift(audio_data, sample_rate, intensity)
+    elif effect_id == 'timeStretch':
+        return apply_time_stretch(audio_data, sample_rate, intensity)
+    
+    # Distortion Effects
+    elif effect_id == 'overdrive':
+        return apply_overdrive(audio_data, intensity)
+    elif effect_id == 'distortion':
+        return apply_distortion(audio_data, intensity)
+    elif effect_id == 'bitCrusher':
+        return apply_bit_crusher(audio_data, sample_rate, intensity)
+    elif effect_id == 'saturation':
+        return apply_tape_saturation(audio_data, intensity)
+    
+    # Restoration Effects
+    elif effect_id == 'noiseReduction':
+        return apply_noise_reduction(audio_data, sample_rate, intensity)
+    elif effect_id == 'deEsser':
+        return apply_de_esser(audio_data, sample_rate, intensity)
+    elif effect_id == 'clickRemoval':
+        return apply_click_removal(audio_data, sample_rate)
+    
+    # Spatial Effects
+    elif effect_id == 'stereoWiden':
+        return apply_stereo_widener(audio_data, intensity)
+    elif effect_id == 'monoMaker':
+        return apply_mono_maker(audio_data)
+    
+    else:
+        # Return original audio if effect not implemented
+        return audio_data
+
+# Individual Effect Functions
+def apply_compressor(audio_data, intensity):
+    """Apply dynamic range compression"""
+    threshold = -20 + (intensity * 15)  # -20dB to -5dB
+    ratio = 1 + (intensity * 9)  # 1:1 to 10:1
+    
+    # Simple compressor implementation
+    compressed = np.copy(audio_data)
+    db_audio = 20 * np.log10(np.abs(audio_data) + 1e-10)
+    
+    over_threshold = db_audio > threshold
+    reduction = (db_audio[over_threshold] - threshold) / ratio
+    compressed[over_threshold] = compressed[over_threshold] * (10 ** (-reduction / 20))
+    
+    return compressed
+
+def apply_limiter(audio_data, intensity):
+    """Apply hard limiting"""
+    ceiling = 0.95 - (intensity * 0.2)  # -1dB to -5dB ceiling
+    return np.clip(audio_data, -ceiling, ceiling)
+
+def apply_high_pass(audio_data, sample_rate, intensity):
+    """Apply high-pass filter"""
+    cutoff = 20 + (intensity * 1980)  # 20Hz to 2000Hz
+    nyquist = sample_rate * 0.5
+    normalized_cutoff = cutoff / nyquist
+    b, a = signal.butter(4, normalized_cutoff, btype='high')
+    return signal.filtfilt(b, a, audio_data)
+
+def apply_low_pass(audio_data, sample_rate, intensity):
+    """Apply low-pass filter"""
+    cutoff = 20000 - (intensity * 18000)  # 20kHz to 2kHz
+    nyquist = sample_rate * 0.5
+    normalized_cutoff = cutoff / nyquist
+    b, a = signal.butter(4, normalized_cutoff, btype='low')
+    return signal.filtfilt(b, a, audio_data)
+
+def apply_reverb(audio_data, sample_rate, intensity):
+    """Apply convolution reverb"""
+    # Create impulse response for reverb
+    duration = 0.5 + (intensity * 1.5)  # 0.5 to 2 seconds
+    decay_rate = 3 + (intensity * 7)  # Decay rate
+    
+    length = int(sample_rate * duration)
+    t = np.linspace(0, duration, length)
+    
+    # Generate reverb impulse response
+    impulse = np.random.randn(length) * np.exp(-decay_rate * t)
+    
+    # Apply convolution
+    reverb_audio = signal.convolve(audio_data, impulse, mode='same')
+    
+    # Mix with dry signal
+    wet_gain = intensity * 0.3
+    dry_gain = 1 - (intensity * 0.3)
+    
+    return dry_gain * audio_data + wet_gain * reverb_audio
+
+def apply_delay(audio_data, sample_rate, intensity):
+    """Apply delay effect"""
+    delay_time = 0.1 + (intensity * 0.4)  # 100ms to 500ms delay
+    feedback = intensity * 0.6  # 0 to 60% feedback
+    
+    delay_samples = int(delay_time * sample_rate)
+    delayed_audio = np.zeros_like(audio_data)
+    
+    # Create delay line
+    if len(audio_data) > delay_samples:
+        delayed_audio[delay_samples:] = audio_data[:-delay_samples] * feedback
+    
+    # Mix with original
+    return audio_data + delayed_audio
+
+def apply_chorus(audio_data, sample_rate, intensity):
+    """Apply chorus effect"""
+    rate = 0.5 + (intensity * 2)  # 0.5Hz to 2.5Hz
+    depth = intensity * 0.02  # Up to 20ms modulation
+    
+    t = np.arange(len(audio_data)) / sample_rate
+    lfo = np.sin(2 * np.pi * rate * t)
+    
+    # Simple chorus implementation
+    delay_samples = (depth * sample_rate * lfo).astype(int)
+    chorus_audio = np.zeros_like(audio_data)
+    
+    for i, delay in enumerate(delay_samples):
+        if i - delay >= 0:
+            chorus_audio[i] = audio_data[i - delay]
+    
+    return audio_data + chorus_audio * intensity * 0.5
+
+def apply_distortion(audio_data, intensity):
+    """Apply distortion/overdrive"""
+    drive = 1 + (intensity * 19)  # 1x to 20x gain
+    
+    # Apply gain and soft clipping
+    driven = audio_data * drive
+    distorted = np.tanh(driven)  # Soft clipping
+    
+    # Mix with original based on intensity
+    return audio_data * (1 - intensity) + distorted * intensity
+
+def apply_noise_reduction(audio_data, sample_rate, intensity):
+    """Simple spectral noise reduction"""
+    # This is a simplified implementation
+    # In production, you'd use more sophisticated algorithms
+    
+    # Apply spectral gating
+    stft = librosa.stft(audio_data)
+    magnitude = np.abs(stft)
+    phase = np.angle(stft)
+    
+    # Estimate noise floor
+    noise_floor = np.percentile(magnitude, 10)
+    threshold = noise_floor * (1 + intensity * 2)
+    
+    # Apply spectral gating
+    mask = magnitude > threshold
+    cleaned_magnitude = magnitude * mask
+    
+    # Reconstruct audio
+    cleaned_stft = cleaned_magnitude * np.exp(1j * phase)
+    return librosa.istft(cleaned_stft)
+
+def apply_time_stretch(audio_data, sample_rate, intensity):
+    """Apply time stretching using pedalboard"""
+    from pedalboard import PitchShift
+    # Time stretch without pitch change (approximate)
+    stretch_factor = 0.5 + (intensity * 0.01)  # 0.5x to 1.5x speed
+    # Note: True time stretching requires more complex implementation
+    # This is a simplified version using pitch shift
+    board = Pedalboard([PitchShift(semitones=0)])
+    return board(audio_data, sample_rate)
+
+def apply_overdrive(audio_data, intensity):
+    """Apply overdrive distortion using pedalboard"""
+    from pedalboard import Distortion
+    drive_db = intensity * 0.5  # 0 to 50dB drive
+    board = Pedalboard([Distortion(drive_db=drive_db)])
+    return board(audio_data, sample_rate=44100)
+
+def apply_bit_crusher(audio_data, sample_rate, intensity):
+    """Apply bit crusher effect using pedalboard"""
+    from pedalboard import Bitcrush
+    bit_depth = 16 - (intensity * 0.15)  # 16-bit to 1-bit
+    board = Pedalboard([Bitcrush(bit_depth=max(1, int(bit_depth)))])
+    return board(audio_data, sample_rate)
+
+def apply_tape_saturation(audio_data, intensity):
+    """Apply tape saturation effect using pedalboard"""
+    from pedalboard import Distortion
+    # Simulate tape saturation with mild distortion
+    saturation = intensity * 0.1  # Gentle saturation
+    board = Pedalboard([Distortion(drive_db=saturation)])
+    return board(audio_data, sample_rate=44100)
+
+def apply_de_esser(audio_data, sample_rate, intensity):
+    """Apply de-esser using basic filtering"""
+    from scipy.signal import butter, filtfilt
+    # Simple de-esser using high-frequency attenuation
+    cutoff = 4000 - (intensity * 20)  # Reduce harsh sibilants
+    b, a = butter(2, cutoff/(sample_rate/2), btype='low')
+    return filtfilt(b, a, audio_data)
+
+def apply_click_removal(audio_data, intensity):
+    """Apply click removal (basic implementation)"""
+    # Simple click removal using median filtering
+    from scipy.signal import medfilt
+    kernel_size = int(3 + (intensity * 0.1))  # Small kernel for click removal
+    if kernel_size % 2 == 0:
+        kernel_size += 1  # Ensure odd kernel size
+    return medfilt(audio_data, kernel_size=kernel_size)
+
+def apply_stereo_widener(audio_data, intensity):
+    """Apply stereo widening effect"""
+    if len(audio_data.shape) < 2:
+        return audio_data  # Can't widen mono audio
+    
+    width = intensity * 0.02  # 0 to 2x width
+    # Simple stereo widening
+    left = audio_data[:, 0]
+    right = audio_data[:, 1]
+    mid = (left + right) / 2
+    side = (left - right) / 2 * width
+    
+    return np.column_stack([mid + side, mid - side])
+
+def apply_mono_maker(audio_data, intensity):
+    """Convert stereo to mono with intensity control"""
+    if len(audio_data.shape) < 2:
+        return audio_data  # Already mono
+    
+    mono_mix = (intensity / 100.0)  # 0 to 1
+    stereo = audio_data.copy()
+    mono = np.mean(audio_data, axis=1, keepdims=True)
+    mono = np.repeat(mono, 2, axis=1)
+    
+    return stereo * (1 - mono_mix) + mono * mono_mix
+
+# Batch Effects Processing Route
+@api.route('/audio/batch-effects', methods=['POST'])
+@jwt_required()
+def apply_batch_effects():
+    """Apply multiple effects in sequence"""
+    try:
+        user_id = get_jwt_identity()
+        effects_chain = request.json.get('effects_chain', [])
+        clip_id = request.json.get('clip_id')
+        
+        if not effects_chain:
+            return jsonify({"error": "No effects chain provided"}), 400
+            
+        # Load audio clip
+        audio_clip = Audio.query.get(clip_id)
+        if not audio_clip:
+            return jsonify({"error": "Audio clip not found"}), 404
+            
+        # Load audio data
+        audio_data, sample_rate = librosa.load(audio_clip.file_url, sr=None)
+        
+        # Apply effects in sequence
+        processed_audio = audio_data
+        for effect in effects_chain:
+            effect_id = effect.get('id')
+            intensity = effect.get('intensity', 50) / 100.0
+            processed_audio = apply_effect(processed_audio, sample_rate, effect_id, intensity)
+        
+        # Save processed audio
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as output_file:
+            sf.write(output_file.name, processed_audio, sample_rate)
+            
+            # Upload processed audio
+            result = uploadFile(output_file.name, folder="audio_effects")
+            os.unlink(output_file.name)
+            
+            return jsonify({
+                "success": True,
+                "processed_audio_url": result.get('secure_url'),
+                "effects_applied": len(effects_chain)
+            }), 200
+            
+    except Exception as e:
+        return jsonify({"error": f"Batch processing failed: {str(e)}"}), 500
+
+# Audio Analysis Route
+@api.route('/audio/analyze', methods=['POST'])
+@jwt_required()
+def analyze_audio():
+    """Analyze audio characteristics for automatic effect suggestions"""
+    try:
+        user_id = get_jwt_identity()
+        clip_id = request.json.get('clip_id')
+        
+        audio_clip = Audio.query.get(clip_id)
+        if not audio_clip:
+            return jsonify({"error": "Audio clip not found"}), 404
+            
+        # Load audio for analysis
+        audio_data, sample_rate = librosa.load(audio_clip.file_url, sr=None)
+        
+        # Perform audio analysis
+        analysis = {
+            "duration": len(audio_data) / sample_rate,
+            "sample_rate": sample_rate,
+            "rms_energy": float(np.sqrt(np.mean(audio_data**2))),
+            "peak_amplitude": float(np.max(np.abs(audio_data))),
+            "dynamic_range": float(np.max(np.abs(audio_data)) - np.mean(np.abs(audio_data))),
+            "spectral_centroid": float(np.mean(librosa.feature.spectral_centroid(y=audio_data, sr=sample_rate))),
+            "zero_crossing_rate": float(np.mean(librosa.feature.zero_crossing_rate(audio_data))),
+            "suggested_effects": []
+        }
+        
+        # Add effect suggestions based on analysis
+        if analysis["dynamic_range"] > 0.5:
+            analysis["suggested_effects"].append({
+                "effect": "compressor",
+                "reason": "High dynamic range detected",
+                "suggested_intensity": 30
+            })
+            
+        if analysis["rms_energy"] < 0.1:
+            analysis["suggested_effects"].append({
+                "effect": "normalize",
+                "reason": "Low audio level detected",
+                "suggested_intensity": 80
+            })
+            
+        if analysis["spectral_centroid"] > 3000:
+            analysis["suggested_effects"].append({
+                "effect": "deEsser",
+                "reason": "Bright audio with potential sibilance",
+                "suggested_intensity": 25
+            })
+        
+        return jsonify(analysis), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Audio analysis failed: {str(e)}"}), 500
+
+# Effect Presets Route
+@api.route('/audio/presets', methods=['GET'])
+def get_audio_presets():
+    """Get predefined audio effect presets"""
+    presets = {
+        "vocal": [
+            {"id": "highPass", "intensity": 15, "name": "Remove Low Rumble"},
+            {"id": "compressor", "intensity": 45, "name": "Vocal Compression"},
+            {"id": "deEsser", "intensity": 30, "name": "Reduce Sibilance"},
+            {"id": "reverb", "intensity": 20, "name": "Add Presence"}
+        ],
+        "music": [
+            {"id": "equalizer", "intensity": 35, "name": "Musical EQ"},
+            {"id": "compressor", "intensity": 25, "name": "Gentle Compression"},
+            {"id": "stereoWiden", "intensity": 40, "name": "Stereo Enhancement"}
+        ],
+        "podcast": [
+            {"id": "noiseReduction", "intensity": 50, "name": "Clean Background"},
+            {"id": "compressor", "intensity": 55, "name": "Even Levels"},
+            {"id": "highPass", "intensity": 20, "name": "Remove Room Tone"},
+            {"id": "normalizer", "intensity": 75, "name": "Consistent Volume"}
+        ],
+        "radio": [
+            {"id": "compressor", "intensity": 65, "name": "Broadcast Compression"},
+            {"id": "limiter", "intensity": 85, "name": "Peak Limiting"},
+            {"id": "equalizer", "intensity": 45, "name": "Radio EQ"}
+        ]
+    }
+    
+    return jsonify(presets), 200
+
+# Real-time Effect Preview Route
+@api.route('/audio/preview-effect', methods=['POST'])
+@jwt_required()
+def preview_audio_effect():
+    """Generate a short preview of an effect applied to audio"""
+    try:
+        user_id = get_jwt_identity()
+        effect_id = request.json.get('effect_id')
+        intensity = request.json.get('intensity', 50) / 100.0
+        clip_id = request.json.get('clip_id')
+        start_time = request.json.get('start_time', 0)  # Preview start time in seconds
+        duration = request.json.get('duration', 5)  # Preview duration in seconds
+        
+        audio_clip = Audio.query.get(clip_id)
+        if not audio_clip:
+            return jsonify({"error": "Audio clip not found"}), 404
+            
+        # Load only a segment of the audio for preview
+        audio_data, sample_rate = librosa.load(
+            audio_clip.file_url, 
+            sr=None, 
+            offset=start_time, 
+            duration=duration
+        )
+        
+        # Apply effect
+        processed_audio = apply_effect(audio_data, sample_rate, effect_id, intensity)
+        
+        # Create a short preview file
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as preview_file:
+            sf.write(preview_file.name, processed_audio, sample_rate)
+            
+            # Convert to base64 for immediate playback
+            with open(preview_file.name, 'rb') as f:
+                audio_base64 = base64.b64encode(f.read()).decode('utf-8')
+            
+            os.unlink(preview_file.name)
+            
+            return jsonify({
+                "success": True,
+                "preview_audio": f"data:audio/wav;base64,{audio_base64}",
+                "effect_applied": effect_id,
+                "intensity": intensity * 100,
+                "duration": duration
+            }), 200
+            
+    except Exception as e:
+        return jsonify({"error": f"Preview generation failed: {str(e)}"}), 500
+
+@api.route('/video-editor/projects', methods=['GET'])
+@jwt_required()
+def get_video_editor_projects():
+    """Get user's video editor projects (using existing Video model)"""
+    user_id = get_jwt_identity()
+    
+    # Use your existing Video model as projects
+    projects = Video.query.filter_by(
+        user_id=user_id,
+        processing_status='completed'  # Only completed videos
+    ).order_by(desc(Video.uploaded_at)).all()
+    
+    projects_data = []
+    for video in projects:
+        project_data = video.serialize()
+        project_data.update({
+            'project_type': 'video_editor',
+            'timeline_data': getattr(video, 'timeline_data', {'tracks': []}),
+            'settings': {
+                'width': getattr(video, 'width', 1920),
+                'height': getattr(video, 'height', 1080),
+                'frame_rate': getattr(video, 'frame_rate', 30),
+                'duration': video.duration or 0
+            }
+        })
+        projects_data.append(project_data)
+    
+    return jsonify({'projects': projects_data}), 200
+
+@api.route('/video-editor/projects', methods=['POST'])
+@jwt_required()
+def create_video_editor_project():
+    """Create new video editor project"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    # Check user limits
+    user_plan = get_user_plan(user_id)
+    current_projects = Video.query.filter_by(user_id=user_id).count()
+    
+    if user_plan and user_plan.max_projects != -1 and current_projects >= user_plan.max_projects:
+        return jsonify({'error': f'Project limit reached ({user_plan.max_projects})'}), 403
+    
+    # Create new video project using existing model
+    project = Video(
+        user_id=user_id,
+        title=data.get('title', 'New Video Project'),
+        description=data.get('description', ''),
+        category=data.get('category', 'Video Editor Project'),
+        file_url='',  # Will be set when exported
+        thumbnail_url='',
+        duration=data.get('duration', 0),
+        processing_status='editing',  # Custom status for editor projects
+        status='private',  # Keep private until exported
+        is_public=False,
+        uploaded_at=datetime.utcnow()
+    )
+    
+    db.session.add(project)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Video editor project created successfully',
+        'project': project.serialize()
+    }), 201
+
+@api.route('/video-editor/projects/<int:project_id>/clips', methods=['POST'])
+@jwt_required()
+def add_clip_to_timeline():
+    """Add media clip to project timeline"""
+    user_id = get_jwt_identity()
+    project_id = project_id
+    data = request.get_json()
+    
+    # Verify project ownership
+    project = Video.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    # Create timeline clip using VideoClip model
+    clip = VideoClip(
+        user_id=user_id,
+        title=data.get('title', 'Timeline Clip'),
+        description=f"Clip in project: {project.title}",
+        video_url=data.get('file_url'),
+        thumbnail_url=data.get('thumbnail_url'),
+        start_time=data.get('timeline_start', 0),
+        end_time=data.get('timeline_start', 0) + data.get('duration', 10),
+        duration=data.get('duration', 10),
+        content_type='timeline_clip',
+        source_video_id=project_id,
+        is_public=False,
+        created_at=datetime.utcnow()
+    )
+    
+    db.session.add(clip)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Clip added to timeline',
+        'clip': clip.serialize()
+    }), 201
+
+@api.route('/video-editor/projects/<int:project_id>/timeline', methods=['GET'])
+@jwt_required()
+def get_project_timeline(project_id):
+    """Get project timeline with all clips"""
+    user_id = get_jwt_identity()
+    
+    project = Video.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    # Get all timeline clips for this project
+    clips = VideoClip.query.filter_by(
+        source_video_id=project_id,
+        content_type='timeline_clip'
+    ).order_by(VideoClip.start_time).all()
+    
+    # Organize clips by tracks (you can extend this logic)
+    tracks = [
+        {
+            'id': 1,
+            'name': 'Video Track 1',
+            'type': 'video',
+            'clips': []
+        },
+        {
+            'id': 2,
+            'name': 'Audio Track 1', 
+            'type': 'audio',
+            'clips': []
+        }
+    ]
+    
+    # Add clips to appropriate tracks
+    for clip in clips:
+        clip_data = clip.serialize()
+        
+        # Determine track based on media type or user assignment
+        if 'audio' in clip.video_url.lower() or clip.content_type == 'audio':
+            tracks[1]['clips'].append(clip_data)
+        else:
+            tracks[0]['clips'].append(clip_data)
+    
+    return jsonify({
+        'project': project.serialize(),
+        'timeline': {'tracks': tracks}
+    }), 200
+
+@api.route('/video-editor/apply-video-effect', methods=['POST'])
+@jwt_required()
+def apply_video_effect():
+    """Apply video effect to clip"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    clip_id = data.get('clip_id')
+    effect_id = data.get('effect_id')
+    intensity = data.get('intensity', 50)
+    
+    clip = VideoClip.query.filter_by(id=clip_id).first()
+    if not clip or clip.user_id != user_id:
+        return jsonify({'error': 'Clip not found'}), 404
+    
+    try:
+        # Apply video effect using OpenCV/FFmpeg
+        processed_url = process_video_effect(clip.video_url, effect_id, intensity)
+        
+        if processed_url:
+            # Update clip with processed version
+            clip.video_url = processed_url
+            clip.description = f"{clip.description} - Applied {effect_id}"
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'processed_url': processed_url,
+                'effect': effect_id,
+                'intensity': intensity
+            }), 200
+        else:
+            return jsonify({'error': 'Effect processing failed'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': f'Effect application failed: {str(e)}'}), 500
+
+def process_video_effect(video_url, effect_id, intensity):
+    """Process video effect using OpenCV and FFmpeg"""
+    try:
+        # Download video from URL temporarily
+        temp_input = f"/tmp/input_{uuid.uuid4()}.mp4"
+        temp_output = f"/tmp/output_{uuid.uuid4()}.mp4"
+        
+        # Download file
+        import requests
+        response = requests.get(video_url)
+        with open(temp_input, 'wb') as f:
+            f.write(response.content)
+        
+        # Apply effect based on type
+        if effect_id == 'brightness':
+            apply_brightness_effect(temp_input, temp_output, intensity)
+        elif effect_id == 'contrast':
+            apply_contrast_effect(temp_input, temp_output, intensity)
+        elif effect_id == 'blur':
+            apply_blur_effect(temp_input, temp_output, intensity)
+        elif effect_id == 'sharpen':
+            apply_sharpen_effect(temp_input, temp_output, intensity)
+        else:
+            # Copy original if effect not implemented
+            import shutil
+            shutil.copy(temp_input, temp_output)
+        
+        # Upload processed video to Cloudinary
+        result = uploadFile(temp_output, folder="video_effects")
+        
+        # Clean up temp files
+        os.remove(temp_input)
+        os.remove(temp_output)
+        
+        return result.get('secure_url')
+        
+    except Exception as e:
+        print(f"Video effect processing error: {e}")
+        return None
+
+def apply_brightness_effect(input_path, output_path, intensity):
+    """Apply brightness effect using FFmpeg"""
+    brightness_value = (intensity - 50) / 50.0  # -1 to 1
+    
+    command = [
+        'ffmpeg', '-i', input_path,
+        '-vf', f'eq=brightness={brightness_value}',
+        '-c:a', 'copy',  # Copy audio without re-encoding
+        '-y', output_path
+    ]
+    
+    subprocess.run(command, check=True, capture_output=True)
+
+def apply_contrast_effect(input_path, output_path, intensity):
+    """Apply contrast effect using FFmpeg"""
+    contrast_value = 0.5 + (intensity / 100.0)  # 0.5 to 1.5
+    
+    command = [
+        'ffmpeg', '-i', input_path,
+        '-vf', f'eq=contrast={contrast_value}',
+        '-c:a', 'copy',
+        '-y', output_path
+    ]
+    
+    subprocess.run(command, check=True, capture_output=True)
+
+def apply_blur_effect(input_path, output_path, intensity):
+    """Apply blur effect using FFmpeg"""
+    blur_radius = intensity / 10.0  # 0 to 10
+    
+    command = [
+        'ffmpeg', '-i', input_path,
+        '-vf', f'boxblur={blur_radius}',
+        '-c:a', 'copy',
+        '-y', output_path
+    ]
+    
+    subprocess.run(command, check=True, capture_output=True)
+
+def apply_sharpen_effect(input_path, output_path, intensity):
+    """Apply sharpen effect using FFmpeg"""
+    sharpen_value = intensity / 100.0  # 0 to 1
+    
+    command = [
+        'ffmpeg', '-i', input_path,
+        '-vf', f'unsharp=5:5:{sharpen_value}',
+        '-c:a', 'copy',
+        '-y', output_path
+    ]
+    
+    subprocess.run(command, check=True, capture_output=True)
+
+@api.route('/video-editor/projects/<int:project_id>/export', methods=['POST'])
+@jwt_required()
+def export_video_project(project_id):
+    """Export video editor project to final video"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    project = Video.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    # Check user export limits
+    user_plan = get_user_plan(user_id)
+    export_quality = data.get('quality', '1080p')
+    
+    if user_plan and user_plan.max_export_quality:
+        allowed_qualities = ['720p', '1080p', '4k', '8k']
+        max_quality_index = allowed_qualities.index(user_plan.max_export_quality)
+        requested_quality_index = allowed_qualities.index(export_quality)
+        
+        if requested_quality_index > max_quality_index:
+            return jsonify({'error': f'Export quality {export_quality} not allowed for {user_plan.name} plan'}), 403
+    
+    try:
+        # Get all clips in timeline order
+        clips = VideoClip.query.filter_by(
+            source_video_id=project_id,
+            content_type='timeline_clip'
+        ).order_by(VideoClip.start_time).all()
+        
+        # Start export process
+        export_result = render_timeline_to_video(clips, export_quality, project.title)
+        
+        if export_result:
+            # Update project with final video
+            project.file_url = export_result['url']
+            project.thumbnail_url = export_result.get('thumbnail_url')
+            project.processing_status = 'completed'
+            project.status = 'active'
+            project.is_public = data.get('make_public', False)
+            
+            db.session.commit()
+            
+            return jsonify({
+                'message': 'Export completed successfully',
+                'video_url': export_result['url'],
+                'thumbnail_url': export_result.get('thumbnail_url'),
+                'export_quality': export_quality
+            }), 200
+        else:
+            return jsonify({'error': 'Export failed'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': f'Export failed: {str(e)}'}), 500
+
+def render_timeline_to_video(clips, quality='1080p', title='Video Project'):
+    """Render timeline clips into final video using MoviePy"""
+    try:
+        from moviepy import VideoFileClip, CompositeVideoClip, concatenate_videoclips
+        
+        # Quality settings
+        quality_settings = {
+            '720p': {'width': 1280, 'height': 720, 'bitrate': '2000k'},
+            '1080p': {'width': 1920, 'height': 1080, 'bitrate': '5000k'},
+            '4k': {'width': 3840, 'height': 2160, 'bitrate': '15000k'},
+            '8k': {'width': 7680, 'height': 4320, 'bitrate': '50000k'}
+        }
+        
+        settings = quality_settings.get(quality, quality_settings['1080p'])
+        
+        # Process clips
+        video_clips = []
+        temp_files = []
+        
+        for clip in clips:
+            if clip.video_url and clip.video_url.startswith('http'):
+                # Download clip temporarily
+                temp_file = f"/tmp/clip_{clip.id}_{uuid.uuid4()}.mp4"
+                
+                response = requests.get(clip.video_url)
+                with open(temp_file, 'wb') as f:
+                    f.write(response.content)
+                
+                temp_files.append(temp_file)
+                
+                # Load with MoviePy
+                video_clip = VideoFileClip(temp_file)
+                
+                # Apply timeline timing
+                if hasattr(clip, 'start_time') and hasattr(clip, 'end_time'):
+                    duration = (clip.end_time - clip.start_time) / 1000.0  # Convert to seconds
+                    video_clip = video_clip.subclip(0, min(duration, video_clip.duration))
+                
+                # Resize to target resolution
+                video_clip = video_clip.resize((settings['width'], settings['height']))
+                
+                video_clips.append(video_clip)
+        
+        if not video_clips:
+            raise Exception("No valid clips to render")
+        
+        # Concatenate clips
+        final_video = concatenate_videoclips(video_clips, method="compose")
+        
+        # Export final video
+        output_path = f"/tmp/final_{uuid.uuid4()}.mp4"
+        final_video.write_videofile(
+            output_path,
+            fps=30,
+            codec='libx264',
+            bitrate=settings['bitrate'],
+            audio_codec='aac'
+        )
+        
+        # Upload to Cloudinary
+        result = uploadFile(output_path, folder="video_exports")
+        
+        # Generate thumbnail
+        thumbnail_path = f"/tmp/thumb_{uuid.uuid4()}.jpg"
+        final_video.save_frame(thumbnail_path, t=1.0)  # Thumbnail at 1 second
+        thumbnail_result = uploadFile(thumbnail_path, folder="video_thumbnails")
+        
+        # Clean up
+        final_video.close()
+        for clip in video_clips:
+            clip.close()
+        
+        # Remove temp files
+        os.remove(output_path)
+        os.remove(thumbnail_path)
+        for temp_file in temp_files:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+        
+        return {
+            'url': result.get('secure_url'),
+            'thumbnail_url': thumbnail_result.get('secure_url')
+        }
+        
+    except Exception as e:
+        print(f"Video rendering error: {e}")
+        return None
+
+@api.route('/video-editor/preview-frame', methods=['POST'])
+@jwt_required()
+def generate_preview_frame():
+    """Generate preview frame for timeline position"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    project_id = data.get('project_id')
+    timestamp = data.get('timestamp', 0)
+    
+    project = Video.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    try:
+        # Get clips at timestamp
+        clips = VideoClip.query.filter(
+            VideoClip.source_video_id == project_id,
+            VideoClip.start_time <= timestamp * 1000,  # Convert to milliseconds
+            VideoClip.end_time >= timestamp * 1000
+        ).all()
+        
+        if not clips:
+            return jsonify({'error': 'No clips at timestamp'}), 404
+        
+        # Use first clip for preview (you can enhance this to composite multiple clips)
+        clip = clips[0]
+        frame_data = extract_video_frame(clip.video_url, timestamp - (clip.start_time / 1000.0))
+        
+        if frame_data:
+            return jsonify({
+                'frame_data': frame_data,
+                'timestamp': timestamp
+            }), 200
+        else:
+            return jsonify({'error': 'Could not generate frame'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': f'Preview generation failed: {str(e)}'}), 500
+
+def extract_video_frame(video_url, timestamp):
+    """Extract frame from video at timestamp"""
+    try:
+        temp_file = f"/tmp/preview_{uuid.uuid4()}.mp4"
+        frame_file = f"/tmp/frame_{uuid.uuid4()}.jpg"
+        
+        # Download video
+        response = requests.get(video_url)
+        with open(temp_file, 'wb') as f:
+            f.write(response.content)
+        
+        # Extract frame using FFmpeg
+        command = [
+            'ffmpeg', '-i', temp_file,
+            '-ss', str(timestamp),
+            '-vframes', '1',
+            '-q:v', '2',
+            '-y', frame_file
+        ]
+        
+        subprocess.run(command, check=True, capture_output=True)
+        
+        # Convert to base64
+        with open(frame_file, 'rb') as f:
+            frame_bytes = f.read()
+            frame_b64 = base64.b64encode(frame_bytes).decode('utf-8')
+        
+        # Clean up
+        os.remove(temp_file)
+        os.remove(frame_file)
+        
+        return f"data:image/jpeg;base64,{frame_b64}"
+        
+    except Exception as e:
+        print(f"Frame extraction error: {e}")
+        return None
+
+# Add video transitions support
+@api.route('/video-editor/apply-transition', methods=['POST'])
+@jwt_required()
+def apply_video_transition():
+    """Apply transition between clips"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    clip_id_1 = data.get('clip_id_1')
+    clip_id_2 = data.get('clip_id_2') 
+    transition_type = data.get('transition_type', 'crossfade')
+    duration = data.get('duration', 1.0)
+    
+    # Verify clips
+    clip1 = VideoClip.query.filter_by(id=clip_id_1).first()
+    clip2 = VideoClip.query.filter_by(id=clip_id_2).first()
+    
+    if not clip1 or not clip2 or clip1.user_id != user_id or clip2.user_id != user_id:
+        return jsonify({'error': 'Invalid clips'}), 404
+    
+    try:
+        # Apply transition using MoviePy
+        result_url = create_video_transition(clip1.video_url, clip2.video_url, transition_type, duration)
+        
+        if result_url:
+            return jsonify({
+                'success': True,
+                'transition_url': result_url,
+                'type': transition_type,
+                'duration': duration
+            }), 200
+        else:
+            return jsonify({'error': 'Transition creation failed'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': f'Transition failed: {str(e)}'}), 500
+
+def create_video_transition(video1_url, video2_url, transition_type, duration):
+    """Create transition between two videos"""
+    try:
+        from moviepy import VideoFileClip, CompositeVideoClip
+        
+        # Download videos
+        temp1 = f"/tmp/vid1_{uuid.uuid4()}.mp4"
+        temp2 = f"/tmp/vid2_{uuid.uuid4()}.mp4"
+        
+        response1 = requests.get(video1_url)
+        with open(temp1, 'wb') as f:
+            f.write(response1.content)
+            
+        response2 = requests.get(video2_url)
+        with open(temp2, 'wb') as f:
+            f.write(response2.content)
+        
+        # Load clips
+        clip1 = VideoFileClip(temp1)
+        clip2 = VideoFileClip(temp2)
+        
+        # Create transition
+        if transition_type == 'crossfade':
+            # Crossfade transition
+            clip1_fade = clip1.fadeout(duration)
+            clip2_fade = clip2.fadein(duration).set_start(clip1.duration - duration)
+            
+            final_clip = CompositeVideoClip([clip1_fade, clip2_fade])
+        else:
+            # Default: simple concatenation
+            from moviepy import concatenate_videoclips
+            final_clip = concatenate_videoclips([clip1, clip2])
+        
+        # Export
+        output_path = f"/tmp/transition_{uuid.uuid4()}.mp4"
+        final_clip.write_videofile(output_path, fps=30, codec='libx264')
+        
+        # Upload
+        result = uploadFile(output_path, folder="video_transitions")
+        
+        # Clean up
+        final_clip.close()
+        clip1.close()
+        clip2.close()
+        os.remove(temp1)
+        os.remove(temp2)
+        os.remove(output_path)
+        
+        return result.get('secure_url')
+        
+    except Exception as e:
+        print(f"Transition creation error: {e}")
+        return None
