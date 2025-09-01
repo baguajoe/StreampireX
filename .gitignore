@@ -19,3 +19,5 @@ render.yaml
 
 # track webpack configs (i.e. do NOT ignore it)
 !webpack.config.js
+__pycache__/
+*.pyc
