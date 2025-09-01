@@ -9,7 +9,7 @@ const getState = ({ getStore, getActions, setStore }) => {
         actions: {
             signup: async (formData) => {
                 try {
-                    const response = await fetch(`${process.env.BACKEND_URL}/api/signup`, {
+                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/signup`, {
                         method: "POST",
                         body: formData // Use FormData to support file uploads
                     });
@@ -31,8 +31,9 @@ const getState = ({ getStore, getActions, setStore }) => {
             },
 
             login: async (email, password) => {
+                console.log("REACT_APP_BACKEND_URL:", process.env.REACT_APP_BACKEND_URL);
                 try {
-                    const response = await fetch(`${process.env.BACKEND_URL}/api/login`, {
+                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/login`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json"
@@ -87,7 +88,7 @@ const getState = ({ getStore, getActions, setStore }) => {
                 }
 
                 try {
-                    const response = await fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
                         headers: {
                             "Authorization": `Bearer ${token}`
                         }
@@ -122,7 +123,7 @@ const getState = ({ getStore, getActions, setStore }) => {
                 }
 
                 try {
-                    const response = await fetch(`${process.env.BACKEND_URL}/profile`, {
+                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/profile`, {
                         method: "GET",
                         headers: {
                             "Content-Type": "application/json",
@@ -150,9 +151,7 @@ const getState = ({ getStore, getActions, setStore }) => {
                     setStore({ error: "Network error while fetching profile" });
                     return { error: "Network error while fetching profile" };
                 }
-            },
-
-
+            }
         }
     };
 };
