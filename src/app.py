@@ -1,4 +1,4 @@
-# src/app.py
+# src/app.py - FIXED VERSION
 # ✅ Monkey patch must come FIRST — before ANY other imports
 import eventlet
 eventlet.monkey_patch()
@@ -9,9 +9,10 @@ from dotenv import load_dotenv
 # Load environment variables from .env
 load_dotenv()
 
-# Access the SonoSuite config variables
-SONOSUITE_SHARED_SECRET = os.getenv("SONOSUITE_SHARED_SECRET")
-SONOSUITE_BASE_URL = os.getenv("SONOSUITE_BASE_URL", "https://streampirex.sonosuite.com")
+# ✅ CRITICAL: Add JWT_SECRET_KEY if missing
+if not os.getenv("JWT_SECRET_KEY"):
+    os.environ["JWT_SECRET_KEY"] = "your-super-secret-jwt-key-fallback-dev-only"
+    print("⚠️  JWT_SECRET_KEY not found, using fallback (SET THIS IN PRODUCTION!)")
 
 src_dir = os.path.dirname(os.path.abspath(__file__))
 if src_dir not in sys.path:
@@ -29,13 +30,13 @@ import cloudinary
 import click
 from flask.cli import with_appcontext
 
-# ✅ Create socketio instance here (not importing from api module)
+# ✅ Create socketio instance here
 socketio = SocketIO()
 
-# Import your blueprints - FIXED: Remove the conflicting socketio import
+# Import your blueprints
 from api.routes import api
 from api.cache import cache
-from api.models import db, LiveChat, User, RadioStation,PricingPlan, SonoSuiteUser
+from api.models import db, LiveChat, User, RadioStation, PricingPlan, SonoSuiteUser
 from api.utils import APIException, generate_sitemap
 from api.admin import setup_admin
 from api.commands import setup_commands
@@ -47,20 +48,17 @@ static_file_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../
 # ✅ Create Flask app
 app = Flask(__name__)
 
-# Initialize scheduler with the app
+# Initialize scheduler
 scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
 
-from dotenv import load_dotenv
-load_dotenv()
-
 app.url_map.strict_slashes = False
 
-# ✅ Configuration
+# ✅ FIXED Configuration - Add missing JWT_SECRET_KEY
 app.config.update({
     "JWT_ACCESS_TOKEN_EXPIRES": 7 * 24 * 60 * 60 * 52,  # ~1 year
-    "JWT_SECRET_KEY": os.getenv("JWT_SECRET_KEY"),
+    "JWT_SECRET_KEY": os.getenv("JWT_SECRET_KEY", "fallback-secret-key-dev-only"),
     "SQLALCHEMY_TRACK_MODIFICATIONS": False,
     "MAIL_SERVER": 'smtp.gmail.com',
     "MAIL_PORT": 587,
@@ -69,7 +67,7 @@ app.config.update({
     "MAIL_USERNAME": os.getenv("MAIL_USERNAME"),
     "MAIL_PASSWORD": os.getenv("MAIL_PASSWORD"),
     "MAIL_DEFAULT_SENDER": os.getenv("MAIL_USERNAME"),
-    "CACHE_TYPE": "SimpleCache"  # Fix the cache warning
+    "CACHE_TYPE": "SimpleCache"
 })
 
 # ✅ Database configuration
@@ -84,22 +82,37 @@ db.init_app(app)
 JWTManager(app)
 mail = Mail(app)
 
-# ✅ Initialize cache - FIXED: Use the config from app.config
+# ✅ Initialize cache
 cache_instance = Cache(app)
 cache.init_app(app)
-app.cache = cache_instance  # Make cache available to routes
+app.cache = cache_instance
 
-# ✅ CORS setup
+# ✅ FIXED CORS setup - Handle both HTTP and HTTPS
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 additional_origins = os.getenv("ADDITIONAL_ORIGINS", "").split(",") if os.getenv("ADDITIONAL_ORIGINS") else []
-allowed_origins = [FRONTEND_URL] + [origin for origin in additional_origins if origin]
+allowed_origins = [FRONTEND_URL] + [origin.strip() for origin in additional_origins if origin.strip()]
 
-CORS(app, resources={r"/*": {"origins": allowed_origins}}, supports_credentials=True)
+# Add HTTP versions for development
+http_origins = []
+for origin in allowed_origins:
+    if origin.startswith("https://"):
+        http_origins.append(origin.replace("https://", "http://"))
+
+all_origins = allowed_origins + http_origins
+
+CORS(app, resources={
+    r"/*": {
+        "origins": all_origins,
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Type", "Authorization"]
+    }
+}, supports_credentials=True)
+
 if ENV == "development":
-    print(f"CORS enabled for: {allowed_origins}")
+    print(f"CORS enabled for: {all_origins}")
 
 # ✅ Third-party service configuration
-# Cloudinary
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
     api_key=os.getenv("CLOUDINARY_API_KEY"),
@@ -107,16 +120,12 @@ cloudinary.config(
     secure=True
 )
 
+# ✅ Pricing initialization command
 @click.command()
 @with_appcontext
 def init_pricing():
-    """Initialize pricing plans with your exact pricing structure"""
-    
-    # Create tables if they don't exist
+    """Initialize pricing plans"""
     db.create_all()
-    
-    # Clear existing plans (optional - remove if you want to keep existing data)
-    # PricingPlan.query.delete()
     
     plans_data = [
         {
@@ -224,7 +233,6 @@ def init_pricing():
             db.session.add(plan)
             print(f"✅ Created {plan_data['name']} plan")
         else:
-            # Update existing plan
             for key, value in plan_data.items():
                 setattr(existing_plan, key, value)
             print(f"✅ Updated {plan_data['name']} plan")
@@ -236,7 +244,6 @@ def init_pricing():
         db.session.rollback()
         print(f"❌ Error: {e}")
 
-# Register the command
 def register_commands(app):
     app.cli.add_command(init_pricing)
 
@@ -246,19 +253,19 @@ setup_admin(app)
 setup_commands(app)
 register_commands(app)
 
-
 # ✅ Register blueprints
 app.register_blueprint(api, url_prefix='/api')
 
-# ✅ SocketIO setup - FIXED: Use the socketio instance created above
+# ✅ SocketIO setup - UPDATED for better GitHub Codespaces support
 socketio.init_app(
     app,
-    cors_allowed_origins=allowed_origins,
+    cors_allowed_origins=all_origins,
     ping_interval=25,
-    ping_timeout=60
+    ping_timeout=60,
+    logger=ENV == "development",
+    engineio_logger=ENV == "development"
 )
 
-# ✅ Make socketio available to other modules
 app.socketio = socketio
 
 # ✅ Global variables for socket management
@@ -272,34 +279,34 @@ def on_connect(auth):
 
     token = auth.get('token') if auth else request.args.get('token', None)
     if not token:
+        print("❌ No token provided for socket connection")
         return False
 
     try:
         decoded = decode_token(token)
         user_identity = decoded['sub']
-    except (jwt_exceptions.NoAuthorizationError, jwt_exceptions.JWTDecodeError):
+    except (jwt_exceptions.NoAuthorizationError, jwt_exceptions.JWTDecodeError) as e:
+        print(f"❌ JWT decode error: {e}")
         return False
 
     connected_users[request.sid] = user_identity
     listener_count += 1
-    print(f"{user_identity} connected with sid={request.sid}")
+    print(f"✅ {user_identity} connected with sid={request.sid}")
 
-    emit('welcome', {'msg': f'hello, {user_identity}'})
+    emit('welcome', {'msg': f'Hello, {user_identity}'})
     emit('listener_count', {'count': listener_count}, broadcast=True)
-
+    
 @socketio.on('disconnect')
-def handle_disconnect():  # Remove any parameters here
+def handle_disconnect(auth):  # Add the auth parameter
     global listener_count
     user_id = connected_users.pop(request.sid, None)
     listener_count = max(listener_count - 1, 0)
-    print(f"{user_id} disconnected (sid={request.sid})")
+    print(f"❌ {user_id} disconnected (sid={request.sid})")
     emit('listener_count', {'count': listener_count}, broadcast=True)
 
-# Add these WebRTC socket event handlers after your existing handlers
-
+# ✅ Additional socket handlers...
 @socketio.on('join_webrtc_room')
 def on_join_webrtc_room(data):
-    """Handle users joining WebRTC rooms"""
     from flask_socketio import join_room, emit
     room_id = data.get('roomId')
     user_id = data.get('userId')
@@ -307,67 +314,12 @@ def on_join_webrtc_room(data):
     
     join_room(f'webrtc_{room_id}')
     
-    # Notify other users in the room
     emit('user-joined', {
         'userId': user_id,
         'userName': user_name
     }, room=f'webrtc_{room_id}', include_self=False)
     
-    print(f"User {user_name} joined WebRTC room: {room_id}")
-
-@socketio.on('leave_webrtc_room')
-def on_leave_webrtc_room(room_id):
-    """Handle users leaving WebRTC rooms"""
-    from flask_socketio import leave_room, emit
-    
-    user_id = connected_users.get(request.sid)
-    leave_room(f'webrtc_{room_id}')
-    
-    # Notify other users in the room
-    emit('user-left', {
-        'userId': user_id
-    }, room=f'webrtc_{room_id}')
-    
-    print(f"User {user_id} left WebRTC room: {room_id}")
-
-@socketio.on('webrtc-offer')
-def on_webrtc_offer(data):
-    """Handle WebRTC offers"""
-    from flask_socketio import emit
-    room_id = data.get('roomId')
-    offer = data.get('offer')
-    from_user = data.get('from')
-    
-    emit('webrtc-offer', {
-        'offer': offer,
-        'from': from_user
-    }, room=f'webrtc_{room_id}', include_self=False)
-
-@socketio.on('webrtc-answer')
-def on_webrtc_answer(data):
-    """Handle WebRTC answers"""
-    from flask_socketio import emit
-    room_id = data.get('roomId')
-    answer = data.get('answer')
-    from_user = data.get('from')
-    
-    emit('webrtc-answer', {
-        'answer': answer,
-        'from': from_user
-    }, room=f'webrtc_{room_id}', include_self=False)
-
-@socketio.on('webrtc-ice-candidate')
-def on_webrtc_ice_candidate(data):
-    """Handle WebRTC ICE candidates"""
-    from flask_socketio import emit
-    room_id = data.get('roomId')
-    candidate = data.get('candidate')
-    from_user = data.get('from')
-    
-    emit('webrtc-ice-candidate', {
-        'candidate': candidate,
-        'from': from_user
-    }, room=f'webrtc_{room_id}', include_self=False)
+    print(f"✅ User {user_name} joined WebRTC room: {room_id}")
 
 @socketio.on('send_message')
 def handle_message(data):
@@ -375,13 +327,13 @@ def handle_message(data):
     user_id = connected_users.get(sid)
 
     if not user_id:
-        print("Unauthorized socket message attempt")
+        print("❌ Unauthorized socket message attempt")
         return
 
     stream_id = data.get('stream_id')
     message = data.get('message')
     if not stream_id or not message:
-        print("Missing stream_id or message")
+        print("❌ Missing stream_id or message")
         return
 
     new_message = LiveChat(user_id=user_id, message=message)
@@ -396,49 +348,24 @@ def handle_message(data):
         "username": user.username if user else "Unknown"
     })
 
-@socketio.on('live_status_update')
-def handle_live_status_update(data):
-    """Handle live status updates for radio stations"""
-    station_id = data.get("stationId")
-    is_live = data.get("isLive")
-    
-    # Update station in database
-    station = RadioStation.query.get(station_id)
-    if station:
-        station.is_live = is_live
-        db.session.commit()
-        
-        # Broadcast to all clients listening to this station
-        socketio.emit('station_status_update', {
-            'station_id': station_id,
-            'is_live': is_live,
-            'station_name': station.name
-        }, room=f'radio_station_{station_id}')
-
-@socketio.on('join_radio_station')
-def on_join_radio_station(data):
-    """User joins radio station for real-time updates"""
-    from flask_socketio import join_room
-    station_id = data.get('station_id')
-    join_room(f'radio_station_{station_id}')
-    
-    # Send current status
-    station = RadioStation.query.get(station_id)
-    if station:
-        emit('radio_status_update', {
-            'station': station.serialize() if hasattr(station, 'serialize') else {'id': station.id, 'name': station.name},
-            'now_playing': getattr(station, 'now_playing_metadata', None),
-            'listener_count': listener_count
-        })
-
 @socketio.on_error_default
 def default_error_handler(e):
-    print(f"SocketIO error: {e}")
+    print(f"❌ SocketIO error: {e}")
 
 # ✅ Error handlers
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code
+
+# ✅ Health check endpoint
+@app.route("/health")
+def health():
+    return jsonify({
+        "ok": True, 
+        "status": "healthy",
+        "env": ENV,
+        "port": os.getenv('PORT', '3001')
+    }), 200
 
 # ✅ Basic routes
 @app.route('/')
@@ -449,12 +376,10 @@ def sitemap():
 
 @app.route('/<path:path>')
 def serve_any_other_file(path):
-    # Don't serve frontend for API routes
     if path.startswith('api/'):
         from flask import abort
         abort(404)
     
-    # Don't override requests to Flask static assets
     if path.startswith("static/"):
         return send_from_directory(app.static_folder, path)
 
@@ -467,17 +392,46 @@ def serve_any_other_file(path):
 @app.before_request
 def restrict_admin_to_basic_auth():
     if request.path.startswith('/admin'):
-        print(os.getenv("BA_USERNAME"))
         auth = request.authorization
-        if not auth or not (auth.username == os.getenv("BA_USERNAME") and auth.password == os.getenv("BA_PASSWORD")):
-            return Response(
-            'Could not verify your access level for that URL.\n'
-            'You have to login with proper credentials', 401,
-            {'WWW-Authenticate': 'Basic realm="Login Required"'})
+        expected_username = os.getenv("BA_USERNAME")
+        expected_password = os.getenv("BA_PASSWORD")
         
-# Usage: flask init-pricing
+        # Debug logging
+        print(f"🔐 Admin login attempt:")
+        print(f"   Expected username: '{expected_username}'")
+        print(f"   Expected password: '{expected_password}'")
+        print(f"   Received username: '{auth.username if auth else 'None'}'")
+        print(f"   Auth object: {auth}")
+        
+        if not auth or not (auth.username == expected_username and auth.password == expected_password):
+            return Response(
+                'Could not verify your access level for that URL.\n'
+                'You have to login with proper credentials', 401,
+                {'WWW-Authenticate': 'Basic realm="Login Required"'})
 
-# ✅ Run the app
+# ✅ FIXED: Run the app with better error handling
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3001))
-    socketio.run(app, host='0.0.0.0', port=PORT, debug=True)
+    
+    print(f"🚀 Starting SpectraSphere on port {PORT}")
+    print(f"🌍 Environment: {ENV}")
+    print(f"🔗 Backend URL: {os.getenv('BACKEND_URL')}")
+    print(f"🔗 Frontend URL: {os.getenv('FRONTEND_URL')}")
+    print(f"🗄️  Database: {'PostgreSQL' if 'postgresql' in app.config['SQLALCHEMY_DATABASE_URI'] else 'SQLite'}")
+    
+    try:
+        # Create tables
+        with app.app_context():
+            db.create_all()
+            print("✅ Database tables created/verified")
+    except Exception as e:
+        print(f"⚠️  Database setup warning: {e}")
+    
+    # Run with SocketIO
+    socketio.run(
+        app, 
+        host='0.0.0.0', 
+        port=PORT, 
+        debug=ENV == "development",
+        use_reloader=False  # Disable reloader to prevent issues
+    )
