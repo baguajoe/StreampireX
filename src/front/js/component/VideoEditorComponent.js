@@ -2,503 +2,179 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, Pause, Square, RotateCcw, Download, Upload, Volume2, VolumeX, 
   Eye, EyeOff, Lock, Unlock, Plus, Trash2, Scissors, Copy, Move, Settings, 
-  Music, Video, AudioWaveform, Share2, Save, FileVideo, FileAudio, Youtube, 
-  Instagram, Facebook, Twitter, ChevronDown, ChevronUp, Layers, Zap, Filter, 
-  Palette, Tv, AlertTriangle, Crown, Star, Bolt, Info, MousePointer, Hand, 
-  Type, Square as RectangleTool, Circle, Pen, Eraser, Crop, RotateCw, FlipHorizontal,
-  ZoomIn, ZoomOut, Grid, Minimize2, Maximize2, MoreVertical, X
+  Music, Video, AudioWaveform, Save, Youtube, Instagram, Facebook, Twitter, 
+  ChevronDown, ChevronUp, Layers, Zap, Filter, 
+  Palette, Tv, Info, MousePointer, Hand, Type, 
+  Circle, Pen, Eraser, Crop, RotateCw, FlipHorizontal,
+  ZoomIn, ZoomOut, Grid, Minimize2, Maximize2, MoreVertical, X, Crown, Star, Bolt,
+  Sliders, Image, Wand2, Sparkles, Sun, Droplets, Contrast,
+  RefreshCw, SkipForward, Rewind, FastForward, Monitor, Camera
 } from 'lucide-react';
 
-// Import the CSS file - make sure this path matches your CSS file location
-import '../../styles/VideoEditorComponent.css';
-
 const VideoEditorComponent = () => {
-  // State management
-  const [project, setProject] = useState(null);
-  const [tracks, setTracks] = useState([]);
-  const [selectedClip, setSelectedClip] = useState(null);
-  const [selectedTrack, setSelectedTrack] = useState(null);
-  const [selectedTool, setSelectedTool] = useState('select');
+  // Core state
+  const [project, setProject] = useState({
+    title: 'My Video Project',
+    duration: 300,
+    frameRate: 30,
+    resolution: { width: 1920, height: 1080 }
+  });
+  
+  const [tracks, setTracks] = useState([
+    {
+      id: 1,
+      name: 'Video 1',
+      type: 'video',
+      visible: true,
+      muted: false,
+      locked: false,
+      color: '#4a9eff',
+      clips: [
+        {
+          id: 1,
+          title: 'Main_Clip.mp4',
+          startTime: 30,
+          duration: 120,
+          type: 'video',
+          effects: [] // Store applied effects
+        },
+        {
+          id: 3,
+          title: 'Second_Clip.mp4',
+          startTime: 160,
+          duration: 80,
+          type: 'video',
+          effects: []
+        }
+      ],
+      transitions: [
+        {
+          id: 1,
+          type: 'crossDissolve',
+          startTime: 148,
+          duration: 2,
+          fromClip: 1,
+          toClip: 3
+        }
+      ]
+    },
+    {
+      id: 2,
+      name: 'Audio 1',
+      type: 'audio',
+      visible: true,
+      muted: false,
+      locked: false,
+      color: '#00d4aa',
+      clips: [
+        {
+          id: 2,
+          title: 'Background_Music.wav',
+          startTime: 30,
+          duration: 180,
+          type: 'audio',
+          effects: []
+        }
+      ],
+      transitions: []
+    }
+  ]);
+
+  // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(300); // 5 minutes for demo
+  const [duration] = useState(300);
+  const [selectedTool, setSelectedTool] = useState('select');
+  const [selectedClip, setSelectedClip] = useState(null);
+  const [selectedTransition, setSelectedTransition] = useState(null);
   const [zoom, setZoom] = useState(1);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [showPlatformModal, setShowPlatformModal] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [exportProgress, setExportProgress] = useState(0);
-  const [isExporting, setIsExporting] = useState(false);
-  const [mediaLibrary, setMediaLibrary] = useState([]);
-  const [showMediaLibrary, setShowMediaLibrary] = useState(false);
-  
-  // User tier and limits
-  const [userTier, setUserTier] = useState('free');
-  const [userLimits, setUserLimits] = useState(null);
-  const [userUsage, setUserUsage] = useState(null);
-  const [showLimitsModal, setShowLimitsModal] = useState(false);
-  const [availablePlans, setAvailablePlans] = useState([]);
 
-  // Layout state
-  const [leftPanelWidth, setLeftPanelWidth] = useState(240);
-  const [timelineHeight, setTimelineHeight] = useState(300);
+  // User tier
+  const [userTier] = useState('premium');
+
+  // UI state
+  const [showSnapToGrid, setShowSnapToGrid] = useState(true);
+  const [showAudioWaveforms, setShowAudioWaveforms] = useState(true);
+  const [activeEffects, setActiveEffects] = useState({});
+  const [showEffectsPanel, setShowEffectsPanel] = useState(false);
+  const [draggedTransition, setDraggedTransition] = useState(null);
+  const [draggedEffect, setDraggedEffect] = useState(null);
+  
+  // Dropdown states for organized sections
+  const [showVideoEffects, setShowVideoEffects] = useState(true);
+  const [showAudioEffects, setShowAudioEffects] = useState(true);
+  const [showTransitions, setShowTransitions] = useState(true);
 
   const timelineRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // API Base URL
-  const API_BASE = process.env.REACT_APP_BACKEND_URL || '';
-
-  // Tool definitions
+  // Tools configuration
   const tools = [
-    { id: 'select', icon: MousePointer, name: 'Selection Tool', shortcut: 'V' },
-    { id: 'razor', icon: Scissors, name: 'Razor Tool', shortcut: 'C' },
-    { id: 'hand', icon: Hand, name: 'Hand Tool', shortcut: 'H' },
-    { id: 'text', icon: Type, name: 'Text Tool', shortcut: 'T' },
-    { id: 'rectangle', icon: RectangleTool, name: 'Rectangle', shortcut: 'R' },
-    { id: 'circle', icon: Circle, name: 'Ellipse', shortcut: 'E' },
-    { id: 'pen', icon: Pen, name: 'Pen Tool', shortcut: 'P' }
+    { id: 'select', icon: MousePointer, name: 'Selection Tool' },
+    { id: 'razor', icon: Scissors, name: 'Razor Tool' },
+    { id: 'hand', icon: Hand, name: 'Hand Tool' },
+    { id: 'text', icon: Type, name: 'Text Tool' }
   ];
 
-  // Tier configurations
-  const tierConfig = {
-    free: {
-      name: 'Free',
-      color: '#6c757d',
-      icon: Info,
-      features: ['Basic editing', '720p export', 'MP4 format only', '2 video tracks']
-    },
-    basic: {
-      name: 'Basic',
-      color: '#17a2b8',
-      icon: Star,
-      features: ['HD editing', '1080p export', 'Multiple formats', '8 video tracks']
-    },
-    premium: {
-      name: 'Premium',
-      color: '#28a745',
-      icon: Crown,
-      features: ['4K editing', 'Professional effects', 'Unlimited tracks', 'Multi-platform export']
-    },
-    professional: {
-      name: 'Professional',
-      color: '#ffc107',
-      icon: Bolt,
-      features: ['8K editing', 'Advanced codecs', 'Team collaboration', 'Priority support']
-    }
-  };
-
-  // Platform export options with tier restrictions
-  const platforms = [
-    { 
-      id: 'youtube', 
-      name: 'YouTube', 
-      icon: Youtube, 
-      minTier: 'free',
-      formats: ['mp4'], 
-      maxSize: '128GB', 
-      maxDuration: '12h', 
-      requirements: '1080p recommended' 
-    },
-    { 
-      id: 'instagram', 
-      name: 'Instagram', 
-      icon: Instagram, 
-      minTier: 'basic',
-      formats: ['mp4', 'mov'], 
-      maxSize: '4GB', 
-      maxDuration: '60s (Reels)', 
-      requirements: '1080x1920 (Stories), 1080x1080 (Posts)' 
-    },
-    { 
-      id: 'tiktok', 
-      name: 'TikTok', 
-      icon: Tv, 
-      minTier: 'basic',
-      formats: ['mp4', 'mov'], 
-      maxSize: '287.6MB', 
-      maxDuration: '10m', 
-      requirements: '1080x1920, 30fps' 
-    },
-    { 
-      id: 'facebook', 
-      name: 'Facebook', 
-      icon: Facebook, 
-      minTier: 'basic',
-      formats: ['mp4', 'mov'], 
-      maxSize: '4GB', 
-      maxDuration: '4h', 
-      requirements: '1080p recommended' 
-    },
-    { 
-      id: 'twitter', 
-      name: 'Twitter/X', 
-      icon: Twitter, 
-      minTier: 'premium',
-      formats: ['mp4'], 
-      maxSize: '512MB', 
-      maxDuration: '2m20s', 
-      requirements: '1920x1080 max' 
-    }
+  // Effects library organized by category
+  const videoEffects = [
+    { id: 'brightness', name: 'Brightness', icon: Sun, category: 'color' },
+    { id: 'contrast', name: 'Contrast', icon: Contrast, category: 'color' },
+    { id: 'saturation', name: 'Saturation', icon: Droplets, category: 'color' },
+    { id: 'blur', name: 'Blur', icon: Circle, category: 'filter' },
+    { id: 'sharpen', name: 'Sharpen', icon: Zap, category: 'filter' }
   ];
 
-  // Initialize project and load user limits
-  useEffect(() => {
-    initializeProject();
-    loadUserLimits();
-    loadMediaLibrary();
-    loadAvailablePlans();
-  }, []);
+  const audioEffects = [
+    { id: 'reverb', name: 'Reverb', icon: AudioWaveform, category: 'audio' },
+    { id: 'echo', name: 'Echo', icon: RefreshCw, category: 'audio' },
+    { id: 'compressor', name: 'Compressor', icon: Minimize2, category: 'audio' },
+    { id: 'limiter', name: 'Limiter', icon: Maximize2, category: 'audio' },
+    { id: 'equalizer', name: 'Equalizer', icon: Sliders, category: 'audio' },
+    { id: 'noiseReduction', name: 'Noise Reduction', icon: Filter, category: 'audio' },
+    { id: 'bassBoost', name: 'Bass Boost', icon: Volume2, category: 'audio' },
+    { id: 'chorus', name: 'Chorus', icon: Copy, category: 'audio' },
+    { id: 'delay', name: 'Delay', icon: SkipForward, category: 'audio' },
+    { id: 'distortion', name: 'Distortion', icon: Zap, category: 'audio' },
+    { id: 'pitchShift', name: 'Pitch Shift', icon: ChevronUp, category: 'audio' },
+    { id: 'highPass', name: 'High Pass Filter', icon: ChevronUp, category: 'audio' },
+    { id: 'lowPass', name: 'Low Pass Filter', icon: ChevronDown, category: 'audio' },
+    { id: 'stereoWiden', name: 'Stereo Widener', icon: Maximize2, category: 'audio' },
+    { id: 'gateExpander', name: 'Gate/Expander', icon: Volume2, category: 'audio' }
+  ];
 
-  const loadUserLimits = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/api/user/video-editor/limits`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setUserTier(data.user_tier);
-        setUserLimits(data.limits);
-        setUserUsage(data.usage);
-      } else {
-        // Fallback data for demo
-        setUserLimits({
-          max_projects: 3,
-          max_tracks_per_project: 2,
-          video_clip_max_size: 500 * 1024 * 1024, // 500MB
-          project_total_max_size: 2 * 1024 * 1024 * 1024, // 2GB
-          max_export_quality: '720p'
-        });
-        setUserUsage({
-          current_projects: 1,
-          current_total_size: 250 * 1024 * 1024 // 250MB
-        });
-      }
-    } catch (error) {
-      console.error('Failed to load user limits:', error);
-      // Fallback data
-      setUserLimits({
-        max_projects: 3,
-        max_tracks_per_project: 2,
-        video_clip_max_size: 500 * 1024 * 1024,
-        project_total_max_size: 2 * 1024 * 1024 * 1024,
-        max_export_quality: '720p'
-      });
-      setUserUsage({
-        current_projects: 1,
-        current_total_size: 250 * 1024 * 1024
-      });
-    }
+  // Combine for compatibility
+  const effects = [...videoEffects, ...audioEffects];
+
+  // Transitions library
+  const transitions = [
+    { id: 'crossDissolve', name: 'Cross Dissolve', icon: Layers, duration: 1 },
+    { id: 'fade', name: 'Fade to Black', icon: Circle, duration: 0.5 },
+    { id: 'wipeLeft', name: 'Wipe Left', icon: Move, duration: 1 },
+    { id: 'wipeRight', name: 'Wipe Right', icon: Move, duration: 1 },
+    { id: 'slideLeft', name: 'Slide Left', icon: ChevronDown, duration: 1 },
+    { id: 'slideRight', name: 'Slide Right', icon: ChevronUp, duration: 1 },
+    { id: 'zoomIn', name: 'Zoom In', icon: ZoomIn, duration: 1 },
+    { id: 'zoomOut', name: 'Zoom Out', icon: ZoomOut, duration: 1 },
+    { id: 'spin', name: 'Spin', icon: RotateCw, duration: 1.5 },
+    { id: 'flip', name: 'Flip', icon: FlipHorizontal, duration: 0.75 }
+  ];
+
+  // Media library
+  const [mediaLibrary] = useState([
+    { id: 1, name: 'Interview_Setup.mp4', type: 'video', duration: '5:23' },
+    { id: 2, name: 'Background_Music.wav', type: 'audio', duration: '3:45' },
+    { id: 3, name: 'Logo_Animation.mov', type: 'video', duration: '0:08' }
+  ]);
+
+  // Playback controls
+  const playPause = () => setIsPlaying(!isPlaying);
+  const stop = () => {
+    setIsPlaying(false);
+    setCurrentTime(0);
   };
 
-  const loadAvailablePlans = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/video-editor/plans`);
-      if (response.ok) {
-        const data = await response.json();
-        setAvailablePlans(data.plans || [
-          { id: 1, name: 'Basic', price_monthly: 9.99 },
-          { id: 2, name: 'Premium', price_monthly: 19.99 },
-          { id: 3, name: 'Professional', price_monthly: 39.99 }
-        ]);
-      }
-    } catch (error) {
-      console.error('Failed to load available plans:', error);
-      setAvailablePlans([
-        { id: 1, name: 'Basic', price_monthly: 9.99 },
-        { id: 2, name: 'Premium', price_monthly: 19.99 },
-        { id: 3, name: 'Professional', price_monthly: 39.99 }
-      ]);
-    }
-  };
-
-  const initializeProject = async () => {
-    const sampleProject = {
-      id: 1,
-      title: 'Video Podcast Test Footage 2',
-      duration: 300,
-      frameRate: 30,
-      resolution: { width: 1920, height: 1080 }
-    };
-
-    const sampleTracks = [
-      {
-        id: 1,
-        name: 'V2',
-        type: 'video',
-        order: 0,
-        visible: true,
-        muted: false,
-        locked: false,
-        volume: 1.0,
-        color: '#4a9eff',
-        clips: []
-      },
-      {
-        id: 2,
-        name: 'V1',
-        type: 'video',
-        order: 1,
-        visible: true,
-        muted: false,
-        locked: false,
-        volume: 1.0,
-        color: '#00d4aa',
-        clips: [
-          {
-            id: 1,
-            title: 'Video Podcast Test Footage 1.mov.mp4',
-            startTime: 30,
-            duration: 120,
-            type: 'video'
-          }
-        ]
-      },
-      {
-        id: 3,
-        name: 'A2',
-        type: 'audio',
-        order: 2,
-        visible: true,
-        muted: false,
-        locked: false,
-        volume: 0.7,
-        color: '#ff6b6b',
-        clips: []
-      },
-      {
-        id: 4,
-        name: 'A1',
-        type: 'audio',
-        order: 3,
-        visible: true,
-        muted: false,
-        locked: false,
-        volume: 0.8,
-        color: '#4ecdc4',
-        clips: [
-          {
-            id: 2,
-            title: 'Audio Track 1',
-            startTime: 30,
-            duration: 120,
-            type: 'audio'
-          }
-        ]
-      },
-      {
-        id: 5,
-        name: 'Mix',
-        type: 'master',
-        order: 4,
-        visible: true,
-        muted: false,
-        locked: false,
-        volume: 1.0,
-        color: '#95a5a6',
-        clips: []
-      }
-    ];
-
-    setProject(sampleProject);
-    setTracks(sampleTracks);
-  };
-
-  const loadMediaLibrary = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/api/media-assets`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setMediaLibrary(data.assets || []);
-      } else {
-        // Fallback demo data
-        setMediaLibrary([
-          { id: 1, name: 'Clip 1.mp4', type: 'video', size: 50 * 1024 * 1024 },
-          { id: 2, name: 'Audio.wav', type: 'audio', size: 20 * 1024 * 1024 }
-        ]);
-      }
-    } catch (error) {
-      console.error('Failed to load media library:', error);
-      setMediaLibrary([
-        { id: 1, name: 'Clip 1.mp4', type: 'video', size: 50 * 1024 * 1024 },
-        { id: 2, name: 'Audio.wav', type: 'audio', size: 20 * 1024 * 1024 }
-      ]);
-    }
-  };
-
-  // Check if user can perform action based on tier
-  const checkTierLimit = (action) => {
-    if (!userLimits) return { allowed: true };
-
-    switch (action) {
-      case 'add_track':
-        if (userLimits.max_tracks_per_project !== -1 && tracks.length >= userLimits.max_tracks_per_project) {
-          return {
-            allowed: false,
-            message: `Track limit reached (${userLimits.max_tracks_per_project}). Upgrade to add more tracks.`,
-            upgradeRequired: true
-          };
-        }
-        break;
-      case 'add_project':
-        if (userUsage && userLimits.max_projects !== -1 && userUsage.current_projects >= userLimits.max_projects) {
-          return {
-            allowed: false,
-            message: `Project limit reached (${userLimits.max_projects}). Upgrade to create more projects.`,
-            upgradeRequired: true
-          };
-        }
-        break;
-      case 'export_4k':
-        if (userLimits.max_export_quality !== '4k' && userLimits.max_export_quality !== '8k') {
-          return {
-            allowed: false,
-            message: 'Upgrade to premium for 4K export.',
-            upgradeRequired: true
-          };
-        }
-        break;
-    }
-
-    return { allowed: true };
-  };
-
-  // File upload with size validation
-  const handleFileUpload = async (file, type = 'video') => {
-    if (!file) return;
-
-    // Check file size based on tier
-    const maxSize = userLimits?.[`${type}_clip_max_size`] || (500 * 1024 * 1024); // 500MB default
-    
-    if (file.size > maxSize) {
-      const tierName = tierConfig[userTier]?.name || 'Free';
-      alert(`File too large for ${tierName} tier. Maximum size: ${formatBytes(maxSize)}. Current file: ${formatBytes(file.size)}`);
-      setShowUpgradeModal(true);
-      return;
-    }
-
-    // Upload file
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', type);
-
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/api/media-assets/upload`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setMediaLibrary(prev => [...prev, data.asset]);
-        
-        if (data.remaining_limits) {
-          setUserUsage(data.remaining_limits);
-        }
-        
-        alert('File uploaded successfully!');
-      } else {
-        const error = await response.json();
-        if (error.upgrade_required) {
-          setShowUpgradeModal(true);
-        }
-        alert(error.error || 'Upload failed');
-      }
-    } catch (error) {
-      console.error('Upload failed:', error);
-      // Demo functionality - just add to media library
-      const newAsset = {
-        id: Date.now(),
-        name: file.name,
-        type: file.type.startsWith('video') ? 'video' : 'audio',
-        size: file.size
-      };
-      setMediaLibrary(prev => [...prev, newAsset]);
-      alert('File uploaded successfully! (Demo mode)');
-    }
-  };
-
-  const addTrack = async () => {
-    const limitCheck = checkTierLimit('add_track');
-    if (!limitCheck.allowed) {
-      alert(limitCheck.message);
-      if (limitCheck.upgradeRequired) {
-        setShowUpgradeModal(true);
-      }
-      return;
-    }
-
-    const newTrack = {
-      id: Date.now(),
-      name: `Track ${tracks.length + 1}`,
-      type: 'video',
-      order: tracks.length,
-      visible: true,
-      muted: false,
-      locked: false,
-      volume: 1.0,
-      color: '#9b59b6',
-      clips: []
-    };
-
-    setTracks(prev => [...prev, newTrack]);
-  };
-
-  const initiateUpgrade = async (planId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/api/user/video-editor/subscription/upgrade`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          plan_id: planId,
-          billing_cycle: 'monthly'
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        window.location.href = data.checkout_url;
-      } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to initiate upgrade');
-      }
-    } catch (error) {
-      console.error('Failed to initiate upgrade:', error);
-      alert('Upgrade feature available in production version');
-    }
-  };
-
-  const formatBytes = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const formatTime = (seconds) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    const frames = Math.floor((seconds % 1) * 30); // 30fps
-    
-    if (hours > 0) {
-      return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
-    }
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}:${frames.toString().padStart(2, '0')}`;
-  };
-
+  // Timeline interaction
   const handleTimelineClick = (e) => {
     if (!timelineRef.current) return;
     const rect = timelineRef.current.getBoundingClientRect();
@@ -508,512 +184,156 @@ const VideoEditorComponent = () => {
     setCurrentTime(Math.max(0, Math.min(duration, clickTime)));
   };
 
-  const playPause = () => {
-    setIsPlaying(!isPlaying);
-  };
+  // Effect application function
+  const applyEffect = (clipId, effectId, value) => {
+    setActiveEffects(prev => ({
+      ...prev,
+      [clipId]: {
+        ...prev[clipId],
+        [effectId]: value
+      }
+    }));
 
-  const stop = () => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-  };
-
-  const startExport = () => {
-    setIsExporting(true);
-    setExportProgress(0);
-    
-    // Simulate export progress
-    const interval = setInterval(() => {
-      setExportProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsExporting(false);
-          setShowExportModal(false);
-          alert('Export completed successfully!');
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 500);
-  };
-
-  const TierBadge = ({ tier }) => {
-    const config = tierConfig[tier];
-    if (!config) return null;
-
-    const Icon = config.icon;
-    return (
-      <div className="tier-badge-small" style={{ color: config.color }}>
-        <Icon size={12} />
-        {config.name}
-      </div>
+    // Also update the clips array to store applied effects
+    setTracks(prevTracks => 
+      prevTracks.map(track => ({
+        ...track,
+        clips: track.clips.map(clip => 
+          clip.id === clipId 
+            ? {
+                ...clip,
+                effects: [
+                  ...clip.effects.filter(e => e.id !== effectId),
+                  { id: effectId, value: parseFloat(value) }
+                ]
+              }
+            : clip
+        )
+      }))
     );
   };
 
-  const LimitsModal = () => (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h3 className="modal-title">Your Limits</h3>
-          <TierBadge tier={userTier} />
-        </div>
-        
-        {userLimits && userUsage ? (
-          <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '8px', color: 'var(--editor-text-secondary)' }}>
-                <span>Projects</span>
-                <span>
-                  {userUsage.current_projects} / {userLimits.max_projects === -1 ? '∞' : userLimits.max_projects}
-                </span>
-              </div>
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill progress-blue"
-                  style={{ 
-                    width: userLimits.max_projects === -1 ? '0%' : 
-                    `${Math.min(100, (userUsage.current_projects / userLimits.max_projects) * 100)}%` 
-                  }}
-                />
-              </div>
-            </div>
-            
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '8px', color: 'var(--editor-text-secondary)' }}>
-                <span>Storage Used</span>
-                <span>{formatBytes(userUsage.current_total_size)} / {formatBytes(userLimits.project_total_max_size)}</span>
-              </div>
-              <div className="progress-bar">
-                <div 
-                  className="progress-fill progress-green"
-                  style={{ 
-                    width: `${Math.min(100, (userUsage.current_total_size / userLimits.project_total_max_size) * 100)}%` 
-                  }}
-                />
-              </div>
-            </div>
+  // Effect drag and drop handlers
+  const handleEffectDragStart = (e, effect) => {
+    setDraggedEffect(effect);
+    e.dataTransfer.effectAllowed = 'copy';
+  };
 
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '8px', color: 'var(--editor-text-secondary)' }}>
-                <span>Max Video File Size</span>
-                <span>{formatBytes(userLimits.video_clip_max_size)}</span>
-              </div>
-            </div>
+  const handleEffectDrop = (e, clipId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!draggedEffect) return;
 
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '8px', color: 'var(--editor-text-secondary)' }}>
-                <span>Max Export Quality</span>
-                <span>{userLimits.max_export_quality}</span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div style={{ color: 'var(--editor-text-secondary)', textAlign: 'center', padding: '20px' }}>
-            Loading limits...
-          </div>
-        )}
-        
-        <div style={{ marginTop: '32px', display: 'flex', gap: '12px', position: 'relative', zIndex: 1 }}>
-          <button
-            onClick={() => setShowUpgradeModal(true)}
-            className="export-btn-top"
-            style={{ flex: 1 }}
-          >
-            Upgrade Plan
-          </button>
-          <button
-            onClick={() => setShowLimitsModal(false)}
-            className="control-btn-small"
-            style={{ flex: 1 }}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+    // Find the clip and add the effect
+    const targetClip = tracks.flatMap(track => track.clips).find(clip => clip.id === clipId);
+    if (targetClip) {
+      // Apply default effect value
+      applyEffect(clipId, draggedEffect.id, 50);
+      
+      // Select the clip to show effects panel
+      setSelectedClip(targetClip);
+      setShowEffectsPanel(true);
+      
+      console.log(`Applied ${draggedEffect.name} to ${targetClip.title}`);
+    }
+    
+    setDraggedEffect(null);
+  };
 
-  const UpgradeModal = () => (
-    <div className="modal-overlay">
-      <div className="modal-content upgrade-modal">
-        <div className="modal-header">
-          <h3 className="modal-title">Upgrade Your Video Editor Plan</h3>
-          <button
-            onClick={() => setShowUpgradeModal(false)}
-            className="preview-control-btn"
-          >
-            <X size={16} />
-          </button>
-        </div>
-        
-        <div className="plans-grid">
-          {availablePlans.map((plan) => {
-            const tierKey = plan.name.toLowerCase();
-            const config = tierConfig[tierKey] || tierConfig.free;
-            const Icon = config.icon;
-            const isCurrentTier = tierKey === userTier;
-            
-            return (
-              <div 
-                key={plan.id}
-                className={`plan-card ${isCurrentTier ? 'plan-card-current' : ''}`}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', justifyContent: 'center' }}>
-                  <Icon size={24} style={{ color: config.color, marginRight: '8px' }} />
-                  <h4 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: config.color }}>
-                    {plan.name}
-                  </h4>
-                  {isCurrentTier && <span style={{ marginLeft: '8px', fontSize: '0.75rem', background: config.color, color: 'white', padding: '4px 8px', borderRadius: '4px' }}>Current</span>}
-                </div>
-                
-                <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--editor-text-primary)' }}>${plan.price_monthly}</div>
-                  <div style={{ fontSize: '0.875rem', color: 'var(--editor-text-secondary)' }}>per month</div>
-                </div>
-                
-                <ul style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.875rem', marginBottom: '32px', listStyle: 'none', padding: 0 }}>
-                  {config.features.map((feature, index) => (
-                    <li key={index} style={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ color: '#4ade80', marginRight: '8px', fontWeight: 'bold' }}>✓</span>
-                      <span style={{ color: 'var(--editor-text-secondary)' }}>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                {!isCurrentTier && (
-                  <button 
-                    className="export-btn-top"
-                    style={{ width: '100%' }}
-                    onClick={() => initiateUpgrade(plan.id)}
-                  >
-                    Upgrade to {plan.name}
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
+  const handleEffectDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
 
-  const ExportModal = () => (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h3 className="modal-title">Export Video</h3>
-          <button
-            onClick={() => setShowExportModal(false)}
-            className="preview-control-btn"
-          >
-            <X size={16} />
-          </button>
-        </div>
-        
-        {isExporting ? (
-          <div style={{ position: 'relative', zIndex: 1, padding: '20px', textAlign: 'center' }}>
-            <h4>Exporting...</h4>
-            <div className="progress-bar" style={{ marginTop: '20px' }}>
-              <div 
-                className="progress-fill progress-green"
-                style={{ width: `${exportProgress}%` }}
-              />
-            </div>
-            <p style={{ marginTop: '10px', color: 'var(--editor-text-secondary)' }}>
-              {exportProgress}% Complete
-            </p>
-          </div>
-        ) : (
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: 'var(--editor-text-primary)' }}>
-                Export Quality
-              </label>
-              <select style={{ width: '100%', padding: '8px', background: 'var(--editor-bg-panel)', color: 'var(--editor-text-primary)', border: '1px solid var(--editor-border)', borderRadius: '4px' }}>
-                <option value="720p">720p HD</option>
-                <option value="1080p" disabled={userTier === 'free'}>1080p Full HD {userTier === 'free' && '(Premium)'}</option>
-                <option value="4k" disabled={userTier !== 'premium' && userTier !== 'professional'}>4K Ultra HD (Premium+)</option>
-              </select>
-            </div>
+  // Transition functions
+  const addTransition = (trackId, transitionType, startTime, duration = 1) => {
+    const newTransition = {
+      id: Date.now(),
+      type: transitionType,
+      startTime,
+      duration,
+      fromClip: null,
+      toClip: null
+    };
 
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', color: 'var(--editor-text-primary)' }}>
-                Format
-              </label>
-              <select style={{ width: '100%', padding: '8px', background: 'var(--editor-bg-panel)', color: 'var(--editor-text-primary)', border: '1px solid var(--editor-border)', borderRadius: '4px' }}>
-                <option value="mp4">MP4</option>
-                <option value="mov" disabled={userTier === 'free'}>MOV (Basic+)</option>
-                <option value="avi" disabled={userTier === 'free'}>AVI (Basic+)</option>
-              </select>
-            </div>
+    setTracks(tracks.map(track => 
+      track.id === trackId 
+        ? { ...track, transitions: [...(track.transitions || []), newTransition] }
+        : track
+    ));
+  };
 
-            <div style={{ marginTop: '32px', display: 'flex', gap: '12px' }}>
-              <button
-                onClick={startExport}
-                className="export-btn-top"
-                style={{ flex: 1 }}
-              >
-                Start Export
-              </button>
-              <button
-                onClick={() => setShowExportModal(false)}
-                className="control-btn-small"
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  const handleTransitionDragStart = (e, transition) => {
+    setDraggedTransition(transition);
+    e.dataTransfer.effectAllowed = 'copy';
+  };
 
-  const ToolbarComponent = () => (
-    <div className="editor-toolbar">
-      <div className="toolbar-section">
-        <h4>Tools</h4>
-        <div className="tool-grid">
-          {tools.map(tool => {
-            const Icon = tool.icon;
-            return (
-              <button
-                key={tool.id}
-                className={`tool-btn ${selectedTool === tool.id ? 'active' : ''}`}
-                onClick={() => setSelectedTool(tool.id)}
-                title={`${tool.name} (${tool.shortcut})`}
-              >
-                <Icon size={18} />
-              </button>
-            );
-          })}
-        </div>
-      </div>
+  const handleTimelineDrop = (e, trackId) => {
+    e.preventDefault();
+    if (!draggedTransition) return;
 
-      <div className="toolbar-section">
-        <h4>Effects</h4>
-        <div className="effect-list">
-          <div className="effect-item" draggable>
-            <Zap size={16} />
-            <span>Transition</span>
-          </div>
-          <div className="effect-item" draggable>
-            <Palette size={16} />
-            <span>Color</span>
-          </div>
-          <div className="effect-item" draggable>
-            <Filter size={16} />
-            <span>Blur</span>
-          </div>
-        </div>
-      </div>
+    const rect = timelineRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const timelineWidth = rect.width;
+    const dropTime = (x / timelineWidth) * duration;
 
-      <div className="toolbar-section">
-        <h4>Media</h4>
-        <div className="media-browser">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="import-btn"
-          >
-            <Upload size={16} />
-            Import Media
-          </button>
-          <div className="media-list">
-            {mediaLibrary.slice(0, 5).map(asset => (
-              <div key={asset.id} className="media-item" draggable>
-                {asset.type === 'video' ? <Video size={16} /> : <Music size={16} />}
-                <span>{asset.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+    addTransition(trackId, draggedTransition.id, dropTime, draggedTransition.duration);
+    setDraggedTransition(null);
+  };
 
-      <div className="toolbar-section">
-        <button
-          onClick={() => setShowLimitsModal(true)}
-          className="import-btn"
-          style={{ background: 'var(--editor-bg-hover)' }}
+  const handleTimelineDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  };
+
+  // Close effects panel
+  const closeEffectsPanel = () => {
+    setShowEffectsPanel(false);
+    setSelectedClip(null);
+    setSelectedTransition(null);
+  };
+
+  // Utility functions
+  const formatTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    const frames = Math.floor((seconds % 1) * 30);
+    
+    if (hours > 0) {
+      return `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}:${String(frames).padStart(2,'0')}`;
+    }
+    return `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}:${String(frames).padStart(2,'0')}`;
+  };
+
+  const getTierIcon = () => {
+    switch(userTier) {
+      case 'professional': return <Crown size={12} />;
+      case 'premium': return <Star size={12} />;
+      default: return <Info size={12} />;
+    }
+  };
+
+  const generateTimeMarkers = () => {
+    const markers = [];
+    const pixelsPerSecond = 2 * zoom;
+    const markerInterval = zoom < 0.5 ? 30 : zoom < 1 ? 10 : zoom < 2 ? 5 : 1;
+    
+    for (let i = 0; i <= duration; i += markerInterval) {
+      markers.push(
+        <div 
+          key={i}
+          className="time-marker-ruler" 
+          style={{ left: `${i * pixelsPerSecond}px` }}
         >
-          <Info size={16} />
-          View Limits
-        </button>
-      </div>
-    </div>
-  );
-
-  const TrackHeaderComponent = ({ track, index }) => (
-    <div className="track-header-container">
-      <div className="track-controls-left">
-        <div className="track-label-container">
-          <div className="track-name-label">{track.name}</div>
-          {track.type === 'master' ? (
-            <Volume2 size={14} className="track-type-icon" />
-          ) : track.type === 'video' ? (
-            <Video size={14} className="track-type-icon" />
-          ) : (
-            <Music size={14} className="track-type-icon" />
-          )}
+          <div className="time-marker-line" />
+          <div className="time-marker-text">{formatTime(i)}</div>
         </div>
-        <div className="track-control-buttons">
-          <button
-            className={`track-toggle-btn ${!track.muted ? 'active' : ''}`}
-            onClick={() => {
-              const updatedTracks = tracks.map(t => 
-                t.id === track.id ? {...t, muted: !t.muted} : t
-              );
-              setTracks(updatedTracks);
-            }}
-            title="Toggle Mute"
-          >
-            {track.muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
-          </button>
-          {track.type !== 'audio' && track.type !== 'master' && (
-            <button
-              className={`track-toggle-btn ${track.visible ? 'active' : ''}`}
-              onClick={() => {
-                const updatedTracks = tracks.map(t => 
-                  t.id === track.id ? {...t, visible: !t.visible} : t
-                );
-                setTracks(updatedTracks);
-              }}
-              title="Toggle Visibility"
-            >
-              {track.visible ? <Eye size={12} /> : <EyeOff size={12} />}
-            </button>
-          )}
-          <button
-            className={`track-toggle-btn ${track.locked ? 'active' : ''}`}
-            onClick={() => {
-              const updatedTracks = tracks.map(t => 
-                t.id === track.id ? {...t, locked: !t.locked} : t
-              );
-              setTracks(updatedTracks);
-            }}
-            title="Toggle Lock"
-          >
-            {track.locked ? <Lock size={12} /> : <Unlock size={12} />}
-          </button>
-          {tracks.length > 2 && (
-            <button
-              className="track-toggle-btn"
-              onClick={() => {
-                setTracks(tracks.filter(t => t.id !== track.id));
-              }}
-              title="Delete Track"
-            >
-              <Trash2 size={12} />
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-
-  const TimelineTrackComponent = ({ track, index }) => (
-    <div className="timeline-track-row">
-      <div 
-        className="track-timeline-area"
-        style={{ 
-          width: `${duration * zoom * 4}px`, 
-          minWidth: '100%',
-          backgroundColor: index % 2 === 0 ? '#2a2d35' : '#1e2127'
-        }}
-        onDrop={(e) => {
-          e.preventDefault();
-          const mediaData = e.dataTransfer.getData('media');
-          if (mediaData) {
-            const media = JSON.parse(mediaData);
-            console.log(`Add ${media.name} to ${track.name}`);
-          }
-        }}
-        onDragOver={(e) => e.preventDefault()}
-      >
-        {track.clips.map(clip => (
-          <div
-            key={clip.id}
-            className={`timeline-clip ${selectedClip?.id === clip.id ? 'selected' : ''}`}
-            style={{
-              left: `${clip.startTime * zoom * 4}px`,
-              width: `${clip.duration * zoom * 4}px`,
-              backgroundColor: track.color,
-              borderColor: track.color
-            }}
-            onClick={() => setSelectedClip(clip)}
-          >
-            <div className="clip-content-timeline">
-              <div className="clip-title-timeline">{clip.title}</div>
-              {clip.type === 'audio' && (
-                <div className="audio-waveform">
-                  <AudioWaveform size={12} />
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-        
-        {track.clips.length === 0 && (
-          <div className="empty-track-message">
-            {/* Empty track - ready for content */}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const TimelineComponent = () => (
-    <div className="timeline-main-container">
-      {/* Timeline Ruler */}
-      <div className="timeline-ruler-container">
-        <div className="track-headers-spacer"></div>
-        <div className="timeline-ruler-scroll">
-          <div 
-            className="timeline-ruler" 
-            style={{ width: `${duration * zoom * 4}px` }}
-          >
-            {Array.from({ length: Math.ceil(duration / 10) + 1 }, (_, i) => (
-              <div
-                key={i}
-                className="time-marker-ruler"
-                style={{ left: `${i * 10 * zoom * 4}px` }}
-              >
-                <div className="time-marker-line"></div>
-                <div className="time-marker-text">{formatTime(i * 10)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Playhead */}
-      <div
-        className="timeline-playhead"
-        style={{
-          left: `${240 + currentTime * zoom * 4}px`
-        }}
-      />
-
-      {/* Track Area */}
-      <div className="timeline-tracks-container">
-        <div className="track-headers-column">
-          {tracks.map((track, index) => (
-            <TrackHeaderComponent key={track.id} track={track} index={index} />
-          ))}
-        </div>
-
-        <div className="timeline-tracks-scroll">
-          <div 
-            className="timeline-tracks-content"
-            ref={timelineRef}
-            onClick={handleTimelineClick}
-          >
-            {tracks.map((track, index) => (
-              <TimelineTrackComponent key={track.id} track={track} index={index} />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+      );
+    }
+    return markers;
+  };
 
   return (
     <div className="video-editor-pro">
@@ -1021,61 +341,37 @@ const VideoEditorComponent = () => {
       <div className="editor-menu-bar">
         <div className="menu-section">
           <div className="project-info">
-            <h2>{project?.title || 'Untitled Project'}</h2>
-            <TierBadge tier={userTier} />
+            <h2>{project.title}</h2>
+            <div className="tier-badge-small">
+              {getTierIcon()}
+              {userTier}
+            </div>
           </div>
         </div>
 
         <div className="menu-section">
           <div className="playback-controls-top">
-            <button
-              onClick={() => setCurrentTime(Math.max(0, currentTime - 10))}
-              className="control-btn-small"
-              title="Previous 10s"
-            >
-              <RotateCcw size={16} />
+            <button onClick={stop} className="control-btn-small">
+              <Square size={14} />
             </button>
-            <button
-              onClick={playPause}
-              className="control-btn-play-small"
-            >
+            <button onClick={() => setCurrentTime(Math.max(0, currentTime - 10))} className="control-btn-small">
+              <Rewind size={14} />
+            </button>
+            <button onClick={playPause} className="control-btn-play-small">
               {isPlaying ? <Pause size={16} /> : <Play size={16} />}
             </button>
-            <button
-              onClick={stop}
-              className="control-btn-small"
-            >
-              <Square size={16} />
-            </button>
-            <button
-              onClick={() => setCurrentTime(Math.min(duration, currentTime + 10))}
-              className="control-btn-small"
-              title="Forward 10s"
-            >
-              <RotateCw size={16} />
+            <button onClick={() => setCurrentTime(Math.min(duration, currentTime + 10))} className="control-btn-small">
+              <FastForward size={14} />
             </button>
           </div>
-        </div>
-
-        <div className="menu-section">
           <div className="timeline-display">
             {formatTime(currentTime)} / {formatTime(duration)}
           </div>
         </div>
 
         <div className="menu-section">
-          <button
-            onClick={addTrack}
-            className="control-btn-small"
-            title="Add Track"
-          >
-            <Plus size={16} />
-          </button>
-          <button
-            onClick={() => setShowExportModal(true)}
-            className="export-btn-top"
-          >
-            <Download size={16} />
+          <button className="export-btn-top">
+            <Download size={14} />
             Export
           </button>
         </div>
@@ -1083,103 +379,1760 @@ const VideoEditorComponent = () => {
 
       {/* Main Editor Layout */}
       <div className="editor-main-layout">
-        {/* Left Sidebar - Tools */}
+        {/* Left Panel - Tools & Media */}
         <div className="editor-left-panel">
-          <ToolbarComponent />
+          <div className="editor-toolbar">
+            {/* Tools Section */}
+            <div className="toolbar-section">
+              <h4>Tools</h4>
+              <div className="tool-grid">
+                {tools.map(tool => {
+                  const Icon = tool.icon;
+                  return (
+                    <button
+                      key={tool.id}
+                      className={`tool-btn ${selectedTool === tool.id ? 'active' : ''}`}
+                      onClick={() => setSelectedTool(tool.id)}
+                      title={tool.name}
+                    >
+                      <Icon size={16} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Video Effects Section */}
+            <div className="toolbar-section">
+              <div 
+                className="section-header"
+                onClick={() => setShowVideoEffects(!showVideoEffects)}
+              >
+                <h4>Video Effects</h4>
+                <button className="dropdown-toggle">
+                  {showVideoEffects ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+              </div>
+              {showVideoEffects && (
+                <div className="effect-list">
+                  {videoEffects.map(effect => {
+                    const Icon = effect.icon;
+                    return (
+                      <div 
+                        key={effect.id} 
+                        className="effect-item"
+                        draggable
+                        onDragStart={(e) => handleEffectDragStart(e, effect)}
+                        title={`Drag to apply ${effect.name} effect`}
+                      >
+                        <Icon size={14} />
+                        <span>{effect.name}</span>
+                        <div className="drag-hint">📎</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Audio Effects Section */}
+            <div className="toolbar-section">
+              <div 
+                className="section-header"
+                onClick={() => setShowAudioEffects(!showAudioEffects)}
+              >
+                <h4>Audio Effects</h4>
+                <button className="dropdown-toggle">
+                  {showAudioEffects ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+              </div>
+              {showAudioEffects && (
+                <div className="effect-list">
+                  {audioEffects.map(effect => {
+                    const Icon = effect.icon;
+                    return (
+                      <div 
+                        key={effect.id} 
+                        className="effect-item"
+                        draggable
+                        onDragStart={(e) => handleEffectDragStart(e, effect)}
+                        title={`Drag to apply ${effect.name} effect`}
+                      >
+                        <Icon size={14} />
+                        <span>{effect.name}</span>
+                        <div className="drag-hint">📎</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Video Transitions Section */}
+            <div className="toolbar-section">
+              <div 
+                className="section-header"
+                onClick={() => setShowTransitions(!showTransitions)}
+              >
+                <h4>Video Transitions</h4>
+                <button className="dropdown-toggle">
+                  {showTransitions ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+              </div>
+              {showTransitions && (
+                <div className="transition-grid">
+                  {transitions.map(transition => {
+                    const Icon = transition.icon;
+                    return (
+                      <div
+                        key={transition.id}
+                        className="transition-item"
+                        draggable
+                        onDragStart={(e) => handleTransitionDragStart(e, transition)}
+                        title={`${transition.name} (${transition.duration}s)`}
+                      >
+                        <div className="transition-icon">
+                          <Icon size={14} />
+                        </div>
+                        <div className="transition-info">
+                          <div className="transition-name">{transition.name}</div>
+                          <div className="transition-duration">{transition.duration}s</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Media Library */}
+            <div className="toolbar-section">
+              <h4>Media</h4>
+              <button className="import-btn" onClick={() => fileInputRef.current?.click()}>
+                <Upload size={14} />
+                Import Media
+              </button>
+              <button 
+                className="import-btn" 
+                onClick={() => setShowEffectsPanel(!showEffectsPanel)}
+                style={{marginBottom: '12px'}}
+              >
+                <Wand2 size={14} />
+                Effects Panel
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden-file-input"
+                accept="video/*,audio/*"
+                multiple
+              />
+              <div className="media-list">
+                {mediaLibrary.map(media => {
+                  const Icon = media.type === 'video' ? Video : AudioWaveform;
+                  return (
+                    <div key={media.id} className="media-item">
+                      <Icon size={14} />
+                      <div>
+                        <div style={{fontSize: '11px', fontWeight: '500'}}>{media.name}</div>
+                        <div style={{fontSize: '10px', opacity: 0.7}}>{media.duration}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Center Area - Preview */}
+        {/* Center Panel - Preview */}
         <div className="editor-center-panel">
           <div className="preview-area">
             <div className="preview-container">
               <div className="preview-screen">
                 <div className="preview-content">
                   <div className="preview-placeholder">
-                    <Video size={48} />
-                    <p>Video Preview</p>
-                    <p className="preview-resolution">1920 x 1080</p>
+                    <Monitor size={48} />
+                    <p>Program Monitor</p>
+                    <div className="preview-resolution">1920 x 1080 • 30fps</div>
                   </div>
                 </div>
               </div>
               <div className="preview-controls">
                 <button className="preview-control-btn">
-                  <ZoomOut size={16} />
+                  <ZoomOut size={14} />
                 </button>
-                <span className="zoom-display">100%</span>
+                <div className="zoom-display">100%</div>
                 <button className="preview-control-btn">
-                  <ZoomIn size={16} />
+                  <ZoomIn size={14} />
                 </button>
-                <div className="preview-spacer"></div>
+                <div className="preview-spacer" />
                 <button className="preview-control-btn">
-                  <Grid size={16} />
+                  <Settings size={14} />
                 </button>
-                <button className="preview-control-btn">
-                  <Maximize2 size={16} />
+              </div>
+            </div>
+          </div>
+
+          {/* Timeline Section */}
+          <div className="editor-timeline-section">
+            {/* Timeline Controls */}
+            <div className="timeline-controls-bar">
+              <div className="timeline-zoom-controls">
+                <button className="zoom-btn" onClick={() => setZoom(Math.max(0.1, zoom - 0.2))}>
+                  <ZoomOut size={12} />
                 </button>
+                <div className="zoom-slider-container">
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="5"
+                    step="0.1"
+                    value={zoom}
+                    onChange={(e) => setZoom(parseFloat(e.target.value))}
+                    className="zoom-slider-pro"
+                  />
+                </div>
+                <button className="zoom-btn" onClick={() => setZoom(Math.min(5, zoom + 0.2))}>
+                  <ZoomIn size={12} />
+                </button>
+                <div className="zoom-display-pro">{Math.round(zoom * 100)}%</div>
+              </div>
+
+              <div className="timeline-options">
+                <button 
+                  className={`timeline-option-btn ${showSnapToGrid ? 'active' : ''}`}
+                  onClick={() => setShowSnapToGrid(!showSnapToGrid)}
+                >
+                  <Grid size={12} />
+                  Snap
+                </button>
+                <button 
+                  className={`timeline-option-btn ${showAudioWaveforms ? 'active' : ''}`}
+                  onClick={() => setShowAudioWaveforms(!showAudioWaveforms)}
+                >
+                  <AudioWaveform size={12} />
+                  Waveforms
+                </button>
+              </div>
+            </div>
+
+            {/* Timeline Main */}
+            <div className="timeline-main-container">
+              {/* Ruler */}
+              <div className="timeline-ruler-container">
+                <div className="track-headers-spacer" />
+                <div className="timeline-ruler-scroll">
+                  <div 
+                    className="timeline-ruler" 
+                    style={{ width: `${duration * 2 * zoom}px` }}
+                  >
+                    {generateTimeMarkers()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Tracks */}
+              <div className="timeline-tracks-container">
+                <div className="track-headers-column">
+                  {tracks.map(track => (
+                    <div key={track.id} className="track-header-container">
+                      <div className="track-controls-left">
+                        <div className="track-label-container">
+                          <div className="track-type-icon">
+                            {track.type === 'video' ? <Video size={14} /> : <AudioWaveform size={14} />}
+                          </div>
+                          <div className="track-name-label">{track.name}</div>
+                        </div>
+                        <div className="track-control-buttons">
+                          <button 
+                            className={`track-toggle-btn ${track.muted ? '' : 'active'}`}
+                            onClick={() => setTracks(tracks.map(t => t.id === track.id ? {...t, muted: !t.muted} : t))}
+                          >
+                            {track.muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                          </button>
+                          <button 
+                            className={`track-toggle-btn ${track.visible ? 'active' : ''}`}
+                            onClick={() => setTracks(tracks.map(t => t.id === track.id ? {...t, visible: !t.visible} : t))}
+                          >
+                            {track.visible ? <Eye size={12} /> : <EyeOff size={12} />}
+                          </button>
+                          <button 
+                            className={`track-toggle-btn ${track.locked ? 'active' : ''}`}
+                            onClick={() => setTracks(tracks.map(t => t.id === track.id ? {...t, locked: !t.locked} : t))}
+                          >
+                            {track.locked ? <Lock size={12} /> : <Unlock size={12} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="timeline-tracks-scroll">
+                  <div 
+                    className="timeline-tracks-content" 
+                    style={{ width: `${duration * 2 * zoom}px` }}
+                    ref={timelineRef}
+                    onClick={handleTimelineClick}
+                  >
+                    {/* Playhead */}
+                    <div 
+                      className="timeline-playhead"
+                      style={{ left: `${currentTime * 2 * zoom}px` }}
+                    />
+
+                    {/* Track Rows */}
+                    {tracks.map((track, index) => (
+                      <div key={track.id} className="timeline-track-row">
+                        <div 
+                          className="track-timeline-area"
+                          onDrop={(e) => handleTimelineDrop(e, track.id)}
+                          onDragOver={handleTimelineDragOver}
+                        >
+                          {track.clips.length === 0 ? (
+                            <div className="empty-track-message">
+                              Drop media here
+                            </div>
+                          ) : (
+                            <>
+                              {track.clips.map(clip => {
+                                const leftPosition = clip.startTime * 2 * zoom;
+                                const width = clip.duration * 2 * zoom;
+                                
+                                return (
+                                  <div
+                                    key={clip.id}
+                                    className={`timeline-clip ${selectedClip?.id === clip.id ? 'selected' : ''} ${draggedEffect ? 'drop-target' : ''}`}
+                                    style={{
+                                      left: `${leftPosition}px`,
+                                      width: `${width}px`,
+                                      backgroundColor: track.color
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedClip(clip);
+                                      setSelectedTransition(null);
+                                    }}
+                                    onDrop={(e) => handleEffectDrop(e, clip.id)}
+                                    onDragOver={handleEffectDragOver}
+                                  >
+                                    <div className="clip-content-timeline">
+                                      <div className="clip-title-timeline">
+                                        {clip.title}
+                                      </div>
+                                      {clip.effects && clip.effects.length > 0 && (
+                                        <div className="clip-effects-indicator">
+                                          <Sparkles size={10} />
+                                          {clip.effects.length}
+                                        </div>
+                                      )}
+                                      {track.type === 'audio' && showAudioWaveforms && (
+                                        <div className="audio-waveform">
+                                          <AudioWaveform size={12} />
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              
+                              {/* Render Transitions */}
+                              {(track.transitions || []).map(transition => {
+                                const transitionData = transitions.find(t => t.id === transition.type);
+                                const Icon = transitionData?.icon || Layers;
+                                const leftPosition = transition.startTime * 2 * zoom;
+                                const width = transition.duration * 2 * zoom;
+                                
+                                return (
+                                  <div
+                                    key={transition.id}
+                                    className={`timeline-transition ${selectedTransition?.id === transition.id ? 'selected' : ''}`}
+                                    style={{
+                                      left: `${leftPosition}px`,
+                                      width: `${width}px`
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedTransition(transition);
+                                      setSelectedClip(null);
+                                    }}
+                                  >
+                                    <div className="transition-content">
+                                      <Icon size={10} />
+                                      <span className="transition-label">{transitionData?.name}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Timeline Area */}
-      <div className="editor-timeline-section" style={{ height: '300px' }}>
-        <div className="timeline-controls-bar">
-          <div className="timeline-zoom-controls">
-            <button
-              onClick={() => setZoom(Math.max(0.1, zoom - 0.1))}
-              className="zoom-btn"
-            >
-              <Minimize2 size={14} />
+      {/* Effects Panel */}
+      {showEffectsPanel && (
+        <div className="effects-panel">
+          <div className="effects-panel-header">
+            <h4>
+              {selectedClip 
+                ? `Effects for ${selectedClip.title}` 
+                : selectedTransition 
+                  ? 'Transition Properties' 
+                  : 'Effects Panel'
+              }
+            </h4>
+            <button onClick={closeEffectsPanel} className="close-panel-btn">
+              <X size={14} />
             </button>
-            <div className="zoom-slider-container">
-              <input
-                type="range"
-                min="0.1"
-                max="3"
-                step="0.1"
-                value={zoom}
-                onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="zoom-slider-pro"
-              />
+          </div>
+          
+          {selectedClip ? (
+            <div className="effects-panel-content">
+              <div className="applied-effects">
+                <h5>Applied Effects ({selectedClip.effects?.length || 0})</h5>
+                {selectedClip.effects && selectedClip.effects.length > 0 ? (
+                  selectedClip.effects.map(appliedEffect => {
+                    const effectData = effects.find(e => e.id === appliedEffect.id);
+                    return (
+                      <div key={appliedEffect.id} className="applied-effect-item">
+                        <div className="applied-effect-info">
+                          <span>{effectData?.name || appliedEffect.id}</span>
+                          <span className="effect-value">{appliedEffect.value}%</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          min="0" 
+                          max="100" 
+                          value={appliedEffect.value}
+                          onChange={(e) => applyEffect(selectedClip.id, appliedEffect.id, e.target.value)}
+                          className="effect-slider"
+                        />
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="no-effects-message">No effects applied. Drag effects from the left panel onto clips.</p>
+                )}
+              </div>
+              
+              <div className="available-effects-quick">
+                <h5>Quick Apply</h5>
+                <div className="quick-effects-grid">
+                  {effects.filter(effect => 
+                    selectedClip.type === 'video' ? videoEffects.includes(effect) : audioEffects.includes(effect)
+                  ).slice(0, 6).map(effect => {
+                    const Icon = effect.icon;
+                    return (
+                      <button 
+                        key={effect.id}
+                        className="quick-effect-btn"
+                        onClick={() => applyEffect(selectedClip.id, effect.id, 50)}
+                      >
+                        <Icon size={12} />
+                        {effect.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
-            <button
-              onClick={() => setZoom(Math.min(3, zoom + 0.1))}
-              className="zoom-btn"
-            >
-              <Maximize2 size={14} />
-            </button>
-            <span className="zoom-display-pro">{(zoom * 100).toFixed(0)}%</span>
-          </div>
-
-          <div className="timeline-options">
-            <button className="timeline-option-btn active">
-              <Layers size={14} />
-              Tracks
-            </button>
-            <button className="timeline-option-btn">
-              <AudioWaveform size={14} />
-              Audio
-            </button>
-          </div>
+          ) : selectedTransition ? (
+            <div className="effects-panel-content">
+              <div className="effect-control">
+                <label>Duration (seconds)</label>
+                <input 
+                  type="range" 
+                  min="0.1" 
+                  max="5" 
+                  step="0.1"
+                  defaultValue={selectedTransition.duration}
+                  onChange={(e) => {
+                    setTracks(tracks.map(track => ({
+                      ...track,
+                      transitions: (track.transitions || []).map(t => 
+                        t.id === selectedTransition.id 
+                          ? { ...t, duration: parseFloat(e.target.value) }
+                          : t
+                      )
+                    })));
+                  }}
+                />
+              </div>
+              <div className="effect-control">
+                <label>Ease In</label>
+                <input type="range" min="0" max="100" defaultValue="50" />
+              </div>
+              <div className="effect-control">
+                <label>Ease Out</label>
+                <input type="range" min="0" max="100" defaultValue="50" />
+              </div>
+            </div>
+          ) : (
+            <div className="no-selection-message">
+              <p>Select a clip or transition on the timeline to apply effects</p>
+              <div className="effects-help">
+                <h5>How to use effects:</h5>
+                <ul>
+                  <li>Drag effects from left panel onto clips</li>
+                  <li>Click clips to adjust applied effects</li>
+                  <li>Use quick apply buttons for common effects</li>
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
+      )}
 
-        <TimelineComponent />
-      </div>
+      {/* Custom Styles */}
+      <style jsx>{`
+        /* Professional Video Editor CSS - Premiere Pro Style */
 
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="video/*,audio/*,image/*"
-        onChange={(e) => handleFileUpload(e.target.files[0])}
-        className="hidden-file-input"
-      />
+        /* CSS Variables for Professional Video Editor Theme */
+        :root {
+          /* Dark Theme Colors - Matching Professional Video Editors */
+          --editor-bg-dark: #1e1e1e;
+          --editor-bg-darker: #181818;
+          --editor-bg-panel: #2d2d30;
+          --editor-bg-hover: #3e3e42;
+          --editor-bg-selected: #0e639c;
+          --editor-border: #3f3f46;
+          --editor-border-light: #4b4b52;
+          
+          /* Text Colors */
+          --editor-text-primary: #cccccc;
+          --editor-text-secondary: #969696;
+          --editor-text-muted: #6d6d6d;
+          --editor-text-bright: #ffffff;
+          
+          /* Accent Colors */
+          --editor-accent-blue: #007acc;
+          --editor-accent-green: #00d4aa;
+          --editor-accent-red: #ff6b6b;
+          --editor-accent-orange: #ff9500;
+          --editor-accent-purple: #b180d7;
+          
+          /* Timeline Colors */
+          --timeline-bg: #1e2127;
+          --timeline-ruler: #2a2d35;
+          --timeline-header: #252830;
+          --timeline-track-even: #2a2d35;
+          --timeline-track-odd: #1e2127;
+          
+          /* Playhead */
+          --playhead-color: #ffd700;
+          --playhead-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+          
+          /* Shadows and Effects */
+          --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.2);
+          --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.3);
+          --shadow-heavy: 0 8px 16px rgba(0, 0, 0, 0.4);
+          
+          /* Transitions */
+          --transition-fast: all 0.15s ease;
+          --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
-      {/* Modals */}
-      {showLimitsModal && <LimitsModal />}
-      {showUpgradeModal && <UpgradeModal />}
-      {showExportModal && <ExportModal />}
+        /* Main Video Editor Container */
+        .video-editor-pro {
+          width: 100vw;
+          height: 100vh;
+          background: var(--editor-bg-dark);
+          color: var(--editor-text-primary);
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          font-size: 13px;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        /* Top Menu Bar */
+        .editor-menu-bar {
+          height: 60px;
+          background: var(--editor-bg-panel);
+          border-bottom: 1px solid var(--editor-border);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 20px;
+          flex-shrink: 0;
+        }
+
+        .menu-section {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .project-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .project-info h2 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 500;
+          color: var(--editor-text-bright);
+        }
+
+        .tier-badge-small {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 8px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 500;
+          text-transform: uppercase;
+        }
+
+        .playback-controls-top {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .control-btn-small,
+        .control-btn-play-small {
+          width: 32px;
+          height: 32px;
+          border: none;
+          border-radius: 4px;
+          background: var(--editor-bg-hover);
+          color: var(--editor-text-primary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition-fast);
+        }
+
+        .control-btn-play-small {
+          background: var(--editor-accent-blue);
+          color: white;
+        }
+
+        .control-btn-small:hover,
+        .control-btn-play-small:hover {
+          background: var(--editor-bg-selected);
+          color: white;
+        }
+
+        .timeline-display {
+          font-family: 'Consolas', 'Monaco', monospace;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--editor-text-bright);
+          background: var(--editor-bg-darker);
+          padding: 8px 12px;
+          border-radius: 4px;
+          border: 1px solid var(--editor-border);
+        }
+
+        .export-btn-top {
+          padding: 8px 16px;
+          background: var(--editor-accent-green);
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          transition: var(--transition-fast);
+        }
+
+        .export-btn-top:hover {
+          background: var(--editor-accent-blue);
+        }
+
+        /* Main Editor Layout */
+        .editor-main-layout {
+          display: flex;
+          flex: 1;
+          min-height: 0;
+        }
+
+        /* Left Panel - Tools */
+        .editor-left-panel {
+          width: 240px;
+          min-width: 240px;
+          background: var(--editor-bg-panel);
+          border-right: 1px solid var(--editor-border);
+          display: flex;
+          flex-direction: column;
+          overflow-y: auto;
+        }
+
+        .editor-toolbar {
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .toolbar-section h4 {
+          margin: 0 0 12px 0;
+          color: var(--editor-text-bright);
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        /* Collapsible Section Headers */
+        .section-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          cursor: pointer;
+          padding: 4px 0;
+          margin-bottom: 12px;
+          border-radius: 3px;
+          transition: var(--transition-fast);
+        }
+
+        .section-header:hover {
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .section-header h4 {
+          margin: 0;
+          color: var(--editor-text-bright);
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .dropdown-toggle {
+          background: none;
+          border: none;
+          color: var(--editor-text-secondary);
+          cursor: pointer;
+          padding: 2px;
+          border-radius: 2px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition-fast);
+        }
+
+        .dropdown-toggle:hover {
+          background: var(--editor-bg-hover);
+          color: var(--editor-text-primary);
+        }
+
+        .tool-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 6px;
+        }
+
+        .tool-btn {
+          width: 40px;
+          height: 40px;
+          border: 1px solid var(--editor-border);
+          border-radius: 4px;
+          background: var(--editor-bg-dark);
+          color: var(--editor-text-primary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition-fast);
+        }
+
+        .tool-btn:hover {
+          background: var(--editor-bg-hover);
+          border-color: var(--editor-border-light);
+        }
+
+        .tool-btn.active {
+          background: var(--editor-accent-blue);
+          border-color: var(--editor-accent-blue);
+          color: white;
+        }
+
+        .effect-list,
+        .media-list {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .effect-item,
+        .media-item {
+          padding: 8px 12px;
+          background: var(--editor-bg-dark);
+          border: 1px solid var(--editor-border);
+          border-radius: 4px;
+          cursor: grab;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          transition: var(--transition-fast);
+          font-size: 12px;
+          position: relative;
+        }
+
+        .effect-item:hover,
+        .media-item:hover {
+          background: var(--editor-bg-hover);
+          border-color: var(--editor-border-light);
+        }
+
+        .effect-item:active,
+        .media-item:active {
+          cursor: grabbing;
+        }
+
+        .drag-hint {
+          position: absolute;
+          right: 8px;
+          font-size: 10px;
+          opacity: 0.6;
+        }
+
+        /* Timeline Clip Drop Target */
+        .timeline-clip.drop-target {
+          filter: brightness(1.2) !important;
+          border: 2px dashed var(--editor-accent-green) !important;
+        }
+
+        .clip-effects-indicator {
+          position: absolute;
+          top: 2px;
+          right: 2px;
+          background: var(--editor-accent-orange);
+          color: white;
+          border-radius: 8px;
+          padding: 1px 4px;
+          font-size: 9px;
+          display: flex;
+          align-items: center;
+          gap: 2px;
+        }
+
+        /* Transitions Grid */
+        .transition-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .transition-item {
+          padding: 8px 10px;
+          background: var(--editor-bg-dark);
+          border: 1px solid var(--editor-border);
+          border-radius: 4px;
+          cursor: grab;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          transition: var(--transition-fast);
+          font-size: 12px;
+        }
+
+        .transition-item:hover {
+          background: var(--editor-bg-hover);
+          border-color: var(--editor-accent-purple);
+          box-shadow: var(--shadow-light);
+        }
+
+        .transition-item:active {
+          cursor: grabbing;
+          transform: scale(0.98);
+        }
+
+        .transition-icon {
+          color: var(--editor-accent-purple);
+          background: rgba(177, 128, 215, 0.15);
+          border-radius: 3px;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .transition-info {
+          flex: 1;
+        }
+
+        .transition-name {
+          font-weight: 500;
+          color: var(--editor-text-primary);
+          line-height: 1.2;
+        }
+
+        .transition-duration {
+          font-size: 10px;
+          color: var(--editor-text-muted);
+          margin-top: 2px;
+        }
+
+        .import-btn {
+          width: 100%;
+          padding: 10px;
+          background: var(--editor-accent-blue);
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          margin-bottom: 12px;
+          transition: var(--transition-fast);
+        }
+
+        .import-btn:hover {
+          background: var(--editor-bg-selected);
+        }
+
+        /* Center Panel - Preview */
+        .editor-center-panel {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          background: var(--editor-bg-dark);
+          min-width: 0;
+        }
+
+        .preview-area {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          padding: 20px;
+        }
+
+        .preview-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          background: var(--editor-bg-darker);
+          border: 1px solid var(--editor-border);
+          border-radius: 4px;
+          overflow: hidden;
+        }
+
+        .preview-screen {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #000;
+          position: relative;
+          min-height: 300px;
+        }
+
+        .preview-content {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .preview-placeholder {
+          text-align: center;
+          color: var(--editor-text-muted);
+        }
+
+        .preview-placeholder p {
+          margin: 8px 0 4px 0;
+          font-size: 14px;
+        }
+
+        .preview-resolution {
+          font-size: 12px;
+          color: var(--editor-text-secondary);
+        }
+
+        .preview-controls {
+          height: 40px;
+          background: var(--editor-bg-panel);
+          border-top: 1px solid var(--editor-border);
+          display: flex;
+          align-items: center;
+          padding: 0 12px;
+          gap: 12px;
+        }
+
+        .preview-control-btn {
+          width: 28px;
+          height: 28px;
+          border: none;
+          border-radius: 3px;
+          background: var(--editor-bg-dark);
+          color: var(--editor-text-primary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition-fast);
+        }
+
+        .preview-control-btn:hover {
+          background: var(--editor-bg-hover);
+        }
+
+        .zoom-display {
+          font-size: 12px;
+          color: var(--editor-text-secondary);
+          font-family: 'Consolas', monospace;
+        }
+
+        .preview-spacer {
+          flex: 1;
+        }
+
+        /* Timeline Section */
+        .editor-timeline-section {
+          background: var(--timeline-bg);
+          border-top: 1px solid var(--editor-border);
+          display: flex;
+          flex-direction: column;
+          min-height: 250px;
+          resize: vertical;
+          overflow: hidden;
+        }
+
+        .timeline-controls-bar {
+          height: 36px;
+          background: var(--timeline-header);
+          border-bottom: 1px solid var(--editor-border);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 16px;
+          flex-shrink: 0;
+        }
+
+        .timeline-zoom-controls {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .zoom-btn {
+          width: 24px;
+          height: 24px;
+          border: none;
+          border-radius: 3px;
+          background: var(--editor-bg-dark);
+          color: var(--editor-text-primary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition-fast);
+        }
+
+        .zoom-btn:hover {
+          background: var(--editor-bg-hover);
+        }
+
+        .zoom-slider-container {
+          width: 100px;
+        }
+
+        .zoom-slider-pro {
+          width: 100%;
+          height: 4px;
+          background: var(--editor-bg-dark);
+          border-radius: 2px;
+          outline: none;
+          cursor: pointer;
+          appearance: none;
+        }
+
+        .zoom-slider-pro::-webkit-slider-thumb {
+          appearance: none;
+          width: 12px;
+          height: 12px;
+          background: var(--editor-accent-blue);
+          border-radius: 50%;
+          cursor: pointer;
+        }
+
+        .zoom-display-pro {
+          font-size: 11px;
+          color: var(--editor-text-secondary);
+          font-family: 'Consolas', monospace;
+          min-width: 35px;
+        }
+
+        .timeline-options {
+          display: flex;
+          gap: 2px;
+        }
+
+        .timeline-option-btn {
+          padding: 6px 12px;
+          background: var(--editor-bg-dark);
+          border: 1px solid var(--editor-border);
+          color: var(--editor-text-secondary);
+          font-size: 11px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          transition: var(--transition-fast);
+        }
+
+        .timeline-option-btn:first-child {
+          border-radius: 3px 0 0 3px;
+        }
+
+        .timeline-option-btn:last-child {
+          border-radius: 0 3px 3px 0;
+        }
+
+        .timeline-option-btn.active {
+          background: var(--editor-accent-blue);
+          border-color: var(--editor-accent-blue);
+          color: white;
+        }
+
+        .timeline-option-btn:hover:not(.active) {
+          background: var(--editor-bg-hover);
+        }
+
+        /* Timeline Main Container */
+        .timeline-main-container {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          position: relative;
+        }
+
+        /* Timeline Ruler */
+        .timeline-ruler-container {
+          height: 32px;
+          display: flex;
+          background: var(--timeline-ruler);
+          border-bottom: 1px solid var(--editor-border);
+          flex-shrink: 0;
+        }
+
+        .track-headers-spacer {
+          width: 240px;
+          min-width: 240px;
+          background: var(--timeline-header);
+          border-right: 1px solid var(--editor-border);
+        }
+
+        .timeline-ruler-scroll {
+          flex: 1;
+          overflow-x: auto;
+          overflow-y: hidden;
+        }
+
+        .timeline-ruler {
+          height: 100%;
+          position: relative;
+          min-width: 100%;
+        }
+
+        .time-marker-ruler {
+          position: absolute;
+          top: 0;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .time-marker-line {
+          width: 1px;
+          height: 12px;
+          background: var(--editor-border-light);
+        }
+
+        .time-marker-text {
+          font-size: 10px;
+          color: var(--editor-text-secondary);
+          font-family: 'Consolas', monospace;
+          margin-top: 4px;
+        }
+
+        /* Playhead */
+        .timeline-playhead {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: var(--playhead-color);
+          box-shadow: var(--playhead-shadow);
+          z-index: 100;
+          pointer-events: none;
+        }
+
+        .timeline-playhead::before {
+          content: '';
+          position: absolute;
+          top: -6px;
+          left: -6px;
+          width: 14px;
+          height: 14px;
+          background: var(--playhead-color);
+          clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+
+        /* Track Area */
+        .timeline-tracks-container {
+          flex: 1;
+          display: flex;
+          overflow: hidden;
+        }
+
+        .track-headers-column {
+          width: 240px;
+          min-width: 240px;
+          background: var(--timeline-header);
+          border-right: 1px solid var(--editor-border);
+          overflow-y: auto;
+        }
+
+        .timeline-tracks-scroll {
+          flex: 1;
+          overflow: auto;
+        }
+
+        .timeline-tracks-content {
+          min-width: 100%;
+          cursor: crosshair;
+        }
+
+        /* Track Headers */
+        .track-header-container {
+          height: 48px;
+          border-bottom: 1px solid var(--editor-border);
+          display: flex;
+          align-items: center;
+          padding: 0 12px;
+          background: var(--timeline-header);
+        }
+
+        .track-controls-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+        }
+
+        .track-label-container {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1;
+        }
+
+        .track-name-label {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--editor-text-bright);
+        }
+
+        .track-type-icon {
+          color: var(--editor-text-secondary);
+        }
+
+        .track-control-buttons {
+          display: flex;
+          gap: 4px;
+        }
+
+        .track-toggle-btn {
+          width: 24px;
+          height: 24px;
+          border: none;
+          border-radius: 3px;
+          background: transparent;
+          color: var(--editor-text-secondary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition-fast);
+        }
+
+        .track-toggle-btn:hover {
+          background: var(--editor-bg-hover);
+        }
+
+        .track-toggle-btn.active {
+          color: var(--editor-accent-blue);
+        }
+
+        /* Timeline Tracks */
+        .timeline-track-row {
+          height: 48px;
+          border-bottom: 1px solid var(--editor-border);
+          position: relative;
+        }
+
+        .track-timeline-area {
+          height: 100%;
+          position: relative;
+          cursor: crosshair;
+        }
+
+        .empty-track-message {
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--editor-text-muted);
+          font-size: 11px;
+          pointer-events: none;
+        }
+
+        /* Timeline Clips */
+        .timeline-clip {
+          position: absolute;
+          top: 4px;
+          height: 40px;
+          border-radius: 4px;
+          cursor: pointer;
+          border: 2px solid transparent;
+          overflow: hidden;
+          transition: var(--transition-fast);
+          box-shadow: var(--shadow-light);
+        }
+
+        .timeline-clip:hover {
+          filter: brightness(1.1);
+          box-shadow: var(--shadow-medium);
+        }
+
+        .timeline-clip.selected {
+          border-color: white;
+          box-shadow: 0 0 0 2px var(--editor-accent-blue), var(--shadow-medium);
+        }
+
+        .clip-content-timeline {
+          height: 100%;
+          padding: 4px 8px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          background: rgba(0, 0, 0, 0.3);
+          position: relative;
+        }
+
+        .clip-title-timeline {
+          font-size: 11px;
+          font-weight: 500;
+          color: white;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+        }
+
+        .audio-waveform {
+          align-self: flex-end;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Timeline Transitions */
+        .timeline-transition {
+          position: absolute;
+          top: 6px;
+          height: 36px;
+          background: linear-gradient(135deg, var(--editor-accent-purple) 0%, rgba(177, 128, 215, 0.8) 100%);
+          border: 1px solid var(--editor-accent-purple);
+          border-radius: 6px;
+          cursor: pointer;
+          overflow: hidden;
+          transition: var(--transition-fast);
+          box-shadow: var(--shadow-light);
+          z-index: 10;
+        }
+
+        .timeline-transition:hover {
+          filter: brightness(1.1);
+          box-shadow: var(--shadow-medium);
+          transform: translateY(-1px);
+        }
+
+        .timeline-transition.selected {
+          border-color: white;
+          box-shadow: 0 0 0 2px var(--editor-accent-blue), var(--shadow-medium);
+          z-index: 20;
+        }
+
+        .transition-content {
+          height: 100%;
+          padding: 4px 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          background: rgba(0, 0, 0, 0.2);
+          color: white;
+        }
+
+        .transition-label {
+          font-size: 10px;
+          font-weight: 600;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 80px;
+        }
+
+        /* Transition drag feedback */
+        .transition-item.dragging {
+          opacity: 0.6;
+          transform: scale(0.95);
+        }
+
+        .track-timeline-area.drag-over {
+          background: rgba(177, 128, 215, 0.1);
+          border: 2px dashed var(--editor-accent-purple);
+          border-radius: 4px;
+        }
+
+        /* Hidden file input */
+        .hidden-file-input {
+          display: none;
+        }
+
+        /* Effects Panel */
+        .effects-panel {
+          position: fixed;
+          right: 20px;
+          top: 80px;
+          width: 320px;
+          background: var(--editor-bg-panel);
+          border: 1px solid var(--editor-border);
+          border-radius: 6px;
+          z-index: 200;
+          box-shadow: var(--shadow-heavy);
+          max-height: calc(100vh - 100px);
+          overflow-y: auto;
+        }
+
+        .effects-panel-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 16px;
+          border-bottom: 1px solid var(--editor-border);
+          background: var(--editor-bg-darker);
+          border-radius: 6px 6px 0 0;
+        }
+
+        .effects-panel-header h4 {
+          margin: 0;
+          color: var(--editor-text-bright);
+          font-size: 14px;
+        }
+
+        .close-panel-btn {
+          background: none;
+          border: none;
+          color: var(--editor-text-secondary);
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 3px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition-fast);
+        }
+
+        .close-panel-btn:hover {
+          background: var(--editor-bg-hover);
+          color: var(--editor-text-primary);
+        }
+
+        .effects-panel-content {
+          padding: 16px;
+        }
+
+        .applied-effects h5,
+        .available-effects-quick h5 {
+          margin: 0 0 12px 0;
+          color: var(--editor-text-bright);
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .applied-effect-item {
+          background: var(--editor-bg-dark);
+          border: 1px solid var(--editor-border);
+          border-radius: 4px;
+          padding: 12px;
+          margin-bottom: 8px;
+        }
+
+        .applied-effect-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+
+        .applied-effect-info span {
+          font-size: 12px;
+          color: var(--editor-text-primary);
+        }
+
+        .effect-value {
+          background: var(--editor-accent-blue);
+          color: white;
+          padding: 2px 6px;
+          border-radius: 10px;
+          font-weight: 500;
+        }
+
+        .effect-slider {
+          width: 100%;
+          height: 6px;
+          background: var(--editor-bg-darker);
+          border-radius: 3px;
+          outline: none;
+          cursor: pointer;
+          appearance: none;
+        }
+
+        .effect-slider::-webkit-slider-thumb {
+          appearance: none;
+          width: 16px;
+          height: 16px;
+          background: var(--editor-accent-blue);
+          border-radius: 50%;
+          cursor: pointer;
+          box-shadow: var(--shadow-light);
+        }
+
+        .no-effects-message {
+          color: var(--editor-text-secondary);
+          font-size: 12px;
+          text-align: center;
+          padding: 20px;
+          background: var(--editor-bg-dark);
+          border-radius: 4px;
+          border: 1px dashed var(--editor-border);
+        }
+
+        .quick-effects-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 6px;
+          margin-top: 12px;
+        }
+
+        .quick-effect-btn {
+          padding: 8px;
+          background: var(--editor-bg-dark);
+          border: 1px solid var(--editor-border);
+          border-radius: 4px;
+          color: var(--editor-text-primary);
+          cursor: pointer;
+          font-size: 10px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          transition: var(--transition-fast);
+        }
+
+        .quick-effect-btn:hover {
+          background: var(--editor-bg-hover);
+          border-color: var(--editor-accent-blue);
+        }
+
+        .available-effects-quick {
+          margin-top: 20px;
+        }
+
+        .no-selection-message {
+          text-align: center;
+          color: var(--editor-text-secondary);
+          padding: 20px;
+        }
+
+        .no-selection-message p {
+          margin: 0 0 16px 0;
+          font-size: 13px;
+        }
+
+        .effects-help h5 {
+          margin: 0 0 8px 0;
+          color: var(--editor-text-bright);
+          font-size: 12px;
+        }
+
+        .effects-help ul {
+          margin: 0;
+          padding-left: 16px;
+          list-style: none;
+          text-align: left;
+        }
+
+        .effects-help li {
+          font-size: 11px;
+          color: var(--editor-text-secondary);
+          margin-bottom: 4px;
+          position: relative;
+        }
+
+        .effects-help li::before {
+          content: '•';
+          color: var(--editor-accent-blue);
+          margin-right: 8px;
+        }
+
+        .effect-control {
+          margin-bottom: 12px;
+        }
+
+        .effect-control label {
+          display: block;
+          font-size: 12px;
+          margin-bottom: 4px;
+          color: var(--editor-text-primary);
+        }
+
+        .effect-control input[type="range"] {
+          width: 100%;
+          height: 4px;
+          background: var(--editor-bg-dark);
+          border-radius: 2px;
+          outline: none;
+          appearance: none;
+        }
+
+        .effect-control input[type="range"]::-webkit-slider-thumb {
+          appearance: none;
+          width: 12px;
+          height: 12px;
+          background: var(--editor-accent-blue);
+          border-radius: 50%;
+          cursor: pointer;
+        }
+
+        /* Scrollbar Styling */
+        .timeline-tracks-scroll::-webkit-scrollbar,
+        .timeline-ruler-scroll::-webkit-scrollbar,
+        .track-headers-column::-webkit-scrollbar,
+        .editor-left-panel::-webkit-scrollbar,
+        .effects-panel::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+
+        .timeline-tracks-scroll::-webkit-scrollbar-track,
+        .timeline-ruler-scroll::-webkit-scrollbar-track,
+        .track-headers-column::-webkit-scrollbar-track,
+        .editor-left-panel::-webkit-scrollbar-track,
+        .effects-panel::-webkit-scrollbar-track {
+          background: var(--editor-bg-dark);
+        }
+
+        .timeline-tracks-scroll::-webkit-scrollbar-thumb,
+        .timeline-ruler-scroll::-webkit-scrollbar-thumb,
+        .track-headers-column::-webkit-scrollbar-thumb,
+        .editor-left-panel::-webkit-scrollbar-thumb,
+        .effects-panel::-webkit-scrollbar-thumb {
+          background: var(--editor-border-light);
+          border-radius: 4px;
+        }
+
+        .timeline-tracks-scroll::-webkit-scrollbar-thumb:hover,
+        .timeline-ruler-scroll::-webkit-scrollbar-thumb:hover,
+        .track-headers-column::-webkit-scrollbar-thumb:hover,
+        .editor-left-panel::-webkit-scrollbar-thumb:hover,
+        .effects-panel::-webkit-scrollbar-thumb:hover {
+          background: var(--editor-text-secondary);
+        }
+
+        .timeline-tracks-scroll::-webkit-scrollbar-corner,
+        .timeline-ruler-scroll::-webkit-scrollbar-corner {
+          background: var(--editor-bg-dark);
+        }
+
+        /* Animation for smooth interactions */
+        @keyframes clipSelect {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+          100% { transform: scale(1); }
+        }
+
+        .timeline-clip.selected {
+          animation: clipSelect 0.3s ease;
+        }
+
+        @keyframes effectApplied {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.1); opacity: 0.8; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+
+        .clip-effects-indicator {
+          animation: effectApplied 0.4s ease;
+        }
+
+        /* Focus styles for accessibility */
+        .tool-btn:focus,
+        .control-btn-small:focus,
+        .control-btn-play-small:focus,
+        .timeline-option-btn:focus,
+        .track-toggle-btn:focus,
+        .quick-effect-btn:focus,
+        .close-panel-btn:focus {
+          outline: 2px solid var(--editor-accent-blue);
+          outline-offset: 2px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+          .effects-panel {
+            width: 280px;
+          }
+        }
+
+        @media (max-width: 1024px) {
+          .editor-left-panel {
+            width: 200px;
+            min-width: 200px;
+          }
+          
+          .track-headers-spacer,
+          .track-headers-column {
+            width: 200px;
+            min-width: 200px;
+          }
+          
+          .effects-panel {
+            width: 250px;
+            right: 10px;
+          }
+        }
+      `}</style>
     </div>
   );
 };
