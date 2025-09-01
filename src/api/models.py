@@ -84,88 +84,6 @@ class Squad(db.Model):
         }
 
 
-# User Model
-# class User(db.Model):
-#     __tablename__ = 'user'
-
-#     id = db.Column(db.Integer, primary_key=True)
-#     username = db.Column(db.String(80), unique=True, nullable=False)
-#     artist_name = db.Column(db.String(80), unique=True, nullable=True)
-#     bio = db.Column(db.String(500), nullable=True)
-#     industry = db.Column(db.String(80), nullable=True)
-#     email = db.Column(db.String(120), unique=True, nullable=False)
-#     password_hash = db.Column(db.String(256), nullable=False)
-#     is_premium = db.Column(db.Boolean, default=False, server_default="False")
-#     avatar_url = db.Column(db.String(500))
-
-#     # ✅ Gamer Features
-#     is_gamer = db.Column(db.Boolean, default=False)
-#     gamer_tags = db.Column(db.JSON, default={})  # e.g., {"psn": "ShadowWolf", "xbox": "NoScopeKing"}
-#     favorite_games = db.Column(db.ARRAY(db.String), default=[])
-#     gamer_rank = db.Column(db.String(50), default="Casual")
-#     squad_id = db.Column(db.Integer, db.ForeignKey("squad.id"))
-
-#     # 🔄 Relationships
-#     squad = db.relationship("Squad", back_populates="members", foreign_keys=[squad_id])
-#     streams = db.relationship("Stream", back_populates="user", foreign_keys="Stream.creator_id", lazy=True)
-
-#     # ✅ Trials
-#     is_on_trial = db.Column(db.Boolean, default=False)
-#     trial_start_date = db.Column(db.DateTime, nullable=True)
-#     trial_end_date = db.Column(db.DateTime, nullable=True)
-
-#     # 💳 Access & Purchases
-#     vr_tickets = db.relationship('VRAccessTicket', backref='user', lazy=True)
-#     ticket_purchases = db.relationship('TicketPurchase', backref='user', lazy=True)
-
-#     # 🧑‍💼 Business Info
-#     business_name = db.Column(db.String(255), nullable=True)
-#     display_name = db.Column(db.String(255), nullable=True)
-
-#     # 📸 Media
-#     profile_picture = db.Column(db.String(500), nullable=True)
-#     cover_photo = db.Column(db.String(500), nullable=True)
-#     radio_station = db.Column(db.String(500), nullable=True)
-#     podcast = db.Column(db.String(500), nullable=True)
-#     social_links = db.Column(db.JSON, nullable=True)
-#     gallery = db.Column(db.JSON, default=[])
-#     videos = db.Column(db.JSON, default=[])
-
-#     # 🛂 Role
-#     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
-#     role = db.relationship("Role", backref="users")
-
-#     # 📻 Followers
-#     radio_follows = db.relationship('RadioFollower', back_populates='user', lazy='dynamic')
-
-#     def serialize(self):
-#         return {
-#             "id": self.id,
-#             "username": self.username,
-#             "artist_name": self.artist_name,
-#             "bio": self.bio,
-#             "email": self.email,
-#             "business_name": self.business_name,
-#             "display_name": self.display_name,
-#             "profile_picture": self.profile_picture,
-#             "cover_photo": self.cover_photo,
-#             "radio_station": self.radio_station,
-#             "podcast": self.podcast,
-#             "social_links": self.social_links or {},
-#             "gallery": self.gallery or [],
-#             "videos": self.videos or [],
-#             "is_on_trial": self.is_on_trial,
-#             "trial_start_date": self.trial_start_date.strftime("%Y-%m-%d") if self.trial_start_date else None,
-#             "trial_end_date": self.trial_end_date.strftime("%Y-%m-%d") if self.trial_end_date else None,
-#             "role": self.role.name if self.role else None,
-#             "avatar_url": self.avatar_url,
-#             "is_gamer": self.is_gamer,
-#             "gamer_tags": self.gamer_tags or {},
-#             "favorite_games": self.favorite_games or [],
-#             "gamer_rank": self.gamer_rank or "Casual",
-#             "squad_id": self.squad_id,
-#         }
-
 class User(db.Model):
     __tablename__ = 'user'
     
@@ -501,6 +419,9 @@ class Audio(db.Model):
     description = db.Column(db.Text)
     file_url = db.Column(db.String(500), nullable=False)
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    processed_file_url = db.Column(db.String(500))  # URL to processed audio file
+    processing_status = db.Column(db.String(50), default='original')  # 'original', 'processing', 'processed'
+    last_processed_at = db.Column(db.DateTime)
     
     # Optional additional fields
     duration = db.Column(db.String(10))  # e.g., "3:45"
@@ -606,7 +527,11 @@ class Video(db.Model):
     file_url = db.Column(db.String(500), nullable=False)
     thumbnail_url = db.Column(db.String(500), nullable=True)
     duration = db.Column(db.Integer, nullable=True)
-    
+    # Add these fields to your existing Video model:
+    timeline_data = db.Column(db.JSON, default={'tracks': []})
+    width = db.Column(db.Integer, default=1920) 
+    height = db.Column(db.Integer, default=1080)
+    frame_rate = db.Column(db.Integer, default=30)
     # Timestamps
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -1679,6 +1604,51 @@ class PricingPlan(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
 
+class AudioEffects(db.Model):
+    __tablename__ = 'audio_effects'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
+    effect_type = db.Column(db.String(50), nullable=False)  # 'reverb', 'compressor', etc.
+    intensity = db.Column(db.Float, default=50.0)  # 0-100
+    parameters = db.Column(db.JSON, default={})  # Store effect-specific parameters
+    applied_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_active = db.Column(db.Boolean, default=True)
+    
+    # Relationship
+    audio = db.relationship('Audio', backref=db.backref('applied_effects', lazy=True))
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "audio_id": self.audio_id,
+            "effect_type": self.effect_type,
+            "intensity": self.intensity,
+            "parameters": self.parameters,
+            "applied_at": self.applied_at.isoformat() if self.applied_at else None,
+            "is_active": self.is_active
+        }
+
+class AudioPresets(db.Model):
+    __tablename__ = 'audio_presets'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)  # 'vocals', 'podcast', 'music'
+    description = db.Column(db.Text)
+    effects_chain = db.Column(db.JSON, nullable=False)  # Array of effects with parameters
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    is_public = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "effects_chain": self.effects_chain,
+            "is_public": self.is_public,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
 
 # ============ DATABASE MIGRATION SQL ============
 # Run this SQL to add the new columns to your existing pricing_plans table:
@@ -3735,6 +3705,10 @@ class VideoClip(db.Model):
     tags = db.Column(db.JSON, default=[])
     is_public = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Verify these exist in your VideoClip model:
+    timeline_start = db.Column(db.Float, default=0)  # Position on timeline
+    timeline_end = db.Column(db.Float, default=0)    # End position on timeline
+    track_id = db.Column(db.Integer, default=1)      # Which track it's on
     
     # Relationships
     user = db.relationship('User', backref='clips')
@@ -4074,4 +4048,72 @@ class CommunicationPreferences(db.Model):
             'preferred_video_quality': self.preferred_video_quality,
             'enable_noise_suppression': self.enable_noise_suppression,
             'enable_echo_cancellation': self.enable_echo_cancellation
+        }
+
+# Add this to your models.py if you want more advanced effect tracking
+
+class VideoEffects(db.Model):
+    __tablename__ = 'video_effects'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    clip_id = db.Column(db.Integer, db.ForeignKey('video_clips.id'), nullable=False)
+    effect_type = db.Column(db.String(50), nullable=False)  # 'brightness', 'contrast', 'blur', etc.
+    intensity = db.Column(db.Integer, default=50)  # 0-100
+    parameters = db.Column(db.JSON, nullable=True)  # Additional effect parameters
+    applied_at = db.Column(db.DateTime, default=datetime.utcnow)
+    applied_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    processed_url = db.Column(db.String(500), nullable=True)  # URL of processed video
+    is_active = db.Column(db.Boolean, default=True)  # Can be disabled
+    processing_time = db.Column(db.Float, nullable=True)  # Processing time in seconds
+    
+    # Relationships
+    clip = db.relationship('VideoClip', backref='applied_effects')
+    user = db.relationship('User', backref='video_effects_applied')
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'clip_id': self.clip_id,
+            'effect_type': self.effect_type,
+            'intensity': self.intensity,
+            'parameters': self.parameters,
+            'applied_at': self.applied_at.isoformat() if self.applied_at else None,
+            'applied_by': self.applied_by,
+            'processed_url': self.processed_url,
+            'is_active': self.is_active,
+            'processing_time': self.processing_time
+        }
+
+# Also add this model for effect presets/templates
+class EffectPreset(db.Model):
+    __tablename__ = 'effect_presets'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    effect_type = db.Column(db.String(50), nullable=False)
+    default_intensity = db.Column(db.Integer, default=50)
+    default_parameters = db.Column(db.JSON, nullable=True)
+    thumbnail_url = db.Column(db.String(500), nullable=True)  # Preview image
+    is_premium = db.Column(db.Boolean, default=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # User-created presets
+    is_public = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    creator = db.relationship('User', backref='effect_presets_created')
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'description': self.description,
+            'effect_type': self.effect_type,
+            'default_intensity': self.default_intensity,
+            'default_parameters': self.default_parameters,
+            'thumbnail_url': self.thumbnail_url,
+            'is_premium': self.is_premium,
+            'created_by': self.created_by,
+            'is_public': self.is_public,
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
