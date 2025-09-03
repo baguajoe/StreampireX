@@ -75,6 +75,7 @@ import VideoEditor from "./pages/VideoEditor";
 
 import EditGamerProfilePage from "./pages/EditGamerProfilePage";
 import CreateTeamRoomPage from "./pages/CreateTeamRoomPage";
+import ContentLibrary from "./pages/ContentLibrary";
 
 const Layout = () => {
   const basename = process.env.BASENAME || "";
@@ -166,6 +167,7 @@ const Layout = () => {
 
               {/* 👤 User - ALL PROFILE TYPES */}
               <Route path="/home-feed" element={<HomeFeed />} />
+              <Route path="/content-library" element={<ContentLibrary />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/profile/artist" element={<ArtistProfilePage />} />
               <Route path="/profile/artist/edit" element={<EditArtistProfilePage />} />

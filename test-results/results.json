@@ -1,0 +1,365 @@
+{
+  "config": {
+    "configFile": "/workspaces/SpectraSphere/playwright.config.js",
+    "rootDir": "/workspaces/SpectraSphere/tests",
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": "/workspaces/SpectraSphere/tests/global-setup.js",
+    "globalTeardown": "/workspaces/SpectraSphere/tests/global-teardown.js",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "test-results/junit.xml"
+        }
+      ],
+      [
+        "list",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "auth-tests",
+        "name": "auth-tests",
+        "testDir": "/workspaces/SpectraSphere/tests/auth",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "api-integration",
+        "name": "api-integration",
+        "testDir": "/workspaces/SpectraSphere/tests/api",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "frontend-tests",
+        "name": "frontend-tests",
+        "testDir": "/workspaces/SpectraSphere/tests/frontend",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "music-features",
+        "name": "music-features",
+        "testDir": "/workspaces/SpectraSphere/tests/music",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "podcast-features",
+        "name": "podcast-features",
+        "testDir": "/workspaces/SpectraSphere/tests/podcasts",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "radio-features",
+        "name": "radio-features",
+        "testDir": "/workspaces/SpectraSphere/tests/radio",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "gaming-features",
+        "name": "gaming-features",
+        "testDir": "/workspaces/SpectraSphere/tests/gaming",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "video-editor-features",
+        "name": "video-editor-features",
+        "testDir": "/workspaces/SpectraSphere/tests/video-editor",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "marketplace-features",
+        "name": "marketplace-features",
+        "testDir": "/workspaces/SpectraSphere/tests/marketplace",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "sonosuite-integration",
+        "name": "sonosuite-integration",
+        "testDir": "/workspaces/SpectraSphere/tests/sonosuite",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "distribution-features",
+        "name": "distribution-features",
+        "testDir": "/workspaces/SpectraSphere/tests/distribution",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "integration-tests",
+        "name": "integration-tests",
+        "testDir": "/workspaces/SpectraSphere/tests/integration",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/workspaces/SpectraSphere/tests/core",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/workspaces/SpectraSphere/tests/core",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "mobile-chrome",
+        "name": "mobile-chrome",
+        "testDir": "/workspaces/SpectraSphere/tests/mobile",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "mobile-safari",
+        "name": "mobile-safari",
+        "testDir": "/workspaces/SpectraSphere/tests/mobile",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "performance-tests",
+        "name": "performance-tests",
+        "testDir": "/workspaces/SpectraSphere/tests/performance",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "a11y-tests",
+        "name": "a11y-tests",
+        "testDir": "/workspaces/SpectraSphere/tests/accessibility",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "visual-tests",
+        "name": "visual-tests",
+        "testDir": "/workspaces/SpectraSphere/tests/visual",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspaces/SpectraSphere/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {},
+        "id": "smoke-tests",
+        "name": "smoke-tests",
+        "testDir": "/workspaces/SpectraSphere/tests/smoke",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.54.2",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "Error: browserType.launch: \n╔══════════════════════════════════════════════════════╗\n║ Host system is missing dependencies to run browsers. ║\n║ Please install them with the following command:      ║\n║                                                      ║\n║     sudo npx playwright install-deps                 ║\n║                                                      ║\n║ Alternatively, use apt:                              ║\n║     sudo apt-get install libatk1.0-0\\                ║\n║         libatk-bridge2.0-0\\                          ║\n║         libatspi2.0-0\\                               ║\n║         libxcomposite1                               ║\n║                                                      ║\n║ <3 Playwright Team                                   ║\n╚══════════════════════════════════════════════════════╝",
+      "stack": "Error: browserType.launch: \n╔══════════════════════════════════════════════════════╗\n║ Host system is missing dependencies to run browsers. ║\n║ Please install them with the following command:      ║\n║                                                      ║\n║     sudo npx playwright install-deps                 ║\n║                                                      ║\n║ Alternatively, use apt:                              ║\n║     sudo apt-get install libatk1.0-0\\                ║\n║         libatk-bridge2.0-0\\                          ║\n║         libatspi2.0-0\\                               ║\n║         libxcomposite1                               ║\n║                                                      ║\n║ <3 Playwright Team                                   ║\n╚══════════════════════════════════════════════════════╝\n    at globalSetup (/workspaces/SpectraSphere/tests/global-setup.js:8:34)",
+      "location": {
+        "file": "/workspaces/SpectraSphere/tests/global-setup.js",
+        "column": 34,
+        "line": 8
+      },
+      "snippet": "\u001b[90m   at \u001b[39mglobal-setup.js:8\n\n\u001b[0m \u001b[90m  6 |\u001b[39m   \n \u001b[90m  7 |\u001b[39m   \u001b[90m// Create test browser for setup tasks\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  8 |\u001b[39m   \u001b[36mconst\u001b[39m browser \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m chromium\u001b[33m.\u001b[39mlaunch()\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                                  \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  9 |\u001b[39m   \u001b[36mconst\u001b[39m context \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m browser\u001b[33m.\u001b[39mnewContext()\u001b[33m;\u001b[39m\n \u001b[90m 10 |\u001b[39m   \u001b[36mconst\u001b[39m page \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m context\u001b[33m.\u001b[39mnewPage()\u001b[33m;\u001b[39m\n \u001b[90m 11 |\u001b[39m\u001b[0m"
+    },
+    {
+      "message": "Error: Cannot find module './tests/global-setup.js'\nRequire stack:\n- /workspaces/SpectraSphere/tests/global-teardown.js\n- /workspaces/SpectraSphere/node_modules/playwright/lib/transform/transform.js\n- /workspaces/SpectraSphere/node_modules/playwright/lib/common/configLoader.js\n- /workspaces/SpectraSphere/node_modules/playwright/lib/program.js\n- /workspaces/SpectraSphere/node_modules/@playwright/test/cli.js",
+      "stack": "Error: Cannot find module './tests/global-setup.js'\nRequire stack:\n- /workspaces/SpectraSphere/tests/global-teardown.js\n- /workspaces/SpectraSphere/node_modules/playwright/lib/transform/transform.js\n- /workspaces/SpectraSphere/node_modules/playwright/lib/common/configLoader.js\n- /workspaces/SpectraSphere/node_modules/playwright/lib/program.js\n- /workspaces/SpectraSphere/node_modules/@playwright/test/cli.js\n    at Object.<anonymous> (/workspaces/SpectraSphere/tests/global-teardown.js:116:24)",
+      "location": {
+        "file": "/workspaces/SpectraSphere/tests/global-teardown.js",
+        "column": 24,
+        "line": 116
+      },
+      "snippet": "\u001b[90m   at \u001b[39mglobal-teardown.js:116\n\n\u001b[0m \u001b[90m 114 |\u001b[39m\n \u001b[90m 115 |\u001b[39m   \u001b[90m/* Global setup and teardown */\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 116 |\u001b[39m   globalSetup\u001b[33m:\u001b[39m require\u001b[33m.\u001b[39mresolve(\u001b[32m'./tests/global-setup.js'\u001b[39m)\u001b[33m,\u001b[39m\n \u001b[90m     |\u001b[39m                        \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 117 |\u001b[39m   globalTeardown\u001b[33m:\u001b[39m require\u001b[33m.\u001b[39mresolve(\u001b[32m'./tests/global-teardown.js'\u001b[39m)\u001b[33m,\u001b[39m\n \u001b[90m 118 |\u001b[39m   \n \u001b[90m 119 |\u001b[39m   \u001b[90m/* Test timeout */\u001b[39m\u001b[0m"
+    }
+  ],
+  "stats": {
+    "startTime": "2025-09-02T21:06:38.708Z",
+    "duration": 750.4179999999997,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

@@ -128,6 +128,9 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/home-feed" className={isActive("/home-feed") ? "active" : ""}>
         🏠 Home Feed
       </MenuItem>
+      <MenuItem to="/content-library" className={isActive("/content-library") ? "active" : ""}>
+        📚 Content Library
+      </MenuItem>
 
       {/* Profile Sub-section */}
       <div style={{ marginLeft: '10px', borderLeft: '2px solid #ffa726', paddingLeft: '5px' }}>
