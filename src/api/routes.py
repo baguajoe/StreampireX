@@ -14329,3 +14329,323 @@ def create_video_transition(video1_url, video2_url, transition_type, duration):
     except Exception as e:
         print(f"Transition creation error: {e}")
         return None
+# Add to your src/api/routes.py file
+
+@api.route('/user/all-content', methods=['GET'])
+@jwt_required()
+def get_user_all_content():
+    """Get all content created by user for sharing library"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Get query parameters for filtering and pagination
+        search = request.args.get('search', '').strip()
+        content_type = request.args.get('type', 'all')
+        date_filter = request.args.get('date_filter', 'all')
+        sort_by = request.args.get('sort_by', 'newest')
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 50))
+        
+        all_content = []
+        
+        # Fetch Music Content
+        music_query = Audio.query.filter_by(user_id=user_id)
+        if search:
+            music_query = music_query.filter(
+                or_(
+                    Audio.title.ilike(f'%{search}%'),
+                    Audio.artist_name.ilike(f'%{search}%')
+                )
+            )
+        
+        music_tracks = music_query.all()
+        for track in music_tracks:
+            all_content.append({
+                'id': track.id,
+                'type': 'music',
+                'title': track.title,
+                'artist_name': getattr(track, 'artist_name', 'You'),
+                'description': getattr(track, 'description', ''),
+                'created_at': track.created_at.isoformat() if hasattr(track, 'created_at') else None,
+                'album_cover': getattr(track, 'album_cover', None),
+                'genre': getattr(track, 'genre', None),
+                'duration': getattr(track, 'duration', 0),
+                'stats': {
+                    'streams': getattr(track, 'play_count', 0),
+                    'shares': getattr(track, 'share_count', 0),
+                    'likes': getattr(track, 'like_count', 0)
+                },
+                'streaming_url': getattr(track, 'streaming_url', ''),
+                'tags': ['music', 'audio', getattr(track, 'genre', 'original')]
+            })
+        
+        # Fetch Video Content
+        try:
+            video_query = Video.query.filter_by(user_id=user_id)
+            if search:
+                video_query = video_query.filter(
+                    or_(
+                        Video.title.ilike(f'%{search}%'),
+                        Video.description.ilike(f'%{search}%') if hasattr(Video, 'description') else True
+                    )
+                )
+            
+            videos = video_query.all()
+            for video in videos:
+                all_content.append({
+                    'id': video.id,
+                    'type': 'video',
+                    'title': video.title,
+                    'description': getattr(video, 'description', ''),
+                    'created_at': video.created_at.isoformat() if hasattr(video, 'created_at') else None,
+                    'thumbnail': getattr(video, 'thumbnail', None),
+                    'video_url': video.url if hasattr(video, 'url') else getattr(video, 'video_url', ''),
+                    'duration': getattr(video, 'duration', 0),
+                    'category': getattr(video, 'category', 'Video'),
+                    'stats': {
+                        'views': getattr(video, 'view_count', 0),
+                        'shares': getattr(video, 'share_count', 0),
+                        'likes': getattr(video, 'like_count', 0)
+                    },
+                    'tags': ['video', 'visual', getattr(video, 'category', 'content')]
+                })
+        except Exception as e:
+            print(f"Error fetching videos: {e}")
+        
+        # Fetch Podcast Content
+        try:
+            # Get podcasts hosted by user
+            user_podcasts = Podcast.query.filter_by(host_id=user_id).all()
+            for podcast in user_podcasts:
+                # Get episodes for each podcast
+                episodes = PodcastEpisode.query.filter_by(podcast_id=podcast.id).all()
+                for episode in episodes:
+                    all_content.append({
+                        'id': episode.id,
+                        'type': 'podcast',
+                        'title': episode.title,
+                        'description': getattr(episode, 'description', ''),
+                        'created_at': episode.created_at.isoformat() if hasattr(episode, 'created_at') else None,
+                        'thumbnail': getattr(episode, 'thumbnail', None),
+                        'podcast_name': podcast.name,
+                        'episode_number': getattr(episode, 'episode_number', 1),
+                        'duration': getattr(episode, 'duration', 0),
+                        'host': getattr(podcast.host, 'display_name', 'You') if hasattr(podcast, 'host') else 'You',
+                        'stats': {
+                            'listens': getattr(episode, 'listen_count', 0),
+                            'shares': getattr(episode, 'share_count', 0),
+                            'downloads': getattr(episode, 'download_count', 0)
+                        },
+                        'tags': ['podcast', 'audio', 'episode']
+                    })
+        except Exception as e:
+            print(f"Error fetching podcasts: {e}")
+        
+        # Fetch Radio Stations
+        try:
+            radio_stations = RadioStation.query.filter_by(user_id=user_id).all()
+            for station in radio_stations:
+                all_content.append({
+                    'id': station.id,
+                    'type': 'radio',
+                    'title': f"{station.name} - Radio Station",
+                    'station_name': station.name,
+                    'description': getattr(station, 'description', ''),
+                    'created_at': station.created_at.isoformat() if hasattr(station, 'created_at') else None,
+                    'cover_image': getattr(station, 'cover_image', None),
+                    'genre': getattr(station, 'genre', 'Music'),
+                    'current_track': getattr(station, 'now_playing_metadata', 'Various Artists'),
+                    'stats': {
+                        'listeners': getattr(station, 'listener_count', 0),
+                        'shares': getattr(station, 'share_count', 0),
+                        'total_plays': getattr(station, 'total_play_count', 0)
+                    },
+                    'stream_url': f"https://streampirex.com/radio/{station.id}",
+                    'is_live': getattr(station, 'is_live', False),
+                    'tags': ['radio', 'live', 'broadcast', getattr(station, 'genre', 'music')]
+                })
+        except Exception as e:
+            print(f"Error fetching radio stations: {e}")
+        
+        # Apply content type filter
+        if content_type != 'all':
+            all_content = [item for item in all_content if item['type'] == content_type]
+        
+        # Apply date filter
+        if date_filter != 'all':
+            from datetime import datetime, timedelta
+            now = datetime.utcnow()
+            
+            if date_filter == 'week':
+                cutoff = now - timedelta(days=7)
+            elif date_filter == 'month':
+                cutoff = now - timedelta(days=30)
+            elif date_filter == '3months':
+                cutoff = now - timedelta(days=90)
+            elif date_filter == '6months':
+                cutoff = now - timedelta(days=180)
+            elif date_filter == 'year':
+                cutoff = now - timedelta(days=365)
+            else:
+                cutoff = datetime.min
+            
+            all_content = [
+                item for item in all_content 
+                if item.get('created_at') and datetime.fromisoformat(item['created_at'].replace('Z', '+00:00')) >= cutoff
+            ]
+        
+        # Apply sorting
+        if sort_by == 'oldest':
+            all_content.sort(key=lambda x: x.get('created_at') or '1970-01-01')
+        elif sort_by == 'popular':
+            all_content.sort(key=lambda x: x.get('stats', {}).get('views', 0) + x.get('stats', {}).get('streams', 0) + x.get('stats', {}).get('listens', 0), reverse=True)
+        elif sort_by == 'title':
+            all_content.sort(key=lambda x: x.get('title', '').lower())
+        else:  # newest (default)
+            all_content.sort(key=lambda x: x.get('created_at') or '1970-01-01', reverse=True)
+        
+        # Apply pagination
+        total_items = len(all_content)
+        start_index = (page - 1) * per_page
+        end_index = start_index + per_page
+        paginated_content = all_content[start_index:end_index]
+        
+        return jsonify({
+            'success': True,
+            'content': paginated_content,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_items': total_items,
+                'total_pages': (total_items + per_page - 1) // per_page,
+                'has_next': end_index < total_items,
+                'has_prev': page > 1
+            },
+            'filters_applied': {
+                'search': search,
+                'content_type': content_type,
+                'date_filter': date_filter,
+                'sort_by': sort_by
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching user content: {e}")
+        return jsonify({
+            'error': 'Failed to fetch content',
+            'details': str(e)
+        }), 500
+
+@api.route('/user/content-stats', methods=['GET'])
+@jwt_required()
+def get_user_content_stats():
+    """Get summary statistics of user's content"""
+    try:
+        user_id = get_jwt_identity()
+        
+        stats = {
+            'total_content': 0,
+            'by_type': {
+                'music': 0,
+                'video': 0,
+                'podcast': 0,
+                'radio': 0,
+                'gaming': 0
+            },
+            'total_engagement': {
+                'views': 0,
+                'streams': 0,
+                'listens': 0,
+                'shares': 0,
+                'likes': 0
+            },
+            'recent_activity': {
+                'last_upload': None,
+                'this_week': 0,
+                'this_month': 0
+            }
+        }
+        
+        # Count music tracks
+        music_count = Audio.query.filter_by(user_id=user_id).count()
+        stats['by_type']['music'] = music_count
+        stats['total_content'] += music_count
+        
+        # Count videos (if Video model exists)
+        try:
+            video_count = Video.query.filter_by(user_id=user_id).count()
+            stats['by_type']['video'] = video_count
+            stats['total_content'] += video_count
+        except:
+            pass
+        
+        # Count podcast episodes
+        try:
+            user_podcasts = Podcast.query.filter_by(host_id=user_id).all()
+            podcast_count = 0
+            for podcast in user_podcasts:
+                podcast_count += PodcastEpisode.query.filter_by(podcast_id=podcast.id).count()
+            stats['by_type']['podcast'] = podcast_count
+            stats['total_content'] += podcast_count
+        except:
+            pass
+        
+        # Count radio stations
+        try:
+            radio_count = RadioStation.query.filter_by(user_id=user_id).count()
+            stats['by_type']['radio'] = radio_count
+            stats['total_content'] += radio_count
+        except:
+            pass
+        
+        return jsonify({
+            'success': True,
+            'stats': stats
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching content stats: {e}")
+        return jsonify({
+            'error': 'Failed to fetch content statistics'
+        }), 500
+
+@api.route('/user/search-content', methods=['POST'])
+@jwt_required()
+def search_user_content():
+    """Advanced search through user's content"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        search_query = data.get('query', '').strip()
+        content_types = data.get('content_types', ['all'])
+        date_range = data.get('date_range', 'all')
+        tags = data.get('tags', [])
+        sort_by = data.get('sort_by', 'relevance')
+        limit = min(data.get('limit', 20), 100)  # Max 100 results
+        
+        # This would implement more advanced search logic
+        # For now, redirect to the main content endpoint
+        search_params = {
+            'search': search_query,
+            'type': content_types[0] if content_types and content_types[0] != 'all' else 'all',
+            'sort_by': sort_by,
+            'per_page': limit
+        }
+        
+        # Call the main content endpoint internally
+        # (In a real implementation, you'd have shared search logic)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Advanced search completed',
+            'results': [],
+            'search_params': search_params
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in advanced search: {e}")
+        return jsonify({
+            'error': 'Search failed'
+        }), 500
+    

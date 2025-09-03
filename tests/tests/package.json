@@ -1,0 +1,8 @@
+{
+  "name": "streampirex-tests",
+  "scripts": {
+    "test:api": "playwright test tests/api/ --config=playwright-api.config.js",
+    "test:config": "playwright test tests/config/ --config=playwright-api.config.js", 
+    "test:no-browser": "playwright test tests/api/ tests/config/ --config=playwright-api.config.js"
+  }
+}
