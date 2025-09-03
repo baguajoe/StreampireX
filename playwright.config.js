@@ -1,117 +1,249 @@
-const { defineConfig, devices } = require('@playwright/test');
+// playwright.config.js - StreamPirex Testing Configuration
+import { defineConfig, devices } from '@playwright/test';
 
-/**
- * @see https://playwright.dev/docs/test-configuration
- */
-module.exports = defineConfig({
+export default defineConfig({
   testDir: './tests',
-  
-  /* Run tests in files in parallel */
-  fullyParallel: false, // Changed to false to avoid resource conflicts
-  
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 1,
+  workers: process.env.CI ? 2 : undefined,
   
-  /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
-  
-  /* Opt out of parallel tests on CI. */
-  workers: 1, // Changed to 1 to avoid server startup conflicts
-  
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['json', { outputFile: 'test-results/results.json' }],
+    ['junit', { outputFile: 'test-results/junit.xml' }],
     ['list'],
-    ['html', { open: 'never' }],
-    ['json', { outputFile: 'test-results.json' }]
-  ],
+    process.env.CI ? ['github'] : null
+  ].filter(Boolean),
   
-  /* Shared settings for all the projects below. */
   use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
+    // Your working URLs
     baseURL: 'http://localhost:3000',
     
-    /* Collect trace when retrying the failed test. */
+    // Enhanced debugging and reporting
     trace: 'on-first-retry',
-    
-    /* Take screenshot on failure */
     screenshot: 'only-on-failure',
-    
-    /* Record video on failure */
     video: 'retain-on-failure',
     
-    /* Global timeout for each action - increased for slow forms */
+    // Timeouts optimized for StreamPirex
     actionTimeout: 15000,
-    
-    /* Global timeout for navigation - increased for app startup */
     navigationTimeout: 30000,
     
-    /* Ignore HTTPS errors */
-    ignoreHTTPSErrors: true,
-    
-    /* Extra HTTP headers */
+    // Headers for API requests
     extraHTTPHeaders: {
-      'Accept': 'application/json, text/plain, */*'
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
     }
   },
-
-  /* Configure projects for major browsers - simplified for debugging */
+  
+  expect: {
+    timeout: 10000,
+    toHaveScreenshot: { threshold: 0.2, mode: 'pixel' },
+    toMatchSnapshot: { threshold: 0.2 }
+  },
+  
   projects: [
+    // ===== CORE FEATURE TESTING =====
     {
-      name: 'chromium',
+      name: 'auth-tests',
+      testDir: './tests/auth',
       use: { 
         ...devices['Desktop Chrome'],
-        // Add slow motion for debugging
-        launchOptions: {
-          slowMo: 50
-        }
+        storageState: undefined // Clean state for auth tests
       },
+    },
+    
+    {
+      name: 'api-integration', 
+      testDir: './tests/api',
+      use: { 
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:3001' // Backend API
+      },
+    },
+    
+    {
+      name: 'frontend-tests',
+      testDir: './tests/frontend',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['auth-tests']
+    },
+    
+    // ===== STREAMPIREX FEATURES =====
+    {
+      name: 'music-features',
+      testDir: './tests/music',
+      use: { 
+        ...devices['Desktop Chrome'],
+        storageState: './test-data/auth-state.json' // Pre-authenticated state
+      },
+      dependencies: ['auth-tests']
+    },
+    
+    {
+      name: 'podcast-features',
+      testDir: './tests/podcasts', 
+      use: { 
+        ...devices['Desktop Chrome'],
+        storageState: './test-data/auth-state.json'
+      },
+      dependencies: ['auth-tests']
+    },
+    
+    {
+      name: 'radio-features',
+      testDir: './tests/radio',
+      use: { 
+        ...devices['Desktop Chrome'],
+        storageState: './test-data/auth-state.json'
+      },
+      dependencies: ['auth-tests']
+    },
+    
+    {
+      name: 'gaming-features',
+      testDir: './tests/gaming',
+      use: { 
+        ...devices['Desktop Chrome'],
+        storageState: './test-data/auth-state.json'
+      },
+      dependencies: ['auth-tests']
+    },
+    
+    {
+      name: 'video-editor-features',
+      testDir: './tests/video-editor',
+      use: { 
+        ...devices['Desktop Chrome'],
+        storageState: './test-data/auth-state.json'
+      },
+      dependencies: ['auth-tests']
+    },
+    
+    {
+      name: 'marketplace-features',
+      testDir: './tests/marketplace',
+      use: { 
+        ...devices['Desktop Chrome'],
+        storageState: './test-data/auth-state.json'
+      },
+      dependencies: ['auth-tests']
+    },
+    
+    // ===== INTEGRATION TESTING =====
+    {
+      name: 'sonosuite-integration',
+      testDir: './tests/sonosuite',
+      use: { 
+        ...devices['Desktop Chrome'],
+        storageState: './test-data/auth-state.json'
+      },
+      dependencies: ['auth-tests']
+    },
+    
+    {
+      name: 'distribution-features',
+      testDir: './tests/distribution',
+      use: { 
+        ...devices['Desktop Chrome'],
+        storageState: './test-data/auth-state.json'
+      },
+      dependencies: ['auth-tests']
+    },
+    
+    {
+      name: 'integration-tests',
+      testDir: './tests/integration',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['auth-tests', 'api-integration']
+    },
+    
+    // ===== CROSS-BROWSER TESTING =====
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+      testDir: './tests/core',
+      dependencies: ['auth-tests']
+    },
+    
+    {
+      name: 'webkit', 
+      use: { ...devices['Desktop Safari'] },
+      testDir: './tests/core',
+      dependencies: ['auth-tests']
+    },
+    
+    // ===== MOBILE TESTING =====
+    {
+      name: 'mobile-chrome',
+      use: { ...devices['Pixel 5'] },
+      testDir: './tests/mobile',
+      dependencies: ['auth-tests']
+    },
+    
+    {
+      name: 'mobile-safari',
+      use: { ...devices['iPhone 12'] },
+      testDir: './tests/mobile',
+      dependencies: ['auth-tests']
+    },
+    
+    // ===== PERFORMANCE & ACCESSIBILITY =====
+    {
+      name: 'performance-tests',
+      testDir: './tests/performance',
+      use: { 
+        ...devices['Desktop Chrome'],
+        video: 'off', // Disable video for performance tests
+        screenshot: 'off'
+      }
+    },
+    
+    {
+      name: 'a11y-tests',
+      testDir: './tests/accessibility',
+      use: { ...devices['Desktop Chrome'] }
+    },
+    
+    {
+      name: 'visual-tests',
+      testDir: './tests/visual',
+      use: { 
+        ...devices['Desktop Chrome'],
+        screenshot: 'only-on-failure'
+      }
+    },
+    
+    // ===== SMOKE TESTING =====
+    {
+      name: 'smoke-tests',
+      testDir: './tests/smoke',
+      use: { ...devices['Desktop Chrome'] },
+      timeout: 30000 // Quick smoke tests
     }
-    // Removed other browsers temporarily to focus on fixing core issues
   ],
-
-  /* Run your local dev server before starting the tests */
+  
+  // Start your StreamPirex services before running tests
   webServer: [
     {
       command: 'npm start',
-      cwd: './src',
-      url: 'http://localhost:3000',
+      port: 3000,
       reuseExistingServer: !process.env.CI,
-      timeout: 180000, // Increased timeout for React startup
+      timeout: 120000,
       stdout: 'pipe',
-      stderr: 'pipe',
-      env: {
-        REACT_APP_BACKEND_URL: 'http://localhost:3001',
-        REACT_APP_ENVIRONMENT: 'test',
-        PORT: '3000'
-      }
+      stderr: 'pipe'
     },
     {
-      command: 'python -m flask run --host=0.0.0.0 --port=3001',
-      cwd: './src',
-      url: 'http://localhost:3001/api/health',
+      command: 'cd src && python app.py',
+      port: 3001, 
       reuseExistingServer: !process.env.CI,
-      timeout: 180000, // Increased timeout for Flask startup
+      timeout: 60000,
       stdout: 'pipe',
-      stderr: 'pipe',
-      env: {
-        FLASK_APP: 'app.py',
-        FLASK_ENV: 'development', // Changed from testing to development
-        DATABASE_URL: process.env.TEST_DATABASE_URL || 'sqlite:///test.db'
-      }
+      stderr: 'pipe'
     }
   ],
   
-  /* Test timeout - increased for slow operations */
-  timeout: 90000,
-  
-  /* Expect timeout - increased for slow form loads */
-  expect: {
-    timeout: 10000
-  },
-
-  /* Output directory */
-  outputDir: 'test-results/',
-  
-  /* Global setup file to ensure servers are ready */
-  globalSetup: require.resolve('./tests/global-setup.js')
+  // Global test setup
+  globalSetup: './tests/global-setup.js',
+  globalTeardown: './tests/global-teardown.js'
 });
