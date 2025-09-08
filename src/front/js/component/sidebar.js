@@ -254,12 +254,7 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/marketplace" className={isActive("/marketplace") ? "active" : ""}>
         🛒 Browse Marketplace
       </MenuItem>
-      <MenuItem to="/cart" className={isActive("/cart") ? "active" : ""}>
-        🛒 Shopping Cart
-      </MenuItem>
-      <MenuItem to="/checkout" className={isActive("/checkout") ? "active" : ""}>
-        💳 Checkout
-      </MenuItem>
+    
       <MenuItem to="/storefront" className={isActive("/storefront") ? "active" : ""}>
         🏪 My Storefront
       </MenuItem>
