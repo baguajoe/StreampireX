@@ -26,7 +26,7 @@ const backendURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 const applyAudioEffect = async (clipId, effectId, intensity) => {
   try {
     const token = localStorage.getItem('jwt-token');
-    
+
     const response = await fetch(`${backendURL}/api/audio/apply-effect`, {
       method: 'POST',
       headers: {
@@ -55,7 +55,7 @@ const applyAudioEffect = async (clipId, effectId, intensity) => {
 const previewAudioEffect = async (clipId, effectId, intensity, startTime = 0, duration = 5) => {
   try {
     const token = localStorage.getItem('jwt-token');
-    
+
     const response = await fetch(`${backendURL}/api/audio/preview-effect`, {
       method: 'POST',
       headers: {
@@ -82,7 +82,7 @@ const previewAudioEffect = async (clipId, effectId, intensity, startTime = 0, du
 const applyBatchEffects = async (clipId, effectsChain) => {
   try {
     const token = localStorage.getItem('jwt-token');
-    
+
     const response = await fetch(`${backendURL}/api/audio/batch-effects`, {
       method: 'POST',
       headers: {
@@ -106,7 +106,7 @@ const applyBatchEffects = async (clipId, effectsChain) => {
 const analyzeAudio = async (clipId) => {
   try {
     const token = localStorage.getItem('jwt-token');
-    
+
     const response = await fetch(`${backendURL}/api/audio/analyze`, {
       method: 'POST',
       headers: {
@@ -280,6 +280,12 @@ const VideoEditorComponent = () => {
   const [selectedTransition, setSelectedTransition] = useState(null);
   const [zoom, setZoom] = useState(1);
 
+  // Add these state variables with your existing ones
+
+  const [snapGridSize, setSnapGridSize] = useState(5);
+  const [draggedClip, setDraggedClip] = useState(null);
+  const [dragOffset, setDragOffset] = useState(0);
+
   // User tier
   const [userTier] = useState('professional');
 
@@ -316,6 +322,17 @@ const VideoEditorComponent = () => {
       setAudioPresets(presets);
     });
   }, []);
+
+  useEffect(() => {
+    if (draggedClip) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [draggedClip, dragOffset, zoom, duration, showSnapToGrid, snapGridSize]);
 
   // Tools configuration
   const tools = [
@@ -550,7 +567,7 @@ const VideoEditorComponent = () => {
   const applyEffect = async (clipId, effectId, value) => {
     // Find the clip to determine if it's audio or video
     const clip = tracks.flatMap(track => track.clips).find(c => c.id === clipId);
-    
+
     if (!clip) {
       console.error('Clip not found');
       return;
@@ -592,7 +609,7 @@ const VideoEditorComponent = () => {
           );
 
           console.log(`✅ Applied ${effectId} to audio clip ${clipId} with intensity ${value}%`);
-          
+
         } else {
           throw new Error(result.error || 'Effect application failed');
         }
@@ -609,7 +626,7 @@ const VideoEditorComponent = () => {
 
       } catch (error) {
         console.error('Audio effect application error:', error);
-        
+
         // Remove loading state
         setActiveEffects(prev => ({
           ...prev,
@@ -657,19 +674,19 @@ const VideoEditorComponent = () => {
   // Enhanced Effect Preview Function
   const previewEffect = async (clipId, effectId, intensity) => {
     const clip = tracks.flatMap(track => track.clips).find(c => c.id === clipId);
-    
+
     if (!clip) return;
 
     // Only preview audio effects via backend
     if (clip.type === 'audio' || audioEffects.some(e => e.id === effectId)) {
       try {
         const result = await previewAudioEffect(clipId, effectId, intensity);
-        
+
         if (result.success && result.preview_audio) {
           // Play the preview audio
           const audio = new Audio(result.preview_audio);
           audio.play();
-          
+
           // Store preview for potential application
           setActiveEffects(prev => ({
             ...prev,
@@ -691,7 +708,7 @@ const VideoEditorComponent = () => {
   // Auto-suggest effects based on audio analysis
   const suggestEffects = async (clipId) => {
     const clip = tracks.flatMap(track => track.clips).find(c => c.id === clipId);
-    
+
     if (!clip || clip.type !== 'audio') {
       console.log('Effect suggestions only available for audio clips');
       return [];
@@ -699,7 +716,7 @@ const VideoEditorComponent = () => {
 
     try {
       const analysis = await analyzeAudio(clipId);
-      
+
       if (analysis.suggested_effects && analysis.suggested_effects.length > 0) {
         // Update UI to show suggestions
         setActiveEffects(prev => ({
@@ -709,7 +726,7 @@ const VideoEditorComponent = () => {
             suggestions: analysis.suggested_effects
           }
         }));
-        
+
         return analysis.suggested_effects;
       }
     } catch (error) {
@@ -721,7 +738,7 @@ const VideoEditorComponent = () => {
   // Apply preset effects chain
   const applyPreset = async (clipId, presetName) => {
     const clip = tracks.flatMap(track => track.clips).find(c => c.id === clipId);
-    
+
     if (!clip || clip.type !== 'audio') {
       console.log('Audio presets only available for audio clips');
       return;
@@ -729,10 +746,10 @@ const VideoEditorComponent = () => {
 
     try {
       const preset = audioPresets[presetName];
-      
+
       if (preset) {
         const result = await applyBatchEffects(clipId, preset);
-        
+
         if (result.success) {
           // Update clip with processed audio
           setTracks(prevTracks =>
@@ -965,6 +982,91 @@ const VideoEditorComponent = () => {
   // Get effects by category
   const getEffectsByCategory = (category, effectsArray) => {
     return effectsArray.filter(effect => effect.category === category);
+  };
+
+  // Snap to grid function
+  const snapToGrid = (time) => {
+    if (!showSnapToGrid) return time;
+    return Math.round(time / snapGridSize) * snapGridSize;
+  };
+
+  // Collision detection function
+  const checkCollisions = (trackId, clipId, newStartTime, clipDuration) => {
+    const track = tracks.find(t => t.id === trackId);
+    if (!track) return newStartTime;
+
+    const otherClips = track.clips.filter(c => c.id !== clipId);
+    let adjustedStartTime = newStartTime;
+
+    for (const otherClip of otherClips) {
+      const otherStart = otherClip.startTime;
+      const otherEnd = otherClip.startTime + otherClip.duration;
+      const clipEnd = adjustedStartTime + clipDuration;
+
+      if (adjustedStartTime < otherEnd && clipEnd > otherStart) {
+        if (adjustedStartTime < otherStart) {
+          adjustedStartTime = Math.max(0, otherStart - clipDuration);
+        } else {
+          adjustedStartTime = otherEnd;
+        }
+      }
+    }
+    return Math.max(0, adjustedStartTime);
+  };
+
+  // Track lock toggle
+  const toggleTrackLock = (trackId) => {
+    setTracks(tracks.map(track =>
+      track.id === trackId
+        ? { ...track, locked: !track.locked }
+        : track
+    ));
+  };
+
+  // Clip drag handlers
+  const handleClipMouseDown = (e, clip, trackId) => {
+    if (tracks.find(t => t.id === trackId)?.locked) return;
+
+    e.preventDefault();
+    const rect = timelineRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clipStartPixel = clip.startTime * 2 * zoom;
+
+    setDraggedClip({ ...clip, trackId });
+    setDragOffset(clickX - clipStartPixel);
+    setSelectedClip(clip);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!draggedClip || !timelineRef.current) return;
+
+    const rect = timelineRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const timelineWidth = rect.width;
+
+    let newTime = ((mouseX - dragOffset) / timelineWidth) * duration;
+    newTime = snapToGrid(newTime);
+    newTime = checkCollisions(draggedClip.trackId, draggedClip.id, newTime, draggedClip.duration);
+
+    setTracks(prevTracks =>
+      prevTracks.map(track =>
+        track.id === draggedClip.trackId
+          ? {
+            ...track,
+            clips: track.clips.map(clip =>
+              clip.id === draggedClip.id
+                ? { ...clip, startTime: Math.max(0, newTime) }
+                : clip
+            )
+          }
+          : track
+      )
+    );
+  };
+
+  const handleMouseUp = () => {
+    setDraggedClip(null);
+    setDragOffset(0);
   };
 
   return (
@@ -1519,8 +1621,20 @@ const VideoEditorComponent = () => {
                   onClick={() => setShowSnapToGrid(!showSnapToGrid)}
                 >
                   <Grid size={12} />
-                  Snap
+                  Snap ({snapGridSize}s)
                 </button>
+
+                <select
+                  value={snapGridSize}
+                  onChange={(e) => setSnapGridSize(parseInt(e.target.value))}
+                  className="snap-grid-select"
+                >
+                  <option value={1}>1s</option>
+                  <option value={5}>5s</option>
+                  <option value={10}>10s</option>
+                  <option value={30}>30s</option>
+                </select>
+
                 <button
                   className={`timeline-option-btn ${showAudioWaveforms ? 'active' : ''}`}
                   onClick={() => setShowAudioWaveforms(!showAudioWaveforms)}
@@ -1560,8 +1674,17 @@ const VideoEditorComponent = () => {
                     <div key={track.id} className="track-header-container">
                       <div className="track-controls-left">
                         <div className="track-label-container">
-                          <div className="track-type-icon">
-                            {track.type === 'video' ? <Video size={14} /> : <AudioWaveform size={14} />}
+                          <div className="track-type-icon-container">
+                            <div className="track-type-icon">
+                              {track.type === 'video' ? <Video size={14} /> : <AudioWaveform size={14} />}
+                            </div>
+                            <button
+                              className={`track-lock-btn ${track.locked ? 'locked' : ''}`}
+                              onClick={() => toggleTrackLock(track.id)}
+                              title={track.locked ? 'Unlock Track' : 'Lock Track'}
+                            >
+                              {track.locked ? <Lock size={10} /> : <Unlock size={10} />}
+                            </button>
                           </div>
                           <div className="track-info">
                             <div className="track-name-label">{track.name}</div>
@@ -1641,18 +1764,20 @@ const VideoEditorComponent = () => {
                                 return (
                                   <div
                                     key={clip.id}
-                                    className={`timeline-clip ${selectedClip?.id === clip.id ? 'selected' : ''} ${draggedEffect ? 'drop-target' : ''}`}
+                                    className={`timeline-clip ${selectedClip?.id === clip.id ? 'selected' : ''} ${track.locked ? 'locked' : ''}`}
                                     style={{
                                       left: `${leftPosition}px`,
                                       width: `${width}px`,
                                       backgroundColor: track.color,
-                                      opacity: clip.compositing?.opacity ? clip.compositing.opacity / 100 : 1
+                                      opacity: clip.compositing?.opacity ? clip.compositing.opacity / 100 : 1,
+                                      cursor: track.locked ? 'not-allowed' : 'grab'
                                     }}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSelectedClip(clip);
                                       setSelectedTransition(null);
                                     }}
+                                    onMouseDown={(e) => handleClipMouseDown(e, clip, track.id)}
                                     onDrop={(e) => handleEffectDrop(e, clip.id)}
                                     onDragOver={handleEffectDragOver}
                                   >
@@ -1918,7 +2043,7 @@ const VideoEditorComponent = () => {
                           {presetName.charAt(0).toUpperCase() + presetName.slice(1)} Style
                         </button>
                       ))}
-                      
+
                       {/* Auto-suggest button */}
                       <button
                         className="preset-btn suggest-btn"
