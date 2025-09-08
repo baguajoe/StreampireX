@@ -14648,4 +14648,41 @@ def search_user_content():
         return jsonify({
             'error': 'Search failed'
         }), 500
-    
+
+# Add this to your routes.py file
+
+@api.route('/marketplace/products', methods=['GET'])
+def get_marketplace_products():
+    """Get all products for marketplace display"""
+    try:
+        products = Product.query.all()
+        result = []
+        for product in products:
+            # Get creator info
+            creator = User.query.get(product.creator_id)
+            
+            product_data = {
+                'id': product.id,
+                'name': product.title,  # Use title as name for compatibility
+                'title': product.title,
+                'description': product.description,
+                'price': float(product.price),
+                'image_url': product.image_url,
+                'file_url': product.file_url,
+                'creator_id': product.creator_id,
+                'is_digital': product.is_digital,
+                'stock': product.stock,
+                'category': getattr(product, 'category', 'general'),  # Add if you have categories
+                'created_at': product.created_at.isoformat() if hasattr(product, 'created_at') else None,
+                'creator': {
+                    'id': creator.id,
+                    'username': creator.username,
+                    'display_name': getattr(creator, 'display_name', creator.username)
+                } if creator else None
+            }
+            result.append(product_data)
+        
+        return jsonify(result), 200
+    except Exception as e:
+        print(f"Error fetching marketplace products: {str(e)}")
+        return jsonify({'error': f'Failed to fetch products: {str(e)}'}), 500  
