@@ -1,8 +1,8 @@
 # src/api/routes.py - Final corrected imports
 
-from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app
+from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app, session
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow
 
 
 import json
@@ -52,6 +52,7 @@ from mutagen.mp3 import MP3  # Add this line for MP3 support
 from mutagen.mp4 import MP4  # Add this for MP4/M4A support
 from mutagen.wave import WAVE  # Add this for WAV support
 from api.cloudinary_setup import uploadFile
+from functools import wraps
 
 from pedalboard import (
     Pedalboard, NoiseGate, Compressor, Distortion, Bitcrush,
@@ -62,7 +63,7 @@ from pedalboard import (
 
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
-# import stripe
+
 # ✅ FIXED: Only import the functions you need, not the SocketIO class
 from flask_socketio import join_room, emit, leave_room
 from api.cache import cache  # Assuming Flask-Caching is set up
@@ -2083,155 +2084,250 @@ def create_standalone_plans():
 @api.route('/subscriptions/subscribe', methods=['POST'])
 @jwt_required()
 def subscribe():
-    """Handle subscription requests for all plan types"""
-    user_id = get_jwt_identity()
-    data = request.get_json()
-    plan_id = data.get("plan_id")
-
-    if not plan_id:
-        return jsonify({"error": "Missing plan_id"}), 400
-
-    print(f"Subscription request for plan_id: {plan_id}, type: {type(plan_id)}")
-
-    # Find the plan
-    plan = None
-    
-    if isinstance(plan_id, str):
-        if plan_id == "standalone-artist":
-            # Find or create standalone artist plan
-            plan = PricingPlan.query.filter_by(name="Standalone Artist").first()
-            if not plan:
-                print("Creating Standalone Artist plan...")
-                plan = PricingPlan(
-                    name="Standalone Artist",
-                    price_monthly=22.99,
-                    price_yearly=22.99,  # Actually yearly
-                    trial_days=0,
-                    includes_podcasts=False,
-                    includes_radio=False,
-                    includes_digital_sales=False,
-                    includes_merch_sales=False,
-                    includes_live_events=False,
-                    includes_tip_jar=False,
-                    includes_ad_revenue=False,
-                    includes_music_distribution=True,
-                    sonosuite_access=True,
-                    distribution_uploads_limit=-1,
-                    includes_gaming_features=False,
-                    includes_team_rooms=False,
-                    includes_squad_finder=False,
-                    includes_gaming_analytics=False,
-                    includes_game_streaming=False,
-                    includes_gaming_monetization=False,
-                    includes_video_distribution=False,
-                    video_uploads_limit=0
-                )
-                db.session.add(plan)
-                db.session.commit()
-                print("Standalone Artist plan created successfully!")
-                
-        elif plan_id == "standalone-label":
-            # Find or create standalone label plan
-            plan = PricingPlan.query.filter_by(name="Standalone Label").first()
-            if not plan:
-                print("Creating Standalone Label plan...")
-                plan = PricingPlan(
-                    name="Standalone Label",
-                    price_monthly=74.99,
-                    price_yearly=74.99,  # Actually yearly
-                    trial_days=0,
-                    includes_podcasts=False,
-                    includes_radio=False,
-                    includes_digital_sales=False,
-                    includes_merch_sales=False,
-                    includes_live_events=False,
-                    includes_tip_jar=False,
-                    includes_ad_revenue=False,
-                    includes_music_distribution=True,
-                    sonosuite_access=True,
-                    distribution_uploads_limit=-1,
-                    includes_gaming_features=False,
-                    includes_team_rooms=False,
-                    includes_squad_finder=False,
-                    includes_gaming_analytics=False,
-                    includes_game_streaming=False,
-                    includes_gaming_monetization=False,
-                    includes_video_distribution=False,
-                    video_uploads_limit=0
-                )
-                db.session.add(plan)
-                db.session.commit()
-                print("Standalone Label plan created successfully!")
-        else:
-            # Try to find by name or regular ID
-            try:
-                plan_id_int = int(plan_id)
-                plan = PricingPlan.query.get(plan_id_int)
-            except ValueError:
-                plan = PricingPlan.query.filter_by(name=plan_id).first()
-    else:
-        # Integer plan ID
-        plan = PricingPlan.query.get(plan_id)
-
-    if not plan:
-        print(f"Plan not found for ID: {plan_id}")
-        return jsonify({"error": "Plan not found"}), 404
-
-    print(f"Found plan: {plan.name} (ID: {plan.id})")
-
+    """Handle subscription requests for all plan types with proper Stripe integration"""
     try:
-        # Check if user already has an active subscription
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        plan_id = data.get("plan_id")
+        billing_cycle = data.get("billing_cycle", "monthly")
+
+        if not plan_id:
+            return jsonify({"error": "Missing plan_id"}), 400
+
+        print(f"Subscription request for plan_id: {plan_id}, type: {type(plan_id)}")
+
+        # Find the plan
+        plan = None
+        
+        # Handle Standalone Plans by String ID
+        if isinstance(plan_id, str):
+            if plan_id == "standalone-artist":
+                # Find or create standalone artist plan
+                plan = PricingPlan.query.filter_by(name="Standalone Artist").first()
+                if not plan:
+                    print("Creating Standalone Artist plan...")
+                    plan = PricingPlan(
+                        name="Standalone Artist",
+                        price_monthly=22.99,
+                        price_yearly=22.99,  # Actually yearly
+                        trial_days=0,
+                        includes_podcasts=False,
+                        includes_radio=False,
+                        includes_digital_sales=False,
+                        includes_merch_sales=False,
+                        includes_live_events=False,
+                        includes_tip_jar=False,
+                        includes_ad_revenue=False,
+                        includes_music_distribution=True,
+                        sonosuite_access=True,
+                        distribution_uploads_limit=-1,
+                        includes_gaming_features=False,
+                        includes_team_rooms=False,
+                        includes_squad_finder=False,
+                        includes_gaming_analytics=False,
+                        includes_game_streaming=False,
+                        includes_gaming_monetization=False,
+                        includes_video_distribution=False,
+                        video_uploads_limit=0
+                    )
+                    db.session.add(plan)
+                    db.session.commit()
+                    print("Standalone Artist plan created successfully!")
+
+            elif plan_id == "standalone-label":
+                # Find or create standalone label plan
+                plan = PricingPlan.query.filter_by(name="Standalone Label").first()
+                if not plan:
+                    print("Creating Standalone Label plan...")
+                    plan = PricingPlan(
+                        name="Standalone Label",
+                        price_monthly=74.99,
+                        price_yearly=74.99,  # Actually yearly
+                        trial_days=0,
+                        includes_podcasts=False,
+                        includes_radio=False,
+                        includes_digital_sales=False,
+                        includes_merch_sales=False,
+                        includes_live_events=False,
+                        includes_tip_jar=False,
+                        includes_ad_revenue=False,
+                        includes_music_distribution=True,
+                        sonosuite_access=True,
+                        distribution_uploads_limit=-1,
+                        includes_gaming_features=False,
+                        includes_team_rooms=False,
+                        includes_squad_finder=False,
+                        includes_gaming_analytics=False,
+                        includes_game_streaming=False,
+                        includes_gaming_monetization=False,
+                        includes_video_distribution=False,
+                        video_uploads_limit=0
+                    )
+                    db.session.add(plan)
+                    db.session.commit()
+                    print("Standalone Label plan created successfully!")
+            else:
+                # Handle other string plan names
+                plan = PricingPlan.query.filter_by(name=plan_id).first()
+        
+        # Handle Integer Plan IDs
+        elif isinstance(plan_id, int) or plan_id.isdigit():
+            plan = PricingPlan.query.get(int(plan_id))
+
+        if not plan:
+            return jsonify({"error": "Plan not found"}), 404
+
+        print(f"Plan found: {plan.name} - Monthly: ${plan.price_monthly}, Yearly: ${plan.price_yearly}")
+
+        # Check for existing active subscription
         existing_subscription = Subscription.query.filter_by(
-            user_id=user_id,
+            user_id=user_id, 
             status="active"
         ).first()
-
-        # Determine billing cycle
-        billing_cycle = data.get("billing_cycle", "yearly")
-        if plan.name.startswith("Standalone"):
-            billing_cycle = "yearly"  # Standalone plans are always yearly
-            price_amount = plan.price_yearly
-        else:
-            price_amount = plan.price_yearly if billing_cycle == "yearly" else plan.price_monthly
-
+        
         if existing_subscription:
-            # Update existing subscription
-            print(f"Updating existing subscription to plan: {plan.name}")
-            existing_subscription.plan_id = plan.id
-            existing_subscription.billing_cycle = billing_cycle
+            return jsonify({
+                "error": "You already have an active subscription"
+            }), 400
+
+        # Determine price based on billing cycle and plan type
+        if plan.name in ["Standalone Artist", "Standalone Label"]:
+            # Standalone plans are yearly-only
+            price = plan.price_yearly
+            billing_cycle = "yearly"
+        else:
+            # Regular plans support monthly/yearly
+            if billing_cycle == "yearly":
+                price = plan.price_yearly
+            else:
+                price = plan.price_monthly
+                billing_cycle = "monthly"
+
+        print(f"Final price: ${price}, billing cycle: {billing_cycle}")
+
+        # Handle Free Plans (price = 0)
+        if price == 0:
+            print("Creating free subscription...")
+            new_subscription = Subscription(
+                user_id=user_id,
+                plan_id=plan.id,
+                billing_cycle=billing_cycle,
+                status="active",  # Free plans are immediately active
+                start_date=datetime.utcnow(),
+                end_date=datetime.utcnow() + timedelta(days=365 if billing_cycle == "yearly" else 30)
+            )
+            
+            db.session.add(new_subscription)
             db.session.commit()
             
             return jsonify({
-                "message": f"Subscription updated to {plan.name}!",
-                "subscription": existing_subscription.serialize(),
-                "checkout_url": f"/success?plan={plan.name}&updated=true"
+                "message": "Successfully subscribed to free plan!",
+                "subscription_id": new_subscription.id,
+                "status": "active"
             }), 200
 
-        # Create new subscription
-        print(f"Creating new subscription for plan: {plan.name}")
-        new_subscription = Subscription(
-            user_id=user_id,
-            plan_id=plan.id,
-            billing_cycle=billing_cycle,
-            status="active",  # For testing, set directly to active
-            start_date=datetime.utcnow()
-        )
+        # Handle Paid Plans - Create Stripe Checkout Session
+        try:
+            print(f"Creating Stripe checkout for ${price}...")
+            
+            # Calculate platform fee (10% platform cut)
+            platform_cut = price * 0.10
+            creator_earnings = price * 0.90
+            
+            # Determine if this is a subscription or one-time payment
+            # Standalone plans are one-time yearly payments
+            if plan.name in ["Standalone Artist", "Standalone Label"]:
+                # One-time payment for standalone plans
+                checkout_session = stripe.checkout.Session.create(
+                    payment_method_types=['card'],
+                    line_items=[{
+                        'price_data': {
+                            'currency': 'usd',
+                            'product_data': {
+                                'name': f'{plan.name} - Annual Plan',
+                                'description': f'Music distribution access for one year'
+                            },
+                            'unit_amount': int(price * 100),  # Convert to cents
+                        },
+                        'quantity': 1,
+                    }],
+                    mode='payment',  # One-time payment
+                    success_url=f"{os.getenv('FRONTEND_URL')}/subscription/success?session_id={{CHECKOUT_SESSION_ID}}",
+                    cancel_url=f"{os.getenv('FRONTEND_URL')}/pricing",
+                    metadata={
+                        'user_id': str(user_id),
+                        'plan_id': str(plan.id),
+                        'billing_cycle': billing_cycle,
+                        'platform_cut': str(platform_cut),
+                        'creator_earnings': str(creator_earnings),
+                        'plan_type': 'standalone'
+                    }
+                )
+            else:
+                # Recurring subscription for regular plans
+                checkout_session = stripe.checkout.Session.create(
+                    payment_method_types=['card'],
+                    line_items=[{
+                        'price_data': {
+                            'currency': 'usd',
+                            'product_data': {
+                                'name': f'{plan.name} Plan ({billing_cycle.title()})',
+                                'description': f'Access to all {plan.name} features'
+                            },
+                            'unit_amount': int(price * 100),  # Convert to cents
+                            'recurring': {
+                                'interval': 'month' if billing_cycle == 'monthly' else 'year'
+                            }
+                        },
+                        'quantity': 1,
+                    }],
+                    mode='subscription',  # Recurring subscription
+                    success_url=f"{os.getenv('FRONTEND_URL')}/subscription/success?session_id={{CHECKOUT_SESSION_ID}}",
+                    cancel_url=f"{os.getenv('FRONTEND_URL')}/pricing",
+                    metadata={
+                        'user_id': str(user_id),
+                        'plan_id': str(plan.id),
+                        'billing_cycle': billing_cycle,
+                        'platform_cut': str(platform_cut),
+                        'creator_earnings': str(creator_earnings),
+                        'plan_type': 'regular'
+                    }
+                )
+
+            # Create pending subscription in database
+            new_subscription = Subscription(
+                user_id=user_id,
+                plan_id=plan.id,
+                billing_cycle=billing_cycle,
+                status="pending",  # Will be activated by webhook after payment
+                stripe_checkout_session_id=checkout_session.id
+            )
+            
+            db.session.add(new_subscription)
+            db.session.commit()
+            
+            print(f"✅ Subscription created with Stripe checkout URL")
+            
+            return jsonify({
+                "checkout_url": checkout_session.url,
+                "subscription_id": new_subscription.id,
+                "status": "pending",
+                "message": "Redirecting to payment..."
+            }), 200
+            
+        except stripe.error.StripeError as e:
+            print(f"❌ Stripe error: {str(e)}")
+            db.session.rollback()
+            return jsonify({
+                "error": f"Payment processing error: {str(e)}"
+            }), 400
         
-        db.session.add(new_subscription)
-        db.session.commit()
-        print("New subscription created successfully!")
-
-        # Return success response
-        return jsonify({
-            "message": f"Successfully subscribed to {plan.name}!",
-            "subscription": new_subscription.serialize(),
-            "checkout_url": f"/success?plan={plan.name}&price={price_amount}"
-        }), 200
-
     except Exception as e:
+        print(f"❌ Subscription error: {str(e)}")
         db.session.rollback()
-        print(f"Subscription error: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "error": f"Subscription failed: {str(e)}"
+        }), 500
 
 @api.route('/success', methods=['GET'])
 def subscription_success():
@@ -6037,64 +6133,97 @@ def purchase_live_ticket():
     }), 200
 
 from flask import request
-# import stripe
 
-# Setup Stripe API
-# stripe.api_key = "disabled"
 
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "your_webhook_secret_here")
 
 @api.route('/webhooks/stripe', methods=['POST'])
 def stripe_webhook():
-    """Handle Stripe webhook events for subscription management"""
+    """Enhanced Stripe webhook handler with comprehensive error handling"""
     payload = request.get_data(as_text=True)
     sig_header = request.headers.get('Stripe-Signature')
-
+    
+    # Input validation
+    if not payload:
+        current_app.logger.error("Empty webhook payload received")
+        return jsonify({"error": "Empty payload"}), 400
+    
+    if not sig_header:
+        current_app.logger.error("Missing Stripe signature header")
+        return jsonify({"error": "Missing signature"}), 400
+    
     try:
-        # Verify webhook signature
+        # Verify webhook signature with configuration check
+        endpoint_secret = current_app.config.get('STRIPE_WEBHOOK_SECRET') or STRIPE_WEBHOOK_SECRET
+        if not endpoint_secret:
+            current_app.logger.error("Stripe webhook secret not configured")
+            return jsonify({"error": "Webhook not configured"}), 500
+        
         event = stripe.Webhook.construct_event(
-            payload, sig_header, STRIPE_WEBHOOK_SECRET
+            payload, sig_header, endpoint_secret
         )
-    except ValueError as e:
-        # Invalid payload
-        return jsonify({"error": "Invalid payload"}), 400
+        
     except stripe.error.SignatureVerificationError as e:
-        # Invalid signature
+        current_app.logger.error(f"Invalid webhook signature: {str(e)}")
         return jsonify({"error": "Invalid signature"}), 400
+    except ValueError as e:
+        current_app.logger.error(f"Invalid webhook payload: {str(e)}")
+        return jsonify({"error": "Invalid payload"}), 400
+    except Exception as e:
+        current_app.logger.error(f"Webhook verification error: {str(e)}")
+        return jsonify({"error": "Webhook verification failed"}), 400
+    
+    # Log webhook event
+    current_app.logger.info(f"Received webhook: {event['type']}")
+    
+    try:
+        # Handle different event types with your comprehensive logic
+        if event['type'] == 'checkout.session.completed':
+            handle_checkout_completed(event['data']['object'])
+        
+        elif event['type'] == 'customer.subscription.created':
+            handle_subscription_created(event['data']['object'])
+        
+        elif event['type'] == 'customer.subscription.updated':
+            handle_subscription_updated(event['data']['object'])
+        
+        elif event['type'] == 'customer.subscription.deleted':
+            handle_subscription_cancelled(event['data']['object'])
+        
+        elif event['type'] == 'invoice.payment_succeeded':
+            handle_payment_succeeded(event['data']['object'])
+        
+        elif event['type'] == 'invoice.payment_failed':
+            handle_payment_failed(event['data']['object'])
+        
+        else:
+            current_app.logger.info(f"Unhandled event type: {event['type']}")
 
-    # Handle the event
-    if event['type'] == 'checkout.session.completed':
-        handle_checkout_completed(event['data']['object'])
-    
-    elif event['type'] == 'customer.subscription.created':
-        handle_subscription_created(event['data']['object'])
-    
-    elif event['type'] == 'customer.subscription.updated':
-        handle_subscription_updated(event['data']['object'])
-    
-    elif event['type'] == 'customer.subscription.deleted':
-        handle_subscription_cancelled(event['data']['object'])
-    
-    elif event['type'] == 'invoice.payment_succeeded':
-        handle_payment_succeeded(event['data']['object'])
-    
-    elif event['type'] == 'invoice.payment_failed':
-        handle_payment_failed(event['data']['object'])
-    
-    else:
-        print(f"Unhandled event type: {event['type']}")
-
-    return jsonify({"status": "success"}), 200
+        return jsonify({"status": "success"}), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error processing webhook {event['type']}: {str(e)}")
+        current_app.logger.error(traceback.format_exc())
+        
+        # For critical errors, you might want to retry or alert administrators
+        return jsonify({
+            "error": "Webhook processing failed",
+            "message": "The webhook was received but could not be processed"
+        }), 500
 
 
 def handle_checkout_completed(session):
-    """Handle successful checkout completion"""
+    """Handle successful checkout completion with enhanced error handling"""
     try:
-        # SUBSCRIPTION HANDLING (your existing code)
+        # SUBSCRIPTION HANDLING (your existing logic enhanced)
         if 'user_id' in session['metadata'] and 'plan_id' in session['metadata']:
             user_id = session['metadata']['user_id']
             plan_id = session['metadata']['plan_id']
             billing_cycle = session['metadata']['billing_cycle']
+            
+            # Validate metadata
+            if not user_id or not plan_id or not billing_cycle:
+                raise ValueError("Missing required subscription metadata")
             
             # Update the pending subscription with Stripe subscription ID
             subscription = Subscription.query.filter_by(
@@ -6103,45 +6232,71 @@ def handle_checkout_completed(session):
                 status="pending"
             ).first()
             
-            if subscription:
-                # Get the Stripe subscription ID from the session
+            if not subscription:
+                current_app.logger.warning(f"No pending subscription found for user {user_id}, plan {plan_id}")
+                # Create new subscription if none exists
+                subscription = Subscription(
+                    user_id=user_id,
+                    plan_id=plan_id,
+                    billing_cycle=billing_cycle,
+                    status="pending"
+                )
+                db.session.add(subscription)
+            
+            # Get the Stripe subscription ID from the session
+            if session.get('subscription'):
                 stripe_subscription = stripe.Subscription.retrieve(session['subscription'])
-                
                 subscription.stripe_subscription_id = stripe_subscription.id
-                subscription.status = "active"
-                subscription.start_date = datetime.utcnow()
-                
-                # Set end date based on billing cycle
-                if billing_cycle == "yearly":
-                    subscription.end_date = datetime.utcnow() + timedelta(days=365)
-                else:
-                    subscription.end_date = datetime.utcnow() + timedelta(days=30)
-                
-                db.session.commit()
-                
-                # Update user's trial status if they were on trial
-                user = User.query.get(user_id)
-                if user and user.is_on_trial:
-                    user.is_on_trial = False
-                    db.session.commit()
-                
-                print(f"✅ Subscription activated for user {user_id}")
+            
+            subscription.status = "active"
+            subscription.start_date = datetime.utcnow()
+            
+            # Set end date based on billing cycle
+            if billing_cycle == "yearly":
+                subscription.end_date = datetime.utcnow() + timedelta(days=365)
+            else:
+                subscription.end_date = datetime.utcnow() + timedelta(days=30)
+            
+            # Update user's trial status if they were on trial
+            user = User.query.get(user_id)
+            if user and user.is_on_trial:
+                user.is_on_trial = False
+                user.subscription_plan = plan_id  # Update user's plan
+            
+            db.session.commit()
+            current_app.logger.info(f"✅ Subscription activated for user {user_id}")
         
-        # NEW: MARKETPLACE PURCHASE HANDLING
+        # MARKETPLACE PURCHASE HANDLING (enhanced)
         elif 'product_id' in session['metadata']:
             handle_marketplace_payment_success(session)
         
-        # NEW: PODCAST PURCHASE HANDLING
+        # PODCAST PURCHASE HANDLING (enhanced)
         elif session['metadata'].get('type') == 'podcast_purchase':
             handle_podcast_payment_success(session)
+        
+        else:
+            current_app.logger.warning(f"Unknown checkout session type: {session.get('metadata', {})}")
             
+    except ValueError as e:
+        current_app.logger.error(f"❌ Validation error in checkout completion: {str(e)}")
+        db.session.rollback()
+        raise
+    except SQLAlchemyError as e:
+        current_app.logger.error(f"❌ Database error in checkout completion: {str(e)}")
+        db.session.rollback()
+        raise
     except Exception as e:
-        print(f"❌ Error handling checkout completion: {e}")
+        current_app.logger.error(f"❌ Error handling checkout completion: {str(e)}")
+        db.session.rollback()
+        raise
 
 
 def handle_subscription_created(subscription):
-    """Handle when a subscription is created in Stripe"""
+    """Handle when a subscription is created in Stripe with error handling"""
     try:
+        if not subscription.get('id'):
+            raise ValueError("Missing subscription ID")
+        
         # Find subscription by Stripe ID and activate it
         local_subscription = Subscription.query.filter_by(
             stripe_subscription_id=subscription['id']
@@ -6149,16 +6304,24 @@ def handle_subscription_created(subscription):
         
         if local_subscription:
             local_subscription.status = "active"
+            local_subscription.created_at = datetime.utcnow()
             db.session.commit()
-            print(f"✅ Subscription {subscription['id']} activated")
+            current_app.logger.info(f"✅ Subscription {subscription['id']} activated")
+        else:
+            current_app.logger.warning(f"Local subscription not found for Stripe ID: {subscription['id']}")
             
     except Exception as e:
-        print(f"❌ Error handling subscription creation: {e}")
+        current_app.logger.error(f"❌ Error handling subscription creation: {str(e)}")
+        db.session.rollback()
+        raise
 
 
 def handle_subscription_updated(subscription):
-    """Handle subscription updates (plan changes, etc.)"""
+    """Handle subscription updates (plan changes, etc.) with error handling"""
     try:
+        if not subscription.get('id'):
+            raise ValueError("Missing subscription ID")
+        
         local_subscription = Subscription.query.filter_by(
             stripe_subscription_id=subscription['id']
         ).first()
@@ -6172,19 +6335,41 @@ def handle_subscription_updated(subscription):
             elif stripe_status == 'canceled':
                 local_subscription.status = 'canceled'
                 local_subscription.end_date = datetime.utcnow()
+                local_subscription.canceled_at = datetime.utcnow()
             elif stripe_status == 'past_due':
                 local_subscription.status = 'past_due'
+                # Set grace period
+                local_subscription.grace_period_end = datetime.utcnow() + timedelta(days=7)
+            elif stripe_status == 'incomplete':
+                local_subscription.status = 'incomplete'
+            elif stripe_status == 'trialing':
+                local_subscription.status = 'trialing'
+            
+            local_subscription.updated_at = datetime.utcnow()
+            
+            # Update user plan if subscription is canceled
+            if stripe_status == 'canceled':
+                user = User.query.get(local_subscription.user_id)
+                if user:
+                    user.subscription_plan = 'free'
             
             db.session.commit()
-            print(f"✅ Subscription {subscription['id']} updated to {stripe_status}")
+            current_app.logger.info(f"✅ Subscription {subscription['id']} updated to {stripe_status}")
+        else:
+            current_app.logger.warning(f"Local subscription not found for update: {subscription['id']}")
             
     except Exception as e:
-        print(f"❌ Error handling subscription update: {e}")
+        current_app.logger.error(f"❌ Error handling subscription update: {str(e)}")
+        db.session.rollback()
+        raise
 
 
 def handle_subscription_cancelled(subscription):
-    """Handle subscription cancellation"""
+    """Handle subscription cancellation with error handling"""
     try:
+        if not subscription.get('id'):
+            raise ValueError("Missing subscription ID")
+        
         local_subscription = Subscription.query.filter_by(
             stripe_subscription_id=subscription['id']
         ).first()
@@ -6192,18 +6377,33 @@ def handle_subscription_cancelled(subscription):
         if local_subscription:
             local_subscription.status = "canceled"
             local_subscription.end_date = datetime.utcnow()
-            db.session.commit()
+            local_subscription.canceled_at = datetime.utcnow()
             
-            print(f"✅ Subscription {subscription['id']} cancelled")
+            # Downgrade user plan
+            user = User.query.get(local_subscription.user_id)
+            if user:
+                user.subscription_plan = 'free'
+                user.is_on_trial = False
+            
+            db.session.commit()
+            current_app.logger.info(f"✅ Subscription {subscription['id']} cancelled")
+        else:
+            current_app.logger.warning(f"Local subscription not found for cancellation: {subscription['id']}")
             
     except Exception as e:
-        print(f"❌ Error handling subscription cancellation: {e}")
+        current_app.logger.error(f"❌ Error handling subscription cancellation: {str(e)}")
+        db.session.rollback()
+        raise
 
 
 def handle_payment_succeeded(invoice):
-    """Handle successful payment"""
+    """Handle successful payment with error handling"""
     try:
-        subscription_id = invoice['subscription']
+        subscription_id = invoice.get('subscription')
+        
+        if not subscription_id:
+            current_app.logger.warning("Payment succeeded but no subscription ID found")
+            return
         
         local_subscription = Subscription.query.filter_by(
             stripe_subscription_id=subscription_id
@@ -6217,18 +6417,40 @@ def handle_payment_succeeded(invoice):
                 local_subscription.end_date = datetime.utcnow() + timedelta(days=30)
             
             local_subscription.status = "active"
-            db.session.commit()
+            local_subscription.grace_period_end = None  # Clear grace period
+            local_subscription.updated_at = datetime.utcnow()
             
-            print(f"✅ Payment succeeded for subscription {subscription_id}")
+            # Update user plan to active
+            user = User.query.get(local_subscription.user_id)
+            if user:
+                # Determine plan based on amount
+                amount = invoice.get('amount_paid', 0) / 100
+                if amount >= 29.99:
+                    user.subscription_plan = "premium"
+                elif amount >= 9.99:
+                    user.subscription_plan = "pro"
+                else:
+                    user.subscription_plan = "basic"
+            
+            db.session.commit()
+            current_app.logger.info(f"✅ Payment succeeded for subscription {subscription_id}")
+        else:
+            current_app.logger.warning(f"Local subscription not found for payment: {subscription_id}")
             
     except Exception as e:
-        print(f"❌ Error handling payment success: {e}")
+        current_app.logger.error(f"❌ Error handling payment success: {str(e)}")
+        db.session.rollback()
+        raise
 
 
 def handle_payment_failed(invoice):
-    """Handle failed payment"""
+    """Handle failed payment with enhanced grace period management"""
     try:
-        subscription_id = invoice['subscription']
+        subscription_id = invoice.get('subscription')
+        
+        if not subscription_id:
+            current_app.logger.warning("Payment failed but no subscription ID found")
+            return
         
         local_subscription = Subscription.query.filter_by(
             stripe_subscription_id=subscription_id
@@ -6236,102 +6458,215 @@ def handle_payment_failed(invoice):
         
         if local_subscription:
             # Set grace period (7 days from now)
-            local_subscription.grace_period_end = datetime.utcnow() + timedelta(days=7)
+            grace_period_end = datetime.utcnow() + timedelta(days=7)
+            local_subscription.grace_period_end = grace_period_end
             local_subscription.status = "past_due"
-            db.session.commit()
+            local_subscription.updated_at = datetime.utcnow()
             
-            print(f"⚠️ Payment failed for subscription {subscription_id} - grace period set")
+            # Notify user (you can implement email notification here)
+            user = User.query.get(local_subscription.user_id)
+            if user:
+                current_app.logger.info(f"Grace period set for user {user.email} until {grace_period_end}")
+                # TODO: Send email notification about failed payment
+            
+            db.session.commit()
+            current_app.logger.info(f"⚠️ Payment failed for subscription {subscription_id} - grace period set")
+        else:
+            current_app.logger.warning(f"Local subscription not found for failed payment: {subscription_id}")
             
     except Exception as e:
-        print(f"❌ Error handling payment failure: {e}")
+        current_app.logger.error(f"❌ Error handling payment failure: {str(e)}")
+        db.session.rollback()
+        raise
 
 
-# NEW: MARKETPLACE PAYMENT HANDLER
 def handle_marketplace_payment_success(session):
-    """Handle successful marketplace payment"""
+    """Handle successful marketplace payment with comprehensive error handling"""
     try:
-        metadata = session['metadata']
+        metadata = session.get('metadata', {})
+        
+        # Validate required metadata
+        required_fields = ['product_id', 'buyer_id', 'creator_id', 'platform_cut', 'creator_earnings']
+        missing_fields = [field for field in required_fields if field not in metadata]
+        
+        if missing_fields:
+            raise ValueError(f"Missing metadata fields: {', '.join(missing_fields)}")
+        
+        # Extract and validate data
         product_id = int(metadata['product_id'])
         buyer_id = int(metadata['buyer_id'])
         creator_id = int(metadata['creator_id'])
         platform_cut = float(metadata['platform_cut'])
         creator_earnings = float(metadata['creator_earnings'])
+        amount_total = session['amount_total'] / 100  # Convert from cents
+        
+        # Validate product exists and is still available
+        product = Product.query.get(product_id)
+        if not product:
+            raise ValueError(f"Product {product_id} not found")
+        
+        if not product.is_active:
+            raise ValueError(f"Product {product_id} is no longer active")
+        
+        # Check stock for physical products
+        if not product.is_digital and product.stock <= 0:
+            raise ValueError(f"Product {product_id} is out of stock")
+        
+        # Validate users exist
+        buyer = User.query.get(buyer_id)
+        creator = User.query.get(creator_id)
+        
+        if not buyer:
+            raise ValueError(f"Buyer {buyer_id} not found")
+        if not creator:
+            raise ValueError(f"Creator {creator_id} not found")
         
         # Create purchase record
         purchase = Purchase(
             user_id=buyer_id,
             product_id=product_id,
-            amount=session['amount_total'] / 100,  # Convert from cents
+            amount=amount_total,
             platform_cut=platform_cut,
-            creator_earnings=creator_earnings
+            creator_earnings=creator_earnings,
+            stripe_payment_intent_id=session.get('payment_intent'),
+            status='completed'
         )
         
         db.session.add(purchase)
         
-        # Update product sales
-        product = Product.query.get(product_id)
-        if product:
-            product.sales_revenue += creator_earnings
-            if not product.is_digital and product.stock > 0:
-                product.stock -= 1
+        # Update product statistics
+        product.sales_revenue += creator_earnings
+        product.sales_count = (product.sales_count or 0) + 1
+        
+        # Reduce stock for physical products
+        if not product.is_digital and product.stock > 0:
+            product.stock -= 1
+        
+        # Update creator earnings
+        creator.total_earnings = (creator.total_earnings or 0) + creator_earnings
+        creator.available_balance = (creator.available_balance or 0) + creator_earnings
         
         db.session.commit()
-        print(f"✅ Marketplace purchase completed: Product {product_id}, Buyer {buyer_id}")
         
-    except Exception as e:
-        print(f"❌ Error handling marketplace payment: {str(e)}")
+        current_app.logger.info(f"✅ Marketplace purchase completed: Product {product_id}, Buyer {buyer_id}, Amount ${amount_total}")
+        
+    except ValueError as e:
+        current_app.logger.error(f"❌ Marketplace payment validation error: {str(e)}")
         db.session.rollback()
+        raise
+    except Exception as e:
+        current_app.logger.error(f"❌ Error handling marketplace payment: {str(e)}")
+        db.session.rollback()
+        raise
 
 
-# NEW: PODCAST PAYMENT HANDLER
 def handle_podcast_payment_success(session):
-    """Handle successful podcast payment"""
+    """Handle successful podcast payment with enhanced error handling"""
     try:
-        metadata = session['metadata']
+        metadata = session.get('metadata', {})
+        
+        # Validate required metadata
+        required_fields = ['podcast_id', 'user_id']
+        missing_fields = [field for field in required_fields if field not in metadata]
+        
+        if missing_fields:
+            raise ValueError(f"Missing metadata fields: {', '.join(missing_fields)}")
+        
         podcast_id = int(metadata['podcast_id'])
         user_id = int(metadata['user_id'])
         episode_id = int(metadata['episode_id']) if metadata.get('episode_id') else None
+        amount = float(metadata.get('price', 0))
+        
+        # Validate podcast and user exist
+        podcast = Podcast.query.get(podcast_id)
+        user = User.query.get(user_id)
+        
+        if not podcast:
+            raise ValueError(f"Podcast {podcast_id} not found")
+        if not user:
+            raise ValueError(f"User {user_id} not found")
+        
+        # Check if user already has access
+        existing_access = PodcastAccess.query.filter_by(
+            user_id=user_id,
+            podcast_id=podcast_id
+        ).first()
+        
+        if existing_access:
+            current_app.logger.warning(f"User {user_id} already has access to podcast {podcast_id}")
+            # Still process payment but don't duplicate access
+            return
         
         # Create purchase record
         purchase = PodcastPurchase(
             user_id=user_id,
             podcast_id=podcast_id,
             episode_id=episode_id,
-            amount=float(metadata['price'])
+            amount=amount,
+            status='completed'
         )
         
         db.session.add(purchase)
+        
+        # Grant access to podcast
+        access = PodcastAccess(
+            user_id=user_id,
+            podcast_id=podcast_id,
+            access_type='premium',
+            granted_at=datetime.utcnow(),
+            payment_amount=amount
+        )
+        
+        db.session.add(access)
+        
+        # Update podcast creator earnings
+        creator = User.query.get(podcast.creator_id)
+        if creator:
+            creator_earnings = amount * 0.85  # 15% platform fee
+            creator.total_earnings = (creator.total_earnings or 0) + creator_earnings
+            creator.available_balance = (creator.available_balance or 0) + creator_earnings
+        
         db.session.commit()
-        print(f"✅ Podcast purchase completed: Podcast {podcast_id}, User {user_id}")
+        
+        current_app.logger.info(f"✅ Podcast access granted: Podcast {podcast_id}, User {user_id}, Amount ${amount}")
         
     except Exception as e:
-        print(f"❌ Error handling podcast payment: {str(e)}")
+        current_app.logger.error(f"❌ Error handling podcast payment: {str(e)}")
         db.session.rollback()
+        raise
 
 
-# EXISTING: SUBSCRIPTION STATUS CHECKER
 def is_subscription_active(user_id):
-    """Check if user has active subscription including grace period"""
-    subscription = Subscription.query.filter_by(
-        user_id=user_id
-    ).first()
-    
-    if not subscription:
+    """Check if user has active subscription including grace period - ENHANCED"""
+    try:
+        subscription = Subscription.query.filter_by(
+            user_id=user_id
+        ).order_by(Subscription.created_at.desc()).first()
+        
+        if not subscription:
+            return False
+        
+        now = datetime.utcnow()
+        
+        # Check if subscription is active
+        if subscription.status == "active" and subscription.end_date > now:
+            return True
+        
+        # Check grace period for past due subscriptions
+        if (subscription.status == "past_due" and 
+            subscription.grace_period_end and 
+            subscription.grace_period_end > now):
+            return True
+        
+        # Check if user is in trial period
+        if subscription.status == "trialing":
+            return True
+        
         return False
-    
-    now = datetime.utcnow()
-    
-    # Check if subscription is active
-    if subscription.status == "active" and subscription.end_date > now:
-        return True
-    
-    # Check grace period for past due subscriptions
-    if (subscription.status == "past_due" and 
-        subscription.grace_period_end and 
-        subscription.grace_period_end > now):
-        return True
-    
-    return False
+        
+    except Exception as e:
+        current_app.logger.error(f"Error checking subscription status for user {user_id}: {str(e)}")
+        return False  # Fail safely - assume no subscription
 
 
 @api.route('/admin/radio-stations', methods=['GET'])
@@ -8800,42 +9135,83 @@ def debug_station(station_id):
     
     return jsonify(debug_info), 200
 
-@api.route('/uploads/<path:filename>')
-def serve_uploaded_file(filename):
-    """Serve uploaded files (audio, images, etc.)"""
-    try:
-        # Construct the file path
-        file_path = os.path.join('uploads', filename)
-        
-        # Security check - ensure file exists and is within uploads directory
-        if not os.path.exists(file_path):
-            return jsonify({"error": "File not found"}), 404
-        
-        # Security check - prevent directory traversal
-        if not os.path.abspath(file_path).startswith(os.path.abspath('uploads')):
-            return jsonify({"error": "Access denied"}), 403
-        
-        # Determine mimetype based on file extension
-        _, ext = os.path.splitext(filename)
-        ext = ext.lower()
-        
-        if ext in ['.mp3', '.wav', '.ogg', '.m4a']:
-            mimetype = 'audio/mpeg' if ext == '.mp3' else f'audio/{ext[1:]}'
-        elif ext in ['.jpg', '.jpeg', '.png', '.gif']:
-            mimetype = f'image/{ext[1:]}' if ext != '.jpg' else 'image/jpeg'
-        else:
-            mimetype = 'application/octet-stream'
-        
-        return send_file(
-            file_path,
-            mimetype=mimetype,
-            as_attachment=False,
-            conditional=True  # Enable range requests for audio streaming
-        )
-        
-    except Exception as e:
-        print(f"Error serving file {filename}: {str(e)}")
-        return jsonify({"error": "File serving error"}), 500
+def handle_db_errors(f):
+    """Decorator to handle database errors consistently"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except IntegrityError as e:
+            db.session.rollback()
+            current_app.logger.error(f"Database integrity error: {str(e)}")
+            return jsonify({
+                "error": "Data integrity error",
+                "message": "The requested operation conflicts with existing data"
+            }), 400
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            current_app.logger.error(f"Database error: {str(e)}")
+            return jsonify({
+                "error": "Database error",
+                "message": "An error occurred while accessing the database"
+            }), 500
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Unexpected error in {f.__name__}: {str(e)}")
+            current_app.logger.error(traceback.format_exc())
+            return jsonify({
+                "error": "Internal server error",
+                "message": "An unexpected error occurred"
+            }), 500
+    return decorated_function
+
+def validate_json(required_fields=None):
+    """Decorator to validate JSON request data"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not request.is_json:
+                return jsonify({
+                    "error": "Invalid request format",
+                    "message": "Request must be JSON"
+                }), 400
+            
+            data = request.get_json()
+            if not data:
+                return jsonify({
+                    "error": "Empty request",
+                    "message": "Request body cannot be empty"
+                }), 400
+            
+            if required_fields:
+                missing_fields = [field for field in required_fields if field not in data]
+                if missing_fields:
+                    return jsonify({
+                        "error": "Missing required fields",
+                        "message": f"Required fields: {', '.join(missing_fields)}"
+                    }), 400
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def handle_auth_errors(f):
+    """Decorator to handle authentication errors"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            verify_jwt_in_request()
+            return f(*args, **kwargs)
+        except Exception as e:
+            current_app.logger.warning(f"Authentication error: {str(e)}")
+            return jsonify({
+                "error": "Authentication failed",
+                "message": "Invalid or expired token"
+            }), 401
+    return decorated_function
+
+# Enhanced file serving with error handling
+
 
 @api.route('/radio-stations/<int:station_id>', methods=['GET'])
 def get_radio_station_details(station_id):
@@ -8922,37 +9298,6 @@ def get_radio_station_details(station_id):
         print(f"❌ Error getting station details for {station_id}: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
 
-
-# ===== NOW PLAYING ENDPOINT =====
-
-@api.route('/radio/<int:station_id>/now-playing', methods=['GET'])
-def get_now_playing(station_id):
-    """Get current playing track info for a radio station"""
-    try:
-        station = RadioStation.query.get(station_id)
-        if not station:
-            return jsonify({"error": "Station not found"}), 404
-        
-        # Get current track using the model's method
-        current_track = station.get_current_track()
-        
-        response_data = {
-            "station_id": station_id,
-            "station_name": station.name,
-            "is_live": station.is_live,
-            "is_loop_enabled": station.is_loop_enabled,
-            "now_playing": current_track,
-            "loop_started_at": station.loop_started_at.isoformat() if station.loop_started_at else None,
-            "updated_at": datetime.utcnow().isoformat()
-        }
-        
-        print(f"📻 Now playing for station {station_id}: {current_track}")
-        
-        return jsonify(response_data), 200
-        
-    except Exception as e:
-        print(f"❌ Error getting now playing for station {station_id}: {str(e)}")
-        return jsonify({"error": "Failed to get now playing info"}), 500
 
 
     
@@ -9151,84 +9496,824 @@ def get_station_audio_url(station_id):
         print(f"❌ Error getting audio URL for station {station_id}: {e}")
         return jsonify({"error": "Failed to get audio URL"}), 500
 
-@api.route('/radio-stations/<int:station_id>', methods=['GET'])
-def get_radio_station_details_enhanced(station_id):
-    """
-    Enhanced station details with proper Cloudinary URL handling
-    """
+
+@api.route('/radio/<int:station_id>/health', methods=['GET'])
+@handle_auth_errors
+@handle_db_errors
+def check_station_health(station_id):
+    """Check if station stream is healthy and accessible"""
     try:
         station = RadioStation.query.get(station_id)
         
         if not station:
             return jsonify({"error": "Station not found"}), 404
         
-        # Get creator info
-        creator = User.query.get(station.user_id)
+        if not station.is_live:
+            return jsonify({
+                "status": "offline",
+                "message": "Station is not currently broadcasting"
+            }), 200
         
-        # Get the audio URL (Cloudinary or local)
-        audio_url = None
-        if station.loop_audio_url:
-            if station.loop_audio_url.startswith('http'):
-                audio_url = station.loop_audio_url  # Cloudinary URL
-            else:
-                # Local file - build stream URL
-                base_url = request.host_url.rstrip('/')
-                audio_url = f"{base_url}/radio/{station_id}/stream"
-        
-        # Get current track
-        current_track = station.get_current_track()
-        
-        # Build the complete station response
-        station_data = {
-            "id": station.id,
-            "name": station.name,
-            "description": station.description,
-            "genre": station.genres[0] if station.genres else "Music",
-            "genres": station.genres or [],
-            "creator_name": station.creator_name or (creator.username if creator else "Unknown"),
-            "is_live": station.is_live,
-            "is_loop_enabled": station.is_loop_enabled,
-            "followers_count": station.followers_count,
-            "logo_url": station.logo_url,
-            "cover_image_url": station.cover_image_url,
-            "created_at": station.created_at.isoformat() if station.created_at else None,
-            
-            # ✅ ENHANCED: Multiple URL options for compatibility
-            "stream_url": audio_url,  # Direct Cloudinary URL or stream endpoint
-            "loop_audio_url": station.loop_audio_url,  # Raw URL from DB
-            "audio_url": audio_url,  # Alias for frontend compatibility
-            "now_playing": current_track,
-            
-            # Additional fields
-            "submission_guidelines": station.submission_guidelines,
-            "preferred_genres": station.preferred_genres or [],
-            "user_id": station.user_id,
-            "loop_started_at": station.loop_started_at.isoformat() if station.loop_started_at else None,
-            "loop_duration_minutes": station.loop_duration_minutes,
-            "now_playing_metadata": station.now_playing_metadata,
-            "playlist_schedule": station.playlist_schedule,
-            "is_public": station.is_public,
-            "is_subscription_based": station.is_subscription_based,
-            "is_ticketed": station.is_ticketed,
-            "is_webrtc_enabled": station.is_webrtc_enabled,
-            "max_listeners": station.max_listeners,
-            "subscription_price": station.subscription_price,
-            "ticket_price": station.ticket_price
+        # Basic stream health checks
+        health_status = {
+            "status": "healthy",
+            "stream_url": station.stream_url,
+            "listener_count": station.listener_count or 0,
+            "uptime": (datetime.utcnow() - station.loop_started_at).total_seconds() if station.loop_started_at else 0,
+            "last_accessed": station.last_accessed.isoformat() if station.last_accessed else None
         }
         
-        # Debug logging
-        print(f"✅ Station {station_id} details:")
-        print(f"   - Name: {station.name}")
-        print(f"   - Is Live: {station.is_live}")
-        print(f"   - Loop Enabled: {station.is_loop_enabled}")
-        print(f"   - Audio URL: {audio_url}")
-        print(f"   - Current Track: {current_track}")
+        # Check if stream URL is accessible (basic validation)
+        try:
+            import urllib.parse
+            parsed_url = urllib.parse.urlparse(station.stream_url)
+            if not parsed_url.scheme or not parsed_url.netloc:
+                health_status["status"] = "unhealthy"
+                health_status["issue"] = "Invalid stream URL format"
+        except Exception:
+            health_status["status"] = "unhealthy"
+            health_status["issue"] = "Stream URL validation failed"
         
-        return jsonify(station_data), 200
+        # Check if playlist has tracks
+        if station.playlist_schedule:
+            tracks_count = len(station.playlist_schedule.get("tracks", []))
+            if tracks_count == 0:
+                health_status["status"] = "degraded"
+                health_status["issue"] = "No tracks in playlist"
+            health_status["playlist_tracks"] = tracks_count
+        
+        return jsonify(health_status), 200
         
     except Exception as e:
-        print(f"❌ Error getting station details for {station_id}: {str(e)}")
-        return jsonify({"error": "Internal server error"}), 500
+        current_app.logger.error(f"Error checking station {station_id} health: {str(e)}")
+        return jsonify({
+            "status": "error",
+            "message": "Unable to check station health"
+        }), 500 
+
+# src/api/routes.py - Enhanced with comprehensive error handling
+import os
+import traceback
+from datetime import datetime, timedelta
+from functools import wraps
+from flask import jsonify, request, send_from_directory, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
+import stripe
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from werkzeug.exceptions import BadRequest, NotFound, InternalServerError
+
+# Error handling decorators
+def handle_db_errors(f):
+    """Decorator to handle database errors consistently"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except IntegrityError as e:
+            db.session.rollback()
+            current_app.logger.error(f"Database integrity error: {str(e)}")
+            return jsonify({
+                "error": "Data integrity error",
+                "message": "The requested operation conflicts with existing data"
+            }), 400
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            current_app.logger.error(f"Database error: {str(e)}")
+            return jsonify({
+                "error": "Database error",
+                "message": "An error occurred while accessing the database"
+            }), 500
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Unexpected error in {f.__name__}: {str(e)}")
+            current_app.logger.error(traceback.format_exc())
+            return jsonify({
+                "error": "Internal server error",
+                "message": "An unexpected error occurred"
+            }), 500
+    return decorated_function
+
+def validate_json(required_fields=None):
+    """Decorator to validate JSON request data"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not request.is_json:
+                return jsonify({
+                    "error": "Invalid request format",
+                    "message": "Request must be JSON"
+                }), 400
+            
+            data = request.get_json()
+            if not data:
+                return jsonify({
+                    "error": "Empty request",
+                    "message": "Request body cannot be empty"
+                }), 400
+            
+            if required_fields:
+                missing_fields = [field for field in required_fields if field not in data]
+                if missing_fields:
+                    return jsonify({
+                        "error": "Missing required fields",
+                        "message": f"Required fields: {', '.join(missing_fields)}"
+                    }), 400
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def handle_auth_errors(f):
+    """Decorator to handle authentication errors"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            verify_jwt_in_request()
+            return f(*args, **kwargs)
+        except Exception as e:
+            current_app.logger.warning(f"Authentication error: {str(e)}")
+            return jsonify({
+                "error": "Authentication failed",
+                "message": "Invalid or expired token"
+            }), 401
+    return decorated_function
+
+# Enhanced file serving with error handling
+@api.route('/uploads/<path:filename>')
+def serve_uploaded_file(filename):
+    """Serve uploaded files with comprehensive security and performance"""
+    try:
+        # Validate filename
+        if not filename or '..' in filename:
+            current_app.logger.warning(f"Invalid filename requested: {filename}")
+            return jsonify({"error": "Invalid filename"}), 400
+        
+        # Get upload folder from config
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+        file_path = os.path.join(upload_folder, filename)
+        
+        # Check if file exists
+        if not os.path.exists(file_path):
+            current_app.logger.warning(f"File not found: {file_path}")
+            return jsonify({"error": "File not found"}), 404
+        
+        # Check if it's actually a file (not directory)
+        if not os.path.isfile(file_path):
+            current_app.logger.warning(f"Path is not a file: {file_path}")
+            return jsonify({"error": "Invalid file path"}), 400
+        
+        # Security check - ensure file is within upload directory
+        upload_folder_abs = os.path.abspath(upload_folder)
+        file_path_abs = os.path.abspath(file_path)
+        
+        if not file_path_abs.startswith(upload_folder_abs):
+            current_app.logger.warning(f"Path traversal attempt: {file_path}")
+            return jsonify({"error": "Access denied"}), 403
+        
+        # MIME type validation for security
+        import mimetypes
+        mime_type, _ = mimetypes.guess_type(file_path)
+        allowed_mime_types = [
+            # Images
+            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+            # Audio
+            'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/aac',
+            # Video
+            'video/mp4', 'video/webm', 'video/quicktime',
+            # Documents (if needed)
+            'application/pdf', 'text/plain'
+        ]
+        
+        if mime_type and mime_type not in allowed_mime_types:
+            current_app.logger.warning(f"Disallowed file type: {mime_type} for {filename}")
+            return jsonify({"error": "File type not allowed"}), 403
+        
+        # File size check (prevent serving extremely large files)
+        file_size = os.path.getsize(file_path)
+        max_size = current_app.config.get('MAX_SERVE_FILE_SIZE', 100 * 1024 * 1024)  # 100MB default
+        if file_size > max_size:
+            current_app.logger.warning(f"File too large: {file_size} bytes for {filename}")
+            return jsonify({"error": "File too large"}), 413
+        
+        # Create response with caching and performance headers
+        from flask import make_response
+        response = make_response(send_from_directory(upload_folder, filename))
+        
+        # Add cache headers for better performance
+        response.headers['Cache-Control'] = 'public, max-age=3600'  # 1 hour cache
+        response.headers['ETag'] = f'"{hash(filename + str(file_size))}"'
+        
+        # Enable range requests for audio/video streaming
+        if mime_type and (mime_type.startswith('audio/') or mime_type.startswith('video/')):
+            response.headers['Accept-Ranges'] = 'bytes'
+        
+        return response
+        
+    except Exception as e:
+        current_app.logger.error(f"Error serving file {filename}: {str(e)}")
+        return jsonify({
+            "error": "File access error",
+            "message": "Unable to serve the requested file"
+        }), 500
+
+# Enhanced radio station endpoints
+@api.route('/radio/<int:station_id>', methods=['GET'])
+@handle_auth_errors
+@handle_db_errors
+def get_radio_station(station_id):
+    """Get radio station details with comprehensive error handling and security"""
+    try:
+        # Input validation
+        if station_id <= 0:
+            return jsonify({"error": "Invalid station ID"}), 400
+        
+        station = RadioStation.query.get(station_id)
+        
+        if not station:
+            return jsonify({"error": "Station not found"}), 404
+        
+        current_user_id = get_jwt_identity()
+        
+        # Check if user has access to this station
+        if station.is_private and station.creator_id != current_user_id:
+            return jsonify({"error": "Access denied"}), 403
+        
+        # Check if station is banned/suspended
+        if station.status == 'suspended':
+            return jsonify({"error": "Station is temporarily suspended"}), 403
+        
+        if station.status == 'banned':
+            return jsonify({"error": "Station is no longer available"}), 410
+        
+        # Rate limiting for listener count updates (prevent spam)
+        session_key = f"listener_{current_user_id}_{station_id}"
+        last_update = session.get(session_key)
+        current_time = datetime.utcnow()
+        
+        should_increment = True
+        if last_update:
+            time_diff = (current_time - last_update).total_seconds()
+            should_increment = time_diff > 60  # Only increment once per minute per user
+        
+        # Increment listener count if station is live and not recently incremented
+        if station.is_live and should_increment:
+            try:
+                station.listener_count = (station.listener_count or 0) + 1
+                station.last_accessed = current_time
+                session[session_key] = current_time
+                db.session.commit()
+            except SQLAlchemyError as e:
+                # Don't fail the entire request if listener count update fails
+                current_app.logger.warning(f"Failed to update listener count for station {station_id}: {str(e)}")
+                db.session.rollback()
+        
+        # Get additional station data
+        try:
+            # Get current playing track
+            current_track = None
+            if station.is_live and station.current_track_id:
+                current_track = Audio.query.get(station.current_track_id)
+            
+            # Get recent tracks (last 10)
+            recent_tracks = []
+            if station.playlist_schedule:
+                tracks_data = station.playlist_schedule.get("tracks", [])
+                recent_tracks = tracks_data[-10:] if len(tracks_data) > 10 else tracks_data
+            
+            # Check if user is following this station
+            is_following = False
+            if current_user_id:
+                follow_record = StationFollow.query.filter_by(
+                    user_id=current_user_id,
+                    station_id=station_id
+                ).first()
+                is_following = bool(follow_record)
+            
+            # Get station creator info
+            creator = User.query.get(station.creator_id)
+            creator_info = {
+                "id": creator.id,
+                "name": creator.username,
+                "avatar_url": creator.avatar_url
+            } if creator else None
+            
+        except Exception as e:
+            current_app.logger.warning(f"Failed to get additional station data: {str(e)}")
+            current_track = None
+            recent_tracks = []
+            is_following = False
+            creator_info = None
+        
+        # Build response
+        response_data = {
+            "station": {
+                **station.serialize(),
+                "creator": creator_info,
+                "is_following": is_following,
+                "current_track": current_track.serialize() if current_track else None,
+                "recent_tracks": recent_tracks,
+                "uptime": (current_time - station.created_at).total_seconds() if station.created_at else 0
+            },
+            "stream_status": "live" if station.is_live else "offline",
+            "stream_url": station.stream_url if station.is_live else None,
+            "can_edit": current_user_id == station.creator_id,
+            "access_level": "owner" if current_user_id == station.creator_id else "listener"
+        }
+        
+        # Add stream quality options if available
+        if station.is_live and hasattr(station, 'stream_qualities'):
+            response_data["stream_qualities"] = station.stream_qualities
+        
+        return jsonify(response_data), 200
+        
+    except ValueError as e:
+        current_app.logger.warning(f"Invalid request for station {station_id}: {str(e)}")
+        return jsonify({
+            "error": "Invalid request",
+            "message": str(e)
+        }), 400
+        
+    except PermissionError as e:
+        current_app.logger.warning(f"Permission denied for station {station_id}: {str(e)}")
+        return jsonify({
+            "error": "Permission denied",
+            "message": "You don't have permission to access this station"
+        }), 403
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching station {station_id}: {str(e)}")
+        current_app.logger.error(traceback.format_exc())
+        return jsonify({
+            "error": "Station access error",
+            "message": "Unable to load station details"
+        }), 500
+
+@api.route('/radio/<int:station_id>/now-playing', methods=['GET'])
+@handle_auth_errors
+@handle_db_errors
+def get_now_playing(station_id):
+    """Get now playing information with proper error handling"""
+    try:
+        station = RadioStation.query.get(station_id)
+        
+        if not station:
+            return jsonify({"error": "Station not found"}), 404
+        
+        if not station.is_live:
+            return jsonify({
+                "now_playing": None,
+                "message": "Station is offline"
+            }), 200
+        
+        # Get current track info
+        current_track = station.get_current_track()
+        
+        return jsonify({
+            "now_playing": {
+                "title": current_track.get("title") if current_track else "Unknown",
+                "artist": current_track.get("artist") if current_track else "Unknown",
+                "album": current_track.get("album") if current_track else None,
+                "duration": current_track.get("duration") if current_track else None,
+                "started_at": station.current_track_started_at.isoformat() if station.current_track_started_at else None
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching now playing for station {station_id}: {str(e)}")
+        return jsonify({
+            "error": "Now playing error",
+            "message": "Unable to get current track information"
+        }), 500
+
+# Enhanced marketplace endpoints
+@api.route('/marketplace/products', methods=['GET'])
+@handle_auth_errors
+@handle_db_errors
+def get_marketplace_products():
+    """Get marketplace products with pagination and filtering"""
+    try:
+        # Get query parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = min(request.args.get('per_page', 20, type=int), 100)  # Max 100 items
+        category = request.args.get('category')
+        search = request.args.get('search')
+        sort_by = request.args.get('sort_by', 'newest')
+        
+        # Build query
+        query = Product.query.filter(Product.is_active == True)
+        
+        if category and category != 'all':
+            query = query.filter(Product.category == category)
+        
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    Product.name.ilike(search_term),
+                    Product.description.ilike(search_term)
+                )
+            )
+        
+        # Apply sorting
+        if sort_by == 'price-low':
+            query = query.order_by(Product.price.asc())
+        elif sort_by == 'price-high':
+            query = query.order_by(Product.price.desc())
+        elif sort_by == 'popular':
+            query = query.order_by(Product.sales_count.desc())
+        else:  # newest
+            query = query.order_by(Product.created_at.desc())
+        
+        # Paginate
+        try:
+            pagination = query.paginate(
+                page=page, 
+                per_page=per_page, 
+                error_out=False
+            )
+        except Exception as e:
+            current_app.logger.error(f"Pagination error: {str(e)}")
+            return jsonify({
+                "error": "Pagination error",
+                "message": "Invalid page parameters"
+            }), 400
+        
+        if not pagination.items and page > 1:
+            return jsonify({
+                "error": "Page not found",
+                "message": f"Page {page} does not exist"
+            }), 404
+        
+        return jsonify({
+            "products": [product.serialize() for product in pagination.items],
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": pagination.total,
+                "pages": pagination.pages,
+                "has_next": pagination.has_next,
+                "has_prev": pagination.has_prev
+            },
+            "filters": {
+                "category": category,
+                "search": search,
+                "sort_by": sort_by
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching marketplace products: {str(e)}")
+        return jsonify({
+            "error": "Products fetch error",
+            "message": "Unable to load marketplace products"
+        }), 500
+
+# Enhanced payment handling with comprehensive error management
+def handle_payment_success(session):
+    """Handle successful subscription payment with error recovery"""
+    try:
+        subscription_id = session['subscription']
+        customer_id = session['customer']
+        
+        # Validate required data
+        if not subscription_id or not customer_id:
+            raise ValueError("Missing subscription or customer ID")
+        
+        # Get local subscription
+        local_subscription = Subscription.query.filter_by(
+            stripe_subscription_id=subscription_id
+        ).first()
+        
+        if not local_subscription:
+            current_app.logger.warning(f"Local subscription not found for Stripe ID: {subscription_id}")
+            # Create local subscription record if missing
+            user = User.query.filter_by(stripe_customer_id=customer_id).first()
+            if user:
+                local_subscription = Subscription(
+                    user_id=user.id,
+                    stripe_subscription_id=subscription_id,
+                    status="active",
+                    current_period_start=datetime.utcnow(),
+                    current_period_end=datetime.utcnow() + timedelta(days=30)
+                )
+                db.session.add(local_subscription)
+            else:
+                raise ValueError(f"User not found for customer ID: {customer_id}")
+        
+        # Update subscription status
+        local_subscription.status = "active"
+        local_subscription.grace_period_end = None
+        local_subscription.updated_at = datetime.utcnow()
+        
+        # Update user's plan
+        user = User.query.get(local_subscription.user_id)
+        if user:
+            # Determine plan based on subscription amount
+            amount = session.get('amount_total', 0) / 100  # Convert from cents
+            if amount >= 29.99:
+                user.subscription_plan = "premium"
+            elif amount >= 9.99:
+                user.subscription_plan = "pro"
+            else:
+                user.subscription_plan = "basic"
+        
+        db.session.commit()
+        current_app.logger.info(f"✅ Payment success processed for subscription {subscription_id}")
+        
+    except ValueError as e:
+        current_app.logger.error(f"❌ Payment validation error: {str(e)}")
+        db.session.rollback()
+        raise
+    except SQLAlchemyError as e:
+        current_app.logger.error(f"❌ Database error in payment success: {str(e)}")
+        db.session.rollback()
+        raise
+    except Exception as e:
+        current_app.logger.error(f"❌ Unexpected error handling payment success: {str(e)}")
+        db.session.rollback()
+        raise
+
+def handle_payment_failed(invoice):
+    """Handle failed payment with grace period management"""
+    try:
+        subscription_id = invoice.get('subscription')
+        
+        if not subscription_id:
+            raise ValueError("Missing subscription ID in failed payment")
+        
+        local_subscription = Subscription.query.filter_by(
+            stripe_subscription_id=subscription_id
+        ).first()
+        
+        if not local_subscription:
+            current_app.logger.warning(f"Local subscription not found for failed payment: {subscription_id}")
+            return
+        
+        # Set grace period (7 days from now)
+        grace_period_end = datetime.utcnow() + timedelta(days=7)
+        local_subscription.grace_period_end = grace_period_end
+        local_subscription.status = "past_due"
+        local_subscription.updated_at = datetime.utcnow()
+        
+        # Notify user (you might want to add email notification here)
+        user = User.query.get(local_subscription.user_id)
+        if user:
+            current_app.logger.info(f"Grace period set for user {user.email} until {grace_period_end}")
+        
+        db.session.commit()
+        current_app.logger.info(f"⚠️ Payment failed for subscription {subscription_id} - grace period set")
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Error handling payment failure: {str(e)}")
+        db.session.rollback()
+        raise
+
+def handle_marketplace_payment_success(session):
+    """Handle successful marketplace payment with comprehensive error handling"""
+    try:
+        metadata = session.get('metadata', {})
+        
+        # Validate required metadata
+        required_fields = ['product_id', 'buyer_id', 'creator_id', 'platform_cut', 'creator_earnings']
+        missing_fields = [field for field in required_fields if field not in metadata]
+        
+        if missing_fields:
+            raise ValueError(f"Missing metadata fields: {', '.join(missing_fields)}")
+        
+        # Extract and validate data
+        product_id = int(metadata['product_id'])
+        buyer_id = int(metadata['buyer_id'])
+        creator_id = int(metadata['creator_id'])
+        platform_cut = float(metadata['platform_cut'])
+        creator_earnings = float(metadata['creator_earnings'])
+        amount_total = session['amount_total'] / 100  # Convert from cents
+        
+        # Validate product exists and is still available
+        product = Product.query.get(product_id)
+        if not product:
+            raise ValueError(f"Product {product_id} not found")
+        
+        if not product.is_active:
+            raise ValueError(f"Product {product_id} is no longer active")
+        
+        # Check stock for physical products
+        if not product.is_digital and product.stock <= 0:
+            raise ValueError(f"Product {product_id} is out of stock")
+        
+        # Validate users exist
+        buyer = User.query.get(buyer_id)
+        creator = User.query.get(creator_id)
+        
+        if not buyer:
+            raise ValueError(f"Buyer {buyer_id} not found")
+        if not creator:
+            raise ValueError(f"Creator {creator_id} not found")
+        
+        # Create purchase record
+        purchase = Purchase(
+            user_id=buyer_id,
+            product_id=product_id,
+            amount=amount_total,
+            platform_cut=platform_cut,
+            creator_earnings=creator_earnings,
+            stripe_payment_intent_id=session.get('payment_intent'),
+            status='completed'
+        )
+        
+        db.session.add(purchase)
+        
+        # Update product statistics
+        product.sales_revenue += creator_earnings
+        product.sales_count = (product.sales_count or 0) + 1
+        
+        # Reduce stock for physical products
+        if not product.is_digital and product.stock > 0:
+            product.stock -= 1
+        
+        # Update creator earnings
+        creator.total_earnings = (creator.total_earnings or 0) + creator_earnings
+        creator.available_balance = (creator.available_balance or 0) + creator_earnings
+        
+        db.session.commit()
+        
+        current_app.logger.info(f"✅ Marketplace purchase completed: Product {product_id}, Buyer {buyer_id}, Amount ${amount_total}")
+        
+        # Send confirmation emails (implement as needed)
+        # send_purchase_confirmation_email(buyer, product, purchase)
+        # send_sale_notification_email(creator, product, purchase)
+        
+    except ValueError as e:
+        current_app.logger.error(f"❌ Marketplace payment validation error: {str(e)}")
+        db.session.rollback()
+        raise
+    except SQLAlchemyError as e:
+        current_app.logger.error(f"❌ Database error in marketplace payment: {str(e)}")
+        db.session.rollback()
+        raise
+    except Exception as e:
+        current_app.logger.error(f"❌ Unexpected error handling marketplace payment: {str(e)}")
+        db.session.rollback()
+        raise
+
+def handle_podcast_payment_success(session):
+    """Handle successful podcast payment with error handling"""
+    try:
+        metadata = session.get('metadata', {})
+        
+        # Validate required metadata
+        required_fields = ['podcast_id', 'user_id', 'amount']
+        missing_fields = [field for field in required_fields if field not in metadata]
+        
+        if missing_fields:
+            raise ValueError(f"Missing metadata fields: {', '.join(missing_fields)}")
+        
+        podcast_id = int(metadata['podcast_id'])
+        user_id = int(metadata['user_id'])
+        amount = float(metadata['amount'])
+        
+        # Validate podcast and user exist
+        podcast = Podcast.query.get(podcast_id)
+        user = User.query.get(user_id)
+        
+        if not podcast:
+            raise ValueError(f"Podcast {podcast_id} not found")
+        if not user:
+            raise ValueError(f"User {user_id} not found")
+        
+        # Check if user already has access
+        existing_access = PodcastAccess.query.filter_by(
+            user_id=user_id,
+            podcast_id=podcast_id
+        ).first()
+        
+        if existing_access:
+            current_app.logger.warning(f"User {user_id} already has access to podcast {podcast_id}")
+            # Still process payment but don't duplicate access
+            return
+        
+        # Grant access to podcast
+        access = PodcastAccess(
+            user_id=user_id,
+            podcast_id=podcast_id,
+            access_type='premium',
+            granted_at=datetime.utcnow(),
+            payment_amount=amount
+        )
+        
+        db.session.add(access)
+        
+        # Update podcast creator earnings
+        creator = User.query.get(podcast.creator_id)
+        if creator:
+            creator_earnings = amount * 0.85  # 15% platform fee
+            creator.total_earnings = (creator.total_earnings or 0) + creator_earnings
+            creator.available_balance = (creator.available_balance or 0) + creator_earnings
+        
+        db.session.commit()
+        
+        current_app.logger.info(f"✅ Podcast access granted: Podcast {podcast_id}, User {user_id}, Amount ${amount}")
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Error handling podcast payment: {str(e)}")
+        db.session.rollback()
+        raise
+
+
+# Health check endpoint with system status
+@api.route('/health', methods=['GET'])
+def health_check():
+    """Comprehensive health check endpoint"""
+    try:
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat(),
+            "version": current_app.config.get('APP_VERSION', '1.0.0'),
+            "checks": {}
+        }
+        
+        # Database connectivity check
+        try:
+            db.session.execute('SELECT 1')
+            health_status["checks"]["database"] = "healthy"
+        except Exception as e:
+            health_status["checks"]["database"] = f"unhealthy: {str(e)}"
+            health_status["status"] = "degraded"
+        
+        # Stripe connectivity check
+        try:
+            stripe.Account.retrieve()
+            health_status["checks"]["stripe"] = "healthy"
+        except Exception as e:
+            health_status["checks"]["stripe"] = f"unhealthy: {str(e)}"
+            health_status["status"] = "degraded"
+        
+        # File system check
+        try:
+            upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+            if os.path.exists(upload_folder) and os.access(upload_folder, os.W_OK):
+                health_status["checks"]["filesystem"] = "healthy"
+            else:
+                health_status["checks"]["filesystem"] = "unhealthy: upload folder not writable"
+                health_status["status"] = "degraded"
+        except Exception as e:
+            health_status["checks"]["filesystem"] = f"unhealthy: {str(e)}"
+            health_status["status"] = "degraded"
+        
+        status_code = 200 if health_status["status"] == "healthy" else 503
+        return jsonify(health_status), status_code
+        
+    except Exception as e:
+        current_app.logger.error(f"Health check error: {str(e)}")
+        return jsonify({
+            "status": "unhealthy",
+            "error": "Health check failed",
+            "timestamp": datetime.utcnow().isoformat()
+        }), 503
+
+# Error handlers for the entire API
+@api.errorhandler(400)
+def bad_request(error):
+    return jsonify({
+        "error": "Bad Request",
+        "message": error.description or "The request was invalid"
+    }), 400
+
+@api.errorhandler(401)
+def unauthorized(error):
+    return jsonify({
+        "error": "Unauthorized",
+        "message": "Authentication required"
+    }), 401
+
+@api.errorhandler(403)
+def forbidden(error):
+    return jsonify({
+        "error": "Forbidden",
+        "message": "Access denied"
+    }), 403
+
+@api.errorhandler(404)
+def not_found(error):
+    return jsonify({
+        "error": "Not Found",
+        "message": "The requested resource was not found"
+    }), 404
+
+@api.errorhandler(429)
+def rate_limit_exceeded(error):
+    return jsonify({
+        "error": "Rate Limit Exceeded",
+        "message": "Too many requests. Please try again later."
+    }), 429
+
+@api.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    current_app.logger.error(f"Internal server error: {str(error)}")
+    return jsonify({
+        "error": "Internal Server Error",
+        "message": "An unexpected error occurred"
+    }), 500
 
 @api.route('/debug/station/<int:station_id>')
 def debug_station_info(station_id):
@@ -12698,17 +13783,6 @@ def get_sales_by_date():
         return jsonify({"error": f"Failed to fetch sales by date: {str(e)}"}), 500
 
 
-@api.route('/health', methods=['GET'])
-def health_check():
-    return jsonify({
-        "status": "ok",
-        "message": "SpectraSphere API is running",
-        "timestamp": datetime.utcnow().isoformat()
-    }), 200
-
-# Add these RENAMED routes to your routes.py to avoid conflicts
-
-
 from api.models import PricingPlan, UserSubscription, User, seed_video_editing_plans
 
 
@@ -14649,40 +15723,3 @@ def search_user_content():
             'error': 'Search failed'
         }), 500
 
-# Add this to your routes.py file
-
-@api.route('/marketplace/products', methods=['GET'])
-def get_marketplace_products():
-    """Get all products for marketplace display"""
-    try:
-        products = Product.query.all()
-        result = []
-        for product in products:
-            # Get creator info
-            creator = User.query.get(product.creator_id)
-            
-            product_data = {
-                'id': product.id,
-                'name': product.title,  # Use title as name for compatibility
-                'title': product.title,
-                'description': product.description,
-                'price': float(product.price),
-                'image_url': product.image_url,
-                'file_url': product.file_url,
-                'creator_id': product.creator_id,
-                'is_digital': product.is_digital,
-                'stock': product.stock,
-                'category': getattr(product, 'category', 'general'),  # Add if you have categories
-                'created_at': product.created_at.isoformat() if hasattr(product, 'created_at') else None,
-                'creator': {
-                    'id': creator.id,
-                    'username': creator.username,
-                    'display_name': getattr(creator, 'display_name', creator.username)
-                } if creator else None
-            }
-            result.append(product_data)
-        
-        return jsonify(result), 200
-    except Exception as e:
-        print(f"Error fetching marketplace products: {str(e)}")
-        return jsonify({'error': f'Failed to fetch products: {str(e)}'}), 500  

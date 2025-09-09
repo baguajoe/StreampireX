@@ -1,5 +1,7 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+// src/front/js/component/RadioStationDetailPage.js - Enhanced with comprehensive audio error handling
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { ErrorHandler, AuthErrorHandler } from '../utils/errorUtils';
 import "../../styles/RadioStationDetail.css";
 
 // Import the same static images for fallback
@@ -22,24 +24,32 @@ import TheGrooveMechanicsImg from "../../img/TheGrooveMechanics.png";
 import IndigoRainImg from "../../img/IndigoRain.png";
 import ZaraMoonlightImg from "../../img/ZaraMoonlight.png";
 
-const RadioStationDetail = () => {
+const RadioStationDetailPage = () => {
   const { id, type } = useParams();
   const navigate = useNavigate();
   
-  // State management - all React state, no DOM manipulation
-  const [station, setStation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // Audio state
   const [isPlaying, setIsPlaying] = useState(false);
-  const [nowPlaying, setNowPlaying] = useState(null);
-  const [audioError, setAudioError] = useState(null);
   const [audioLoading, setAudioLoading] = useState(false);
   const [audioReady, setAudioReady] = useState(false);
+  const [audioError, setAudioError] = useState(null);
+  const [volume, setVolume] = useState(1.0);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  const [retryCount, setRetryCount] = useState(0);
   
-  // Refs for audio management
+  // Station state
+  const [station, setStation] = useState(null);
+  const [nowPlaying, setNowPlaying] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Refs
   const audioRef = useRef(null);
   const nowPlayingIntervalRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
+  
+  // Environment config
+  const [backendUrl, setBackendUrl] = useState(null);
 
   // Static stations data
   const staticStations = {
@@ -66,6 +76,16 @@ const RadioStationDetail = () => {
   // Helper function to get backend URL
   const getBackendUrl = useCallback(() => {
     return process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001';
+  }, []);
+
+  useEffect(() => {
+    try {
+      const config = ErrorHandler.validateEnvironment();
+      setBackendUrl(config.backendUrl);
+    } catch (error) {
+      setError(`Configuration Error: ${error.message}`);
+      setLoading(false);
+    }
   }, []);
 
   // FIXED getAudioUrl function with Cloudinary priority
@@ -124,8 +144,162 @@ const RadioStationDetail = () => {
     return null;
   }, [station]);
 
-  // Fetch station details
-  const fetchStationDetails = useCallback(async () => {
+  // Enhanced audio error handling
+  const handleAudioError = useCallback((e) => {
+    const audio = audioRef.current;
+    const audioError = audio?.error;
+    
+    console.error("❌ Audio error:", e, audioError);
+    
+    let errorMessage = "Unknown audio error";
+    let canRetry = false;
+    
+    if (audioError) {
+      switch (audioError.code) {
+        case MediaError.MEDIA_ERR_ABORTED:
+          errorMessage = "Audio playback was aborted";
+          canRetry = true;
+          break;
+        case MediaError.MEDIA_ERR_NETWORK:
+          errorMessage = "Network error while loading audio stream";
+          canRetry = true;
+          break;
+        case MediaError.MEDIA_ERR_DECODE:
+          errorMessage = "Audio format not supported or stream corrupted";
+          canRetry = false;
+          break;
+        case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+          errorMessage = "Audio source not available or format not supported";
+          canRetry = false;
+          break;
+        default:
+          errorMessage = `Audio error (code: ${audioError.code})`;
+          canRetry = true;
+      }
+    }
+    
+    setAudioError({ message: errorMessage, canRetry });
+    setConnectionStatus('error');
+    setIsPlaying(false);
+    setAudioLoading(false);
+    
+    // Auto-retry for network errors
+    if (canRetry && retryCount < 3) {
+      console.log(`🔄 Auto-retrying audio connection (${retryCount + 1}/3)`);
+      setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+        retryAudioConnection();
+      }, 2000 * (retryCount + 1));
+    }
+  }, [retryCount]);
+
+  // Audio event handlers
+  const handleLoadStart = useCallback(() => {
+    console.log("📡 Starting to load stream...");
+    setAudioLoading(true);
+    setConnectionStatus('connecting');
+    setAudioError(null);
+  }, []);
+
+  const handleCanPlay = useCallback(() => {
+    console.log("✅ Stream ready to play");
+    setAudioLoading(false);
+    setAudioReady(true);
+    setConnectionStatus('ready');
+    setRetryCount(0); // Reset retry count on success
+  }, []);
+
+  const handlePlaying = useCallback(() => {
+    console.log("🔊 Audio is playing");
+    setIsPlaying(true);
+    setAudioLoading(false);
+    setAudioError(null);
+    setConnectionStatus('playing');
+  }, []);
+
+  const handlePause = useCallback(() => {
+    console.log("⏸️ Audio paused");
+    setIsPlaying(false);
+    setAudioLoading(false);
+    setConnectionStatus('paused');
+  }, []);
+
+  const handleWaiting = useCallback(() => {
+    console.log("⏳ Audio buffering...");
+    setAudioLoading(true);
+    setConnectionStatus('buffering');
+  }, []);
+
+  const handleStalled = useCallback(() => {
+    console.warn("⚠️ Audio stream stalled");
+    setConnectionStatus('stalled');
+    
+    // Try to recover from stall
+    setTimeout(() => {
+      if (audioRef.current && !audioRef.current.ended) {
+        console.log("🔄 Attempting to recover from stall");
+        audioRef.current.load();
+      }
+    }, 3000);
+  }, []);
+
+  const handleVolumeChange = useCallback(() => {
+    if (audioRef.current) {
+      setVolume(audioRef.current.volume);
+    }
+  }, []);
+
+  const handleEnded = useCallback(() => {
+    console.log("🔄 Audio ended");
+    
+    // For loop-enabled stations, restart playback
+    if (station?.is_loop_enabled) {
+      console.log("🔄 Restarting loop...");
+      setTimeout(() => {
+        if (audioRef.current && isPlaying) {
+          audioRef.current.currentTime = 0;
+          audioRef.current.play().catch(console.error);
+        }
+      }, 100);
+    } else {
+      setIsPlaying(false);
+    }
+  }, [station, isPlaying]);
+
+  // Setup audio event listeners
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    // Add event listeners
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('playing', handlePlaying);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('stalled', handleStalled);
+    audio.addEventListener('error', handleAudioError);
+    audio.addEventListener('volumechange', handleVolumeChange);
+    audio.addEventListener('ended', handleEnded);
+
+    // Cleanup
+    return () => {
+      audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('playing', handlePlaying);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('waiting', handleWaiting);
+      audio.removeEventListener('stalled', handleStalled);
+      audio.removeEventListener('error', handleAudioError);
+      audio.removeEventListener('volumechange', handleVolumeChange);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [handleLoadStart, handleCanPlay, handlePlaying, handlePause, handleWaiting, handleStalled, handleAudioError, handleVolumeChange, handleEnded]);
+
+  // Fetch station data with error handling
+  const fetchStationData = useCallback(async () => {
+    if (!backendUrl) return;
+
     try {
       setLoading(true);
       setError(null);
@@ -139,40 +313,56 @@ const RadioStationDetail = () => {
         }
         setLoading(false);
       } else {
-        const backendUrl = getBackendUrl();
-        const response = await fetch(`${backendUrl}/api/radio-stations/${id}`);
+        const url = `${backendUrl}/api/radio/${id}`;
+        
+        const data = await ErrorHandler.withRetry(
+          async () => {
+            return await ErrorHandler.fetchWithErrorHandling(url, {
+              headers: {
+                ...AuthErrorHandler.getAuthHeaders()
+              }
+            });
+          },
+          3, // Max retries
+          1000 // Initial delay
+        );
 
-        if (!response.ok) {
-          throw new Error(`Station not found (${response.status})`);
-        }
-
-        const data = await response.json();
-        setStation(data);
-        console.log("📻 Station data:", data);
+        setStation(data.station);
+        console.log("📻 Station data:", data.station);
         
         // Try to fetch now playing info with better error handling
-        if (data.is_live) {
+        if (data.station.is_live) {
           await fetchNowPlaying();
           startNowPlayingUpdates();
         }
-        
-        setLoading(false);
       }
-    } catch (err) {
-      console.error("❌ Error loading station details:", err);
-      setError(err.message);
+      
+    } catch (error) {
+      console.error('❌ Station fetch error:', error);
+      
+      if (AuthErrorHandler.handleAuthError(error, navigate)) {
+        return;
+      }
+      
+      setError(error.message);
+    } finally {
       setLoading(false);
     }
-  }, [id, type, getBackendUrl]);
+  }, [backendUrl, id, type, navigate]);
 
-  // Improved now playing fetch with better error handling
+  // Fetch now playing with enhanced error handling
   const fetchNowPlaying = useCallback(async () => {
-    if (type === 'static') return;
+    if (!backendUrl || !id || type === 'static') return;
 
     try {
-      const backendUrl = getBackendUrl();
-      const response = await fetch(`${backendUrl}/api/radio/${id}/now-playing`);
+      const url = `${backendUrl}/api/radio/${id}/now-playing`;
       
+      const response = await fetch(url, {
+        headers: {
+          ...AuthErrorHandler.getAuthHeaders()
+        }
+      });
+
       // Check if response is actually JSON
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
@@ -191,102 +381,41 @@ const RadioStationDetail = () => {
       console.warn("⚠️ Could not fetch now playing info:", err.message);
       // Don't throw error, just log warning since this is not critical
     }
-  }, [id, type, getBackendUrl]);
+  }, [backendUrl, id, type]);
 
-  // Start periodic updates
+  // Start periodic now playing updates
   const startNowPlayingUpdates = useCallback(() => {
     if (nowPlayingIntervalRef.current) {
       clearInterval(nowPlayingIntervalRef.current);
     }
     
+    // Initial fetch
+    fetchNowPlaying();
+    
+    // Set up interval
     nowPlayingIntervalRef.current = setInterval(() => {
       fetchNowPlaying();
-    }, 30000);
+    }, 30000); // Update every 30 seconds
   }, [fetchNowPlaying]);
 
-  // Audio event handlers
-  const handleLoadStart = useCallback(() => {
-    console.log("📡 Starting to load stream...");
-    setAudioLoading(true);
-    setConnectionStatus('connecting');
-  }, []);
-
-  const handleCanPlay = useCallback(() => {
-    console.log("✅ Stream ready to play");
-    setAudioLoading(false);
-    setAudioReady(true);
-    setConnectionStatus('connected');
-  }, []);
-
-  const handlePlaying = useCallback(() => {
-    console.log("🔊 Audio is playing");
-    setIsPlaying(true);
-    setAudioLoading(false);
-    setAudioError(null);
-    setConnectionStatus('connected');
-  }, []);
-
-  const handlePause = useCallback(() => {
-    console.log("⏸️ Audio paused");
-    setIsPlaying(false);
-    setAudioLoading(false);
-  }, []);
-
-  const handleAudioError = useCallback((e) => {
-    const audio = audioRef.current;
-    console.error("❌ Audio error:", e);
-    console.error("Error details:", audio?.error);
-    
-    let errorMessage = "Playback error occurred";
-    if (audio?.error) {
-      switch (audio.error.code) {
-        case 1: // MEDIA_ERR_ABORTED
-          errorMessage = "Playback was aborted";
-          break;
-        case 2: // MEDIA_ERR_NETWORK
-          errorMessage = "Network error occurred";
-          break;
-        case 3: // MEDIA_ERR_DECODE
-          errorMessage = "Audio decoding error";
-          break;
-        case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-          errorMessage = "Audio format not supported";
-          break;
-        default:
-          errorMessage = audio.error.message || "Unknown playback error";
+  // Retry audio connection
+  const retryAudioConnection = useCallback(() => {
+    if (audioRef.current && station) {
+      console.log("🔄 Retrying audio connection...");
+      setAudioError(null);
+      setConnectionStatus('connecting');
+      
+      // Force reload the audio source
+      audioRef.current.load();
+      
+      // Try to play if it was playing before
+      if (isPlaying) {
+        setTimeout(() => {
+          audioRef.current?.play().catch(err => {
+            console.error("Failed to resume playback:", err);
+          });
+        }, 1000);
       }
-    }
-    
-    setAudioError(errorMessage);
-    setIsPlaying(false);
-    setAudioLoading(false);
-    setConnectionStatus('error');
-  }, []);
-
-  const handleStalled = useCallback(() => {
-    console.log("⚠️ Audio stalled");
-    setAudioLoading(true);
-  }, []);
-
-  const handleWaiting = useCallback(() => {
-    console.log("⏳ Audio buffering...");
-    setAudioLoading(true);
-  }, []);
-
-  const handleEnded = useCallback(() => {
-    console.log("🔄 Audio ended");
-    
-    // For loop-enabled stations, restart playback
-    if (station?.is_loop_enabled) {
-      console.log("🔄 Restarting loop...");
-      setTimeout(() => {
-        if (audioRef.current && isPlaying) {
-          audioRef.current.currentTime = 0;
-          audioRef.current.play().catch(console.error);
-        }
-      }, 100);
-    } else {
-      setIsPlaying(false);
     }
   }, [station, isPlaying]);
 
@@ -361,6 +490,62 @@ const RadioStationDetail = () => {
     
     return audio;
   }, [getAudioUrl]);
+
+  // Play/pause handlers with error handling
+  const handlePlay = useCallback(async () => {
+    if (!audioRef.current || !station) return;
+
+    try {
+      setAudioLoading(true);
+      setAudioError(null);
+      
+      // Check if audio is ready
+      if (audioRef.current.readyState < 2) {
+        console.log("Audio not ready, loading first...");
+        audioRef.current.load();
+        
+        // Wait for canplay event
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Audio loading timeout'));
+          }, 10000);
+          
+          audioRef.current.addEventListener('canplay', () => {
+            clearTimeout(timeout);
+            resolve();
+          }, { once: true });
+          
+          audioRef.current.addEventListener('error', () => {
+            clearTimeout(timeout);
+            reject(new Error('Audio loading failed'));
+          }, { once: true });
+        });
+      }
+      
+      await audioRef.current.play();
+      startNowPlayingUpdates();
+      
+    } catch (error) {
+      console.error("Play failed:", error);
+      setAudioError({ 
+        message: `Playback failed: ${error.message}`, 
+        canRetry: true 
+      });
+      setAudioLoading(false);
+      setConnectionStatus('error');
+    }
+  }, [station, startNowPlayingUpdates]);
+
+  const handlePauseClick = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      
+      // Stop now playing updates
+      if (nowPlayingIntervalRef.current) {
+        clearInterval(nowPlayingIntervalRef.current);
+      }
+    }
+  }, []);
 
   // Improved play/pause handler
   const handlePlayPause = useCallback(async () => {
@@ -451,6 +636,15 @@ const RadioStationDetail = () => {
     }
   }, [type, isPlaying, station, getAudioUrl, setupAudioElement]);
 
+  // Volume control
+  const handleVolumeChangeInput = useCallback((e) => {
+    const newVolume = parseFloat(e.target.value);
+    setVolume(newVolume);
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume;
+    }
+  }, []);
+
   // Handle back navigation
   const handleBack = useCallback(() => {
     if (audioRef.current) {
@@ -468,23 +662,21 @@ const RadioStationDetail = () => {
     setAudioError(null);
   }, []);
 
-  // Effects
+  // Initialize
   useEffect(() => {
-    fetchStationDetails();
-  }, [fetchStationDetails]);
+    if (backendUrl || type === 'static') {
+      fetchStationData();
+    }
 
-  // Cleanup effect
-  useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
       if (nowPlayingIntervalRef.current) {
         clearInterval(nowPlayingIntervalRef.current);
       }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
-  }, []);
+  }, [backendUrl, fetchStationData, type]);
 
   // FIXED Logo Rendering
   const renderStationLogo = () => {
@@ -689,7 +881,6 @@ const RadioStationDetail = () => {
     );
   }
 
-  // Main render
   return (
     <div className="station-detail-container">
       <div className="station-detail-header">
@@ -747,24 +938,101 @@ const RadioStationDetail = () => {
               {connectionStatus !== 'disconnected' && renderConnectionStatus()}
             </div>
 
-            {/* Audio status messages */}
-            {audioError && (
-              <div className="audio-error">
-                ⚠️ {audioError}
-                <button 
-                  onClick={dismissAudioError} 
-                  className="dismiss-error"
-                >
-                  ✕
-                </button>
-              </div>
-            )}
+            {/* Audio Player */}
+            <div className="audio-player">
+              <audio
+                ref={audioRef}
+                preload="none"
+                crossOrigin="anonymous"
+              >
+                {station.stream_url && <source src={station.stream_url} type="audio/mpeg" />}
+                {station.stream_url && <source src={station.stream_url} type="audio/ogg" />}
+                Your browser does not support the audio element.
+              </audio>
 
-            {audioLoading && (
-              <div className="audio-loading">
-                ⏳ Loading audio stream...
+              {/* Error Display */}
+              {audioError && (
+                <div className="audio-error">
+                  <div className="error-message">
+                    <span>⚠️ {audioError.message || audioError}</span>
+                    {audioError.canRetry && (
+                      <button onClick={retryAudioConnection} className="retry-btn">
+                        🔄 Retry
+                      </button>
+                    )}
+                    <button 
+                      onClick={dismissAudioError} 
+                      className="dismiss-error"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  
+                  {audioError.canRetry && (
+                    <div className="troubleshooting">
+                      <h4>Troubleshooting:</h4>
+                      <ul>
+                        <li>Check your internet connection</li>
+                        <li>Try refreshing the page</li>
+                        <li>Disable ad blockers or VPN</li>
+                        <li>Try a different browser</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {audioLoading && (
+                <div className="audio-loading">
+                  ⏳ Loading audio stream...
+                </div>
+              )}
+
+              {/* Player Controls */}
+              <div className="player-controls">
+                <button
+                  className={`play-pause-btn ${isPlaying ? 'playing' : ''}`}
+                  onClick={isPlaying ? handlePauseClick : handlePlay}
+                  disabled={audioLoading || (audioError && !audioError.canRetry)}
+                >
+                  {audioLoading ? (
+                    <div className="loading-spinner"></div>
+                  ) : isPlaying ? (
+                    '⏸️'
+                  ) : (
+                    '▶️'
+                  )}
+                  <span>{audioLoading ? 'Loading...' : isPlaying ? 'Pause' : 'Play'}</span>
+                </button>
+
+                {/* Volume Control */}
+                <div className="volume-control">
+                  <span>🔊</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value={volume}
+                    onChange={handleVolumeChangeInput}
+                    className="volume-slider"
+                  />
+                  <span>{Math.round(volume * 100)}%</span>
+                </div>
               </div>
-            )}
+
+              {/* Now Playing in Audio Player */}
+              {nowPlaying && (
+                <div className="now-playing">
+                  <h3>🎵 Now Playing</h3>
+                  <div className="track-info">
+                    <div className="track-title">{nowPlaying.title || 'Unknown Track'}</div>
+                    <div className="track-artist">{nowPlaying.artist || 'Unknown Artist'}</div>
+                    {nowPlaying.album && <div className="track-album">{nowPlaying.album}</div>}
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="station-controls">
               {renderPlayButton()}
@@ -779,8 +1047,27 @@ const RadioStationDetail = () => {
           </div>
         </div>
 
-        {/* Station details sections */}
+        {/* Station Details */}
         <div className="station-details">
+          <div className="station-stats">
+            <div className="stat">
+              <span className="label">Status:</span>
+              <span className={`value ${station.is_live ? 'live' : 'offline'}`}>
+                {station.is_live ? '🔴 Live' : '⚫ Offline'}
+              </span>
+            </div>
+            
+            <div className="stat">
+              <span className="label">Genre:</span>
+              <span className="value">{station.genre || 'General'}</span>
+            </div>
+            
+            <div className="stat">
+              <span className="label">Listeners:</span>
+              <span className="value">{station.listener_count || station.listeners || 0}</span>
+            </div>
+          </div>
+
           <div className="detail-section">
             <h3>About This Station</h3>
             <p>
@@ -847,4 +1134,4 @@ const RadioStationDetail = () => {
   );
 };
 
-export default RadioStationDetail;
+export default RadioStationDetailPage;
