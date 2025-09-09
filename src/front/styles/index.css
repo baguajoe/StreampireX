@@ -1,61 +1,528 @@
 /* Main app container */
 .app-container {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-  }
-  
-  /* Container for sidebar and main content */
-  .content-container {
-    display: flex;
-    flex: 1;
-    position: relative;
-  }
-  
-  /* Main content area */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Container for sidebar and main content */
+.content-container {
+  display: flex;
+  flex: 1;
+  position: relative;
+}
+
+/* Main content area */
+.main-content {
+  flex: 1;
+  margin-left: 250px; /* Match sidebar width */
+  padding: 20px;
+  min-height: calc(100vh - 85px - 50px); /* Adjusted for 85px navbar height */
+  background-color: #fff;
+  transition: margin-left 0.3s;
+}
+
+/* Navbar styling */
+.navbar {
+  height: 85px; /* Set a fixed height for navbar */
+  width: 100%;
+  z-index: 1100; /* Higher than sidebar */
+  position: sticky;
+  top: 0;
+}
+
+/* Footer styling */
+.footer {
+  height: 50px; /* Set a fixed height for footer */
+  width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
   .main-content {
-    flex: 1;
-    margin-left: 250px; /* Match sidebar width */
-    padding: 20px;
-    min-height: calc(100vh - 85px - 50px); /* Adjusted for 85px navbar height */
-    background-color: #fff;
-    transition: margin-left 0.3s;
-  }
-  
-  /* Navbar styling */
-  .navbar {
-    height: 85px; /* Set a fixed height for navbar */
-    width: 100%;
-    z-index: 1100; /* Higher than sidebar */
-    position: sticky;
-    top: 0;
-  }
-  
-  /* Footer styling */
-  .footer {
-    height: 50px; /* Set a fixed height for footer */
+    margin-left: 0;
     width: 100%;
   }
   
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    .main-content {
-      margin-left: 0;
-      width: 100%;
-    }
-    
-    /* Add a toggle button for mobile */
-    .sidebar-toggle {
-      display: block;
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 1200;
-      padding: 10px;
-      border-radius: 50%;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    }
+  /* Add a toggle button for mobile */
+  .sidebar-toggle {
+    display: block;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1200;
+    padding: 10px;
+    border-radius: 50%;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   }
+}
+
+/* Error Handling CSS Styles */
+
+/* Global Error Styles */
+.error-state {
+  background: #fff;
+  border: 1px solid #f44336;
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 2rem 0;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(244, 67, 54, 0.1);
+}
+
+.error-state h2 {
+  color: #d32f2f;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.error-state p {
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
+.error-banner {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid #f44336;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #d32f2f;
+}
+
+.error-banner button {
+  background: none;
+  border: none;
+  color: #d32f2f;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+}
+
+/* Loading States */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  min-height: 300px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #002b5c;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e0e0e0;
+  border-top: 2px solid #002b5c;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Connection Status Indicators */
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+}
+
+.connection-status.connecting {
+  background: rgba(255, 193, 7, 0.1);
+  color: #ff8f00;
+  border: 1px solid #ffb300;
+}
+
+.connection-status.connected,
+.connection-status.ready,
+.connection-status.playing {
+  background: rgba(76, 175, 80, 0.1);
+  color: #388e3c;
+  border: 1px solid #4caf50;
+}
+
+.connection-status.disconnected,
+.connection-status.paused {
+  background: rgba(158, 158, 158, 0.1);
+  color: #616161;
+  border: 1px solid #9e9e9e;
+}
+
+.connection-status.error,
+.connection-status.failed {
+  background: rgba(244, 67, 54, 0.1);
+  color: #d32f2f;
+  border: 1px solid #f44336;
+}
+
+.connection-status.buffering,
+.connection-status.stalled {
+  background: rgba(255, 152, 0, 0.1);
+  color: #f57c00;
+  border: 1px solid #ff9800;
+}
+
+.status-dot,
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Action Buttons */
+.retry-btn,
+.test-btn {
+  background: #002b5c;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  margin: 0.5rem;
+}
+
+.retry-btn:hover,
+.test-btn:hover {
+  background: #004080;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 43, 92, 0.3);
+}
+
+.test-btn {
+  background: #ffa726;
+  color: #002b5c;
+}
+
+.test-btn:hover {
+  background: #ff9800;
+}
+
+.retry-btn:disabled,
+.test-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Debug Information */
+.debug-info {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: left;
+}
+
+.debug-info h3 {
+  color: #002b5c;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.debug-info ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.debug-info li {
+  margin: 0.25rem 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Troubleshooting Sections */
+.troubleshooting {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  text-align: left;
+}
+
+.troubleshooting h3,
+.troubleshooting h4 {
+  color: #002b5c;
+  margin-bottom: 1rem;
+}
+
+.troubleshooting ol,
+.troubleshooting ul {
+  padding-left: 1.5rem;
+}
+
+.troubleshooting li {
+  margin: 0.5rem 0;
+  color: #555;
+}
+
+.troubleshooting code {
+  background: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Monaco', monospace;
+  color: #d32f2f;
+  font-size: 0.9rem;
+}
+
+/* WebRTC Specific Styles */
+.webrtc-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.error-panel {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  max-width: 400px;
+  z-index: 1000;
+}
+
+.error-message {
+  background: rgba(244, 67, 54, 0.95);
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.error-message button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 1rem;
+}
+
+/* Audio Player Error Styles */
+.audio-error {
+  background: rgba(244, 67, 54, 0.05);
+  border: 1px solid rgba(244, 67, 54, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.audio-error .error-message {
+  position: static;
+  background: transparent;
+  color: #d32f2f;
+  padding: 0;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: none;
+}
+
+.audio-error .retry-btn {
+  background: #f44336;
+  color: white;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.audio-error .retry-btn:hover {
+  background: #d32f2f;
+}
+
+/* Settings Page Error Styles */
+.save-status {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 1rem 0;
+  display: inline-block;
+}
+
+.save-status.saving {
+  background: rgba(255, 193, 7, 0.1);
+  color: #ff8f00;
+  border: 1px solid #ffb300;
+}
+
+.save-status.saved {
+  background: rgba(76, 175, 80, 0.1);
+  color: #388e3c;
+  border: 1px solid #4caf50;
+}
+
+.save-status.error {
+  background: rgba(244, 67, 54, 0.1);
+  color: #d32f2f;
+  border: 1px solid #f44336;
+}
+
+/* Danger Zone Styles */
+.danger-zone {
+  border: 2px solid #f44336;
+  border-radius: 12px;
+  background: rgba(244, 67, 54, 0.02);
+}
+
+.danger-zone h2 {
+  color: #d32f2f;
+}
+
+.delete-btn {
+  background: #f44336;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.delete-btn:hover:not(:disabled) {
+  background: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+}
+
+.delete-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.delete-input {
+  border: 2px solid #f44336;
+  border-radius: 6px;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  width: 200px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .error-state {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .error-panel {
+    position: static;
+    margin: 1rem 0;
+    max-width: none;
+  }
+  
+  .debug-info {
+    overflow-x: auto;
+  }
+  
+  .troubleshooting {
+    padding: 1rem;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .retry-btn,
+  .test-btn {
+    width: 100%;
+    margin: 0.25rem 0;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .error-state {
+    background: #1e1e1e;
+    border-color: #f44336;
+    color: #e0e0e0;
+  }
+  
+  .debug-info {
+    background: #2d2d2d;
+    border-color: #555;
+    color: #e0e0e0;
+  }
+  
+  .troubleshooting {
+    background: #1e1e1e;
+    border-color: #555;
+    color: #e0e0e0;
+  }
+  
+  .troubleshooting code {
+    background: #2d2d2d;
+    color: #ff6b6b;
+  }
+}
+
+/* Accessibility Improvements */
+.error-state:focus,
+.retry-btn:focus,
+.test-btn:focus {
+  outline: 2px solid #002b5c;
+  outline-offset: 2px;
+}
+
+/* Animation for error appearances */
+.error-state,
+.error-banner,
+.error-message {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1869,6 +1869,7 @@ class Subscription(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     plan_id = db.Column(db.Integer, db.ForeignKey('pricing_plan.id'), nullable=False)  # Links to PricingPlan
     stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)
+    stripe_checkout_session_id = db.Column(db.String(255), unique=True, nullable=True)
     start_date = db.Column(db.DateTime, default=datetime.utcnow)
     end_date = db.Column(db.DateTime, nullable=True)
     grace_period_end = db.Column(db.DateTime, nullable=True)  # 7-day grace period
@@ -1892,7 +1893,7 @@ class Subscription(db.Model):
     def calculate_earnings(self):
         """Calculate creator earnings based on subscription price and billing cycle"""
         monthly_price = self.get_monthly_revenue()
-        platform_cut = 0.15  # 15% platform cut
+        platform_cut = 0.10  # 10% platform cut
         return monthly_price * (1 - platform_cut)
 
     def serialize(self):
@@ -1902,6 +1903,7 @@ class Subscription(db.Model):
             "plan_id": self.plan_id,
             "plan_name": self.plan.name,
             "stripe_subscription_id": self.stripe_subscription_id,
+            "stripe_checkout_session_id": self.stripe_checkout_session_id,
             "start_date": self.start_date.isoformat(),
             "end_date": self.end_date.isoformat() if self.end_date else None,
             "grace_period_end": self.grace_period_end.isoformat() if self.grace_period_end else None,
@@ -2868,13 +2870,7 @@ class VRAccessTicket(db.Model):
     event_id = db.Column(db.Integer, db.ForeignKey('live_event.id'))
     is_verified = db.Column(db.Boolean, default=False)
 
-class PodcastPurchase(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    episode_id = db.Column(db.Integer, db.ForeignKey('podcast_episode.id'))
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
-    creator_earnings = db.Column(db.Float)            # 85% automatically calculated
+
 
 class Conversation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -4117,3 +4113,46 @@ class EffectPreset(db.Model):
             'is_public': self.is_public,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+    
+class PodcastAccess(db.Model):
+    __tablename__ = 'podcast_access'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    podcast_id = db.Column(db.Integer, db.ForeignKey('podcast.id'), nullable=False)
+    access_type = db.Column(db.String(50), default='premium')
+    granted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    payment_amount = db.Column(db.Float)
+
+# Fix the PodcastPurchase model in your models.py file
+
+class PodcastPurchase(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    # FIX: Change from 'episode.id' to 'podcast_episode.id' 
+    # to match the actual table name
+    episode_id = db.Column(db.Integer, db.ForeignKey('podcast_episode.id'))
+    
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    platform_cut = db.Column(db.Float, default=0.10)  # 10% by default
+    creator_earnings = db.Column(db.Float)            # 85% automatically calculated
+    
+    # Add relationships
+    user = db.relationship('User', backref='podcast_purchases')
+    episode = db.relationship('PodcastEpisode', backref='purchases')
+
+class StationFollow(db.Model):
+    __tablename__ = 'station_follows'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
+    followed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='station_follows')
+    station = db.relationship('RadioStation', backref='followers')
+    
+    # Unique constraint to prevent duplicate follows
+    __table_args__ = (db.UniqueConstraint('user_id', 'station_id'),)
