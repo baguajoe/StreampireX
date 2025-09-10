@@ -1,4 +1,4 @@
-// Updated Navbar.js with Cart functionality
+// Updated Navbar.js with Cart functionality and Sidebar Fix
 import React, { useEffect, useState, useContext } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Context } from "../store/appContext";
@@ -10,6 +10,7 @@ const Navbar = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [cartTotal, setCartTotal] = useState(0);
   const location = useLocation();
   const { store, actions } = useContext(Context);
 
@@ -27,21 +28,25 @@ const Navbar = () => {
     }
   }, []);
 
-  // Update cart count when cart changes
+  // Update cart count and total when cart changes
   useEffect(() => {
-    const updateCartCount = () => {
+    const updateCartInfo = () => {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-      setCartCount(cart.reduce((total, item) => total + item.quantity, 0));
+      const count = cart.reduce((total, item) => total + item.quantity, 0);
+      const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
+      setCartCount(count);
+      setCartTotal(total);
     };
 
     // Initial load
-    updateCartCount();
+    updateCartInfo();
 
     // Listen for cart updates
-    window.addEventListener('cartUpdated', updateCartCount);
+    window.addEventListener('cartUpdated', updateCartInfo);
     
     return () => {
-      window.removeEventListener('cartUpdated', updateCartCount);
+      window.removeEventListener('cartUpdated', updateCartInfo);
     };
   }, []);
 
@@ -67,18 +72,25 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
   };
 
+  const closeAllMenus = () => {
+    setIsMobileMenuOpen(false);
+    setIsUserMenuOpen(false);
+  };
+
   return (
     <nav className="horizontal-navbar">
       <div className="navbar-container">
         {/* Logo */}
-        <Link className="navbar-brand" to="/" onClick={closeMobileMenu}>
+        <Link className="navbar-brand" to="/" onClick={closeAllMenus}>
           <img src={logo} alt="StreampireX" />
+          <span className="brand-text">StreampireX</span>
         </Link>
 
         {/* Mobile Menu Button */}
         <button 
           className={`mobile-menu-btn ${isMobileMenuOpen ? 'active' : ''}`}
           onClick={toggleMobileMenu}
+          aria-label="Toggle mobile menu"
         >
           <span></span>
           <span></span>
@@ -92,7 +104,8 @@ const Navbar = () => {
             to="/" 
             onClick={closeMobileMenu}
           >
-            Home
+            <span className="nav-icon">🏠</span>
+            <span className="nav-text">Home</span>
           </Link>
           
           <Link 
@@ -100,7 +113,8 @@ const Navbar = () => {
             to="/pricing-plans" 
             onClick={closeMobileMenu}
           >
-            Pricing
+            <span className="nav-icon">💰</span>
+            <span className="nav-text">Pricing</span>
           </Link>
           
           <Link 
@@ -108,7 +122,8 @@ const Navbar = () => {
             to="/browse-podcast-categories" 
             onClick={closeMobileMenu}
           >
-            Podcasts
+            <span className="nav-icon">🎙️</span>
+            <span className="nav-text">Podcasts</span>
           </Link>
           
           <Link 
@@ -116,7 +131,8 @@ const Navbar = () => {
             to="/videos" 
             onClick={closeMobileMenu}
           >
-            Videos
+            <span className="nav-icon">📹</span>
+            <span className="nav-text">Videos</span>
           </Link>
           
           <Link 
@@ -124,7 +140,8 @@ const Navbar = () => {
             to="/browse-radio-stations" 
             onClick={closeMobileMenu}
           >
-            Radio
+            <span className="nav-icon">📻</span>
+            <span className="nav-text">Radio</span>
           </Link>
 
           <Link 
@@ -132,7 +149,8 @@ const Navbar = () => {
             to="/marketplace" 
             onClick={closeMobileMenu}
           >
-            Marketplace
+            <span className="nav-icon">🛒</span>
+            <span className="nav-text">Marketplace</span>
           </Link>
         </div>
 
@@ -192,7 +210,10 @@ const Navbar = () => {
                   <span className="cart-badge">{cartCount}</span>
                 )}
               </div>
-              <span className="cart-text">Cart</span>
+              <div className="cart-info">
+                <span className="cart-text">Cart</span>
+                <span className="cart-total">${cartTotal.toFixed(2)}</span>
+              </div>
             </Link>
           </div>
 
@@ -202,6 +223,7 @@ const Navbar = () => {
               <button 
                 className="user-menu-btn" 
                 onClick={toggleUserMenu}
+                aria-label="User menu"
               >
                 <div className="user-avatar">
                   {user.username?.charAt(0).toUpperCase()}
@@ -224,10 +246,7 @@ const Navbar = () => {
                   <Link 
                     to="/profile" 
                     className="dropdown-link"
-                    onClick={() => {
-                      setIsUserMenuOpen(false);
-                      closeMobileMenu();
-                    }}
+                    onClick={closeAllMenus}
                   >
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -237,10 +256,7 @@ const Navbar = () => {
                   <Link 
                     to="/orders" 
                     className="dropdown-link"
-                    onClick={() => {
-                      setIsUserMenuOpen(false);
-                      closeMobileMenu();
-                    }}
+                    onClick={closeAllMenus}
                   >
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -248,12 +264,19 @@ const Navbar = () => {
                     Orders
                   </Link>
                   <Link 
+                    to="/creator-dashboard" 
+                    className="dropdown-link"
+                    onClick={closeAllMenus}
+                  >
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Dashboard
+                  </Link>
+                  <Link 
                     to="/settings" 
                     className="dropdown-link"
-                    onClick={() => {
-                      setIsUserMenuOpen(false);
-                      closeMobileMenu();
-                    }}
+                    onClick={closeAllMenus}
                   >
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -281,6 +304,7 @@ const Navbar = () => {
                 className="nav-link login-link"
                 onClick={closeMobileMenu}
               >
+                <span className="auth-icon">🔑</span>
                 Login
               </Link>
               <Link 
@@ -288,12 +312,21 @@ const Navbar = () => {
                 className="nav-link signup-link"
                 onClick={closeMobileMenu}
               >
+                <span className="auth-icon">👤</span>
                 Sign Up
               </Link>
             </div>
           )}
         </div>
       </div>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="mobile-menu-overlay" 
+          onClick={closeMobileMenu}
+        ></div>
+      )}
     </nav>
   );
 };
