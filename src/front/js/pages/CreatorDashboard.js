@@ -1,75 +1,70 @@
+// src/front/js/pages/CreatorDashboard.js - Updated with Product Upload Integration
 import React, { useEffect, useState } from "react";
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+import { Line, Doughnut } from 'react-chartjs-2';
 import { Link } from "react-router-dom";
-import { Doughnut, Line } from "react-chartjs-2";
-import "chart.js/auto";
+import ProductUploadForm from "../component/ProductUploadForm";
 import "../../styles/creatorDashboard.css";
 
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
+
 const CreatorDashboard = () => {
-  const [profile, setProfile] = useState({
-    username: "Loading...",
-    email: "",
-    profile_picture: "",
-    subscription: "Pro Creator",
-    totalEarnings: 0,
-    totalFollowers: 0,
-    totalContent: 0
-  });
-
-  const [overviewStats, setOverviewStats] = useState({
-    totalShares: 0,
-    totalViews: 0,
-    totalPlays: 0,
-    monthlyGrowth: 0
-  });
-
-  const [contentBreakdown, setContentBreakdown] = useState({
-    podcasts: 0,
-    radioStations: 0,
-    musicTracks: 0,
-    liveStreams: 0
-  });
-
-  const [recentActivity, setRecentActivity] = useState([
-    { type: "podcast", title: "Tech Talk", action: "published", time: "2 hours ago" },
-    { type: "music", title: "Chill Beats", action: "uploaded", time: "1 day ago" },
-    { type: "radio", title: "Jazz FM", action: "went live", time: "2 days ago" },
-    { type: "livestream", title: "AMA", action: "streamed", time: "3 days ago" }
-  ]);
-
-  const [socialShares, setSocialShares] = useState({
-    facebook: 0,
-    twitter: 0,
-    instagram: 0,
-    tiktok: 0
-  });
+  const [activeTab, setActiveTab] = useState('overview');
+  const [profile, setProfile] = useState({});
+  const [socialShares, setSocialShares] = useState({});
+  const [contentBreakdown, setContentBreakdown] = useState({});
+  const [earnings, setEarnings] = useState({});
+  const [myProducts, setMyProducts] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
 
   useEffect(() => {
     const fetchOverviewData = async () => {
       try {
         const token = localStorage.getItem("token");
 
-        const profileRes = await fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+        // Fetch profile data
+        const profileRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (profileRes.ok) {
           const profileData = await profileRes.json();
-          setProfile(prev => ({ ...prev, ...profileData }));
+          setProfile(profileData);
         }
 
-        const statsRes = await fetch(`${process.env.BACKEND_URL}/api/creator/overview-stats`, {
+        // Fetch social shares data
+        const sharesRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/social-shares`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          setOverviewStats(statsData);
+        if (sharesRes.ok) {
+          const sharesData = await sharesRes.json();
+          setSocialShares(sharesData);
         }
 
-        const contentRes = await fetch(`${process.env.BACKEND_URL}/api/creator/content-breakdown`, {
+        // Fetch content breakdown
+        const contentRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/content-breakdown`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (contentRes.ok) {
           const contentData = await contentRes.json();
           setContentBreakdown(contentData);
+        }
+
+        // Fetch earnings data
+        const earningsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/earnings`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (earningsRes.ok) {
+          const earningsData = await earningsRes.json();
+          setEarnings(earningsData);
+        }
+
+        // Fetch my products
+        const productsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/my-products`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (productsRes.ok) {
+          const productsData = await productsRes.json();
+          setMyProducts(productsData.products || []);
         }
 
       } catch (error) {
@@ -95,15 +90,16 @@ const CreatorDashboard = () => {
   };
 
   const contentBreakdownData = {
-    labels: ['Podcasts', 'Radio Stations', 'Music Tracks', 'Live Streams'],
+    labels: ['Podcasts', 'Radio Stations', 'Music Tracks', 'Live Streams', 'Products'],
     datasets: [{
       data: [
         contentBreakdown.podcasts || 0,
         contentBreakdown.radioStations || 0,
         contentBreakdown.musicTracks || 0,
-        contentBreakdown.liveStreams || 0
+        contentBreakdown.liveStreams || 0,
+        myProducts.length || 0
       ],
-      backgroundColor: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'],
+      backgroundColor: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFB347'],
       borderWidth: 0
     }]
   };
@@ -122,13 +118,43 @@ const CreatorDashboard = () => {
 
   const getActivityIcon = (type) => {
     switch (type) {
-      case 'podcast': return '🎙️';
-      case 'music': return '🎵';
-      case 'radio': return '📻';
-      case 'livestream': return '🎥';
-      default: return '📝';
+      case 'podcast': return 'microphone';
+      case 'music': return 'music';
+      case 'radio': return 'radio';
+      case 'livestream': return 'video';
+      case 'product': return 'shopping-bag';
+      default: return 'file';
     }
   };
+
+  const handleProductUploaded = () => {
+    // Refresh products list after upload
+    const token = localStorage.getItem("token");
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/my-products`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.products) {
+        setMyProducts(data.products);
+      }
+    })
+    .catch(error => console.error("Error refreshing products:", error));
+  };
+
+  const calculateTotalEarnings = () => {
+    const productEarnings = myProducts.reduce((total, product) => {
+      return total + ((product.sales_count || 0) * (product.price || 0) * 0.9); // 90% after 10% platform fee
+    }, 0);
+    
+    return {
+      products: productEarnings,
+      content: earnings.content || 0,
+      total: productEarnings + (earnings.content || 0)
+    };
+  };
+
+  const totalEarnings = calculateTotalEarnings();
 
   return (
     <div className="creator-dashboard">
@@ -137,149 +163,288 @@ const CreatorDashboard = () => {
           <img
             src={profile.profile_picture || "https://via.placeholder.com/80"}
             alt="Creator Profile"
-            className="creator-avatar"
+            className="profile-avatar"
           />
-          <div className="creator-info">
-            <h1>🚀 Creator Dashboard</h1>
-            <p className="creator-name">{profile.username}</p>
-            <span className="subscription-badge">{profile.subscription}</span>
+          <div className="profile-info">
+            <h1>{profile.username || 'Creator'}</h1>
+            <p className="profile-subtitle">{profile.bio || 'Content Creator'}</p>
+            <div className="profile-stats">
+              <span className="stat">
+                <strong>{profile.followers || 0}</strong> Followers
+              </span>
+              <span className="stat">
+                <strong>{profile.following || 0}</strong> Following
+              </span>
+              <span className="stat">
+                <strong>{myProducts.length}</strong> Products
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="earnings-overview">
+          <div className="earnings-card">
+            <h3>Total Earnings</h3>
+            <div className="earnings-amount">${totalEarnings.total.toFixed(2)}</div>
+            <div className="earnings-breakdown">
+              <small>Products: ${totalEarnings.products.toFixed(2)}</small>
+              <small>Content: ${totalEarnings.content.toFixed(2)}</small>
+            </div>
           </div>
         </div>
       </header>
 
-      <section className="metrics-overview">
-        <h2>📊 Overview Metrics</h2>
-        <div className="metrics-grid">
-          <div className="metric-card earnings">
-            <div className="metric-icon">💰</div>
-            <div className="metric-content">
-              <h3>Total Earnings</h3>
-              <p className="metric-value">${profile.totalEarnings.toFixed(2)}</p>
-              <span className="metric-change">+{overviewStats.monthlyGrowth}% this month</span>
+      {/* Navigation Tabs */}
+      <nav className="dashboard-nav">
+        <button 
+          className={`nav-tab ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          Overview
+        </button>
+        <button 
+          className={`nav-tab ${activeTab === 'products' ? 'active' : ''}`}
+          onClick={() => setActiveTab('products')}
+        >
+          My Products ({myProducts.length})
+        </button>
+        <button 
+          className={`nav-tab ${activeTab === 'upload' ? 'active' : ''}`}
+          onClick={() => setActiveTab('upload')}
+        >
+          Upload Product
+        </button>
+        <button 
+          className={`nav-tab ${activeTab === 'analytics' ? 'active' : ''}`}
+          onClick={() => setActiveTab('analytics')}
+        >
+          Analytics
+        </button>
+      </nav>
+
+      <div className="dashboard-content">
+        {/* Overview Tab */}
+        {activeTab === 'overview' && (
+          <div className="overview-tab">
+            <section className="quick-actions">
+              <h2>Quick Actions</h2>
+              <div className="action-buttons">
+                <Link to="/podcast-create" className="action-btn podcast">
+                  <span className="btn-icon">mic</span><span>Create Podcast</span>
+                </Link>
+                <Link to="/upload-music" className="action-btn music">
+                  <span className="btn-icon">music</span><span>Upload Music</span>
+                </Link>
+                <Link to="/create-radio" className="action-btn radio">
+                  <span className="btn-icon">radio</span><span>Create Radio Station</span>
+                </Link>
+                <button 
+                  className="action-btn marketplace" 
+                  onClick={() => setActiveTab('upload')}
+                >
+                  <span className="btn-icon">plus</span><span>Upload Product</span>
+                </button>
+              </div>
+            </section>
+
+            <section className="analytics-section">
+              <div className="charts-grid">
+                <div className="chart-container">
+                  <h3>Social Media Shares</h3>
+                  <Doughnut data={shareBreakdownData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }} />
+                </div>
+
+                <div className="chart-container">
+                  <h3>Content Breakdown</h3>
+                  <Doughnut data={contentBreakdownData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }} />
+                </div>
+              </div>
+
+              <div className="growth-chart">
+                <h3>Monthly Growth Trend</h3>
+                <Line data={monthlyGrowthData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }} />
+              </div>
+            </section>
+
+            <section className="recent-activity">
+              <h2>Recent Activity</h2>
+              <div className="activity-list">
+                {recentActivity.length > 0 ? recentActivity.map((activity, index) => (
+                  <div key={index} className="activity-item">
+                    <span className="activity-icon">{getActivityIcon(activity.type)}</span>
+                    <div className="activity-content">
+                      <p className="activity-text">{activity.text}</p>
+                      <span className="activity-time">{activity.time}</span>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="no-activity">No recent activity. Start creating content!</p>
+                )}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* My Products Tab */}
+        {activeTab === 'products' && (
+          <div className="products-tab">
+            <div className="products-header">
+              <h2>My Products</h2>
+              <button 
+                className="btn-primary"
+                onClick={() => setActiveTab('upload')}
+              >
+                Upload New Product
+              </button>
             </div>
-          </div>
 
-          <div className="metric-card followers">
-            <div className="metric-icon">👥</div>
-            <div className="metric-content">
-              <h3>Total Followers</h3>
-              <p className="metric-value">{profile.totalFollowers.toLocaleString()}</p>
-              <span className="metric-change">Across all platforms</span>
+            {myProducts.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">shopping-bag</div>
+                <h3>No products yet</h3>
+                <p>Start selling by uploading your first product</p>
+                <button 
+                  className="btn-primary"
+                  onClick={() => setActiveTab('upload')}
+                >
+                  Upload Product
+                </button>
+              </div>
+            ) : (
+              <div className="products-grid">
+                {myProducts.map(product => (
+                  <div key={product.id} className="product-card">
+                    <div className="product-image">
+                      <img 
+                        src={product.image_url || '/placeholder-product.jpg'} 
+                        alt={product.title}
+                        onError={(e) => e.target.src = '/placeholder-product.jpg'}
+                      />
+                      <div className="product-status">
+                        <span className={`status-badge ${product.is_active ? 'active' : 'inactive'}`}>
+                          {product.is_active ? 'Live' : 'Draft'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="product-info">
+                      <h3 className="product-title">{product.title}</h3>
+                      <p className="product-description">{product.description}</p>
+                      
+                      <div className="product-stats">
+                        <div className="stat">
+                          <span className="stat-label">Price:</span>
+                          <span className="stat-value">${product.price}</span>
+                        </div>
+                        <div className="stat">
+                          <span className="stat-label">Sales:</span>
+                          <span className="stat-value">{product.sales_count || 0}</span>
+                        </div>
+                        <div className="stat">
+                          <span className="stat-label">Revenue:</span>
+                          <span className="stat-value">
+                            ${((product.sales_count || 0) * product.price * 0.9).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="product-actions">
+                        <button className="btn-edit">Edit</button>
+                        <button className="btn-view">View</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Upload Product Tab */}
+        {activeTab === 'upload' && (
+          <div className="upload-tab">
+            <div className="upload-header">
+              <h2>Upload New Product</h2>
+              <p>Add products to your marketplace and start earning</p>
             </div>
+            <ProductUploadForm onUpload={handleProductUploaded} />
           </div>
+        )}
 
-          <div className="metric-card content">
-            <div className="metric-icon">📝</div>
-            <div className="metric-content">
-              <h3>Total Content</h3>
-              <p className="metric-value">{profile.totalContent}</p>
-              <span className="metric-change">All types combined</span>
-            </div>
-          </div>
+        {/* Analytics Tab */}
+        {activeTab === 'analytics' && (
+          <div className="analytics-tab">
+            <h2>Analytics & Insights</h2>
+            
+            <div className="analytics-grid">
+              <div className="analytics-card">
+                <h3>Product Performance</h3>
+                <div className="metric">
+                  <span className="metric-label">Total Products:</span>
+                  <span className="metric-value">{myProducts.length}</span>
+                </div>
+                <div className="metric">
+                  <span className="metric-label">Total Sales:</span>
+                  <span className="metric-value">
+                    {myProducts.reduce((total, product) => total + (product.sales_count || 0), 0)}
+                  </span>
+                </div>
+                <div className="metric">
+                  <span className="metric-label">Average Price:</span>
+                  <span className="metric-value">
+                    ${myProducts.length > 0 ? 
+                      (myProducts.reduce((total, product) => total + product.price, 0) / myProducts.length).toFixed(2) 
+                      : '0.00'}
+                  </span>
+                </div>
+              </div>
 
-          <div className="metric-card engagement">
-            <div className="metric-icon">📈</div>
-            <div className="metric-content">
-              <h3>Total Views</h3>
-              <p className="metric-value">{overviewStats.totalViews.toLocaleString()}</p>
-              <span className="metric-change">All content types</span>
-            </div>
-          </div>
-        </div>
-      </section>
+              <div className="analytics-card">
+                <h3>Revenue Breakdown</h3>
+                <div className="revenue-chart">
+                  <div className="revenue-item">
+                    <span className="revenue-label">Product Sales:</span>
+                    <span className="revenue-value">${totalEarnings.products.toFixed(2)}</span>
+                  </div>
+                  <div className="revenue-item">
+                    <span className="revenue-label">Content Revenue:</span>
+                    <span className="revenue-value">${totalEarnings.content.toFixed(2)}</span>
+                  </div>
+                  <div className="revenue-item total">
+                    <span className="revenue-label">Total Earnings:</span>
+                    <span className="revenue-value">${totalEarnings.total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
 
-      <section className="quick-actions">
-        <h2>⚡ Quick Actions</h2>
-        <div className="action-buttons">
-          <Link to="/podcast-create" className="action-btn podcast">
-            <span className="btn-icon">🎙️</span><span>Create Podcast</span>
-          </Link>
-          <Link to="/upload-music" className="action-btn music">
-            <span className="btn-icon">🎵</span><span>Upload Music</span>
-          </Link>
-          <Link to="/create-radio" className="action-btn radio">
-            <span className="btn-icon">📻</span><span>Create Radio Station</span>
-          </Link>
-          <Link to="/live-studio" className="action-btn livestream">
-            <span className="btn-icon">🎥</span><span>Go Live</span>
-          </Link>
-        </div>
-      </section>
-
-      <section className="analytics-section">
-        <div className="charts-grid">
-          <div className="chart-container">
-            <h3>📱 Social Media Shares</h3>
-            <Doughnut data={shareBreakdownData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }} />
-          </div>
-
-          <div className="chart-container">
-            <h3>📊 Content Breakdown</h3>
-            <Doughnut data={contentBreakdownData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }} />
-          </div>
-        </div>
-
-        <div className="growth-chart">
-          <h3>📈 Monthly Growth Trend</h3>
-          <Line data={monthlyGrowthData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }} />
-        </div>
-      </section>
-
-      <section className="recent-activity">
-        <h2>🕒 Recent Activity</h2>
-        <div className="activity-list">
-          {recentActivity.map((activity, index) => (
-            <div key={index} className="activity-item">
-              <span className="activity-icon">{getActivityIcon(activity.type)}</span>
-              <div className="activity-content">
-                <p><strong>{activity.title}</strong> was {activity.action}</p>
-                <span className="activity-time">{activity.time}</span>
+              <div className="analytics-card">
+                <h3>Top Performing Products</h3>
+                <div className="top-products">
+                  {myProducts
+                    .sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0))
+                    .slice(0, 3)
+                    .map(product => (
+                      <div key={product.id} className="top-product">
+                        <img 
+                          src={product.image_url || '/placeholder-product.jpg'} 
+                          alt={product.title}
+                          className="top-product-image"
+                        />
+                        <div className="top-product-info">
+                          <h4>{product.title}</h4>
+                          <p>{product.sales_count || 0} sales</p>
+                        </div>
+                      </div>
+                    ))}
+                  {myProducts.length === 0 && (
+                    <p className="no-products">No products to show</p>
+                  )}
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="dashboard-navigation">
-        <h2>🎯 Specialized Dashboards</h2>
-        <div className="dashboard-links">
-          <Link to="/artist-dashboard" className="dashboard-link artist">
-            <div className="link-icon">🎤</div>
-            <div className="link-content">
-              <h3>Artist Dashboard</h3>
-              <p>Manage your music, tracks, and artist profile</p>
-              <span className="link-stats">{contentBreakdown.musicTracks} tracks</span>
-            </div>
-          </Link>
-
-          <Link to="/podcast-dashboard" className="dashboard-link podcast">
-            <div className="link-icon">🎧</div>
-            <div className="link-content">
-              <h3>Podcast Dashboard</h3>
-              <p>Create episodes, manage shows, and grow your audience</p>
-              <span className="link-stats">{contentBreakdown.podcasts} episodes</span>
-            </div>
-          </Link>
-
-          <Link to="/radio-dashboard" className="dashboard-link radio">
-            <div className="link-icon">📻</div>
-            <div className="link-content">
-              <h3>Radio Dashboard</h3>
-              <p>Manage your 24/7 radio stations and playlists</p>
-              <span className="link-stats">{contentBreakdown.radioStations} stations</span>
-            </div>
-          </Link>
-
-          <Link to="/music-distribution" className="dashboard-link distribution">
-            <div className="link-icon">🌍</div>
-            <div className="link-content">
-              <h3>Music Distribution</h3>
-              <p>Distribute to Spotify, Apple Music, and 150+ platforms</p>
-              <span className="link-stats">Global reach</span>
-            </div>
-          </Link>
-        </div>
-      </section>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
