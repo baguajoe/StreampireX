@@ -209,85 +209,6 @@ const BrowseVideosPage = () => {
     }
   };
 
-  // Drag and drop handlers
-  const handleDragOver = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDragEnter = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDragLeave = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDrop = useCallback(async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const files = Array.from(e.dataTransfer.files);
-    const videoFiles = files.filter(file => file.type.startsWith('video/'));
-
-    if (videoFiles.length === 0) {
-      alert('Please drop video files only.');
-      return;
-    }
-
-    // Handle the first video file dropped
-    const videoFile = videoFiles[0];
-    
-    // Check file size (50MB limit)
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    if (videoFile.size > maxSize) {
-      alert('Video file is too large. Maximum size is 50MB.');
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Please log in to upload videos");
-        return;
-      }
-
-      setIsLoading(true);
-      
-      const formData = new FormData();
-      formData.append('video', videoFile);
-      formData.append('title', videoFile.name.replace(/\.[^/.]+$/, "")); // Remove file extension
-      formData.append('description', `Uploaded via drag and drop: ${videoFile.name}`);
-
-      const response = await fetch(`${process.env.BACKEND_URL}/api/upload_video`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
-      }
-
-      const result = await response.json();
-      alert('Video uploaded successfully!');
-      
-      // Refresh the videos list
-      fetchVideos();
-      
-    } catch (err) {
-      console.error('Upload error:', err);
-      alert(`Upload failed: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   // API functions
   const fetchCategories = useCallback(async () => {
     try {
@@ -646,53 +567,23 @@ const BrowseVideosPage = () => {
         </div>
       )}
 
-      {/* No Content State with Drag & Drop */}
+      {/* No Content State - SIMPLIFIED WITHOUT DRAG & DROP */}
       {!isLoading && !error && ((browseMode === 'videos' && videos.length === 0) || (browseMode === 'channels' && channels.length === 0)) && (
-        <div 
-          className="no-videos drag-drop-zone"
-          onDragOver={handleDragOver}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <div className="drag-drop-content">
+        <div className="no-videos">
+          <div className="no-content-message">
             <div className="upload-icon">📁</div>
             <h3>No {browseMode} found</h3>
             <p>
               {hasActiveFilters
                 ? "Try adjusting your search or filters"
-                : `No ${browseMode} have been uploaded yet. Be the first!`
+                : `No ${browseMode} have been uploaded yet.`
               }
             </p>
             
-            <div className="upload-options">
-              {browseMode === 'videos' && (
-                <>
-                  <div className="drag-drop-text">
-                    <span className="drag-highlight">Drag & drop videos here</span>
-                    <span className="drag-or">or</span>
-                  </div>
-                  
-                  <button 
-                    onClick={() => setShowUploadForm(true)} 
-                    className="btn-primary upload-main-btn"
-                  >
-                    Upload Your First Video
-                  </button>
-                </>
-              )}
-              
-              {hasActiveFilters && (
-                <button onClick={handleClearFilters} className="btn-secondary clear-filters-btn-main">
-                  Clear All Filters
-                </button>
-              )}
-            </div>
-            
-            {browseMode === 'videos' && (
-              <div className="upload-info">
-                <small>Supported formats: MP4, AVI, MOV, WMV • Max size: 50MB</small>
-              </div>
+            {hasActiveFilters && (
+              <button onClick={handleClearFilters} className="btn-secondary clear-filters-btn-main">
+                Clear All Filters
+              </button>
             )}
           </div>
         </div>
