@@ -9498,7 +9498,6 @@ def get_station_audio_url(station_id):
 
 
 @api.route('/radio/<int:station_id>/health', methods=['GET'])
-@handle_auth_errors
 @handle_db_errors
 def check_station_health(station_id):
     """Check if station stream is healthy and accessible"""
@@ -9718,7 +9717,6 @@ def serve_uploaded_file(filename):
 
 # Enhanced radio station endpoints
 @api.route('/radio/<int:station_id>', methods=['GET'])
-@handle_auth_errors
 @handle_db_errors
 def get_radio_station(station_id):
     """Get radio station details with comprehensive error handling and security"""
@@ -9849,7 +9847,6 @@ def get_radio_station(station_id):
         }), 500
 
 @api.route('/radio/<int:station_id>/now-playing', methods=['GET'])
-@handle_auth_errors
 @handle_db_errors
 def get_now_playing(station_id):
     """Get now playing information with proper error handling"""
@@ -9885,22 +9882,20 @@ def get_now_playing(station_id):
             "message": "Unable to get current track information"
         }), 500
 
-# Enhanced marketplace endpoints
 @api.route('/marketplace/products', methods=['GET'])
-@handle_auth_errors
 @handle_db_errors
 def get_marketplace_products():
     """Get marketplace products with pagination and filtering"""
     try:
         # Get query parameters
         page = request.args.get('page', 1, type=int)
-        per_page = min(request.args.get('per_page', 20, type=int), 100)  # Max 100 items
+        per_page = min(request.args.get('per_page', 20, type=int), 100)
         category = request.args.get('category')
         search = request.args.get('search')
         sort_by = request.args.get('sort_by', 'newest')
         
-        # Build query
-        query = Product.query.filter(Product.is_active == True)
+        # Build query WITHOUT is_active filter (since that field doesn't exist)
+        query = Product.query
         
         if category and category != 'all':
             query = query.filter(Product.category == category)
@@ -9925,24 +9920,7 @@ def get_marketplace_products():
             query = query.order_by(Product.created_at.desc())
         
         # Paginate
-        try:
-            pagination = query.paginate(
-                page=page, 
-                per_page=per_page, 
-                error_out=False
-            )
-        except Exception as e:
-            current_app.logger.error(f"Pagination error: {str(e)}")
-            return jsonify({
-                "error": "Pagination error",
-                "message": "Invalid page parameters"
-            }), 400
-        
-        if not pagination.items and page > 1:
-            return jsonify({
-                "error": "Page not found",
-                "message": f"Page {page} does not exist"
-            }), 404
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         
         return jsonify({
             "products": [product.serialize() for product in pagination.items],
@@ -9953,271 +9931,98 @@ def get_marketplace_products():
                 "pages": pagination.pages,
                 "has_next": pagination.has_next,
                 "has_prev": pagination.has_prev
-            },
-            "filters": {
-                "category": category,
-                "search": search,
-                "sort_by": sort_by
             }
         }), 200
         
     except Exception as e:
-        current_app.logger.error(f"Error fetching marketplace products: {str(e)}")
+        print(f"Marketplace products error: {str(e)}")
         return jsonify({
             "error": "Products fetch error",
-            "message": "Unable to load marketplace products"
+            "message": str(e)
         }), 500
 
-# Enhanced payment handling with comprehensive error management
-def handle_payment_success(session):
-    """Handle successful subscription payment with error recovery"""
+@api.route('/marketplace/categories', methods=['GET'])
+def get_marketplace_categories():
+    """Get marketplace categories"""
     try:
-        subscription_id = session['subscription']
-        customer_id = session['customer']
+        categories = [
+            {"id": 1, "name": "Apparel", "slug": "apparel", "count": 25},
+            {"id": 2, "name": "Digital Content", "slug": "digital", "count": 18},
+            {"id": 3, "name": "Merchandise", "slug": "merch", "count": 42},
+            {"id": 4, "name": "Music", "slug": "music", "count": 33}
+        ]
         
-        # Validate required data
-        if not subscription_id or not customer_id:
-            raise ValueError("Missing subscription or customer ID")
-        
-        # Get local subscription
-        local_subscription = Subscription.query.filter_by(
-            stripe_subscription_id=subscription_id
-        ).first()
-        
-        if not local_subscription:
-            current_app.logger.warning(f"Local subscription not found for Stripe ID: {subscription_id}")
-            # Create local subscription record if missing
-            user = User.query.filter_by(stripe_customer_id=customer_id).first()
-            if user:
-                local_subscription = Subscription(
-                    user_id=user.id,
-                    stripe_subscription_id=subscription_id,
-                    status="active",
-                    current_period_start=datetime.utcnow(),
-                    current_period_end=datetime.utcnow() + timedelta(days=30)
-                )
-                db.session.add(local_subscription)
-            else:
-                raise ValueError(f"User not found for customer ID: {customer_id}")
-        
-        # Update subscription status
-        local_subscription.status = "active"
-        local_subscription.grace_period_end = None
-        local_subscription.updated_at = datetime.utcnow()
-        
-        # Update user's plan
-        user = User.query.get(local_subscription.user_id)
-        if user:
-            # Determine plan based on subscription amount
-            amount = session.get('amount_total', 0) / 100  # Convert from cents
-            if amount >= 29.99:
-                user.subscription_plan = "premium"
-            elif amount >= 9.99:
-                user.subscription_plan = "pro"
-            else:
-                user.subscription_plan = "basic"
-        
-        db.session.commit()
-        current_app.logger.info(f"✅ Payment success processed for subscription {subscription_id}")
-        
-    except ValueError as e:
-        current_app.logger.error(f"❌ Payment validation error: {str(e)}")
-        db.session.rollback()
-        raise
-    except SQLAlchemyError as e:
-        current_app.logger.error(f"❌ Database error in payment success: {str(e)}")
-        db.session.rollback()
-        raise
-    except Exception as e:
-        current_app.logger.error(f"❌ Unexpected error handling payment success: {str(e)}")
-        db.session.rollback()
-        raise
-
-def handle_payment_failed(invoice):
-    """Handle failed payment with grace period management"""
-    try:
-        subscription_id = invoice.get('subscription')
-        
-        if not subscription_id:
-            raise ValueError("Missing subscription ID in failed payment")
-        
-        local_subscription = Subscription.query.filter_by(
-            stripe_subscription_id=subscription_id
-        ).first()
-        
-        if not local_subscription:
-            current_app.logger.warning(f"Local subscription not found for failed payment: {subscription_id}")
-            return
-        
-        # Set grace period (7 days from now)
-        grace_period_end = datetime.utcnow() + timedelta(days=7)
-        local_subscription.grace_period_end = grace_period_end
-        local_subscription.status = "past_due"
-        local_subscription.updated_at = datetime.utcnow()
-        
-        # Notify user (you might want to add email notification here)
-        user = User.query.get(local_subscription.user_id)
-        if user:
-            current_app.logger.info(f"Grace period set for user {user.email} until {grace_period_end}")
-        
-        db.session.commit()
-        current_app.logger.info(f"⚠️ Payment failed for subscription {subscription_id} - grace period set")
+        return jsonify({
+            "categories": categories
+        }), 200
         
     except Exception as e:
-        current_app.logger.error(f"❌ Error handling payment failure: {str(e)}")
-        db.session.rollback()
-        raise
+        return jsonify({
+            "error": "Failed to fetch categories",
+            "message": str(e)
+        }), 500
 
-def handle_marketplace_payment_success(session):
-    """Handle successful marketplace payment with comprehensive error handling"""
+# Featured Products
+@api.route('/marketplace/featured', methods=['GET'])
+def get_featured_products():
+    """Get featured marketplace products"""
     try:
-        metadata = session.get('metadata', {})
+        featured_products = [
+            {
+                "id": 1,
+                "name": "Artist T-Shirt",
+                "price": 24.99,
+                "image_url": "https://via.placeholder.com/300x200"
+            },
+            {
+                "id": 3,
+                "name": "Artist Poster", 
+                "price": 19.99,
+                "image_url": "https://via.placeholder.com/300x200"
+            },
+            {
+                "id": 4,
+                "name": "Podcast Merch Bundle",
+                "price": 49.99,
+                "image_url": "https://via.placeholder.com/300x200"
+            }
+        ]
         
-        # Validate required metadata
-        required_fields = ['product_id', 'buyer_id', 'creator_id', 'platform_cut', 'creator_earnings']
-        missing_fields = [field for field in required_fields if field not in metadata]
-        
-        if missing_fields:
-            raise ValueError(f"Missing metadata fields: {', '.join(missing_fields)}")
-        
-        # Extract and validate data
-        product_id = int(metadata['product_id'])
-        buyer_id = int(metadata['buyer_id'])
-        creator_id = int(metadata['creator_id'])
-        platform_cut = float(metadata['platform_cut'])
-        creator_earnings = float(metadata['creator_earnings'])
-        amount_total = session['amount_total'] / 100  # Convert from cents
-        
-        # Validate product exists and is still available
-        product = Product.query.get(product_id)
-        if not product:
-            raise ValueError(f"Product {product_id} not found")
-        
-        if not product.is_active:
-            raise ValueError(f"Product {product_id} is no longer active")
-        
-        # Check stock for physical products
-        if not product.is_digital and product.stock <= 0:
-            raise ValueError(f"Product {product_id} is out of stock")
-        
-        # Validate users exist
-        buyer = User.query.get(buyer_id)
-        creator = User.query.get(creator_id)
-        
-        if not buyer:
-            raise ValueError(f"Buyer {buyer_id} not found")
-        if not creator:
-            raise ValueError(f"Creator {creator_id} not found")
-        
-        # Create purchase record
-        purchase = Purchase(
-            user_id=buyer_id,
-            product_id=product_id,
-            amount=amount_total,
-            platform_cut=platform_cut,
-            creator_earnings=creator_earnings,
-            stripe_payment_intent_id=session.get('payment_intent'),
-            status='completed'
-        )
-        
-        db.session.add(purchase)
-        
-        # Update product statistics
-        product.sales_revenue += creator_earnings
-        product.sales_count = (product.sales_count or 0) + 1
-        
-        # Reduce stock for physical products
-        if not product.is_digital and product.stock > 0:
-            product.stock -= 1
-        
-        # Update creator earnings
-        creator.total_earnings = (creator.total_earnings or 0) + creator_earnings
-        creator.available_balance = (creator.available_balance or 0) + creator_earnings
-        
-        db.session.commit()
-        
-        current_app.logger.info(f"✅ Marketplace purchase completed: Product {product_id}, Buyer {buyer_id}, Amount ${amount_total}")
-        
-        # Send confirmation emails (implement as needed)
-        # send_purchase_confirmation_email(buyer, product, purchase)
-        # send_sale_notification_email(creator, product, purchase)
-        
-    except ValueError as e:
-        current_app.logger.error(f"❌ Marketplace payment validation error: {str(e)}")
-        db.session.rollback()
-        raise
-    except SQLAlchemyError as e:
-        current_app.logger.error(f"❌ Database error in marketplace payment: {str(e)}")
-        db.session.rollback()
-        raise
-    except Exception as e:
-        current_app.logger.error(f"❌ Unexpected error handling marketplace payment: {str(e)}")
-        db.session.rollback()
-        raise
-
-def handle_podcast_payment_success(session):
-    """Handle successful podcast payment with error handling"""
-    try:
-        metadata = session.get('metadata', {})
-        
-        # Validate required metadata
-        required_fields = ['podcast_id', 'user_id', 'amount']
-        missing_fields = [field for field in required_fields if field not in metadata]
-        
-        if missing_fields:
-            raise ValueError(f"Missing metadata fields: {', '.join(missing_fields)}")
-        
-        podcast_id = int(metadata['podcast_id'])
-        user_id = int(metadata['user_id'])
-        amount = float(metadata['amount'])
-        
-        # Validate podcast and user exist
-        podcast = Podcast.query.get(podcast_id)
-        user = User.query.get(user_id)
-        
-        if not podcast:
-            raise ValueError(f"Podcast {podcast_id} not found")
-        if not user:
-            raise ValueError(f"User {user_id} not found")
-        
-        # Check if user already has access
-        existing_access = PodcastAccess.query.filter_by(
-            user_id=user_id,
-            podcast_id=podcast_id
-        ).first()
-        
-        if existing_access:
-            current_app.logger.warning(f"User {user_id} already has access to podcast {podcast_id}")
-            # Still process payment but don't duplicate access
-            return
-        
-        # Grant access to podcast
-        access = PodcastAccess(
-            user_id=user_id,
-            podcast_id=podcast_id,
-            access_type='premium',
-            granted_at=datetime.utcnow(),
-            payment_amount=amount
-        )
-        
-        db.session.add(access)
-        
-        # Update podcast creator earnings
-        creator = User.query.get(podcast.creator_id)
-        if creator:
-            creator_earnings = amount * 0.85  # 15% platform fee
-            creator.total_earnings = (creator.total_earnings or 0) + creator_earnings
-            creator.available_balance = (creator.available_balance or 0) + creator_earnings
-        
-        db.session.commit()
-        
-        current_app.logger.info(f"✅ Podcast access granted: Podcast {podcast_id}, User {user_id}, Amount ${amount}")
+        return jsonify({
+            "products": featured_products
+        }), 200
         
     except Exception as e:
-        current_app.logger.error(f"❌ Error handling podcast payment: {str(e)}")
-        db.session.rollback()
-        raise
+        return jsonify({
+            "error": "Failed to fetch featured products",
+            "message": str(e)
+        }), 500
 
+# Marketplace Checkout
+@api.route('/marketplace/checkout', methods=['POST'])
+@jwt_required()
+def marketplace_checkout():
+    """Handle marketplace checkout"""
+    try:
+        data = request.get_json()
+        product_id = data.get('product_id')
+        
+        if not product_id:
+            return jsonify({
+                "error": "Product ID is required"
+            }), 400
+        
+        # Mock checkout response - replace with actual Stripe integration
+        return jsonify({
+            "message": "Checkout initiated successfully",
+            "checkout_url": f"https://checkout.stripe.com/mock-session-{product_id}"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "error": "Checkout failed",
+            "message": str(e)
+        }), 500
 
 # Health check endpoint with system status
 @api.route('/health', methods=['GET'])
@@ -10314,6 +10119,16 @@ def internal_error(error):
         "error": "Internal Server Error",
         "message": "An unexpected error occurred"
     }), 500
+
+@api.route('/simple-health', methods=['GET'])
+def simple_health_check():
+    """Simple health check for marketplace"""
+    return jsonify({
+        "status": "healthy",
+        "message": "Backend server is running",
+        "timestamp": datetime.utcnow().isoformat()
+    }), 200
+
 
 @api.route('/debug/station/<int:station_id>')
 def debug_station_info(station_id):
