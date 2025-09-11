@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamPireX - Offline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #004080, #0056b3);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .offline-container {
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .offline-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .offline-features {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .offline-features h3 {
+            color: #00ffc8;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .feature-list {
+            list-style: none;
+            text-align: left;
+        }
+
+        .feature-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-icon {
+            font-size: 1.2rem;
+            width: 24px;
+        }
+
+        .retry-button {
+            background: linear-gradient(135deg, #FF6600, #FF8533);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 2rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .retry-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 102, 0, 0.4);
+        }
+
+        .connection-status {
+            margin-top: 1rem;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .connection-offline {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid #dc3545;
+            color: #ff6b7a;
+        }
+
+        .connection-online {
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid #28a745;
+            color: #5cb85c;
+        }
+
+        .app-info {
+            margin-top: 2rem;
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #00ffc8, #FF6600);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .offline-container {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .offline-icon {
+                font-size: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="logo">StreamPireX</div>
+        <div class="offline-icon">📡</div>
+        
+        <h1>You're Offline</h1>
+        <p class="subtitle">Don't worry! StreamPireX works offline too.</p>
+        
+        <div class="offline-features">
+            <h3>🚀 What You Can Still Do:</h3>
+            <ul class="feature-list">
+                <li>
+                    <span class="feature-icon">🎵</span>
+                    Listen to cached music and podcasts
+                </li>
+                <li>
+                    <span class="feature-icon">✍️</span>
+                    Draft social media posts (auto-sync when online)
+                </li>
+                <li>
+                    <span class="feature-icon">📝</span>
+                    Create content and save as drafts
+                </li>
+                <li>
+                    <span class="feature-icon">🎮</span>
+                    Browse cached gaming communities
+                </li>
+                <li>
+                    <span class="feature-icon">📊</span>
+                    View offline analytics and reports
+                </li>
+                <li>
+                    <span class="feature-icon">⚙️</span>
+                    Access account settings and preferences
+                </li>
+            </ul>
+        </div>
+        
+        <button class="retry-button" onclick="checkConnection()">
+            <span>🔄</span>
+            <span>Check Connection</span>
+        </button>
+        
+        <div id="connection-status" class="connection-status connection-offline">
+            📴 No internet connection detected
+        </div>
+        
+        <div class="app-info">
+            <p>Your data is safe and will sync automatically when you're back online.</p>
+        </div>
+    </div>
+
+    <script>
+        let isOnline = navigator.onLine;
+        
+        function updateConnectionStatus() {
+            const statusElement = document.getElementById('connection-status');
+            const retryButton = document.querySelector('.retry-button');
+            
+            if (navigator.onLine) {
+                statusElement.textContent = '✅ Connected! Redirecting...';
+                statusElement.className = 'connection-status connection-online';
+                retryButton.innerHTML = '<span>✅</span><span>Connected!</span>';
+                
+                // Redirect to main app after short delay
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1500);
+            } else {
+                statusElement.textContent = '📴 Still offline - check your connection';
+                statusElement.className = 'connection-status connection-offline';
+                retryButton.innerHTML = '<span>🔄</span><span>Try Again</span>';
+            }
+        }
+        
+        function checkConnection() {
+            const retryButton = document.querySelector('.retry-button');
+            retryButton.innerHTML = '<span style="animation: spin 1s linear infinite;">⟳</span><span>Checking...</span>';
+            
+            // Try to fetch a small resource to test connection
+            fetch('/manifest.json', { 
+                method: 'HEAD',
+                cache: 'no-cache'
+            })
+            .then(() => {
+                // If successful, connection is restored
+                updateConnectionStatus();
+            })
+            .catch(() => {
+                // Still offline
+                setTimeout(() => {
+                    updateConnectionStatus();
+                }, 1000);
+            });
+        }
+        
+        // Listen for online/offline events
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        
+        // Check connection status on load
+        updateConnectionStatus();
+        
+        // Auto-check connection every 30 seconds
+        setInterval(() => {
+            if (!navigator.onLine) {
+                checkConnection();
+            }
+        }, 30000);
+    </script>
+    
+    <style>
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</body>
+</html>

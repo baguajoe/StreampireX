@@ -2,6 +2,7 @@ import React, { useContext } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import ScrollToTop from "./component/scrollToTop";
 import injectContext, { Context } from "./store/appContext";
+import { initializeAdvancedPWAFeatures } from './components/AdvancedPWAFeatures';
 
 import Home from "./pages/home";
 import Login from "./pages/Login";
@@ -83,6 +84,10 @@ const Layout = () => {
   // Pull user from context
   const { store } = useContext(Context);
   const user = store.user;
+
+useEffect(() => {
+    initializeAdvancedPWAFeatures();
+  }, []);
 
   // if (!process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL === "")
   // return <BackendURL />;
