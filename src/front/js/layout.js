@@ -1,8 +1,8 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import ScrollToTop from "./component/scrollToTop";
 import injectContext, { Context } from "./store/appContext";
-import { initializeAdvancedPWAFeatures } from './components/AdvancedPWAFeatures';
+import { initializeAdvancedPWAFeatures } from './component/AdvancedPWAFeatures';
 
 import Home from "./pages/home";
 import Login from "./pages/Login";

@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Context } from "../store/appContext";
 import logo from "../../img/StreampireX.png";
 import "../../styles/Navbar.css";
-import PWAInstallButton from '../components/PWAInstallButton';
+import PWAInstallButton from './PWAInstallButton';
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
