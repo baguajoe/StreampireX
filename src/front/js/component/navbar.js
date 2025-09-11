@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Context } from "../store/appContext";
 import logo from "../../img/StreampireX.png";
 import "../../styles/Navbar.css";
+import PWAInstallButton from '../components/PWAInstallButton';
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
@@ -156,6 +157,11 @@ const Navbar = () => {
 
         {/* Right Side Actions */}
         <div className="navbar-actions">
+          {/* PWA Install Button */}
+          <div className="pwa-section">
+            <PWAInstallButton />
+          </div>
+
           {/* Cart & Checkout Section */}
           <div className="cart-checkout-section">
             {/* Checkout Button (only show when cart has items) */}
