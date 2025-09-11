@@ -8,7 +8,7 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 
-const stripePromise = loadStripe("pk_test_XXXXXXXXXXXXXXXXXXXXXXXX"); // Replace with your Stripe publishable key
+const stripePromise = loadStripe("pk_test_51S56461wmbXT13hC7rZon6rQF6jYWxdXZ1mlwUut3vVYPn651N8skwxCb94fA8qsbyIt13O03HdHf4ZzDmACgPK00R0UznpnG");
 
 const CheckoutForm = () => {
   const stripe = useStripe();
