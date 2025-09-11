@@ -1,9 +1,11 @@
 import React, { useContext } from "react";
+import { Context } from "../store/appContext";
+import { Link } from 'react-router-dom';
 
 const Home = () => {
-	// Mock context for artifact environment
-	const store = {};
-	const actions = {};
+	// Use actual context instead of mock
+	const { store } = useContext(Context);
+	const user = store.user; // Get user from context
 
 	return (
 		<div className="streampirex-home">
@@ -11,10 +13,28 @@ const Home = () => {
 				<div className="hero-content">
 					<h1>🔥 Welcome to StreampireX</h1>
 					<p>The ultimate creator platform for music distribution, streaming, podcasts, radio, gaming communities, and social monetization.</p>
-					<div className="cta-buttons">
-						<button onClick={() => window.location.href = '/signup'} className="btn btn-primary">Get Started</button>
-						<button onClick={() => window.location.href = '/login'} className="btn btn-outline-light">Log In</button>
-					</div>
+					
+					{/* Conditional rendering for CTA buttons */}
+					{!user ? (
+						// Show signup/login buttons when NOT logged in
+						<div className="cta-buttons">
+							<button onClick={() => window.location.href = '/signup'} className="btn btn-primary">Get Started</button>
+							<button onClick={() => window.location.href = '/login'} className="btn btn-outline-light">Log In</button>
+						</div>
+					) : (
+						// Show welcome message and dashboard link when logged in
+						<div className="cta-buttons">
+							<h3 style={{ color: '#00ffc8', marginBottom: '1rem' }}>
+								Welcome back, {user.username || user.display_name}! 🎉
+							</h3>
+							<Link to="/creator-dashboard" className="btn btn-success">
+								Go to Dashboard
+							</Link>
+							<Link to="/profile" className="btn btn-outline-light">
+								My Profile
+							</Link>
+						</div>
+					)}
 				</div>
 				<div className="hero-image-placeholder">🎸</div>
 			</header>
@@ -230,11 +250,14 @@ const Home = () => {
 				</div>
 			</section>
 
-			<section className="join-now text-center">
-				<h2>Ready to Share Your Voice with the World?</h2>
-				<p>Create, distribute, game, and grow your creative career on StreampireX.</p>
-				<button onClick={() => window.location.href = '/signup'} className="btn btn-success btn-lg">Start Your Journey Today</button>
-			</section>
+			{/* Conditional rendering for bottom CTA - only show when NOT logged in */}
+			{!user && (
+				<section className="join-now text-center">
+					<h2>Ready to Share Your Voice with the World?</h2>
+					<p>Create, distribute, game, and grow your creative career on StreampireX.</p>
+					<button onClick={() => window.location.href = '/signup'} className="btn btn-success btn-lg">Start Your Journey Today</button>
+				</section>
+			)}
 
 			<footer className="footer">
 				<p>© {new Date().getFullYear()} StreampireX. All rights reserved.</p>
@@ -288,7 +311,8 @@ const Home = () => {
 				}
 
 				/* Call to Action Buttons */
-				.cta-buttons button {
+				.cta-buttons button,
+				.cta-buttons a {
 					margin: 0.5rem;
 					font-size: 1.1rem;
 					padding: 0.75rem 1.5rem;
@@ -296,6 +320,8 @@ const Home = () => {
 					border-radius: 8px;
 					cursor: pointer;
 					transition: all 0.3s ease;
+					text-decoration: none;
+					display: inline-block;
 				}
 
 				.btn-primary {
@@ -318,6 +344,7 @@ const Home = () => {
 				.btn-outline-light:hover {
 					background: #ffffff;
 					color: #0d1117;
+					text-decoration: none;
 				}
 
 				.btn-success {
@@ -329,6 +356,7 @@ const Home = () => {
 				.btn-success:hover {
 					background: #059669;
 					transform: translateY(-2px);
+					text-decoration: none;
 				}
 
 				.btn-lg {
