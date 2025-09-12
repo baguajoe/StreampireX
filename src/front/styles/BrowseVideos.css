@@ -274,21 +274,12 @@
   display: none;
 }
 
+/* Enhanced Category Pills - Better Visibility */
 .category-pill {
-  background: white;
-  color: #495057;
-  border: 2px solid #dee2e6;
-  border-radius: 25px;
-  padding: 0.6rem 1.2rem;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  flex-shrink: 0;
-  text-align: center;
-  min-width: fit-content;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: #e9ecef !important;
+  color: #495057 !important;
+  border: 2px solid #495057 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
 .category-pill:hover {
@@ -310,6 +301,14 @@
 .category-pill.active:hover {
   transform: translateY(-3px);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+/* Alternative: Even more visible option */
+.category-pill-alt {
+  background: #e9ecef;
+  color: #495057;
+  border: 2px solid #495057;
+  /* ... rest of properties same */
 }
 
 /* Video Section - 4 per row grid for better desktop layout */

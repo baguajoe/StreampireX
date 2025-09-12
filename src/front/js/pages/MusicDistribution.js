@@ -1094,7 +1094,7 @@ const MusicDistribution = () => {
       width: '100%'
     }}>
       <div className="connection-info" style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h3>✅ Connected to SonoSuite Distribution</h3>
+        <h3>✅ Connected to StreampireX Distribution</h3>
         <p><strong>Email:</strong> {sonosuiteStatus.connection?.sonosuite_email}</p>
         <p><strong>External ID:</strong> {sonosuiteStatus.connection?.sonosuite_external_id}</p>
         <p><strong>Connected:</strong> {new Date(sonosuiteStatus.connection?.created_at).toLocaleDateString()}</p>
@@ -1164,7 +1164,7 @@ const MusicDistribution = () => {
             fontSize: '0.9rem'
           }}
         >
-          🔌 Disconnect SonoSuite
+          🔌 Disconnect StreampireX
         </button>
       </div>
     </div>

@@ -63,8 +63,8 @@ const Home = () => {
 						<p>Connect with gamers, join squads, find teammates, stream gameplay, and discover crossplay-compatible games across all platforms.</p>
 					</div>
 					<div className="feature-card">
-						<h4>🌐 Social Media Integration</h4>
-						<p>Share your content across TikTok, Instagram, Facebook, and more. Build your social presence and engage with fans everywhere.</p>
+						<h4>📹 Live Video Chat</h4>
+						<p>Connect face-to-face with fans through built-in video chat on profiles. Real-time collaboration and direct fan interaction.</p>
 					</div>
 					<div className="feature-card">
 						<h4>💰 Performance Rights & Royalties</h4>
@@ -93,53 +93,105 @@ const Home = () => {
 				</div>
 			</section>
 
-			<section className="distribution-platforms">
-				<h2>🚀 Distribute & Connect Everywhere</h2>
-				<p>Your content will be available on all major streaming platforms, social networks, and gaming communities</p>
-				<div className="platforms-grid">
-					<div className="platform-category">
-						<h4>🎵 Music Streaming</h4>
-						<ul>
-							<li>Spotify</li>
-							<li>Apple Music</li>
-							<li>Amazon Music</li>
-							<li>YouTube Music</li>
-							<li>Deezer</li>
-							<li>Tidal</li>
-						</ul>
+			{/* Music Distribution Section - REDESIGNED */}
+			<section className="music-distribution">
+				<h2>🎵 Worldwide Music Distribution</h2>
+				<p>Get your music on 150+ major streaming platforms and digital stores worldwide</p>
+				
+				<div className="platforms-showcase">
+					<div className="platform-row streaming">
+						<h4>🎧 Major Streaming</h4>
+						<div className="platform-badges">
+							<span className="platform-badge">Spotify</span>
+							<span className="platform-badge">Apple Music</span>
+							<span className="platform-badge">Amazon Music</span>
+							<span className="platform-badge">YouTube Music</span>
+							<span className="platform-badge">Deezer</span>
+							<span className="platform-badge">Tidal</span>
+							<span className="platform-badge">Pandora</span>
+							<span className="platform-badge">SoundCloud</span>
+						</div>
 					</div>
-					<div className="platform-category">
-						<h4>🌐 Social & Video</h4>
-						<ul>
-							<li>TikTok</li>
-							<li>Instagram</li>
-							<li>Facebook</li>
-							<li>YouTube Content ID</li>
-							<li>Snapchat</li>
-							<li>Twitter/X</li>
-						</ul>
+					
+					<div className="platform-row stores">
+						<h4>🏪 Digital Stores</h4>
+						<div className="platform-badges">
+							<span className="platform-badge">iTunes Store</span>
+							<span className="platform-badge">Amazon MP3</span>
+							<span className="platform-badge">Google Play</span>
+							<span className="platform-badge">Beatport</span>
+							<span className="platform-badge">7Digital</span>
+							<span className="platform-badge">Qobuz</span>
+							<span className="platform-badge">Bandcamp</span>
+							<span className="platform-badge">Junodownload</span>
+						</div>
 					</div>
-					<div className="platform-category">
-						<h4>🎮 Gaming Platforms</h4>
-						<ul>
-							<li>Steam</li>
-							<li>PlayStation Network</li>
-							<li>Xbox Live</li>
-							<li>Nintendo Switch</li>
-							<li>Epic Games</li>
-							<li>Discord Integration</li>
-						</ul>
+					
+					<div className="platform-row radio">
+						<h4>📻 Radio & Discovery</h4>
+						<div className="platform-badges">
+							<span className="platform-badge">iHeartRadio</span>
+							<span className="platform-badge">SiriusXM</span>
+							<span className="platform-badge">Shazam</span>
+							<span className="platform-badge">Radio.com</span>
+							<span className="platform-badge">TuneIn</span>
+							<span className="platform-badge">Last.fm</span>
+							<span className="platform-badge">Musixmatch</span>
+							<span className="platform-badge">Audiomack</span>
+						</div>
 					</div>
-					<div className="platform-category">
-						<h4>📡 Radio & Streaming</h4>
-						<ul>
-							<li>Plamix 24/7 Radio</li>
-							<li>SiriusXM</li>
-							<li>Pandora</li>
-							<li>iHeartRadio</li>
-							<li>Shazam</li>
-							<li>SoundCloud</li>
-						</ul>
+					
+					<div className="platform-row international">
+						<h4>🌍 International</h4>
+						<div className="platform-badges">
+							<span className="platform-badge">NetEase (China)</span>
+							<span className="platform-badge">QQ Music (China)</span>
+							<span className="platform-badge">JioSaavn (India)</span>
+							<span className="platform-badge">Anghami (MENA)</span>
+							<span className="platform-badge">Boomplay (Africa)</span>
+							<span className="platform-badge">Yandex (Russia)</span>
+							<span className="platform-badge">KKBox (Asia)</span>
+							<span className="platform-badge">Resso (SEA)</span>
+						</div>
+					</div>
+				</div>
+				
+				<div className="distribution-cta">
+					<p style={{ color: '#d1d5db', fontSize: '1rem', marginBottom: '1.5rem' }}>
+						Start earning royalties from day one with our fast 24-48 hour distribution process
+					</p>
+					{!user && (
+						<button onClick={() => window.location.href = '/signup'} className="btn btn-primary btn-lg">
+							Start Distributing Music
+						</button>
+					)}
+				</div>
+			</section>
+
+			{/* Value Proposition Section */}
+			<section className="why-choose-streampirex">
+				<h2>🚀 Why Creators Choose StreamPipeX</h2>
+				<p>The only platform designed for complete creator independence</p>
+				<div className="value-props-grid">
+					<div className="value-prop-card">
+						<div className="value-icon">👑</div>
+						<h4>You Own Everything</h4>
+						<p>Your content, audience data, and revenue streams belong to YOU. No algorithm anxiety or platform dependency.</p>
+					</div>
+					<div className="value-prop-card">
+						<div className="value-icon">🎬</div>
+						<h4>All-in-One Creator Suite</h4>
+						<p>Music distribution, streaming, podcasts, gaming, and social features in one place. Stop juggling 12 different apps.</p>
+					</div>
+					<div className="value-prop-card">
+						<div className="value-icon">📹</div>
+						<h4>Real-Time Fan Connection</h4>
+						<p>Built-in video chat, live collaboration, and direct fan interaction. Connect face-to-face with your audience.</p>
+					</div>
+					<div className="value-prop-card">
+						<div className="value-icon">💰</div>
+						<h4>Multiple Revenue Streams</h4>
+						<p>Music royalties, subscriptions, donations, merchandise, and premium content all in one dashboard.</p>
 					</div>
 				</div>
 			</section>
@@ -167,7 +219,7 @@ const Home = () => {
 								<span className="feature-icon">🎥</span>
 								<div>
 									<strong>Live Game Streaming</strong>
-									<p>Stream your gameplay to Twitch, YouTube, and more</p>
+									<p>Stream your gameplay and host live shows with real-time interaction</p>
 								</div>
 							</div>
 							<div className="feature-item">
@@ -215,34 +267,34 @@ const Home = () => {
 					</div>
 
 					<div className="feature-section">
-						<h3>🌐 Social Media Power</h3>
+						<h3>📹 Creator Connection Tools</h3>
 						<div className="feature-list">
 							<div className="feature-item">
-								<span className="feature-icon">📱</span>
+								<span className="feature-icon">🎥</span>
 								<div>
-									<strong>Multi-Platform Sharing</strong>
-									<p>Post your content across all social networks simultaneously</p>
-								</div>
-							</div>
-							<div className="feature-item">
-								<span className="feature-icon">📈</span>
-								<div>
-									<strong>Viral Content Tools</strong>
-									<p>Optimize your posts for maximum engagement and reach</p>
+									<strong>Profile Video Chat</strong>
+									<p>Built-in video calls directly from user profiles</p>
 								</div>
 							</div>
 							<div className="feature-item">
 								<span className="feature-icon">💬</span>
 								<div>
-									<strong>Community Engagement</strong>
-									<p>Interact with fans, respond to comments, and build relationships</p>
+									<strong>Real-Time Messaging</strong>
+									<p>Instant messaging with fans and fellow creators</p>
 								</div>
 							</div>
 							<div className="feature-item">
-								<span className="feature-icon">🎯</span>
+								<span className="feature-icon">🔗</span>
 								<div>
-									<strong>Targeted Promotion</strong>
-									<p>Reach the right audience with smart targeting and analytics</p>
+									<strong>Cross-Platform Sharing</strong>
+									<p>Share your StreamPipeX content across social networks</p>
+								</div>
+							</div>
+							<div className="feature-item">
+								<span className="feature-icon">📊</span>
+								<div>
+									<strong>Audience Analytics</strong>
+									<p>Deep insights into fan engagement and content performance</p>
 								</div>
 							</div>
 						</div>
@@ -403,20 +455,94 @@ const Home = () => {
 					margin-bottom: 0.5rem;
 				}
 
-				/* Distribution Platforms Section */
-				.distribution-platforms {
+				/* Music Distribution Section - REDESIGNED */
+				.music-distribution {
 					padding: 4rem 2rem;
 					background: #0f172a;
 					text-align: center;
 				}
 
-				.distribution-platforms h2 {
+				.music-distribution h2 {
 					color: #00ffc8;
 					font-size: 2rem;
 					margin-bottom: 1rem;
 				}
 
-				.distribution-platforms > p {
+				.music-distribution > p {
+					color: #d1d5db;
+					font-size: 1.1rem;
+					margin-bottom: 3rem;
+					max-width: 800px;
+					margin-left: auto;
+					margin-right: auto;
+				}
+
+				.platforms-showcase {
+					max-width: 1400px;
+					margin: 0 auto 3rem auto;
+					display: flex;
+					flex-direction: column;
+					gap: 2rem;
+				}
+
+				.platform-row {
+					background: #1f2937;
+					border-radius: 12px;
+					padding: 2rem;
+					box-shadow: 0 0 12px rgba(0, 255, 200, 0.1);
+				}
+
+				.platform-row h4 {
+					color: #00ffc8;
+					font-size: 1.2rem;
+					margin-bottom: 1.5rem;
+					text-align: left;
+				}
+
+				.platform-badges {
+					display: flex;
+					flex-wrap: wrap;
+					gap: 0.75rem;
+					justify-content: flex-start;
+				}
+
+				.platform-badge {
+					background: #374151;
+					color: #d1d5db;
+					padding: 0.5rem 1rem;
+					border-radius: 20px;
+					font-size: 0.9rem;
+					font-weight: 500;
+					transition: all 0.3s ease;
+					border: 1px solid #4b5563;
+				}
+
+				.platform-badge:hover {
+					background: #00ffc8;
+					color: #0d1117;
+					transform: translateY(-2px);
+					box-shadow: 0 4px 12px rgba(0, 255, 200, 0.3);
+				}
+
+				.distribution-cta {
+					text-align: center;
+					margin-top: 2rem;
+				}
+
+				/* Why Choose StreamPipeX Section */
+				.why-choose-streampirex {
+					padding: 4rem 2rem;
+					background: #161b22;
+					text-align: center;
+				}
+
+				.why-choose-streampirex h2 {
+					color: #00ffc8;
+					font-size: 2rem;
+					margin-bottom: 1rem;
+				}
+
+				.why-choose-streampirex > p {
 					color: #d1d5db;
 					font-size: 1.1rem;
 					margin-bottom: 3rem;
@@ -425,41 +551,42 @@ const Home = () => {
 					margin-right: auto;
 				}
 
-				.platforms-grid {
+				.value-props-grid {
 					display: grid;
-					grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+					grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 					gap: 2rem;
 					max-width: 1200px;
 					margin: 0 auto;
 				}
 
-				.platform-category {
+				.value-prop-card {
 					background: #1f2937;
 					padding: 2rem;
 					border-radius: 12px;
 					box-shadow: 0 0 12px rgba(0, 255, 200, 0.1);
+					border-left: 4px solid #00ffc8;
+					transition: transform 0.3s ease, box-shadow 0.3s ease;
 				}
 
-				.platform-category h4 {
+				.value-prop-card:hover {
+					transform: translateY(-5px);
+					box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
+				}
+
+				.value-icon {
+					font-size: 2.5rem;
+					margin-bottom: 1rem;
+				}
+
+				.value-prop-card h4 {
 					color: #00ffc8;
 					margin-bottom: 1rem;
 					font-size: 1.2rem;
 				}
 
-				.platform-category ul {
-					list-style: none;
-					padding: 0;
-					margin: 0;
-				}
-
-				.platform-category li {
+				.value-prop-card p {
 					color: #d1d5db;
-					padding: 0.4rem 0;
-					border-bottom: 1px solid #374151;
-				}
-
-				.platform-category li:last-child {
-					border-bottom: none;
+					line-height: 1.6;
 				}
 
 				/* Gaming & Social Features Section */
@@ -565,8 +692,41 @@ const Home = () => {
 						grid-template-columns: 1fr;
 					}
 					
-					.platforms-grid {
+					.platforms-showcase {
+						padding: 0 1rem;
+					}
+					
+					.platform-row {
+						padding: 1.5rem;
+					}
+					
+					.platform-row h4 {
+						text-align: center;
+						margin-bottom: 1rem;
+					}
+					
+					.platform-badges {
+						justify-content: center;
+						gap: 0.5rem;
+					}
+					
+					.platform-badge {
+						font-size: 0.8rem;
+						padding: 0.4rem 0.8rem;
+					}
+					
+					.value-props-grid {
 						grid-template-columns: 1fr;
+						gap: 1.5rem;
+						padding: 0 1rem;
+					}
+					
+					.value-prop-card {
+						padding: 1.5rem;
+					}
+					
+					.why-choose-streampirex h2 {
+						font-size: 1.8rem;
 					}
 
 					.feature-container {
