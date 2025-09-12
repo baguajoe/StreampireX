@@ -13,7 +13,7 @@ const Home = () => {
 				<div className="hero-content">
 					<h1>🔥 Welcome to StreampireX</h1>
 					<p>The ultimate creator platform for music distribution, streaming, podcasts, radio, gaming communities, and social monetization.</p>
-					
+
 					{/* Conditional rendering for CTA buttons */}
 					{!user ? (
 						// Show signup/login buttons when NOT logged in
@@ -97,7 +97,7 @@ const Home = () => {
 			<section className="music-distribution">
 				<h2>🎵 Worldwide Music Distribution</h2>
 				<p>Get your music on 150+ major streaming platforms and digital stores worldwide</p>
-				
+
 				<div className="platforms-showcase">
 					<div className="platform-row streaming">
 						<h4>🎧 Major Streaming</h4>
@@ -112,7 +112,7 @@ const Home = () => {
 							<span className="platform-badge">SoundCloud</span>
 						</div>
 					</div>
-					
+
 					<div className="platform-row stores">
 						<h4>🏪 Digital Stores</h4>
 						<div className="platform-badges">
@@ -126,7 +126,7 @@ const Home = () => {
 							<span className="platform-badge">Junodownload</span>
 						</div>
 					</div>
-					
+
 					<div className="platform-row radio">
 						<h4>📻 Radio & Discovery</h4>
 						<div className="platform-badges">
@@ -140,7 +140,7 @@ const Home = () => {
 							<span className="platform-badge">Audiomack</span>
 						</div>
 					</div>
-					
+
 					<div className="platform-row international">
 						<h4>🌍 International</h4>
 						<div className="platform-badges">
@@ -155,7 +155,7 @@ const Home = () => {
 						</div>
 					</div>
 				</div>
-				
+
 				<div className="distribution-cta">
 					<p style={{ color: '#d1d5db', fontSize: '1rem', marginBottom: '1.5rem' }}>
 						Start earning royalties from day one with our fast 24-48 hour distribution process
@@ -553,7 +553,7 @@ const Home = () => {
 
 				.value-props-grid {
 					display: grid;
-					grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+					grid-template-columns: repeat(4, 1fr);  // FORCES 4 COLUMNS
 					gap: 2rem;
 					max-width: 1200px;
 					margin: 0 auto;

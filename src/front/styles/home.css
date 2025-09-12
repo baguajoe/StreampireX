@@ -62,8 +62,10 @@
 
 .feature-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	grid-template-columns: repeat(4, 1fr);
 	gap: 1.5rem;
+	max-width: 1200px;
+	margin: 0 auto;
 }
 
 .feature-card {
@@ -72,6 +74,7 @@
 	border-radius: 12px;
 	box-shadow: 0 0 12px rgba(0, 255, 200, 0.1);
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
+	border-left: 4px solid #00ffc8;
 }
 
 .feature-card:hover {
@@ -82,6 +85,13 @@
 .feature-card h4 {
 	color: #00ffc8;
 	margin-bottom: 0.5rem;
+	font-size: 1.2rem;
+}
+
+.feature-card p {
+	color: #d1d5db;
+	font-size: 0.95rem;
+	line-height: 1.5;
 }
 
 /* Distribution Platforms Section */
@@ -108,7 +118,7 @@
 
 .platforms-grid {
 	display: flex;
-	flex-wrap: nowrap; /* Prevent wrapping to new line */
+	flex-wrap: nowrap;
 	gap: 1.5rem;
 	max-width: 1200px;
 	margin: 0 auto;
@@ -116,8 +126,8 @@
 }
 
 .platform-category {
-	flex: 1; /* Each takes equal width */
-	min-width: 0; /* Allows flex items to shrink below content size */
+	flex: 1;
+	min-width: 0;
 	background: #1f2937;
 	padding: 2rem;
 	border-radius: 12px;
@@ -175,24 +185,83 @@
 	border-top: 1px solid #1f2937;
 }
 
-/* For tablets - allow wrapping to 2 rows */
+/* Responsive Design */
+
+/* For tablets - allow features to wrap to 2 rows */
 @media (max-width: 1024px) {
+	.feature-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+	
 	.platforms-grid {
 		flex-wrap: wrap;
 	}
-	
+
 	.platform-category {
-		flex: 0 0 calc(50% - 0.75rem); /* 2 columns with gap */
+		flex: 0 0 calc(50% - 0.75rem);
 	}
 }
 
-/* For mobile - stack vertically */
+/* For mobile - stack features vertically */
 @media (max-width: 768px) {
+	.hero h1 {
+		font-size: 2.2rem;
+	}
+	
+	.hero-image {
+		width: 200px;
+		height: 200px;
+	}
+	
+	.feature-grid {
+		grid-template-columns: 1fr;
+	}
+	
 	.platforms-grid {
 		flex-direction: column;
 	}
-	
+
 	.platform-category {
 		flex: none;
+	}
+	
+	.features {
+		padding: 2rem 1rem;
+	}
+	
+	.distribution-platforms {
+		padding: 2rem 1rem;
+	}
+	
+	.join-now {
+		padding: 2rem 1rem;
+	}
+}
+
+/* For small mobile devices */
+@media (max-width: 480px) {
+	.hero {
+		padding: 2rem 1rem;
+	}
+	
+	.hero h1 {
+		font-size: 1.8rem;
+	}
+	
+	.hero p {
+		font-size: 1rem;
+	}
+	
+	.hero-image {
+		width: 150px;
+		height: 150px;
+	}
+	
+	.feature-card {
+		padding: 1rem;
+	}
+	
+	.platform-category {
+		padding: 1.5rem;
 	}
 }
