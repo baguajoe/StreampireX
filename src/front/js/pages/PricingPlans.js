@@ -276,7 +276,7 @@ const PricingPlans = () => {
                 "📊 Streaming Analytics", 
                 "💰 100% Royalty Retention",
                 "📈 Performance Tracking",
-                "🎧 Spotify, Apple Music, etc.",
+                "🎧 Major Streaming Platforms",
                 "⚡ 24-48 Hour Distribution"
             ];
         }
@@ -297,11 +297,11 @@ const PricingPlans = () => {
         // Regular plans - Social Media Features (FREE FOR ALL PLANS)
         if (plan.name !== "Artist Distribution" && plan.name !== "Label Distribution") {
             features.push("📱 Multi-Platform Social Posting");
-            features.push("🐦 Twitter/X Integration");
-            features.push("📸 Instagram Stories & Reels");
-            features.push("🎬 TikTok Auto-Posting");
-            features.push("📺 YouTube Integration");
-            features.push("📘 Facebook & LinkedIn");
+            features.push("🐦 Social Network Integration");
+            features.push("📸 Photo & Story Sharing");
+            features.push("🎬 Short-Form Video Posting");
+            features.push("📺 Video Platform Integration");
+            features.push("📘 Professional Network Posting");
             features.push("📅 Content Scheduling");
             features.push("📊 Social Media Analytics");
             features.push("🤖 AI Content Optimization");
@@ -495,16 +495,16 @@ const PricingPlans = () => {
                 </p>
                 <div className="social-platforms-showcase">
                     <div className="platform-row">
-                        <div className="platform-badge">🐦 Twitter/X</div>
-                        <div className="platform-badge">📸 Instagram</div>
-                        <div className="platform-badge">🎬 TikTok</div>
-                        <div className="platform-badge">📺 YouTube</div>
+                        <div className="platform-badge">🐦 Social Network A</div>
+                        <div className="platform-badge">📸 Photo Sharing</div>
+                        <div className="platform-badge">🎬 Short Video</div>
+                        <div className="platform-badge">📺 Video Platform</div>
                     </div>
                     <div className="platform-row">
-                        <div className="platform-badge">📘 Facebook</div>
-                        <div className="platform-badge">💼 LinkedIn</div>
-                        <div className="platform-badge">👻 Snapchat</div>
-                        <div className="platform-badge">📌 Pinterest</div>
+                        <div className="platform-badge">📘 Social Network B</div>
+                        <div className="platform-badge">💼 Professional Network</div>
+                        <div className="platform-badge">👻 Story Platform</div>
+                        <div className="platform-badge">📌 Visual Discovery</div>
                     </div>
                 </div>
                 <div className="integration-features">

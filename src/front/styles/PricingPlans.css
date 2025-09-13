@@ -36,8 +36,12 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Header Section */
@@ -276,10 +280,13 @@
 
 /* Plans Grid */
 .pricing-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 2rem;
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 1.5rem;
   margin: 3rem 0;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .pricing-card {
@@ -290,6 +297,10 @@
   border: 2px solid #e0e0e0;
   transition: all 0.3s ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  min-width: 0 !important;
+  width: 100% !important;
+  display: flex;
+  flex-direction: column;
 }
 
 .pricing-card:hover {
@@ -336,13 +347,6 @@
 .plan-header {
   text-align: center;
   margin-bottom: 2rem;
-}
-
-.plan-header h2 {
-  font-size: 1.8rem;
-  margin-bottom: 0.5rem;
-  color: #002b5c;
-  font-weight: 700;
 }
 
 .plan-description {
@@ -399,6 +403,23 @@
   font-weight: bold;
 }
 
+/* Plan Features */
+.plan-features {
+  flex-grow: 1;
+  margin-bottom: 2rem;
+}
+
+.feature-item {
+  padding: 0.5rem 0;
+  color: #555;
+  font-size: 0.95rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.feature-item:last-child {
+  border-bottom: none;
+}
+
 /* Social Media Highlight */
 .social-media-highlight {
   background: rgba(0, 43, 92, 0.05);
@@ -425,6 +446,22 @@
   color: #555;
 }
 
+/* Distribution Grid */
+.distribution-grid {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.distribution-card {
+  flex: 0 1 350px;
+  min-height: 600px;
+  max-width: 400px;
+}
+
 /* Music Distribution Highlight */
 .music-distribution-highlight {
   background: rgba(255, 167, 38, 0.1);
@@ -449,22 +486,6 @@
 .distribution-features div {
   font-size: 0.9rem;
   color: #555;
-}
-
-/* Plan Features */
-.plan-features {
-  margin-bottom: 2rem;
-}
-
-.feature-item {
-  padding: 0.5rem 0;
-  color: #555;
-  font-size: 0.95rem;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.feature-item:last-child {
-  border-bottom: none;
 }
 
 /* Trial Info */
@@ -495,6 +516,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  margin-top: auto;
 }
 
 .subscribe-btn:hover {
@@ -799,13 +821,13 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
   .pricing-grid {
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
   }
-  
+
   .services-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -815,80 +837,80 @@
   .pricing-container {
     padding: 1rem;
   }
-  
+
   .pricing-header h1 {
     font-size: 2rem;
   }
-  
+
   .pricing-subtitle {
     font-size: 1rem;
   }
-  
+
   .social-media-integration {
     padding: 2rem 1rem;
   }
-  
+
   .social-media-integration h2 {
     font-size: 1.5rem;
   }
-  
+
   .platform-row {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .platform-badge {
     font-size: 0.8rem;
     padding: 6px 12px;
   }
-  
+
   .integration-features {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
-  
+
   .pricing-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     gap: 1.5rem;
   }
-  
+
   .pricing-card {
     padding: 1.5rem;
   }
-  
+
   .price {
     font-size: 2.5rem;
   }
-  
+
   .social-features {
     grid-template-columns: 1fr;
   }
-  
+
   .distribution-features {
     grid-template-columns: 1fr;
   }
-  
+
   .stats-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
-  
+
   .faq-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
-  
+
   .billing-toggle {
     flex-direction: column;
     width: 100%;
     max-width: 300px;
   }
-  
+
   .billing-toggle button {
     border-radius: 8px;
     margin: 2px 0;
   }
-  
+
   .action-buttons {
     flex-direction: column;
     align-items: center;
@@ -899,29 +921,29 @@
   .pricing-header h1 {
     font-size: 1.8rem;
   }
-  
+
   .social-media-integration h2 {
     font-size: 1.3rem;
   }
-  
+
   .pricing-card {
     padding: 1rem;
   }
-  
+
   .price {
     font-size: 2rem;
   }
-  
+
   .stat-number {
     font-size: 2rem;
   }
-  
+
   .additional-services,
   .social-success-stats,
   .pricing-faq {
     padding: 2rem 1rem;
   }
-  
+
   .service-card,
   .stat-card,
   .faq-item {
