@@ -104,7 +104,7 @@ useEffect(() => {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<SignupForm />} />
+              <Route path="/signup" element={<SignupForm />} />
 
               {/* 💰 Pricing Routes - Both paths for compatibility */}
               <Route path="/pricing" element={<PricingPlans />} />
@@ -144,7 +144,7 @@ useEffect(() => {
               <Route path="/radio-dashboard" element={<RadioStationDashboard />} />
               <Route path="/radio-stations" element={<RadioStationPage />} />
               <Route path="/create-radio" element={<CreateRadioStation />} />
-              <Route path="/browse-radio-stations" element={<BrowseRadioStations />} />
+              <Route path="/radio/browse" element={<BrowseRadioStations />} />
               <Route path="/radio/station/:id/:type" element={<RadioStationDetailPage />} />
 
               {/* 🎬 Videos */}

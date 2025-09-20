@@ -13,8 +13,9 @@ export class ErrorHandler {
 
   static validateEnvironment() {
     const requiredVars = ['REACT_APP_BACKEND_URL'];
-    const missing = requiredVars.filter(varName => !process.env[varName]);
-    
+    console.log(process.env["REACT_APP_BACKEND_URL"])
+    const missing = requiredVars.filter(varName => process.env[varName]);
+    console.log(missing)
     if (missing.length > 0) {
       throw new Error(`Missing environment variables: ${missing.join(', ')}`);
     }
