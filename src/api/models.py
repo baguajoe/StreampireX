@@ -953,110 +953,194 @@ class RadioFollower(db.Model):
 
 
 class RadioStation(db.Model):
+    __tablename__ = 'radio_station'
+    
+    # Core Fields
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
-
+    
+    # Access Control
+    status = db.Column(db.String(50), default='active')  # active, inactive, suspended
     is_public = db.Column(db.Boolean, default=True)
-    allowed_users = db.relationship('User', secondary='radio_access', backref='private_stations')
-
     is_subscription_based = db.Column(db.Boolean, default=False)
     subscription_price = db.Column(db.Float, nullable=True)
     is_ticketed = db.Column(db.Boolean, default=False)
     ticket_price = db.Column(db.Float, nullable=True)
-
+    
+    # Live Broadcasting
     is_live = db.Column(db.Boolean, default=False)
     stream_url = db.Column(db.String(500), nullable=True)
-
     is_webrtc_enabled = db.Column(db.Boolean, default=False)
     max_listeners = db.Column(db.Integer, default=100)
-
+    
+    # Media Assets
     logo_url = db.Column(db.String(500), nullable=True)
     cover_image_url = db.Column(db.String(500), nullable=True)
-
-    radio_follower_entries = db.relationship('RadioFollower', back_populates='station', lazy='dynamic')
+    
+    # Analytics & Timestamps
     followers_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Creator Information
+    creator_name = db.Column(db.String(255), nullable=True)
+    
+    # ✅ MODERN APPROACH: Use db.JSON for complex data
 
-    user = db.relationship('User', backref=db.backref('radio_stations', lazy=True))
-    ticket_purchases = db.relationship('TicketPurchase', backref='station', lazy=True)
+    # genres = db.Column(db.JSON, nullable=True)  # List of genres
+    # preferred_genres = db.Column(db.JSON, nullable=True)  # Preferred genres (tags)
+    # tags = db.Column(db.JSON, nullable=True)  # User-defined tags
 
-    genres = db.Column(db.ARRAY(db.String), default=[])
+    genres = db.Column(db.ARRAY(db.String), nullable=True, default=[])
+    preferred_genres = db.Column(db.ARRAY(db.String), nullable=True, default=[])
+    tags = db.Column(db.ARRAY(db.String), nullable=True, default=[])
+
+    social_links = db.Column(db.JSON, nullable=True)  # Social media links
+    playlist_schedule = db.Column(db.JSON, nullable=True)  # Stores track schedule
+    
+    # Audio Management
     submission_guidelines = db.Column(db.Text, nullable=True)
-    creator_name = db.Column(db.String(100), nullable=True)
-    preferred_genres = db.Column(db.ARRAY(db.String), default=[])
-
-    # Audio file name
-    audio_file_name = db.Column(db.String(500), nullable=True) 
-
-
-    # 🔁 Looping Playlist Fields
-    loop_audio_url = db.Column(db.String(500), nullable=True)     # MP3 or stream URL
-    is_loop_enabled = db.Column(db.Boolean, default=False)        # Toggle
-    loop_duration_minutes = db.Column(db.Integer, default=180)    # 3 hours max
-    now_playing_metadata = db.Column(db.JSON, nullable=True)
-    playlist_schedule = db.Column(db.JSON, nullable=True)         # Full track list
-    loop_started_at = db.Column(db.DateTime, nullable=True)       # UTC loop timestamp
-
+    audio_file_name = db.Column(db.String(500), nullable=True)  # Original filename
+    loop_audio_url = db.Column(db.String(500), nullable=True)   # URL for looping audio
+    is_loop_enabled = db.Column(db.Boolean, default=False)
+    loop_duration_minutes = db.Column(db.Integer, nullable=True)  # Duration in minutes
+    loop_started_at = db.Column(db.DateTime, nullable=True)  # When loop started
+    
+    # Monetization & Analytics
+    total_plays = db.Column(db.Integer, default=0)
+    total_revenue = db.Column(db.Float, default=0.0)
+    
+    # Additional Features
+    target_audience = db.Column(db.String(255), nullable=True)
+    broadcast_hours = db.Column(db.String(100), nullable=True)  # "24/7", "mornings", etc.
+    is_explicit = db.Column(db.Boolean, default=False)
+    welcome_message = db.Column(db.Text, nullable=True)
+    
+    # Relationships
+    allowed_users = db.relationship('User', secondary='radio_access', backref='private_stations')
+    user = db.relationship('User', backref=db.backref('radio_stations', lazy=True))
+    radio_follower_entries = db.relationship('RadioFollower', back_populates='station')
+    
     def serialize(self):
+        """Convert model to JSON-compatible dictionary"""
         return {
             "id": self.id,
             "user_id": self.user_id,
             "name": self.name,
             "description": self.description,
+            "status": self.status,
             "is_public": self.is_public,
-            "allowed_users": [user.id for user in self.allowed_users] if not self.is_public else [],
             "is_subscription_based": self.is_subscription_based,
             "subscription_price": self.subscription_price,
             "is_ticketed": self.is_ticketed,
             "ticket_price": self.ticket_price,
-            "followers_count": self.followers_count,
             "is_live": self.is_live,
             "stream_url": self.stream_url,
             "is_webrtc_enabled": self.is_webrtc_enabled,
             "max_listeners": self.max_listeners,
             "logo_url": self.logo_url,
             "cover_image_url": self.cover_image_url,
-            "created_at": self.created_at.isoformat(),
-            "genres": self.genres or [],
-            "submission_guidelines": self.submission_guidelines,
+            "followers_count": self.followers_count,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "creator_name": self.creator_name,
+            # ✅ JSON fields return as Python objects automatically
+            "genres": self.genres or [],
             "preferred_genres": self.preferred_genres or [],
+            "submission_guidelines": self.submission_guidelines,
+            "audio_file_name": self.audio_file_name,
             "loop_audio_url": self.loop_audio_url,
             "is_loop_enabled": self.is_loop_enabled,
             "loop_duration_minutes": self.loop_duration_minutes,
-            "now_playing_metadata": self.now_playing_metadata,
-            "playlist_schedule": self.playlist_schedule,
             "loop_started_at": self.loop_started_at.isoformat() if self.loop_started_at else None,
-            "now_playing": self.get_current_track(),
-            "audio_file_name": self.audio_file_name
+            "playlist_schedule": self.playlist_schedule,
+            "total_plays": self.total_plays,
+            "total_revenue": self.total_revenue,
+            "target_audience": self.target_audience,
+            "broadcast_hours": self.broadcast_hours,
+            "is_explicit": self.is_explicit,
+            "tags": self.tags or [],
+            "welcome_message": self.welcome_message,
+            "social_links": self.social_links or {}
         }
-
-    @property
-    def followers(self):
-        return [entry.user for entry in self.radio_follower_entries]
-
+    
     def get_current_track(self):
-        """Dynamically calculate what track is currently playing in the loop."""
-        if not self.loop_started_at or not self.playlist_schedule:
+        """Get currently playing track based on loop timing"""
+        if not self.is_loop_enabled or not self.playlist_schedule or not self.loop_started_at:
             return None
-
+            
         try:
+            # Calculate time elapsed since loop started
             elapsed_seconds = (datetime.utcnow() - self.loop_started_at).total_seconds()
-            loop_seconds = self.loop_duration_minutes * 60
-            time_in_loop = elapsed_seconds % loop_seconds
-
-            total = 0
-            for track in self.playlist_schedule.get("tracks", []):
-                minutes, seconds = map(int, track["duration"].split(":"))
-                duration = minutes * 60 + seconds
-                total += duration
-                if total > time_in_loop:
-                    return track
+            
+            # Get tracks from playlist schedule
+            tracks = self.playlist_schedule.get("tracks", [])
+            if not tracks:
+                return None
+            
+            # Calculate which track should be playing
+            total_duration = 0
+            for track in tracks:
+                # Parse duration (format: "mm:ss")
+                duration_parts = track.get("duration", "3:30").split(":")
+                if len(duration_parts) == 2:
+                    minutes, seconds = map(int, duration_parts)
+                    track_duration = minutes * 60 + seconds
+                else:
+                    track_duration = 210  # Default 3:30
+                
+                if elapsed_seconds <= total_duration + track_duration:
+                    # This is the current track
+                    position_in_track = elapsed_seconds - total_duration
+                    return {
+                        **track,
+                        "position": int(position_in_track),
+                        "remaining": track_duration - int(position_in_track)
+                    }
+                
+                total_duration += track_duration
+            
+            # If we've gone past all tracks, loop back to beginning
+            if self.playlist_schedule.get("loop_mode", True):
+                total_loop_duration = total_duration
+                if total_loop_duration > 0:
+                    loop_position = elapsed_seconds % total_loop_duration
+                    return self._get_track_at_position(loop_position)
+            
         except Exception as e:
-            print("Error in get_current_track:", e)
-        return None
+            print(f"Error calculating current track: {e}")
+        
+        return tracks[0] if tracks else None
+    
+    def _get_track_at_position(self, position_seconds):
+        """Helper method to get track at specific position in loop"""
+        tracks = self.playlist_schedule.get("tracks", [])
+        current_position = 0
+        
+        for track in tracks:
+            duration_parts = track.get("duration", "3:30").split(":")
+            if len(duration_parts) == 2:
+                minutes, seconds = map(int, duration_parts)
+                track_duration = minutes * 60 + seconds
+            else:
+                track_duration = 210
+            
+            if position_seconds <= current_position + track_duration:
+                position_in_track = position_seconds - current_position
+                return {
+                    **track,
+                    "position": int(position_in_track),
+                    "remaining": track_duration - int(position_in_track)
+                }
+            
+            current_position += track_duration
+        
+        return tracks[0] if tracks else None
+    
+    def __repr__(self):
+        return f'<RadioStation {self.name}>'
 
 
 
