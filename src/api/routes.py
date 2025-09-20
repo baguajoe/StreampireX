@@ -3789,7 +3789,7 @@ def update_social_links():
 @api.route('/profile/radio/create', methods=['POST'])
 @jwt_required()
 def create_radio_station_profile():
-    """Create radio station with comprehensive features using Cloudinary (FIXED VERSION)"""
+    """Create radio station with comprehensive DJ mix features and royalty tracking"""
     user_id = get_jwt_identity()
     
     try:
@@ -3809,11 +3809,11 @@ def create_radio_station_profile():
         welcome_message = data.get("welcomeMessage", "")
         social_links = data.get("socialLinks", "{}")
 
-        # Parse JSON strings
+        # Parse JSON strings safely
         try:
             tags_list = json.loads(tags) if tags else []
             social_links_dict = json.loads(social_links) if social_links else {}
-        except:
+        except json.JSONDecodeError:
             tags_list = []
             social_links_dict = {}
 
@@ -3823,7 +3823,7 @@ def create_radio_station_profile():
         initial_mix_url = None
         mix_filename = None
 
-        # ✅ Handle logo upload with Cloudinary (FIXED)
+        # Handle logo upload with Cloudinary
         if 'logo' in request.files:
             logo_file = request.files['logo']
             if logo_file and logo_file.filename:
@@ -3836,10 +3836,10 @@ def create_radio_station_profile():
                     return jsonify({"error": "Logo file too large (max 50MB)"}), 413
                 
                 logo_filename = secure_filename(logo_file.filename)
-                logo_url = uploadFile(logo_file, logo_filename)  # ✅ Use Cloudinary
+                logo_url = uploadFile(logo_file, logo_filename)
                 print(f"✅ Logo uploaded to Cloudinary: {logo_url}")
 
-        # ✅ Handle cover upload with Cloudinary (FIXED)
+        # Handle cover upload with Cloudinary
         if 'cover' in request.files:
             cover_file = request.files['cover']
             if cover_file and cover_file.filename:
@@ -3852,10 +3852,10 @@ def create_radio_station_profile():
                     return jsonify({"error": "Cover file too large (max 50MB)"}), 413
                 
                 cover_filename = secure_filename(cover_file.filename)
-                cover_url = uploadFile(cover_file, cover_filename)  # ✅ Use Cloudinary
+                cover_url = uploadFile(cover_file, cover_filename)
                 print(f"✅ Cover uploaded to Cloudinary: {cover_url}")
 
-        # ✅ Handle initial mix upload with Cloudinary (FIXED)
+        # Handle initial mix upload with Cloudinary
         if 'initialMix' in request.files:
             mix_file = request.files['initialMix']
             if mix_file and mix_file.filename:
@@ -3873,109 +3873,181 @@ def create_radio_station_profile():
                     return jsonify({"error": "Invalid audio file type. Allowed: MP3, WAV, FLAC, M4A"}), 400
                 
                 mix_filename = secure_filename(mix_file.filename)
-                initial_mix_url = uploadFile(mix_file, mix_filename)  # ✅ Use Cloudinary
+                initial_mix_url = uploadFile(mix_file, mix_filename)
                 print(f"✅ Audio uploaded to Cloudinary: {initial_mix_url}")
 
         # Get creator info
         creator = User.query.get(user_id)
         creator_name = creator.username if creator else "Unknown"
 
-        # ✅ Create station with Cloudinary URLs (FIXED - removed audio_url)
+        # Parse and validate tracklist for royalty compliance
+        tracklist_data = data.get("tracklist", "[]")
+        try:
+            tracklist = json.loads(tracklist_data) if tracklist_data else []
+        except json.JSONDecodeError:
+            tracklist = []
+
+        # Validate tracklist if audio was uploaded
+        if initial_mix_url and not tracklist:
+            return jsonify({"error": "Tracklist is required for royalty compliance when uploading audio"}), 400
+
+        # Validate individual tracks in tracklist
+        if tracklist:
+            for i, track in enumerate(tracklist):
+                if not track.get('songTitle', '').strip():
+                    return jsonify({"error": f"Track {i+1}: Song title is required"}), 400
+                if not track.get('artistName', '').strip():
+                    return jsonify({"error": f"Track {i+1}: Artist name is required"}), 400
+                if not track.get('songwriterNames', '').strip():
+                    return jsonify({"error": f"Track {i+1}: Songwriter name(s) required for royalty reporting"}), 400
+
+        # Create station with ALL required fields - PASS PYTHON OBJECTS DIRECTLY
         new_station = RadioStation(
             user_id=user_id,
             name=name,
             description=description,
-            logo_url=logo_url,                    # ✅ Cloudinary URL
-            cover_image_url=cover_url,            # ✅ Cloudinary URL
-            stream_url=initial_mix_url,           # ✅ Primary stream URL
-            loop_audio_url=initial_mix_url,       # ✅ Loop audio URL
+            status='active',
             is_public=True,
-            is_live=True if initial_mix_url else False,  # Only live if has audio
-            genres=[category] if category else ["Music"],
-            preferred_genres=tags_list,           # Use tags as preferred genres
-            creator_name=creator_name,
-            created_at=datetime.utcnow(),
-            audio_file_name=mix_filename,
+            is_subscription_based=False,
+            subscription_price=None,
+            is_ticketed=False,
+            ticket_price=None,
+            is_live=True if initial_mix_url else False,
+            stream_url=initial_mix_url,
+            is_webrtc_enabled=False,
+            max_listeners=100,
+            logo_url=logo_url,
+            cover_image_url=cover_url,
             followers_count=0,
-            is_loop_enabled=True if initial_mix_url else False
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+            creator_name=creator_name,
+            # ✅ CORRECT: Pass Python objects directly (db.JSON handles conversion)
+            genres=[category] if category else [],
+            preferred_genres=tags_list,
+            submission_guidelines=None,
+            audio_file_name=mix_filename,
+            loop_audio_url=initial_mix_url,
+            is_loop_enabled=True if initial_mix_url else False,
+            loop_duration_minutes=180 if initial_mix_url else None,
+            loop_started_at=None,
+            playlist_schedule=None,  # Will be set below if needed
+            total_plays=0,
+            total_revenue=0.0,
+            target_audience=target_audience,
+            broadcast_hours=broadcast_hours,
+            is_explicit=is_explicit,
+            tags=tags_list,
+            welcome_message=welcome_message,
+            social_links=social_links_dict
         )
 
         db.session.add(new_station)
         db.session.flush()  # Get station ID
 
-        # ✅ Create Audio record if initial mix was uploaded (FIXED)
+        # Create Audio record if initial mix was uploaded
         if initial_mix_url:
             mix_title = data.get("mixTitle", f"{name} - Initial Mix")
             mix_description = data.get("mixDescription", "Initial mix for radio station")
+            dj_name = data.get("djName", creator_name)
             
+            # Create audio record
             initial_audio = Audio(
                 user_id=user_id,
                 title=mix_title,
                 description=mix_description,
-                file_url=initial_mix_url,  # ✅ Cloudinary URL
-                uploaded_at=datetime.utcnow(),
-                genre=category,  # ✅ This field exists
-                album=f"{name} - Station Mix"  # ✅ This field exists
+                file_url=initial_mix_url,
+                uploaded_at=datetime.utcnow()
             )
             
             db.session.add(initial_audio)
+            db.session.flush()  # Get audio ID
 
-            # ✅ Create playlist schedule for the station (FIXED)
+            # Create comprehensive playlist schedule with royalty data
             playlist_schedule = {
-                "tracks": [
-                    {
-                        "id": initial_audio.id if hasattr(initial_audio, 'id') else 1,
-                        "title": mix_title,
-                        "artist": data.get("djName", creator_name),  # ✅ Fixed: use data.get() instead of undefined dj_name
-                        "duration": data.get("duration", "03:00"),  # Default duration
-                        "file_url": initial_mix_url,
-                        "bpm": data.get("bpm", ""),
-                        "mood": data.get("mood", ""),
-                        "sub_genres": data.get("subGenres", "").split(',') if data.get("subGenres") else []
-                    }
-                ],
+                "tracks": [],
                 "loop_mode": True,
                 "shuffle": False,
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.utcnow().isoformat(),
+                "dj_info": {
+                    "dj_name": dj_name,
+                    "bpm": data.get("bpm", ""),
+                    "mood": data.get("mood", ""),
+                    "sub_genres": data.get("subGenres", "").split(',') if data.get("subGenres") else []
+                },
+                "royalty_info": {
+                    "tracklist": tracklist,
+                    "requires_bmi_reporting": True,
+                    "requires_ascap_reporting": True,
+                    "total_tracks": len(tracklist)
+                }
             }
-            new_station.playlist_schedule = playlist_schedule
 
-            # ✅ Set loop start time if audio was uploaded
+            # Add tracks to schedule
+            for i, track in enumerate(tracklist):
+                track_data = {
+                    "id": f"track_{i+1}",
+                    "audio_file_id": initial_audio.id,
+                    "title": track.get("songTitle", ""),
+                    "artist": track.get("artistName", ""),
+                    "songwriter": track.get("songwriterNames", ""),
+                    "album": track.get("albumName", ""),
+                    "record_label": track.get("recordLabel", ""),
+                    "publisher": track.get("publisherName", ""),
+                    "duration": track.get("approximateDuration", "3:30"),
+                    "start_time": track.get("approximateStartTime", "0:00"),
+                    "play_order": track.get("playOrderNumber", i+1),
+                    "file_url": initial_mix_url,
+                    "royalty_required": True
+                }
+                playlist_schedule["tracks"].append(track_data)
+
+            # Update station with playlist schedule (Python dict - db.JSON handles it)
+            new_station.playlist_schedule = playlist_schedule
             new_station.loop_started_at = datetime.utcnow()
 
         db.session.commit()
 
-        # ✅ Build comprehensive response
+        # Build comprehensive response
         response_data = {
-            "message": "Radio station created successfully with enhanced features!" if initial_mix_url else "Radio station created successfully!",
+            "message": "Radio station created successfully with DJ mix and royalty tracking!" if initial_mix_url else "Radio station created successfully!",
             "station": new_station.serialize(),
-            "redirect_url": f"/radio/{new_station.id}",
+            "redirect_url": f"/radio/station/{new_station.id}",
             "features": {
                 "cloudinary_storage": True,
-                "playlist_scheduling": bool(initial_mix_url),
+                "dj_mix_uploaded": bool(initial_mix_url),
+                "royalty_tracking": bool(tracklist),
                 "loop_enabled": new_station.is_loop_enabled,
-                "enhanced_metadata": True
+                "enhanced_metadata": True,
+                "playlist_schedule": bool(new_station.playlist_schedule)
+            },
+            "royalty_compliance": {
+                "bmi_ready": bool(tracklist),
+                "ascap_ready": bool(tracklist),
+                "tracks_logged": len(tracklist),
+                "all_required_fields": all(
+                    track.get('songTitle') and track.get('artistName') and track.get('songwriterNames')
+                    for track in tracklist
+                ) if tracklist else False
             }
         }
 
         print(f"✅ Enhanced radio station created:")
         print(f"   ID: {new_station.id}")
         print(f"   Name: {new_station.name}")
-        print(f"   Logo URL: {new_station.logo_url}")
-        print(f"   Cover URL: {new_station.cover_image_url}")
-        print(f"   Audio URL: {new_station.loop_audio_url}")
-        print(f"   Is Live: {new_station.is_live}")
-        print(f"   Loop Enabled: {new_station.is_loop_enabled}")
+        print(f"   DJ Mix: {bool(initial_mix_url)}")
+        print(f"   Tracklist entries: {len(tracklist)}")
+        print(f"   Royalty compliant: {bool(tracklist)}")
 
         return jsonify(response_data), 201
 
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error creating enhanced radio station: {str(e)}")
+        print(f"❌ Error creating radio station: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": f"Failed to create station: {str(e)}"}), 500
-
+    
 @api.route('/admin/migrate-stations-to-cloudinary', methods=['POST'])
 @jwt_required()
 def migrate_stations_to_cloudinary():
@@ -9718,6 +9790,7 @@ def serve_uploaded_file(filename):
 # Enhanced radio station endpoints
 @api.route('/radio/<int:station_id>', methods=['GET'])
 @handle_db_errors
+@jwt_required()
 def get_radio_station(station_id):
     """Get radio station details with comprehensive error handling and security"""
     try:
@@ -9733,15 +9806,16 @@ def get_radio_station(station_id):
         current_user_id = get_jwt_identity()
         
         # Check if user has access to this station
-        if station.is_private and station.creator_id != current_user_id:
+        if not station.is_public and station.user_id != current_user_id:
             return jsonify({"error": "Access denied"}), 403
         
-        # Check if station is banned/suspended
-        if station.status == 'suspended':
-            return jsonify({"error": "Station is temporarily suspended"}), 403
-        
-        if station.status == 'banned':
-            return jsonify({"error": "Station is no longer available"}), 410
+        # Check if station has status field and is suspended/banned
+        if hasattr(station, 'status'):
+            if station.status == 'suspended':
+                return jsonify({"error": "Station is temporarily suspended"}), 403
+            
+            if station.status == 'banned':
+                return jsonify({"error": "Station is no longer available"}), 410
         
         # Rate limiting for listener count updates (prevent spam)
         session_key = f"listener_{current_user_id}_{station_id}"
@@ -9753,26 +9827,23 @@ def get_radio_station(station_id):
             time_diff = (current_time - last_update).total_seconds()
             should_increment = time_diff > 60  # Only increment once per minute per user
         
-        # Increment listener count if station is live and not recently incremented
+        # Increment follower count if not recently incremented (using followers_count from your model)
         if station.is_live and should_increment:
             try:
-                station.listener_count = (station.listener_count or 0) + 1
-                station.last_accessed = current_time
+                station.followers_count = (station.followers_count or 0) + 1
                 session[session_key] = current_time
                 db.session.commit()
             except SQLAlchemyError as e:
-                # Don't fail the entire request if listener count update fails
+                # Don't fail the entire request if count update fails
                 current_app.logger.warning(f"Failed to update listener count for station {station_id}: {str(e)}")
                 db.session.rollback()
         
         # Get additional station data
         try:
-            # Get current playing track
-            current_track = None
-            if station.is_live and station.current_track_id:
-                current_track = Audio.query.get(station.current_track_id)
+            # Get current playing track using your model's method
+            current_track = station.get_current_track()
             
-            # Get recent tracks (last 10)
+            # Get recent tracks from playlist_schedule
             recent_tracks = []
             if station.playlist_schedule:
                 tracks_data = station.playlist_schedule.get("tracks", [])
@@ -9781,18 +9852,18 @@ def get_radio_station(station_id):
             # Check if user is following this station
             is_following = False
             if current_user_id:
-                follow_record = StationFollow.query.filter_by(
-                    user_id=current_user_id,
-                    station_id=station_id
+                # Use your radio_follower_entries relationship
+                follow_record = station.radio_follower_entries.filter_by(
+                    user_id=current_user_id
                 ).first()
                 is_following = bool(follow_record)
             
-            # Get station creator info
-            creator = User.query.get(station.creator_id)
+            # Get station creator info using user_id from your model
+            creator = User.query.get(station.user_id)
             creator_info = {
                 "id": creator.id,
                 "name": creator.username,
-                "avatar_url": creator.avatar_url
+                "avatar_url": getattr(creator, 'avatar_url', None)
             } if creator else None
             
         except Exception as e:
@@ -9802,25 +9873,25 @@ def get_radio_station(station_id):
             is_following = False
             creator_info = None
         
-        # Build response
+        # Build response using your model's fields
         response_data = {
             "station": {
                 **station.serialize(),
                 "creator": creator_info,
                 "is_following": is_following,
-                "current_track": current_track.serialize() if current_track else None,
+                "current_track": current_track,
                 "recent_tracks": recent_tracks,
                 "uptime": (current_time - station.created_at).total_seconds() if station.created_at else 0
             },
             "stream_status": "live" if station.is_live else "offline",
             "stream_url": station.stream_url if station.is_live else None,
-            "can_edit": current_user_id == station.creator_id,
-            "access_level": "owner" if current_user_id == station.creator_id else "listener"
+            "can_edit": current_user_id == station.user_id,  # Use user_id instead of creator_id
+            "access_level": "owner" if current_user_id == station.user_id else "listener"
         }
         
-        # Add stream quality options if available
-        if station.is_live and hasattr(station, 'stream_qualities'):
-            response_data["stream_qualities"] = station.stream_qualities
+        # Add loop audio URL if available
+        if station.is_live and station.loop_audio_url:
+            response_data["loop_audio_url"] = station.loop_audio_url
         
         return jsonify(response_data), 200
         
@@ -9862,23 +9933,23 @@ def get_now_playing(station_id):
                 "message": "Station is offline"
             }), 200
         
-        # Get current track info
+        # Get current track info using your model's method
         current_track = station.get_current_track()
         
         return jsonify({
             "now_playing": {
                 "title": current_track.get("title") if current_track else "Unknown",
-                "artist": current_track.get("artist") if current_track else "Unknown",
+                "artist": current_track.get("artist") if current_track else "Unknown", 
                 "album": current_track.get("album") if current_track else None,
                 "duration": current_track.get("duration") if current_track else None,
-                "started_at": station.current_track_started_at.isoformat() if station.current_track_started_at else None
+                "started_at": station.loop_started_at.isoformat() if station.loop_started_at else None
             }
         }), 200
         
     except Exception as e:
         current_app.logger.error(f"Error fetching now playing for station {station_id}: {str(e)}")
         return jsonify({
-            "error": "Now playing error",
+            "error": "Now playing error", 
             "message": "Unable to get current track information"
         }), 500
 

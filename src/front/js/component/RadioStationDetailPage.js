@@ -149,7 +149,7 @@ const RadioStationDetailPage = () => {
     const audio = audioRef.current;
     const audioError = audio?.error;
     
-    console.error("❌ Audio error:", e, audioError);
+    console.log("❌ Audio error:", e, audioError);
     
     let errorMessage = "Unknown audio error";
     let canRetry = false;
@@ -421,75 +421,85 @@ const RadioStationDetailPage = () => {
 
   // ENHANCED audio element setup with better Cloudinary support
   const setupAudioElement = useCallback(() => {
-    const audioUrl = getAudioUrl();
-    if (!audioUrl) {
-        console.error("❌ No audio URL available for setup");
-        setAudioError("No audio file available for this station");
-        return null;
-    }
+  const audioUrl = getAudioUrl();
+  if (!audioUrl) {
+    console.error("❌ No audio URL available for setup");
+    setAudioError("No audio file available for this station");
+    return null;
+  }
 
-    console.log("🎵 Setting up audio with Cloudinary URL:", audioUrl);
+  console.log("🎵 Setting up audio with URL:", audioUrl);
 
-    const audio = new Audio();
-    
-    // Enhanced audio properties for Cloudinary
-    audio.crossOrigin = 'anonymous';
-    audio.preload = 'auto';
-    
-    // Add comprehensive event listeners
-    audio.addEventListener('loadstart', () => {
-        console.log("🔄 Audio loading started");
-        setConnectionStatus('connecting');
-    });
-    
-    audio.addEventListener('canplay', () => {
-        console.log("✅ Audio can play");
-        setConnectionStatus('connected');
-        setAudioLoading(false);
-    });
-    
-    audio.addEventListener('loadeddata', () => {
-        console.log("✅ Audio data loaded");
-    });
+  const audio = new Audio();
+  
+  // Basic audio properties
+  audio.crossOrigin = 'anonymous';
+  audio.preload = 'metadata'; // Changed from 'auto' to reduce bandwidth
+  
+  // Add event listeners with improved error handling
+  audio.addEventListener('loadstart', () => {
+    console.log("🔄 Audio loading started");
+    setConnectionStatus('connecting');
+    setAudioLoading(true);
+  });
+  
+  audio.addEventListener('canplay', () => {
+    console.log("✅ Audio can play");
+    setConnectionStatus('connected');
+    setAudioLoading(false);
+    setAudioError(null); // Clear any previous errors
+  });
+  
+  audio.addEventListener('loadeddata', () => {
+    console.log("✅ Audio data loaded");
+  });
 
-    audio.addEventListener('loadedmetadata', () => {
-        console.log("✅ Audio metadata loaded, duration:", audio.duration);
-    });
+  audio.addEventListener('loadedmetadata', () => {
+    console.log("✅ Audio metadata loaded, duration:", audio.duration);
+  });
+  
+  // IMPROVED: More selective error handling
+  audio.addEventListener('error', (e) => {
+    console.error("❌ Audio error event:", e);
+    console.error("❌ Audio error object:", audio.error);
     
-    audio.addEventListener('error', (e) => {
-        console.error("❌ Audio error event:", e);
-        console.error("❌ Audio error object:", audio.error);
-        
-        let errorMessage = 'Audio failed to load';
-        if (audio.error) {
-            switch (audio.error.code) {
-                case audio.error.MEDIA_ERR_ABORTED:
-                    errorMessage = 'Audio loading was aborted';
-                    break;
-                case audio.error.MEDIA_ERR_NETWORK:
-                    errorMessage = 'Network error while loading audio';
-                    break;
-                case audio.error.MEDIA_ERR_DECODE:
-                    errorMessage = 'Audio format not supported';
-                    break;
-                case audio.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-                    errorMessage = 'Audio source not supported';
-                    break;
-                default:
-                    errorMessage = `Audio error (code: ${audio.error.code})`;
-            }
+    // Only show error if audio is actually broken
+    if (audio.error && audio.readyState === 0) {
+      let errorMessage = 'Audio failed to load';
+      if (audio.error) {
+        switch (audio.error.code) {
+          case audio.error.MEDIA_ERR_ABORTED:
+            errorMessage = 'Audio loading was aborted';
+            break;
+          case audio.error.MEDIA_ERR_NETWORK:
+            errorMessage = 'Network error while loading audio';
+            break;
+          case audio.error.MEDIA_ERR_DECODE:
+            errorMessage = 'Audio format not supported';
+            break;
+          case audio.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = 'Audio source not supported';
+            break;
+          default:
+            errorMessage = `Audio error (code: ${audio.error.code})`;
         }
-        
-        setAudioError(errorMessage);
-        setConnectionStatus('error');
-        setAudioLoading(false);
-    });
+      }
+      
+      // Only set error if we're sure it's broken
+      setAudioError(errorMessage);
+      setConnectionStatus('error');
+      setAudioLoading(false);
+    } else {
+      // Audio might still work despite error
+      console.warn("⚠️ Audio error reported but might still work");
+    }
+  });
 
-    // Set the Cloudinary URL
-    audio.src = audioUrl;
-    
-    return audio;
-  }, [getAudioUrl]);
+  // FIXED: Set the URL directly, no multiple sources needed
+  audio.src = audioUrl;
+  
+  return audio;
+}, [getAudioUrl]);
 
   // Play/pause handlers with error handling
   const handlePlay = useCallback(async () => {
@@ -940,15 +950,16 @@ const RadioStationDetailPage = () => {
 
             {/* Audio Player */}
             <div className="audio-player">
-              <audio
+              {station.stream_url && <audio 
                 ref={audioRef}
                 preload="none"
                 crossOrigin="anonymous"
               >
                 {station.stream_url && <source src={station.stream_url} type="audio/mpeg" />}
                 {station.stream_url && <source src={station.stream_url} type="audio/ogg" />}
+                {station.stream_url && <source src={station.stream_url} type="audio/wav" />}
                 Your browser does not support the audio element.
-              </audio>
+              </audio>}
 
               {/* Error Display */}
               {audioError && (

@@ -54,17 +54,22 @@ const CreateRadioStation = () => {
     const coverInputRef = useRef(null);
     const audioInputRef = useRef(null);
 
-    // Note: Replace with your navigation method
+    // Navigation function - update based on your routing setup
     const navigate = (path) => {
         console.log(`Navigate to: ${path}`);
-        // window.location.href = path; // or your preferred navigation method
+        // For React Router: 
+        // const navigate = useNavigate();
+        // navigate(path);
+        
+        // For manual navigation:
+        window.location.href = path;
     };
 
     // Fetch radio categories from the backend
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001';
+                const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
                 console.log("Fetching categories from:", `${backendUrl}/api/radio/categories`);
 
                 const response = await fetch(`${backendUrl}/api/radio/categories`);
@@ -329,7 +334,8 @@ const CreateRadioStation = () => {
             // Tracklist for royalty compliance
             formData.append("tracklist", JSON.stringify(tracklist));
 
-            const backendUrl = process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || "http://localhost:3001";
+            // Updated fetch with correct environment variable
+            const backendUrl = process.env.BACKEND_URL || "http://localhost:3001";
             const endpoint = `${backendUrl}/api/profile/radio/create`;
 
             console.log("Creating station with endpoint:", endpoint);

@@ -67,47 +67,7 @@ const BrowseRadioStations = () => {
 
   // 🌐 SMART EXTERNAL FALLBACK STRATEGY
   // Only fetch external stations for genres where you have no content
-  const getGenreFallback = async (genre) => {
-    const genreMapping = {
-      "Lo-Fi": "lofi",
-      "Jazz": "jazz",
-      "Electronic": "electronic",
-      "Hip Hop": "hip-hop",
-      "Rock": "rock",
-      "Pop": "pop",
-      "Classical": "classical",
-      "Country": "country",
-      "R&B": "rnb",
-      "Reggae": "reggae"
-    };
-
-    try {
-      const searchTerm = genreMapping[genre] || genre.toLowerCase();
-      const response = await fetch(
-        `https://de1.api.radio-browser.info/json/stations/search?tag=${searchTerm}&limit=6&hidebroken=true&has_geo_info=true&order=clickcount&reverse=true`,
-        { signal: AbortSignal.timeout(5000) }
-      );
-
-      if (!response.ok) throw new Error(`External API failed: ${response.status}`);
-
-      const data = await response.json();
-      return data.slice(0, 6).map(station => ({
-        id: `external_${station.stationuuid}`,
-        name: station.name,
-        genre: genre,
-        description: `${station.country || 'Global'} ${genre} station`,
-        image: station.favicon || '/default-radio-icon.png',
-        stream_url: station.url_resolved,
-        creator_name: station.country || 'Global Radio',
-        is_live: true,
-        isExternal: true,
-        followers_count: Math.floor(station.clickcount / 100) || 0
-      }));
-    } catch (error) {
-      console.error(`Failed to get ${genre} fallback:`, error);
-      return [];
-    }
-  };
+ 
 
   // 📡 FETCH YOUR REAL USER STATIONS
   const fetchUserStations = async () => {
@@ -157,25 +117,7 @@ const BrowseRadioStations = () => {
       const uncoveredGenres = genres.filter(g => !coveredGenres.has(g));
 
       // Only fetch external for uncovered genres (limit to prevent overwhelming)
-      if (uncoveredGenres.length > 0) {
-        console.log(`🌐 Fetching fallback for uncovered genres: ${uncoveredGenres.slice(0, 8).join(', ')}`);
-        
-        const externalPromises = uncoveredGenres
-          .slice(0, 8) // Limit to 8 genres to avoid API overload
-          .map(genre => getGenreFallback(genre));
-        
-        try {
-          const externalResults = await Promise.allSettled(externalPromises);
-          const allExternal = externalResults
-            .filter(result => result.status === 'fulfilled')
-            .flatMap(result => result.value);
-          
-          setExternalStations(allExternal);
-          console.log(`🌐 Loaded ${allExternal.length} external fallback stations`);
-        } catch (error) {
-          console.log('External fallback failed, continuing with seed only');
-        }
-      }
+     
 
       setLoading(false);
     };
