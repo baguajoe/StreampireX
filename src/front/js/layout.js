@@ -26,8 +26,9 @@ import AlbumDetailPage from "./pages/AlbumDetailPage";
 import VideoChannelDashboard from "./pages/VideoChannelDashboard";
 import VideoChannelProfile from "./pages/VideoChannelProfile";
 import MyVideoChannel from "./pages/MyVideoChannel";
-import VideoUpload from "./pages/VideoUpload";
 
+import VideoUpload from "./pages/VideoUpload";
+import VideoDetails from "./component/VideoDetails";
 import RadioStationDashboard from "./pages/RadioStationDashboard";
 import RadioStationPage from "./pages/RadioStations";
 import CreateRadioStation from "./pages/CreateRadioStation";
@@ -124,6 +125,7 @@ useEffect(() => {
               <Route path="/my-channel" element={<MyVideoChannel />} />
               <Route path="/upload-video" element={<VideoUpload />} />
               <Route path="/video-editor" element={<VideoEditor />} />
+              <Route path="/video-details/:id" element={<VideoDetails />} />
               
               {/* 📊 Dashboards */}
               <Route path="/creator-dashboard" element={<CreatorDashboard />} />

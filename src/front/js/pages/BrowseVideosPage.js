@@ -595,11 +595,13 @@ const BrowseVideosPage = () => {
           <div className="podcast-scroll-row">
             {videos.map((video) => (
               <div key={video.id} className="video-card">
+                <Link to={`/video-details/${video.id}`}>
                 <img
                   src={video.thumbnail_url || '/placeholder-thumbnail.jpg'}
                   alt={video.title}
                   className="video-thumbnail"
                 />
+                </Link>
                 <div className="video-content">
                   <h3 className="video-title">{video.title}</h3>
 
@@ -691,14 +693,16 @@ const BrowseVideosPage = () => {
                       <h4>Recent Videos:</h4>
                       <div className="preview-videos">
                         {channel.recent_videos.slice(0, 3).map((video) => (
-                          <div key={video.id} className="preview-video">
-                            <img
-                              src={video.thumbnail_url || '/placeholder-thumbnail.jpg'}
-                              alt={video.title}
-                              className="preview-thumbnail"
-                            />
-                            <span className="preview-title">{video.title}</span>
-                          </div>
+                          <Link to={`/video-details/${video.id}`}>
+                            <div key={video.id} className="preview-video">
+                              <img
+                                src={video.thumbnail_url || '/placeholder-thumbnail.jpg'}
+                                alt={video.title}
+                                className="preview-thumbnail"
+                              />
+                              <span className="preview-title">{video.title}</span>
+                            </div>
+                          </Link>
                         ))}
                       </div>
                     </div>
