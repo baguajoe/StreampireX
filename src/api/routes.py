@@ -612,6 +612,209 @@ def get_videos():
         }
     }), 200
 
+@api.route('/video/<int:video_id>', methods=['GET'])
+def get_video_detail(video_id):
+    """Get detailed information about a specific video"""
+    try:
+        video = Video.query.get_or_404(video_id)
+        
+        # Check if video is public or user owns it
+        current_user_id = None
+        try:
+            current_user_id = get_jwt_identity()
+        except:
+            pass  # Not authenticated
+            
+        # If video is not public and user doesn't own it, deny access
+        if not getattr(video, 'is_public', True) and current_user_id != video.user_id:
+            return jsonify({"error": "Video not found or private"}), 404
+        
+        # Get video creator info
+        creator = User.query.get(video.user_id)
+        
+        # Get creator's channel info
+        channel = VideoChannel.query.filter_by(user_id=video.user_id).first()
+        
+        # Increment view count (if not the owner viewing)
+        if current_user_id != video.user_id:
+            if hasattr(video, 'views'):
+                video.views = (video.views or 0) + 1
+            else:
+                # If views field doesn't exist, you might need to add it to your model
+                pass
+            db.session.commit()
+        
+        # Get comments if they exist
+        comments = []
+        try:
+            video_comments = Comment.query.filter_by(
+                content_id=video_id, 
+                content_type="video"
+            ).order_by(desc(Comment.created_at)).limit(50).all()
+            
+            for comment in video_comments:
+                comment_user = User.query.get(comment.user_id)
+                comments.append({
+                    "id": comment.id,
+                    "text": comment.text,
+                    "created_at": comment.created_at.isoformat(),
+                    "user": {
+                        "id": comment_user.id,
+                        "username": comment_user.username,
+                        "display_name": getattr(comment_user, 'display_name', None),
+                        "avatar_url": getattr(comment_user, 'profile_picture', None) or getattr(comment_user, 'avatar_url', None)
+                    }
+                })
+        except Exception as e:
+            print(f"Error loading comments: {e}")
+            
+        # Format video data
+        video_data = {
+            "id": video.id,
+            "title": video.title,
+            "description": getattr(video, 'description', ''),
+            "file_url": video.file_url,
+            "thumbnail_url": getattr(video, 'thumbnail_url', None),
+            "duration": getattr(video, 'duration', None),
+            "views": getattr(video, 'views', 0),
+            "likes": video.likes or 0,
+            "comments_count": len(comments),
+            "category": getattr(video, 'category', 'Other'),
+            "tags": getattr(video, 'tags', []),
+            "is_public": getattr(video, 'is_public', True),
+            "age_restricted": getattr(video, 'age_restricted', False),
+            "allow_comments": getattr(video, 'allow_comments', True),
+            "allow_likes": getattr(video, 'allow_likes', True),
+            "created_at": video.uploaded_at.isoformat() if hasattr(video, 'uploaded_at') else video.created_at.isoformat(),
+            
+            # Creator information
+            "creator": {
+                "id": creator.id,
+                "username": creator.username,
+                "display_name": getattr(creator, 'display_name', None),
+                "avatar_url": getattr(creator, 'profile_picture', None) or getattr(creator, 'avatar_url', None)
+            },
+            
+            # Channel information
+            "channel": {
+                "id": channel.id if channel else None,
+                "name": channel.channel_name if channel else f"{creator.username}'s Channel",
+                "subscriber_count": channel.subscriber_count if channel else 0,
+                "is_verified": getattr(channel, 'is_verified', False) if channel else False
+            },
+            
+            # Comments
+            "comments": comments,
+            
+            # User interaction status (if authenticated)
+            "user_has_liked": False,
+            "user_has_subscribed": False
+        }
+        
+        # Check user interaction status if authenticated
+        if current_user_id:
+            # Check if user has liked this video
+            user_like = VideoLike.query.filter_by(
+                user_id=current_user_id, 
+                video_id=video_id
+            ).first() if hasattr(locals(), 'VideoLike') else None
+            video_data["user_has_liked"] = bool(user_like)
+            
+            # Check if user has subscribed to channel
+            if channel:
+                subscription = ChannelSubscription.query.filter_by(
+                    subscriber_id=current_user_id,
+                    channel_id=channel.id
+                ).first() if hasattr(locals(), 'ChannelSubscription') else None
+                video_data["user_has_subscribed"] = bool(subscription)
+        
+        return jsonify(video_data), 200
+        
+    except Exception as e:
+        print(f"Error fetching video detail: {e}")
+        return jsonify({"error": "Video not found"}), 404
+
+
+@api.route('/video/<int:video_id>', methods=['DELETE'])
+@jwt_required()
+def delete_video_by_id(video_id):
+    """Delete a video by ID (only by owner)"""
+    try:
+        user_id = get_jwt_identity()
+        video = Video.query.filter_by(id=video_id, user_id=user_id).first()
+        
+        if not video:
+            return jsonify({"error": "Video not found or not authorized"}), 404
+        
+        # Delete the video record
+        db.session.delete(video)
+        db.session.commit()
+        
+        return jsonify({"message": "Video deleted successfully"}), 200
+        
+    except Exception as e:
+        print(f"Error deleting video: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to delete video"}), 500
+
+
+@api.route('/video/<int:video_id>/like', methods=['POST'])
+@jwt_required()
+def toggle_video_like(video_id):
+    """Toggle like/unlike on a video"""
+    try:
+        user_id = get_jwt_identity()
+        video = Video.query.get_or_404(video_id)
+        
+        # Try to find existing like (you might need to create VideoLike model)
+        # For now, just increment/decrement the likes count
+        
+        # This is a simplified version - you should implement proper like tracking
+        video.likes = (video.likes or 0) + 1
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Video liked",
+            "likes": video.likes
+        }), 200
+        
+    except Exception as e:
+        print(f"Error toggling video like: {e}")
+        return jsonify({"error": "Failed to like video"}), 500
+
+@api.route('/video/user', methods=['GET'])
+@jwt_required()
+def get_user_videos():
+    """Get all videos for the current authenticated user"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Get all videos by this user
+        videos = Video.query.filter_by(user_id=current_user_id).all()
+        
+        # Serialize the videos
+        video_list = [{
+            'id': video.id,
+            'title': video.title,
+            'description': video.description,
+            'file_url': video.file_url,
+            'thumbnail_url': video.thumbnail_url,
+            'duration': video.duration,
+            'views': video.views,
+            'likes': video.likes,
+            'uploaded_at': video.uploaded_at.isoformat() if video.uploaded_at else None,
+            'is_public': video.is_public,
+            'category': video.category
+        } for video in videos]
+        
+        return jsonify({
+            'videos': video_list,
+            'total': len(video_list)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @api.route('/video/channels/browse', methods=['GET'])
 def browse_channels():
     """Get all public video channels for browsing"""

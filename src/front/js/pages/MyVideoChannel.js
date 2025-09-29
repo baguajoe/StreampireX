@@ -75,18 +75,18 @@ const MyVideoChannel = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setVideos(data);
+        setVideos(data.videos);
         
         // Calculate video stats
-        const totalViews = data.reduce((sum, video) => sum + (video.views || 0), 0);
-        const totalLikes = data.reduce((sum, video) => sum + (video.likes || 0), 0);
-        const topVideoViews = Math.max(...data.map(v => v.views || 0), 0);
+        const totalViews = data.videos.reduce((sum, video) => sum + (video.views || 0), 0);
+        const totalLikes = data.videos.reduce((sum, video) => sum + (video.likes || 0), 0);
+        const topVideoViews = Math.max(...data.videos.map(v => v.views || 0), 0);
         
         setChannelStats(prev => ({
           ...prev,
           totalViews,
           totalLikes,
-          totalVideos: data.length,
+          totalVideos: data.videos.length,
           topVideoViews
         }));
       }
@@ -439,6 +439,8 @@ const MyVideoChannel = () => {
                 {getSortedContent().map((video) => (
                   <div key={video.id} className="content-card video-card">
                     <div className="content-thumbnail">
+                      <Link 
+                      to={`/video-details/${video.id}`}>
                       <img 
                         src={video.thumbnail_url || '/placeholder-thumbnail.jpg'} 
                         alt={video.title}
@@ -447,6 +449,7 @@ const MyVideoChannel = () => {
                       <div className="duration-badge">
                         {formatDuration(video.duration)}
                       </div>
+                      </Link>
                       <div className="content-actions">
                         <button 
                           className="action-btn edit"
@@ -471,7 +474,8 @@ const MyVideoChannel = () => {
                         </button>
                       </div>
                     </div>
-                    
+                    <Link 
+                      to={`/video-details/${video.id}`}>
                     <div className="content-info">
                       <h3 className="content-title">{video.title}</h3>
                       <div className="content-stats">
@@ -483,6 +487,7 @@ const MyVideoChannel = () => {
                         {new Date(video.created_at).toLocaleDateString()}
                       </div>
                     </div>
+                    </Link>
                   </div>
                 ))}
               </div>
