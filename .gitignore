@@ -21,3 +21,4 @@ render.yaml
 !webpack.config.js
 __pycache__/
 *.pyc
+venv/
