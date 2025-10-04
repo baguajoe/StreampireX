@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import '../../styles/VideoEditorComponent.css'; // Add this line
 import {
   Play, Pause, Square, RotateCcw, Download, Upload, Volume2, VolumeX,
   Eye, EyeOff, Lock, Unlock, Plus, Trash2, Scissors, Copy, Move, Settings,
   Music, Video, AudioWaveform, Save, Youtube, Instagram, Facebook, Twitter,
-  ChevronDown, ChevronUp, Layers, Zap, Filter,
+  ChevronDown, ChevronUp, Layers, Zap, Filter, Folder, List,
   Palette, Tv, Info, MousePointer, Hand, Type,
   Circle, Pen, Eraser, Crop, RotateCw, FlipHorizontal,
   ZoomIn, ZoomOut, Grid, Minimize2, Maximize2, MoreVertical, X, Crown, Star, Bolt,
@@ -135,6 +136,123 @@ const getAudioPresets = async () => {
     console.error('Error fetching audio presets:', error);
     return {};
   }
+};
+
+const MediaBrowser = ({ onFileSelect, onClose }) => {
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    const processedFiles = files.map(file => ({
+      id: Date.now() + Math.random(),
+      name: file.name,
+      type: file.type.startsWith('video/') ? 'video'
+        : file.type.startsWith('audio/') ? 'audio'
+          : 'image',
+      size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+      file: file,
+      url: URL.createObjectURL(file)
+    }));
+
+    setSelectedFiles(prev => [...prev, ...processedFiles]);
+  };
+
+  return (
+    <div className="media-browser-overlay">
+      <div className="media-browser-modal">
+        <div className="media-browser-header">
+          <h3>Media Browser</h3>
+          <div className="browser-controls">
+            <button onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
+              {viewMode === 'grid' ? <List size={16} /> : <Grid size={16} />}
+            </button>
+            <button onClick={onClose}><X size={16} /></button>
+          </div>
+        </div>
+
+        <div className="media-browser-toolbar">
+          <label className="import-files-btn">
+            <Upload size={14} />
+            Import Files
+            <input
+              type="file"
+              multiple
+              accept="video/*,audio/*,image/*"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
+          </label>
+        </div>
+
+        <div className={`media-browser-content ${viewMode}`}>
+          {selectedFiles.map(file => (
+            <div
+              key={file.id}
+              className="media-browser-item"
+              onClick={() => onFileSelect(file)}
+            >
+              <div className="media-thumbnail">
+                {file.type === 'video' && <Video size={32} />}
+                {file.type === 'audio' && <AudioWaveform size={32} />}
+                {file.type === 'image' && <Image size={32} />}
+              </div>
+              <div className="media-info">
+                <div className="media-name">{file.name}</div>
+                <div className="media-meta">{file.size}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
+  const [inPoint, setInPoint] = useState(0);
+  const [outPoint, setOutPoint] = useState(100);
+  const videoRef = useRef(null);
+
+  return (
+    <div className="source-monitor-panel">
+      <div className="source-monitor-header">
+        <h4>Source Monitor</h4>
+        <button onClick={onClose}><X size={14} /></button>
+      </div>
+
+      <div className="source-preview">
+        {selectedMedia?.type === 'video' ? (
+          <video ref={videoRef} src={selectedMedia.url} controls />
+        ) : selectedMedia?.type === 'audio' ? (
+          <div className="audio-preview">
+            <AudioWaveform size={48} />
+            <audio src={selectedMedia.url} controls />
+          </div>
+        ) : (
+          <img src={selectedMedia?.url} alt="preview" />
+        )}
+      </div>
+
+      <div className="trim-controls">
+        <div className="trim-points">
+          <label>
+            In: <input type="number" value={inPoint} onChange={(e) => setInPoint(e.target.value)} />
+          </label>
+          <label>
+            Out: <input type="number" value={outPoint} onChange={(e) => setOutPoint(e.target.value)} />
+          </label>
+        </div>
+
+        <button
+          className="add-to-timeline-btn"
+          onClick={() => onAddToTimeline(selectedMedia, inPoint, outPoint)}
+        >
+          Add to Timeline
+        </button>
+      </div>
+    </div>
+  );
 };
 
 const VideoEditorComponent = () => {
@@ -302,6 +420,10 @@ const VideoEditorComponent = () => {
   const [draggedEffect, setDraggedEffect] = useState(null);
   const [audioPresets, setAudioPresets] = useState({});
 
+  const [showMediaBrowser, setShowMediaBrowser] = useState(false);
+  const [showSourceMonitor, setShowSourceMonitor] = useState(false);
+  const [sourceMonitorMedia, setSourceMonitorMedia] = useState(null);
+
   // Dropdown states for organized sections
   const [showVideoEffects, setShowVideoEffects] = useState(true);
   const [showAudioEffects, setShowAudioEffects] = useState(true);
@@ -312,6 +434,16 @@ const VideoEditorComponent = () => {
   const [showDistortion, setShowDistortion] = useState(true);
   const [showGenerator, setShowGenerator] = useState(true);
   const [showKeying, setShowKeying] = useState(true);
+
+  const [mediaLibrary, setMediaLibrary] = useState([
+    { id: 1, name: 'Interview_Setup.mp4', type: 'video', duration: '5:23' },
+    { id: 2, name: 'Background_Music.wav', type: 'audio', duration: '3:45' },
+    { id: 3, name: 'Logo_Animation.mov', type: 'video', duration: '0:08' },
+    { id: 4, name: 'Overlay_Graphics.png', type: 'image', duration: '0:00' },
+    { id: 5, name: 'Voice_Over.wav', type: 'audio', duration: '2:15' },
+    { id: 6, name: 'B_Roll_Footage.mp4', type: 'video', duration: '8:42' }
+  ]);
+  const [draggedMedia, setDraggedMedia] = useState(null);
 
   const timelineRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -536,15 +668,7 @@ const VideoEditorComponent = () => {
     { id: 'flash', name: 'Flash', icon: Bolt, duration: 0.3, category: 'light' }
   ];
 
-  // Media library
-  const [mediaLibrary] = useState([
-    { id: 1, name: 'Interview_Setup.mp4', type: 'video', duration: '5:23' },
-    { id: 2, name: 'Background_Music.wav', type: 'audio', duration: '3:45' },
-    { id: 3, name: 'Logo_Animation.mov', type: 'video', duration: '0:08' },
-    { id: 4, name: 'Overlay_Graphics.png', type: 'image', duration: '0:00' },
-    { id: 5, name: 'Voice_Over.wav', type: 'audio', duration: '2:15' },
-    { id: 6, name: 'B_Roll_Footage.mp4', type: 'video', duration: '8:42' }
-  ]);
+
 
   // Playback controls
   const playPause = () => setIsPlaying(!isPlaying);
@@ -1069,6 +1193,140 @@ const VideoEditorComponent = () => {
     setDragOffset(0);
   };
 
+  // Handle file import
+  const handleFileImport = (e) => {
+    const files = Array.from(e.target.files);
+
+    files.forEach(file => {
+      const fileType = file.type.startsWith('video/') ? 'video'
+        : file.type.startsWith('audio/') ? 'audio'
+          : 'image';
+
+      // Estimate duration (in real app, you'd use actual file metadata)
+      const estimatedDuration = fileType === 'image' ? '0:00' : '0:30';
+
+      const newMediaItem = {
+        id: Date.now() + Math.random(),
+        name: file.name,
+        type: fileType,
+        duration: estimatedDuration,
+        file: file
+      };
+
+      setMediaLibrary(prev => [...prev, newMediaItem]);
+    });
+
+    // Reset file input
+    e.target.value = '';
+  };
+
+  // Handle media item drag from library
+  const handleMediaDragStart = (e, mediaItem) => {
+    setDraggedMedia(mediaItem);
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+
+  // Handle media drop on timeline
+  const handleMediaDrop = (e, trackId) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!draggedMedia) return;
+
+    const track = tracks.find(t => t.id === trackId);
+    if (!track || track.locked) return;
+
+    // Calculate drop position
+    const rect = timelineRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const scrollLeft = e.currentTarget.scrollLeft || 0;
+    const adjustedX = x + scrollLeft;
+    const pixelsPerSecond = 2 * zoom;
+    const dropTime = adjustedX / pixelsPerSecond;
+
+    // Determine duration
+    let durationSeconds = 30; // default
+    if (draggedMedia.duration) {
+      const parts = draggedMedia.duration.split(':');
+      durationSeconds = parts.length === 2
+        ? parseInt(parts[0]) * 60 + parseInt(parts[1])
+        : 30;
+    }
+
+    // Images get 5 second default duration
+    if (draggedMedia.type === 'image') {
+      durationSeconds = 5;
+    }
+
+    // Create new clip
+    const newClip = {
+      id: Date.now(),
+      title: draggedMedia.name,
+      startTime: snapToGrid(Math.max(0, dropTime)),
+      duration: durationSeconds,
+      type: draggedMedia.type,
+      mediaUrl: draggedMedia.url || null, // Store the media URL
+      effects: [],
+      keyframes: [],
+      compositing: {
+        opacity: 100,
+        blendMode: 'normal',
+        position: { x: 0, y: 0 },
+        scale: { x: 100, y: 100 },
+        rotation: 0,
+        anchor: { x: 50, y: 50 }
+      }
+    };
+
+    // Add clip to track
+    setTracks(prevTracks =>
+      prevTracks.map(t =>
+        t.id === trackId
+          ? { ...t, clips: [...t.clips, newClip] }
+          : t
+      )
+    );
+
+    console.log(`✅ Added ${draggedMedia.name} to ${track.name} at ${newClip.startTime.toFixed(2)}s`);
+    setDraggedMedia(null);
+  };
+
+  // Delete selected clip
+  const deleteClip = (clipId) => {
+    setTracks(prevTracks =>
+      prevTracks.map(track => ({
+        ...track,
+        clips: track.clips.filter(clip => clip.id !== clipId)
+      }))
+    );
+
+    if (selectedClip?.id === clipId) {
+      setSelectedClip(null);
+    }
+
+    console.log(`🗑️ Deleted clip ${clipId}`);
+  };
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Delete key - remove selected clip
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedClip) {
+        e.preventDefault();
+        deleteClip(selectedClip.id);
+      }
+
+      // Escape key - deselect
+      if (e.key === 'Escape') {
+        setSelectedClip(null);
+        setSelectedTransition(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedClip, selectedTransition]);
+
   return (
     <div className="video-editor-pro">
       {/* Top Menu Bar */}
@@ -1084,6 +1342,22 @@ const VideoEditorComponent = () => {
         </div>
 
         <div className="menu-section">
+          <button
+            className="workspace-btn"
+            onClick={() => setShowMediaBrowser(true)}
+          >
+            <Folder size={14} />
+            Media Browser
+          </button>
+
+          <button
+            className="workspace-btn"
+            onClick={() => setShowSourceMonitor(true)}
+          >
+            <Monitor size={14} />
+            Source Monitor
+          </button>
+
           <div className="playback-controls-top">
             <button onClick={stop} className="control-btn-small">
               <Square size={14} />
@@ -1515,12 +1789,18 @@ const VideoEditorComponent = () => {
                 className="hidden-file-input"
                 accept="video/*,audio/*,image/*"
                 multiple
+                onChange={handleFileImport}
               />
               <div className="media-list">
                 {mediaLibrary.map(media => {
                   const Icon = media.type === 'video' ? Video : media.type === 'audio' ? AudioWaveform : Image;
                   return (
-                    <div key={media.id} className="media-item">
+                    <div
+                      key={media.id}
+                      className="media-item"
+                      draggable
+                      onDragStart={(e) => handleMediaDragStart(e, media)}
+                    >
                       <Icon size={14} />
                       <div>
                         <div style={{ fontSize: '11px', fontWeight: '500' }}>{media.name}</div>
@@ -1536,327 +1816,392 @@ const VideoEditorComponent = () => {
 
         {/* Center Panel - Preview */}
         <div className="editor-center-panel">
-          <div className="preview-area">
-            <div className="preview-container">
-              <div className="preview-screen">
-                <div className="preview-content">
-                  <div className="preview-placeholder">
-                    <Monitor size={48} />
-                    <p>Program Monitor</p>
-                    <div className="preview-resolution">1920 x 1080 • 30fps</div>
-                    {selectedClip && selectedClip.type === 'video' && (
-                      <div className="preview-overlay-info">
-                        <div className="preview-clip-name">{selectedClip.title}</div>
-                        <div className="preview-compositing-info">
-                          Opacity: {selectedClip.compositing?.opacity || 100}% |
-                          Blend: {selectedClip.compositing?.blendMode || 'normal'} |
-                          Effects: {selectedClip.effects?.length || 0}
-                        </div>
+          {/* SOURCE MONITOR */}
+          <div className="preview-area-container">
+            <div className="preview-area" style={{  padding: '10px' }}>
+              <div className="preview-container">
+                <div style={{
+                  height: '32px',
+                  background: '#2f2f2f',
+                  borderBottom: '1px solid #3a3a3a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0 10px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: '#a7a7a7',
+                  borderRadius: '6px 6px 0 0'
+                }}>
+                  SOURCE MONITOR
+                </div>
+                <div className="preview-screen">
+                  <div className="preview-content">
+                    <div className="preview-placeholder">
+                      <Monitor size={48} />
+                      <p>{sourceMonitorMedia ? sourceMonitorMedia.name : 'Click media to preview'}</p>
+                      <div className="preview-resolution">
+                        {sourceMonitorMedia ? `${sourceMonitorMedia.type} • ${sourceMonitorMedia.duration}` : 'No clip selected'}
                       </div>
-                    )}
-                  </div>
-                  {/* Safe area guides and vectorscope overlay */}
-                  <div className="safe-area-guides">
-                    <div className="safe-area-outer"></div>
-                    <div className="safe-area-inner"></div>
-                    {showColorGrading && (
-                      <div className="vectorscope-overlay">
-                        <div className="vectorscope-circle"></div>
-                        <div className="vectorscope-info">Vectorscope</div>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </div>
+                <div className="preview-controls">
+                  <button className="preview-control-btn">
+                    <ZoomOut size={14} />
+                  </button>
+                  <div className="zoom-display">Fit</div>
+                  <button className="preview-control-btn">
+                    <ZoomIn size={14} />
+                  </button>
+                  <div className="preview-spacer" />
+                </div>
               </div>
-              <div className="preview-controls">
-                <button className="preview-control-btn">
-                  <ZoomOut size={14} />
-                </button>
-                <div className="zoom-display">Fit</div>
-                <button className="preview-control-btn">
-                  <ZoomIn size={14} />
-                </button>
-                <div className="preview-spacer" />
-                <button className="preview-control-btn">
-                  <Grid size={14} />
-                </button>
-                <button className="preview-control-btn" title="Safe Areas">
-                  <Target size={14} />
-                </button>
-                <button className="preview-control-btn">
-                  <Settings size={14} />
-                </button>
+            </div>
+            {/* PROGRAM MONITOR */}
+            <div className="preview-area" style={{  padding: '10px' }}>
+              <div className="preview-container">
+                <div style={{
+                  height: '32px',
+                  background: '#2f2f2f',
+                  borderBottom: '1px solid #3a3a3a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0 10px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'white',
+                  borderRadius: '6px 6px 0 0'
+                }}>
+                  PROGRAM MONITOR
+                </div>
+                <div className="preview-screen">
+                  <div className="preview-content">
+                    <div className="preview-placeholder">
+                      <Monitor size={48} />
+                      <p>Program Monitor</p>
+                      <div className="preview-resolution">1920 x 1080 • 30fps</div>
+                      {selectedClip && selectedClip.type === 'video' && (
+                        <div className="preview-overlay-info">
+                          <div className="preview-clip-name">{selectedClip.title}</div>
+                          <div className="preview-compositing-info">
+                            Opacity: {selectedClip.compositing?.opacity || 100}% |
+                            Blend: {selectedClip.compositing?.blendMode || 'normal'} |
+                            Effects: {selectedClip.effects?.length || 0}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {/* Safe area guides and vectorscope overlay */}
+                    <div className="safe-area-guides">
+                      <div className="safe-area-outer"></div>
+                      <div className="safe-area-inner"></div>
+                      {showColorGrading && (
+                        <div className="vectorscope-overlay">
+                          <div className="vectorscope-circle"></div>
+                          <div className="vectorscope-info">Vectorscope</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="preview-controls">
+                  <button className="preview-control-btn">
+                    <ZoomOut size={14} />
+                  </button>
+                  <div className="zoom-display">Fit</div>
+                  <button className="preview-control-btn">
+                    <ZoomIn size={14} />
+                  </button>
+                  <div className="preview-spacer" />
+                  <button className="preview-control-btn">
+                    <Grid size={14} />
+                  </button>
+                  <button className="preview-control-btn" title="Safe Areas">
+                    <Target size={14} />
+                  </button>
+                  <button className="preview-control-btn">
+                    <Settings size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Timeline Section */}
-          <div className="editor-timeline-section">
-            {/* Timeline Controls */}
-            <div className="timeline-controls-bar">
-              <div className="timeline-zoom-controls">
-                <button className="zoom-btn" onClick={() => setZoom(Math.max(0.1, zoom - 0.2))}>
-                  <ZoomOut size={12} />
-                </button>
-                <div className="zoom-slider-container">
-                  <input
-                    type="range"
-                    min="0.1"
-                    max="5"
-                    step="0.1"
-                    value={zoom}
-                    onChange={(e) => setZoom(parseFloat(e.target.value))}
-                    className="zoom-slider-pro"
-                  />
+           <div className="d-flex">
+             {showMediaBrowser && (
+                     <MediaBrowser
+                       onFileSelect={(file) => {
+              setMediaLibrary(prev => [...prev, file]);
+              setSourceMonitorMedia(file);
+              setShowSourceMonitor(true);
+                       }}
+                       onClose={() => setShowMediaBrowser(false)}
+                     />
+                   )}
+                       <div className="editor-timeline-section">
+              {/* Timeline Controls */}
+              <div className="timeline-controls-bar">
+                <div className="timeline-zoom-controls">
+                  <button className="zoom-btn" onClick={() => setZoom(Math.max(0.1, zoom - 0.2))}>
+                    <ZoomOut size={12} />
+                  </button>
+                  <div className="zoom-slider-container">
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="5"
+                      step="0.1"
+                      value={zoom}
+                      onChange={(e) => setZoom(parseFloat(e.target.value))}
+                      className="zoom-slider-pro"
+                    />
+                  </div>
+                  <button className="zoom-btn" onClick={() => setZoom(Math.min(5, zoom + 0.2))}>
+                    <ZoomIn size={12} />
+                  </button>
+                  <div className="zoom-display-pro">{Math.round(zoom * 100)}%</div>
                 </div>
-                <button className="zoom-btn" onClick={() => setZoom(Math.min(5, zoom + 0.2))}>
-                  <ZoomIn size={12} />
-                </button>
-                <div className="zoom-display-pro">{Math.round(zoom * 100)}%</div>
-              </div>
-
-              <div className="timeline-options">
-                <button
-                  className={`timeline-option-btn ${showSnapToGrid ? 'active' : ''}`}
-                  onClick={() => setShowSnapToGrid(!showSnapToGrid)}
-                >
-                  <Grid size={12} />
-                  Snap ({snapGridSize}s)
-                </button>
-
-                <select
-                  value={snapGridSize}
-                  onChange={(e) => setSnapGridSize(parseInt(e.target.value))}
-                  className="snap-grid-select"
-                >
-                  <option value={1}>1s</option>
-                  <option value={5}>5s</option>
-                  <option value={10}>10s</option>
-                  <option value={30}>30s</option>
-                </select>
-
-                <button
-                  className={`timeline-option-btn ${showAudioWaveforms ? 'active' : ''}`}
-                  onClick={() => setShowAudioWaveforms(!showAudioWaveforms)}
-                >
-                  <AudioWaveform size={12} />
-                  Waveforms
-                </button>
-                <button
-                  className={`timeline-option-btn ${showKeyframes ? 'active' : ''}`}
-                  onClick={() => setShowKeyframes(!showKeyframes)}
-                >
-                  <Activity size={12} />
-                  Keyframes
-                </button>
-              </div>
-            </div>
-
-            {/* Timeline Main */}
-            <div className="timeline-main-container">
-              {/* Ruler */}
-              <div className="timeline-ruler-container">
-                <div className="track-headers-spacer" />
-                <div className="timeline-ruler-scroll">
-                  <div
-                    className="timeline-ruler"
-                    style={{ width: `${duration * 2 * zoom}px` }}
+                <div className="timeline-options">
+                  <button
+                    className={`timeline-option-btn ${showSnapToGrid ? 'active' : ''}`}
+                    onClick={() => setShowSnapToGrid(!showSnapToGrid)}
                   >
-                    {generateTimeMarkers()}
+                    <Grid size={12} />
+                    Snap ({snapGridSize}s)
+                  </button>
+                  <select
+                    value={snapGridSize}
+                    onChange={(e) => setSnapGridSize(parseInt(e.target.value))}
+                    className="snap-grid-select"
+                  >
+                    <option value={1}>1s</option>
+                    <option value={5}>5s</option>
+                    <option value={10}>10s</option>
+                    <option value={30}>30s</option>
+                  </select>
+                  <button
+                    className={`timeline-option-btn ${showAudioWaveforms ? 'active' : ''}`}
+                    onClick={() => setShowAudioWaveforms(!showAudioWaveforms)}
+                  >
+                    <AudioWaveform size={12} />
+                    Waveforms
+                  </button>
+                  <button
+                    className={`timeline-option-btn ${showKeyframes ? 'active' : ''}`}
+                    onClick={() => setShowKeyframes(!showKeyframes)}
+                  >
+                    <Activity size={12} />
+                    Keyframes
+                  </button>
+                </div>
+              </div>
+              {/* Timeline Main */}
+              <div className="timeline-main-container">
+                {/* Ruler */}
+                <div className="timeline-ruler-container">
+                  <div className="track-headers-spacer" />
+                  <div className="timeline-ruler-scroll">
+                    <div
+                      className="timeline-ruler"
+                      style={{ width: `${duration * 2 * zoom}px` }}
+                    >
+                      {generateTimeMarkers()}
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Tracks */}
-              <div className="timeline-tracks-container">
-                <div className="track-headers-column">
-                  {tracks.sort((a, b) => b.zIndex - a.zIndex).map(track => (
-                    <div key={track.id} className="track-header-container">
-                      <div className="track-controls-left">
-                        <div className="track-label-container">
-                          <div className="track-type-icon-container">
-                            <div className="track-type-icon">
-                              {track.type === 'video' ? <Video size={14} /> : <AudioWaveform size={14} />}
+                {/* Tracks */}
+                <div className="timeline-tracks-container">
+                  <div className="track-headers-column">
+                    {tracks.sort((a, b) => b.zIndex - a.zIndex).map(track => (
+                      <div key={track.id} className="track-header-container">
+                        <div className="track-controls-left">
+                          <div className="track-label-container">
+                            <div className="track-type-icon-container">
+                              <div className="track-type-icon">
+                                {track.type === 'video' ? <Video size={14} /> : <AudioWaveform size={14} />}
+                              </div>
+                              <button
+                                className={`track-lock-btn ${track.locked ? 'locked' : ''}`}
+                                onClick={() => toggleTrackLock(track.id)}
+                                title={track.locked ? 'Unlock Track' : 'Lock Track'}
+                              >
+                                {track.locked ? <Lock size={10} /> : <Unlock size={10} />}
+                              </button>
                             </div>
+                            <div className="track-info">
+                              <div className="track-name-label">{track.name}</div>
+                              <div className="track-z-index">Layer {track.zIndex}</div>
+                            </div>
+                          </div>
+                          <div className="track-control-buttons">
                             <button
-                              className={`track-lock-btn ${track.locked ? 'locked' : ''}`}
-                              onClick={() => toggleTrackLock(track.id)}
-                              title={track.locked ? 'Unlock Track' : 'Lock Track'}
+                              className="track-layer-btn"
+                              onClick={() => moveTrackUp(track.id)}
+                              title="Move layer up"
                             >
-                              {track.locked ? <Lock size={10} /> : <Unlock size={10} />}
+                              <ChevronUp size={10} />
+                            </button>
+                            <button
+                              className="track-layer-btn"
+                              onClick={() => moveTrackDown(track.id)}
+                              title="Move layer down"
+                            >
+                              <ChevronDown size={10} />
+                            </button>
+                            <button
+                              className={`track-toggle-btn ${track.muted ? '' : 'active'}`}
+                              onClick={() => setTracks(tracks.map(t => t.id === track.id ? { ...t, muted: !t.muted } : t))}
+                            >
+                              {track.muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                            </button>
+                            <button
+                              className={`track-toggle-btn ${track.visible ? 'active' : ''}`}
+                              onClick={() => setTracks(tracks.map(t => t.id === track.id ? { ...t, visible: !t.visible } : t))}
+                            >
+                              {track.visible ? <Eye size={12} /> : <EyeOff size={12} />}
+                            </button>
+                            <button
+                              className={`track-toggle-btn ${track.locked ? 'active' : ''}`}
+                              onClick={() => setTracks(tracks.map(t => t.id === track.id ? { ...t, locked: !t.locked } : t))}
+                            >
+                              {track.locked ? <Lock size={12} /> : <Unlock size={12} />}
                             </button>
                           </div>
-                          <div className="track-info">
-                            <div className="track-name-label">{track.name}</div>
-                            <div className="track-z-index">Layer {track.zIndex}</div>
-                          </div>
-                        </div>
-                        <div className="track-control-buttons">
-                          <button
-                            className="track-layer-btn"
-                            onClick={() => moveTrackUp(track.id)}
-                            title="Move layer up"
-                          >
-                            <ChevronUp size={10} />
-                          </button>
-                          <button
-                            className="track-layer-btn"
-                            onClick={() => moveTrackDown(track.id)}
-                            title="Move layer down"
-                          >
-                            <ChevronDown size={10} />
-                          </button>
-                          <button
-                            className={`track-toggle-btn ${track.muted ? '' : 'active'}`}
-                            onClick={() => setTracks(tracks.map(t => t.id === track.id ? { ...t, muted: !t.muted } : t))}
-                          >
-                            {track.muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
-                          </button>
-                          <button
-                            className={`track-toggle-btn ${track.visible ? 'active' : ''}`}
-                            onClick={() => setTracks(tracks.map(t => t.id === track.id ? { ...t, visible: !t.visible } : t))}
-                          >
-                            {track.visible ? <Eye size={12} /> : <EyeOff size={12} />}
-                          </button>
-                          <button
-                            className={`track-toggle-btn ${track.locked ? 'active' : ''}`}
-                            onClick={() => setTracks(tracks.map(t => t.id === track.id ? { ...t, locked: !t.locked } : t))}
-                          >
-                            {track.locked ? <Lock size={12} /> : <Unlock size={12} />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="timeline-tracks-scroll">
-                  <div
-                    className="timeline-tracks-content"
-                    style={{ width: `${duration * 2 * zoom}px` }}
-                    ref={timelineRef}
-                    onClick={handleTimelineClick}
-                  >
-                    {/* Playhead */}
-                    <div
-                      className="timeline-playhead"
-                      style={{ left: `${currentTime * 2 * zoom}px` }}
-                    />
-
-                    {/* Track Rows */}
-                    {tracks.sort((a, b) => b.zIndex - a.zIndex).map((track, index) => (
-                      <div key={track.id} className="timeline-track-row">
-                        <div
-                          className="track-timeline-area"
-                          onDrop={(e) => handleTimelineDrop(e, track.id)}
-                          onDragOver={handleTimelineDragOver}
-                        >
-                          {track.clips.length === 0 ? (
-                            <div className="empty-track-message">
-                              Drop media here
-                            </div>
-                          ) : (
-                            <>
-                              {track.clips.map(clip => {
-                                const leftPosition = clip.startTime * 2 * zoom;
-                                const width = clip.duration * 2 * zoom;
-
-                                return (
-                                  <div
-                                    key={clip.id}
-                                    className={`timeline-clip ${selectedClip?.id === clip.id ? 'selected' : ''} ${track.locked ? 'locked' : ''}`}
-                                    style={{
-                                      left: `${leftPosition}px`,
-                                      width: `${width}px`,
-                                      backgroundColor: track.color,
-                                      opacity: clip.compositing?.opacity ? clip.compositing.opacity / 100 : 1,
-                                      cursor: track.locked ? 'not-allowed' : 'grab'
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedClip(clip);
-                                      setSelectedTransition(null);
-                                    }}
-                                    onMouseDown={(e) => handleClipMouseDown(e, clip, track.id)}
-                                    onDrop={(e) => handleEffectDrop(e, clip.id)}
-                                    onDragOver={handleEffectDragOver}
-                                  >
-                                    <div className="clip-content-timeline">
-                                      <div className="clip-title-timeline">
-                                        {clip.title}
-                                      </div>
-                                      <div className="clip-compositing-info">
-                                        {clip.compositing?.blendMode && clip.compositing.blendMode !== 'normal' && (
-                                          <span className="blend-mode-indicator">
-                                            {clip.compositing.blendMode}
-                                          </span>
-                                        )}
-                                        {clip.effects && clip.effects.length > 0 && (
-                                          <div className="clip-effects-indicator">
-                                            <Sparkles size={10} />
-                                            {clip.effects.length}
-                                          </div>
-                                        )}
-                                      </div>
-                                      {track.type === 'audio' && showAudioWaveforms && (
-                                        <div className="audio-waveform">
-                                          <AudioWaveform size={12} />
-                                        </div>
-                                      )}
-                                      {showKeyframes && clip.keyframes && clip.keyframes.length > 0 && (
-                                        <div className="keyframe-indicators">
-                                          {clip.keyframes.map((kf, idx) => (
-                                            <div
-                                              key={idx}
-                                              className="keyframe-diamond"
-                                              style={{ left: `${(kf.time / clip.duration) * 100}%` }}
-                                            />
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-
-                              {/* Render Transitions */}
-                              {(track.transitions || []).map(transition => {
-                                const transitionData = transitions.find(t => t.id === transition.type);
-                                const Icon = transitionData?.icon || Layers;
-                                const leftPosition = transition.startTime * 2 * zoom;
-                                const width = transition.duration * 2 * zoom;
-
-                                return (
-                                  <div
-                                    key={transition.id}
-                                    className={`timeline-transition ${selectedTransition?.id === transition.id ? 'selected' : ''}`}
-                                    style={{
-                                      left: `${leftPosition}px`,
-                                      width: `${width}px`
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedTransition(transition);
-                                      setSelectedClip(null);
-                                    }}
-                                  >
-                                    <div className="transition-content">
-                                      <Icon size={10} />
-                                      <span className="transition-label">{transitionData?.name}</span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </>
-                          )}
                         </div>
                       </div>
                     ))}
                   </div>
+                  <div className="timeline-tracks-scroll">
+                    <div
+                      className="timeline-tracks-content"
+                      style={{ width: `${duration * 2 * zoom}px` }}
+                      ref={timelineRef}
+                      onClick={handleTimelineClick}
+                    >
+                      {/* Playhead */}
+                      <div
+                        className="timeline-playhead"
+                        style={{ left: `${currentTime * 2 * zoom}px` }}
+                      />
+                      {/* Track Rows */}
+                      {tracks.sort((a, b) => b.zIndex - a.zIndex).map((track, index) => (
+                        <div key={track.id} className="timeline-track-row">
+                          <div
+                            className="track-timeline-area"
+                            onDrop={(e) => {
+                              if (draggedTransition) {
+                                handleTimelineDrop(e, track.id);
+                              } else if (draggedMedia) {
+                                handleMediaDrop(e, track.id);
+                              }
+                            }}
+                            onDragOver={handleTimelineDragOver}
+                          >
+                            {track.clips.length === 0 ? (
+                              <div className="empty-track-message">
+                                Drop media here
+                              </div>
+                            ) : (
+                              <>
+                                {track.clips.map(clip => {
+                                  const leftPosition = clip.startTime * 2 * zoom;
+                                  const width = clip.duration * 2 * zoom;
+                                  return (
+                                    <div
+                                      key={clip.id}
+                                      className={`timeline-clip ${selectedClip?.id === clip.id ? 'selected' : ''} ${track.locked ? 'locked' : ''}`}
+                                      style={{
+                                        left: `${leftPosition}px`,
+                                        width: `${width}px`,
+                                        backgroundColor: track.color,
+                                        opacity: clip.compositing?.opacity ? clip.compositing.opacity / 100 : 1,
+                                        cursor: track.locked ? 'not-allowed' : 'grab'
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedClip(clip);
+                                        setSelectedTransition(null);
+                                      }}
+                                      onMouseDown={(e) => handleClipMouseDown(e, clip, track.id)}
+                                      onDrop={(e) => handleEffectDrop(e, clip.id)}
+                                      onDragOver={handleEffectDragOver}
+                                    >
+                                      <div className="clip-content-timeline">
+                                        <div className="clip-title-timeline">
+                                          {clip.title}
+                                        </div>
+                                        <div className="clip-compositing-info">
+                                          {clip.compositing?.blendMode && clip.compositing.blendMode !== 'normal' && (
+                                            <span className="blend-mode-indicator">
+                                              {clip.compositing.blendMode}
+                                            </span>
+                                          )}
+                                          {clip.effects && clip.effects.length > 0 && (
+                                            <div className="clip-effects-indicator">
+                                              <Sparkles size={10} />
+                                              {clip.effects.length}
+                                            </div>
+                                          )}
+                                        </div>
+                                        {track.type === 'audio' && showAudioWaveforms && (
+                                          <div className="audio-waveform">
+                                            <AudioWaveform size={12} />
+                                          </div>
+                                        )}
+                                        {showKeyframes && clip.keyframes && clip.keyframes.length > 0 && (
+                                          <div className="keyframe-indicators">
+                                            {clip.keyframes.map((kf, idx) => (
+                                              <div
+                                                key={idx}
+                                                className="keyframe-diamond"
+                                                style={{ left: `${(kf.time / clip.duration) * 100}%` }}
+                                              />
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                                {/* Render Transitions */}
+                                {(track.transitions || []).map(transition => {
+                                  const transitionData = transitions.find(t => t.id === transition.type);
+                                  const Icon = transitionData?.icon || Layers;
+                                  const leftPosition = transition.startTime * 2 * zoom;
+                                  const width = transition.duration * 2 * zoom;
+                                  return (
+                                    <div
+                                      key={transition.id}
+                                      className={`timeline-transition ${selectedTransition?.id === transition.id ? 'selected' : ''}`}
+                                      style={{
+                                        left: `${leftPosition}px`,
+                                        width: `${width}px`
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedTransition(transition);
+                                        setSelectedClip(null);
+                                      }}
+                                    >
+                                      <div className="transition-content">
+                                        <Icon size={10} />
+                                        <span className="transition-label">{transitionData?.name}</span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+                       </div>
+           </div>
         </div>
       </div>
 
@@ -2431,6 +2776,8 @@ const VideoEditorComponent = () => {
               <X size={14} />
             </button>
           </div>
+
+
           <div className="mixing-console">
             {tracks.filter(t => t.type === 'audio' || t.clips.some(c => c.type === 'audio')).map(track => (
               <div key={track.id} className="mixer-channel">
@@ -2473,2306 +2820,33 @@ const VideoEditorComponent = () => {
         </div>
       )}
 
-      {/* Comprehensive Styles */}
-      <style jsx>{`
-        /* Enhanced Professional Video Editor Styles */
-        
-        :root {
-          --editor-bg-dark: #1e1e1e;
-          --editor-bg-darker: #181818;
-          --editor-bg-panel: #2d2d30;
-          --editor-bg-hover: #3e3e42;
-          --editor-bg-selected: #0e639c;
-          --editor-border: #3f3f46;
-          --editor-border-light: #4b4b52;
-          
-          --editor-text-primary: #cccccc;
-          --editor-text-secondary: #969696;
-          --editor-text-muted: #6d6d6d;
-          --editor-text-bright: #ffffff;
-          
-          --editor-accent-blue: #007acc;
-          --editor-accent-green: #00d4aa;
-          --editor-accent-red: #ff6b6b;
-          --editor-accent-orange: #ff9500;
-          --editor-accent-purple: #b180d7;
-          --editor-accent-yellow: #ffd700;
-          
-          --timeline-bg: #1e2127;
-          --timeline-ruler: #2a2d35;
-          --timeline-header: #252830;
-          
-          --playhead-color: #ffd700;
-          --playhead-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-          
-          --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.2);
-          --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.3);
-          --shadow-heavy: 0 8px 16px rgba(0, 0, 0, 0.4);
-          
-          --transition-fast: all 0.15s ease;
-          --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .video-editor-pro {
-          width: 100vw;
-          height: 100vh;
-          background: var(--editor-bg-dark);
-          color: var(--editor-text-primary);
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-          font-size: 13px;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-        }
-
-        /* Enhanced Menu Bar */
-        .editor-menu-bar {
-          height: 60px;
-          background: var(--editor-bg-panel);
-          border-bottom: 1px solid var(--editor-border);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0 20px;
-          flex-shrink: 0;
-        }
-
-        .workspace-buttons {
-          display: flex;
-          gap: 8px;
-          margin-right: 20px;
-        }
-
-        .workspace-btn {
-          padding: 8px 12px;
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          color: var(--editor-text-secondary);
-          border-radius: 4px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 12px;
-          transition: var(--transition-fast);
-        }
-
-        .workspace-btn:hover {
-          background: var(--editor-bg-hover);
-          color: var(--editor-text-primary);
-        }
-
-        .workspace-btn.active {
-          background: var(--editor-accent-blue);
-          border-color: var(--editor-accent-blue);
-          color: white;
-        }
-
-        .menu-section {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .project-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .project-info h2 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 500;
-          color: var(--editor-text-bright);
-        }
-
-        .tier-badge-small {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          padding: 4px 8px;
-          background: linear-gradient(135deg, var(--editor-accent-purple), var(--editor-accent-blue));
-          border-radius: 12px;
-          font-size: 11px;
-          font-weight: 500;
-          text-transform: uppercase;
-          color: white;
-        }
-
-        .playback-controls-top {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .control-btn-small,
-        .control-btn-play-small {
-          width: 32px;
-          height: 32px;
-          border: none;
-          border-radius: 4px;
-          background: var(--editor-bg-hover);
-          color: var(--editor-text-primary);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: var(--transition-fast);
-        }
-
-        .control-btn-play-small {
-          background: var(--editor-accent-green);
-          color: white;
-        }
-
-        .control-btn-small:hover,
-        .control-btn-play-small:hover {
-          background: var(--editor-bg-selected);
-          color: white;
-        }
-
-        .timeline-display {
-          font-family: 'Consolas', 'Monaco', monospace;
-          font-size: 14px;
-          font-weight: 500;
-          color: var(--editor-text-bright);
-          background: var(--editor-bg-darker);
-          padding: 8px 12px;
-          border-radius: 4px;
-          border: 1px solid var(--editor-border);
-        }
-
-        .export-btn-top {
-          padding: 8px 16px;
-          background: var(--editor-accent-green);
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: 500;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          transition: var(--transition-fast);
-        }
-
-        .export-btn-top:hover {
-          background: var(--editor-accent-blue);
-        }
-
-        /* Main Layout */
-        .editor-main-layout {
-          display: flex;
-          flex: 1;
-          min-height: 0;
-        }
-
-        /* Enhanced Left Panel */
-        .editor-left-panel {
-          width: 280px;
-          min-width: 280px;
-          background: var(--editor-bg-panel);
-          border-right: 1px solid var(--editor-border);
-          display: flex;
-          flex-direction: column;
-          overflow-y: auto;
-        }
-
-        .editor-toolbar {
-          padding: 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .toolbar-section h4 {
-          margin: 0 0 12px 0;
-          color: var(--editor-text-bright);
-          font-size: 12px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .section-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          cursor: pointer;
-          padding: 6px 8px;
-          margin-bottom: 12px;
-          border-radius: 4px;
-          transition: var(--transition-fast);
-        }
-
-        .section-header:hover {
-          background: rgba(255, 255, 255, 0.05);
-        }
-
-        .section-header h4 {
-          margin: 0;
-          color: var(--editor-text-bright);
-          font-size: 12px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .dropdown-toggle {
-          background: none;
-          border: none;
-          color: var(--editor-text-secondary);
-          cursor: pointer;
-          padding: 4px;
-          border-radius: 2px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: var(--transition-fast);
-        }
-
-        .dropdown-toggle:hover {
-          background: var(--editor-bg-hover);
-          color: var(--editor-text-primary);
-        }
-
-        .tool-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 6px;
-        }
-
-        .tool-btn {
-          width: 52px;
-          height: 48px;
-          border: 1px solid var(--editor-border);
-          border-radius: 4px;
-          background: var(--editor-bg-dark);
-          color: var(--editor-text-primary);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: var(--transition-fast);
-        }
-
-        .tool-btn:hover {
-          background: var(--editor-bg-hover);
-          border-color: var(--editor-border-light);
-        }
-
-        .tool-btn.active {
-          background: var(--editor-accent-blue);
-          border-color: var(--editor-accent-blue);
-          color: white;
-        }
-
-        /* Workspace Quick Access */
-        .workspace-quick-access {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .workspace-access-btn {
-          width: 100%;
-          padding: 10px 12px;
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          color: var(--editor-text-primary);
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 12px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: var(--transition-fast);
-        }
-
-        .workspace-access-btn:hover {
-          background: var(--editor-bg-hover);
-          border-color: var(--editor-accent-blue);
-        }
-
-        /* Enhanced Effects Organization */
-        .effects-organized,
-        .transitions-organized {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .effect-category,
-        .transition-category {
-          background: var(--editor-bg-darker);
-          border-radius: 4px;
-          overflow: hidden;
-        }
-
-        .category-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 8px 12px;
-          background: var(--editor-bg-hover);
-          cursor: pointer;
-          font-size: 11px;
-          font-weight: 600;
-          color: var(--editor-text-bright);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .category-toggle {
-          background: none;
-          border: none;
-          color: var(--editor-text-secondary);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .effect-list-category,
-        .transition-list-category {
-          padding: 8px;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .effect-item {
-          padding: 8px 12px;
-          background: var(--editor-bg-dark);
-          border: 1px solid transparent;
-          border-radius: 4px;
-          cursor: grab;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: var(--transition-fast);
-          font-size: 12px;
-          position: relative;
-        }
-
-        .effect-item:hover {
-          background: var(--editor-bg-hover);
-          border-color: var(--editor-accent-blue);
-        }
-
-        .effect-item:active {
-          cursor: grabbing;
-        }
-
-        .effect-controls {
-          display: flex;
-          gap: 4px;
-          margin-left: auto;
-          opacity: 0;
-          transition: opacity 0.2s ease;
-        }
-
-        .effect-item:hover .effect-controls {
-          opacity: 1;
-        }
-
-        .preview-btn,
-        .quick-apply-btn {
-          width: 20px;
-          height: 20px;
-          border: none;
-          border-radius: 3px;
-          background: var(--editor-accent-blue);
-          color: white;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 10px;
-          transition: all 0.15s ease;
-        }
-
-        .preview-btn:hover {
-          background: var(--editor-accent-green);
-        }
-
-        .quick-apply-btn:hover {
-          background: var(--editor-accent-purple);
-        }
-
-        .preview-btn:disabled,
-        .quick-apply-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .suggest-btn {
-          background: linear-gradient(135deg, var(--editor-accent-purple), var(--editor-accent-blue));
-        }
-
-        .loading-effect {
-          opacity: 0.6;
-          position: relative;
-        }
-
-        .loading-effect::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-          animation: shimmer 1.5s infinite;
-        }
-
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-
-        .drag-hint {
-          position: absolute;
-          right: 8px;
-          font-size: 10px;
-          opacity: 0.5;
-        }
-
-        .transition-item {
-          padding: 6px 8px;
-          background: var(--editor-bg-dark);
-          border: 1px solid transparent;
-          border-radius: 4px;
-          cursor: grab;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: var(--transition-fast);
-          font-size: 11px;
-        }
-
-        .transition-item:hover {
-          background: var(--editor-bg-hover);
-          border-color: var(--editor-accent-purple);
-        }
-
-        .transition-icon {
-          color: var(--editor-accent-purple);
-          background: rgba(177, 128, 215, 0.15);
-          border-radius: 3px;
-          padding: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .transition-info {
-          flex: 1;
-        }
-
-        .transition-name {
-          font-weight: 500;
-          color: var(--editor-text-primary);
-          line-height: 1.2;
-        }
-
-        .transition-duration {
-          font-size: 9px;
-          color: var(--editor-text-muted);
-          margin-top: 2px;
-        }
-
-        .import-btn {
-          width: 100%;
-          padding: 12px;
-          background: var(--editor-accent-blue);
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: 500;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          margin-bottom: 12px;
-          transition: var(--transition-fast);
-        }
-
-        .import-btn:hover {
-          background: var(--editor-bg-selected);
-        }
-
-        .media-list {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .media-item {
-          padding: 8px 12px;
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          border-radius: 4px;
-          cursor: grab;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          transition: var(--transition-fast);
-          font-size: 12px;
-        }
-
-        .media-item:hover {
-          background: var(--editor-bg-hover);
-          border-color: var(--editor-border-light);
-        }
-
-        /* Center Panel */
-        .editor-center-panel {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          background: var(--editor-bg-dark);
-          min-width: 0;
-        }
-
-        .preview-area {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          padding: 20px;
-        }
-
-        .preview-container {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          background: var(--editor-bg-darker);
-          border: 1px solid var(--editor-border);
-          border-radius: 6px;
-          overflow: hidden;
-        }
-
-        .preview-screen {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #000;
-          position: relative;
-          min-height: 300px;
-        }
-
-        .preview-content {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-        }
-
-        .preview-placeholder {
-          text-align: center;
-          color: var(--editor-text-muted);
-          z-index: 1;
-        }
-
-        .preview-placeholder p {
-          margin: 8px 0 4px 0;
-          font-size: 14px;
-        }
-
-        .preview-resolution {
-          font-size: 12px;
-          color: var(--editor-text-secondary);
-        }
-
-        .preview-overlay-info {
-          margin-top: 12px;
-          padding: 8px 12px;
-          background: rgba(0, 0, 0, 0.7);
-          border-radius: 4px;
-        }
-
-        .preview-clip-name {
-          font-size: 12px;
-          font-weight: 500;
-          color: white;
-        }
-
-        .preview-compositing-info {
-          font-size: 10px;
-          color: var(--editor-text-secondary);
-          margin-top: 4px;
-        }
-
-        /* Safe Area Guides */
-        .safe-area-guides {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          pointer-events: none;
-        }
-
-        .safe-area-outer {
-          position: absolute;
-          top: 5%;
-          left: 5%;
-          right: 5%;
-          bottom: 5%;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          border-radius: 2px;
-        }
-
-        .safe-area-inner {
-          position: absolute;
-          top: 10%;
-          left: 10%;
-          right: 10%;
-          bottom: 10%;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 2px;
-        }
-
-        .vectorscope-overlay {
-          position: absolute;
-          top: 20px;
-          right: 20px;
-          width: 100px;
-          height: 100px;
-          background: rgba(0, 0, 0, 0.7);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-direction: column;
-        }
-
-        .vectorscope-circle {
-          width: 80px;
-          height: 80px;
-          border: 1px solid var(--editor-accent-green);
-          border-radius: 50%;
-          position: relative;
-        }
-
-        .vectorscope-info {
-          font-size: 8px;
-          color: var(--editor-text-muted);
-          margin-top: 4px;
-        }
-
-        .preview-controls {
-          height: 44px;
-          background: var(--editor-bg-panel);
-          border-top: 1px solid var(--editor-border);
-          display: flex;
-          align-items: center;
-          padding: 0 16px;
-          gap: 12px;
-        }
-
-        .preview-control-btn {
-          width: 32px;
-          height: 32px;
-          border: none;
-          border-radius: 4px;
-          background: var(--editor-bg-dark);
-          color: var(--editor-text-primary);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: var(--transition-fast);
-        }
-
-        .preview-control-btn:hover {
-          background: var(--editor-bg-hover);
-        }
-
-        .zoom-display {
-          font-size: 12px;
-          color: var(--editor-text-secondary);
-          font-family: 'Consolas', monospace;
-          min-width: 40px;
-        }
-
-        .preview-spacer {
-          flex: 1;
-        }
-
-        /* Timeline Section */
-        .editor-timeline-section {
-          background: var(--timeline-bg);
-          border-top: 1px solid var(--editor-border);
-          display: flex;
-          flex-direction: column;
-          min-height: 280px;
-          resize: vertical;
-          overflow: hidden;
-        }
-
-        .timeline-controls-bar {
-          height: 40px;
-          background: var(--timeline-header);
-          border-bottom: 1px solid var(--editor-border);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0 16px;
-          flex-shrink: 0;
-        }
-
-        .timeline-zoom-controls {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .zoom-btn {
-          width: 28px;
-          height: 28px;
-          border: none;
-          border-radius: 4px;
-          background: var(--editor-bg-dark);
-          color: var(--editor-text-primary);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: var(--transition-fast);
-        }
-
-        .zoom-btn:hover {
-          background: var(--editor-bg-hover);
-        }
-
-        .zoom-slider-container {
-          width: 120px;
-        }
-
-        .zoom-slider-pro {
-          width: 100%;
-          height: 4px;
-          background: var(--editor-bg-dark);
-          border-radius: 2px;
-          outline: none;
-          cursor: pointer;
-          appearance: none;
-        }
-
-        .zoom-slider-pro::-webkit-slider-thumb {
-          appearance: none;
-          width: 16px;
-          height: 16px;
-          background: var(--editor-accent-blue);
-          border-radius: 50%;
-          cursor: pointer;
-        }
-
-        .zoom-display-pro {
-          font-size: 11px;
-          color: var(--editor-text-secondary);
-          font-family: 'Consolas', monospace;
-          min-width: 40px;
-        }
-
-        .timeline-options {
-          display: flex;
-          gap: 0;
-        }
-
-        .timeline-option-btn {
-          padding: 6px 12px;
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          color: var(--editor-text-secondary);
-          font-size: 11px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          transition: var(--transition-fast);
-        }
-
-        .timeline-option-btn:first-child {
-          border-radius: 4px 0 0 4px;
-        }
-
-        .timeline-option-btn:not(:first-child):not(:last-child) {
-          border-left: none;
-        }
-
-        .timeline-option-btn:last-child {
-          border-radius: 0 4px 4px 0;
-          border-left: none;
-        }
-
-        .timeline-option-btn.active {
-          background: var(--editor-accent-blue);
-          border-color: var(--editor-accent-blue);
-          color: white;
-        }
-
-        .timeline-option-btn:hover:not(.active) {
-          background: var(--editor-bg-hover);
-        }
-
-        /* Timeline Main */
-        .timeline-main-container {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          position: relative;
-        }
-
-        .timeline-ruler-container {
-          height: 36px;
-          display: flex;
-          background: var(--timeline-ruler);
-          border-bottom: 1px solid var(--editor-border);
-          flex-shrink: 0;
-        }
-
-        .track-headers-spacer {
-          width: 280px;
-          min-width: 280px;
-          background: var(--timeline-header);
-          border-right: 1px solid var(--editor-border);
-        }
-
-        .timeline-ruler-scroll {
-          flex: 1;
-          overflow-x: auto;
-          overflow-y: hidden;
-        }
-
-        .timeline-ruler {
-          height: 100%;
-          position: relative;
-          min-width: 100%;
-        }
-
-        .time-marker-ruler {
-          position: absolute;
-          top: 0;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-
-        .time-marker-line {
-          width: 1px;
-          height: 14px;
-          background: var(--editor-border-light);
-        }
-
-        .time-marker-text {
-          font-size: 10px;
-          color: var(--editor-text-secondary);
-          font-family: 'Consolas', monospace;
-          margin-top: 6px;
-        }
-
-        /* Playhead */
-        .timeline-playhead {
-          position: absolute;
-          top: 0;
-          bottom: 0;
-          width: 2px;
-          background: var(--playhead-color);
-          box-shadow: var(--playhead-shadow);
-          z-index: 100;
-          pointer-events: none;
-        }
-
-        .timeline-playhead::before {
-          content: '';
-          position: absolute;
-          top: -8px;
-          left: -6px;
-          width: 14px;
-          height: 16px;
-          background: var(--playhead-color);
-          clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-        }
-
-        /* Track Area */
-        .timeline-tracks-container {
-          flex: 1;
-          display: flex;
-          overflow: hidden;
-        }
-
-        .track-headers-column {
-          width: 280px;
-          min-width: 280px;
-          background: var(--timeline-header);
-          border-right: 1px solid var(--editor-border);
-          overflow-y: auto;
-        }
-
-        .timeline-tracks-scroll {
-          flex: 1;
-          overflow: auto;
-        }
-
-        .timeline-tracks-content {
-          min-width: 100%;
-          cursor: crosshair;
-        }
-
-        /* Track Headers */
-        .track-header-container {
-          height: 52px;
-          border-bottom: 1px solid var(--editor-border);
-          display: flex;
-          align-items: center;
-          padding: 0 12px;
-          background: var(--timeline-header);
-        }
-
-        .track-controls-left {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          width: 100%;
-        }
-
-        .track-label-container {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex: 1;
-        }
-
-        .track-info {
-          flex: 1;
-        }
-
-        .track-name-label {
-          font-size: 13px;
-          font-weight: 500;
-          color: var(--editor-text-bright);
-          line-height: 1.2;
-        }
-
-        .track-z-index {
-          font-size: 10px;
-          color: var(--editor-text-muted);
-          margin-top: 2px;
-        }
-
-        .track-type-icon {
-          color: var(--editor-text-secondary);
-        }
-
-        .track-control-buttons {
-          display: flex;
-          gap: 2px;
-        }
-
-        .track-layer-btn,
-        .track-toggle-btn {
-          width: 24px;
-          height: 24px;
-          border: none;
-          border-radius: 3px;
-          background: transparent;
-          color: var(--editor-text-secondary);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: var(--transition-fast);
-        }
-
-        .track-layer-btn:hover,
-        .track-toggle-btn:hover {
-          background: var(--editor-bg-hover);
-        }
-
-        .track-toggle-btn.active {
-          color: var(--editor-accent-blue);
-        }
-
-        .track-layer-btn {
-          color: var(--editor-text-muted);
-        }
-
-        .track-layer-btn:hover {
-          color: var(--editor-text-primary);
-        }
-
-        /* Timeline Tracks */
-        .timeline-track-row {
-          height: 52px;
-          border-bottom: 1px solid var(--editor-border);
-          position: relative;
-        }
-
-        .track-timeline-area {
-          height: 100%;
-          position: relative;
-          cursor: crosshair;
-        }
-
-        .empty-track-message {
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--editor-text-muted);
-          font-size: 11px;
-          pointer-events: none;
-        }
-
-        /* Timeline Clips */
-        .timeline-clip {
-          position: absolute;
-          top: 6px;
-          height: 40px;
-          border-radius: 4px;
-          cursor: pointer;
-          border: 2px solid transparent;
-          overflow: hidden;
-          transition: var(--transition-fast);
-          box-shadow: var(--shadow-light);
-        }
-
-        .timeline-clip:hover {
-          filter: brightness(1.1);
-          box-shadow: var(--shadow-medium);
-        }
-
-        .timeline-clip.selected {
-          border-color: white;
-          box-shadow: 0 0 0 2px var(--editor-accent-blue), var(--shadow-medium);
-        }
-
-        .timeline-clip.drop-target {
-          filter: brightness(1.2) !important;
-          border: 2px dashed var(--editor-accent-green) !important;
-        }
-
-        .clip-content-timeline {
-          height: 100%;
-          padding: 6px 10px;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          background: rgba(0, 0, 0, 0.3);
-          position: relative;
-        }
-
-        .clip-title-timeline {
-          font-size: 11px;
-          font-weight: 500;
-          color: white;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-        }
-
-        .clip-compositing-info {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          margin-top: 4px;
-        }
-
-        .blend-mode-indicator {
-          background: var(--editor-accent-purple);
-          color: white;
-          border-radius: 6px;
-          padding: 1px 4px;
-          font-size: 8px;
-          font-weight: 600;
-          text-transform: uppercase;
-        }
-
-        .clip-effects-indicator {
-          background: var(--editor-accent-orange);
-          color: white;
-          border-radius: 8px;
-          padding: 1px 4px;
-          font-size: 9px;
-          display: flex;
-          align-items: center;
-          gap: 2px;
-        }
-
-        .audio-waveform {
-          align-self: flex-end;
-          color: rgba(255, 255, 255, 0.7);
-        }
-
-        /* Keyframe Indicators */
-        .keyframe-indicators {
-          position: absolute;
-          bottom: 2px;
-          left: 4px;
-          right: 4px;
-          height: 8px;
-          display: flex;
-          align-items: center;
-        }
-
-        .keyframe-diamond {
-          position: absolute;
-          width: 6px;
-          height: 6px;
-          background: var(--editor-accent-yellow);
-          transform: rotate(45deg);
-          border: 1px solid rgba(0, 0, 0, 0.5);
-        }
-
-        /* Timeline Transitions */
-        .timeline-transition {
-          position: absolute;
-          top: 8px;
-          height: 36px;
-          background: linear-gradient(135deg, var(--editor-accent-purple) 0%, rgba(177, 128, 215, 0.8) 100%);
-          border: 1px solid var(--editor-accent-purple);
-          border-radius: 6px;
-          cursor: pointer;
-          overflow: hidden;
-          transition: var(--transition-fast);
-          box-shadow: var(--shadow-light);
-          z-index: 10;
-        }
-
-        .timeline-transition:hover {
-          filter: brightness(1.1);
-          box-shadow: var(--shadow-medium);
-          transform: translateY(-1px);
-        }
-
-        .timeline-transition.selected {
-          border-color: white;
-          box-shadow: 0 0 0 2px var(--editor-accent-blue), var(--shadow-medium);
-          z-index: 20;
-        }
-
-        .transition-content {
-          height: 100%;
-          padding: 4px 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 4px;
-          background: rgba(0, 0, 0, 0.2);
-          color: white;
-        }
-
-        .transition-label {
-          font-size: 10px;
-          font-weight: 600;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 80px;
-        }
-
-        .hidden-file-input {
-          display: none;
-        }
-
-        /* Enhanced Effects Panel */
-        .effects-panel-enhanced {
-          position: fixed;
-          right: 20px;
-          top: 80px;
-          width: 380px;
-          background: var(--editor-bg-panel);
-          border: 1px solid var(--editor-border);
-          border-radius: 8px;
-          z-index: 200;
-          box-shadow: var(--shadow-heavy);
-          max-height: calc(100vh - 100px);
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .effects-panel-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 20px;
-          border-bottom: 1px solid var(--editor-border);
-          background: var(--editor-bg-darker);
-          border-radius: 8px 8px 0 0;
-          flex-shrink: 0;
-        }
-
-        .effects-panel-header h4 {
-          margin: 0;
-          color: var(--editor-text-bright);
-          font-size: 14px;
-          font-weight: 600;
-        }
-
-        .close-panel-btn {
-          background: none;
-          border: none;
-          color: var(--editor-text-secondary);
-          cursor: pointer;
-          padding: 4px;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: var(--transition-fast);
-        }
-
-        .close-panel-btn:hover {
-          background: var(--editor-bg-hover);
-          color: var(--editor-text-primary);
-        }
-
-        .effects-panel-content-enhanced {
-          flex: 1;
-          overflow-y: auto;
-          padding: 20px;
-        }
-
-        /* Effects Stack */
-        .effects-stack {
-          margin-bottom: 24px;
-        }
-
-        .stack-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
-        }
-
-        .stack-header h5 {
-          margin: 0;
-          color: var(--editor-text-bright);
-          font-size: 13px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .stack-controls {
-          display: flex;
-          gap: 4px;
-        }
-
-        .stack-btn {
-          width: 28px;
-          height: 28px;
-          border: none;
-          border-radius: 4px;
-          background: var(--editor-bg-dark);
-          color: var(--editor-text-secondary);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: var(--transition-fast);
-        }
-
-        .stack-btn:hover {
-          background: var(--editor-bg-hover);
-          color: var(--editor-text-primary);
-        }
-
-        .applied-effects-list {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .applied-effect-item-enhanced {
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          border-radius: 6px;
-          overflow: hidden;
-          transition: var(--transition-fast);
-        }
-
-        .applied-effect-item-enhanced:hover {
-          border-color: var(--editor-accent-blue);
-        }
-
-        .effect-item-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px 16px;
-          background: var(--editor-bg-hover);
-        }
-
-        .effect-info-left {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex: 1;
-        }
-
-        .effect-toggle {
-          width: 28px;
-          height: 28px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: var(--transition-fast);
-        }
-
-        .effect-toggle.enabled {
-          background: var(--editor-accent-blue);
-          color: white;
-        }
-
-        .effect-toggle.disabled {
-          background: var(--editor-bg-dark);
-          color: var(--editor-text-muted);
-        }
-
-        .effect-toggle:hover {
-          opacity: 0.8;
-        }
-
-        .effect-details {
-          flex: 1;
-        }
-
-        .effect-name {
-          font-size: 13px;
-          font-weight: 500;
-          color: var(--editor-text-bright);
-          display: block;
-          line-height: 1.2;
-        }
-
-        .effect-category {
-          font-size: 10px;
-          color: var(--editor-text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin-top: 2px;
-        }
-
-        .effect-controls-right {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .effect-value {
-          background: var(--editor-accent-blue);
-          color: white;
-          padding: 4px 8px;
-          border-radius: 10px;
-          font-weight: 500;
-          font-size: 11px;
-          min-width: 40px;
-          text-align: center;
-        }
-
-        .effect-remove {
-          width: 28px;
-          height: 28px;
-          border: none;
-          border-radius: 4px;
-          background: var(--editor-accent-red);
-          color: white;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: var(--transition-fast);
-        }
-
-        .effect-remove:hover {
-          background: #d63447;
-        }
-
-        .effect-parameters {
-          padding: 16px;
-          background: var(--editor-bg-darker);
-        }
-
-        .parameter-row {
-          margin-bottom: 16px;
-        }
-
-        .parameter-row:last-child {
-          margin-bottom: 0;
-        }
-
-        .parameter-row label {
-          display: block;
-          font-size: 12px;
-          font-weight: 500;
-          margin-bottom: 8px;
-          color: var(--editor-text-primary);
-        }
-
-        .effect-slider-enhanced {
-          width: 100%;
-          height: 6px;
-          background: var(--editor-bg-dark);
-          border-radius: 3px;
-          outline: none;
-          cursor: pointer;
-          appearance: none;
-          transition: var(--transition-fast);
-        }
-
-        .effect-slider-enhanced::-webkit-slider-thumb {
-          appearance: none;
-          width: 18px;
-          height: 18px;
-          background: var(--editor-accent-blue);
-          border-radius: 50%;
-          cursor: pointer;
-          box-shadow: var(--shadow-light);
-        }
-
-        .effect-slider-enhanced:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .effect-select {
-          width: 100%;
-          padding: 8px 12px;
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          border-radius: 4px;
-          color: var(--editor-text-primary);
-          font-size: 12px;
-        }
-
-        .color-picker {
-          width: 100%;
-          height: 36px;
-          border: 1px solid var(--editor-border);
-          border-radius: 4px;
-          cursor: pointer;
-        }
-
-        .no-effects-message {
-          text-align: center;
-          padding: 40px 20px;
-          color: var(--editor-text-secondary);
-        }
-
-        .no-effects-message p {
-          margin: 12px 0 4px 0;
-          font-size: 14px;
-          color: var(--editor-text-primary);
-        }
-
-        .no-effects-message span {
-          font-size: 12px;
-        }
-
-        /* Quick Apply Section */
-        .quick-apply-section {
-          margin-bottom: 24px;
-        }
-
-        .quick-apply-section h5 {
-          margin: 0 0 16px 0;
-          color: var(--editor-text-bright);
-          font-size: 13px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .quick-effects-grid-enhanced {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 8px;
-        }
-
-        .quick-effect-btn-enhanced {
-          padding: 12px 8px;
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          border-radius: 6px;
-          color: var(--editor-text-primary);
-          cursor: pointer;
-          font-size: 11px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 6px;
-          transition: var(--transition-fast);
-        }
-
-        .quick-effect-btn-enhanced:hover {
-          background: var(--editor-bg-hover);
-          border-color: var(--editor-accent-blue);
-        }
-
-        .quick-effect-btn-enhanced span {
-          text-align: center;
-          line-height: 1.2;
-        }
-
-        /* Presets Section */
-        .presets-section h5 {
-          margin: 0 0 16px 0;
-          color: var(--editor-text-bright);
-          font-size: 13px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .preset-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .preset-btn {
-          padding: 12px 16px;
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          border-radius: 6px;
-          color: var(--editor-text-primary);
-          cursor: pointer;
-          font-size: 12px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          transition: var(--transition-fast);
-        }
-
-        .preset-btn:hover {
-          background: var(--editor-bg-hover);
-          border-color: var(--editor-accent-green);
-        }
-
-        .no-selection-message-enhanced {
-          text-align: center;
-          padding: 40px 20px;
-        }
-
-        .no-selection-icon {
-          margin-bottom: 20px;
-          color: var(--editor-text-muted);
-        }
-
-        .no-selection-message-enhanced h3 {
-          margin: 0 0 12px 0;
-          color: var(--editor-text-bright);
-          font-size: 16px;
-        }
-
-        .no-selection-message-enhanced p {
-          margin: 0 0 20px 0;
-          color: var(--editor-text-secondary);
-          font-size: 13px;
-        }
-
-        .selection-help {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          text-align: left;
-        }
-
-        .help-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 10px 12px;
-          background: var(--editor-bg-dark);
-          border-radius: 4px;
-          font-size: 12px;
-          color: var(--editor-text-secondary);
-        }
-
-        /* Enhanced Compositing Panel */
-        .compositing-panel-enhanced {
-          position: fixed;
-          right: 20px;
-          top: 80px;
-          width: 360px;
-          background: var(--editor-bg-panel);
-          border: 1px solid var(--editor-border);
-          border-radius: 8px;
-          z-index: 200;
-          box-shadow: var(--shadow-heavy);
-          max-height: calc(100vh - 100px);
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .compositing-panel-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 20px;
-          border-bottom: 1px solid var(--editor-border);
-          background: var(--editor-bg-darker);
-          border-radius: 8px 8px 0 0;
-          flex-shrink: 0;
-        }
-
-        .compositing-panel-header h4 {
-          margin: 0;
-          color: var(--editor-text-bright);
-          font-size: 14px;
-          font-weight: 600;
-        }
-
-        .compositing-panel-content-enhanced {
-          flex: 1;
-          overflow-y: auto;
-          padding: 20px;
-        }
-
-        .compositing-section {
-          margin-bottom: 24px;
-        }
-
-        .compositing-section h5 {
-          margin: 0 0 16px 0;
-          color: var(--editor-text-bright);
-          font-size: 13px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .transform-grid {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .transform-group {
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          border-radius: 6px;
-          padding: 16px;
-          position: relative;
-        }
-
-        .transform-group label {
-          display: block;
-          font-size: 12px;
-          font-weight: 500;
-          margin-bottom: 10px;
-          color: var(--editor-text-bright);
-        }
-
-        .dual-control {
-          display: flex;
-          gap: 12px;
-        }
-
-        .control-pair {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .control-pair span {
-          font-size: 11px;
-          color: var(--editor-text-secondary);
-          min-width: 12px;
-        }
-
-        .numeric-input {
-          flex: 1;
-          padding: 8px 10px;
-          background: var(--editor-bg-darker);
-          border: 1px solid var(--editor-border);
-          border-radius: 4px;
-          color: var(--editor-text-primary);
-          font-size: 12px;
-          font-family: 'Consolas', monospace;
-        }
-
-        .numeric-input:focus {
-          outline: none;
-          border-color: var(--editor-accent-blue);
-        }
-
-        .lock-aspect-btn {
-          position: absolute;
-          top: 12px;
-          right: 12px;
-          width: 24px;
-          height: 24px;
-          border: none;
-          border-radius: 4px;
-          background: var(--editor-bg-darker);
-          color: var(--editor-text-secondary);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: var(--transition-fast);
-        }
-
-        .lock-aspect-btn:hover {
-          background: var(--editor-bg-hover);
-          color: var(--editor-accent-blue);
-        }
-
-        .rotation-control {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .rotation-control input {
-          flex: 1;
-        }
-
-        .rotation-control span {
-          font-size: 11px;
-          color: var(--editor-text-secondary);
-        }
-
-        .blend-controls {
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          border-radius: 6px;
-          padding: 16px;
-        }
-
-        .compositing-slider-enhanced {
-          width: 100%;
-          height: 6px;
-          background: var(--editor-bg-darker);
-          border-radius: 3px;
-          outline: none;
-          cursor: pointer;
-          appearance: none;
-          margin-top: 8px;
-        }
-
-        .compositing-slider-enhanced::-webkit-slider-thumb {
-          appearance: none;
-          width: 18px;
-          height: 18px;
-          background: var(--editor-accent-blue);
-          border-radius: 50%;
-          cursor: pointer;
-          box-shadow: var(--shadow-light);
-        }
-
-        .blend-mode-select-enhanced {
-          width: 100%;
-          padding: 10px 12px;
-          background: var(--editor-bg-darker);
-          border: 1px solid var(--editor-border);
-          border-radius: 4px;
-          color: var(--editor-text-primary);
-          font-size: 12px;
-          margin-top: 8px;
-        }
-
-        .advanced-controls {
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          border-radius: 6px;
-          padding: 16px;
-        }
-
-        .preset-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 8px;
-        }
-
-        .preset-transform-btn {
-          padding: 12px 8px;
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          border-radius: 6px;
-          color: var(--editor-text-primary);
-          cursor: pointer;
-          font-size: 10px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 6px;
-          transition: var(--transition-fast);
-        }
-
-        .preset-transform-btn:hover {
-          background: var(--editor-bg-hover);
-          border-color: var(--editor-accent-purple);
-        }
-
-        .no-video-clip-message-enhanced,
-        .no-clip-icon {
-          text-align: center;
-          padding: 40px 20px;
-        }
-
-        .no-clip-icon {
-          margin-bottom: 20px;
-          color: var(--editor-text-muted);
-        }
-
-        .no-video-clip-message-enhanced h3 {
-          margin: 0 0 12px 0;
-          color: var(--editor-text-bright);
-          font-size: 16px;
-        }
-
-        .no-video-clip-message-enhanced p {
-          margin: 0 0 20px 0;
-          color: var(--editor-text-secondary);
-          font-size: 13px;
-        }
-
-        .compositing-features {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          text-align: left;
-        }
-
-        .feature-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 10px 12px;
-          background: var(--editor-bg-dark);
-          border-radius: 4px;
-          font-size: 12px;
-          color: var(--editor-text-secondary);
-        }
-
-        /* Color Workspace */
-        .color-workspace {
-          position: fixed;
-          bottom: 20px;
-          left: 300px;
-          right: 20px;
-          height: 280px;
-          background: var(--editor-bg-panel);
-          border: 1px solid var(--editor-border);
-          border-radius: 8px;
-          z-index: 150;
-          box-shadow: var(--shadow-heavy);
-          display: flex;
-          flex-direction: column;
-        }
-
-        .color-workspace-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 20px;
-          border-bottom: 1px solid var(--editor-border);
-          background: var(--editor-bg-darker);
-          border-radius: 8px 8px 0 0;
-          flex-shrink: 0;
-        }
-
-        .color-workspace-header h4 {
-          margin: 0;
-          color: var(--editor-text-bright);
-          font-size: 14px;
-          font-weight: 600;
-        }
-
-        .color-tools {
-          flex: 1;
-          padding: 20px;
-          overflow-y: auto;
-        }
-
-        .color-wheels {
-          display: flex;
-          gap: 30px;
-          justify-content: center;
-        }
-
-        .color-wheel-section {
-          text-align: center;
-        }
-
-        .color-wheel-section h5 {
-          margin: 0 0 16px 0;
-          color: var(--editor-text-bright);
-          font-size: 12px;
-          font-weight: 600;
-          text-transform: uppercase;
-        }
-
-        .color-wheel {
-          width: 120px;
-          height: 120px;
-          border-radius: 50%;
-          border: 2px solid var(--editor-border-light);
-          margin-bottom: 16px;
-          cursor: crosshair;
-          position: relative;
-        }
-
-        .shadows-wheel {
-          background: radial-gradient(circle, #444 0%, #222 50%, #000 100%);
-        }
-
-        .midtones-wheel {
-          background: radial-gradient(circle, #888 0%, #555 50%, #333 100%);
-        }
-
-        .highlights-wheel {
-          background: radial-gradient(circle, #fff 0%, #ccc 50%, #888 100%);
-        }
-
-        .wheel-controls input {
-          width: 120px;
-          height: 4px;
-          background: var(--editor-bg-dark);
-          border-radius: 2px;
-          outline: none;
-          cursor: pointer;
-          appearance: none;
-        }
-
-        /* Audio Workspace */
-        .audio-workspace {
-          position: fixed;
-          bottom: 20px;
-          left: 300px;
-          right: 20px;
-          height: 320px;
-          background: var(--editor-bg-panel);
-          border: 1px solid var(--editor-border);
-          border-radius: 8px;
-          z-index: 150;
-          box-shadow: var(--shadow-heavy);
-          display: flex;
-          flex-direction: column;
-        }
-
-        .audio-workspace-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 20px;
-          border-bottom: 1px solid var(--editor-border);
-          background: var(--editor-bg-darker);
-          border-radius: 8px 8px 0 0;
-          flex-shrink: 0;
-        }
-
-        .audio-workspace-header h4 {
-          margin: 0;
-          color: var(--editor-text-bright);
-          font-size: 14px;
-          font-weight: 600;
-        }
-
-        .mixing-console {
-          flex: 1;
-          padding: 20px;
-          display: flex;
-          gap: 20px;
-          overflow-x: auto;
-        }
-
-        .mixer-channel {
-          min-width: 80px;
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          border-radius: 6px;
-          overflow: hidden;
-        }
-
-        .channel-header {
-          padding: 12px 8px;
-          background: var(--editor-bg-hover);
-          text-align: center;
-        }
-
-        .channel-header span {
-          font-size: 11px;
-          font-weight: 600;
-          color: var(--editor-text-bright);
-        }
-
-        .channel-controls {
-          padding: 16px 8px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 16px;
-          height: 200px;
-        }
-
-        .eq-controls {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          width: 100%;
-        }
-
-        .eq-band {
-          text-align: center;
-        }
-
-        .eq-band label {
-          display: block;
-          font-size: 9px;
-          color: var(--editor-text-secondary);
-          margin-bottom: 4px;
-        }
-
-        .eq-slider {
-          width: 60px;
-          height: 3px;
-          background: var(--editor-bg-darker);
-          border-radius: 2px;
-          outline: none;
-          cursor: pointer;
-          appearance: none;
-        }
-
-        .eq-slider::-webkit-slider-thumb {
-          appearance: none;
-          width: 12px;
-          height: 12px;
-          background: var(--editor-accent-green);
-          border-radius: 50%;
-          cursor: pointer;
-        }
-
-        .channel-fader {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .volume-fader {
-          writing-mode: bt-lr;
-          -webkit-appearance: slider-vertical;
-          width: 30px;
-          height: 100px;
-          background: var(--editor-bg-darker);
-          outline: none;
-          cursor: pointer;
-        }
-
-        .fader-label {
-          font-size: 9px;
-          color: var(--editor-text-secondary);
-          font-family: 'Consolas', monospace;
-        }
-
-        .level-meter {
-          width: 8px;
-          height: 100px;
-          background: var(--editor-bg-darker);
-          border-radius: 4px;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .meter-bar {
-          position: absolute;
-          bottom: 0;
-          width: 100%;
-          height: 60%;
-          background: linear-gradient(to top, var(--editor-accent-green) 0%, var(--editor-accent-yellow) 70%, var(--editor-accent-red) 100%);
-          transition: height 0.1s ease;
-        }
-
-        /* Transition Properties */
-        .transition-properties {
-          background: var(--editor-bg-dark);
-          border: 1px solid var(--editor-border);
-          border-radius: 6px;
-          padding: 16px;
-        }
-
-        .transition-properties h5 {
-          margin: 0 0 16px 0;
-          color: var(--editor-text-bright);
-          font-size: 13px;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        /* Scrollbar Styling */
-        .timeline-tracks-scroll::-webkit-scrollbar,
-        .timeline-ruler-scroll::-webkit-scrollbar,
-        .track-headers-column::-webkit-scrollbar,
-        .editor-left-panel::-webkit-scrollbar,
-        .effects-panel-enhanced::-webkit-scrollbar,
-        .compositing-panel-enhanced::-webkit-scrollbar,
-        .color-tools::-webkit-scrollbar,
-        .mixing-console::-webkit-scrollbar {
-          width: 8px;
-          height: 8px;
-        }
-
-        .timeline-tracks-scroll::-webkit-scrollbar-track,
-        .timeline-ruler-scroll::-webkit-scrollbar-track,
-        .track-headers-column::-webkit-scrollbar-track,
-        .editor-left-panel::-webkit-scrollbar-track,
-        .effects-panel-enhanced::-webkit-scrollbar-track,
-        .compositing-panel-enhanced::-webkit-scrollbar-track,
-        .color-tools::-webkit-scrollbar-track,
-        .mixing-console::-webkit-scrollbar-track {
-          background: var(--editor-bg-dark);
-        }
-
-        .timeline-tracks-scroll::-webkit-scrollbar-thumb,
-        .timeline-ruler-scroll::-webkit-scrollbar-thumb,
-        .track-headers-column::-webkit-scrollbar-thumb,
-        .editor-left-panel::-webkit-scrollbar-thumb,
-        .effects-panel-enhanced::-webkit-scrollbar-thumb,
-        .compositing-panel-enhanced::-webkit-scrollbar-thumb,
-        .color-tools::-webkit-scrollbar-thumb,
-        .mixing-console::-webkit-scrollbar-thumb {
-          background: var(--editor-border-light);
-          border-radius: 4px;
-        }
-
-        .timeline-tracks-scroll::-webkit-scrollbar-thumb:hover,
-        .timeline-ruler-scroll::-webkit-scrollbar-thumb:hover,
-        .track-headers-column::-webkit-scrollbar-thumb:hover,
-        .editor-left-panel::-webkit-scrollbar-thumb:hover,
-        .effects-panel-enhanced::-webkit-scrollbar-thumb:hover,
-        .compositing-panel-enhanced::-webkit-scrollbar-thumb:hover,
-        .color-tools::-webkit-scrollbar-thumb:hover,
-        .mixing-console::-webkit-scrollbar-thumb:hover {
-          background: var(--editor-text-secondary);
-        }
-
-        /* Animation Keyframes */
-        @keyframes clipSelect {
-          0% { transform: scale(1); }
-          50% { transform: scale(1.02); }
-          100% { transform: scale(1); }
-        }
-
-        @keyframes effectApplied {
-          0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.1); opacity: 0.8; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-
-        @keyframes panelSlideIn {
-          from { 
-            opacity: 0; 
-            transform: translateX(20px); 
-          }
-          to { 
-            opacity: 1; 
-            transform: translateX(0); 
-          }
-        }
-
-        .effects-panel-enhanced,
-        .compositing-panel-enhanced {
-          animation: panelSlideIn 0.3s ease;
-        }
-
-        .timeline-clip.selected {
-          animation: clipSelect 0.3s ease;
-        }
-
-        .clip-effects-indicator {
-          animation: effectApplied 0.4s ease;
-        }
-
-        /* Focus and Accessibility */
-        .tool-btn:focus,
-        .control-btn-small:focus,
-        .control-btn-play-small:focus,
-        .timeline-option-btn:focus,
-        .track-toggle-btn:focus,
-        .effect-toggle:focus,
-        .close-panel-btn:focus {
-          outline: 2px solid var(--editor-accent-blue);
-          outline-offset: 2px;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 1400px) {
-          .effects-panel-enhanced,
-          .compositing-panel-enhanced {
-            width: 320px;
-          }
-        }
-
-        @media (max-width: 1200px) {
-          .editor-left-panel {
-            width: 240px;
-            min-width: 240px;
-          }
-          
-          .track-headers-spacer,
-          .track-headers-column {
-            width: 240px;
-            min-width: 240px;
-          }
-          
-          .effects-panel-enhanced,
-          .compositing-panel-enhanced {
-            width: 280px;
-            right: 10px;
-          }
-
-          .color-workspace,
-          .audio-workspace {
-            left: 260px;
-          }
-        }
-
-        @media (max-width: 1024px) {
-          .editor-left-panel {
-            width: 200px;
-            min-width: 200px;
-          }
-          
-          .track-headers-spacer,
-          .track-headers-column {
-            width: 200px;
-            min-width: 200px;
-          }
-          
-          .workspace-buttons {
-            flex-direction: column;
-            gap: 4px;
-          }
-
-          .workspace-btn {
-            font-size: 10px;
-            padding: 6px 8px;
-          }
-        }
-      `}</style>
+     
+
+
+
+      {showSourceMonitor && sourceMonitorMedia && (
+        <SourceMonitor
+          selectedMedia={sourceMonitorMedia}
+          onAddToTimeline={(media, inPoint, outPoint) => {
+            // Add to first video track
+            const videoTrack = tracks.find(t => t.type === 'video');
+            if (videoTrack) {
+              handleMediaDrop(
+                {
+                  preventDefault: () => { },
+                  stopPropagation: () => { },
+                  clientX: 0,
+                  currentTarget: { scrollLeft: 0 }
+                },
+                videoTrack.id
+              );
+            }
+            setShowSourceMonitor(false);
+          }}
+          onClose={() => setShowSourceMonitor(false)}
+        />
+
+      )}
     </div>
   );
 };
