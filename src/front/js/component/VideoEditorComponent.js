@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import '../../styles/VideoEditorComponent.css'; // Add this line
+import '../../styles/VideoEditorComponent.css';
 import {
   Play, Pause, Square, RotateCcw, Download, Upload, Volume2, VolumeX,
   Eye, EyeOff, Lock, Unlock, Plus, Trash2, Scissors, Copy, Move, Settings,
@@ -140,7 +140,7 @@ const getAudioPresets = async () => {
 
 const MediaBrowser = ({ onFileSelect, onClose }) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState('grid');
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
@@ -151,6 +151,7 @@ const MediaBrowser = ({ onFileSelect, onClose }) => {
         : file.type.startsWith('audio/') ? 'audio'
           : 'image',
       size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+      duration: '0:30',
       file: file,
       url: URL.createObjectURL(file)
     }));
@@ -223,15 +224,15 @@ const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
 
       <div className="source-preview">
         {selectedMedia?.type === 'video' ? (
-          <video ref={videoRef} src={selectedMedia.url} controls />
+          <video ref={videoRef} src={selectedMedia.url} controls style={{ width: '100%', maxHeight: '300px' }} />
         ) : selectedMedia?.type === 'audio' ? (
           <div className="audio-preview">
             <AudioWaveform size={48} />
             <audio src={selectedMedia.url} controls />
           </div>
-        ) : (
-          <img src={selectedMedia?.url} alt="preview" />
-        )}
+        ) : selectedMedia?.type === 'image' ? (
+          <img src={selectedMedia.url} alt="preview" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain' }} />
+        ) : null}
       </div>
 
       <div className="trim-controls">
@@ -274,52 +275,8 @@ const VideoEditorComponent = () => {
       locked: false,
       color: '#4a9eff',
       zIndex: 2,
-      clips: [
-        {
-          id: 1,
-          title: 'Main_Clip.mp4',
-          startTime: 30,
-          duration: 120,
-          type: 'video',
-          effects: [],
-          keyframes: [],
-          compositing: {
-            opacity: 100,
-            blendMode: 'normal',
-            position: { x: 0, y: 0 },
-            scale: { x: 100, y: 100 },
-            rotation: 0,
-            anchor: { x: 50, y: 50 }
-          }
-        },
-        {
-          id: 3,
-          title: 'Second_Clip.mp4',
-          startTime: 160,
-          duration: 80,
-          type: 'video',
-          effects: [],
-          keyframes: [],
-          compositing: {
-            opacity: 100,
-            blendMode: 'normal',
-            position: { x: 0, y: 0 },
-            scale: { x: 100, y: 100 },
-            rotation: 0,
-            anchor: { x: 50, y: 50 }
-          }
-        }
-      ],
-      transitions: [
-        {
-          id: 1,
-          type: 'crossDissolve',
-          startTime: 148,
-          duration: 2,
-          fromClip: 1,
-          toClip: 3
-        }
-      ]
+      clips: [],
+      transitions: []
     },
     {
       id: 2,
@@ -330,28 +287,7 @@ const VideoEditorComponent = () => {
       locked: false,
       color: '#ff6b6b',
       zIndex: 3,
-      clips: [
-        {
-          id: 4,
-          title: 'Logo_Overlay.png',
-          startTime: 50,
-          duration: 200,
-          type: 'video',
-          effects: [
-            { id: 'dropShadow', value: 25, enabled: true },
-            { id: 'glow', value: 40, enabled: true }
-          ],
-          keyframes: [],
-          compositing: {
-            opacity: 75,
-            blendMode: 'overlay',
-            position: { x: 300, y: -200 },
-            scale: { x: 50, y: 50 },
-            rotation: 0,
-            anchor: { x: 50, y: 50 }
-          }
-        }
-      ],
+      clips: [],
       transitions: []
     },
     {
@@ -363,28 +299,7 @@ const VideoEditorComponent = () => {
       locked: false,
       color: '#00d4aa',
       zIndex: 1,
-      clips: [
-        {
-          id: 2,
-          title: 'Background_Music.wav',
-          startTime: 30,
-          duration: 180,
-          type: 'audio',
-          effects: [
-            { id: 'reverb', value: 30, enabled: true },
-            { id: 'compressor', value: 60, enabled: true }
-          ],
-          keyframes: [],
-          compositing: {
-            opacity: 100,
-            blendMode: 'normal',
-            position: { x: 0, y: 0 },
-            scale: { x: 100, y: 100 },
-            rotation: 0,
-            anchor: { x: 50, y: 50 }
-          }
-        }
-      ],
+      clips: [],
       transitions: []
     }
   ]);
@@ -397,8 +312,6 @@ const VideoEditorComponent = () => {
   const [selectedClip, setSelectedClip] = useState(null);
   const [selectedTransition, setSelectedTransition] = useState(null);
   const [zoom, setZoom] = useState(1);
-
-  // Add these state variables with your existing ones
 
   const [snapGridSize, setSnapGridSize] = useState(5);
   const [draggedClip, setDraggedClip] = useState(null);
@@ -435,14 +348,7 @@ const VideoEditorComponent = () => {
   const [showGenerator, setShowGenerator] = useState(true);
   const [showKeying, setShowKeying] = useState(true);
 
-  const [mediaLibrary, setMediaLibrary] = useState([
-    { id: 1, name: 'Interview_Setup.mp4', type: 'video', duration: '5:23' },
-    { id: 2, name: 'Background_Music.wav', type: 'audio', duration: '3:45' },
-    { id: 3, name: 'Logo_Animation.mov', type: 'video', duration: '0:08' },
-    { id: 4, name: 'Overlay_Graphics.png', type: 'image', duration: '0:00' },
-    { id: 5, name: 'Voice_Over.wav', type: 'audio', duration: '2:15' },
-    { id: 6, name: 'B_Roll_Footage.mp4', type: 'video', duration: '8:42' }
-  ]);
+  const [mediaLibrary, setMediaLibrary] = useState([]);
   const [draggedMedia, setDraggedMedia] = useState(null);
 
   const timelineRef = useRef(null);
@@ -518,6 +424,7 @@ const VideoEditorComponent = () => {
     { id: 'twirl', name: 'Twirl', icon: RotateCw, category: 'distortion', description: 'Spiral distortion' },
     { id: 'pinch', name: 'Pinch', icon: Minimize2, category: 'distortion', description: 'Pinch/bulge effect' },
     { id: 'perspective', name: 'Perspective', icon: Diamond, category: 'distortion', description: 'Corner pin adjustment' },
+
     // Stylize Effects
     { id: 'posterize', name: 'Posterize', icon: Layers, category: 'stylize', description: 'Reduce color levels' },
     { id: 'solarize', name: 'Solarize', icon: Sun, category: 'stylize', description: 'Tone reversal effect' },
@@ -551,7 +458,7 @@ const VideoEditorComponent = () => {
     { id: 'glow', name: 'Outer Glow', icon: Sun, category: 'lighting', description: 'Luminous glow effect' },
     { id: 'innerGlow', name: 'Inner Glow', icon: Lightbulb, category: 'lighting', description: 'Internal glow effect' },
     { id: 'bevel', name: 'Bevel & Emboss', icon: Diamond, category: 'lighting', description: '3D edge lighting' },
-    { id: 'lens', name: 'Lens Flare', icon: Star, category: 'lighting', description: 'Camera lens flare' },
+    { id: 'lensFlare', name: 'Lens Flare', icon: Star, category: 'lighting', description: 'Camera lens flare' },
 
     // Generate Effects
     { id: 'gradientRamp', name: 'Gradient Ramp', icon: TrendingUp, category: 'generate', description: 'Color gradient overlay' },
@@ -668,8 +575,6 @@ const VideoEditorComponent = () => {
     { id: 'flash', name: 'Flash', icon: Bolt, duration: 0.3, category: 'light' }
   ];
 
-
-
   // Playback controls
   const playPause = () => setIsPlaying(!isPlaying);
   const stop = () => {
@@ -689,7 +594,6 @@ const VideoEditorComponent = () => {
 
   // Effect application function
   const applyEffect = async (clipId, effectId, value) => {
-    // Find the clip to determine if it's audio or video
     const clip = tracks.flatMap(track => track.clips).find(c => c.id === clipId);
 
     if (!clip) {
@@ -697,10 +601,8 @@ const VideoEditorComponent = () => {
       return;
     }
 
-    // If it's an audio clip or audio effect, use backend API
     if (clip.type === 'audio' || audioEffects.some(e => e.id === effectId)) {
       try {
-        // Show loading indicator
         setActiveEffects(prev => ({
           ...prev,
           [clipId]: {
@@ -709,11 +611,9 @@ const VideoEditorComponent = () => {
           }
         }));
 
-        // Apply effect via backend
         const result = await applyAudioEffect(clipId, effectId, value);
 
         if (result.success) {
-          // Update the clip with the new processed audio URL
           setTracks(prevTracks =>
             prevTracks.map(track => ({
               ...track,
@@ -721,7 +621,7 @@ const VideoEditorComponent = () => {
                 c.id === clipId
                   ? {
                     ...c,
-                    file_url: result.processed_audio_url, // Update with processed audio
+                    file_url: result.processed_audio_url,
                     effects: [
                       ...c.effects.filter(e => e.id !== effectId),
                       { id: effectId, value: parseFloat(value), enabled: true }
@@ -733,12 +633,10 @@ const VideoEditorComponent = () => {
           );
 
           console.log(`✅ Applied ${effectId} to audio clip ${clipId} with intensity ${value}%`);
-
         } else {
           throw new Error(result.error || 'Effect application failed');
         }
 
-        // Remove loading state
         setActiveEffects(prev => ({
           ...prev,
           [clipId]: {
@@ -751,7 +649,6 @@ const VideoEditorComponent = () => {
       } catch (error) {
         console.error('Audio effect application error:', error);
 
-        // Remove loading state
         setActiveEffects(prev => ({
           ...prev,
           [clipId]: {
@@ -760,12 +657,10 @@ const VideoEditorComponent = () => {
           }
         }));
 
-        // Show error notification
         alert(`Failed to apply ${effectId}: ${error.message}`);
         return;
       }
     } else {
-      // For video effects, use the existing local logic
       setActiveEffects(prev => ({
         ...prev,
         [clipId]: {
@@ -801,17 +696,14 @@ const VideoEditorComponent = () => {
 
     if (!clip) return;
 
-    // Only preview audio effects via backend
     if (clip.type === 'audio' || audioEffects.some(e => e.id === effectId)) {
       try {
         const result = await previewAudioEffect(clipId, effectId, intensity);
 
         if (result.success && result.preview_audio) {
-          // Play the preview audio
           const audio = new Audio(result.preview_audio);
           audio.play();
 
-          // Store preview for potential application
           setActiveEffects(prev => ({
             ...prev,
             [clipId]: {
@@ -824,7 +716,6 @@ const VideoEditorComponent = () => {
         console.error('Preview error:', error);
       }
     } else {
-      // For video effects, just apply temporarily (could be enhanced later)
       console.log(`Previewing ${effectId} on video clip ${clipId}`);
     }
   };
@@ -842,7 +733,6 @@ const VideoEditorComponent = () => {
       const analysis = await analyzeAudio(clipId);
 
       if (analysis.suggested_effects && analysis.suggested_effects.length > 0) {
-        // Update UI to show suggestions
         setActiveEffects(prev => ({
           ...prev,
           [clipId]: {
@@ -875,7 +765,6 @@ const VideoEditorComponent = () => {
         const result = await applyBatchEffects(clipId, preset);
 
         if (result.success) {
-          // Update clip with processed audio
           setTracks(prevTracks =>
             prevTracks.map(track => ({
               ...track,
@@ -1202,7 +1091,6 @@ const VideoEditorComponent = () => {
         : file.type.startsWith('audio/') ? 'audio'
           : 'image';
 
-      // Estimate duration (in real app, you'd use actual file metadata)
       const estimatedDuration = fileType === 'image' ? '0:00' : '0:30';
 
       const newMediaItem = {
@@ -1210,13 +1098,13 @@ const VideoEditorComponent = () => {
         name: file.name,
         type: fileType,
         duration: estimatedDuration,
-        file: file
+        file: file,
+        url: URL.createObjectURL(file)
       };
 
       setMediaLibrary(prev => [...prev, newMediaItem]);
     });
 
-    // Reset file input
     e.target.value = '';
   };
 
@@ -1226,7 +1114,7 @@ const VideoEditorComponent = () => {
     e.dataTransfer.effectAllowed = 'copy';
   };
 
-  // Handle media drop on timeline
+  // Handle media drop on timeline - FIXED VERSION
   const handleMediaDrop = (e, trackId) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1245,7 +1133,7 @@ const VideoEditorComponent = () => {
     const dropTime = adjustedX / pixelsPerSecond;
 
     // Determine duration
-    let durationSeconds = 30; // default
+    let durationSeconds = 30;
     if (draggedMedia.duration) {
       const parts = draggedMedia.duration.split(':');
       durationSeconds = parts.length === 2
@@ -1253,7 +1141,6 @@ const VideoEditorComponent = () => {
         : 30;
     }
 
-    // Images get 5 second default duration
     if (draggedMedia.type === 'image') {
       durationSeconds = 5;
     }
@@ -1265,7 +1152,7 @@ const VideoEditorComponent = () => {
       startTime: snapToGrid(Math.max(0, dropTime)),
       duration: durationSeconds,
       type: draggedMedia.type,
-      mediaUrl: draggedMedia.url || null, // Store the media URL
+      mediaUrl: draggedMedia.url,
       effects: [],
       keyframes: [],
       compositing: {
@@ -1286,6 +1173,9 @@ const VideoEditorComponent = () => {
           : t
       )
     );
+
+    // Set as selected clip to show in program monitor
+    setSelectedClip(newClip);
 
     console.log(`✅ Added ${draggedMedia.name} to ${track.name} at ${newClip.startTime.toFixed(2)}s`);
     setDraggedMedia(null);
@@ -1310,13 +1200,11 @@ const VideoEditorComponent = () => {
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Delete key - remove selected clip
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedClip) {
         e.preventDefault();
         deleteClip(selectedClip.id);
       }
 
-      // Escape key - deselect
       if (e.key === 'Escape') {
         setSelectedClip(null);
         setSelectedTransition(null);
@@ -1499,6 +1387,8 @@ const VideoEditorComponent = () => {
                       </div>
                     )}
                   </div>
+
+                  {/* Color Grading
 
                   {/* Color Grading */}
                   <div className="effect-category">
@@ -1700,7 +1590,6 @@ const VideoEditorComponent = () => {
                               <Icon size={14} />
                               <span>{effect.name}</span>
                               <div className="effect-controls">
-                                {/* Preview button */}
                                 <button
                                   className="preview-btn"
                                   onClick={() => selectedClip && previewEffect(selectedClip.id, effect.id, 50)}
@@ -1709,7 +1598,6 @@ const VideoEditorComponent = () => {
                                 >
                                   <Play size={10} />
                                 </button>
-                                {/* Quick apply button */}
                                 <button
                                   className="quick-apply-btn"
                                   onClick={() => selectedClip && applyEffect(selectedClip.id, effect.id, 50)}
@@ -1790,6 +1678,7 @@ const VideoEditorComponent = () => {
                 accept="video/*,audio/*,image/*"
                 multiple
                 onChange={handleFileImport}
+                style={{ display: 'none' }}
               />
               <div className="media-list">
                 {mediaLibrary.map(media => {
@@ -1800,6 +1689,11 @@ const VideoEditorComponent = () => {
                       className="media-item"
                       draggable
                       onDragStart={(e) => handleMediaDragStart(e, media)}
+                      onClick={() => {
+                        setSourceMonitorMedia(media);
+                        setShowSourceMonitor(true);
+                      }}
+                      style={{ cursor: 'pointer' }}
                     >
                       <Icon size={14} />
                       <div>
@@ -1816,9 +1710,9 @@ const VideoEditorComponent = () => {
 
         {/* Center Panel - Preview */}
         <div className="editor-center-panel">
-          {/* SOURCE MONITOR */}
+          {/* SOURCE MONITOR & PROGRAM MONITOR */}
           <div className="preview-area-container">
-            <div className="preview-area" style={{  padding: '10px' }}>
+            <div className="preview-area" style={{ padding: '10px' }}>
               <div className="preview-container">
                 <div style={{
                   height: '32px',
@@ -1836,13 +1730,29 @@ const VideoEditorComponent = () => {
                 </div>
                 <div className="preview-screen">
                   <div className="preview-content">
-                    <div className="preview-placeholder">
-                      <Monitor size={48} />
-                      <p>{sourceMonitorMedia ? sourceMonitorMedia.name : 'Click media to preview'}</p>
-                      <div className="preview-resolution">
-                        {sourceMonitorMedia ? `${sourceMonitorMedia.type} • ${sourceMonitorMedia.duration}` : 'No clip selected'}
+                    {sourceMonitorMedia ? (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {sourceMonitorMedia.type === 'video' && (
+                          <video src={sourceMonitorMedia.url} controls style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                        )}
+                        {sourceMonitorMedia.type === 'audio' && (
+                          <div className="audio-preview">
+                            <AudioWaveform size={48} />
+                            <p>{sourceMonitorMedia.name}</p>
+                            <audio src={sourceMonitorMedia.url} controls />
+                          </div>
+                        )}
+                        {sourceMonitorMedia.type === 'image' && (
+                          <img src={sourceMonitorMedia.url} alt="preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                        )}
                       </div>
-                    </div>
+                    ) : (
+                      <div className="preview-placeholder">
+                        <Monitor size={48} />
+                        <p>Click media to preview</p>
+                        <div className="preview-resolution">No clip selected</div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="preview-controls">
@@ -1857,8 +1767,9 @@ const VideoEditorComponent = () => {
                 </div>
               </div>
             </div>
+
             {/* PROGRAM MONITOR */}
-            <div className="preview-area" style={{  padding: '10px' }}>
+            <div className="preview-area" style={{ padding: '10px' }}>
               <div className="preview-container">
                 <div style={{
                   height: '32px',
@@ -1876,32 +1787,45 @@ const VideoEditorComponent = () => {
                 </div>
                 <div className="preview-screen">
                   <div className="preview-content">
-                    <div className="preview-placeholder">
-                      <Monitor size={48} />
-                      <p>Program Monitor</p>
-                      <div className="preview-resolution">1920 x 1080 • 30fps</div>
-                      {selectedClip && selectedClip.type === 'video' && (
-                        <div className="preview-overlay-info">
-                          <div className="preview-clip-name">{selectedClip.title}</div>
-                          <div className="preview-compositing-info">
+                    {selectedClip && selectedClip.mediaUrl ? (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                        {selectedClip.type === 'video' && (
+                          <video src={selectedClip.mediaUrl} controls style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                        )}
+                        {selectedClip.type === 'image' && (
+                          <img src={selectedClip.mediaUrl} alt="preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                        )}
+                        {selectedClip.type === 'audio' && (
+                          <div className="audio-preview">
+                            <AudioWaveform size={48} />
+                            <p>{selectedClip.title}</p>
+                            <audio src={selectedClip.mediaUrl} controls />
+                          </div>
+                        )}
+                        <div className="preview-overlay-info" style={{
+                          position: 'absolute',
+                          bottom: '10px',
+                          left: '10px',
+                          background: 'rgba(0,0,0,0.7)',
+                          padding: '8px 12px',
+                          borderRadius: '4px',
+                          fontSize: '11px'
+                        }}>
+                          <div className="preview-clip-name" style={{ fontWeight: '600', marginBottom: '4px' }}>{selectedClip.title}</div>
+                          <div className="preview-compositing-info" style={{ fontSize: '10px', opacity: 0.8 }}>
                             Opacity: {selectedClip.compositing?.opacity || 100}% |
                             Blend: {selectedClip.compositing?.blendMode || 'normal'} |
                             Effects: {selectedClip.effects?.length || 0}
                           </div>
                         </div>
-                      )}
-                    </div>
-                    {/* Safe area guides and vectorscope overlay */}
-                    <div className="safe-area-guides">
-                      <div className="safe-area-outer"></div>
-                      <div className="safe-area-inner"></div>
-                      {showColorGrading && (
-                        <div className="vectorscope-overlay">
-                          <div className="vectorscope-circle"></div>
-                          <div className="vectorscope-info">Vectorscope</div>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="preview-placeholder">
+                        <Monitor size={48} />
+                        <p>Program Monitor</p>
+                        <div className="preview-resolution">1920 x 1080 • 30fps</div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="preview-controls">
@@ -1928,18 +1852,61 @@ const VideoEditorComponent = () => {
           </div>
 
           {/* Timeline Section */}
-           <div className="d-flex">
-             {showMediaBrowser && (
-                     <MediaBrowser
-                       onFileSelect={(file) => {
-              setMediaLibrary(prev => [...prev, file]);
-              setSourceMonitorMedia(file);
-              setShowSourceMonitor(true);
-                       }}
-                       onClose={() => setShowMediaBrowser(false)}
-                     />
-                   )}
-                       <div className="editor-timeline-section">
+          <div className="d-flex">
+            {showMediaBrowser && (
+              <MediaBrowser
+                onFileSelect={(file) => {
+                  setMediaLibrary(prev => [...prev, file]);
+                  setSourceMonitorMedia(file);
+                  setShowSourceMonitor(true);
+                  setShowMediaBrowser(false);
+                }}
+                onClose={() => setShowMediaBrowser(false)}
+              />
+            )}
+
+            {showSourceMonitor && sourceMonitorMedia && (
+              <SourceMonitor
+                selectedMedia={sourceMonitorMedia}
+                onAddToTimeline={(media, inPoint, outPoint) => {
+                  const videoTrack = tracks.find(t => t.type === 'video');
+                  if (videoTrack && !videoTrack.locked) {
+                    const newClip = {
+                      id: Date.now(),
+                      title: media.name,
+                      startTime: 0,
+                      duration: 30,
+                      type: media.type,
+                      mediaUrl: media.url,
+                      effects: [],
+                      keyframes: [],
+                      compositing: {
+                        opacity: 100,
+                        blendMode: 'normal',
+                        position: { x: 0, y: 0 },
+                        scale: { x: 100, y: 100 },
+                        rotation: 0,
+                        anchor: { x: 50, y: 50 }
+                      }
+                    };
+
+                    setTracks(prevTracks =>
+                      prevTracks.map(t =>
+                        t.id === videoTrack.id
+                          ? { ...t, clips: [...t.clips, newClip] }
+                          : t
+                      )
+                    );
+
+                    setSelectedClip(newClip);
+                  }
+                  setShowSourceMonitor(false);
+                }}
+                onClose={() => setShowSourceMonitor(false)}
+              />
+            )}
+
+            <div className="editor-timeline-section">
               {/* Timeline Controls */}
               <div className="timeline-controls-bar">
                 <div className="timeline-zoom-controls">
@@ -1996,6 +1963,7 @@ const VideoEditorComponent = () => {
                   </button>
                 </div>
               </div>
+
               {/* Timeline Main */}
               <div className="timeline-main-container">
                 {/* Ruler */}
@@ -2010,6 +1978,7 @@ const VideoEditorComponent = () => {
                     </div>
                   </div>
                 </div>
+
                 {/* Tracks */}
                 <div className="timeline-tracks-container">
                   <div className="track-headers-column">
@@ -2072,6 +2041,7 @@ const VideoEditorComponent = () => {
                       </div>
                     ))}
                   </div>
+
                   <div className="timeline-tracks-scroll">
                     <div
                       className="timeline-tracks-content"
@@ -2084,6 +2054,7 @@ const VideoEditorComponent = () => {
                         className="timeline-playhead"
                         style={{ left: `${currentTime * 2 * zoom}px` }}
                       />
+
                       {/* Track Rows */}
                       {tracks.sort((a, b) => b.zIndex - a.zIndex).map((track, index) => (
                         <div key={track.id} className="timeline-track-row">
@@ -2164,6 +2135,7 @@ const VideoEditorComponent = () => {
                                     </div>
                                   );
                                 })}
+
                                 {/* Render Transitions */}
                                 {(track.transitions || []).map(transition => {
                                   const transitionData = transitions.find(t => t.id === transition.type);
@@ -2200,8 +2172,8 @@ const VideoEditorComponent = () => {
                   </div>
                 </div>
               </div>
-                       </div>
-           </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2777,7 +2749,6 @@ const VideoEditorComponent = () => {
             </button>
           </div>
 
-
           <div className="mixing-console">
             {tracks.filter(t => t.type === 'audio' || t.clips.some(c => c.type === 'audio')).map(track => (
               <div key={track.id} className="mixer-channel">
@@ -2818,34 +2789,6 @@ const VideoEditorComponent = () => {
             ))}
           </div>
         </div>
-      )}
-
-     
-
-
-
-      {showSourceMonitor && sourceMonitorMedia && (
-        <SourceMonitor
-          selectedMedia={sourceMonitorMedia}
-          onAddToTimeline={(media, inPoint, outPoint) => {
-            // Add to first video track
-            const videoTrack = tracks.find(t => t.type === 'video');
-            if (videoTrack) {
-              handleMediaDrop(
-                {
-                  preventDefault: () => { },
-                  stopPropagation: () => { },
-                  clientX: 0,
-                  currentTarget: { scrollLeft: 0 }
-                },
-                videoTrack.id
-              );
-            }
-            setShowSourceMonitor(false);
-          }}
-          onClose={() => setShowSourceMonitor(false)}
-        />
-
       )}
     </div>
   );

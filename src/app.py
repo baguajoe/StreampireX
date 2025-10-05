@@ -322,6 +322,29 @@ def on_join_webrtc_room(data):
     
     print(f"✅ User {user_name} joined WebRTC room: {room_id}")
 
+@socketio.on('offer')
+def handle_offer(data):
+    room_id = data.get('roomId')
+    offer = data.get('offer')
+    emit('offer', {'offer': offer, 'from': request.sid}, room=f'webrtc_{room_id}', include_self=False)
+
+@socketio.on('answer')
+def handle_answer(data):
+    room_id = data.get('roomId')
+    answer = data.get('answer')
+    emit('answer', {'answer': answer, 'from': request.sid}, room=f'webrtc_{room_id}', include_self=False)
+
+@socketio.on('ice-candidate')
+def handle_ice_candidate(data):
+    room_id = data.get('roomId')
+    candidate = data.get('candidate')
+    emit('ice-candidate', {'candidate': candidate, 'from': request.sid}, room=f'webrtc_{room_id}', include_self=False)
+
+@socketio.on('user-left')
+def handle_user_left(data):
+    room_id = data.get('roomId')
+    emit('user-left', {'userId': request.sid}, room=f'webrtc_{room_id}', include_self=False)
+
 @socketio.on('send_message')
 def handle_message(data):
     sid = request.sid
