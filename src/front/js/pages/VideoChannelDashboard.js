@@ -99,12 +99,12 @@ const VideoChannelDashboard = () => {
       if (response.ok) {
         const data = await response.json();
         setVideos(data);
-        
+
         // Calculate stats from videos
         const totalViews = data.reduce((sum, video) => sum + (video.views || 0), 0);
         const totalLikes = data.reduce((sum, video) => sum + (video.likes || 0), 0);
         const totalComments = data.reduce((sum, video) => sum + (video.comments_count || 0), 0);
-        
+
         setChannelStats(prev => ({
           ...prev,
           totalViews,
@@ -120,23 +120,23 @@ const VideoChannelDashboard = () => {
 
   const fetchChannelAnalytics = async () => {
     try {
-      // Mock analytics data for now - replace with actual API call
-      const mockAnalytics = {
-        monthlyViews: [1200, 1900, 3000, 5000, 4200, 3800, 4500],
-        monthlySubscribers: [10, 25, 45, 78, 92, 105, 120],
-        topVideos: videos.slice(0, 5),
-        viewsByCategory: {
-          Gaming: 45,
-          Education: 30,
-          Entertainment: 15,
-          Other: 10
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.BACKEND_URL}/api/video/channel/analytics`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      };
-      setAnalytics(mockAnalytics);
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAnalytics(data);
+        setChannelStats(prevStats => ({
+          ...prevStats,
+          ...data.stats
+        }));
+      }
     } catch (error) {
       console.error('Error fetching analytics:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -316,8 +316,8 @@ const VideoChannelDashboard = () => {
         <div className="header-content">
           <div className="channel-overview">
             <div className="channel-avatar">
-              <img 
-                src={channelData.avatar_url || '/default-channel-avatar.png'} 
+              <img
+                src={channelData.avatar_url || '/default-channel-avatar.png'}
                 alt={channelData.channel_name}
                 className="avatar-image"
               />
@@ -357,7 +357,7 @@ const VideoChannelDashboard = () => {
               <div className="metric-change">+12% this month</div>
             </div>
           </div>
-          
+
           <div className="metric-card">
             <div className="metric-icon">👥</div>
             <div className="metric-content">
@@ -366,7 +366,7 @@ const VideoChannelDashboard = () => {
               <div className="metric-change">+15 this week</div>
             </div>
           </div>
-          
+
           <div className="metric-card">
             <div className="metric-icon">👍</div>
             <div className="metric-content">
@@ -375,7 +375,7 @@ const VideoChannelDashboard = () => {
               <div className="metric-change">+8% this month</div>
             </div>
           </div>
-          
+
           <div className="metric-card">
             <div className="metric-icon">💬</div>
             <div className="metric-content">
@@ -417,21 +417,21 @@ const VideoChannelDashboard = () => {
             <h3>📈 Monthly Views</h3>
             <Line data={viewsChartData} options={chartOptions} />
           </div>
-          
+
           <div className="chart-container">
             <h3>👥 Subscriber Growth</h3>
             <Line data={subscribersChartData} options={chartOptions} />
           </div>
-          
+
           <div className="chart-container">
             <h3>📊 Views by Category</h3>
-            <Doughnut 
-              data={categoryChartData} 
-              options={{ 
-                responsive: true, 
+            <Doughnut
+              data={categoryChartData}
+              options={{
+                responsive: true,
                 maintainAspectRatio: false,
                 plugins: { legend: { position: 'bottom' } }
-              }} 
+              }}
             />
           </div>
         </div>
@@ -443,14 +443,14 @@ const VideoChannelDashboard = () => {
           <h2>🎬 Recent Videos</h2>
           <Link to="/my-channel" className="view-all-btn">View All</Link>
         </div>
-        
+
         {videos.length > 0 ? (
           <div className="videos-grid">
             {videos.slice(0, 6).map((video) => (
               <div key={video.id} className="video-card">
                 <div className="video-thumbnail">
-                  <img 
-                    src={video.thumbnail_url || '/placeholder-thumbnail.jpg'} 
+                  <img
+                    src={video.thumbnail_url || '/placeholder-thumbnail.jpg'}
                     alt={video.title}
                   />
                   <div className="duration-badge">

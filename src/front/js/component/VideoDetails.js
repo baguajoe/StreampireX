@@ -7,7 +7,7 @@ const VideoDetail = () => {
   const { store } = useContext(Context);
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,12 +23,20 @@ const VideoDetail = () => {
     }
   }, [id]);
 
+  useEffect(() => {
+    if (id) {
+      fetch(`${process.env.BACKEND_URL}/api/videos/${id}/view`, {
+        method: 'POST'
+      }).catch(err => console.log('View tracking failed:', err));
+    }
+  }, [id]);
+
   const fetchVideoDetail = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
       const headers = {};
-      
+
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
@@ -143,7 +151,7 @@ const VideoDetail = () => {
             avatar_url: store.user.profile_picture || store.user.avatar_url
           }
         };
-        
+
         setComments([comment, ...comments]);
         setNewComment('');
         setVideo(prev => ({ ...prev, comments_count: prev.comments_count + 1 }));
@@ -171,7 +179,7 @@ const VideoDetail = () => {
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 1) return '1 day ago';
     if (diffDays < 7) return `${diffDays} days ago`;
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
@@ -208,8 +216,8 @@ const VideoDetail = () => {
         {/* Video Player */}
         <div className="video-player-section">
           <div className="video-player">
-            <video 
-              controls 
+            <video
+              controls
               poster={video.thumbnail_url}
               className="video-element"
             >
@@ -221,16 +229,16 @@ const VideoDetail = () => {
           {/* Video Info */}
           <div className="video-info">
             <h1 className="video-title">{video.title}</h1>
-            
+
             <div className="video-meta">
               <div className="video-stats">
                 <span>{formatCount(video.views)} views</span>
                 <span>•</span>
                 <span>{formatDate(video.created_at)}</span>
               </div>
-              
+
               <div className="video-actions">
-                <button 
+                <button
                   className={`action-btn like-btn ${isLiked ? 'liked' : ''}`}
                   onClick={handleLike}
                 >
@@ -252,8 +260,8 @@ const VideoDetail = () => {
           {/* Channel Info */}
           <div className="channel-info">
             <Link to={`/channel/${video.channel.id}`} className="channel-link">
-              <img 
-                src={video.creator.avatar_url || '/default-avatar.png'} 
+              <img
+                src={video.creator.avatar_url || '/default-avatar.png'}
                 alt={video.channel.name}
                 className="channel-avatar"
               />
@@ -265,9 +273,9 @@ const VideoDetail = () => {
                 <p className="subscriber-count">{formatCount(video.channel.subscriber_count)} subscribers</p>
               </div>
             </Link>
-            
+
             {store.user?.id !== video.creator.id && (
-              <button 
+              <button
                 className={`subscribe-btn ${isSubscribed ? 'subscribed' : ''}`}
                 onClick={handleSubscribe}
               >
@@ -283,7 +291,7 @@ const VideoDetail = () => {
                 <p>{video.description}</p>
               </div>
               {video.description.length > 200 && (
-                <button 
+                <button
                   className="show-more-btn"
                   onClick={() => setShowFullDescription(!showFullDescription)}
                 >
@@ -297,12 +305,12 @@ const VideoDetail = () => {
         {/* Comments Section */}
         <div className="comments-section">
           <h3 className="comments-title">{formatCount(video.comments_count)} Comments</h3>
-          
+
           {/* Comment Form */}
           {store.user ? (
             <form className="comment-form" onSubmit={handleComment}>
-              <img 
-                src={store.user.profile_picture || store.user.avatar_url || '/default-avatar.png'} 
+              <img
+                src={store.user.profile_picture || store.user.avatar_url || '/default-avatar.png'}
                 alt={store.user.username}
                 className="comment-avatar"
               />
@@ -336,8 +344,8 @@ const VideoDetail = () => {
           <div className="comments-list">
             {comments.map((comment) => (
               <div key={comment.id} className="comment">
-                <img 
-                  src={comment.user.avatar_url || '/default-avatar.png'} 
+                <img
+                  src={comment.user.avatar_url || '/default-avatar.png'}
                   alt={comment.user.username}
                   className="comment-avatar"
                 />
@@ -352,7 +360,7 @@ const VideoDetail = () => {
                 </div>
               </div>
             ))}
-            
+
             {comments.length === 0 && (
               <div className="no-comments">
                 <p>No comments yet. Be the first to comment!</p>

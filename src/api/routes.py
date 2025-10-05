@@ -10619,6 +10619,24 @@ def add_to_inner_circle():
         db.session.rollback()
         return jsonify({"error": f"Failed to add to inner circle: {str(e)}"}), 500
 
+@api.route('/profile/inner-circle/remove/<int:friend_user_id>', methods=['DELETE'])
+@jwt_required()
+def remove_from_inner_circle(friend_user_id):
+    user_id = get_jwt_identity()
+    
+    member = InnerCircle.query.filter_by(
+        user_id=user_id,
+        member_user_id=friend_user_id
+    ).first()
+    
+    if not member:
+        return jsonify({"error": "Not in inner circle"}), 404
+    
+    db.session.delete(member)
+    db.session.commit()
+    
+    return jsonify({"message": "Removed from inner circle"}), 200
+
 # ⭐ Inner Circle - Remove friend from inner circle
 @api.route('/inner-circle/search', methods=['GET'])
 @jwt_required()
@@ -11663,7 +11681,6 @@ def enable_gaming_monetization():
     # Enable gaming monetization features
     return jsonify({"message": "💰 Gaming monetization enabled"}), 200
 
-# Music Distribution Routes
 @api.route('/music/distribute', methods=['POST'])
 @jwt_required()
 @plan_required("includes_music_distribution")
@@ -11697,9 +11714,8 @@ def distribute_music():
         
         # Check if track is already distributed
         existing_distribution = MusicDistribution.query.filter_by(
-            track_id=track.id,
-            status__in=["pending", "processing", "submitted", "live"]
-        ).first()
+            track_id=track.id
+        ).filter(MusicDistribution.status.in_(["pending", "processing", "submitted", "live"])).first()
         
         if existing_distribution:
             return jsonify({
@@ -11723,10 +11739,10 @@ def distribute_music():
         platforms = data.get('platforms', ['spotify', 'apple_music', 'amazon_music', 'youtube_music', 'deezer', 'tidal'])
         territories = data.get('territories', ['worldwide'])
         
-        # Calculate expected live date (24-48 hours from now)
-        expected_live = datetime.utcnow() + timedelta(hours=36)  # 36 hours average
+        # Calculate expected live date
+        expected_live = datetime.utcnow() + timedelta(hours=36)
         
-        # Create distribution record using your model
+        # Create distribution record
         distribution = MusicDistribution(
             user_id=user_id,
             track_id=track.id,
@@ -11747,23 +11763,66 @@ def distribute_music():
             notes=f"Submitted via StreampireX on {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}"
         )
         
-        # TODO: Here you would make the actual SonoSuite API call
-        # For now, we'll simulate the submission
         try:
-            # Simulate SonoSuite API call
-            sonosuite_response = {
-                "success": True,
-                "release_id": f"ss_{user_id}_{track.id}_{int(datetime.utcnow().timestamp())}",
-                "status": "submitted",
-                "message": "Release submitted successfully to SonoSuite",
-                "platforms": platforms,
-                "estimated_live_date": expected_live.isoformat()
+            # Real SonoSuite API call
+            import requests
+            import hmac
+            import hashlib
+            import time
+            
+            sonosuite_base_url = os.getenv('SONOSUITE_BASE_URL')
+            shared_secret = os.getenv('SONOSUITE_SHARED_SECRET')
+            
+            timestamp = str(int(time.time()))
+            message = f"{sonosuite_profile.external_id}:{timestamp}"
+            signature = hmac.new(
+                shared_secret.encode(),
+                message.encode(),
+                hashlib.sha256
+            ).hexdigest()
+            
+            payload = {
+                "external_id": sonosuite_profile.external_id,
+                "release": {
+                    "title": data['release_title'],
+                    "artist": data['artist_name'],
+                    "label": data.get('label', 'StreampireX Records'),
+                    "genre": data.get('genre'),
+                    "release_date": data.get('release_date'),
+                    "copyright": data.get('copyright_info', f"© {datetime.now().year} {data['artist_name']}"),
+                    "explicit": data.get('explicit', False),
+                    "tracks": [{
+                        "title": track.title,
+                        "audio_file_url": track.file_url,
+                        "duration": track.duration
+                    }],
+                    "artwork_url": data.get('artwork_url'),
+                    "platforms": platforms,
+                    "territories": territories
+                },
+                "timestamp": timestamp,
+                "signature": signature
             }
             
-            # Update distribution with SonoSuite response
-            distribution.sonosuite_release_id = sonosuite_response["release_id"]
-            distribution.status = "submitted"
-            distribution.sonosuite_response = json.dumps(sonosuite_response)
+            response = requests.post(
+                f"{sonosuite_base_url}/api/releases",
+                json=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "X-External-ID": sonosuite_profile.external_id,
+                    "X-Timestamp": timestamp,
+                    "X-Signature": signature
+                },
+                timeout=30
+            )
+            
+            if response.status_code in [200, 201]:
+                sonosuite_response = response.json()
+                distribution.sonosuite_release_id = sonosuite_response.get("release_id")
+                distribution.status = "submitted"
+                distribution.sonosuite_response = json.dumps(sonosuite_response)
+            else:
+                raise Exception(f"SonoSuite API error: {response.status_code} - {response.text}")
             
             db.session.add(distribution)
             db.session.commit()
@@ -11771,22 +11830,19 @@ def distribute_music():
             return jsonify({
                 "message": "Music submitted for distribution successfully!",
                 "distribution": distribution.serialize(),
-                "sonosuite_response": sonosuite_response,
                 "estimated_live_date": expected_live.isoformat()
             }), 201
             
         except Exception as sonosuite_error:
-            # If SonoSuite API fails, still create the distribution record
             distribution.status = "pending"
             distribution.notes += f" | SonoSuite API Error: {str(sonosuite_error)}"
-            
             db.session.add(distribution)
             db.session.commit()
             
             return jsonify({
                 "message": "Distribution request saved. Will retry SonoSuite submission.",
                 "distribution": distribution.serialize(),
-                "warning": "SonoSuite API temporarily unavailable"
+                "warning": str(sonosuite_error)
             }), 202
         
     except Exception as e:
@@ -12507,6 +12563,47 @@ def get_social_analytics():
 
 # ============ VIDEO UPLOAD ROUTES (NEW) ============
 
+# Video Processing Functions
+def extract_video_metadata(video_url):
+    """Get duration and resolution using ffprobe"""
+    temp_file = f"/tmp/meta_{uuid.uuid4()}.mp4"
+    response = requests.get(video_url)
+    with open(temp_file, 'wb') as f:
+        f.write(response.content)
+    
+    cmd = ['ffprobe', '-v', 'quiet', '-print_format', 'json',
+           '-show_format', '-show_streams', temp_file]
+    
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    data = json.loads(result.stdout)
+    os.remove(temp_file)
+    
+    return {
+        'duration': float(data['format'].get('duration', 0)),
+        'width': data['streams'][0].get('width', 1920),
+        'height': data['streams'][0].get('height', 1080)
+    }
+
+def generate_thumbnail(video_url, timestamp=2.0):
+    """Generate thumbnail at specific timestamp"""
+    temp_video = f"/tmp/vid_{uuid.uuid4()}.mp4"
+    temp_thumb = f"/tmp/thumb_{uuid.uuid4()}.jpg"
+    
+    response = requests.get(video_url)
+    with open(temp_video, 'wb') as f:
+        f.write(response.content)
+    
+    cmd = ['ffmpeg', '-i', temp_video, '-ss', str(timestamp),
+           '-vframes', '1', '-q:v', '2', '-y', temp_thumb]
+    
+    subprocess.run(cmd, check=True, capture_output=True)
+    thumb_url = uploadFile(temp_thumb, f"thumbnail_{uuid.uuid4()}.jpg")
+    
+    os.remove(temp_video)
+    os.remove(temp_thumb)
+    return thumb_url
+
+
 @api.route('/upload_video', methods=['POST'])
 @jwt_required()
 def upload_video():
@@ -12543,8 +12640,21 @@ def upload_video():
         # Upload video file
         video_url = uploadFile(video_file, filename)
         
-        # Handle thumbnail upload (if provided)
-        thumbnail_url = None
+        # NEW: Process video metadata and thumbnail
+        try:
+            metadata = extract_video_metadata(video_url)
+            thumbnail_url = generate_thumbnail(video_url, 2.0)
+            duration = metadata['duration']
+            width = metadata.get('width', 1920)
+            height = metadata.get('height', 1080)
+        except Exception as e:
+            print(f"Video processing warning: {e}")
+            duration = None
+            width = 1920
+            height = 1080
+            thumbnail_url = None
+        
+        # Handle manual thumbnail upload (overrides auto-generated)
         if 'thumbnail' in request.files:
             thumbnail_file = request.files['thumbnail']
             if thumbnail_file.filename != '':
@@ -12570,8 +12680,7 @@ def upload_video():
             db.session.add(channel)
             db.session.flush()
         
-        # Determine duration and content type (you'll need to add duration detection)
-        duration = None  # TODO: Add video duration detection
+        # Determine if clip or full video
         is_clip = duration and duration <= 60
         
         if is_clip:
@@ -12597,6 +12706,8 @@ def upload_video():
                 file_url=video_url,
                 thumbnail_url=thumbnail_url,
                 duration=duration,
+                width=width,
+                height=height,
                 tags=tag_list,
                 category=category,
                 is_public=(visibility == 'public'),
@@ -12607,7 +12718,9 @@ def upload_video():
                 original_content=original_content,
                 allow_comments=allow_comments,
                 allow_likes=allow_likes,
-                uploaded_at=datetime.utcnow()
+                processing_status='completed',
+                uploaded_at=datetime.utcnow(),
+                views=0
             )
         
         # Update channel stats
@@ -12625,6 +12738,45 @@ def upload_video():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"Video upload failed: {str(e)}"}), 500
+
+
+@api.route('/videos/<int:video_id>/recommendations', methods=['GET'])
+def get_video_recommendations(video_id):
+    """Get recommended videos"""
+    video = Video.query.get(video_id)
+    if not video:
+        return jsonify({"error": "Video not found"}), 404
+    
+    recommendations = Video.query.filter(
+        Video.id != video_id,
+        Video.category == video.category,
+        Video.is_public == True,
+        Video.processing_status == 'completed'
+    ).order_by(desc(Video.views)).limit(12).all()
+    
+    if len(recommendations) < 12:
+        more = Video.query.filter(
+            Video.id != video_id,
+            Video.is_public == True,
+            Video.processing_status == 'completed'
+        ).order_by(desc(Video.views)).limit(12 - len(recommendations)).all()
+        recommendations.extend(more)
+    
+    return jsonify([v.serialize() for v in recommendations]), 200
+
+
+
+# View Tracking
+@api.route('/videos/<int:video_id>/view', methods=['POST'])
+def increment_video_view(video_id):
+    """Increment view count"""
+    video = Video.query.get(video_id)
+    if not video:
+        return jsonify({"error": "Not found"}), 404
+    
+    video.views = (video.views or 0) + 1
+    db.session.commit()
+    return jsonify({"views": video.views}), 200
 
 @api.route('/upload/cloudinary', methods=['POST'])
 @jwt_required()
@@ -15812,3 +15964,43 @@ def search_user_content():
             'error': 'Search failed'
         }), 500
 
+# Analytics Endpoint
+
+@api.route('/video/channel/analytics', methods=['GET'])
+@jwt_required()
+def get_channel_analytics():
+    from datetime import datetime, timedelta
+    from collections import defaultdict
+    
+    user_id = get_jwt_identity()
+    channel = VideoChannel.query.filter_by(user_id=user_id).first()
+    if not channel:
+        return jsonify({"error": "No channel found"}), 404
+    
+    videos = Video.query.filter_by(user_id=user_id).all()
+    
+    monthly_views = []
+    monthly_subscribers = []
+    
+    for i in range(6, -1, -1):
+        month_start = datetime.utcnow() - timedelta(days=30*i)
+        month_end = month_start + timedelta(days=30)
+        month_videos = [v for v in videos if month_start <= v.uploaded_at <= month_end]
+        monthly_views.append(sum(v.views or 0 for v in month_videos))
+        monthly_subscribers.append(channel.subscriber_count)
+    
+    views_by_category = defaultdict(int)
+    for v in videos:
+        views_by_category[v.category or 'Other'] += (v.views or 0)
+    
+    return jsonify({
+        "stats": {
+            "totalViews": sum(v.views or 0 for v in videos),
+            "totalLikes": sum(v.likes or 0 for v in videos),
+            "totalVideos": len(videos),
+            "subscribers": channel.subscriber_count
+        },
+        "monthlyViews": monthly_views,
+        "monthlySubscribers": monthly_subscribers,
+        "viewsByCategory": dict(views_by_category)
+    }), 200
