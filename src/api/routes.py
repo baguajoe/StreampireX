@@ -7272,6 +7272,25 @@ def get_conversations():
 
     return jsonify(result), 200
 
+@api.route('/messages/mark-read/<int:message_id>', methods=['PUT'])
+@jwt_required()
+def mark_message_read(message_id):
+    current_user_id = get_jwt_identity()
+    
+    message = Message.query.get(message_id)
+    if not message:
+        return jsonify({'error': 'Message not found'}), 404
+    
+    # Only recipient can mark as read
+    conversation = Conversation.query.get(message.conversation_id)
+    if conversation.user1_id != current_user_id and conversation.user2_id != current_user_id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    message.is_read = True
+    db.session.commit()
+    
+    return jsonify({'success': True}), 200
+
 
 # @api.route('/chat/send', methods=['POST'])
 # @jwt_required()
@@ -16004,3 +16023,176 @@ def get_channel_analytics():
         "monthlySubscribers": monthly_subscribers,
         "viewsByCategory": dict(views_by_category)
     }), 200
+
+# ============ SELLER DASHBOARD - ORDER MANAGEMENT ============
+
+@api.route('/marketplace/seller/orders', methods=['GET'])
+@jwt_required()
+def get_seller_orders():
+    """Get all orders for seller's products"""
+    user_id = get_jwt_identity()
+    
+    # Get orders where user is the product seller
+    orders = db.session.query(Order).join(Product).filter(
+        Product.user_id == user_id
+    ).order_by(Order.created_at.desc()).all()
+    
+    return jsonify({
+        "orders": [order.serialize() for order in orders],
+        "stats": {
+            "total_sales": sum(o.total_amount for o in orders),
+            "pending_orders": len([o for o in orders if o.status == 'pending']),
+            "completed_orders": len([o for o in orders if o.status == 'delivered'])
+        }
+    }), 200
+
+
+@api.route('/marketplace/orders/<int:order_id>/fulfill', methods=['POST'])
+@jwt_required()
+def fulfill_order(order_id):
+    """Mark order as fulfilled and add tracking"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+    
+    # Verify seller owns the product
+    product = Product.query.get(order.product_id)
+    if product.user_id != user_id:
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    # Update order
+    order.status = 'shipped'
+    order.tracking_number = data.get('tracking_number')
+    order.carrier = data.get('carrier', 'USPS')
+    order.shipped_at = datetime.utcnow()
+    
+    db.session.commit()
+    
+    # TODO: Send email notification to buyer
+    
+    return jsonify({
+        "message": "Order marked as shipped",
+        "order": order.serialize()
+    }), 200
+
+
+@api.route('/marketplace/orders/<int:order_id>/complete', methods=['POST'])
+@jwt_required()
+def complete_order(order_id):
+    """Mark order as delivered"""
+    user_id = get_jwt_identity()
+    
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+    
+    product = Product.query.get(order.product_id)
+    if product.user_id != user_id:
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    order.status = 'delivered'
+    order.delivered_at = datetime.utcnow()
+    
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Order marked as delivered",
+        "order": order.serialize()
+    }), 200
+
+# ============ RADIO SCHEDULE ENDPOINTS ============
+
+@api.route('/radio/<int:station_id>/schedule', methods=['GET'])
+def get_radio_schedule(station_id):
+    """Get broadcast schedule for a station"""
+    station = RadioStation.query.get(station_id)
+    if not station:
+        return jsonify({"error": "Station not found"}), 404
+    
+    schedule = []
+    if station.playlist_schedule and 'schedule' in station.playlist_schedule:
+        schedule = station.playlist_schedule['schedule']
+    
+    return jsonify({
+        "station_id": station_id,
+        "station_name": station.name,
+        "schedule": schedule
+    }), 200
+
+
+@api.route('/radio/<int:station_id>/schedule/add', methods=['POST'])
+@jwt_required()
+def add_schedule_slot(station_id):
+    """Add a broadcast time slot"""
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+    if not station:
+        return jsonify({"error": "Station not found or unauthorized"}), 404
+    
+    # Validate input
+    required_fields = ['day', 'start_time', 'end_time', 'show_name', 'dj_name']
+    if not all(field in data for field in required_fields):
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    # Initialize playlist_schedule if it doesn't exist
+    if not station.playlist_schedule:
+        station.playlist_schedule = {"tracks": [], "schedule": []}
+    
+    if 'schedule' not in station.playlist_schedule:
+        station.playlist_schedule['schedule'] = []
+    
+    # Add new slot
+    new_slot = {
+        "day": data['day'],
+        "start_time": data['start_time'],
+        "end_time": data['end_time'],
+        "show_name": data['show_name'],
+        "dj_name": data['dj_name']
+    }
+    
+    station.playlist_schedule['schedule'].append(new_slot)
+    
+    # Mark as modified for SQLAlchemy to detect the change
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(station, 'playlist_schedule')
+    
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Schedule slot added successfully",
+        "slot": new_slot
+    }), 201
+
+
+@api.route('/radio/<int:station_id>/schedule/<int:slot_index>', methods=['DELETE'])
+@jwt_required()
+def delete_schedule_slot(station_id, slot_index):
+    """Delete a broadcast time slot"""
+    user_id = get_jwt_identity()
+    
+    station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+    if not station:
+        return jsonify({"error": "Station not found or unauthorized"}), 404
+    
+    if not station.playlist_schedule or 'schedule' not in station.playlist_schedule:
+        return jsonify({"error": "No schedule found"}), 404
+    
+    schedule = station.playlist_schedule['schedule']
+    if slot_index < 0 or slot_index >= len(schedule):
+        return jsonify({"error": "Invalid slot index"}), 400
+    
+    # Remove the slot
+    del schedule[slot_index]
+    
+    # Mark as modified
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(station, 'playlist_schedule')
+    
+    db.session.commit()
+    
+    return jsonify({"message": "Schedule slot deleted"}), 200

@@ -230,6 +230,114 @@
   border: 1px solid #ffeaa7;
 }
 
+/* Owner/Listener Controls */
+.station-action-buttons {
+  margin: 20px 0;
+}
+
+.owner-controls,
+.listener-controls {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.broadcast-btn,
+.listen-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 15px 30px !important;
+  min-width: 200px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.broadcast-btn {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+}
+
+.broadcast-btn:hover {
+  background: linear-gradient(135deg, #c82333, #bd2130);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+  color: white;
+}
+
+.listen-btn {
+  background: linear-gradient(135deg, #28a745, #218838);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.listen-btn:hover {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+  color: white;
+}
+
+.broadcast-btn .icon,
+.listen-btn .icon {
+  font-size: 1.5rem;
+}
+
+.broadcast-btn .text,
+.listen-btn .text {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.broadcast-btn .subtext,
+.listen-btn .subtext {
+  font-size: 0.8rem;
+  opacity: 0.9;
+  font-weight: normal;
+}
+
+.schedule-btn,
+.edit-btn {
+  padding: 10px 20px;
+  text-decoration: none;
+  border-radius: 25px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.schedule-btn {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+}
+
+.schedule-btn:hover {
+  background: linear-gradient(135deg, #0056b3, #004085);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+  color: white;
+}
+
+.edit-btn {
+  background: linear-gradient(135deg, #6c757d, #545b62);
+  color: white;
+  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+}
+
+.edit-btn:hover {
+  background: linear-gradient(135deg, #545b62, #343a40);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+  color: white;
+}
+
 /* Station Controls */
 .station-controls {
   display: flex;
@@ -419,23 +527,30 @@
 
 /* Animations */
 @keyframes pulse {
-  0% { 
-    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3); 
+  0% {
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
     transform: scale(1);
   }
-  50% { 
+
+  50% {
     box-shadow: 0 6px 25px rgba(255, 193, 7, 0.6);
     transform: scale(1.02);
   }
-  100% { 
+
+  100% {
     box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
     transform: scale(1);
   }
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Responsive Design */
@@ -443,31 +558,44 @@
   .station-detail-container {
     padding: 1rem;
   }
-  
+
   .station-info {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .station-detail-image {
     width: 250px;
     height: 250px;
   }
-  
+
   .station-name {
     font-size: 2rem;
   }
-  
+
   .station-controls {
     justify-content: center;
   }
-  
+
   .station-info-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .detail-section {
     padding: 1.5rem;
+  }
+
+  .owner-controls,
+  .listener-controls {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .broadcast-btn,
+  .listen-btn,
+  .schedule-btn,
+  .edit-btn {
+    width: 100%;
   }
 }
 
@@ -476,27 +604,27 @@
     width: 200px;
     height: 200px;
   }
-  
+
   .station-logo {
     width: 80px;
     height: 80px;
   }
-  
+
   .station-logo-placeholder {
     width: 80px;
     height: 80px;
   }
-  
+
   .station-name {
     font-size: 1.5rem;
   }
-  
+
   .play-button,
   .favorite-button {
     padding: 12px 20px;
     font-size: 14px;
   }
-  
+
   .detail-section {
     padding: 1rem;
   }

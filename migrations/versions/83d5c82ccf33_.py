@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 9b3cc4e17dcf
+Revision ID: 83d5c82ccf33
 Revises: 
-Create Date: 2025-09-17 13:56:39.250556
+Create Date: 2025-10-08 22:11:22.144995
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '9b3cc4e17dcf'
+revision = '83d5c82ccf33'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -356,6 +356,15 @@ def upgrade():
     sa.ForeignKeyConstraint(['user2_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('conversations',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user1_id', sa.Integer(), nullable=False),
+    sa.Column('user2_id', sa.Integer(), nullable=False),
+    sa.Column('last_message_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['user1_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['user2_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('creator_donation',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('creator_id', sa.Integer(), nullable=False),
@@ -377,6 +386,17 @@ def upgrade():
     sa.Column('price_yearly', sa.Float(), nullable=False),
     sa.Column('benefits', sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(['creator_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('direct_messages',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('sender_id', sa.Integer(), nullable=False),
+    sa.Column('recipient_id', sa.Integer(), nullable=False),
+    sa.Column('message', sa.Text(), nullable=False),
+    sa.Column('read', sa.Boolean(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['recipient_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['sender_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('effect_presets',
@@ -1254,6 +1274,11 @@ def upgrade():
     sa.Column('buyer_id', sa.Integer(), nullable=False),
     sa.Column('amount', sa.Float(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('tracking_number', sa.String(length=100), nullable=True),
+    sa.Column('carrier', sa.String(length=50), nullable=True),
+    sa.Column('shipped_at', sa.DateTime(), nullable=True),
+    sa.Column('delivered_at', sa.DateTime(), nullable=True),
+    sa.Column('estimated_delivery', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['buyer_id'], ['user.id'], ),
     sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -1825,8 +1850,10 @@ def downgrade():
     op.drop_table('follow')
     op.drop_table('favorite_page')
     op.drop_table('effect_presets')
+    op.drop_table('direct_messages')
     op.drop_table('creator_membership_tier')
     op.drop_table('creator_donation')
+    op.drop_table('conversations')
     op.drop_table('conversation')
     op.drop_table('communication_preferences')
     op.drop_table('audio_presets')

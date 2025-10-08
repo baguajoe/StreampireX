@@ -20,27 +20,24 @@ if src_dir not in sys.path:
 
 from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_migrate import Migrate
-from flask_mail import Mail, Message
+from flask_mail import Mail, Message as MailMessage
 from flask_jwt_extended import JWTManager, decode_token, exceptions as jwt_exceptions
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit
+from flask_socketio import emit, join_room
 from flask_caching import Cache
 from flask_apscheduler import APScheduler
 import cloudinary
 import click
 from flask.cli import with_appcontext
 
-
-# ✅ Create socketio instance here
-socketio = SocketIO()
-
 # Import your blueprints
 from api.routes import api
 from api.cache import cache
-from api.models import db, LiveChat, User, RadioStation, PricingPlan, SonoSuiteUser
+from api.models import db, LiveChat, User, RadioStation, PricingPlan, SonoSuiteUser, Message, Conversation
 from api.utils import APIException, generate_sitemap
 from api.admin import setup_admin
 from api.commands import setup_commands
+from api.socketio import init_socketio
 
 # ✅ Environment setup
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
@@ -257,23 +254,15 @@ register_commands(app)
 # ✅ Register blueprints
 app.register_blueprint(api, url_prefix='/api')
 
-# ✅ SocketIO setup - UPDATED for better GitHub Codespaces support
-socketio.init_app(
-    app,
-    cors_allowed_origins=all_origins,
-    ping_interval=25,
-    ping_timeout=60,
-    logger=ENV == "development",
-    engineio_logger=ENV == "development"
-)
-
+# ✅ Initialize WebRTC SocketIO from separate module
+socketio = init_socketio(app)
 app.socketio = socketio
 
 # ✅ Global variables for socket management
 connected_users = {}
 listener_count = 0
 
-# ✅ Socket event handlers
+# ✅ Socket event handlers FOR LIVE STREAMING
 @socketio.on('connect')
 def on_connect(auth):
     global listener_count
@@ -298,52 +287,12 @@ def on_connect(auth):
     emit('listener_count', {'count': listener_count}, broadcast=True)
     
 @socketio.on('disconnect')
-def handle_disconnect(auth):  # Add the auth parameter
+def handle_disconnect(auth):
     global listener_count
     user_id = connected_users.pop(request.sid, None)
     listener_count = max(listener_count - 1, 0)
     print(f"❌ {user_id} disconnected (sid={request.sid})")
     emit('listener_count', {'count': listener_count}, broadcast=True)
-
-# ✅ Additional socket handlers...
-@socketio.on('join_webrtc_room')
-def on_join_webrtc_room(data):
-    from flask_socketio import join_room, emit
-    room_id = data.get('roomId')
-    user_id = data.get('userId')
-    user_name = data.get('userName')
-    
-    join_room(f'webrtc_{room_id}')
-    
-    emit('user-joined', {
-        'userId': user_id,
-        'userName': user_name
-    }, room=f'webrtc_{room_id}', include_self=False)
-    
-    print(f"✅ User {user_name} joined WebRTC room: {room_id}")
-
-@socketio.on('offer')
-def handle_offer(data):
-    room_id = data.get('roomId')
-    offer = data.get('offer')
-    emit('offer', {'offer': offer, 'from': request.sid}, room=f'webrtc_{room_id}', include_self=False)
-
-@socketio.on('answer')
-def handle_answer(data):
-    room_id = data.get('roomId')
-    answer = data.get('answer')
-    emit('answer', {'answer': answer, 'from': request.sid}, room=f'webrtc_{room_id}', include_self=False)
-
-@socketio.on('ice-candidate')
-def handle_ice_candidate(data):
-    room_id = data.get('roomId')
-    candidate = data.get('candidate')
-    emit('ice-candidate', {'candidate': candidate, 'from': request.sid}, room=f'webrtc_{room_id}', include_self=False)
-
-@socketio.on('user-left')
-def handle_user_left(data):
-    room_id = data.get('roomId')
-    emit('user-left', {'userId': request.sid}, room=f'webrtc_{room_id}', include_self=False)
 
 @socketio.on('send_message')
 def handle_message(data):
@@ -371,6 +320,64 @@ def handle_message(data):
         "message": message,
         "username": user.username if user else "Unknown"
     })
+
+# ✅ NEW: Socket handlers FOR DIRECT MESSAGING
+@socketio.on('join_user_room')
+def join_user_room():
+    """Join a room for receiving direct messages"""
+    user_id = connected_users.get(request.sid)
+    if user_id:
+        join_room(f'user_{user_id}')
+        print(f"✅ User {user_id} joined their message room")
+
+@socketio.on('send_direct_message')
+def handle_direct_message(data):
+    """Handle real-time direct messaging"""
+    sender_id = connected_users.get(request.sid)
+    if not sender_id:
+        print("❌ Unauthorized direct message attempt")
+        return
+    
+    conversation_id = data.get('conversation_id')
+    content = data.get('content')
+    
+    if not conversation_id or not content:
+        print("❌ Missing conversation_id or content")
+        return
+    
+    try:
+        # Save to database using YOUR models
+        new_message = Message(
+            conversation_id=conversation_id,
+            sender_id=sender_id,
+            content=content
+        )
+        db.session.add(new_message)
+        db.session.commit()
+        
+        # Get recipient from conversation
+        conversation = Conversation.query.get(conversation_id)
+        if not conversation:
+            print(f"❌ Conversation {conversation_id} not found")
+            return
+            
+        recipient_id = conversation.user2_id if conversation.user1_id == sender_id else conversation.user1_id
+        
+        # Emit to recipient in real-time
+        socketio.emit('new_message', {
+            'id': new_message.id,
+            'sender_id': sender_id,
+            'content': content,
+            'timestamp': new_message.timestamp.isoformat(),
+            'conversation_id': conversation_id,
+            'is_read': False
+        }, room=f'user_{recipient_id}')
+        
+        print(f"✅ Direct message sent from {sender_id} to {recipient_id}")
+        
+    except Exception as e:
+        print(f"❌ Error sending direct message: {e}")
+        db.session.rollback()
 
 @socketio.on_error_default
 def default_error_handler(e):
