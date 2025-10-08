@@ -8,6 +8,7 @@ import Home from "./pages/home";
 import Login from "./pages/Login";
 import SignupForm from "./component/SignupForm";
 
+import SellerDashboard from "./pages/SellerDashboard";
 import PodcastDashboard from "./pages/PodcastDashboard";
 import PodcastCreate from "./pages/PodcastCreate";
 import PodcastPage from "./pages/PodcastDetailPage";
@@ -26,6 +27,7 @@ import AlbumDetailPage from "./pages/AlbumDetailPage";
 import VideoChannelDashboard from "./pages/VideoChannelDashboard";
 import VideoChannelProfile from "./pages/VideoChannelProfile";
 import MyVideoChannel from "./pages/MyVideoChannel";
+import RadioSchedule from "./pages/RadioSchedule";
 
 import VideoUpload from "./pages/VideoUpload";
 import VideoDetails from "./component/VideoDetails";
@@ -129,6 +131,7 @@ useEffect(() => {
               
               {/* 📊 Dashboards */}
               <Route path="/creator-dashboard" element={<CreatorDashboard />} />
+              <Route path="/radio/:id/schedule" element={<RadioSchedule />} />
 
               {/* 🎧 Podcasts */}
               <Route path="/podcast-dashboard" element={<PodcastDashboard />} />
@@ -192,6 +195,8 @@ useEffect(() => {
               {/* 🎵 Additional Artist Routes (Optional) */}
               <Route path="/artist/upload" element={<UploadMusic />} />
               <Route path="/artist/analytics" element={<ArtistDashboard />} />
+
+              <Route path="/seller-dashboard" element={<SellerDashboard />} />
 
               {/* 🔔 Notifications */}
               <Route path="/notifications" element={<NotificationsPage />} />

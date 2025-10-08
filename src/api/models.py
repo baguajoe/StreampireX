@@ -2836,6 +2836,11 @@ class Order(db.Model):
     buyer_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    tracking_number = db.Column(db.String(100))
+    carrier = db.Column(db.String(50))  # USPS, FedEx, UPS, etc.
+    shipped_at = db.Column(db.DateTime)
+    delivered_at = db.Column(db.DateTime)
+    estimated_delivery = db.Column(db.DateTime)
 
 class Engagement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -2981,6 +2986,43 @@ group_members = db.Table('group_members',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
     db.Column('group_id', db.Integer, db.ForeignKey('group.id'))
 )
+
+# Add to models.py
+class DirectMessage(db.Model):
+    __tablename__ = 'direct_messages'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
+    recipient = db.relationship('User', foreign_keys=[recipient_id], backref='received_messages')
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'sender_id': self.sender_id,
+            'sender_name': self.sender.username,
+            'recipient_id': self.recipient_id,
+            'recipient_name': self.recipient.username,
+            'message': self.message,
+            'read': self.read,
+            'created_at': self.created_at.isoformat()
+        }
+
+class Conversation(db.Model):
+    __tablename__ = 'conversations'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user1_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user2_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    last_message_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user1 = db.relationship('User', foreign_keys=[user1_id])
+    user2 = db.relationship('User', foreign_keys=[user2_id])
 
 # 👥 Group Chat Model
 class Group(db.Model):

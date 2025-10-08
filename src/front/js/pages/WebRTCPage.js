@@ -60,7 +60,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
 
     try {
       setConnectionStatus("connecting");
-      
+
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token found');
@@ -72,17 +72,19 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
       }
 
       console.log(`Connecting to WebRTC socket at: ${backendUrl}`);
-      
+
       socketRef.current = io(backendUrl, {
-        transports: ["websocket", "polling"], // Fallback to polling
+        transports: ["websocket", "polling"],
         withCredentials: true,
-        auth: { token },
+        path: '/socket.io/',
+        namespace: '/webrtc',  // ✅ ADD THIS LINE
         autoConnect: true,
         forceNew: true,
-        timeout: 10000, // 10 second timeout
+        timeout: 10000,
         reconnection: true,
         reconnectionAttempts: 5,
-        reconnectionDelay: 1000
+        reconnectionDelay: 1000,
+        query: token ? { token } : {}
       });
 
       const socket = socketRef.current;
@@ -151,10 +153,10 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
   const getUserMedia = useCallback(async () => {
     try {
       setIsConnecting(true);
-      
+
       // Try with video first
       let constraints = {
-        video: { 
+        video: {
           width: { ideal: 1280, max: 1920 },
           height: { ideal: 720, max: 1080 },
           frameRate: { ideal: 30, max: 60 }
@@ -172,7 +174,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
       } catch (videoError) {
         console.warn("Video failed, trying audio only:", videoError);
         addError("Camera access failed, using audio only");
-        
+
         // Fallback to audio only
         constraints = { video: false, audio: true };
         try {
@@ -180,7 +182,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
         } catch (audioError) {
           console.warn("Audio failed, trying without constraints:", audioError);
           addError("Microphone access failed");
-          
+
           // Last resort - no constraints
           stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         }
@@ -198,7 +200,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
     } catch (error) {
       setIsConnecting(false);
       addError(`Media access failed: ${error.message}`);
-      
+
       // Provide specific error messages
       if (error.name === 'NotAllowedError') {
         addError('Camera/microphone permission denied. Please allow access and refresh.');
@@ -207,7 +209,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
       } else if (error.name === 'NotReadableError') {
         addError('Camera/microphone is being used by another application.');
       }
-      
+
       throw error;
     }
   }, []);
@@ -216,11 +218,11 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
   const createPeerConnection = useCallback(async () => {
     try {
       const pc = new RTCPeerConnection(servers);
-      
+
       // Enhanced connection state monitoring
       pc.addEventListener('connectionstatechange', () => {
         console.log('Connection state:', pc.connectionState);
-        
+
         switch (pc.connectionState) {
           case 'connected':
             setConnectionStatus('connected');
@@ -246,7 +248,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
       // ICE connection state monitoring
       pc.addEventListener('iceconnectionstatechange', () => {
         console.log('ICE connection state:', pc.iceConnectionState);
-        
+
         if (pc.iceConnectionState === 'failed') {
           addError('ICE connection failed - network connectivity issues');
           // Trigger ICE restart
@@ -295,10 +297,10 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
     try {
       const pc = peerConnection || await createPeerConnection();
       await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-      
+
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      
+
       socketRef.current?.emit('answer', {
         answer: answer,
         roomId
@@ -357,15 +359,15 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
     try {
       const stream = await getUserMedia();
       const pc = await createPeerConnection();
-      
+
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      
+
       socketRef.current?.emit('offer', {
         offer: offer,
         roomId
       });
-      
+
     } catch (error) {
       addError(`Failed to start call: ${error.message}`);
     }
@@ -396,7 +398,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
       setRemoteStream(null);
       setIsVideoStarted(false);
       setConnectionStatus("disconnected");
-      
+
     } catch (error) {
       addError(`Error ending call: ${error.message}`);
     }
@@ -405,17 +407,17 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
   // Screen sharing functionality
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [screenStream, setScreenStream] = useState(null);
-  
+
   // Chat functionality
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isChatOpen, setIsChatOpen] = useState(false);
-  
+
   // Recording functionality
   const [isRecording, setIsRecording] = useState(false);
   const [recordedChunks, setRecordedChunks] = useState([]);
   const mediaRecorderRef = useRef(null);
-  
+
   // Device selection
   const [availableDevices, setAvailableDevices] = useState({
     audioInputs: [],
@@ -432,13 +434,13 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
   const getAvailableDevices = useCallback(async () => {
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      
+
       const audioInputs = devices.filter(device => device.kind === 'audioinput');
       const videoInputs = devices.filter(device => device.kind === 'videoinput');
       const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
-      
+
       setAvailableDevices({ audioInputs, videoInputs, audioOutputs });
-      
+
       // Set default devices if not already selected
       if (!selectedDevices.audioInput && audioInputs.length > 0) {
         setSelectedDevices(prev => ({ ...prev, audioInput: audioInputs[0].deviceId }));
@@ -449,7 +451,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
       if (!selectedDevices.audioOutput && audioOutputs.length > 0) {
         setSelectedDevices(prev => ({ ...prev, audioOutput: audioOutputs[0].deviceId }));
       }
-      
+
     } catch (error) {
       addError(`Failed to get media devices: ${error.message}`);
     }
@@ -462,27 +464,27 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
         video: { mediaSource: 'screen' },
         audio: true
       });
-      
+
       setScreenStream(screenStream);
       setIsScreenSharing(true);
-      
+
       // Replace video track in peer connection
       if (peerConnection && localStream) {
         const videoTrack = screenStream.getVideoTracks()[0];
-        const sender = peerConnection.getSenders().find(s => 
+        const sender = peerConnection.getSenders().find(s =>
           s.track && s.track.kind === 'video'
         );
-        
+
         if (sender) {
           await sender.replaceTrack(videoTrack);
         }
       }
-      
+
       // Handle screen share end
       screenStream.getVideoTracks()[0].addEventListener('ended', () => {
         stopScreenShare();
       });
-      
+
     } catch (error) {
       addError(`Screen sharing failed: ${error.message}`);
     }
@@ -494,21 +496,21 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
         screenStream.getTracks().forEach(track => track.stop());
         setScreenStream(null);
       }
-      
+
       setIsScreenSharing(false);
-      
+
       // Restore camera video
       if (peerConnection && localStream) {
         const videoTrack = localStream.getVideoTracks()[0];
-        const sender = peerConnection.getSenders().find(s => 
+        const sender = peerConnection.getSenders().find(s =>
           s.track && s.track.kind === 'video'
         );
-        
+
         if (sender && videoTrack) {
           await sender.replaceTrack(videoTrack);
         }
       }
-      
+
     } catch (error) {
       addError(`Failed to stop screen sharing: ${error.message}`);
     }
@@ -523,12 +525,12 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
         sender: userName,
         timestamp: new Date().toISOString()
       };
-      
+
       socketRef.current.emit('chat-message', {
         roomId,
         message
       });
-      
+
       setChatMessages(prev => [...prev, message]);
       setNewMessage('');
     }
@@ -540,24 +542,24 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
       if (!localStream) {
         throw new Error('No local stream available for recording');
       }
-      
+
       const mediaRecorder = new MediaRecorder(localStream, {
         mimeType: 'video/webm;codecs=vp9'
       });
-      
+
       mediaRecorderRef.current = mediaRecorder;
       setRecordedChunks([]);
-      
+
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           setRecordedChunks(prev => [...prev, event.data]);
         }
       };
-      
+
       mediaRecorder.onstop = () => {
         const blob = new Blob(recordedChunks, { type: 'video/webm' });
         const url = URL.createObjectURL(blob);
-        
+
         // Download the recording
         const a = document.createElement('a');
         a.href = url;
@@ -567,10 +569,10 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       };
-      
+
       mediaRecorder.start(1000); // Collect data every second
       setIsRecording(true);
-      
+
     } catch (error) {
       addError(`Recording failed: ${error.message}`);
     }
@@ -592,43 +594,43 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
           audio: deviceType === 'audioInput' ? { deviceId: { exact: deviceId } } : true,
           video: deviceType === 'videoInput' ? { deviceId: { exact: deviceId } } : true
         };
-        
+
         // Get new stream
         const newStream = await navigator.mediaDevices.getUserMedia(constraints);
-        
+
         // Replace tracks in peer connection
         if (peerConnection) {
-          const newTrack = deviceType === 'audioInput' 
-            ? newStream.getAudioTracks()[0] 
+          const newTrack = deviceType === 'audioInput'
+            ? newStream.getAudioTracks()[0]
             : newStream.getVideoTracks()[0];
-          
-          const sender = peerConnection.getSenders().find(s => 
+
+          const sender = peerConnection.getSenders().find(s =>
             s.track && s.track.kind === (deviceType === 'audioInput' ? 'audio' : 'video')
           );
-          
+
           if (sender) {
             await sender.replaceTrack(newTrack);
           }
         }
-        
+
         // Update local stream
-        const oldTrack = deviceType === 'audioInput' 
-          ? localStream.getAudioTracks()[0] 
+        const oldTrack = deviceType === 'audioInput'
+          ? localStream.getAudioTracks()[0]
           : localStream.getVideoTracks()[0];
-        
+
         if (oldTrack) {
           localStream.removeTrack(oldTrack);
           oldTrack.stop();
         }
-        
-        const newTrack = deviceType === 'audioInput' 
-          ? newStream.getAudioTracks()[0] 
+
+        const newTrack = deviceType === 'audioInput'
+          ? newStream.getAudioTracks()[0]
           : newStream.getVideoTracks()[0];
-        
+
         localStream.addTrack(newTrack);
-        
+
         setSelectedDevices(prev => ({ ...prev, [deviceType]: deviceId }));
-        
+
       } else if (deviceType === 'audioOutput') {
         // Change audio output device
         if (remoteVideoRef.current && remoteVideoRef.current.setSinkId) {
@@ -636,7 +638,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
           setSelectedDevices(prev => ({ ...prev, audioOutput: deviceId }));
         }
       }
-      
+
     } catch (error) {
       addError(`Failed to switch ${deviceType}: ${error.message}`);
     }
@@ -710,7 +712,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
               ))}
             </select>
           </div>
-          
+
           <div className="device-selector">
             <label>🎤 Microphone:</label>
             <select
@@ -724,7 +726,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
               ))}
             </select>
           </div>
-          
+
           <div className="device-selector">
             <label>🔊 Speakers:</label>
             <select
@@ -772,7 +774,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
       {/* Main Controls */}
       <div className="controls">
         {!isVideoStarted ? (
-          <button 
+          <button
             className="start-call-btn"
             onClick={startCall}
             disabled={isConnecting || connectionStatus === 'error'}
@@ -781,46 +783,46 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
           </button>
         ) : (
           <>
-            <button 
+            <button
               className={`control-btn ${!isAudioEnabled ? 'disabled' : ''}`}
               onClick={toggleAudio}
               title="Toggle Microphone"
             >
               {isAudioEnabled ? '🎤' : '🎤❌'}
             </button>
-            
-            <button 
+
+            <button
               className={`control-btn ${!isVideoEnabled ? 'disabled' : ''}`}
               onClick={toggleVideo}
               title="Toggle Camera"
             >
               {isVideoEnabled ? '📹' : '📹❌'}
             </button>
-            
-            <button 
+
+            <button
               className={`control-btn ${isScreenSharing ? 'active' : ''}`}
               onClick={isScreenSharing ? stopScreenShare : startScreenShare}
               title="Share Screen"
             >
               {isScreenSharing ? '🖥️❌' : '🖥️'}
             </button>
-            
-            <button 
+
+            <button
               className={`control-btn ${isRecording ? 'active recording' : ''}`}
               onClick={isRecording ? stopRecording : startRecording}
               title="Record Call"
             >
               {isRecording ? '⏹️' : '🔴'}
             </button>
-            
-            <button 
+
+            <button
               className={`control-btn ${isChatOpen ? 'active' : ''}`}
               onClick={() => setIsChatOpen(!isChatOpen)}
               title="Toggle Chat"
             >
               💬
             </button>
-            
+
             <button className="end-call-btn" onClick={endCall}>
               📞❌ End Call
             </button>
@@ -835,7 +837,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
             <h3>💬 Chat</h3>
             <button onClick={() => setIsChatOpen(false)}>×</button>
           </div>
-          
+
           <div className="chat-messages">
             {chatMessages.map(message => (
               <div key={message.id} className="chat-message">
@@ -847,7 +849,7 @@ const WebRTCChat = ({ roomId, userId, userName }) => {
               </div>
             ))}
           </div>
-          
+
           <div className="chat-input">
             <input
               type="text"

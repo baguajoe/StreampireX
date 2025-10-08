@@ -1,6 +1,6 @@
 // src/front/js/component/RadioStationDetailPage.js - Enhanced with comprehensive audio error handling
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ErrorHandler, AuthErrorHandler } from '../utils/errorUtils';
 import "../../styles/RadioStationDetail.css";
 
@@ -42,6 +42,9 @@ const RadioStationDetailPage = () => {
   const [nowPlaying, setNowPlaying] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // NEW: Current user state
+  const [currentUser, setCurrentUser] = useState(null);
   
   // Refs
   const audioRef = useRef(null);
@@ -87,6 +90,30 @@ const RadioStationDetailPage = () => {
       setLoading(false);
     }
   }, []);
+
+  // NEW: Fetch current user
+  const fetchCurrentUser = useCallback(async () => {
+    if (!backendUrl) return;
+    
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      
+      const response = await fetch(`${backendUrl}/api/profile`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentUser(data);
+      }
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+    }
+  }, [backendUrl]);
 
   // FIXED getAudioUrl function with Cloudinary priority
   const getAudioUrl = useCallback(() => {
@@ -676,6 +703,7 @@ const RadioStationDetailPage = () => {
   useEffect(() => {
     if (backendUrl || type === 'static') {
       fetchStationData();
+      fetchCurrentUser(); // NEW: Fetch current user
     }
 
     return () => {
@@ -686,7 +714,10 @@ const RadioStationDetailPage = () => {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [backendUrl, fetchStationData, type]);
+  }, [backendUrl, fetchStationData, fetchCurrentUser, type]);
+
+  // NEW: Check if current user is station owner
+  const isOwner = currentUser && station && currentUser.id === station.user_id;
 
   // FIXED Logo Rendering
   const renderStationLogo = () => {
@@ -947,6 +978,51 @@ const RadioStationDetailPage = () => {
               )}
               {connectionStatus !== 'disconnected' && renderConnectionStatus()}
             </div>
+
+            {/* NEW: Owner/Listener Controls */}
+            {type !== 'static' && (
+              <div className="station-action-buttons">
+                {isOwner ? (
+                  // Owner Controls
+                  <div className="owner-controls">
+                    <Link 
+                      to={`/live-show/${id}?mode=radio`} 
+                      className="btn btn-danger btn-lg broadcast-btn"
+                    >
+                      <span className="icon">🎙️</span>
+                      <span className="text">Start Broadcasting</span>
+                      <small className="subtext">Go live as DJ</small>
+                    </Link>
+                    
+                    <Link 
+                      to={`/radio/${id}/schedule`} 
+                      className="btn btn-primary schedule-btn"
+                    >
+                      📅 Manage Schedule
+                    </Link>
+                    
+                    <Link 
+                      to={`/radio/${id}/edit`} 
+                      className="btn btn-secondary edit-btn"
+                    >
+                      ⚙️ Edit Station
+                    </Link>
+                  </div>
+                ) : (
+                  // Listener Controls
+                  <div className="listener-controls">
+                    <Link 
+                      to={`/live-show/${id}?mode=radio`} 
+                      className="btn btn-success btn-lg listen-btn"
+                    >
+                      <span className="icon">🎧</span>
+                      <span className="text">Listen Live</span>
+                      <small className="subtext">{station.listener_count || 0} listening now</small>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Audio Player */}
             <div className="audio-player">

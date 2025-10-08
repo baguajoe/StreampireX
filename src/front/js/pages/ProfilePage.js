@@ -6,6 +6,7 @@ import VideoChatPopup from "../component/VideoChatPopup";
 import InboxDrawer from "../component/InboxDrawer";
 import SocialMediaManager from "../component/SocialMediaManager";
 import VideoChannelManager from "../component/VideoChannelManager";
+import ProfileVideoCallButton from "../component/ProfileVideoCallButton";
 import "../../styles/ProfilePage.css";
 
 // Image imports
@@ -136,7 +137,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            
+
             if (!token) {
                 // Use mock data if no token
                 setInnerCircleMembers(MOCK_CIRCLE_MEMBERS);
@@ -149,7 +150,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 setInnerCircleMembers(data.inner_circle || []);
@@ -169,7 +170,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            
+
             if (!token) {
                 // Use mock data
                 setTopUsers(MOCK_CIRCLE_MEMBERS.slice(0, 10));
@@ -182,7 +183,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 setTopUsers(data.users || []);
@@ -200,7 +201,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
     const handleAddToCircle = useCallback(async (targetUserId) => {
         try {
             const token = localStorage.getItem('token');
-            
+
             if (!token) {
                 alert('Please log in to modify your inner circle');
                 return;
@@ -214,7 +215,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                 },
                 body: JSON.stringify({ friend_user_id: targetUserId })
             });
-            
+
             if (response.ok) {
                 fetchInnerCircle();
                 alert('Added to Inner Circle!');
@@ -230,10 +231,10 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
 
     const handleRemoveFromCircle = useCallback(async (targetUserId) => {
         if (!confirm('Remove this person from your inner circle?')) return;
-        
+
         try {
             const token = localStorage.getItem('token');
-            
+
             if (!token) {
                 alert('Please log in to modify your inner circle');
                 return;
@@ -245,7 +246,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            
+
             if (response.ok) {
                 fetchInnerCircle();
                 alert('Removed from inner circle');
@@ -268,10 +269,10 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
         try {
             setIsSearching(true);
             const token = localStorage.getItem('token');
-            
+
             if (!token) {
                 // Mock search results
-                const mockResults = MOCK_CIRCLE_MEMBERS.filter(user => 
+                const mockResults = MOCK_CIRCLE_MEMBERS.filter(user =>
                     user.display_name.toLowerCase().includes(query.toLowerCase()) ||
                     user.username.toLowerCase().includes(query.toLowerCase())
                 );
@@ -285,7 +286,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 setSearchResults(data.users || []);
@@ -356,9 +357,9 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                         placeholder="Search users to add to your circle..."
                         className="search-users-input"
                     />
-                    
+
                     {isSearching && <div className="search-loading">Searching...</div>}
-                    
+
                     {searchResults.length > 0 && (
                         <div className="search-results">
                             {searchResults.map(user => (
@@ -398,8 +399,8 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                             innerCircleMembers.map(member => (
                                 <div key={member.friend_user_id || member.id} className="circle-member-card">
                                     <div className="member-rank">#{member.position || member.id}</div>
-                                    <img 
-                                        src={member.profile_picture || member.avatar || lady1} 
+                                    <img
+                                        src={member.profile_picture || member.avatar || lady1}
                                         alt={member.display_name || member.username}
                                         className="member-avatar"
                                     />
@@ -430,7 +431,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                             <div className="empty-circle">
                                 <p>Your inner circle is empty</p>
                                 {isOwnProfile && (
-                                    <button 
+                                    <button
                                         onClick={() => setActiveTab('top10')}
                                         className="discover-users-btn"
                                     >
@@ -450,8 +451,8 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                                     {index === 1 && '🥈'}
                                     {index === 2 && '🥉'}
                                 </div>
-                                <img 
-                                    src={user.profile_picture || user.avatar || lady1} 
+                                <img
+                                    src={user.profile_picture || user.avatar || lady1}
                                     alt={user.display_name || user.username}
                                     className="member-avatar"
                                 />
@@ -469,7 +470,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                                         View
                                     </Link>
                                     {isOwnProfile && (
-                                        <button 
+                                        <button
                                             onClick={() => handleAddToCircle(user.id)}
                                             className="add-to-circle-btn small"
                                             disabled={innerCircleMembers.some(m => m.friend_user_id === user.id)}
@@ -519,7 +520,7 @@ const CommentSection = ({ postId, comments = [], currentUser, onAddComment }) =>
     return (
         <div className="post-comments-section">
             <div className="comments-toggle">
-                <button 
+                <button
                     className="comments-toggle-btn"
                     onClick={() => setShowComments(!showComments)}
                 >
@@ -532,9 +533,9 @@ const CommentSection = ({ postId, comments = [], currentUser, onAddComment }) =>
                     <div className="comments-list">
                         {comments.map((comment) => (
                             <div key={comment.id} className="comment-item">
-                                <img 
-                                    src={comment.avatar} 
-                                    alt={comment.author} 
+                                <img
+                                    src={comment.avatar}
+                                    alt={comment.author}
                                     className="comment-avatar"
                                 />
                                 <div className="comment-content">
@@ -553,9 +554,9 @@ const CommentSection = ({ postId, comments = [], currentUser, onAddComment }) =>
                 )}
 
                 <div className="comment-input-section">
-                    <img 
-                        src={currentUser.profile_picture || lady1} 
-                        alt="Your avatar" 
+                    <img
+                        src={currentUser.profile_picture || lady1}
+                        alt="Your avatar"
                         className="comment-input-avatar"
                     />
                     <div className="comment-input-container">
@@ -595,7 +596,7 @@ const uploadToCloudinary = async (file, resourceType = 'auto') => {
     try {
         const formData = new FormData();
         formData.append('file', file);
-        
+
         const response = await fetch(`${BACKEND_URL}/api/upload/cloudinary`, {
             method: 'POST',
             headers: {
@@ -603,11 +604,11 @@ const uploadToCloudinary = async (file, resourceType = 'auto') => {
             },
             body: formData
         });
-        
+
         if (!response.ok) {
             throw new Error('Upload failed');
         }
-        
+
         const result = await response.json();
         return result.secure_url;
     } catch (error) {
@@ -738,7 +739,7 @@ const ProfilePage = () => {
         const storedToken = localStorage.getItem('token');
         const storedUserId = localStorage.getItem('userId');
         const storedUsername = localStorage.getItem('username');
-        
+
         setAuthState({
             token: storedToken || 'demo-token',
             userId: storedUserId || '1',
@@ -764,7 +765,7 @@ const ProfilePage = () => {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 setSocialAccounts(data.connected_accounts || []);
@@ -783,7 +784,7 @@ const ProfilePage = () => {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 setSocialAnalytics(data.total_metrics || {});
@@ -802,7 +803,7 @@ const ProfilePage = () => {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 setMedia(prev => ({ ...prev, userPhotos: data.photos || MOCK_PHOTOS }));
@@ -822,7 +823,7 @@ const ProfilePage = () => {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 setMedia(prev => ({ ...prev, userVideos: data.videos || MOCK_VIDEOS }));
@@ -842,7 +843,7 @@ const ProfilePage = () => {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 setCircleMembers(data.inner_circle || MOCK_CIRCLE_MEMBERS);
@@ -958,8 +959,8 @@ const ProfilePage = () => {
     }, []);
 
     const handleMoodChange = useCallback((moodId, customLabel = null, customEmoji = null) => {
-        setUi(prev => ({ 
-            ...prev, 
+        setUi(prev => ({
+            ...prev,
             currentMood: moodId,
             customMoodLabel: customLabel,
             customMoodEmoji: customEmoji
@@ -970,10 +971,10 @@ const ProfilePage = () => {
         if (customMood.trim()) {
             const emojiRegex = /^(\p{Emoji})\s*(.+)/u;
             const match = customMood.match(emojiRegex);
-            
+
             const emoji = match ? match[1] : '🎭';
             const label = match ? match[2].trim() : customMood.trim();
-            
+
             handleMoodChange('custom', label, emoji);
             setCustomMood('');
             setShowCustomMoodInput(false);
@@ -1000,7 +1001,7 @@ const ProfilePage = () => {
                 setLoading(true);
                 const cloudinaryUrl = await uploadToCloudinary(file, 'image');
                 setMedia(prev => ({ ...prev, profilePicture: cloudinaryUrl }));
-                
+
                 const token = localStorage.getItem('token');
                 await fetch(`${BACKEND_URL}/api/user/profile-picture`, {
                     method: 'PUT',
@@ -1010,7 +1011,7 @@ const ProfilePage = () => {
                     },
                     body: JSON.stringify({ profile_picture: cloudinaryUrl })
                 });
-                
+
                 setUser(prev => ({ ...prev, profile_picture: cloudinaryUrl }));
             } catch (error) {
                 console.error('Profile picture upload error:', error);
@@ -1028,7 +1029,7 @@ const ProfilePage = () => {
                 setLoading(true);
                 const cloudinaryUrl = await uploadToCloudinary(file, 'image');
                 setMedia(prev => ({ ...prev, coverPhoto: cloudinaryUrl }));
-                
+
                 const token = localStorage.getItem('token');
                 await fetch(`${BACKEND_URL}/api/user/cover-photo`, {
                     method: 'PUT',
@@ -1038,7 +1039,7 @@ const ProfilePage = () => {
                     },
                     body: JSON.stringify({ cover_photo: cloudinaryUrl })
                 });
-                
+
                 setUser(prev => ({ ...prev, cover_photo: cloudinaryUrl }));
             } catch (error) {
                 console.error('Cover photo upload error:', error);
@@ -1436,28 +1437,31 @@ const ProfilePage = () => {
                     </div>
 
                     <div className="profile-quick-actions">
-                        <button 
+                        <button
                             className="quick-action-btn primary"
                             onClick={handleToggleChat}
                             title="Start Chat"
                         >
                             Chat
                         </button>
-                        <button 
-                            className="quick-action-btn"
-                            onClick={handleToggleVideoChat}
-                            title="Video Call"
-                        >
-                            Video
-                        </button>
-                        <button 
+
+                        {/* ✅ USE THE NEW COMPONENT */}
+                        <ProfileVideoCallButton
+                            targetUser={{
+                                id: user.id || authState.userId,
+                                username: user.username || authState.username,
+                                display_name: user.display_name || authState.username
+                            }}
+                        />
+
+                        <button
                             className="quick-action-btn"
                             onClick={handleToggleInbox}
                             title="Inbox"
                         >
                             Inbox {ui.unreadCount > 0 && <span className="badge">{ui.unreadCount}</span>}
                         </button>
-                        <button 
+                        <button
                             className="quick-action-btn"
                             onClick={() => setUi(prev => ({ ...prev, showShareModal: true }))}
                             title="Share Profile"
@@ -1573,7 +1577,7 @@ const ProfilePage = () => {
                                     className="business-input"
                                 />
                             </div>
-                            
+
                             <div className="business-input-group">
                                 <label>Business Type:</label>
                                 <select
@@ -1592,7 +1596,7 @@ const ProfilePage = () => {
                                     <option value="other">Other</option>
                                 </select>
                             </div>
-                            
+
                             <div className="business-input-group">
                                 <label>Website:</label>
                                 <input
@@ -1603,7 +1607,7 @@ const ProfilePage = () => {
                                     className="business-input"
                                 />
                             </div>
-                            
+
                             <div className="business-input-group">
                                 <label>Location:</label>
                                 <input
@@ -1614,7 +1618,7 @@ const ProfilePage = () => {
                                     className="business-input"
                                 />
                             </div>
-                            
+
                             <div className="business-actions">
                                 <button
                                     onClick={() => {
@@ -1650,9 +1654,9 @@ const ProfilePage = () => {
                                         <div className="business-info-item">
                                             <span className="info-icon">🌐</span>
                                             <span className="info-label">Website:</span>
-                                            <a 
-                                                href={formData.businessWebsite} 
-                                                target="_blank" 
+                                            <a
+                                                href={formData.businessWebsite}
+                                                target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="info-link"
                                             >
@@ -1719,7 +1723,7 @@ const ProfilePage = () => {
                             <div className="current-mood-display-compact">
                                 {getCurrentMoodDisplay()}
                             </div>
-                            
+
                             <div className="mood-selector-compact">
                                 {MOOD_OPTIONS.slice(0, 4).map((mood) => (
                                     <button
@@ -1758,7 +1762,7 @@ const ProfilePage = () => {
                                         <button onClick={handleCreateCustomMood} className="save-custom-mood">
                                             Set Mood
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => {
                                                 setShowCustomMoodInput(false);
                                                 setCustomMood('');
@@ -1883,9 +1887,9 @@ const ProfilePage = () => {
                         <button
                             onClick={toggleFavoritesView}
                             className="toggle-favorites-btn"
-                            style={{ 
-                                fontSize: '11px', 
-                                padding: '6px 12px', 
+                            style={{
+                                fontSize: '11px',
+                                padding: '6px 12px',
                                 marginTop: '10px',
                                 width: '100%'
                             }}
@@ -1950,11 +1954,11 @@ const ProfilePage = () => {
                                         maxLength="1000"
                                     />
                                 </div>
-                                
+
                                 {postImage && (
                                     <div className="post-image-preview">
                                         <img src={postImage} alt="Post preview" className="preview-image" />
-                                        <button 
+                                        <button
                                             onClick={() => setPostImage(null)}
                                             className="remove-image-btn"
                                         >
@@ -1962,7 +1966,7 @@ const ProfilePage = () => {
                                         </button>
                                     </div>
                                 )}
-                                
+
                                 <div className="post-actions">
                                     <div className="post-options">
                                         <button
@@ -2007,7 +2011,7 @@ const ProfilePage = () => {
                                             </div>
                                             <button className="post-menu-btn">⋮</button>
                                         </div>
-                                        
+
                                         <div className="post-content">
                                             <p className="post-text">{post.content}</p>
                                             {post.image && (
@@ -2018,7 +2022,7 @@ const ProfilePage = () => {
                                                 />
                                             )}
                                         </div>
-                                        
+
                                         <div className="post-engagement">
                                             <button
                                                 onClick={() => handleLikePost(post.id)}
@@ -2044,7 +2048,7 @@ const ProfilePage = () => {
                                     </div>
                                 ))}
                             </div>
-                            
+
                             {posts.length === 0 && (
                                 <div className="empty-posts">
                                     <p>No posts yet. Create your first post above!</p>
