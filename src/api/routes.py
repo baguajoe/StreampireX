@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from .socketio import socketio
 from .avatar_service import process_image_and_create_avatar
 from .utils import generate_sitemap, APIException, send_email
-from sqlalchemy import func, desc, or_, and_, asc
+from sqlalchemy import func, desc, or_, and_, asc, distinct
 from flask_cors import CORS, cross_origin
 from flask_apscheduler import APScheduler
 from sqlalchemy.orm.exc import NoResultFound
@@ -59,6 +59,12 @@ from pedalboard import (
     Phaser, PitchShift, Reverb, Delay, Gain, Limiter,
     HighpassFilter, LowpassFilter, HighShelfFilter, LowShelfFilter,
     PeakFilter
+)
+
+from api.email_service import (
+    send_order_fulfillment_notification, 
+    send_subscription_notification,
+    send_distribution_notification
 )
 
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
@@ -6566,13 +6572,13 @@ def handle_checkout_completed(session):
         raise
 
 
+# In handle_subscription_created function:
 def handle_subscription_created(subscription):
     """Handle when a subscription is created in Stripe with error handling"""
     try:
         if not subscription.get('id'):
             raise ValueError("Missing subscription ID")
         
-        # Find subscription by Stripe ID and activate it
         local_subscription = Subscription.query.filter_by(
             stripe_subscription_id=subscription['id']
         ).first()
@@ -6581,6 +6587,12 @@ def handle_subscription_created(subscription):
             local_subscription.status = "active"
             local_subscription.created_at = datetime.utcnow()
             db.session.commit()
+            
+            # ✅ SEND EMAIL NOTIFICATION
+            user = User.query.get(local_subscription.user_id)
+            if user and user.email:
+                send_subscription_notification(user, local_subscription, 'activated')
+            
             current_app.logger.info(f"✅ Subscription {subscription['id']} activated")
         else:
             current_app.logger.warning(f"Local subscription not found for Stripe ID: {subscription['id']}")
@@ -6639,6 +6651,7 @@ def handle_subscription_updated(subscription):
         raise
 
 
+# In handle_subscription_cancelled function:
 def handle_subscription_cancelled(subscription):
     """Handle subscription cancellation with error handling"""
     try:
@@ -6654,14 +6667,17 @@ def handle_subscription_cancelled(subscription):
             local_subscription.end_date = datetime.utcnow()
             local_subscription.canceled_at = datetime.utcnow()
             
-            # Downgrade user plan
+            # Update user plan
             user = User.query.get(local_subscription.user_id)
             if user:
                 user.subscription_plan = 'free'
-                user.is_on_trial = False
+                
+                # ✅ SEND EMAIL NOTIFICATION
+                if user.email:
+                    send_subscription_notification(user, local_subscription, 'canceled')
             
             db.session.commit()
-            current_app.logger.info(f"✅ Subscription {subscription['id']} cancelled")
+            current_app.logger.info(f"✅ Subscription {subscription['id']} canceled")
         else:
             current_app.logger.warning(f"Local subscription not found for cancellation: {subscription['id']}")
             
@@ -6717,7 +6733,7 @@ def handle_payment_succeeded(invoice):
         db.session.rollback()
         raise
 
-
+# In handle_payment_failed function:
 def handle_payment_failed(invoice):
     """Handle failed payment with enhanced grace period management"""
     try:
@@ -6732,17 +6748,18 @@ def handle_payment_failed(invoice):
         ).first()
         
         if local_subscription:
-            # Set grace period (7 days from now)
             grace_period_end = datetime.utcnow() + timedelta(days=7)
             local_subscription.grace_period_end = grace_period_end
             local_subscription.status = "past_due"
             local_subscription.updated_at = datetime.utcnow()
             
-            # Notify user (you can implement email notification here)
             user = User.query.get(local_subscription.user_id)
             if user:
+                # ✅ SEND EMAIL NOTIFICATION
+                if user.email:
+                    send_subscription_notification(user, local_subscription, 'payment_failed')
+                
                 current_app.logger.info(f"Grace period set for user {user.email} until {grace_period_end}")
-                # TODO: Send email notification about failed payment
             
             db.session.commit()
             current_app.logger.info(f"⚠️ Payment failed for subscription {subscription_id} - grace period set")
@@ -6753,6 +6770,7 @@ def handle_payment_failed(invoice):
         current_app.logger.error(f"❌ Error handling payment failure: {str(e)}")
         db.session.rollback()
         raise
+
 
 
 def handle_marketplace_payment_success(session):
@@ -10828,14 +10846,351 @@ def search_users_for_inner_circle():
 @api.route('/creator/overview-stats', methods=['GET'])
 @jwt_required()
 def get_creator_overview_stats():
-    # Implementation needed
-    pass
+    """Get comprehensive creator overview statistics"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Get date range (default to last 30 days)
+        days = int(request.args.get('days', 30))
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        # Total Followers
+        total_followers = Follow.query.filter_by(followed_id=user_id).count()
+        
+        # Total Content Count
+        total_podcasts = Podcast.query.filter_by(host_id=user_id).count()
+        total_music_tracks = Audio.query.filter_by(user_id=user_id).count()
+        total_videos = Video.query.filter_by(user_id=user_id).count()
+        total_radio_stations = RadioStation.query.filter_by(user_id=user_id).count()
+        total_products = Product.query.filter_by(user_id=user_id).count()
+        
+        # Total Earnings (all sources)
+        music_sales = db.session.query(func.sum(Purchase.creator_earnings))\
+            .join(Product).filter(Product.user_id == user_id).scalar() or 0
+        
+        podcast_earnings = db.session.query(func.sum(Revenue.amount))\
+            .filter(Revenue.user_id == user_id, Revenue.revenue_type == 'podcast').scalar() or 0
+        
+        ad_revenue = db.session.query(func.sum(AdRevenue.amount))\
+            .filter(AdRevenue.creator_id == user_id).scalar() or 0
+        
+        tips_received = db.session.query(func.sum(Tip.amount))\
+            .filter(Tip.recipient_id == user_id).scalar() or 0
+        
+        donations = db.session.query(func.sum(RadioDonation.amount))\
+            .join(RadioStation).filter(RadioStation.user_id == user_id).scalar() or 0
+        
+        subscription_revenue = db.session.query(func.sum(CreatorMembershipTier.price))\
+            .join(UserSubscription)\
+            .filter(CreatorMembershipTier.creator_id == user_id)\
+            .filter(UserSubscription.status == 'active').scalar() or 0
+        
+        total_earnings = (music_sales + podcast_earnings + ad_revenue + 
+                         tips_received + donations + subscription_revenue)
+        
+        # Recent Growth (last 30 days vs previous 30 days)
+        prev_start_date = start_date - timedelta(days=days)
+        
+        recent_followers = Follow.query.filter(
+            Follow.followed_id == user_id,
+            Follow.created_at >= start_date
+        ).count()
+        
+        previous_followers = Follow.query.filter(
+            Follow.followed_id == user_id,
+            Follow.created_at >= prev_start_date,
+            Follow.created_at < start_date
+        ).count()
+        
+        follower_growth = ((recent_followers - previous_followers) / previous_followers * 100) \
+            if previous_followers > 0 else 0
+        
+        # Engagement Metrics
+        total_likes = Like.query.join(Video).filter(Video.user_id == user_id).count()
+        total_comments = Comment.query.filter(Comment.content_type == 'video')\
+            .join(Video, Comment.content_id == Video.id)\
+            .filter(Video.user_id == user_id).count()
+        
+        total_shares = Share.query.filter(Share.user_id == user_id).count()
+        
+        # Top Performing Content
+        top_podcast = db.session.query(
+            Podcast.name, 
+            func.count(StreamingHistory.id).label('plays')
+        ).join(StreamingHistory, Podcast.id == StreamingHistory.podcast_id)\
+         .filter(Podcast.host_id == user_id)\
+         .group_by(Podcast.id)\
+         .order_by(desc('plays'))\
+         .first()
+        
+        top_music = db.session.query(
+            Audio.title,
+            func.count(Analytics.id).label('plays')
+        ).join(Analytics, Audio.id == Analytics.content_id)\
+         .filter(Audio.user_id == user_id, Analytics.content_type == 'music')\
+         .group_by(Audio.id)\
+         .order_by(desc('plays'))\
+         .first()
+        
+        # Recent Activity
+        recent_uploads = Audio.query.filter(
+            Audio.user_id == user_id,
+            Audio.uploaded_at >= start_date
+        ).count()
+        
+        recent_distributions = MusicDistribution.query.filter(
+            MusicDistribution.user_id == user_id,
+            MusicDistribution.submission_date >= start_date
+        ).count()
+        
+        return jsonify({
+            "overview": {
+                "total_followers": total_followers,
+                "follower_growth": round(follower_growth, 1),
+                "recent_followers": recent_followers,
+                "total_earnings": round(total_earnings, 2),
+                "total_content": (total_podcasts + total_music_tracks + 
+                                 total_videos + total_radio_stations + total_products)
+            },
+            "content_stats": {
+                "podcasts": total_podcasts,
+                "music_tracks": total_music_tracks,
+                "videos": total_videos,
+                "radio_stations": total_radio_stations,
+                "products": total_products
+            },
+            "earnings_breakdown": {
+                "music_sales": round(music_sales, 2),
+                "podcast_earnings": round(podcast_earnings, 2),
+                "ad_revenue": round(ad_revenue, 2),
+                "tips": round(tips_received, 2),
+                "donations": round(donations, 2),
+                "subscriptions": round(subscription_revenue, 2),
+                "total": round(total_earnings, 2)
+            },
+            "engagement": {
+                "total_likes": total_likes,
+                "total_comments": total_comments,
+                "total_shares": total_shares,
+                "engagement_rate": round((total_likes + total_comments + total_shares) / 
+                                        max(total_followers, 1) * 100, 2)
+            },
+            "top_content": {
+                "top_podcast": {
+                    "name": top_podcast[0] if top_podcast else None,
+                    "plays": top_podcast[1] if top_podcast else 0
+                } if top_podcast else None,
+                "top_music": {
+                    "title": top_music[0] if top_music else None,
+                    "plays": top_music[1] if top_music else 0
+                } if top_music else None
+            },
+            "recent_activity": {
+                "uploads": recent_uploads,
+                "distributions": recent_distributions
+            },
+            "period": f"Last {days} days"
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching creator overview: {str(e)}")
+        return jsonify({"error": f"Failed to fetch overview stats: {str(e)}"}), 500
+
 
 @api.route('/creator/content-breakdown', methods=['GET'])
 @jwt_required()
 def get_creator_content_breakdown():
-    # Implementation needed
-    pass
+    """Get detailed breakdown of creator's content with performance metrics"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Podcasts with metrics
+        podcasts = db.session.query(
+            Podcast.id,
+            Podcast.name,
+            Podcast.description,
+            Podcast.cover_image,
+            Podcast.created_at,
+            func.count(PodcastEpisode.id).label('episode_count'),
+            func.count(distinct(StreamingHistory.user_id)).label('unique_listeners'),
+            func.count(StreamingHistory.id).label('total_plays')
+        ).outerjoin(PodcastEpisode)\
+         .outerjoin(StreamingHistory, StreamingHistory.podcast_id == Podcast.id)\
+         .filter(Podcast.host_id == user_id)\
+         .group_by(Podcast.id)\
+         .all()
+        
+        podcasts_data = [{
+            "id": p.id,
+            "name": p.name,
+            "description": p.description,
+            "cover_image": p.cover_image,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+            "episode_count": p.episode_count or 0,
+            "unique_listeners": p.unique_listeners or 0,
+            "total_plays": p.total_plays or 0
+        } for p in podcasts]
+        
+        # Music Tracks with metrics
+        music_tracks = db.session.query(
+            Audio.id,
+            Audio.title,
+            Audio.artist,
+            Audio.genre,
+            Audio.cover_image,
+            Audio.uploaded_at,
+            func.count(Analytics.id).label('total_plays'),
+            func.count(Like.id).label('likes')
+        ).outerjoin(Analytics, and_(
+            Analytics.content_id == Audio.id,
+            Analytics.content_type == 'music'
+        ))\
+         .outerjoin(Like, and_(
+            Like.content_id == Audio.id,
+            Like.content_type == 'audio'
+        ))\
+         .filter(Audio.user_id == user_id)\
+         .group_by(Audio.id)\
+         .all()
+        
+        music_data = [{
+            "id": t.id,
+            "title": t.title,
+            "artist": t.artist,
+            "genre": t.genre,
+            "cover_image": t.cover_image,
+            "uploaded_at": t.uploaded_at.isoformat() if t.uploaded_at else None,
+            "total_plays": t.total_plays or 0,
+            "likes": t.likes or 0
+        } for t in music_tracks]
+        
+        # Radio Stations with metrics
+        radio_stations = db.session.query(
+            RadioStation.id,
+            RadioStation.name,
+            RadioStation.description,
+            RadioStation.logo_url,
+            RadioStation.created_at,
+            RadioStation.is_live,
+            func.count(distinct(RadioFollower.user_id)).label('followers')
+        ).outerjoin(RadioFollower)\
+         .filter(RadioStation.user_id == user_id)\
+         .group_by(RadioStation.id)\
+         .all()
+        
+        radio_data = [{
+            "id": r.id,
+            "name": r.name,
+            "description": r.description,
+            "logo_url": r.logo_url,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+            "is_live": r.is_live,
+            "followers": r.followers or 0
+        } for r in radio_stations]
+        
+        # Videos with metrics
+        videos = db.session.query(
+            Video.id,
+            Video.title,
+            Video.description,
+            Video.thumbnail,
+            Video.uploaded_at,
+            Video.views,
+            Video.likes,
+            func.count(Comment.id).label('comments')
+        ).outerjoin(Comment, and_(
+            Comment.content_id == Video.id,
+            Comment.content_type == 'video'
+        ))\
+         .filter(Video.user_id == user_id)\
+         .group_by(Video.id)\
+         .all()
+        
+        videos_data = [{
+            "id": v.id,
+            "title": v.title,
+            "description": v.description,
+            "thumbnail": v.thumbnail,
+            "uploaded_at": v.uploaded_at.isoformat() if v.uploaded_at else None,
+            "views": v.views or 0,
+            "likes": v.likes or 0,
+            "comments": v.comments or 0
+        } for v in videos]
+        
+        # Products with sales metrics
+        products = db.session.query(
+            Product.id,
+            Product.name,
+            Product.description,
+            Product.price,
+            Product.image_url,
+            Product.created_at,
+            Product.stock,
+            func.count(Purchase.id).label('sales_count'),
+            func.sum(Purchase.creator_earnings).label('total_earnings')
+        ).outerjoin(Purchase)\
+         .filter(Product.user_id == user_id)\
+         .group_by(Product.id)\
+         .all()
+        
+        products_data = [{
+            "id": p.id,
+            "name": p.name,
+            "description": p.description,
+            "price": float(p.price) if p.price else 0,
+            "image_url": p.image_url,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+            "stock": p.stock or 0,
+            "sales_count": p.sales_count or 0,
+            "total_earnings": float(p.total_earnings) if p.total_earnings else 0
+        } for p in products]
+        
+        # Live Streams history
+        live_streams = LiveStream.query.filter_by(host_id=user_id)\
+            .order_by(LiveStream.created_at.desc())\
+            .limit(10)\
+            .all()
+        
+        streams_data = [{
+            "id": s.id,
+            "title": s.title,
+            "description": s.description,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+            "viewer_count": s.viewer_count or 0,
+            "is_live": s.is_live
+        } for s in live_streams]
+        
+        return jsonify({
+            "podcasts": {
+                "total": len(podcasts_data),
+                "items": podcasts_data
+            },
+            "music": {
+                "total": len(music_data),
+                "items": music_data
+            },
+            "radio_stations": {
+                "total": len(radio_data),
+                "items": radio_data
+            },
+            "videos": {
+                "total": len(videos_data),
+                "items": videos_data
+            },
+            "products": {
+                "total": len(products_data),
+                "items": products_data
+            },
+            "live_streams": {
+                "total": len(streams_data),
+                "recent": streams_data
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching content breakdown: {str(e)}")
+        return jsonify({"error": f"Failed to fetch content breakdown: {str(e)}"}), 500
+
 
 
 # 1. USER PLAN STATUS - Updated with correct plan checks
@@ -16071,10 +16426,18 @@ def fulfill_order(order_id):
     
     db.session.commit()
     
-    # TODO: Send email notification to buyer
+    # ✅ SEND EMAIL NOTIFICATION
+    buyer = User.query.get(order.user_id)
+    if buyer and buyer.email:
+        send_order_fulfillment_notification(
+            order, 
+            buyer.email, 
+            order.tracking_number, 
+            order.carrier
+        )
     
     return jsonify({
-        "message": "Order marked as shipped",
+        "message": "Order marked as shipped and buyer notified",
         "order": order.serialize()
     }), 200
 

@@ -5,6 +5,7 @@ eventlet.monkey_patch()
 import sys
 import os
 from dotenv import load_dotenv
+from api.email_service import init_mail
 
 # Load environment variables from .env
 load_dotenv()
@@ -50,6 +51,8 @@ app = Flask(__name__)
 scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
+
+init_mail(app)
 
 app.url_map.strict_slashes = False
 
