@@ -4,7 +4,7 @@ const BrowseLicensing = () => {
   const [tracks, setTracks] = useState([]);
 
   useEffect(() => {
-    fetch(process.env.BACKEND_URL + "/api/licensing/tracks")
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/licensing/tracks")
       .then((res) => res.json())
       .then((data) => setTracks(data))
       .catch((err) => console.error("Error fetching tracks:", err));

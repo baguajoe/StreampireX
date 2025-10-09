@@ -6,7 +6,7 @@ const ArtistRadioStation = () => {
   const [description, setDescription] = useState("");
 
   useEffect(() => {
-    fetch(process.env.BACKEND_URL + "/api/artist/radio", {
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/artist/radio", {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
     })
       .then((res) => res.json())
@@ -15,7 +15,7 @@ const ArtistRadioStation = () => {
   }, []);
 
   const handleCreateStation = () => {
-    fetch(process.env.BACKEND_URL + "/api/radio/create", {
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/radio/create", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

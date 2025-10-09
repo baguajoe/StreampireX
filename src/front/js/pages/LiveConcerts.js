@@ -5,7 +5,7 @@ const LiveConcerts = () => {
   const [newConcert, setNewConcert] = useState({ title: "", date: "", price: "" });
 
   useEffect(() => {
-    fetch(process.env.BACKEND_URL + "/api/artist/concerts", {
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/artist/concerts", {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
     })
       .then((res) => res.json())
@@ -14,7 +14,7 @@ const LiveConcerts = () => {
   }, []);
 
   const handleCreateConcert = () => {
-    fetch(process.env.BACKEND_URL + "/api/concerts/create", {
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/concerts/create", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -4,7 +4,7 @@ const PopularityRanking = ({ type }) => {
   const [ranking, setRanking] = useState([]);
 
   useEffect(() => {
-    fetch(`${process.env.BACKEND_URL}/api/popularity/${podcastId}`)
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/popularity/${podcastId}`)
       .then(res => res.json())
       .then(data => setRanking(data))
       .catch(err => console.error("Error fetching popularity ranking:", err));

@@ -9,7 +9,7 @@ const CheckoutPage = () => {
     const [loading, setLoading] = useState(false);
     const [user, setUser] = useState(null);
     const [isCartEmpty, setIsCartEmpty] = useState(false);
-    
+
     const [billingInfo, setBillingInfo] = useState({
         firstName: "",
         lastName: "",
@@ -43,19 +43,19 @@ const CheckoutPage = () => {
 
     // Get backend URL helper
     const getBackendUrl = () => {
-        return process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || "http://localhost:3001";
+        return process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
     };
 
     useEffect(() => {
         // Get cart items from location state or localStorage
         const items = location.state?.cartItems || JSON.parse(localStorage.getItem("shopping_cart") || "[]");
-        
+
         if (items.length === 0) {
             setIsCartEmpty(true);
             setCartItems([]);
             return;
         }
-        
+
         setIsCartEmpty(false);
         setCartItems(items);
         fetchUserInfo();
@@ -89,7 +89,7 @@ const CheckoutPage = () => {
             if (response.ok) {
                 const userData = await response.json();
                 setUser(userData);
-                
+
                 // Pre-fill billing info with user data
                 setBillingInfo(prev => ({
                     ...prev,
@@ -137,7 +137,7 @@ const CheckoutPage = () => {
 
     const validateForm = () => {
         const requiredBillingFields = ['firstName', 'lastName', 'email', 'address', 'city', 'state', 'zipCode'];
-        
+
         for (let field of requiredBillingFields) {
             if (!billingInfo[field]) {
                 alert(`Please fill in ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
@@ -283,13 +283,13 @@ const CheckoutPage = () => {
                                     Add some items to your cart before checking out.
                                 </p>
                                 <div className="d-grid gap-2 d-md-flex justify-content-md-center">
-                                    <button 
+                                    <button
                                         className="btn btn-primary btn-lg"
                                         onClick={() => navigate("/marketplace")}
                                     >
                                         Browse Products
                                     </button>
-                                    <button 
+                                    <button
                                         className="btn btn-outline-secondary btn-lg"
                                         onClick={() => navigate("/cart")}
                                     >
@@ -627,7 +627,7 @@ const CheckoutPage = () => {
                                         {loading ? "Processing..." : "Complete Purchase"}
                                     </button>
                                 )}
-                                
+
                                 <button
                                     className="btn btn-outline-secondary"
                                     onClick={() => navigate("/cart")}

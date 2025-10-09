@@ -35,7 +35,7 @@ const CreateRadioStation = () => {
     const [mood, setMood] = useState("");
     const [subGenres, setSubGenres] = useState("");
     const [audioPreview, setAudioPreview] = useState(null);
-    
+
     // Tracklist for royalty reporting
     const [tracklist, setTracklist] = useState([{
         songTitle: "",
@@ -60,7 +60,7 @@ const CreateRadioStation = () => {
         // For React Router: 
         // const navigate = useNavigate();
         // navigate(path);
-        
+
         // For manual navigation:
         window.location.href = path;
     };
@@ -69,7 +69,7 @@ const CreateRadioStation = () => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+                const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
                 console.log("Fetching categories from:", `${backendUrl}/api/radio/categories`);
 
                 const response = await fetch(`${backendUrl}/api/radio/categories`);
@@ -218,7 +218,7 @@ const CreateRadioStation = () => {
     };
 
     const updateTrack = (index, field, value) => {
-        const updatedTracklist = tracklist.map((track, i) => 
+        const updatedTracklist = tracklist.map((track, i) =>
             i === index ? { ...track, [field]: value } : track
         );
         setTracklist(updatedTracklist);
@@ -330,12 +330,12 @@ const CreateRadioStation = () => {
             formData.append("bpm", bpm.trim());
             formData.append("mood", mood.trim());
             formData.append("subGenres", subGenres.trim());
-            
+
             // Tracklist for royalty compliance
             formData.append("tracklist", JSON.stringify(tracklist));
 
             // Updated fetch with correct environment variable
-            const backendUrl = process.env.BACKEND_URL || "http://localhost:3001";
+            const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
             const endpoint = `${backendUrl}/api/profile/radio/create`;
 
             console.log("Creating station with endpoint:", endpoint);
@@ -388,7 +388,7 @@ const CreateRadioStation = () => {
                 setMood("");
                 setSubGenres("");
                 setAudioPreview(null);
-                
+
                 // Reset tracklist
                 setTracklist([{
                     songTitle: "",

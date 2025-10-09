@@ -46,7 +46,7 @@ const ShoppingCart = () => {
     const addToCart = async (productId) => {
         try {
             setLoading(true);
-            const response = await fetch(`${process.env.BACKEND_URL}/api/products/${productId}`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products/${productId}`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${localStorage.getItem("token")}`
@@ -55,7 +55,7 @@ const ShoppingCart = () => {
 
             if (response.ok) {
                 const product = await response.json();
-                
+
                 const existingItem = cartItems.find(item => item.id === product.id);
                 let updatedCart;
 
@@ -119,18 +119,18 @@ const ShoppingCart = () => {
     const handleBulkCheckout = async () => {
         try {
             setLoading(true);
-            
+
             // Create checkout sessions for each item
             const checkoutPromises = cartItems.map(async (item) => {
-                const response = await fetch(`${process.env.BACKEND_URL}/api/marketplace/checkout`, {
+                const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/checkout`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${localStorage.getItem("token")}`
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         product_id: item.id,
-                        quantity: item.quantity 
+                        quantity: item.quantity
                     })
                 });
 
@@ -141,13 +141,13 @@ const ShoppingCart = () => {
             });
 
             const checkoutSessions = await Promise.all(checkoutPromises);
-            
+
             // For now, redirect to the first checkout session
             // In a real app, you'd create a combined checkout
             if (checkoutSessions.length > 0) {
                 window.location.href = checkoutSessions[0].checkout_url;
             }
-            
+
         } catch (err) {
             console.error("Bulk checkout error:", err);
             alert("Checkout failed. Please try again or checkout items individually.");
@@ -170,7 +170,7 @@ const ShoppingCart = () => {
                                 <p className="card-text text-muted">
                                     Browse our marketplace to find amazing products from creators!
                                 </p>
-                                <button 
+                                <button
                                     className="btn btn-primary btn-lg"
                                     onClick={() => navigate("/marketplace")}
                                 >
@@ -190,7 +190,7 @@ const ShoppingCart = () => {
                 <div className="col-12">
                     <div className="d-flex justify-content-between align-items-center mb-4">
                         <h2>🛒 Shopping Cart ({cartItems.length} items)</h2>
-                        <button 
+                        <button
                             className="btn btn-outline-danger"
                             onClick={clearCart}
                         >
@@ -209,7 +209,7 @@ const ShoppingCart = () => {
                                 <div className="row align-items-center">
                                     {/* Product Image */}
                                     <div className="col-md-2">
-                                        <img 
+                                        <img
                                             src={item.image_url || "/default-product.jpg"}
                                             alt={item.title}
                                             className="img-fluid rounded"
@@ -229,13 +229,13 @@ const ShoppingCart = () => {
                                     {/* Quantity Controls */}
                                     <div className="col-md-2">
                                         <div className="input-group">
-                                            <button 
+                                            <button
                                                 className="btn btn-outline-secondary btn-sm"
                                                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                             >
                                                 -
                                             </button>
-                                            <input 
+                                            <input
                                                 type="number"
                                                 className="form-control form-control-sm text-center"
                                                 value={item.quantity}
@@ -244,7 +244,7 @@ const ShoppingCart = () => {
                                                 max={item.stock || 999}
                                                 style={{ maxWidth: "60px" }}
                                             />
-                                            <button 
+                                            <button
                                                 className="btn btn-outline-secondary btn-sm"
                                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                                 disabled={item.quantity >= (item.stock || 999)}
@@ -269,7 +269,7 @@ const ShoppingCart = () => {
 
                                     {/* Remove Button */}
                                     <div className="col-md-2 text-center">
-                                        <button 
+                                        <button
                                             className="btn btn-outline-danger btn-sm"
                                             onClick={() => removeFromCart(item.id)}
                                         >
@@ -306,25 +306,25 @@ const ShoppingCart = () => {
                                 <span>Total:</span>
                                 <span>${total.toFixed(2)}</span>
                             </div>
-                            
+
                             <div className="d-grid gap-2 mt-4">
-                                <button 
+                                <button
                                     className="btn btn-success btn-lg"
                                     onClick={proceedToCheckout}
                                     disabled={loading}
                                 >
                                     {loading ? "Processing..." : "💳 Proceed to Checkout"}
                                 </button>
-                                
-                                <button 
+
+                                <button
                                     className="btn btn-primary"
                                     onClick={handleBulkCheckout}
                                     disabled={loading}
                                 >
                                     🚀 Quick Stripe Checkout
                                 </button>
-                                
-                                <button 
+
+                                <button
                                     className="btn btn-outline-secondary"
                                     onClick={() => navigate("/marketplace")}
                                 >

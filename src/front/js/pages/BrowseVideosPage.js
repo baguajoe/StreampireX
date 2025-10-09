@@ -121,7 +121,7 @@ const useDebounce = (value, delay) => {
 
 // Custom hook for API calls
 const useApi = () => {
-  const baseUrl = process.env.BACKEND_URL;
+  const baseUrl = process.env.REACT_APP_BACKEND_URL;
 
   const apiCall = useCallback(async (endpoint, options = {}) => {
     const response = await fetch(`${baseUrl}${endpoint}`, {
@@ -579,7 +579,7 @@ const BrowseVideosPage = () => {
                 : `No ${browseMode} have been uploaded yet.`
               }
             </p>
-            
+
             {hasActiveFilters && (
               <button onClick={handleClearFilters} className="btn-secondary clear-filters-btn-main">
                 Clear All Filters
@@ -596,11 +596,11 @@ const BrowseVideosPage = () => {
             {videos.map((video) => (
               <div key={video.id} className="video-card">
                 <Link to={`/video-details/${video.id}`}>
-                <img
-                  src={video.thumbnail_url || '/placeholder-thumbnail.jpg'}
-                  alt={video.title}
-                  className="video-thumbnail"
-                />
+                  <img
+                    src={video.thumbnail_url || '/placeholder-thumbnail.jpg'}
+                    alt={video.title}
+                    className="video-thumbnail"
+                  />
                 </Link>
                 <div className="video-content">
                   <h3 className="video-title">{video.title}</h3>
@@ -612,8 +612,8 @@ const BrowseVideosPage = () => {
                       className="video-creator-link"
                     >
                       {video.uploader_avatar && (
-                        <img 
-                          src={video.uploader_avatar} 
+                        <img
+                          src={video.uploader_avatar}
                           alt={video.uploader_name}
                           className="creator-avatar"
                         />
@@ -622,7 +622,7 @@ const BrowseVideosPage = () => {
                         <span className="video-creator">
                           {video.uploader_name || 'Unknown'}
                         </span>
-                        
+
                         {/* Show channel name if exists */}
                         {video.channel_name && (
                           <div className="channel-info">
@@ -672,7 +672,7 @@ const BrowseVideosPage = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div className="channel-info">
                   <h3 className="channel-name">
                     {channel.channel_name}
@@ -680,7 +680,7 @@ const BrowseVideosPage = () => {
                   </h3>
                   <p className="channel-creator">by @{channel.creator?.username}</p>
                   <p className="channel-description">{channel.description}</p>
-                  
+
                   <div className="channel-stats">
                     <span>{formatCount(channel.subscriber_count)} subscribers</span>
                     <span>{channel.total_videos} videos</span>

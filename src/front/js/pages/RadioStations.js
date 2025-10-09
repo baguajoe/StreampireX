@@ -11,7 +11,7 @@ const RadioStations = () => {
 
   // Fetch all radio stations
   useEffect(() => {
-    fetch(process.env.BACKEND_URL + "/api/radio-stations")
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/radio-stations")
       .then((res) => res.json())
       .then((data) => setRadioStations(data))
       .catch((err) => console.error("Error fetching radio stations:", err));
@@ -19,7 +19,7 @@ const RadioStations = () => {
 
   // Fetch radio categories
   useEffect(() => {
-    fetch(process.env.BACKEND_URL + "/api/radio/categories")
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/radio/categories")
       .then((res) => res.json())
       .then((data) => setCategories(data))
       .catch((err) => console.error("Error fetching radio categories:", err));
@@ -62,9 +62,8 @@ const RadioStations = () => {
         {categories.map((category, index) => (
           <button
             key={index}
-            className={`category-badge ${
-              selectedCategory === category ? "active" : ""
-            }`}
+            className={`category-badge ${selectedCategory === category ? "active" : ""
+              }`}
             onClick={() => handleCategoryClick(category)}
           >
             {category}

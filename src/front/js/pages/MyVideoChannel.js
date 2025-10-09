@@ -6,7 +6,7 @@ import '../../styles/MyVideoChannel.css';
 const MyVideoChannel = () => {
   const { store } = useContext(Context);
   const navigate = useNavigate();
-  
+
   const [channelData, setChannelData] = useState(null);
   const [videos, setVideos] = useState([]);
   const [clips, setClips] = useState([]);
@@ -41,7 +41,7 @@ const MyVideoChannel = () => {
   const fetchChannelData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/channel/me`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -67,7 +67,7 @@ const MyVideoChannel = () => {
   const fetchChannelVideos = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/user`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/user`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -76,12 +76,12 @@ const MyVideoChannel = () => {
       if (response.ok) {
         const data = await response.json();
         setVideos(data.videos);
-        
+
         // Calculate video stats
         const totalViews = data.videos.reduce((sum, video) => sum + (video.views || 0), 0);
         const totalLikes = data.videos.reduce((sum, video) => sum + (video.likes || 0), 0);
         const topVideoViews = Math.max(...data.videos.map(v => v.views || 0), 0);
-        
+
         setChannelStats(prev => ({
           ...prev,
           totalViews,
@@ -98,7 +98,7 @@ const MyVideoChannel = () => {
   const fetchChannelClips = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/clips/user`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/clips/user`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -120,9 +120,9 @@ const MyVideoChannel = () => {
   const fetchSubscribers = async () => {
     try {
       if (!channelData?.id) return;
-      
+
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/channel/${channelData.id}/subscribers`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/${channelData.id}/subscribers`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -174,7 +174,7 @@ const MyVideoChannel = () => {
   const createChannel = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/channel/create`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/create`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -201,7 +201,7 @@ const MyVideoChannel = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/${videoId}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/${videoId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -233,7 +233,7 @@ const MyVideoChannel = () => {
 
   const getSortedContent = () => {
     const content = activeTab === 'videos' ? videos : clips;
-    
+
     const sorted = [...content].sort((a, b) => {
       switch (sortBy) {
         case 'newest':
@@ -248,7 +248,7 @@ const MyVideoChannel = () => {
           return new Date(b.created_at) - new Date(a.created_at);
       }
     });
-    
+
     return sorted;
   };
 
@@ -299,8 +299,8 @@ const MyVideoChannel = () => {
         <div className="channel-info">
           <div className="channel-main-info">
             <div className="channel-avatar">
-              <img 
-                src={channelData.avatar_url || '/default-channel-avatar.png'} 
+              <img
+                src={channelData.avatar_url || '/default-channel-avatar.png'}
                 alt={channelData.channel_name}
                 className="avatar-image"
               />
@@ -317,7 +317,7 @@ const MyVideoChannel = () => {
               <p className="channel-description">{channelData.description}</p>
             </div>
           </div>
-          
+
           <div className="channel-actions">
             <Link to="/profile/video" className="action-btn secondary">
               ⚙️ Customize Channel
@@ -339,7 +339,7 @@ const MyVideoChannel = () => {
               <div className="stat-label">Total Views</div>
             </div>
           </div>
-          
+
           <div className="stat-card">
             <div className="stat-icon">👍</div>
             <div className="stat-content">
@@ -347,7 +347,7 @@ const MyVideoChannel = () => {
               <div className="stat-label">Total Likes</div>
             </div>
           </div>
-          
+
           <div className="stat-card">
             <div className="stat-icon">📹</div>
             <div className="stat-content">
@@ -355,7 +355,7 @@ const MyVideoChannel = () => {
               <div className="stat-label">Videos</div>
             </div>
           </div>
-          
+
           <div className="stat-card">
             <div className="stat-icon">✂️</div>
             <div className="stat-content">
@@ -369,25 +369,25 @@ const MyVideoChannel = () => {
       {/* Content Navigation */}
       <div className="content-navigation">
         <div className="nav-tabs">
-          <button 
+          <button
             className={`nav-tab ${activeTab === 'videos' ? 'active' : ''}`}
             onClick={() => setActiveTab('videos')}
           >
             📹 Videos ({channelStats.totalVideos})
           </button>
-          <button 
+          <button
             className={`nav-tab ${activeTab === 'clips' ? 'active' : ''}`}
             onClick={() => setActiveTab('clips')}
           >
             ✂️ Clips ({channelStats.totalClips})
           </button>
-          <button 
+          <button
             className={`nav-tab ${activeTab === 'subscribers' ? 'active' : ''}`}
             onClick={() => setActiveTab('subscribers')}
           >
             👥 Subscribers ({formatCount(channelStats.subscriberCount)})
           </button>
-          <button 
+          <button
             className={`nav-tab ${activeTab === 'analytics' ? 'active' : ''}`}
             onClick={() => setActiveTab('analytics')}
           >
@@ -399,8 +399,8 @@ const MyVideoChannel = () => {
         {(activeTab === 'videos' || activeTab === 'clips') && (
           <div className="content-controls">
             <div className="sort-controls">
-              <select 
-                value={sortBy} 
+              <select
+                value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
                 className="sort-select"
               >
@@ -410,15 +410,15 @@ const MyVideoChannel = () => {
                 <option value="likes">Most liked</option>
               </select>
             </div>
-            
+
             <div className="view-controls">
-              <button 
+              <button
                 className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
                 onClick={() => setViewMode('grid')}
               >
                 ⊞
               </button>
-              <button 
+              <button
                 className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
                 onClick={() => setViewMode('list')}
               >
@@ -439,33 +439,33 @@ const MyVideoChannel = () => {
                 {getSortedContent().map((video) => (
                   <div key={video.id} className="content-card video-card">
                     <div className="content-thumbnail">
-                      <Link 
-                      to={`/video-details/${video.id}`}>
-                      <img 
-                        src={video.thumbnail_url || '/placeholder-thumbnail.jpg'} 
-                        alt={video.title}
-                        className="thumbnail-image"
-                      />
-                      <div className="duration-badge">
-                        {formatDuration(video.duration)}
-                      </div>
+                      <Link
+                        to={`/video-details/${video.id}`}>
+                        <img
+                          src={video.thumbnail_url || '/placeholder-thumbnail.jpg'}
+                          alt={video.title}
+                          className="thumbnail-image"
+                        />
+                        <div className="duration-badge">
+                          {formatDuration(video.duration)}
+                        </div>
                       </Link>
                       <div className="content-actions">
-                        <button 
+                        <button
                           className="action-btn edit"
                           title="Edit"
                           onClick={() => navigate(`/video/${video.id}/edit`)}
                         >
                           ✏️
                         </button>
-                        <button 
+                        <button
                           className="action-btn analytics"
                           title="Analytics"
                           onClick={() => navigate(`/video/${video.id}/analytics`)}
                         >
                           📊
                         </button>
-                        <button 
+                        <button
                           className="action-btn delete"
                           title="Delete"
                           onClick={() => deleteVideo(video.id)}
@@ -474,19 +474,19 @@ const MyVideoChannel = () => {
                         </button>
                       </div>
                     </div>
-                    <Link 
+                    <Link
                       to={`/video-details/${video.id}`}>
-                    <div className="content-info">
-                      <h3 className="content-title">{video.title}</h3>
-                      <div className="content-stats">
-                        <span>{formatCount(video.views || 0)} views</span>
-                        <span>•</span>
-                        <span>{formatCount(video.likes || 0)} likes</span>
+                      <div className="content-info">
+                        <h3 className="content-title">{video.title}</h3>
+                        <div className="content-stats">
+                          <span>{formatCount(video.views || 0)} views</span>
+                          <span>•</span>
+                          <span>{formatCount(video.likes || 0)} likes</span>
+                        </div>
+                        <div className="content-date">
+                          {new Date(video.created_at).toLocaleDateString()}
+                        </div>
                       </div>
-                      <div className="content-date">
-                        {new Date(video.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
                     </Link>
                   </div>
                 ))}
@@ -514,8 +514,8 @@ const MyVideoChannel = () => {
                 {getSortedContent().map((clip) => (
                   <div key={clip.id} className="content-card clip-card">
                     <div className="content-thumbnail">
-                      <img 
-                        src={clip.thumbnail_url || '/placeholder-thumbnail.jpg'} 
+                      <img
+                        src={clip.thumbnail_url || '/placeholder-thumbnail.jpg'}
                         alt={clip.title}
                         className="thumbnail-image"
                       />
@@ -524,7 +524,7 @@ const MyVideoChannel = () => {
                       </div>
                       <div className="clip-badge">CLIP</div>
                     </div>
-                    
+
                     <div className="content-info">
                       <h3 className="content-title">{clip.title}</h3>
                       <div className="content-stats">
@@ -561,8 +561,8 @@ const MyVideoChannel = () => {
               <div className="subscribers-grid">
                 {subscribers.map((subscriber) => (
                   <div key={subscriber.id} className="subscriber-card">
-                    <img 
-                      src={subscriber.avatar_url || '/default-avatar.png'} 
+                    <img
+                      src={subscriber.avatar_url || '/default-avatar.png'}
                       alt={subscriber.username}
                       className="subscriber-avatar"
                     />
@@ -598,8 +598,8 @@ const MyVideoChannel = () => {
                     <div key={index} className="country-item">
                       <span className="country-name">{country.country}</span>
                       <div className="country-bar">
-                        <div 
-                          className="country-fill" 
+                        <div
+                          className="country-fill"
                           style={{ width: `${country.percentage}%` }}
                         ></div>
                       </div>
@@ -617,8 +617,8 @@ const MyVideoChannel = () => {
                     <div key={index} className="age-item">
                       <span className="age-range">{group.age}</span>
                       <div className="age-bar">
-                        <div 
-                          className="age-fill" 
+                        <div
+                          className="age-fill"
                           style={{ width: `${group.percentage}%` }}
                         ></div>
                       </div>
@@ -636,8 +636,8 @@ const MyVideoChannel = () => {
                     <div key={index} className="device-item">
                       <span className="device-name">{device.device}</span>
                       <div className="device-bar">
-                        <div 
-                          className="device-fill" 
+                        <div
+                          className="device-fill"
                           style={{ width: `${device.percentage}%` }}
                         ></div>
                       </div>

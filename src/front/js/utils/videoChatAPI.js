@@ -1,7 +1,7 @@
 // Create this file: src/front/js/utils/videoChatAPI.js
 // Video Chat API functions for the gamer profile integration
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3001";
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
 
 // Get authorization headers
 const getAuthHeaders = () => {
@@ -19,11 +19,11 @@ export const getVideoRoomStatus = async () => {
       method: "GET",
       headers: getAuthHeaders()
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error fetching video room status:", error);
@@ -38,11 +38,11 @@ export const joinVideoRoom = async (roomId) => {
       headers: getAuthHeaders(),
       body: JSON.stringify({ room_id: roomId })
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error joining video room:", error);
@@ -56,11 +56,11 @@ export const leaveVideoRoom = async () => {
       method: "POST",
       headers: getAuthHeaders()
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error leaving video room:", error);
@@ -74,11 +74,11 @@ export const getActiveVideoRooms = async () => {
       method: "GET",
       headers: getAuthHeaders()
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error fetching active video rooms:", error);
@@ -94,11 +94,11 @@ export const updateUserPresence = async (presenceData) => {
       headers: getAuthHeaders(),
       body: JSON.stringify(presenceData)
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error updating user presence:", error);
@@ -112,11 +112,11 @@ export const getSquadMembersPresence = async (squadId) => {
       method: "GET",
       headers: getAuthHeaders()
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error fetching squad members presence:", error);
@@ -131,11 +131,11 @@ export const getCommunicationPreferences = async () => {
       method: "GET",
       headers: getAuthHeaders()
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error fetching communication preferences:", error);
@@ -150,11 +150,11 @@ export const updateCommunicationPreferences = async (preferences) => {
       headers: getAuthHeaders(),
       body: JSON.stringify(preferences)
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error updating communication preferences:", error);
@@ -170,11 +170,11 @@ export const updateGamerProfile = async (userId, profileData) => {
       headers: getAuthHeaders(),
       body: JSON.stringify(profileData)
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error updating gamer profile:", error);
@@ -184,19 +184,19 @@ export const updateGamerProfile = async (userId, profileData) => {
 
 export const getGamerProfile = async (userId = null) => {
   try {
-    const endpoint = userId 
+    const endpoint = userId
       ? `${BACKEND_URL}/api/user/${userId}/gamer-profile`
       : `${BACKEND_URL}/api/user/profile`;
-    
+
     const response = await fetch(endpoint, {
       method: "GET",
       headers: getAuthHeaders()
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error("Error fetching gamer profile:", error);

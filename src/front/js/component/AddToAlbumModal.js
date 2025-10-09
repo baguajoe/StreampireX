@@ -6,7 +6,7 @@ const AddToAlbumModal = ({ show, onClose, trackId }) => {
 
   useEffect(() => {
     if (show) {
-      fetch(`${process.env.BACKEND_URL}/api/my-albums`, {
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/my-albums`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       })
         .then((res) => res.json())
@@ -15,7 +15,7 @@ const AddToAlbumModal = ({ show, onClose, trackId }) => {
   }, [show]);
 
   const handleAttach = async () => {
-    const res = await fetch(`${process.env.BACKEND_URL}/api/album/${selectedAlbum}/add-track`, {
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/album/${selectedAlbum}/add-track`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

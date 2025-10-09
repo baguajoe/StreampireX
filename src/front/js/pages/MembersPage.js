@@ -8,7 +8,7 @@ const Marketplace = () => {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    fetch(`${process.env.BACKEND_URL}/api/marketplace/products`)
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/products`)
       .then((res) => res.json())
       .then((data) => setProducts(data))
       .catch((err) => console.error('Error loading products:', err));

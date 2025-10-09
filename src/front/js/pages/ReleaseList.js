@@ -11,7 +11,7 @@ const ReleaseList = () => {
   useEffect(() => {
     const fetchReleases = async () => {
       try {
-        const res = await fetch(`${process.env.BACKEND_URL}/api/creator/releases`, {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/releases`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`
           }

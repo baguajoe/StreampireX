@@ -5,7 +5,7 @@ const RoleManagement = () => {
     const [newRole, setNewRole] = useState("");
 
     useEffect(() => {
-        fetch(process.env.BACKEND_URL + "/api/roles", {
+        fetch(process.env.REACT_APP_BACKEND_URL + "/api/roles", {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         })
             .then((res) => res.json())
@@ -14,7 +14,7 @@ const RoleManagement = () => {
     }, []);
 
     const addRole = () => {
-        fetch(process.env.BACKEND_URL + "/api/roles", {
+        fetch(process.env.REACT_APP_BACKEND_URL + "/api/roles", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -31,7 +31,7 @@ const RoleManagement = () => {
     };
 
     const deleteRole = (roleId) => {
-        fetch(`${process.env.BACKEND_URL}/api/roles/${roleId}`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/roles/${roleId}`, {
             method: "DELETE",
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         })
@@ -48,7 +48,7 @@ const RoleManagement = () => {
                 <ul>
                     {roles.map((role) => (
                         <li key={role.id}>
-                            {role.name} 
+                            {role.name}
                             <button onClick={() => deleteRole(role.id)}>❌ Remove</button>
                         </li>
                     ))}

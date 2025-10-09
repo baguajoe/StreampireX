@@ -84,7 +84,7 @@ const VideoChannelProfile = () => {
   const fetchChannelData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/channel/me`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -112,7 +112,7 @@ const VideoChannelProfile = () => {
   const createDefaultChannel = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/channel/create`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/create`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -198,7 +198,7 @@ const VideoChannelProfile = () => {
       formData.append('file', file);
 
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/upload/cloudinary`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload/cloudinary`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -238,7 +238,7 @@ const VideoChannelProfile = () => {
         watermark_url: mediaUploads.watermark || channelData?.watermark_url
       };
 
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/channel/update`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/update`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -390,7 +390,7 @@ const VideoChannelProfile = () => {
         {/* Channel Branding */}
         <section className="profile-section">
           <h2>🎨 Channel Branding</h2>
-          
+
           {/* Avatar Upload */}
           <div className="branding-grid">
             <div className="upload-section">
@@ -398,12 +398,12 @@ const VideoChannelProfile = () => {
               <div className="upload-area avatar-upload">
                 {(mediaUploads.avatar || channelData?.avatar_url) ? (
                   <div className="current-image">
-                    <img 
-                      src={mediaUploads.avatar || channelData?.avatar_url} 
+                    <img
+                      src={mediaUploads.avatar || channelData?.avatar_url}
                       alt="Channel Avatar"
                       className="preview-avatar"
                     />
-                    <button 
+                    <button
                       className="change-btn"
                       onClick={() => avatarInputRef.current?.click()}
                     >
@@ -411,7 +411,7 @@ const VideoChannelProfile = () => {
                     </button>
                   </div>
                 ) : (
-                  <div 
+                  <div
                     className="upload-placeholder"
                     onClick={() => avatarInputRef.current?.click()}
                   >
@@ -436,12 +436,12 @@ const VideoChannelProfile = () => {
               <div className="upload-area banner-upload">
                 {(mediaUploads.banner || channelData?.banner_url) ? (
                   <div className="current-image">
-                    <img 
-                      src={mediaUploads.banner || channelData?.banner_url} 
+                    <img
+                      src={mediaUploads.banner || channelData?.banner_url}
                       alt="Channel Banner"
                       className="preview-banner"
                     />
-                    <button 
+                    <button
                       className="change-btn"
                       onClick={() => bannerInputRef.current?.click()}
                     >
@@ -449,7 +449,7 @@ const VideoChannelProfile = () => {
                     </button>
                   </div>
                 ) : (
-                  <div 
+                  <div
                     className="upload-placeholder"
                     onClick={() => bannerInputRef.current?.click()}
                   >
@@ -474,12 +474,12 @@ const VideoChannelProfile = () => {
               <div className="upload-area watermark-upload">
                 {(mediaUploads.watermark || channelData?.watermark_url) ? (
                   <div className="current-image">
-                    <img 
-                      src={mediaUploads.watermark || channelData?.watermark_url} 
+                    <img
+                      src={mediaUploads.watermark || channelData?.watermark_url}
                       alt="Video Watermark"
                       className="preview-watermark"
                     />
-                    <button 
+                    <button
                       className="change-btn"
                       onClick={() => watermarkInputRef.current?.click()}
                     >
@@ -487,7 +487,7 @@ const VideoChannelProfile = () => {
                     </button>
                   </div>
                 ) : (
-                  <div 
+                  <div
                     className="upload-placeholder"
                     onClick={() => watermarkInputRef.current?.click()}
                   >
@@ -656,14 +656,14 @@ const VideoChannelProfile = () => {
 
         {/* Save Actions */}
         <div className="save-actions">
-          <button 
+          <button
             className="save-btn primary"
             onClick={handleSave}
             disabled={saving}
           >
             {saving ? 'Saving...' : '💾 Save Changes'}
           </button>
-          <button 
+          <button
             className="save-btn secondary"
             onClick={() => window.history.back()}
           >

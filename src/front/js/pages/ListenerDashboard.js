@@ -18,16 +18,16 @@ const ListenerDashboard = () => {
       const token = localStorage.getItem("token");
 
       const [profileRes, podcastsRes, artistsRes, likesRes] = await Promise.all([
-        fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${process.env.BACKEND_URL}/api/user/followed-podcasts`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/followed-podcasts`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${process.env.BACKEND_URL}/api/user/followed-artists`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/followed-artists`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${process.env.BACKEND_URL}/api/user/liked-tracks`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/liked-tracks`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);

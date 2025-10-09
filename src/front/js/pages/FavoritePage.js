@@ -16,7 +16,7 @@ const ProfilePage = () => {
     const [followingList, setFollowingList] = useState([]);
 
     useEffect(() => {
-        fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
             method: "GET",
             headers: {
                 Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -36,7 +36,7 @@ const ProfilePage = () => {
     }, []);
 
     const handleFollowToggle = () => {
-        fetch(`${process.env.BACKEND_URL}/api/user/follow`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/follow`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -53,7 +53,7 @@ const ProfilePage = () => {
     };
 
     const fetchFollowersList = () => {
-        fetch(`${process.env.BACKEND_URL}/api/user/followers`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/followers`, {
             method: "GET",
             headers: {
                 Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -65,7 +65,7 @@ const ProfilePage = () => {
     };
 
     const fetchFollowingList = () => {
-        fetch(`${process.env.BACKEND_URL}/api/user/following`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/following`, {
             method: "GET",
             headers: {
                 Authorization: `Bearer ${localStorage.getItem("token")}`,

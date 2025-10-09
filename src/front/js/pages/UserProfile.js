@@ -4,9 +4,9 @@ const UserProfile = () => {
   const [user, setUser] = useState({});
   const [editing, setEditing] = useState(false);
   const [updatedProfile, setUpdatedProfile] = useState({});
-  
+
   useEffect(() => {
-    fetch(process.env.BACKEND_URL + "/api/user/profile", {
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/user/profile", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -32,7 +32,7 @@ const UserProfile = () => {
   };
 
   const handleSaveChanges = () => {
-    fetch(process.env.BACKEND_URL + "/api/user/update-profile", {
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/user/update-profile", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

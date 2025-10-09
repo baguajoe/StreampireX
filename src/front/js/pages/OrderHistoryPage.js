@@ -13,7 +13,7 @@ const OrderHistoryPage = () => {
 
     useEffect(() => {
         fetchOrders();
-        
+
         // If coming from checkout with new purchases, show success message
         if (location.state?.newPurchases) {
             setTimeout(() => {
@@ -25,7 +25,7 @@ const OrderHistoryPage = () => {
     const fetchOrders = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${process.env.BACKEND_URL}/api/user/orders`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/orders`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${localStorage.getItem("token")}`
@@ -51,7 +51,7 @@ const OrderHistoryPage = () => {
 
     const handleDownload = async (productId, fileName) => {
         try {
-            const response = await fetch(`${process.env.BACKEND_URL}/api/download/${productId}`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/download/${productId}`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${localStorage.getItem("token")}`
@@ -83,7 +83,7 @@ const OrderHistoryPage = () => {
         if (!reason) return;
 
         try {
-            const response = await fetch(`${process.env.BACKEND_URL}/api/refund/request`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/refund/request`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -194,7 +194,7 @@ const OrderHistoryPage = () => {
                 <div className="col-12">
                     <div className="d-flex justify-content-between align-items-center">
                         <h2>📦 Order History</h2>
-                        <button 
+                        <button
                             className="btn btn-primary"
                             onClick={() => navigate("/marketplace")}
                         >
@@ -262,20 +262,20 @@ const OrderHistoryPage = () => {
                                 </div>
                                 <h4 className="card-title">No Orders Found</h4>
                                 <p className="card-text text-muted">
-                                    {searchTerm || filter !== "all" 
+                                    {searchTerm || filter !== "all"
                                         ? "No orders match your current filters."
                                         : "You haven't made any purchases yet."
                                     }
                                 </p>
                                 <div className="d-flex gap-2 justify-content-center">
-                                    <button 
+                                    <button
                                         className="btn btn-primary"
                                         onClick={() => navigate("/marketplace")}
                                     >
                                         🛒 Start Shopping
                                     </button>
                                     {(searchTerm || filter !== "all") && (
-                                        <button 
+                                        <button
                                             className="btn btn-outline-secondary"
                                             onClick={() => {
                                                 setSearchTerm("");

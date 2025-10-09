@@ -6,7 +6,7 @@ const PodcastPage = () => {
     const [searchQuery, setSearchQuery] = useState("");
 
     useEffect(() => {
-        fetch(`${process.env.BACKEND_URL}/api/podcasts`)
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcasts`)
             .then(res => res.json())
             .then(data => setPodcasts(data))
             .catch(err => console.error("Error fetching podcasts:", err));
@@ -14,8 +14,8 @@ const PodcastPage = () => {
 
     const shareToSocialMedia = (clipUrl, title) => {
         const shareText = encodeURIComponent(`Check out this podcast clip: "${title}"`);
-        const shareUrl = encodeURIComponent(`${process.env.BACKEND_URL}/${clipUrl}`);
-        
+        const shareUrl = encodeURIComponent(`${process.env.REACT_APP_BACKEND_URL}/${clipUrl}`);
+
         const twitterUrl = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
         const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`;
         const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`;

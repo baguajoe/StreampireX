@@ -18,7 +18,7 @@ const Navbar = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())
@@ -35,7 +35,7 @@ const Navbar = () => {
       const cart = JSON.parse(localStorage.getItem('cart') || '[]');
       const count = cart.reduce((total, item) => total + item.quantity, 0);
       const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      
+
       setCartCount(count);
       setCartTotal(total);
     };
@@ -45,7 +45,7 @@ const Navbar = () => {
 
     // Listen for cart updates
     window.addEventListener('cartUpdated', updateCartInfo);
-    
+
     return () => {
       window.removeEventListener('cartUpdated', updateCartInfo);
     };
@@ -88,7 +88,7 @@ const Navbar = () => {
         </Link>
 
         {/* Mobile Menu Button */}
-        <button 
+        <button
           className={`mobile-menu-btn ${isMobileMenuOpen ? 'active' : ''}`}
           onClick={toggleMobileMenu}
           aria-label="Toggle mobile menu"
@@ -100,54 +100,54 @@ const Navbar = () => {
 
         {/* Navigation Links */}
         <div className={`nav-links ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
-          <Link 
-            className={`nav-link ${isActive('/') ? 'active' : ''}`} 
-            to="/" 
+          <Link
+            className={`nav-link ${isActive('/') ? 'active' : ''}`}
+            to="/"
             onClick={closeMobileMenu}
           >
             <span className="nav-icon">🏠</span>
             <span className="nav-text">Home</span>
           </Link>
-          
-          <Link 
-            className={`nav-link ${isActive('/pricing-plans') ? 'active' : ''}`} 
-            to="/pricing-plans" 
+
+          <Link
+            className={`nav-link ${isActive('/pricing-plans') ? 'active' : ''}`}
+            to="/pricing-plans"
             onClick={closeMobileMenu}
           >
             <span className="nav-icon">💰</span>
             <span className="nav-text">Pricing</span>
           </Link>
-          
-          <Link 
-            className={`nav-link ${isActive('/browse-podcast-categories') ? 'active' : ''}`} 
-            to="/browse-podcast-categories" 
+
+          <Link
+            className={`nav-link ${isActive('/browse-podcast-categories') ? 'active' : ''}`}
+            to="/browse-podcast-categories"
             onClick={closeMobileMenu}
           >
             <span className="nav-icon">🎙️</span>
             <span className="nav-text">Podcasts</span>
           </Link>
-          
-          <Link 
-            className={`nav-link ${isActive('/videos') ? 'active' : ''}`} 
-            to="/videos" 
+
+          <Link
+            className={`nav-link ${isActive('/videos') ? 'active' : ''}`}
+            to="/videos"
             onClick={closeMobileMenu}
           >
             <span className="nav-icon">📹</span>
             <span className="nav-text">Videos</span>
           </Link>
-          
-          <Link 
-            className={`nav-link ${isActive('/browse-radio-stations') ? 'active' : ''}`} 
-            to="/browse-radio-stations" 
+
+          <Link
+            className={`nav-link ${isActive('/browse-radio-stations') ? 'active' : ''}`}
+            to="/browse-radio-stations"
             onClick={closeMobileMenu}
           >
             <span className="nav-icon">📻</span>
             <span className="nav-text">Radio</span>
           </Link>
 
-          <Link 
-            className={`nav-link ${isActive('/marketplace') ? 'active' : ''}`} 
-            to="/marketplace" 
+          <Link
+            className={`nav-link ${isActive('/marketplace') ? 'active' : ''}`}
+            to="/marketplace"
             onClick={closeMobileMenu}
           >
             <span className="nav-icon">🛒</span>
@@ -166,24 +166,24 @@ const Navbar = () => {
           <div className="cart-checkout-section">
             {/* Checkout Button (only show when cart has items) */}
             {cartCount > 0 && (
-              <Link 
-                to="/checkout" 
+              <Link
+                to="/checkout"
                 className="checkout-btn"
                 onClick={closeMobileMenu}
               >
-                <svg 
-                  className="checkout-icon" 
-                  fill="none" 
-                  stroke="currentColor" 
+                <svg
+                  className="checkout-icon"
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
-                  width="18" 
+                  width="18"
                   height="18"
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" 
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
                   />
                 </svg>
                 <span className="checkout-text">Checkout</span>
@@ -191,25 +191,25 @@ const Navbar = () => {
             )}
 
             {/* Cart Icon */}
-            <Link 
-              to="/cart" 
+            <Link
+              to="/cart"
               className={`cart-link ${isActive('/cart') ? 'active' : ''}`}
               onClick={closeMobileMenu}
             >
               <div className="cart-icon-container">
-                <svg 
-                  className="cart-icon" 
-                  fill="none" 
-                  stroke="currentColor" 
+                <svg
+                  className="cart-icon"
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
-                  width="24" 
+                  width="24"
                   height="24"
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m0 0h8.5M17 18v2a2 2 0 01-2 2H9a2 2 0 01-2-2v-2m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v9" 
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m0 0h8.5M17 18v2a2 2 0 01-2 2H9a2 2 0 01-2-2v-2m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v9"
                   />
                 </svg>
                 {cartCount > 0 && (
@@ -226,8 +226,8 @@ const Navbar = () => {
           {/* User Authentication */}
           {user ? (
             <div className="user-menu">
-              <button 
-                className="user-menu-btn" 
+              <button
+                className="user-menu-btn"
                 onClick={toggleUserMenu}
                 aria-label="User menu"
               >
@@ -235,10 +235,10 @@ const Navbar = () => {
                   {user.username?.charAt(0).toUpperCase()}
                 </div>
                 <span className="user-name">{user.username}</span>
-                <svg 
+                <svg
                   className={`dropdown-arrow ${isUserMenuOpen ? 'open' : ''}`}
-                  fill="none" 
-                  stroke="currentColor" 
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                   width="16"
                   height="16"
@@ -249,8 +249,8 @@ const Navbar = () => {
 
               {isUserMenuOpen && (
                 <div className="user-dropdown">
-                  <Link 
-                    to="/profile" 
+                  <Link
+                    to="/profile"
                     className="dropdown-link"
                     onClick={closeAllMenus}
                   >
@@ -259,8 +259,8 @@ const Navbar = () => {
                     </svg>
                     Profile
                   </Link>
-                  <Link 
-                    to="/orders" 
+                  <Link
+                    to="/orders"
                     className="dropdown-link"
                     onClick={closeAllMenus}
                   >
@@ -269,8 +269,8 @@ const Navbar = () => {
                     </svg>
                     Orders
                   </Link>
-                  <Link 
-                    to="/creator-dashboard" 
+                  <Link
+                    to="/creator-dashboard"
                     className="dropdown-link"
                     onClick={closeAllMenus}
                   >
@@ -279,8 +279,8 @@ const Navbar = () => {
                     </svg>
                     Dashboard
                   </Link>
-                  <Link 
-                    to="/settings" 
+                  <Link
+                    to="/settings"
                     className="dropdown-link"
                     onClick={closeAllMenus}
                   >
@@ -291,8 +291,8 @@ const Navbar = () => {
                     Settings
                   </Link>
                   <hr className="dropdown-divider" />
-                  <button 
-                    className="dropdown-link logout-btn" 
+                  <button
+                    className="dropdown-link logout-btn"
                     onClick={handleLogout}
                   >
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
@@ -305,16 +305,16 @@ const Navbar = () => {
             </div>
           ) : (
             <div className="auth-links">
-              <Link 
-                to="/login" 
+              <Link
+                to="/login"
                 className="nav-link login-link"
                 onClick={closeMobileMenu}
               >
                 <span className="auth-icon">🔑</span>
                 Login
               </Link>
-              <Link 
-                to="/signup" 
+              <Link
+                to="/signup"
                 className="nav-link signup-link"
                 onClick={closeMobileMenu}
               >
@@ -328,8 +328,8 @@ const Navbar = () => {
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div 
-          className="mobile-menu-overlay" 
+        <div
+          className="mobile-menu-overlay"
           onClick={closeMobileMenu}
         ></div>
       )}

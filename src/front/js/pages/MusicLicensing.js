@@ -6,7 +6,7 @@ const MusicLicensing = () => {
   const [price, setPrice] = useState("");
 
   useEffect(() => {
-    fetch(process.env.BACKEND_URL + "/api/artist/tracks", {
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/artist/tracks", {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
     })
       .then((res) => res.json())
@@ -17,7 +17,7 @@ const MusicLicensing = () => {
   const handleSubmit = () => {
     if (!selectedTrack || !price) return alert("Select a track and set a price!");
 
-    fetch(process.env.BACKEND_URL + "/api/licensing/submit", {
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/licensing/submit", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -4,7 +4,7 @@ import React from "react";
 const BuyMusicButton = ({ musicId, price }) => {
   const handleBuy = async () => {
     const token = localStorage.getItem("token");
-    const res = await fetch(`${process.env.BACKEND_URL}/api/music/${musicId}/purchase`, {
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/music/${musicId}/purchase`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

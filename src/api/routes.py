@@ -16559,3 +16559,125 @@ def delete_schedule_slot(station_id, slot_index):
     db.session.commit()
     
     return jsonify({"message": "Schedule slot deleted"}), 200
+
+# Add to src/api/routes.py
+
+@api.route('/users/suggested', methods=['GET'])
+@jwt_required()
+def get_suggested_users():
+    """Get suggested users to follow"""
+    user_id = get_jwt_identity()
+    
+    # Get users the current user is NOT following
+    following_ids = [f.followed_id for f in Follow.query.filter_by(follower_id=user_id).all()]
+    following_ids.append(user_id)  # Exclude self
+    
+    suggested = User.query.filter(~User.id.in_(following_ids)).limit(10).all()
+    
+    return jsonify([{
+        "id": u.id,
+        "username": u.username,
+        "profile_picture": u.avatar_url,
+        "bio": u.bio or "Creator on StreamPireX"
+    } for u in suggested]), 200
+
+
+@api.route('/trending', methods=['GET'])
+def get_trending():
+    """Get trending content across platform"""
+    from sqlalchemy import func, desc
+    
+    # Get most liked/viewed content from last 7 days
+    week_ago = datetime.utcnow() - timedelta(days=7)
+    
+    trending_videos = Video.query.filter(
+        Video.created_at >= week_ago
+    ).order_by(desc(Video.view_count)).limit(5).all()
+    
+    trending_podcasts = Podcast.query.filter(
+        Podcast.created_at >= week_ago
+    ).order_by(desc(Podcast.total_plays)).limit(5).all()
+    
+    trending = []
+    
+    for video in trending_videos:
+        trending.append({
+            "title": video.title,
+            "description": video.description,
+            "image_url": video.thumbnail,
+            "type": "video",
+            "url": f"/videos/{video.id}"
+        })
+    
+    for podcast in trending_podcasts:
+        trending.append({
+            "title": podcast.title,
+            "description": podcast.description,
+            "image_url": podcast.cover_art,
+            "type": "podcast",
+            "url": f"/podcast/{podcast.id}"
+        })
+    
+    return jsonify(trending), 200
+
+
+@api.route('/user/followed-podcasts', methods=['GET'])
+@jwt_required()
+def get_followed_podcasts():
+    """Get user's followed podcasts"""
+    user_id = get_jwt_identity()
+    
+    # Get podcast subscriptions
+    followed = PodcastSubscription.query.filter_by(user_id=user_id).all()
+    
+    podcasts = []
+    for sub in followed:
+        podcast = Podcast.query.get(sub.podcast_id)
+        if podcast:
+            podcasts.append(podcast.serialize())
+    
+    return jsonify(podcasts), 200
+
+
+@api.route('/user/followed-artists', methods=['GET'])
+@jwt_required()
+def get_followed_artists():
+    """Get user's followed artists"""
+    user_id = get_jwt_identity()
+    
+    # Get users that current user follows who are artists
+    following = Follow.query.filter_by(follower_id=user_id).all()
+    
+    artists = []
+    for follow in following:
+        user = User.query.get(follow.followed_id)
+        if user and (user.is_artist or user.role == 'Artist'):
+            artists.append({
+                "id": user.id,
+                "username": user.username,
+                "profile_picture": user.avatar_url,
+                "artist_name": user.artist_name
+            })
+    
+    return jsonify(artists), 200
+
+
+@api.route('/user/liked-tracks', methods=['GET'])
+@jwt_required()
+def get_liked_tracks():
+    """Get user's liked tracks"""
+    user_id = get_jwt_identity()
+    
+    # Get likes where content_type is 'track' or 'audio'
+    likes = Like.query.filter_by(
+        user_id=user_id,
+        content_type='audio'
+    ).all()
+    
+    tracks = []
+    for like in likes:
+        track = Audio.query.get(like.content_id)
+        if track:
+            tracks.append(track.serialize())
+    
+    return jsonify(tracks), 200

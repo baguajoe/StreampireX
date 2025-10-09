@@ -25,7 +25,7 @@ const VideoDetail = () => {
 
   useEffect(() => {
     if (id) {
-      fetch(`${process.env.BACKEND_URL}/api/videos/${id}/view`, {
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/videos/${id}/view`, {
         method: 'POST'
       }).catch(err => console.log('View tracking failed:', err));
     }
@@ -41,7 +41,7 @@ const VideoDetail = () => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/${id}`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/${id}`, {
         headers: headers
       });
 
@@ -70,7 +70,7 @@ const VideoDetail = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/${id}/like`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/${id}/like`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -96,7 +96,7 @@ const VideoDetail = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/channel/${video.channel.id}/subscribe`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/${video.channel.id}/subscribe`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -130,7 +130,7 @@ const VideoDetail = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/${id}/comment`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/${id}/comment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

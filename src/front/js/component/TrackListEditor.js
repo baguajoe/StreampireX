@@ -8,7 +8,7 @@ const TrackListEditor = ({ albumId }) => {
     const fetchTracks = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`${process.env.BACKEND_URL}/api/my-tracks`, {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/my-tracks`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -24,7 +24,7 @@ const TrackListEditor = ({ albumId }) => {
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(
-        `${process.env.BACKEND_URL}/api/album/${albumId}/add-track`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/album/${albumId}/add-track`,
         {
           method: "POST",
           headers: {

@@ -5,7 +5,7 @@ const BrowseProfiles = () => {
   const [profiles, setProfiles] = useState([]);
 
   useEffect(() => {
-    fetch(process.env.BACKEND_URL + "/api/profiles")
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/profiles")
       .then((res) => res.json())
       .then((data) => setProfiles(data))
       .catch((err) => console.error("Error fetching profiles:", err));

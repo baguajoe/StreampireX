@@ -78,7 +78,7 @@ const LiveStudio = ({ isOpen, onClose }) => {
         setIsLive(true);
 
         try {
-            const response = await fetch(`${process.env.BACKEND_URL}/api/artist/live/start`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/live/start`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -107,7 +107,7 @@ const LiveStudio = ({ isOpen, onClose }) => {
         }
 
         try {
-            const response = await fetch(`${process.env.BACKEND_URL}/api/artist/live/end`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/live/end`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
             });

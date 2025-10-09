@@ -14,24 +14,24 @@ const Messages = () => {
   useEffect(() => {
     // Fetch conversations
     fetchConversations();
-    
+
     // Initialize socket
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
     const newSocket = io(backendUrl, {
       auth: { token: localStorage.getItem('token') }
     });
-    
+
     newSocket.on('new_message', (message) => {
       setMessages(prev => [...prev, message]);
     });
-    
+
     setSocket(newSocket);
-    
+
     return () => newSocket.close();
   }, []);
 
   const fetchConversations = async () => {
-    const response = await fetch(`${process.env.BACKEND_URL}/api/messages/conversations`, {
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/messages/conversations`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
@@ -41,7 +41,7 @@ const Messages = () => {
   };
 
   const loadConversation = async (userId) => {
-    const response = await fetch(`${process.env.BACKEND_URL}/api/messages/conversation/${userId}`, {
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/messages/conversation/${userId}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }
@@ -53,8 +53,8 @@ const Messages = () => {
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !activeConversation) return;
-    
-    await fetch(`${process.env.BACKEND_URL}/api/messages/send`, {
+
+    await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/messages/send`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ const Messages = () => {
         message: newMessage
       })
     });
-    
+
     setNewMessage('');
   };
 
@@ -74,7 +74,7 @@ const Messages = () => {
       <div className="conversations-sidebar">
         <h2>Messages</h2>
         {conversations.map(conv => (
-          <div 
+          <div
             key={conv.conversation_id}
             className="conversation-item"
             onClick={() => loadConversation(conv.other_user.id)}
@@ -84,14 +84,14 @@ const Messages = () => {
           </div>
         ))}
       </div>
-      
+
       <div className="messages-main">
         {activeConversation ? (
           <>
             <div className="messages-list">
               {messages.map(msg => (
-                <div 
-                  key={msg.id} 
+                <div
+                  key={msg.id}
                   className={`message ${msg.sender_id === store.user.id ? 'sent' : 'received'}`}
                 >
                   <p>{msg.message}</p>
@@ -99,7 +99,7 @@ const Messages = () => {
                 </div>
               ))}
             </div>
-            
+
             <div className="message-input">
               <input
                 type="text"

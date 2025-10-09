@@ -19,23 +19,23 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
     const loadInnerCircle = async () => {
         setLoading(true);
         setError(null);
-        
+
         try {
-            const endpoint = isOwnProfile 
-                ? `${process.env.BACKEND_URL}/api/profile/my-inner-circle`
-                : `${process.env.BACKEND_URL}/api/profile/${userId}/inner-circle`;
-            
+            const endpoint = isOwnProfile
+                ? `${process.env.REACT_APP_BACKEND_URL}/api/profile/my-inner-circle`
+                : `${process.env.REACT_APP_BACKEND_URL}/api/profile/${userId}/inner-circle`;
+
             const headers = {};
             if (isOwnProfile && localStorage.getItem('token')) {
                 headers['Authorization'] = `Bearer ${localStorage.getItem('token')}`;
             }
 
             const response = await fetch(endpoint, { headers });
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const data = await response.json();
             setInnerCircle(data.inner_circle || []);
         } catch (error) {
@@ -52,7 +52,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
             setSearchResults([]);
             return;
         }
-        
+
         setIsSearching(true);
         try {
             const token = localStorage.getItem('token');
@@ -61,18 +61,18 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
             }
 
             const response = await fetch(
-                `${process.env.BACKEND_URL}/api/profile/inner-circle/search-users?q=${encodeURIComponent(query)}`,
+                `${process.env.REACT_APP_BACKEND_URL}/api/profile/inner-circle/search-users?q=${encodeURIComponent(query)}`,
                 {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 }
             );
-            
+
             if (!response.ok) {
                 throw new Error(`Search failed: ${response.statusText}`);
             }
-            
+
             const data = await response.json();
             setSearchResults(data.users || []);
         } catch (error) {
@@ -91,7 +91,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                 return;
             }
 
-            const response = await fetch(`${process.env.BACKEND_URL}/api/profile/inner-circle/add`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/profile/inner-circle/add`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -102,9 +102,9 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                     position: position
                 })
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok) {
                 await loadInnerCircle();
                 setSearchQuery('');
@@ -121,7 +121,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
 
     const removeFromInnerCircle = async (friendUserId) => {
         if (!confirm('Remove this person from your inner circle?')) return;
-        
+
         try {
             const token = localStorage.getItem('token');
             if (!token) {
@@ -130,7 +130,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
             }
 
             const response = await fetch(
-                `${process.env.BACKEND_URL}/api/profile/inner-circle/remove/${friendUserId}`,
+                `${process.env.REACT_APP_BACKEND_URL}/api/profile/inner-circle/remove/${friendUserId}`,
                 {
                     method: 'DELETE',
                     headers: {
@@ -138,7 +138,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                     }
                 }
             );
-            
+
             if (response.ok) {
                 await loadInnerCircle();
                 alert('Friend removed from inner circle');
@@ -160,7 +160,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                 return;
             }
 
-            const response = await fetch(`${process.env.BACKEND_URL}/api/profile/inner-circle/reorder`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/profile/inner-circle/reorder`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -170,7 +170,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                     order: newOrder
                 })
             });
-            
+
             if (response.ok) {
                 await loadInnerCircle();
             } else {
@@ -252,7 +252,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                     <span className="circle-count">({innerCircle.length}/10)</span>
                 </h3>
                 {isOwnProfile && (
-                    <button 
+                    <button
                         className="edit-circle-btn"
                         onClick={() => setIsEditing(!isEditing)}
                     >
@@ -285,13 +285,13 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                         />
                         {isSearching && <div className="search-spinner">🔍</div>}
                     </div>
-                    
+
                     {searchResults.length > 0 && (
                         <div className="search-results">
                             {searchResults.map(user => (
                                 <div key={user.id} className="search-result-item">
-                                    <img 
-                                        src={user.avatar_url || getDefaultAvatar()} 
+                                    <img
+                                        src={user.avatar_url || getDefaultAvatar()}
                                         alt={user.username}
                                         className="search-result-avatar"
                                         onError={(e) => {
@@ -303,7 +303,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                                         {user.artist_name && <span className="artist-name"> ({user.artist_name})</span>}
                                         {user.bio && <p className="search-result-bio">{user.bio.substring(0, 60)}...</p>}
                                     </div>
-                                    <button 
+                                    <button
                                         className="add-to-circle-btn"
                                         onClick={() => addToInnerCircle(user.id)}
                                         disabled={innerCircle.length >= 10}
@@ -331,7 +331,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                                 <p>🌟 Your inner circle is empty!</p>
                                 <p>Add your closest friends and favorite users to showcase them on your profile.</p>
                                 {!error && (
-                                    <button 
+                                    <button
                                         className="start-editing-btn"
                                         onClick={() => setIsEditing(true)}
                                     >
@@ -345,7 +345,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                     </div>
                 ) : (
                     innerCircle.map((member) => (
-                        <div 
+                        <div
                             key={member.friend_user_id}
                             className={`circle-member ${isEditing ? 'draggable' : ''}`}
                             draggable={isEditing}
@@ -355,7 +355,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                             onDrop={(e) => handleDrop(e, member)}
                         >
                             <div className="member-position">#{member.position}</div>
-                            <img 
+                            <img
                                 src={member.friend?.avatar_url || getDefaultAvatar()}
                                 alt={member.friend?.username || 'User'}
                                 className="member-avatar"
@@ -384,7 +384,7 @@ const InnerCircle = ({ userId, isOwnProfile = false }) => {
                                 )}
                             </div>
                             {isEditing && isOwnProfile && (
-                                <button 
+                                <button
                                     className="remove-member-btn"
                                     onClick={() => removeFromInnerCircle(member.friend_user_id)}
                                     title="Remove from inner circle"

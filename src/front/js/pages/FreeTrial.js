@@ -7,7 +7,7 @@ const FreeTrial = () => {
 
     const fetchTrialStatus = async () => {
         const token = localStorage.getItem("token");
-        const res = await fetch(process.env.BACKEND_URL + "/free-trial-status", {
+        const res = await fetch(process.env.REACT_APP_BACKEND_URL + "/free-trial-status", {
             headers: { Authorization: "Bearer " + token },
         });
 
@@ -17,7 +17,7 @@ const FreeTrial = () => {
 
     const activateTrial = async () => {
         const token = localStorage.getItem("token");
-        const res = await fetch(process.env.BACKEND_URL + "/free-trial", {
+        const res = await fetch(process.env.REACT_APP_BACKEND_URL + "/free-trial", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

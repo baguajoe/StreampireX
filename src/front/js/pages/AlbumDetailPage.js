@@ -7,7 +7,7 @@ const AlbumDetailPage = () => {
   const { albumId } = useParams();
   const navigate = useNavigate();
   const { store } = useContext(Context);
-  
+
   // Album data state
   const [album, setAlbum] = useState(null);
   const [tracks, setTracks] = useState([]);
@@ -15,18 +15,18 @@ const AlbumDetailPage = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(null);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
-  
+
   // UI state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isLiked, setIsLiked] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
-  
+
   // Player state
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(1);
-  
+
   // Audio element ref
   const audioRef = React.useRef(null);
 
@@ -40,18 +40,18 @@ const AlbumDetailPage = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const token = localStorage.getItem("token");
       const headers = {
         "Content-Type": "application/json"
       };
-      
+
       if (token) {
         headers.Authorization = `Bearer ${token}`;
       }
 
       // Fetch album details
-      const albumResponse = await fetch(`${process.env.BACKEND_URL}/api/albums/${albumId}`, {
+      const albumResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/albums/${albumId}`, {
         headers
       });
 
@@ -63,7 +63,7 @@ const AlbumDetailPage = () => {
       setAlbum(albumData);
 
       // Fetch album tracks
-      const tracksResponse = await fetch(`${process.env.BACKEND_URL}/api/albums/${albumId}/tracks`, {
+      const tracksResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/albums/${albumId}/tracks`, {
         headers
       });
 
@@ -74,7 +74,7 @@ const AlbumDetailPage = () => {
 
       // Fetch artist info
       if (albumData.artist_id) {
-        const artistResponse = await fetch(`${process.env.BACKEND_URL}/api/artists/${albumData.artist_id}`, {
+        const artistResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artists/${albumData.artist_id}`, {
           headers
         });
 
@@ -86,7 +86,7 @@ const AlbumDetailPage = () => {
 
       // Check if album is liked by user
       if (token) {
-        const likeResponse = await fetch(`${process.env.BACKEND_URL}/api/albums/${albumId}/like-status`, {
+        const likeResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/albums/${albumId}/like-status`, {
           headers
         });
 
@@ -150,7 +150,7 @@ const AlbumDetailPage = () => {
         return;
       }
 
-      const response = await fetch(`${process.env.BACKEND_URL}/api/albums/${albumId}/like`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/albums/${albumId}/like`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -169,7 +169,7 @@ const AlbumDetailPage = () => {
   const shareAlbum = (platform) => {
     const url = encodeURIComponent(window.location.href);
     const text = encodeURIComponent(`Check out "${album?.title}" by ${artist?.name || 'Unknown Artist'}`);
-    
+
     const shareUrls = {
       twitter: `https://twitter.com/intent/tweet?text=${text}&url=${url}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
@@ -185,7 +185,7 @@ const AlbumDetailPage = () => {
     } else {
       window.open(shareUrls[platform], '_blank');
     }
-    
+
     setShowShareMenu(false);
   };
 
@@ -289,7 +289,7 @@ const AlbumDetailPage = () => {
             className="cover-image"
           />
           <div className="play-overlay">
-            <button 
+            <button
               className="play-album-btn"
               onClick={playAlbum}
               disabled={tracks.length === 0}
@@ -302,11 +302,11 @@ const AlbumDetailPage = () => {
         <div className="album-info">
           <div className="album-type">Album</div>
           <h1 className="album-title">{album.title}</h1>
-          
+
           {artist && (
             <Link to={`/artist-profile/${artist.id}`} className="artist-link">
-              <img 
-                src={artist.profile_picture || "/default-avatar.png"} 
+              <img
+                src={artist.profile_picture || "/default-avatar.png"}
                 alt={artist.name}
                 className="artist-avatar"
               />
@@ -331,7 +331,7 @@ const AlbumDetailPage = () => {
 
       {/* Album Actions */}
       <div className="album-actions">
-        <button 
+        <button
           className="action-btn play-btn"
           onClick={playAlbum}
           disabled={tracks.length === 0}
@@ -339,7 +339,7 @@ const AlbumDetailPage = () => {
           {isPlaying && currentTrack ? "⏸️ Pause" : "▶️ Play"}
         </button>
 
-        <button 
+        <button
           className={`action-btn like-btn ${isLiked ? 'liked' : ''}`}
           onClick={toggleLike}
         >
@@ -347,13 +347,13 @@ const AlbumDetailPage = () => {
         </button>
 
         <div className="share-dropdown">
-          <button 
+          <button
             className="action-btn share-btn"
             onClick={() => setShowShareMenu(!showShareMenu)}
           >
             📤 Share
           </button>
-          
+
           {showShareMenu && (
             <div className="share-menu">
               <button onClick={() => shareAlbum('twitter')}>🐦 Twitter</button>
@@ -374,7 +374,7 @@ const AlbumDetailPage = () => {
         {tracks.length > 0 ? (
           <div className="tracks">
             {tracks.map((track, index) => (
-              <div 
+              <div
                 key={track.id}
                 className={`track-item ${currentTrack?.id === track.id ? 'playing' : ''}`}
                 onClick={() => playTrack(track, index)}
@@ -399,7 +399,7 @@ const AlbumDetailPage = () => {
                 </div>
 
                 <div className="track-actions">
-                  <button 
+                  <button
                     className="track-action-btn"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -424,8 +424,8 @@ const AlbumDetailPage = () => {
       {currentTrack && (
         <div className="now-playing-bar">
           <div className="now-playing-info">
-            <img 
-              src={album.cover_image || "/placeholder-album.jpg"} 
+            <img
+              src={album.cover_image || "/placeholder-album.jpg"}
               alt={currentTrack.title}
               className="now-playing-cover"
             />
@@ -450,7 +450,7 @@ const AlbumDetailPage = () => {
           <div className="progress-section">
             <span className="time-display">{formatDuration(currentTime)}</span>
             <div className="progress-bar" onClick={handleSeek}>
-              <div 
+              <div
                 className="progress-fill"
                 style={{ width: `${(currentTime / duration) * 100}%` }}
               />

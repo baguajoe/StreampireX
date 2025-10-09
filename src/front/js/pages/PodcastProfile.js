@@ -9,7 +9,7 @@ const PodcastProfile = () => {
 
     useEffect(() => {
         // Fetch podcast data from backend
-        fetch(`${process.env.BACKEND_URL}/api/podcast/${username}/${podcastId}`)
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast/${username}/${podcastId}`)
             .then(res => res.json())
             .then(data => {
                 setPodcast(data);

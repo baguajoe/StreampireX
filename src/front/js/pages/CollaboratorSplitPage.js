@@ -18,7 +18,7 @@ const CollaboratorSplitPage = () => {
   const handleSubmit = async () => {
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`${process.env.BACKEND_URL}/api/add-collaborator`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/add-collaborator`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

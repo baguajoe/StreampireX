@@ -9,7 +9,7 @@ const UploadMusic = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [genreFilter, setGenreFilter] = useState("");
   const [sortBy, setSortBy] = useState("name"); // "name", "followers", "genre"
-  
+
   // Form states
   const [artistName, setArtistName] = useState("");
   const [trackTitle, setTrackTitle] = useState("");
@@ -29,7 +29,7 @@ const UploadMusic = () => {
     }
 
     // Enhanced API call with more station details
-    fetch(`${process.env.BACKEND_URL}/api/radio/stations/detailed`, {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/stations/detailed`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(res => res.json())
@@ -40,7 +40,7 @@ const UploadMusic = () => {
       .catch(err => {
         console.error("Failed to load stations", err);
         // Fallback to basic stations API
-        fetch(`${process.env.BACKEND_URL}/api/radio/stations`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/stations`, {
           headers: { Authorization: `Bearer ${token}` },
         })
           .then(res => res.json())
@@ -53,10 +53,10 @@ const UploadMusic = () => {
   const getFilteredStations = () => {
     let filtered = stations.filter(station => {
       const matchesSearch = station.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (station.description && station.description.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesGenre = !genreFilter || 
-                          (station.genres && station.genres.includes(genreFilter)) ||
-                          (station.preferred_genres && station.preferred_genres.includes(genreFilter));
+        (station.description && station.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesGenre = !genreFilter ||
+        (station.genres && station.genres.includes(genreFilter)) ||
+        (station.preferred_genres && station.preferred_genres.includes(genreFilter));
       return matchesSearch && matchesGenre;
     });
 
@@ -109,7 +109,7 @@ const UploadMusic = () => {
     formData.append("audio", audioFile);
 
     try {
-      const response = await fetch(`${process.env.BACKEND_URL}/api/radio/upload_music`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/upload_music`, {
         method: "POST",
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         body: formData,
@@ -149,67 +149,67 @@ const UploadMusic = () => {
         {/* Artist Details Section */}
         <div className="form-section">
           <h3>🎤 Artist Information</h3>
-          
+
           <label>🎙️ Artist Name *</label>
-          <input 
-            value={artistName} 
-            onChange={(e) => setArtistName(e.target.value)} 
-            type="text" 
-            placeholder="Your artist/stage name" 
+          <input
+            value={artistName}
+            onChange={(e) => setArtistName(e.target.value)}
+            type="text"
+            placeholder="Your artist/stage name"
           />
 
           <label>🎵 Track Title *</label>
-          <input 
-            value={trackTitle} 
-            onChange={(e) => setTrackTitle(e.target.value)} 
-            type="text" 
-            placeholder="Name of the track" 
+          <input
+            value={trackTitle}
+            onChange={(e) => setTrackTitle(e.target.value)}
+            type="text"
+            placeholder="Name of the track"
           />
 
           <label>💿 Album Name</label>
-          <input 
-            value={albumName} 
-            onChange={(e) => setAlbumName(e.target.value)} 
-            type="text" 
-            placeholder="Album or project name" 
+          <input
+            value={albumName}
+            onChange={(e) => setAlbumName(e.target.value)}
+            type="text"
+            placeholder="Album or project name"
           />
 
           <label>🎧 Genre</label>
-          <input 
-            value={genre} 
-            onChange={(e) => setGenre(e.target.value)} 
-            type="text" 
-            placeholder="e.g. Lo-Fi, Jazz, Hip Hop" 
+          <input
+            value={genre}
+            onChange={(e) => setGenre(e.target.value)}
+            type="text"
+            placeholder="e.g. Lo-Fi, Jazz, Hip Hop"
           />
 
           <label>📝 Short Artist Bio</label>
-          <textarea 
-            value={bio} 
-            onChange={(e) => setBio(e.target.value)} 
-            rows={3} 
-            placeholder="Tell us about yourself..." 
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            rows={3}
+            placeholder="Tell us about yourself..."
           />
 
           <label>🔗 Social or Music Links</label>
-          <input 
-            value={socialLinks} 
-            onChange={(e) => setSocialLinks(e.target.value)} 
-            type="text" 
-            placeholder="Spotify, YouTube, SoundCloud..." 
+          <input
+            value={socialLinks}
+            onChange={(e) => setSocialLinks(e.target.value)}
+            type="text"
+            placeholder="Spotify, YouTube, SoundCloud..."
           />
 
           <label>📁 Upload Audio File *</label>
-          <input 
-            type="file" 
-            accept="audio/*" 
-            onChange={(e) => setAudioFile(e.target.files[0])} 
+          <input
+            type="file"
+            accept="audio/*"
+            onChange={(e) => setAudioFile(e.target.files[0])}
           />
         </div>
 
         {/* Enhanced Station Selection Section */}
         <div className="form-section">
           <h3>📻 Choose Radio Station *</h3>
-          
+
           {/* Search and Filter Controls */}
           <div className="station-controls">
             <div className="control-row">
@@ -220,7 +220,7 @@ const UploadMusic = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
               />
-              
+
               <select
                 value={genreFilter}
                 onChange={(e) => setGenreFilter(e.target.value)}
@@ -231,7 +231,7 @@ const UploadMusic = () => {
                   <option key={genre} value={genre}>{genre}</option>
                 ))}
               </select>
-              
+
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
@@ -244,13 +244,13 @@ const UploadMusic = () => {
             </div>
 
             <div className="view-controls">
-              <button 
+              <button
                 className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
                 onClick={() => setViewMode('list')}
               >
                 📋 List
               </button>
-              <button 
+              <button
                 className={`view-btn ${viewMode === 'cards' ? 'active' : ''}`}
                 onClick={() => setViewMode('cards')}
               >
@@ -264,8 +264,8 @@ const UploadMusic = () => {
             /* List View */
             <div className="stations-list">
               {filteredStations.length > 0 ? filteredStations.map(station => (
-                <div 
-                  key={station.id} 
+                <div
+                  key={station.id}
                   className={`station-item ${selectedStation == station.id ? 'selected' : ''}`}
                   onClick={() => handleStationSelect(station.id)}
                 >
@@ -285,7 +285,7 @@ const UploadMusic = () => {
                     </div>
                   </div>
                   <div className="station-actions">
-                    <button 
+                    <button
                       className={`select-btn ${selectedStation == station.id ? 'selected' : ''}`}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -304,8 +304,8 @@ const UploadMusic = () => {
             /* Card View */
             <div className="stations-grid">
               {filteredStations.length > 0 ? filteredStations.map(station => (
-                <div 
-                  key={station.id} 
+                <div
+                  key={station.id}
                   className={`station-card ${selectedStation == station.id ? 'selected' : ''}`}
                   onClick={() => handleStationSelect(station.id)}
                 >
@@ -314,10 +314,10 @@ const UploadMusic = () => {
                     <span className="followers">👥 {station.followers || 0}</span>
                   </div>
                   <p className="card-description">
-                    {station.description ? 
-                      (station.description.length > 100 ? 
-                        station.description.substring(0, 100) + "..." : 
-                        station.description) : 
+                    {station.description ?
+                      (station.description.length > 100 ?
+                        station.description.substring(0, 100) + "..." :
+                        station.description) :
                       "No description available"}
                   </p>
                   {station.genres && station.genres.length > 0 && (
@@ -327,7 +327,7 @@ const UploadMusic = () => {
                       ))}
                     </div>
                   )}
-                  <button 
+                  <button
                     className={`card-select-btn ${selectedStation == station.id ? 'selected' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -377,17 +377,17 @@ const UploadMusic = () => {
         {selectedStation && (
           <div className="form-section">
             <label>📩 Notes to {stationDetails?.name || "Station"}</label>
-            <textarea 
-              value={notes} 
-              onChange={(e) => setNotes(e.target.value)} 
-              rows={3} 
-              placeholder="Optional message to the station..." 
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              placeholder="Optional message to the station..."
             />
           </div>
         )}
 
-        <button 
-          className="upload-btn" 
+        <button
+          className="upload-btn"
           onClick={handleUpload}
           disabled={!selectedStation || !audioFile || !trackTitle || !artistName}
         >

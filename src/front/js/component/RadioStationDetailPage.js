@@ -27,7 +27,7 @@ import ZaraMoonlightImg from "../../img/ZaraMoonlight.png";
 const RadioStationDetailPage = () => {
   const { id, type } = useParams();
   const navigate = useNavigate();
-  
+
   // Audio state
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioLoading, setAudioLoading] = useState(false);
@@ -36,21 +36,21 @@ const RadioStationDetailPage = () => {
   const [volume, setVolume] = useState(1.0);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
   const [retryCount, setRetryCount] = useState(0);
-  
+
   // Station state
   const [station, setStation] = useState(null);
   const [nowPlaying, setNowPlaying] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // NEW: Current user state
   const [currentUser, setCurrentUser] = useState(null);
-  
+
   // Refs
   const audioRef = useRef(null);
   const nowPlayingIntervalRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
-  
+
   // Environment config
   const [backendUrl, setBackendUrl] = useState(null);
 
@@ -78,7 +78,7 @@ const RadioStationDetailPage = () => {
 
   // Helper function to get backend URL
   const getBackendUrl = useCallback(() => {
-    return process.env.REACT_APP_BACKEND_URL || process.env.BACKEND_URL || 'http://localhost:3001';
+    return process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
   }, []);
 
   useEffect(() => {
@@ -94,18 +94,18 @@ const RadioStationDetailPage = () => {
   // NEW: Fetch current user
   const fetchCurrentUser = useCallback(async () => {
     if (!backendUrl) return;
-    
+
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
-      
+
       const response = await fetch(`${backendUrl}/api/profile`, {
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setCurrentUser(data);
@@ -121,52 +121,52 @@ const RadioStationDetailPage = () => {
 
     console.log("🔍 Getting audio URL for station:", station.name);
     console.log("🔍 Station data:", {
-        stream_url: station.stream_url,
-        loop_audio_url: station.loop_audio_url,
-        initial_mix_url: station.initial_mix_url,
-        audio_url: station.audio_url,
-        now_playing: station.now_playing_metadata
+      stream_url: station.stream_url,
+      loop_audio_url: station.loop_audio_url,
+      initial_mix_url: station.initial_mix_url,
+      audio_url: station.audio_url,
+      now_playing: station.now_playing_metadata
     });
 
     // Priority 1: Direct stream URL (Cloudinary)
     if (station.stream_url && station.stream_url.startsWith('http')) {
-        console.log("✅ Using stream_url (Cloudinary):", station.stream_url);
-        return station.stream_url;
+      console.log("✅ Using stream_url (Cloudinary):", station.stream_url);
+      return station.stream_url;
     }
-    
+
     // Priority 2: Audio URL field (Cloudinary)
     if (station.audio_url && station.audio_url.startsWith('http')) {
-        console.log("✅ Using audio_url (Cloudinary):", station.audio_url);
-        return station.audio_url;
+      console.log("✅ Using audio_url (Cloudinary):", station.audio_url);
+      return station.audio_url;
     }
-    
+
     // Priority 3: Loop audio URL (Cloudinary)
     if (station.loop_audio_url && station.loop_audio_url.startsWith('http')) {
-        console.log("✅ Using loop_audio_url (Cloudinary):", station.loop_audio_url);
-        return station.loop_audio_url;
+      console.log("✅ Using loop_audio_url (Cloudinary):", station.loop_audio_url);
+      return station.loop_audio_url;
     }
-    
+
     // Priority 4: Initial mix URL (Cloudinary)  
     if (station.initial_mix_url && station.initial_mix_url.startsWith('http')) {
-        console.log("✅ Using initial_mix_url (Cloudinary):", station.initial_mix_url);
-        return station.initial_mix_url;
+      console.log("✅ Using initial_mix_url (Cloudinary):", station.initial_mix_url);
+      return station.initial_mix_url;
     }
 
     // Priority 5: From playlist metadata (Cloudinary)
     if (station.now_playing_metadata?.file_url && station.now_playing_metadata.file_url.startsWith('http')) {
-        console.log("✅ Using now_playing file_url (Cloudinary):", station.now_playing_metadata.file_url);
-        return station.now_playing_metadata.file_url;
+      console.log("✅ Using now_playing file_url (Cloudinary):", station.now_playing_metadata.file_url);
+      return station.now_playing_metadata.file_url;
     }
 
     // Priority 6: From playlist schedule (Cloudinary)
     if (station.playlist_schedule?.tracks?.length > 0) {
-        const firstTrack = station.playlist_schedule.tracks[0];
-        if (firstTrack.file_url && firstTrack.file_url.startsWith('http')) {
-            console.log("✅ Using playlist track file_url (Cloudinary):", firstTrack.file_url);
-            return firstTrack.file_url;
-        }
+      const firstTrack = station.playlist_schedule.tracks[0];
+      if (firstTrack.file_url && firstTrack.file_url.startsWith('http')) {
+        console.log("✅ Using playlist track file_url (Cloudinary):", firstTrack.file_url);
+        return firstTrack.file_url;
+      }
     }
-    
+
     console.log("❌ No valid Cloudinary audio URL found");
     return null;
   }, [station]);
@@ -175,12 +175,12 @@ const RadioStationDetailPage = () => {
   const handleAudioError = useCallback((e) => {
     const audio = audioRef.current;
     const audioError = audio?.error;
-    
+
     console.log("❌ Audio error:", e, audioError);
-    
+
     let errorMessage = "Unknown audio error";
     let canRetry = false;
-    
+
     if (audioError) {
       switch (audioError.code) {
         case MediaError.MEDIA_ERR_ABORTED:
@@ -204,12 +204,12 @@ const RadioStationDetailPage = () => {
           canRetry = true;
       }
     }
-    
+
     setAudioError({ message: errorMessage, canRetry });
     setConnectionStatus('error');
     setIsPlaying(false);
     setAudioLoading(false);
-    
+
     // Auto-retry for network errors
     if (canRetry && retryCount < 3) {
       console.log(`🔄 Auto-retrying audio connection (${retryCount + 1}/3)`);
@@ -260,7 +260,7 @@ const RadioStationDetailPage = () => {
   const handleStalled = useCallback(() => {
     console.warn("⚠️ Audio stream stalled");
     setConnectionStatus('stalled');
-    
+
     // Try to recover from stall
     setTimeout(() => {
       if (audioRef.current && !audioRef.current.ended) {
@@ -278,7 +278,7 @@ const RadioStationDetailPage = () => {
 
   const handleEnded = useCallback(() => {
     console.log("🔄 Audio ended");
-    
+
     // For loop-enabled stations, restart playback
     if (station?.is_loop_enabled) {
       console.log("🔄 Restarting loop...");
@@ -341,7 +341,7 @@ const RadioStationDetailPage = () => {
         setLoading(false);
       } else {
         const url = `${backendUrl}/api/radio/${id}`;
-        
+
         const data = await ErrorHandler.withRetry(
           async () => {
             return await ErrorHandler.fetchWithErrorHandling(url, {
@@ -356,21 +356,21 @@ const RadioStationDetailPage = () => {
 
         setStation(data.station);
         console.log("📻 Station data:", data.station);
-        
+
         // Try to fetch now playing info with better error handling
         if (data.station.is_live) {
           await fetchNowPlaying();
           startNowPlayingUpdates();
         }
       }
-      
+
     } catch (error) {
       console.error('❌ Station fetch error:', error);
-      
+
       if (AuthErrorHandler.handleAuthError(error, navigate)) {
         return;
       }
-      
+
       setError(error.message);
     } finally {
       setLoading(false);
@@ -383,7 +383,7 @@ const RadioStationDetailPage = () => {
 
     try {
       const url = `${backendUrl}/api/radio/${id}/now-playing`;
-      
+
       const response = await fetch(url, {
         headers: {
           ...AuthErrorHandler.getAuthHeaders()
@@ -396,7 +396,7 @@ const RadioStationDetailPage = () => {
         console.warn("⚠️ Now playing endpoint returned non-JSON response");
         return;
       }
-      
+
       if (response.ok) {
         const data = await response.json();
         setNowPlaying(data.now_playing);
@@ -415,10 +415,10 @@ const RadioStationDetailPage = () => {
     if (nowPlayingIntervalRef.current) {
       clearInterval(nowPlayingIntervalRef.current);
     }
-    
+
     // Initial fetch
     fetchNowPlaying();
-    
+
     // Set up interval
     nowPlayingIntervalRef.current = setInterval(() => {
       fetchNowPlaying();
@@ -431,10 +431,10 @@ const RadioStationDetailPage = () => {
       console.log("🔄 Retrying audio connection...");
       setAudioError(null);
       setConnectionStatus('connecting');
-      
+
       // Force reload the audio source
       audioRef.current.load();
-      
+
       // Try to play if it was playing before
       if (isPlaying) {
         setTimeout(() => {
@@ -448,85 +448,85 @@ const RadioStationDetailPage = () => {
 
   // ENHANCED audio element setup with better Cloudinary support
   const setupAudioElement = useCallback(() => {
-  const audioUrl = getAudioUrl();
-  if (!audioUrl) {
-    console.error("❌ No audio URL available for setup");
-    setAudioError("No audio file available for this station");
-    return null;
-  }
-
-  console.log("🎵 Setting up audio with URL:", audioUrl);
-
-  const audio = new Audio();
-  
-  // Basic audio properties
-  audio.crossOrigin = 'anonymous';
-  audio.preload = 'metadata'; // Changed from 'auto' to reduce bandwidth
-  
-  // Add event listeners with improved error handling
-  audio.addEventListener('loadstart', () => {
-    console.log("🔄 Audio loading started");
-    setConnectionStatus('connecting');
-    setAudioLoading(true);
-  });
-  
-  audio.addEventListener('canplay', () => {
-    console.log("✅ Audio can play");
-    setConnectionStatus('connected');
-    setAudioLoading(false);
-    setAudioError(null); // Clear any previous errors
-  });
-  
-  audio.addEventListener('loadeddata', () => {
-    console.log("✅ Audio data loaded");
-  });
-
-  audio.addEventListener('loadedmetadata', () => {
-    console.log("✅ Audio metadata loaded, duration:", audio.duration);
-  });
-  
-  // IMPROVED: More selective error handling
-  audio.addEventListener('error', (e) => {
-    console.error("❌ Audio error event:", e);
-    console.error("❌ Audio error object:", audio.error);
-    
-    // Only show error if audio is actually broken
-    if (audio.error && audio.readyState === 0) {
-      let errorMessage = 'Audio failed to load';
-      if (audio.error) {
-        switch (audio.error.code) {
-          case audio.error.MEDIA_ERR_ABORTED:
-            errorMessage = 'Audio loading was aborted';
-            break;
-          case audio.error.MEDIA_ERR_NETWORK:
-            errorMessage = 'Network error while loading audio';
-            break;
-          case audio.error.MEDIA_ERR_DECODE:
-            errorMessage = 'Audio format not supported';
-            break;
-          case audio.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-            errorMessage = 'Audio source not supported';
-            break;
-          default:
-            errorMessage = `Audio error (code: ${audio.error.code})`;
-        }
-      }
-      
-      // Only set error if we're sure it's broken
-      setAudioError(errorMessage);
-      setConnectionStatus('error');
-      setAudioLoading(false);
-    } else {
-      // Audio might still work despite error
-      console.warn("⚠️ Audio error reported but might still work");
+    const audioUrl = getAudioUrl();
+    if (!audioUrl) {
+      console.error("❌ No audio URL available for setup");
+      setAudioError("No audio file available for this station");
+      return null;
     }
-  });
 
-  // FIXED: Set the URL directly, no multiple sources needed
-  audio.src = audioUrl;
-  
-  return audio;
-}, [getAudioUrl]);
+    console.log("🎵 Setting up audio with URL:", audioUrl);
+
+    const audio = new Audio();
+
+    // Basic audio properties
+    audio.crossOrigin = 'anonymous';
+    audio.preload = 'metadata'; // Changed from 'auto' to reduce bandwidth
+
+    // Add event listeners with improved error handling
+    audio.addEventListener('loadstart', () => {
+      console.log("🔄 Audio loading started");
+      setConnectionStatus('connecting');
+      setAudioLoading(true);
+    });
+
+    audio.addEventListener('canplay', () => {
+      console.log("✅ Audio can play");
+      setConnectionStatus('connected');
+      setAudioLoading(false);
+      setAudioError(null); // Clear any previous errors
+    });
+
+    audio.addEventListener('loadeddata', () => {
+      console.log("✅ Audio data loaded");
+    });
+
+    audio.addEventListener('loadedmetadata', () => {
+      console.log("✅ Audio metadata loaded, duration:", audio.duration);
+    });
+
+    // IMPROVED: More selective error handling
+    audio.addEventListener('error', (e) => {
+      console.error("❌ Audio error event:", e);
+      console.error("❌ Audio error object:", audio.error);
+
+      // Only show error if audio is actually broken
+      if (audio.error && audio.readyState === 0) {
+        let errorMessage = 'Audio failed to load';
+        if (audio.error) {
+          switch (audio.error.code) {
+            case audio.error.MEDIA_ERR_ABORTED:
+              errorMessage = 'Audio loading was aborted';
+              break;
+            case audio.error.MEDIA_ERR_NETWORK:
+              errorMessage = 'Network error while loading audio';
+              break;
+            case audio.error.MEDIA_ERR_DECODE:
+              errorMessage = 'Audio format not supported';
+              break;
+            case audio.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+              errorMessage = 'Audio source not supported';
+              break;
+            default:
+              errorMessage = `Audio error (code: ${audio.error.code})`;
+          }
+        }
+
+        // Only set error if we're sure it's broken
+        setAudioError(errorMessage);
+        setConnectionStatus('error');
+        setAudioLoading(false);
+      } else {
+        // Audio might still work despite error
+        console.warn("⚠️ Audio error reported but might still work");
+      }
+    });
+
+    // FIXED: Set the URL directly, no multiple sources needed
+    audio.src = audioUrl;
+
+    return audio;
+  }, [getAudioUrl]);
 
   // Play/pause handlers with error handling
   const handlePlay = useCallback(async () => {
@@ -535,38 +535,38 @@ const RadioStationDetailPage = () => {
     try {
       setAudioLoading(true);
       setAudioError(null);
-      
+
       // Check if audio is ready
       if (audioRef.current.readyState < 2) {
         console.log("Audio not ready, loading first...");
         audioRef.current.load();
-        
+
         // Wait for canplay event
         await new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error('Audio loading timeout'));
           }, 10000);
-          
+
           audioRef.current.addEventListener('canplay', () => {
             clearTimeout(timeout);
             resolve();
           }, { once: true });
-          
+
           audioRef.current.addEventListener('error', () => {
             clearTimeout(timeout);
             reject(new Error('Audio loading failed'));
           }, { once: true });
         });
       }
-      
+
       await audioRef.current.play();
       startNowPlayingUpdates();
-      
+
     } catch (error) {
       console.error("Play failed:", error);
-      setAudioError({ 
-        message: `Playback failed: ${error.message}`, 
-        canRetry: true 
+      setAudioError({
+        message: `Playback failed: ${error.message}`,
+        canRetry: true
       });
       setAudioLoading(false);
       setConnectionStatus('error');
@@ -576,7 +576,7 @@ const RadioStationDetailPage = () => {
   const handlePauseClick = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
-      
+
       // Stop now playing updates
       if (nowPlayingIntervalRef.current) {
         clearInterval(nowPlayingIntervalRef.current);
@@ -608,7 +608,7 @@ const RadioStationDetailPage = () => {
 
       setAudioError(null);
       setAudioLoading(true);
-      
+
       // Clean up existing audio
       if (audioRef.current) {
         audioRef.current.pause();
@@ -617,7 +617,7 @@ const RadioStationDetailPage = () => {
       }
 
       console.log("🎵 Creating new audio stream:", audioUrl);
-      
+
       // Setup new audio element
       const audio = setupAudioElement();
       if (!audio) {
@@ -627,35 +627,35 @@ const RadioStationDetailPage = () => {
       }
 
       audioRef.current = audio;
-      
+
       // Load and play with better error handling
       try {
         audio.load();
-        
+
         // Wait a bit for the audio to be ready
         await new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error("Timeout loading audio"));
           }, 10000);
-          
+
           const onCanPlay = () => {
             clearTimeout(timeout);
             audio.removeEventListener('canplay', onCanPlay);
             audio.removeEventListener('error', onError);
             resolve();
           };
-          
+
           const onError = (e) => {
             clearTimeout(timeout);
             audio.removeEventListener('canplay', onCanPlay);
             audio.removeEventListener('error', onError);
             reject(new Error("Failed to load audio"));
           };
-          
+
           audio.addEventListener('canplay', onCanPlay);
           audio.addEventListener('error', onError);
         });
-        
+
         await audio.play();
         console.log("▶️ Successfully started playing:", station.name);
       } catch (playError) {
@@ -664,7 +664,7 @@ const RadioStationDetailPage = () => {
         setAudioLoading(false);
         setConnectionStatus('error');
       }
-      
+
     } catch (error) {
       console.error("❌ Audio control error:", error);
       setAudioError(`Audio error: ${error.message}`);
@@ -722,37 +722,37 @@ const RadioStationDetailPage = () => {
   // FIXED Logo Rendering
   const renderStationLogo = () => {
     console.log("🖼️ Rendering logo, URL:", station?.logo_url);
-    
+
     if (!station?.logo_url) {
-        return (
-            <div className="station-logo-placeholder">
-                <span style={{ fontSize: '2rem' }}>📻</span>
-                <p style={{ margin: '5px 0', fontSize: '12px' }}>No Logo</p>
-            </div>
-        );
+      return (
+        <div className="station-logo-placeholder">
+          <span style={{ fontSize: '2rem' }}>📻</span>
+          <p style={{ margin: '5px 0', fontSize: '12px' }}>No Logo</p>
+        </div>
+      );
     }
 
     return (
-        <div className="station-logo-container">
-            <img 
-                src={station.logo_url} 
-                alt={`${station.name} logo`}
-                className="station-logo"
-                onLoad={() => {
-                    console.log("✅ Logo loaded successfully:", station.logo_url);
-                }}
-                onError={(e) => {
-                    console.error("❌ Logo failed to load:", station.logo_url);
-                    e.target.style.display = 'none';
-                    e.target.parentElement.innerHTML = `
+      <div className="station-logo-container">
+        <img
+          src={station.logo_url}
+          alt={`${station.name} logo`}
+          className="station-logo"
+          onLoad={() => {
+            console.log("✅ Logo loaded successfully:", station.logo_url);
+          }}
+          onError={(e) => {
+            console.error("❌ Logo failed to load:", station.logo_url);
+            e.target.style.display = 'none';
+            e.target.parentElement.innerHTML = `
                         <div class="station-logo-placeholder">
                             <span style="font-size: 2rem">📻</span>
                             <p style="margin: 5px 0; font-size: 12px">Logo Error</p>
                         </div>
                     `;
-                }}
-            />
-        </div>
+          }}
+        />
+      </div>
     );
   };
 
@@ -774,38 +774,38 @@ const RadioStationDetailPage = () => {
   const renderPlayButton = () => {
     const audioUrl = getAudioUrl();
     const isDisabled = !audioUrl || audioLoading;
-    
+
     let buttonText = '▶️ Play';
     let buttonClass = 'play-button';
-    
+
     if (audioLoading) {
-        buttonText = '⏳ Loading...';
-        buttonClass += ' loading';
+      buttonText = '⏳ Loading...';
+      buttonClass += ' loading';
     } else if (isPlaying) {
-        buttonText = '⏸️ Pause';
-        buttonClass += ' playing';
+      buttonText = '⏸️ Pause';
+      buttonClass += ' playing';
     }
 
     if (isDisabled) {
-        buttonClass += ' disabled';
+      buttonClass += ' disabled';
     }
 
     return (
-        <div className="play-button-container">
-            <button 
-                onClick={handlePlayPause} 
-                className={buttonClass}
-                disabled={isDisabled}
-                title={!audioUrl ? 'No audio available' : isPlaying ? 'Pause' : 'Play'}
-            >
-                {buttonText}
-            </button>
-            {!audioUrl && (
-                <p className="no-audio-message">
-                    ⚠️ No audio file available
-                </p>
-            )}
-        </div>
+      <div className="play-button-container">
+        <button
+          onClick={handlePlayPause}
+          className={buttonClass}
+          disabled={isDisabled}
+          title={!audioUrl ? 'No audio available' : isPlaying ? 'Pause' : 'Play'}
+        >
+          {buttonText}
+        </button>
+        {!audioUrl && (
+          <p className="no-audio-message">
+            ⚠️ No audio file available
+          </p>
+        )}
+      </div>
     );
   };
 
@@ -851,48 +851,48 @@ const RadioStationDetailPage = () => {
   // DEBUG Component (for development)
   const renderDebugInfo = () => {
     if (process.env.NODE_ENV !== 'development') return null;
-    
+
     const audioUrl = getAudioUrl();
-    
+
     return (
-        <div style={{ 
-            background: '#f8f9fa', 
-            border: '1px solid #dee2e6', 
-            padding: '15px', 
-            margin: '15px 0',
-            borderRadius: '8px',
-            fontSize: '14px'
-        }}>
-            <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>🐛 Debug Info</h4>
-            <p><strong>Station ID:</strong> {station?.id}</p>
-            <p><strong>Station Name:</strong> {station?.name}</p>
-            <p><strong>Logo URL:</strong> {station?.logo_url || 'None'}</p>
-            <p><strong>Audio URL:</strong> {audioUrl || 'None'}</p>
-            <p><strong>Is Live:</strong> {station?.is_live ? 'Yes' : 'No'}</p>
-            <p><strong>Loop Enabled:</strong> {station?.is_loop_enabled ? 'Yes' : 'No'}</p>
-            <p><strong>Connection Status:</strong> {connectionStatus}</p>
-            {audioError && <p style={{color: 'red'}}><strong>Audio Error:</strong> {audioError}</p>}
-            
-            <button 
-                onClick={() => {
-                    console.log("🔍 Full Station Object:", station);
-                    if (audioUrl) {
-                        window.open(audioUrl, '_blank');
-                    }
-                }}
-                style={{
-                    marginTop: '10px',
-                    padding: '5px 10px',
-                    background: '#007bff',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                }}
-            >
-                Test Audio URL
-            </button>
-        </div>
+      <div style={{
+        background: '#f8f9fa',
+        border: '1px solid #dee2e6',
+        padding: '15px',
+        margin: '15px 0',
+        borderRadius: '8px',
+        fontSize: '14px'
+      }}>
+        <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>🐛 Debug Info</h4>
+        <p><strong>Station ID:</strong> {station?.id}</p>
+        <p><strong>Station Name:</strong> {station?.name}</p>
+        <p><strong>Logo URL:</strong> {station?.logo_url || 'None'}</p>
+        <p><strong>Audio URL:</strong> {audioUrl || 'None'}</p>
+        <p><strong>Is Live:</strong> {station?.is_live ? 'Yes' : 'No'}</p>
+        <p><strong>Loop Enabled:</strong> {station?.is_loop_enabled ? 'Yes' : 'No'}</p>
+        <p><strong>Connection Status:</strong> {connectionStatus}</p>
+        {audioError && <p style={{ color: 'red' }}><strong>Audio Error:</strong> {audioError}</p>}
+
+        <button
+          onClick={() => {
+            console.log("🔍 Full Station Object:", station);
+            if (audioUrl) {
+              window.open(audioUrl, '_blank');
+            }
+          }}
+          style={{
+            marginTop: '10px',
+            padding: '5px 10px',
+            background: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Test Audio URL
+        </button>
+      </div>
     );
   };
 
@@ -933,9 +933,9 @@ const RadioStationDetailPage = () => {
       <div className="station-detail-content">
         <div className="station-info">
           <div className="station-image-container">
-            <img 
-              src={station.image || station.cover_image_url || station.logo_url} 
-              alt={station.name} 
+            <img
+              src={station.image || station.cover_image_url || station.logo_url}
+              alt={station.name}
               className="station-detail-image"
               onError={(e) => {
                 e.target.src = LofiDreamsImg; // Fallback image
@@ -944,12 +944,12 @@ const RadioStationDetailPage = () => {
             {/* Render station logo separately */}
             {renderStationLogo()}
           </div>
-          
+
           <div className="station-meta">
             <h1 className="station-name">{station.name}</h1>
             <p className="station-genre">{station.genre || (station.genres && station.genres[0])}</p>
             <p className="station-description">{station.description}</p>
-            
+
             <div className="station-stats">
               {station.listeners && (
                 <span className="stat">
@@ -985,24 +985,24 @@ const RadioStationDetailPage = () => {
                 {isOwner ? (
                   // Owner Controls
                   <div className="owner-controls">
-                    <Link 
-                      to={`/live-show/${id}?mode=radio`} 
+                    <Link
+                      to={`/live-show/${id}?mode=radio`}
                       className="btn btn-danger btn-lg broadcast-btn"
                     >
                       <span className="icon">🎙️</span>
                       <span className="text">Start Broadcasting</span>
                       <small className="subtext">Go live as DJ</small>
                     </Link>
-                    
-                    <Link 
-                      to={`/radio/${id}/schedule`} 
+
+                    <Link
+                      to={`/radio/${id}/schedule`}
                       className="btn btn-primary schedule-btn"
                     >
                       📅 Manage Schedule
                     </Link>
-                    
-                    <Link 
-                      to={`/radio/${id}/edit`} 
+
+                    <Link
+                      to={`/radio/${id}/edit`}
                       className="btn btn-secondary edit-btn"
                     >
                       ⚙️ Edit Station
@@ -1011,8 +1011,8 @@ const RadioStationDetailPage = () => {
                 ) : (
                   // Listener Controls
                   <div className="listener-controls">
-                    <Link 
-                      to={`/live-show/${id}?mode=radio`} 
+                    <Link
+                      to={`/live-show/${id}?mode=radio`}
                       className="btn btn-success btn-lg listen-btn"
                     >
                       <span className="icon">🎧</span>
@@ -1026,7 +1026,7 @@ const RadioStationDetailPage = () => {
 
             {/* Audio Player */}
             <div className="audio-player">
-              {station.stream_url && <audio 
+              {station.stream_url && <audio
                 ref={audioRef}
                 preload="none"
                 crossOrigin="anonymous"
@@ -1047,14 +1047,14 @@ const RadioStationDetailPage = () => {
                         🔄 Retry
                       </button>
                     )}
-                    <button 
-                      onClick={dismissAudioError} 
+                    <button
+                      onClick={dismissAudioError}
                       className="dismiss-error"
                     >
                       ✕
                     </button>
                   </div>
-                  
+
                   {audioError.canRetry && (
                     <div className="troubleshooting">
                       <h4>Troubleshooting:</h4>
@@ -1123,7 +1123,7 @@ const RadioStationDetailPage = () => {
 
             <div className="station-controls">
               {renderPlayButton()}
-              
+
               <button className="favorite-button">
                 ❤️ Add to Favorites
               </button>
@@ -1143,12 +1143,12 @@ const RadioStationDetailPage = () => {
                 {station.is_live ? '🔴 Live' : '⚫ Offline'}
               </span>
             </div>
-            
+
             <div className="stat">
               <span className="label">Genre:</span>
               <span className="value">{station.genre || 'General'}</span>
             </div>
-            
+
             <div className="stat">
               <span className="label">Listeners:</span>
               <span className="value">{station.listener_count || station.listeners || 0}</span>
