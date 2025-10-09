@@ -16681,3 +16681,18 @@ def get_liked_tracks():
             tracks.append(track.serialize())
     
     return jsonify(tracks), 200
+
+@api.route('/public-health', methods=['GET', 'OPTIONS'])
+def public_health_check():
+    """Public health check endpoint - no authentication required"""
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        return response, 200
+    
+    return jsonify({
+        "status": "healthy",
+        "message": "Backend server is running",
+        "timestamp": datetime.utcnow().isoformat()
+    }), 200
