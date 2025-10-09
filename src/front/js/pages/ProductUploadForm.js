@@ -7,7 +7,7 @@ const ProductUploadForm = ({ onUpload, editMode = false }) => {
     const [loading, setLoading] = useState(false);
     const [imagePreview, setImagePreview] = useState(null);
     const [existingProduct, setExistingProduct] = useState(null);
-    
+
     const [formData, setFormData] = useState({
         title: "",
         description: "",
@@ -35,7 +35,7 @@ const ProductUploadForm = ({ onUpload, editMode = false }) => {
     const fetchProductForEdit = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${process.env.BACKEND_URL}/api/products/${productId}`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products/${productId}`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${localStorage.getItem("token")}`
@@ -142,7 +142,7 @@ const ProductUploadForm = ({ onUpload, editMode = false }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!validateForm()) {
             return;
         }
@@ -171,10 +171,10 @@ const ProductUploadForm = ({ onUpload, editMode = false }) => {
                 submitData.append("file", files.productFile);
             }
 
-            const url = editMode 
-                ? `${process.env.BACKEND_URL}/api/products/${productId}`
-                : `${process.env.BACKEND_URL}/api/storefront/add-product`;
-            
+            const url = editMode
+                ? `${process.env.REACT_APP_BACKEND_URL}/api/products/${productId}`
+                : `${process.env.REACT_APP_BACKEND_URL}/api/storefront/add-product`;
+
             const method = editMode ? "PUT" : "POST";
 
             const response = await fetch(url, {
@@ -187,13 +187,13 @@ const ProductUploadForm = ({ onUpload, editMode = false }) => {
 
             if (response.ok) {
                 const data = await response.json();
-                
+
                 if (editMode) {
                     alert("Product updated successfully!");
                     navigate("/storefront");
                 } else {
                     alert("Product added successfully!");
-                    
+
                     // Reset form
                     setFormData({
                         title: "",
@@ -207,7 +207,7 @@ const ProductUploadForm = ({ onUpload, editMode = false }) => {
                     });
                     setFiles({ image: null, productFile: null });
                     setImagePreview(null);
-                    
+
                     // Call callback if provided
                     if (onUpload) {
                         onUpload(data);
@@ -369,7 +369,7 @@ const ProductUploadForm = ({ onUpload, editMode = false }) => {
                                             {errors.price && <div className="invalid-feedback">{errors.price}</div>}
                                         </div>
                                     </div>
-                                    
+
                                     {!formData.isDigital && (
                                         <div className="col-md-6">
                                             <label htmlFor="stock" className="form-label fw-bold">Stock Quantity *</label>
@@ -418,7 +418,7 @@ const ProductUploadForm = ({ onUpload, editMode = false }) => {
                                         />
                                         {errors.image && <div className="invalid-feedback">{errors.image}</div>}
                                         <div className="form-text">JPG, PNG, or GIF (max 10MB)</div>
-                                        
+
                                         {/* Image Preview */}
                                         {imagePreview && (
                                             <div className="mt-2">
@@ -448,7 +448,7 @@ const ProductUploadForm = ({ onUpload, editMode = false }) => {
                                             <div className="form-text">
                                                 {existingProduct?.file_url ? "Upload new file to replace existing" : "Any file type (max 10MB)"}
                                             </div>
-                                            
+
                                             {existingProduct?.file_url && !files.productFile && (
                                                 <div className="mt-2">
                                                     <small className="text-success">✅ Current file uploaded</small>

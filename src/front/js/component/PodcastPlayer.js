@@ -5,7 +5,7 @@ const PodcastPlayer = ({ podcast }) => {
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
 
   useEffect(() => {
-    fetch(`${process.env.BACKEND_URL}/podcasts/${podcast.id}/chapters`)
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/podcasts/${podcast.id}/chapters`)
       .then(res => res.json())
       .then(data => setChapters(data))
       .catch(err => console.error("Error fetching chapters:", err));
@@ -16,7 +16,7 @@ const PodcastPlayer = ({ podcast }) => {
   };
 
   const addChapter = async () => {
-    const response = await fetch(`${process.env.BACKEND_URL}/podcasts/${podcast.id}/chapters`, {
+    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/podcasts/${podcast.id}/chapters`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${localStorage.getItem("token")}`,

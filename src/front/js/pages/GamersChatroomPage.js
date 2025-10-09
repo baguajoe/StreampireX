@@ -4,7 +4,7 @@ import ChatBubble from "../component/ChatBubble";
 import io from "socket.io-client";
 import "../../styles/GamersChatroom.css";
 
-const socket = io(process.env.BACKEND_URL || "http://localhost:3001", {
+const socket = io(process.env.REACT_APP_BACKEND_URL || "http://localhost:3001", {
   transports: ["websocket"],
   auth: { token: localStorage.getItem("token") },
   withCredentials: true,
@@ -20,13 +20,13 @@ const GamersChatroomPage = () => {
   const [userTyping, setUserTyping] = useState([]);
   const [showEmojis, setShowEmojis] = useState(false);
   const [gameStatus, setGameStatus] = useState("");
-  
+
   const chatRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
   // Gaming-specific emoji reactions
   const gamingEmojis = ["🎮", "🏆", "⚡", "🔥", "💯", "👍", "👎", "😎", "😤", "💀", "🎯", "⭐"];
-  
+
   // Different chat rooms for different gaming topics
   const chatRooms = [
     { id: "general", name: "🎮 General Gaming", icon: "🎮" },
@@ -41,7 +41,7 @@ const GamersChatroomPage = () => {
     // Connect to initial room
     socket.on("connect", () => {
       console.log(`🟢 Connected to gamers-${selectedRoom}`);
-      socket.emit("joinRoom", { 
+      socket.emit("joinRoom", {
         stream_id: `gamers-${selectedRoom}`,
         user_info: {
           id: store.user?.id,
@@ -76,7 +76,7 @@ const GamersChatroomPage = () => {
         }
         return prev;
       });
-      
+
       // Clear typing after 3 seconds
       setTimeout(() => {
         setUserTyping(prev => prev.filter(user => user !== data.username));
@@ -107,13 +107,13 @@ const GamersChatroomPage = () => {
   const switchRoom = (roomId) => {
     // Leave current room
     socket.emit("leaveRoom", { stream_id: `gamers-${selectedRoom}` });
-    
+
     // Clear messages for new room
     setMessages([]);
-    
+
     // Join new room
     setSelectedRoom(roomId);
-    socket.emit("joinRoom", { 
+    socket.emit("joinRoom", {
       stream_id: `gamers-${roomId}`,
       user_info: {
         id: store.user?.id,
@@ -126,7 +126,7 @@ const GamersChatroomPage = () => {
 
   // Handle typing indicators
   const handleTyping = () => {
-    socket.emit("typing", { 
+    socket.emit("typing", {
       stream_id: `gamers-${selectedRoom}`,
       username: store.user?.username || store.user?.gamertag
     });
@@ -276,14 +276,14 @@ const GamersChatroomPage = () => {
                 gamerRank={msg.user_info?.gamer_rank}
               />
             ))}
-            
+
             {/* Typing Indicators */}
             {userTyping.length > 0 && (
               <div className="typing-indicator">
                 <span>{userTyping.join(", ")} {userTyping.length === 1 ? 'is' : 'are'} typing...</span>
               </div>
             )}
-            
+
             <div ref={chatRef} />
           </div>
 
@@ -314,15 +314,15 @@ const GamersChatroomPage = () => {
                 ))}
               </div>
             )}
-            
+
             <div className="input-group">
-              <button 
+              <button
                 className="emoji-toggle-btn"
                 onClick={() => setShowEmojis(!showEmojis)}
               >
                 😎
               </button>
-              
+
               <input
                 type="text"
                 className="message-input"
@@ -335,12 +335,12 @@ const GamersChatroomPage = () => {
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 maxLength={500}
               />
-              
+
               <button className="send-btn" onClick={handleSend}>
                 🚀 Send
               </button>
             </div>
-            
+
             <div className="input-footer">
               <span className="char-count">{newMessage.length}/500</span>
             </div>

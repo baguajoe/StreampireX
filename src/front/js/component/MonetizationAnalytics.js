@@ -4,7 +4,7 @@ const MonetizationAnalytics = ({ podcastId }) => {
     const [earnings, setEarnings] = useState(null);
 
     useEffect(() => {
-      fetch(`${process.env.BACKEND_URL}/api/earnings/${podcastId}`)
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/earnings/${podcastId}`)
             .then(res => res.json())
             .then(data => setEarnings(data))
             .catch(err => console.error("Error fetching earnings data:", err));

@@ -65,7 +65,7 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
 
         const backendUrl =
           process.env.REACT_APP_BACKEND_URL ||
-          process.env.BACKEND_URL ||
+          process.env.REACT_APP_BACKEND_URL ||
           "http://localhost:3001";
 
         // Updated API endpoints based on project knowledge
@@ -195,8 +195,8 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
               <button
                 onClick={handleLike}
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all ${liked
-                    ? 'bg-red-600 hover:bg-red-700'
-                    : 'bg-gray-700 hover:bg-gray-600'
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-gray-700 hover:bg-gray-600'
                   }`}
               >
                 <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
@@ -284,7 +284,7 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
                             <video
                               controls
                               className="w-full"
-                
+
                             >
                               <source src={episode.file_url} type="video/mp4" />
                               <source src={episode.file_url} type="video/quicktime" />

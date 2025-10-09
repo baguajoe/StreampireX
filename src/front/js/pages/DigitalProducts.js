@@ -4,7 +4,7 @@ const DigitalProducts = () => {
     const [products, setProducts] = useState([]);
 
     useEffect(() => {
-        fetch(`${process.env.BACKEND_URL}/digital-products`)
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/digital-products`)
             .then(res => res.json())
             .then(setProducts)
             .catch(err => console.error("Failed to load products:", err));
@@ -12,7 +12,7 @@ const DigitalProducts = () => {
 
     const download = async (id) => {
         const token = localStorage.getItem("token");
-        const res = await fetch(`${process.env.BACKEND_URL}/download/${id}`, {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/download/${id}`, {
             headers: { Authorization: "Bearer " + token }
         });
 

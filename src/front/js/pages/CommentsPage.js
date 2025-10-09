@@ -5,14 +5,14 @@ const CommentsPage = ({ contentId, contentType }) => {
   const [newComment, setNewComment] = useState("");
 
   useEffect(() => {
-    fetch(`${process.env.BACKEND_URL}/api/comments/${contentType}/${contentId}`)
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/comments/${contentType}/${contentId}`)
       .then((res) => res.json())
       .then((data) => setComments(data))
       .catch((err) => console.error("Error fetching comments:", err));
   }, [contentId, contentType]);
 
   const postComment = () => {
-    fetch(`${process.env.BACKEND_URL}/api/comments`, {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/comments`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

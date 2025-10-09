@@ -24,7 +24,7 @@ const ProductUploadForm = ({ onUpload }) => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     setImageFile(file);
-    
+
     // Create preview
     if (file) {
       const reader = new FileReader();
@@ -74,27 +74,27 @@ const ProductUploadForm = ({ onUpload }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
-    
+
     const data = new FormData();
     data.append("title", formData.title);
     data.append("description", formData.description);
     data.append("price", parseFloat(formData.price));
     data.append("is_digital", formData.is_digital);
-    
+
     // Add stock for physical products
     if (!formData.is_digital) {
       data.append("stock", parseInt(formData.stock));
     }
-    
+
     // Add image if provided
     if (imageFile) {
       data.append("image", imageFile);
     }
-    
+
     // Add digital file if provided
     if (digitalFile && formData.is_digital) {
       data.append("file", digitalFile);
@@ -102,7 +102,7 @@ const ProductUploadForm = ({ onUpload }) => {
 
     try {
       // Updated API endpoint to match backend
-      const res = await fetch(`${process.env.BACKEND_URL}/api/storefront/add-product`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/storefront/add-product`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -111,7 +111,7 @@ const ProductUploadForm = ({ onUpload }) => {
       });
 
       const result = await res.json();
-      
+
       if (res.ok) {
         alert("✅ Product uploaded successfully!");
         resetForm();
@@ -196,7 +196,7 @@ const ProductUploadForm = ({ onUpload }) => {
             </label>
           </div>
           <small className="form-text text-muted">
-            {formData.is_digital 
+            {formData.is_digital
               ? "Customers will download this product after purchase"
               : "This product will be shipped to customers"
             }
@@ -234,7 +234,7 @@ const ProductUploadForm = ({ onUpload }) => {
           <small className="form-text text-muted">
             Upload an image to showcase your product (JPG, PNG, GIF)
           </small>
-          
+
           {/* Image Preview */}
           {previewImage && (
             <div className="image-preview">
@@ -270,8 +270,8 @@ const ProductUploadForm = ({ onUpload }) => {
 
         {/* Submit Button */}
         <div className="form-actions">
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
             className="btn btn-primary btn-upload"
           >
@@ -284,10 +284,10 @@ const ProductUploadForm = ({ onUpload }) => {
               <>🚀 Upload Product</>
             )}
           </button>
-          
+
           {(formData.title || formData.description || formData.price) && (
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={resetForm}
               className="btn btn-secondary"
               disabled={loading}

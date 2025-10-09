@@ -11,7 +11,7 @@ const LiveStreams = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${process.env.BACKEND_URL}/api/live-streams`)
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/live-streams`)
       .then((res) => {
         if (!res.ok) {
           throw new Error(`Server responded with status: ${res.status}`);

@@ -2,7 +2,7 @@ import React from "react";
 
 const PodcastActions = ({ podcast }) => {
   const likeContent = (contentId, type) => {
-    fetch(process.env.BACKEND_URL + "/api/like", {
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/like", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -16,7 +16,7 @@ const PodcastActions = ({ podcast }) => {
   };
 
   const addToFavorites = (contentId, type) => {
-    fetch(process.env.BACKEND_URL + "/api/favorite", {
+    fetch(process.env.REACT_APP_BACKEND_URL + "/api/favorite", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

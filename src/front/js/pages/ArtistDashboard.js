@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import '../../styles/ArtistDashboard.css';
-import { 
-  FaDollarSign, 
-  FaUserFriends, 
-  FaMusic, 
-  FaHeart, 
-  FaBroadcastTower, 
-  FaUpload, 
-  FaGuitar, 
+import {
+  FaDollarSign,
+  FaUserFriends,
+  FaMusic,
+  FaHeart,
+  FaBroadcastTower,
+  FaUpload,
+  FaGuitar,
   FaPlayCircle,
   FaHeadphones,
   FaChartLine,
@@ -82,9 +82,9 @@ const ArtistDashboard = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      
+
       // Fetch user profile
-      const profileRes = await fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+      const profileRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (profileRes.ok) {
@@ -93,7 +93,7 @@ const ArtistDashboard = () => {
       }
 
       // Fetch tracks
-      const tracksRes = await fetch(`${process.env.BACKEND_URL}/api/artist/tracks`, {
+      const tracksRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/tracks`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (tracksRes.ok) {
@@ -102,7 +102,7 @@ const ArtistDashboard = () => {
       }
 
       // Fetch analytics
-      const analyticsRes = await fetch(`${process.env.BACKEND_URL}/api/artist/analytics`, {
+      const analyticsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/analytics`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (analyticsRes.ok) {
@@ -119,7 +119,7 @@ const ArtistDashboard = () => {
 
   const fetchGenres = async () => {
     try {
-      const res = await fetch(`${process.env.BACKEND_URL}/api/categories`);
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/categories`);
       if (res.ok) {
         const data = await res.json();
         setGenres(data);
@@ -143,7 +143,7 @@ const ArtistDashboard = () => {
     formData.append("explicit", explicit);
 
     try {
-      const res = await fetch(`${process.env.BACKEND_URL}/api/upload-track`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload-track`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`
@@ -220,28 +220,28 @@ const ArtistDashboard = () => {
       <div className="quick-actions-section">
         <h3>Quick Actions</h3>
         <div className="actions-grid">
-          <button 
-            className="action-card upload" 
+          <button
+            className="action-card upload"
             onClick={() => setActiveTab('upload')}
           >
             <FaUpload />
             <span>Upload Track</span>
           </button>
-          
-          <button 
-            className="action-card studio" 
+
+          <button
+            className="action-card studio"
             onClick={() => setStudioOpen(true)}
           >
             <FaBroadcastTower />
             <span>Live Studio</span>
           </button>
-          
+
           <Link to="/upload-music" className="action-card distribute">
             <FaGuitar />
             <span>Music Distribution</span>
           </Link>
-          
-          <button 
+
+          <button
             className="action-card album"
             onClick={() => setShowAlbumCreator(true)}
           >
@@ -290,7 +290,7 @@ const ArtistDashboard = () => {
     <div className="tracks-content">
       <div className="tracks-header">
         <h3><FaMusic /> My Tracks ({tracks.length})</h3>
-        <button 
+        <button
           className="btn-primary"
           onClick={() => setActiveTab('upload')}
         >
@@ -303,7 +303,7 @@ const ArtistDashboard = () => {
           <FaMusic className="empty-icon" />
           <h4>No tracks uploaded yet</h4>
           <p>Start your musical journey by uploading your first track!</p>
-          <button 
+          <button
             className="btn-primary"
             onClick={() => setActiveTab('upload')}
           >
@@ -315,8 +315,8 @@ const ArtistDashboard = () => {
           {tracks.map((track, index) => (
             <div key={track.id || index} className="track-card">
               <div className="track-artwork">
-                <img 
-                  src={track.artwork || '/default-track-artwork.png'} 
+                <img
+                  src={track.artwork || '/default-track-artwork.png'}
                   alt={track.title}
                 />
                 <div className="track-overlay">
@@ -325,7 +325,7 @@ const ArtistDashboard = () => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="track-info">
                 <h4>{track.title}</h4>
                 <p className="track-genre">{track.genre}</p>
@@ -334,22 +334,22 @@ const ArtistDashboard = () => {
                   <span><FaHeart /> {track.likes || 0} likes</span>
                 </div>
               </div>
-              
+
               <div className="track-actions">
-                <button 
+                <button
                   className="btn-icon"
                   onClick={() => setTrackBeingEdited(track)}
                   title="Edit"
                 >
                   <FaEdit />
                 </button>
-                <button 
+                <button
                   className="btn-icon"
                   title="Analytics"
                 >
                   <FaChartLine />
                 </button>
-                <button 
+                <button
                   className="btn-icon danger"
                   title="Delete"
                 >
@@ -459,14 +459,14 @@ const ArtistDashboard = () => {
   const renderAnalytics = () => (
     <div className="analytics-content">
       <h3><FaChartLine /> Analytics & Insights</h3>
-      
+
       <div className="analytics-grid">
         <div className="analytics-card">
           <h4>Monthly Listeners</h4>
           <div className="metric-value">{analytics.monthlyListeners || 0}</div>
           <div className="metric-change positive">+23% from last month</div>
         </div>
-        
+
         <div className="analytics-card">
           <h4>Top Track</h4>
           <div className="metric-value">
@@ -474,7 +474,7 @@ const ArtistDashboard = () => {
           </div>
           <div className="metric-change">{tracks.length > 0 ? '1,234 plays' : ''}</div>
         </div>
-        
+
         <div className="analytics-card">
           <h4>Revenue This Month</h4>
           <div className="metric-value">${analytics.monthlyRevenue || '0.00'}</div>
@@ -509,8 +509,8 @@ const ArtistDashboard = () => {
       <div className="dashboard-header">
         <div className="header-content">
           <div className="artist-info">
-            <img 
-              src={user.profile_picture || '/default-artist-avatar.png'} 
+            <img
+              src={user.profile_picture || '/default-artist-avatar.png'}
               alt="Artist Avatar"
               className="artist-avatar"
             />
@@ -519,7 +519,7 @@ const ArtistDashboard = () => {
               <p className="artist-status">Independent Artist • {tracks.length} tracks</p>
             </div>
           </div>
-          
+
           <div className="header-actions">
             <Link to="/profile/artist" className="btn-secondary">
               <FaEye /> View Profile

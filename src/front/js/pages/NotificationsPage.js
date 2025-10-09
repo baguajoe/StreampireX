@@ -4,7 +4,7 @@ const NotificationsPage = () => {
     const [notifications, setNotifications] = useState([]);
 
     useEffect(() => {
-        fetch(`${process.env.BACKEND_URL}/api/notifications`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/notifications`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         })
             .then((res) => res.json())
@@ -13,7 +13,7 @@ const NotificationsPage = () => {
     }, []);
 
     const markAllAsRead = () => {
-        fetch(`${process.env.BACKEND_URL}/api/notifications/read`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/notifications/read`, {
             method: "POST",
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         })

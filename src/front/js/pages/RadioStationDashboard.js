@@ -154,10 +154,10 @@ const RadioStationDashboard = () => {
       setLoading(true);
 
       const [stationsRes, tracksRes] = await Promise.all([
-        fetch(`${process.env.BACKEND_URL}/api/user/radio-stations`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/radio-stations`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }),
-        fetch(`${process.env.BACKEND_URL}/api/user/uploaded-tracks`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/uploaded-tracks`, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         })
       ]);
@@ -183,9 +183,9 @@ const RadioStationDashboard = () => {
       setSelectedStation(stationId);
 
       const [tracksRes, analyticsRes, stationRes] = await Promise.all([
-        fetch(`${process.env.BACKEND_URL}/api/radio/station/${stationId}/tracks`),
-        fetch(`${process.env.BACKEND_URL}/api/radio/station/${stationId}/analytics`),
-        fetch(`${process.env.BACKEND_URL}/api/radio/station/${stationId}`)
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/station/${stationId}/tracks`),
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/station/${stationId}/analytics`),
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/station/${stationId}`)
       ]);
 
       if (tracksRes.ok) {
@@ -216,7 +216,7 @@ const RadioStationDashboard = () => {
     }
 
     try {
-      const response = await fetch(`${process.env.BACKEND_URL}/api/radio/station/${selectedStation}/add-track`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/station/${selectedStation}/add-track`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -258,7 +258,7 @@ const RadioStationDashboard = () => {
 
     try {
       // Upload to station's loop endpoint (should use Cloudinary)
-      const res = await fetch(`${process.env.BACKEND_URL}/api/radio/station/${selectedStation}/upload-loop`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/station/${selectedStation}/upload-loop`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`

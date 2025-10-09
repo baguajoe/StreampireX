@@ -4,7 +4,7 @@ const ScheduleEpisodeForm = ({ episodeId, podcastId }) => {
     const [releaseTime, setReleaseTime] = useState("");
 
     const handleSchedule = async () => {
-        const res = await fetch(`${process.env.BACKEND_URL}/api/podcast/${podcastId}/episode/schedule`, {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast/${podcastId}/episode/schedule`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

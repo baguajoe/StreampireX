@@ -4,7 +4,7 @@ const EditTrackForm = ({ trackId }) => {
   const [track, setTrack] = useState(null);
 
   useEffect(() => {
-    fetch(`${process.env.BACKEND_URL}/api/track/${trackId}`, {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/track/${trackId}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
     })
       .then(res => res.json())
@@ -16,7 +16,7 @@ const EditTrackForm = ({ trackId }) => {
   };
 
   const handleSubmit = async () => {
-    const res = await fetch(`${process.env.BACKEND_URL}/api/track/${trackId}/edit`, {
+    const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/track/${trackId}/edit`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -39,7 +39,7 @@ const EditTrackForm = ({ trackId }) => {
       <textarea name="description" value={track.description} onChange={handleChange} placeholder="Description" />
       <label>
         Explicit:
-        <input type="checkbox" name="is_explicit" checked={track.is_explicit} onChange={e => setTrack({...track, is_explicit: e.target.checked})} />
+        <input type="checkbox" name="is_explicit" checked={track.is_explicit} onChange={e => setTrack({ ...track, is_explicit: e.target.checked })} />
       </label>
       <button onClick={handleSubmit}>💾 Save Changes</button>
     </div>

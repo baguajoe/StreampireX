@@ -16,7 +16,7 @@ const ProductDetailPage = () => {
 
     const fetchProduct = async () => {
         try {
-            const response = await fetch(`${process.env.BACKEND_URL}/api/products/${id}`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products/${id}`, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${localStorage.getItem("token")}`
@@ -39,7 +39,7 @@ const ProductDetailPage = () => {
 
     const handlePurchase = async () => {
         try {
-            const response = await fetch(`${process.env.BACKEND_URL}/api/products/buy/${id}`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products/buy/${id}`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -51,12 +51,12 @@ const ProductDetailPage = () => {
             if (response.ok) {
                 const data = await response.json();
                 alert(data.message);
-                
+
                 // If digital product, show download link
                 if (data.download_link) {
                     window.open(data.download_link, '_blank');
                 }
-                
+
                 // Navigate to orders page
                 navigate("/orders");
             } else {
@@ -71,7 +71,7 @@ const ProductDetailPage = () => {
 
     const handleStripeCheckout = async () => {
         try {
-            const response = await fetch(`${process.env.BACKEND_URL}/api/marketplace/checkout`, {
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/checkout`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -153,8 +153,8 @@ const ProductDetailPage = () => {
                 {/* Product Image */}
                 <div className="col-md-6">
                     <div className="card">
-                        <img 
-                            src={product.image_url || "/default-product.jpg"} 
+                        <img
+                            src={product.image_url || "/default-product.jpg"}
                             alt={product.title}
                             className="card-img-top"
                             style={{ height: "400px", objectFit: "cover" }}
@@ -167,7 +167,7 @@ const ProductDetailPage = () => {
                     <div className="card">
                         <div className="card-body">
                             <h1 className="card-title">{product.title}</h1>
-                            
+
                             <div className="mb-3">
                                 <span className="badge bg-primary me-2">
                                     {product.is_digital ? "📥 Digital Product" : "📦 Physical Product"}
@@ -191,21 +191,21 @@ const ProductDetailPage = () => {
                                 <div className="mb-3">
                                     <label htmlFor="quantity" className="form-label">Quantity:</label>
                                     <div className="input-group" style={{ maxWidth: "150px" }}>
-                                        <button 
+                                        <button
                                             className="btn btn-outline-secondary"
                                             onClick={() => setQuantity(Math.max(1, quantity - 1))}
                                         >
                                             -
                                         </button>
-                                        <input 
-                                            type="number" 
+                                        <input
+                                            type="number"
                                             className="form-control text-center"
                                             value={quantity}
                                             onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                                             min="1"
                                             max={product.stock}
                                         />
-                                        <button 
+                                        <button
                                             className="btn btn-outline-secondary"
                                             onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
                                         >
@@ -217,7 +217,7 @@ const ProductDetailPage = () => {
 
                             {/* Purchase Buttons */}
                             <div className="d-grid gap-2">
-                                <button 
+                                <button
                                     className="btn btn-success btn-lg"
                                     onClick={handlePurchase}
                                     disabled={!product.is_digital && product.stock < quantity}
@@ -226,7 +226,7 @@ const ProductDetailPage = () => {
                                     <span className="ms-2">${(product.price * quantity).toFixed(2)}</span>
                                 </button>
 
-                                <button 
+                                <button
                                     className="btn btn-primary btn-lg"
                                     onClick={handleStripeCheckout}
                                     disabled={!product.is_digital && product.stock < quantity}

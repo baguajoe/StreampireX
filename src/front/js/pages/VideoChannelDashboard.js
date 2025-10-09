@@ -60,7 +60,7 @@ const VideoChannelDashboard = () => {
   const fetchChannelData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/channel/me`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -90,7 +90,7 @@ const VideoChannelDashboard = () => {
   const fetchChannelVideos = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/user`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/user`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -121,7 +121,7 @@ const VideoChannelDashboard = () => {
   const fetchChannelAnalytics = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/channel/analytics`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/analytics`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -178,7 +178,7 @@ const VideoChannelDashboard = () => {
   const createChannel = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.BACKEND_URL}/api/video/channel/create`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/create`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

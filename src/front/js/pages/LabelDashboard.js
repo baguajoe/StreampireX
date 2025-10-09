@@ -14,7 +14,7 @@ const LabelDashboard = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${process.env.BACKEND_URL}/api/label-dashboard`, {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/label-dashboard`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
@@ -46,8 +46,8 @@ const LabelDashboard = () => {
   if (loading) {
     return (
       <div className="profile-container">
-        <div className="loading-state" style={{ 
-          textAlign: 'center', 
+        <div className="loading-state" style={{
+          textAlign: 'center',
           padding: '60px 20px',
           color: '#666'
         }}>
@@ -63,8 +63,8 @@ const LabelDashboard = () => {
   if (error) {
     return (
       <div className="profile-container">
-        <div className="error-state" style={{ 
-          textAlign: 'center', 
+        <div className="error-state" style={{
+          textAlign: 'center',
           padding: '60px 20px',
           color: '#dc3545'
         }}>
@@ -74,8 +74,8 @@ const LabelDashboard = () => {
           <p style={{ color: '#666', marginTop: '20px' }}>
             Make sure your backend server is running and you have proper authentication.
           </p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => window.location.reload()}
             style={{
               marginTop: '20px',
               padding: '10px 20px',
@@ -100,7 +100,7 @@ const LabelDashboard = () => {
         <div className="left-column">
           <h3>🎙️ {labelInfo?.name || "Label Dashboard"}</h3>
           <p>Manage your artists and uploads from one place.</p>
-          
+
           {/* ✅ Show label info if available */}
           {labelInfo?.description && (
             <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
@@ -108,12 +108,12 @@ const LabelDashboard = () => {
               <p>{labelInfo.description}</p>
             </div>
           )}
-          
+
           {/* ✅ Quick stats */}
           <div style={{ marginTop: '20px' }}>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '1fr 1fr', 
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
               gap: '10px',
               fontSize: '14px',
               color: '#666'
@@ -132,8 +132,8 @@ const LabelDashboard = () => {
         <div className="middle-column">
           <h3>👥 Your Artists</h3>
           {artists.length === 0 ? (
-            <div style={{ 
-              textAlign: 'center', 
+            <div style={{
+              textAlign: 'center',
               padding: '40px 20px',
               backgroundColor: '#f8f9fa',
               borderRadius: '8px',
@@ -144,8 +144,8 @@ const LabelDashboard = () => {
               <p style={{ color: '#666', marginBottom: '20px' }}>
                 Start building your label by adding artists to your roster.
               </p>
-              <button 
-                className="btn-podcast" 
+              <button
+                className="btn-podcast"
                 onClick={() => setShowAddArtist(true)}
                 style={{
                   backgroundColor: '#007bff',
@@ -170,8 +170,8 @@ const LabelDashboard = () => {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   {artist.profile_picture && (
-                    <img 
-                      src={artist.profile_picture} 
+                    <img
+                      src={artist.profile_picture}
                       alt={artist.display_name || artist.username}
                       style={{
                         width: '50px',
@@ -202,7 +202,7 @@ const LabelDashboard = () => {
                       </span>
                     )}
                   </div>
-                  <button 
+                  <button
                     onClick={() => handleSelectArtist(artist.id)}
                     style={{
                       backgroundColor: '#28a745',
@@ -222,8 +222,8 @@ const LabelDashboard = () => {
           )}
 
           {showAddArtist && (
-            <div style={{ 
-              marginTop: "20px", 
+            <div style={{
+              marginTop: "20px",
               padding: '20px',
               backgroundColor: '#f8f9fa',
               borderRadius: '8px',
@@ -239,8 +239,8 @@ const LabelDashboard = () => {
         <div className="right-column">
           <div className="quick-actions">
             <h3>➕ Artist Management</h3>
-            <button 
-              className="btn-podcast" 
+            <button
+              className="btn-podcast"
               onClick={() => setShowAddArtist(!showAddArtist)}
               style={{
                 width: '100%',
@@ -258,7 +258,7 @@ const LabelDashboard = () => {
 
             <h3>💸 Revenue Split</h3>
             <Link to="/revenue-dashboard">
-              <button 
+              <button
                 className="btn-radio"
                 style={{
                   width: '100%',
@@ -278,7 +278,7 @@ const LabelDashboard = () => {
 
             <h3>📦 Upload on Behalf</h3>
             <Link to="/upload?as=label">
-              <button 
+              <button
                 className="btn-indie-upload"
                 style={{
                   width: '100%',
@@ -313,7 +313,7 @@ const LabelDashboard = () => {
                   📈 Analytics Overview
                 </button>
               </Link>
-              
+
               <Link to="/contracts" style={{ textDecoration: 'none' }}>
                 <button style={{
                   width: '100%',

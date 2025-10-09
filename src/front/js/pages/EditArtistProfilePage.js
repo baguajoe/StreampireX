@@ -6,7 +6,7 @@ import "../../styles/EditArtistProfilePage.css";
 const EditArtistProfilePage = () => {
   const { store } = useContext(Context);
   const navigate = useNavigate();
-  
+
   // Form state
   const [formData, setFormData] = useState({
     artist_name: "",
@@ -49,13 +49,13 @@ const EditArtistProfilePage = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      
+
       if (!token) {
         navigate("/login");
         return;
       }
 
-      const response = await fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
@@ -64,7 +64,7 @@ const EditArtistProfilePage = () => {
 
       if (response.ok) {
         const userData = await response.json();
-        
+
         // Populate form with existing data
         setFormData({
           artist_name: userData.artist_name || "",
@@ -104,7 +104,7 @@ const EditArtistProfilePage = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({
@@ -117,7 +117,7 @@ const EditArtistProfilePage = () => {
   // Handle file uploads with preview
   const handleFileChange = (e, type) => {
     const file = e.target.files[0];
-    
+
     if (file) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
@@ -144,7 +144,7 @@ const EditArtistProfilePage = () => {
         setCoverPhoto(file);
         setCoverPreview(URL.createObjectURL(file));
       }
-      
+
       // Clear error
       setErrors(prev => ({
         ...prev,
@@ -156,11 +156,11 @@ const EditArtistProfilePage = () => {
   // Validate form
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.artist_name.trim()) {
       newErrors.artist_name = "Artist name is required";
     }
-    
+
     if (!formData.genre) {
       newErrors.genre = "Please select a genre";
     }
@@ -199,7 +199,7 @@ const EditArtistProfilePage = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       setMessage("❌ Please fix the errors below");
       return;
@@ -225,7 +225,7 @@ const EditArtistProfilePage = () => {
         formDataToSend.append('cover_photo', coverPhoto);
       }
 
-      const response = await fetch(`${process.env.BACKEND_URL}/api/user/profile`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -278,19 +278,19 @@ const EditArtistProfilePage = () => {
       )}
 
       <form onSubmit={handleSubmit} className="edit-artist-form">
-        
+
         {/* Profile Images Section */}
         <div className="form-section">
           <h3>📸 Profile Images</h3>
-          
+
           <div className="image-uploads">
             <div className="image-upload-group">
               <label>Profile Picture</label>
               <div className="image-preview-container">
                 {profilePreview && (
-                  <img 
-                    src={profilePreview} 
-                    alt="Profile preview" 
+                  <img
+                    src={profilePreview}
+                    alt="Profile preview"
                     className="image-preview profile-preview"
                   />
                 )}
@@ -314,9 +314,9 @@ const EditArtistProfilePage = () => {
               <label>Cover Photo</label>
               <div className="image-preview-container cover">
                 {coverPreview && (
-                  <img 
-                    src={coverPreview} 
-                    alt="Cover preview" 
+                  <img
+                    src={coverPreview}
+                    alt="Cover preview"
                     className="image-preview cover-preview"
                   />
                 )}
@@ -341,7 +341,7 @@ const EditArtistProfilePage = () => {
         {/* Basic Information */}
         <div className="form-section">
           <h3>🎤 Basic Information</h3>
-          
+
           <div className="form-group">
             <label>Artist Name *</label>
             <input
@@ -414,7 +414,7 @@ const EditArtistProfilePage = () => {
         {/* Social Media Links */}
         <div className="form-section">
           <h3>🔗 Social Media & Streaming Links</h3>
-          
+
           <div className="social-links-grid">
             <div className="form-group">
               <label>🎵 Spotify</label>
@@ -493,7 +493,7 @@ const EditArtistProfilePage = () => {
           >
             Cancel
           </button>
-          
+
           <button
             type="submit"
             className="btn-primary"

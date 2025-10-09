@@ -4,7 +4,7 @@ const RefundProcessing = () => {
     const [refunds, setRefunds] = useState([]);
 
     const fetchRefunds = async () => {
-        const res = await fetch(`${process.env.BACKEND_URL}/refunds`, {
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/refunds`, {
             headers: { Authorization: "Bearer " + localStorage.getItem("token") }
         });
         const data = await res.json();
@@ -12,7 +12,7 @@ const RefundProcessing = () => {
     };
 
     const handleAction = async (id, action) => {
-        await fetch(`${process.env.BACKEND_URL}/refunds/${id}`, {
+        await fetch(`${process.env.REACT_APP_BACKEND_URL}/refunds/${id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",

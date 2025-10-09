@@ -8,7 +8,7 @@ const LyricsUploadPage = () => {
   const handleTextUpload = async () => {
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`${process.env.BACKEND_URL}/api/upload-lyrics`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload-lyrics`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

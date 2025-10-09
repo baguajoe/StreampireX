@@ -20,7 +20,7 @@ const LiveStreams = () => {
     const fetchLiveStreams = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${process.env.BACKEND_URL}/api/artist/live-streams`);
+        const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/live-streams`);
         const data = await res.json();
         setLiveStreams(data);
       } catch (err) {

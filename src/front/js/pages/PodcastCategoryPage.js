@@ -6,7 +6,7 @@ const PodcastCategoryPage = () => {
   const [podcasts, setPodcasts] = useState([]);
 
   useEffect(() => {
-    fetch(`${process.env.BACKEND_URL}/api/podcast-category/${categoryName}`)
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast-category/${categoryName}`)
       .then((res) => res.json())
       .then((data) => setPodcasts(data))
       .catch((err) => console.error("Error fetching category:", err));
