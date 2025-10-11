@@ -406,7 +406,7 @@ const CreateRadioStation = () => {
 
                 // Redirect to browse stations after short delay
                 setTimeout(() => {
-                    navigate("/radio/browse");
+                    navigate("/browse-radio-stations");
                 }, 2000);
             } else {
                 throw new Error(data.error || data.message || "Failed to create radio station");
