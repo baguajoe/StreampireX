@@ -585,6 +585,7 @@ const RadioStationDetailPage = () => {
   }, []);
 
   // Improved play/pause handler
+  // Improved play/pause handler
   const handlePlayPause = useCallback(async () => {
     if (type === 'static') {
       setIsPlaying(!isPlaying);
@@ -599,17 +600,22 @@ const RadioStationDetailPage = () => {
     }
 
     try {
+      // If already playing, just pause
       if (isPlaying && audioRef.current) {
+        console.log("⏸️ Pausing:", station.name);
         audioRef.current.pause();
         setIsPlaying(false);
-        console.log("⏸️ Paused:", station.name);
+        setConnectionStatus('paused');
+        if (nowPlayingIntervalRef.current) {
+          clearInterval(nowPlayingIntervalRef.current);
+        }
         return;
       }
 
       setAudioError(null);
       setAudioLoading(true);
 
-      // Clean up existing audio
+      // Clean up existing audio only if we're starting fresh
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
@@ -657,6 +663,7 @@ const RadioStationDetailPage = () => {
         });
 
         await audio.play();
+        setIsPlaying(true);
         console.log("▶️ Successfully started playing:", station.name);
       } catch (playError) {
         console.error("❌ Play error:", playError);
@@ -671,7 +678,7 @@ const RadioStationDetailPage = () => {
       setAudioLoading(false);
       setConnectionStatus('error');
     }
-  }, [type, isPlaying, station, getAudioUrl, setupAudioElement]);
+  }, [station, isPlaying, getAudioUrl, setupAudioElement, type]);
 
   // Volume control
   const handleVolumeChangeInput = useCallback((e) => {
@@ -871,7 +878,7 @@ const RadioStationDetailPage = () => {
         <p><strong>Is Live:</strong> {station?.is_live ? 'Yes' : 'No'}</p>
         <p><strong>Loop Enabled:</strong> {station?.is_loop_enabled ? 'Yes' : 'No'}</p>
         <p><strong>Connection Status:</strong> {connectionStatus}</p>
-        {audioError && <p style={{ color: 'red' }}><strong>Audio Error:</strong> {audioError}</p>}
+        {audioError && <p style={{ color: 'red' }}><strong>Audio Error:</strong> {audioError.messa}</p>}
 
         <button
           onClick={() => {
