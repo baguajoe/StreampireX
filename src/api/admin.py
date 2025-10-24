@@ -1,6 +1,6 @@
 import os
 from flask_admin import Admin
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, PricingPlan, Subscription, FavoritePage, Product, RefundRequest, Revenue, Payment, Order, Notification, Comment, Message, Conversation, Group,ShareAnalytics, Like, Tip, Engagement, Earnings, Popularity, Podcast, PodcastHost, PodcastChapter, PodcastPurchase, PodcastClip, RadioDonation, RadioFollower, RadioSubmission, Role, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, TicketPurchase, VRAccessTicket, Music, Track, LicensingOpportunity, MusicLicensing, Collaboration, Artist, Album, ListeningParty, ListeningPartyAttendee, Stream, SonoSuiteUser
+from .models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, PricingPlan, Subscription, FavoritePage, Product, RefundRequest, Revenue, Payment, Order, Notification, Comment, Message, Conversation, Group,ShareAnalytics, Like, Tip, Engagement, Earnings, Popularity, Podcast, PodcastHost, PodcastChapter, PodcastPurchase, PodcastClip, RadioDonation, RadioFollower, RadioSubmission, Role, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, TicketPurchase, VRAccessTicket, Music, Track, LicensingOpportunity, MusicLicensing, Collaboration, Artist, Album, ListeningParty, ListeningPartyAttendee, Stream, SonoSuiteUser,Category
 from flask_admin.contrib.sqla import ModelView
 
 def setup_admin(app):
@@ -70,6 +70,7 @@ def setup_admin(app):
     admin.add_view(ModelView(ListeningParty, db.session))
     admin.add_view(ModelView(ListeningPartyAttendee, db.session))
     admin.add_view(ModelView(Stream, db.session))
+    admin.add_view(ModelView(Category, db.session))
     
     # ✅ ADD: SonoSuite User model for distribution management
     admin.add_view(ModelView(SonoSuiteUser, db.session))

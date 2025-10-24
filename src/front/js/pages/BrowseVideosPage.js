@@ -1,57 +1,47 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
-import "../../styles/BrowseVideos.css";
-import VideoCard from "../component/VideoCard";
-import VideoUploadForm from "../component/VideoUploadForm";
 
-// Constants moved outside component to prevent recreation
+// Constants
 const ITEMS_PER_PAGE = 20;
 const DEBOUNCE_DELAY = 300;
 
 const DEFAULT_CATEGORIES = [
   { id: 0, name: "All", video_count: 0 },
-  // Music & Audio
   { id: 1, name: "Music", video_count: 0 },
   { id: 2, name: "Podcasts", video_count: 0 },
   { id: 3, name: "Live Concerts", video_count: 0 },
   { id: 4, name: "Music Videos", video_count: 0 },
   { id: 5, name: "DJ Sets", video_count: 0 },
   { id: 6, name: "Karaoke", video_count: 0 },
-  // Health & Wellness  
   { id: 7, name: "Meditation", video_count: 0 },
   { id: 8, name: "Yoga", video_count: 0 },
   { id: 9, name: "Fitness", video_count: 0 },
   { id: 10, name: "Mental Health", video_count: 0 },
   { id: 11, name: "Nutrition", video_count: 0 },
   { id: 12, name: "Sleep & Relaxation", video_count: 0 },
-  // Education & Learning
   { id: 13, name: "Education", video_count: 0 },
   { id: 14, name: "Tutorials", video_count: 0 },
   { id: 15, name: "Language Learning", video_count: 0 },
   { id: 16, name: "Science", video_count: 0 },
   { id: 17, name: "History", video_count: 0 },
   { id: 18, name: "Philosophy", video_count: 0 },
-  // Technology
   { id: 19, name: "Tech", video_count: 0 },
   { id: 20, name: "Programming", video_count: 0 },
   { id: 21, name: "AI & Machine Learning", video_count: 0 },
   { id: 22, name: "Web Development", video_count: 0 },
   { id: 23, name: "Mobile Apps", video_count: 0 },
   { id: 24, name: "Cybersecurity", video_count: 0 },
-  // Entertainment
   { id: 25, name: "Comedy", video_count: 0 },
   { id: 26, name: "Movies & TV", video_count: 0 },
   { id: 27, name: "Anime & Manga", video_count: 0 },
   { id: 28, name: "Celebrity News", video_count: 0 },
   { id: 29, name: "Reactions", video_count: 0 },
   { id: 30, name: "Memes", video_count: 0 },
-  // Gaming
   { id: 31, name: "Gaming", video_count: 0 },
   { id: 32, name: "Game Reviews", video_count: 0 },
   { id: 33, name: "Esports", video_count: 0 },
   { id: 34, name: "Game Development", video_count: 0 },
   { id: 35, name: "Streaming Highlights", video_count: 0 },
-  // Lifestyle
   { id: 36, name: "Lifestyle", video_count: 0 },
   { id: 37, name: "Fashion", video_count: 0 },
   { id: 38, name: "Beauty", video_count: 0 },
@@ -60,38 +50,32 @@ const DEFAULT_CATEGORIES = [
   { id: 41, name: "Home & Garden", video_count: 0 },
   { id: 42, name: "Parenting", video_count: 0 },
   { id: 43, name: "Relationships", video_count: 0 },
-  // Creative Arts
   { id: 44, name: "Art", video_count: 0 },
   { id: 45, name: "Photography", video_count: 0 },
   { id: 46, name: "Design", video_count: 0 },
   { id: 47, name: "Writing", video_count: 0 },
   { id: 48, name: "Crafts & DIY", video_count: 0 },
   { id: 49, name: "Architecture", video_count: 0 },
-  // Business & Finance
   { id: 50, name: "Business", video_count: 0 },
   { id: 51, name: "Entrepreneurship", video_count: 0 },
   { id: 52, name: "Investing", video_count: 0 },
   { id: 53, name: "Cryptocurrency", video_count: 0 },
   { id: 54, name: "Marketing", video_count: 0 },
   { id: 55, name: "Personal Finance", video_count: 0 },
-  // Sports & Activities
   { id: 56, name: "Sports", video_count: 0 },
   { id: 57, name: "Basketball", video_count: 0 },
   { id: 58, name: "Football", video_count: 0 },
   { id: 59, name: "Soccer", video_count: 0 },
   { id: 60, name: "Extreme Sports", video_count: 0 },
   { id: 61, name: "Martial Arts", video_count: 0 },
-  // News & Politics
   { id: 62, name: "News", video_count: 0 },
   { id: 63, name: "Politics", video_count: 0 },
   { id: 64, name: "Current Events", video_count: 0 },
   { id: 65, name: "Documentary", video_count: 0 },
-  // Spirituality & Personal Growth
   { id: 66, name: "Spirituality", video_count: 0 },
   { id: 67, name: "Personal Development", video_count: 0 },
   { id: 68, name: "Motivation", video_count: 0 },
   { id: 69, name: "Life Coaching", video_count: 0 },
-  // Special Interest
   { id: 70, name: "True Crime", video_count: 0 },
   { id: 71, name: "ASMR", video_count: 0 },
   { id: 72, name: "Animals", video_count: 0 },
@@ -145,6 +129,7 @@ const useApi = () => {
 const BrowseVideosPage = () => {
   // State management
   const [videos, setVideos] = useState([]);
+  const [clips, setClips] = useState([]);
   const [channels, setChannels] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -154,8 +139,8 @@ const BrowseVideosPage = () => {
   const [pagination, setPagination] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState(""); // For navigation tabs
-  const [browseMode, setBrowseMode] = useState("videos"); // 'videos' or 'channels'
+  const [activeTab, setActiveTab] = useState("");
+  const [browseMode, setBrowseMode] = useState("videos"); // 'videos', 'clips', or 'channels'
   const [showUploadForm, setShowUploadForm] = useState(false);
 
   // Refs for scrolling
@@ -170,14 +155,19 @@ const BrowseVideosPage = () => {
     return searchTerm || selectedCategory !== "All" || sortBy !== "newest";
   }, [searchTerm, selectedCategory, sortBy]);
 
-  const videoCountText = useMemo(() => {
+  const contentCountText = useMemo(() => {
     if (browseMode === 'channels') {
       return channels.length > 0 ? `${channels.length} channels found` : 'No channels found';
+    }
+    if (browseMode === 'clips') {
+      return pagination.total
+        ? `${pagination.total.toLocaleString()} clips found`
+        : `${clips.length.toLocaleString()} clips`;
     }
     return pagination.total
       ? `${pagination.total.toLocaleString()} videos found`
       : `${videos.length.toLocaleString()} videos`;
-  }, [pagination.total, videos.length, channels.length, browseMode]);
+  }, [pagination.total, videos.length, clips.length, channels.length, browseMode]);
 
   // Utility functions
   const formatCount = useCallback((count) => {
@@ -235,7 +225,6 @@ const BrowseVideosPage = () => {
 
       const data = await apiCall(`/api/videos?${params}`);
 
-      // Handle both response formats
       if (data.videos) {
         setVideos(data.videos);
         setPagination(data.pagination || {});
@@ -257,6 +246,42 @@ const BrowseVideosPage = () => {
       setIsLoading(false);
     }
   }, [apiCall, debouncedSearchTerm, selectedCategory, sortBy, currentPage]);
+
+  const fetchClips = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const params = new URLSearchParams({
+        search: debouncedSearchTerm,
+        sort_by: sortBy,
+        page: currentPage.toString(),
+        per_page: ITEMS_PER_PAGE.toString()
+      });
+
+      const data = await apiCall(`/api/clips?${params}`);
+
+      if (data.clips) {
+        setClips(data.clips);
+        setPagination(data.pagination || {});
+      } else if (Array.isArray(data)) {
+        setClips(data);
+        setPagination({
+          page: 1,
+          total: data.length,
+          has_next: false,
+          has_prev: false,
+          pages: 1
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch clips:", err);
+      setError("Failed to load clips. Please try again later.");
+      setClips([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [apiCall, debouncedSearchTerm, sortBy, currentPage]);
 
   const fetchChannels = useCallback(async () => {
     setIsLoading(true);
@@ -282,47 +307,6 @@ const BrowseVideosPage = () => {
   }, [apiCall, debouncedSearchTerm, currentPage]);
 
   // Event handlers
-  const handleLike = useCallback(async (videoId) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Please log in to like videos");
-        return;
-      }
-
-      const data = await apiCall(`/api/videos/${videoId}/like`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-        }
-      });
-
-      setVideos(prev => prev.map(video =>
-        video.id === videoId
-          ? { ...video, likes: data.likes }
-          : video
-      ));
-    } catch (err) {
-      console.error("Failed to like video:", err);
-      if (err.message.includes('401')) {
-        alert("Please log in to like videos");
-      } else {
-        alert("Failed to like video. Please try again.");
-      }
-    }
-  }, [apiCall]);
-
-  const handleVideoView = useCallback(async (videoId) => {
-    try {
-      await apiCall(`/api/videos/${videoId}/view`, {
-        method: "POST"
-      });
-    } catch (err) {
-      console.error("Failed to record view:", err);
-      // Silently fail for view tracking
-    }
-  }, [apiCall]);
-
   const handlePageChange = useCallback((newPage) => {
     setCurrentPage(newPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -339,32 +323,7 @@ const BrowseVideosPage = () => {
     setBrowseMode(mode);
     setCurrentPage(1);
     setActiveTab("");
-  }, []);
-
-  const handleShare = useCallback(async (video) => {
-    const shareData = {
-      title: video.title,
-      url: `${window.location.origin}${window.location.pathname}?video=${video.id}`
-    };
-
-    try {
-      if (navigator.share && navigator.canShare(shareData)) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(shareData.url);
-        alert("Video link copied to clipboard!");
-      }
-    } catch (err) {
-      console.error("Failed to share:", err);
-      // Fallback to clipboard
-      try {
-        await navigator.clipboard.writeText(shareData.url);
-        alert("Video link copied to clipboard!");
-      } catch (clipboardErr) {
-        console.error("Failed to copy to clipboard:", clipboardErr);
-        alert("Unable to share or copy link");
-      }
-    }
+    setSelectedCategory("All");
   }, []);
 
   // Effects
@@ -375,84 +334,165 @@ const BrowseVideosPage = () => {
   useEffect(() => {
     if (browseMode === 'videos') {
       fetchVideos();
+    } else if (browseMode === 'clips') {
+      fetchClips();
     } else {
       fetchChannels();
     }
-  }, [browseMode, fetchVideos, fetchChannels]);
+  }, [browseMode, fetchVideos, fetchClips, fetchChannels]);
 
-  // Reset page when filters change
   useEffect(() => {
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
   }, [debouncedSearchTerm, selectedCategory, sortBy, browseMode]);
 
+  // Get mode label
+  const getModeLabel = () => {
+    switch (browseMode) {
+      case 'videos': return 'Videos';
+      case 'clips': return 'Clips';
+      case 'channels': return 'Channels';
+      default: return 'Content';
+    }
+  };
+
   // Loading state
-  if (isLoading && videos.length === 0 && channels.length === 0) {
+  if (isLoading && videos.length === 0 && clips.length === 0 && channels.length === 0) {
     return (
-      <div className="categories-wrapper">
-        <h1 className="categories-heading">Browse All Free {browseMode === 'videos' ? 'Videos' : 'Channels'}</h1>
-        <div className="loading-spinner">
-          <div className="spinner"></div>
+      <div style={{ padding: '40px', textAlign: 'center', maxWidth: '1400px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '32px', marginBottom: '20px' }}>Browse All Free {getModeLabel()}</h1>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px' }}>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            border: '4px solid #e0e0e0',
+            borderTop: '4px solid #1976d2',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
           <p>Loading {browseMode}...</p>
         </div>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
 
   return (
-    <div className="categories-wrapper">
-      {/* Header with Persistent Upload Button */}
-      <div className="browse-videos-header">
-        <div className="header-content">
-          <div className="header-text">
-            <h1 className="categories-heading">Browse All Free {browseMode === 'videos' ? 'Videos' : 'Channels'}</h1>
-            <p className="video-count">{videoCountText}</p>
+    <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '30px', borderBottom: '1px solid #e0e0e0', paddingBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <div>
+            <h1 style={{ fontSize: '32px', marginBottom: '8px' }}>Browse All Free {getModeLabel()}</h1>
+            <p style={{ color: '#666', fontSize: '14px' }}>{contentCountText}</p>
           </div>
-          <div className="header-actions">
+          <Link to ="/upload-video">
             <button
               onClick={() => setShowUploadForm(true)}
-              className="btn-primary upload-header-btn"
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#1976d2',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '500'
+              }}
+
             >
               Upload Video
             </button>
-          </div>
+          </Link>
         </div>
       </div>
 
       {/* Browse Mode Toggle */}
-      <div className="browse-mode-toggle">
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '25px' }}>
         <button
-          className={`mode-btn ${browseMode === 'videos' ? 'active' : ''}`}
           onClick={() => handleBrowseModeChange('videos')}
+          style={{
+            padding: '10px 20px',
+            border: browseMode === 'videos' ? '2px solid #1976d2' : '1px solid #ddd',
+            backgroundColor: browseMode === 'videos' ? '#e3f2fd' : 'white',
+            color: browseMode === 'videos' ? '#1976d2' : '#333',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: browseMode === 'videos' ? '600' : '400',
+            fontSize: '14px'
+          }}
         >
-          Videos
+          📹 Videos
         </button>
         <button
-          className={`mode-btn ${browseMode === 'channels' ? 'active' : ''}`}
-          onClick={() => handleBrowseModeChange('channels')}
+          onClick={() => handleBrowseModeChange('clips')}
+          style={{
+            padding: '10px 20px',
+            border: browseMode === 'clips' ? '2px solid #1976d2' : '1px solid #ddd',
+            backgroundColor: browseMode === 'clips' ? '#e3f2fd' : 'white',
+            color: browseMode === 'clips' ? '#1976d2' : '#333',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: browseMode === 'clips' ? '600' : '400',
+            fontSize: '14px'
+          }}
         >
-          Channels
+          ⚡ Clips
+        </button>
+        <button
+          onClick={() => handleBrowseModeChange('channels')}
+          style={{
+            padding: '10px 20px',
+            border: browseMode === 'channels' ? '2px solid #1976d2' : '1px solid #ddd',
+            backgroundColor: browseMode === 'channels' ? '#e3f2fd' : 'white',
+            color: browseMode === 'channels' ? '#1976d2' : '#333',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: browseMode === 'channels' ? '600' : '400',
+            fontSize: '14px'
+          }}
+        >
+          📺 Channels
         </button>
       </div>
 
       {/* Search Bar */}
-      <div className="search-section">
-        <div className="search-bar">
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ position: 'relative', maxWidth: '600px' }}>
           <input
             type="text"
             placeholder={`Search ${browseMode}, creators, or topics...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-            aria-label={`Search ${browseMode}`}
+            style={{
+              width: '100%',
+              padding: '12px 40px 12px 16px',
+              border: '1px solid #ddd',
+              borderRadius: '24px',
+              fontSize: '14px',
+              outline: 'none'
+            }}
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm("")}
-              className="clear-search-btn"
-              title="Clear search"
-              aria-label="Clear search"
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '18px',
+                color: '#666'
+              }}
             >
               ✖
             </button>
@@ -460,134 +500,184 @@ const BrowseVideosPage = () => {
         </div>
       </div>
 
-      {/* Sort and Filter Controls with Navigation Tabs */}
-      <div className="controls-section">
-        {/* Navigation Tabs */}
-        <div className="nav-tabs">
+      {/* Navigation Tabs */}
+      <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '10px' }}>
+        {['history', 'playlists', 'your-videos', 'watch-later', 'liked', 'downloads'].map((tab) => (
           <div
-            className={`nav-tab ${activeTab === 'history' ? 'active' : ''}`}
-            onClick={() => setActiveTab('history')}
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              border: activeTab === tab ? '2px solid #1976d2' : '1px solid #ddd',
+              backgroundColor: activeTab === tab ? '#e3f2fd' : 'white',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              fontSize: '14px'
+            }}
           >
-            <span className="nav-icon">🕐</span>
-            <span className="nav-text">History</span>
+            <span>{tab === 'history' ? '🕐' : tab === 'playlists' ? '📋' : tab === 'your-videos' ? '📹' : tab === 'watch-later' ? '🕒' : tab === 'liked' ? '👍' : '⬇'}</span>
+            <span style={{ textTransform: 'capitalize' }}>{tab.replace('-', ' ')}</span>
           </div>
-          <div
-            className={`nav-tab ${activeTab === 'playlists' ? 'active' : ''}`}
-            onClick={() => setActiveTab('playlists')}
-          >
-            <span className="nav-icon">📋</span>
-            <span className="nav-text">Playlists</span>
+        ))}
+      </div>
+
+      {/* Sort and Filters - Only for videos and clips */}
+      {(browseMode === 'videos' || browseMode === 'clips') && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '500' }}>Sort by:</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="most_liked">Most Liked</option>
+              <option value="popular">Most Popular</option>
+            </select>
           </div>
-          <div
-            className={`nav-tab ${activeTab === 'your-videos' ? 'active' : ''}`}
-            onClick={() => setActiveTab('your-videos')}
-          >
-            <span className="nav-icon">📹</span>
-            <span className="nav-text">Your videos</span>
-          </div>
-          <div
-            className={`nav-tab ${activeTab === 'watch-later' ? 'active' : ''}`}
-            onClick={() => setActiveTab('watch-later')}
-          >
-            <span className="nav-icon">🕒</span>
-            <span className="nav-text">Watch later</span>
-          </div>
-          <div
-            className={`nav-tab ${activeTab === 'liked' ? 'active' : ''}`}
-            onClick={() => setActiveTab('liked')}
-          >
-            <span className="nav-icon">👍</span>
-            <span className="nav-text">Liked videos</span>
-          </div>
-          <div
-            className={`nav-tab ${activeTab === 'downloads' ? 'active' : ''}`}
-            onClick={() => setActiveTab('downloads')}
-          >
-            <span className="nav-icon">⬇</span>
-            <span className="nav-text">Downloads</span>
-          </div>
+
+          {hasActiveFilters && (
+            <button
+              onClick={handleClearFilters}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#f5f5f5',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Clear All Filters
+            </button>
+          )}
         </div>
+      )}
 
-        {/* Sort Section - Only show for videos */}
-        {browseMode === 'videos' && (
-          <div className="sort-and-filters">
-            <div className="sort-section">
-              <label htmlFor="sort-select">Sort by: </label>
-              <select
-                id="sort-select"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="sort-select"
+      {/* Category Navigation - Only for videos */}
+      {browseMode === 'videos' && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '25px' }}>
+          <button
+            onClick={scrollLeft}
+            style={{
+              padding: '8px 12px',
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '18px'
+            }}
+          >
+            ‹
+          </button>
+          <div
+            ref={scrollRef}
+            style={{
+              display: 'flex',
+              gap: '10px',
+              overflowX: 'auto',
+              scrollBehavior: 'smooth',
+              flex: 1,
+              scrollbarWidth: 'none'
+            }}
+          >
+            {categories.map((category) => (
+              <div
+                key={category.id}
+                onClick={() => setSelectedCategory(category.name)}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: selectedCategory === category.name ? '#1976d2' : '#f5f5f5',
+                  color: selectedCategory === category.name ? 'white' : '#333',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontSize: '14px',
+                  fontWeight: selectedCategory === category.name ? '600' : '400'
+                }}
               >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="most_liked">Most Liked</option>
-                <option value="popular">Most Popular</option>
-              </select>
-            </div>
+                {category.name}
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={scrollRight}
+            style={{
+              padding: '8px 12px',
+              background: 'white',
+              border: '1px solid #ddd',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '18px'
+            }}
+          >
+            ›
+          </button>
+        </div>
+      )}
 
+      {/* Error State */}
+      {error && (
+        <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#ffebee', borderRadius: '8px' }}>
+          <h3 style={{ color: '#c62828', marginBottom: '15px' }}>{error}</h3>
+          <button
+            onClick={browseMode === 'videos' ? fetchVideos : browseMode === 'clips' ? fetchClips : fetchChannels}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#1976d2',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {/* No Content State */}
+      {!isLoading && !error &&
+        ((browseMode === 'videos' && videos.length === 0) ||
+          (browseMode === 'clips' && clips.length === 0) ||
+          (browseMode === 'channels' && channels.length === 0)) && (
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div style={{ fontSize: '64px', marginBottom: '20px' }}>📁</div>
+            <h3 style={{ fontSize: '24px', marginBottom: '10px' }}>No {browseMode} found</h3>
+            <p style={{ color: '#666', marginBottom: '20px' }}>
+              {hasActiveFilters
+                ? "Try adjusting your search or filters"
+                : `No ${browseMode} have been uploaded yet.`
+              }
+            </p>
             {hasActiveFilters && (
               <button
                 onClick={handleClearFilters}
-                className="clear-filters-btn"
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#f5f5f5',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
               >
                 Clear All Filters
               </button>
             )}
           </div>
         )}
-      </div>
-
-      {/* Horizontal Category Navigation - Only show for videos */}
-      {browseMode === 'videos' && (
-        <div className="category-nav">
-          <button onClick={scrollLeft} className="scroll-button">‹</button>
-          <div className="categories-scroll" ref={scrollRef}>
-            {categories.map((category) => (
-              <div
-                key={category.id}
-                onClick={() => setSelectedCategory(category.name)}
-                className={`category-pill ${selectedCategory === category.name ? "active" : ""}`}
-              >
-                {category.name}
-              </div>
-            ))}
-          </div>
-          <button onClick={scrollRight} className="scroll-button">›</button>
-        </div>
-      )}
-
-      {/* Error State */}
-      {error && (
-        <div className="error-message">
-          <h3>{error}</h3>
-          <button onClick={browseMode === 'videos' ? fetchVideos : fetchChannels} className="retry-btn">
-            Try Again
-          </button>
-        </div>
-      )}
-
-      {/* No Content State - SIMPLIFIED WITHOUT DRAG & DROP */}
-      {!isLoading && !error && ((browseMode === 'videos' && videos.length === 0) || (browseMode === 'channels' && channels.length === 0)) && (
-        <div className="no-videos">
-          <div className="no-content-message">
-            <div className="upload-icon">📁</div>
-            <h3>No {browseMode} found</h3>
-            <p>
-              {hasActiveFilters
-                ? "Try adjusting your search or filters"
-                : `No ${browseMode} have been uploaded yet.`
-              }
-            </p>
-
-            {hasActiveFilters && (
-              <button onClick={handleClearFilters} className="btn-secondary clear-filters-btn-main">
-                Clear All Filters
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Videos Grid */}
       {browseMode === 'videos' && videos.length > 0 && (
@@ -652,69 +742,41 @@ const BrowseVideosPage = () => {
         </div>
       )}
 
-      {/* Channels Grid */}
-      {browseMode === 'channels' && channels.length > 0 && (
-        <div className="channels-section">
-          <div className="channels-grid">
-            {channels.map((channel) => (
-              <div key={channel.id} className="channel-card">
-                <div className="channel-header">
+      {/* Clips Grid - Vertical short-form layout */}
+      {browseMode === 'clips' && clips.length > 0 && (
+        <div className="clips-section">
+          <div className="clips-grid">
+            {clips.map((clip) => (
+              <div key={clip.id} className="clip-card">
+                <div className="clip-thumbnail-container">
                   <img
-                    src={channel.banner_url || '/placeholder-banner.jpg'}
-                    alt={channel.channel_name}
-                    className="channel-banner"
+                    src={clip.thumbnail_url || '/placeholder-thumbnail.jpg'}
+                    alt={clip.title}
+                    className="clip-thumbnail"
                   />
-                  <div className="channel-avatar-container">
-                    <img
-                      src={channel.creator?.profile_picture || '/default-avatar.png'}
-                      alt={channel.creator?.username}
-                      className="channel-avatar"
-                    />
+                  <div className="clip-duration-badge">
+                    {formatDuration(clip.duration)}
                   </div>
                 </div>
-
-                <div className="channel-info">
-                  <h3 className="channel-name">
-                    {channel.channel_name}
-                    {channel.is_verified && <span className="verified-badge">✓</span>}
-                  </h3>
-                  <p className="channel-creator">by @{channel.creator?.username}</p>
-                  <p className="channel-description">{channel.description}</p>
-
-                  <div className="channel-stats">
-                    <span>{formatCount(channel.subscriber_count)} subscribers</span>
-                    <span>{channel.total_videos} videos</span>
-                    <span>{formatCount(channel.total_views)} views</span>
+                <div className="clip-content">
+                  <div className="clip-badge">⚡ Clip</div>
+                  <h3 className="clip-title">{clip.title}</h3>
+                  <div className="clip-creator-info">
+                    {clip.uploader_avatar && (
+                      <img
+                        src={clip.uploader_avatar}
+                        alt={clip.uploader_name}
+                        className="clip-creator-avatar"
+                      />
+                    )}
+                    <span className="clip-creator-name">
+                      {clip.uploader_name || 'Unknown'}
+                    </span>
                   </div>
-
-                  {/* Recent videos preview */}
-                  {channel.recent_videos && channel.recent_videos.length > 0 && (
-                    <div className="recent-videos-preview">
-                      <h4>Recent Videos:</h4>
-                      <div className="preview-videos">
-                        {channel.recent_videos.slice(0, 3).map((video) => (
-                          <Link to={`/video-details/${video.id}`}>
-                            <div key={video.id} className="preview-video">
-                              <img
-                                src={video.thumbnail_url || '/placeholder-thumbnail.jpg'}
-                                alt={video.title}
-                                className="preview-thumbnail"
-                              />
-                              <span className="preview-title">{video.title}</span>
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="channel-actions">
-                    <Link
-                      to={`/profile/${channel.user_id}`}
-                      className="btn-primary visit-channel-btn"
-                    >
-                      Visit Channel
-                    </Link>
+                  <div className="clip-stats">
+                    <span className="clip-views">
+                      {formatCount(clip.views || 0)} views
+                    </span>
                   </div>
                 </div>
               </div>
@@ -723,50 +785,89 @@ const BrowseVideosPage = () => {
         </div>
       )}
 
+      {/* Channels Grid */}
+      {browseMode === 'channels' && channels.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+          {channels.map((channel) => (
+            <div key={channel.id} style={{ backgroundColor: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+              <div style={{ height: '100px', backgroundColor: '#e0e0e0', backgroundImage: `url(${channel.banner_url})`, backgroundSize: 'cover' }}></div>
+              <div style={{ padding: '20px', textAlign: 'center' }}>
+                <img
+                  src={channel.creator?.profile_picture || '/default-avatar.png'}
+                  alt={channel.creator?.username}
+                  style={{ width: '80px', height: '80px', borderRadius: '50%', marginTop: '-40px', border: '4px solid white' }}
+                />
+                <h3 style={{ fontSize: '18px', fontWeight: '600', marginTop: '12px', marginBottom: '4px' }}>
+                  {channel.channel_name}
+                  {channel.is_verified && <span style={{ color: '#1976d2', marginLeft: '4px' }}>✓</span>}
+                </h3>
+                <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>by @{channel.creator?.username}</p>
+                <p style={{ fontSize: '13px', color: '#666', marginBottom: '12px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  {channel.description}
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', fontSize: '12px', color: '#666', marginBottom: '15px' }}>
+                  <span>{formatCount(channel.subscriber_count)} subscribers</span>
+                  <span>{channel.total_videos} videos</span>
+                </div>
+                <button style={{ padding: '10px 24px', backgroundColor: '#1976d2', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}>
+                  Visit Channel
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Pagination */}
       {pagination.pages > 1 && (
-        <div className="pagination">
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', marginTop: '40px' }}>
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={!pagination.has_prev}
-            className="pagination-btn"
+            style={{
+              padding: '10px 20px',
+              backgroundColor: pagination.has_prev ? '#1976d2' : '#e0e0e0',
+              color: pagination.has_prev ? 'white' : '#999',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: pagination.has_prev ? 'pointer' : 'not-allowed'
+            }}
           >
             ← Previous
           </button>
-
-          <div className="pagination-info">
-            <span>Page {pagination.page} of {pagination.pages}</span>
-            <span className="total-items">
-              ({pagination.total?.toLocaleString()} total {browseMode})
-            </span>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '14px', fontWeight: '500' }}>Page {pagination.page} of {pagination.pages}</div>
+            <div style={{ fontSize: '12px', color: '#666' }}>({pagination.total?.toLocaleString()} total {browseMode})</div>
           </div>
-
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={!pagination.has_next}
-            className="pagination-btn"
+            style={{
+              padding: '10px 20px',
+              backgroundColor: pagination.has_next ? '#1976d2' : '#e0e0e0',
+              color: pagination.has_next ? 'white' : '#999',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: pagination.has_next ? 'pointer' : 'not-allowed'
+            }}
           >
             Next →
           </button>
         </div>
       )}
 
-      {/* Loading overlay for pagination */}
-      {isLoading && (videos.length > 0 || channels.length > 0) && (
-        <div className="loading-overlay">
-          <div className="spinner"></div>
+      {/* Loading overlay */}
+      {isLoading && (videos.length > 0 || clips.length > 0 || channels.length > 0) && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{
+            width: '50px',
+            height: '50px',
+            border: '4px solid #e0e0e0',
+            borderTop: '4px solid #1976d2',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
         </div>
-      )}
-
-      {/* Upload Modal */}
-      {showUploadForm && (
-        <VideoUploadForm
-          onClose={() => setShowUploadForm(false)}
-          onUploadSuccess={() => {
-            setShowUploadForm(false);
-            fetchVideos(); // Refresh the video list
-          }}
-        />
       )}
     </div>
   );

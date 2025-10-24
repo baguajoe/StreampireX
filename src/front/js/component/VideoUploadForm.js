@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import '../../styles/VideoUploadForm.css';
 
 const VideoUploadForm = ({ onClose, onUploadSuccess }) => {
-  const [step, setStep] = useState(1); // 1: Upload, 2: Details, 3: Publishing
+  const [step, setStep] = useState(1);
   const [file, setFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -41,15 +41,13 @@ const VideoUploadForm = ({ onClose, onUploadSuccess }) => {
   const handleFileSelect = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      // Validate file type
       const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov'];
       if (!allowedTypes.includes(selectedFile.type)) {
         alert('Please select a valid video file (MP4, WebM, OGG, AVI, MOV)');
         return;
       }
 
-      // Check file size (adjust based on user tier)
-      const maxSize = 500 * 1024 * 1024; // 500MB default
+      const maxSize = 500 * 1024 * 1024;
       if (selectedFile.size > maxSize) {
         alert('File size too large. Please select a smaller file.');
         return;
@@ -58,7 +56,7 @@ const VideoUploadForm = ({ onClose, onUploadSuccess }) => {
       setFile(selectedFile);
       setFormData(prev => ({
         ...prev,
-        title: selectedFile.name.replace(/\.[^/.]+$/, "") // Remove extension
+        title: selectedFile.name.replace(/\.[^/.]+$/, "")
       }));
       setStep(2);
     }
@@ -127,7 +125,7 @@ const VideoUploadForm = ({ onClose, onUploadSuccess }) => {
       }
 
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/upload_video`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload_video`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -167,7 +165,13 @@ const VideoUploadForm = ({ onClose, onUploadSuccess }) => {
             Supported formats: MP4, WebM, OGG, AVI, MOV<br/>
             Maximum file size: 500MB
           </p>
-          <button className="btn-primary">Choose File</button>
+          <button 
+            type="button"
+            className="btn-primary"
+            onClick={(e) => e.stopPropagation()}
+          >
+            Choose File
+          </button>
         </div>
         <input
           ref={fileInputRef}
@@ -256,7 +260,6 @@ const VideoUploadForm = ({ onClose, onUploadSuccess }) => {
           />
         </div>
 
-        {/* Content Declaration */}
         <div className="form-section content-declaration">
           <h3>📋 Content Declaration</h3>
           
@@ -299,7 +302,6 @@ const VideoUploadForm = ({ onClose, onUploadSuccess }) => {
           </div>
         </div>
 
-        {/* Compliance Checkboxes */}
         <div className="form-section compliance">
           <h3>⚖️ Legal Compliance</h3>
           <div className="checkbox-group">
@@ -325,10 +327,18 @@ const VideoUploadForm = ({ onClose, onUploadSuccess }) => {
       </div>
 
       <div className="form-actions">
-        <button onClick={() => setStep(1)} className="btn-secondary">
+        <button 
+          type="button"
+          onClick={() => setStep(1)} 
+          className="btn-secondary"
+        >
           ← Back
         </button>
-        <button onClick={handleUpload} className="btn-primary">
+        <button 
+          type="button"
+          onClick={handleUpload} 
+          className="btn-primary"
+        >
           Upload Video →
         </button>
       </div>
@@ -362,7 +372,7 @@ const VideoUploadForm = ({ onClose, onUploadSuccess }) => {
             <span className={step >= 2 ? 'active' : ''}>2</span>
             <span className={step >= 3 ? 'active' : ''}>3</span>
           </div>
-          <button onClick={onClose} className="close-btn">✖️</button>
+          <button type="button" onClick={onClose} className="close-btn">✖️</button>
         </div>
 
         {step === 1 && renderStep1()}

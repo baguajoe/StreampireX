@@ -1088,5 +1088,337 @@
   text-align: center;
   margin-top: 15px;
 }
+/* ===========================================
+   CLIPS SECTION STYLES
+   Add these to your BrowseVideos.css file
+   =========================================== */
 
+/* Clips Grid - Vertical/Portrait Layout for Short-Form Content */
+.clips-section {
+  margin-bottom: 3rem;
+}
+
+.clips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 15px;
+  margin-bottom: 2rem;
+}
+
+/* Individual Clip Card - Portrait Orientation */
+.clip-card {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  cursor: pointer;
+}
+
+.clip-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  border-color: #667eea;
+}
+
+/* Clip Thumbnail Container - 9:16 aspect ratio for vertical video */
+.clip-thumbnail-container {
+  position: relative;
+  width: 100%;
+  padding-bottom: 177.78%; /* 9:16 aspect ratio (16/9 = 177.78%) */
+  background: #000;
+  overflow: hidden;
+}
+
+.clip-thumbnail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Duration Badge for Clips - Positioned on thumbnail */
+.clip-duration-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 2;
+}
+
+/* Clip Content Area */
+.clip-content {
+  padding: 10px 12px;
+}
+
+.clip-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+  color: #333;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  min-height: 2.4em;
+}
+
+/* Clip Creator Info */
+.clip-creator-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.clip-creator-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.clip-creator-name {
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Clip Stats */
+.clip-stats {
+  font-size: 0.75rem;
+  color: #999;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.clip-views {
+  font-weight: 500;
+}
+
+/* Clip Badge/Label for "Clip" indicator */
+.clip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+  color: white;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+/* Browse Mode Toggle Enhancement for Clips */
+.browse-mode-toggle .mode-btn.clips-mode {
+  position: relative;
+}
+
+.browse-mode-toggle .mode-btn.clips-mode::before {
+  content: '⚡';
+  margin-right: 6px;
+}
+
+/* Clips Empty State */
+.no-clips {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  margin: 2rem 0;
+}
+
+.no-clips h3 {
+  color: #333;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.no-clips p {
+  color: #666;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.clips-upload-prompt {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(238, 90, 82, 0.1));
+  border: 2px dashed #ff6b6b;
+  border-radius: 15px;
+  padding: 2rem;
+  margin: 2rem auto;
+  max-width: 500px;
+}
+
+.clips-upload-prompt h4 {
+  color: #ff6b6b;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.clips-upload-prompt p {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+/* ===========================================
+   RESPONSIVE DESIGN FOR CLIPS
+   =========================================== */
+
+@media (max-width: 1200px) {
+  .clips-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (max-width: 900px) {
+  .clips-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  
+  .clip-title {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .clips-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  
+  .clip-content {
+    padding: 8px 10px;
+  }
+  
+  .clip-title {
+    font-size: 0.8rem;
+    -webkit-line-clamp: 2;
+  }
+  
+  .clip-creator-info {
+    gap: 4px;
+  }
+  
+  .clip-creator-name {
+    font-size: 0.75rem;
+  }
+  
+  .clip-stats {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .clips-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  
+  .clip-card {
+    border-radius: 10px;
+  }
+  
+  .clip-content {
+    padding: 6px 8px;
+  }
+  
+  .clip-title {
+    font-size: 0.75rem;
+    -webkit-line-clamp: 2;
+    min-height: auto;
+  }
+  
+  .clip-duration-badge {
+    bottom: 6px;
+    right: 6px;
+    padding: 3px 6px;
+    font-size: 0.7rem;
+  }
+  
+  .clip-creator-avatar {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* Animation for clip cards */
+@keyframes clipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.clip-card {
+  animation: clipFadeIn 0.3s ease-out;
+}
+
+/* Stagger animation for multiple clips loading */
+.clip-card:nth-child(1) { animation-delay: 0.05s; }
+.clip-card:nth-child(2) { animation-delay: 0.1s; }
+.clip-card:nth-child(3) { animation-delay: 0.15s; }
+.clip-card:nth-child(4) { animation-delay: 0.2s; }
+.clip-card:nth-child(5) { animation-delay: 0.25s; }
+
+/* Hover effect for clip play indication */
+.clip-thumbnail-container::after {
+  content: '▶';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2.5rem;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.clip-card:hover .clip-thumbnail-container::after {
+  opacity: 0.9;
+}
+
+/* Focus states for clips accessibility */
+.clip-card:focus {
+  outline: 3px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* High contrast mode for clips */
+@media (prefers-contrast: high) {
+  .clip-card {
+    border: 2px solid #000;
+  }
+  
+  .clip-duration-badge {
+    border: 1px solid #fff;
+  }
+  
+  .clips-upload-prompt {
+    border-color: #000;
+  }
+}
 }
