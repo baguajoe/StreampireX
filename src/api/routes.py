@@ -14023,10 +14023,10 @@ def upload_video_json():
             description=data.get('description', ''),
             file_url=data.get('file_url'),
             thumbnail_url=data.get('thumbnail_url'),
-            category=data.get('category', 'Other'),
+            # category=data.get('category', 'Other'),
             tags=data.get('tags', []),
             is_public=data.get('is_public', True),
-            age_restricted=data.get('age_restricted', False),
+            # age_restricted=data.get('age_restricted', False),
             made_for_kids=data.get('made_for_kids', False),
             contains_paid_promotion=data.get('contains_paid_promotion', False),
             original_content=data.get('original_content', True),
@@ -14034,12 +14034,14 @@ def upload_video_json():
             allow_likes=data.get('allow_likes', True),
             uploaded_at=datetime.utcnow()
         )
-        
+        print ("breakpoint1")
         # Update channel stats
         channel.total_videos += 1
         
         db.session.add(new_video)
         db.session.commit()
+        print ("breakpoint2")
+        
         
         return jsonify({
             "message": "Video uploaded successfully",

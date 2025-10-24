@@ -2,10 +2,17 @@
 # ✅ Monkey patch must come FIRST — before ANY other imports
 import eventlet
 eventlet.monkey_patch()
+
 import sys
 import os
+
+# ✅ CRITICAL: Add parent directory to path BEFORE any local imports
+src_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(src_dir)
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
 from dotenv import load_dotenv
-from api.email_service import init_mail
 
 # Load environment variables from .env
 load_dotenv()
@@ -15,10 +22,8 @@ if not os.getenv("JWT_SECRET_KEY"):
     os.environ["JWT_SECRET_KEY"] = "your-super-secret-jwt-key-fallback-dev-only"
     print("⚠️  JWT_SECRET_KEY not found, using fallback (SET THIS IN PRODUCTION!)")
 
-src_dir = os.path.dirname(os.path.abspath(__file__))
-if src_dir not in sys.path:
-    sys.path.insert(0, src_dir)
-
+# ✅ NOW import from src - path is set up
+from src.api.email_service import init_mail
 from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_migrate import Migrate
 from flask_mail import Mail, Message as MailMessage
@@ -31,14 +36,16 @@ import cloudinary
 import click
 from flask.cli import with_appcontext
 
-# Import your blueprints
-from api.routes import api
-from api.cache import cache
-from api.models import db, LiveChat, User, RadioStation, PricingPlan, SonoSuiteUser, Message, Conversation
-from api.utils import APIException, generate_sitemap
-from api.admin import setup_admin
-from api.commands import setup_commands
-from api.socketio import init_socketio
+# Import your blueprints - use src prefix
+from src.api.routes import api
+from src.api.cache import cache
+from src.api.models import LiveChat, User, RadioStation, PricingPlan, SonoSuiteUser, Message, Conversation
+from src.api.utils import APIException, generate_sitemap
+from src.api.admin import setup_admin
+from src.api.commands import setup_commands
+from src.api.socketio import init_socketio
+from src.api.extensions import db
+# Rest of your code stays the same...
 
 # ✅ Environment setup
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
