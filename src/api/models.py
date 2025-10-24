@@ -8,6 +8,22 @@ from api.extensions import db
 
 import json
 
+# Global configuration to allow table redefinition
+from sqlalchemy import MetaData
+
+# This makes all tables use extend_existing by default
+metadata = MetaData()
+db = SQLAlchemy(metadata=metadata)
+
+# Set default for all tables
+import sqlalchemy as sa
+_original_table_init = sa.Table.__init__
+
+def _table_init_with_extend(self, *args, **kwargs):
+    kwargs.setdefault('extend_existing', True)
+    _original_table_init(self, *args, **kwargs)
+
+sa.Table.__init__ = _table_init_with_extend
 
 # ✅ This is fine here
 socketio = SocketIO(cors_allowed_origins="*", allow_credentials=True)
@@ -3988,8 +4004,11 @@ class VideoClip(db.Model):
         }
 
 class ChannelSubscription(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'channel_subscriptions'
+    __table_args__ = (
+        db.UniqueConstraint('subscriber_id', 'channel_id', name='unique_channel_subscription'),
+        {'extend_existing': True}
+    )
     
     id = db.Column(db.Integer, primary_key=True)
     subscriber_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -4001,9 +4020,6 @@ class ChannelSubscription(db.Model):
     subscriber = db.relationship('User', backref='channel_subscriptions')
     channel = db.relationship('VideoChannel', backref='subscriptions')
     
-    # Unique constraint
-    __table_args__ = (db.UniqueConstraint('subscriber_id', 'channel_id', name='unique_channel_subscription'),)
-    
     def serialize(self):
         return {
             'id': self.id,
@@ -4012,7 +4028,7 @@ class ChannelSubscription(db.Model):
             'notifications_enabled': self.notifications_enabled,
             'subscribed_at': self.subscribed_at.isoformat() if self.subscribed_at else None
         }
-
+    
 class ClipLike(db.Model):
     __table_args__ = {'extend_existing': True}
     __tablename__ = 'clip_likes'
