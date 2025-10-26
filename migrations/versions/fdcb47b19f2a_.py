@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 83d5c82ccf33
+Revision ID: fdcb47b19f2a
 Revises: 
-Create Date: 2025-10-08 22:11:22.144995
+Create Date: 2025-10-26 14:20:06.775405
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '83d5c82ccf33'
+revision = 'fdcb47b19f2a'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -897,42 +897,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('user_id')
     )
-    op.create_table('video',
-    sa.Column('timeline_data', sa.JSON(), nullable=True),
-    sa.Column('width', sa.Integer(), nullable=True),
-    sa.Column('height', sa.Integer(), nullable=True),
-    sa.Column('frame_rate', sa.Integer(), nullable=True),
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('title', sa.String(length=255), nullable=False),
-    sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('file_url', sa.String(length=500), nullable=False),
-    sa.Column('thumbnail_url', sa.String(length=500), nullable=True),
-    sa.Column('duration', sa.Integer(), nullable=True),
-    sa.Column('uploaded_at', sa.DateTime(), nullable=True),
-    sa.Column('likes', sa.Integer(), nullable=True),
-    sa.Column('views', sa.Integer(), nullable=True),
-    sa.Column('comments_count', sa.Integer(), nullable=True),
-    sa.Column('shares_count', sa.Integer(), nullable=True),
-    sa.Column('category_id', sa.Integer(), nullable=True),
-    sa.Column('tags', sa.JSON(), nullable=True),
-    sa.Column('is_public', sa.Boolean(), nullable=True),
-    sa.Column('is_premium', sa.Boolean(), nullable=True),
-    sa.Column('price', sa.Float(), nullable=True),
-    sa.Column('video_slug', sa.String(length=255), nullable=True),
-    sa.Column('keywords', sa.Text(), nullable=True),
-    sa.Column('resolution', sa.String(length=20), nullable=True),
-    sa.Column('file_size', sa.BigInteger(), nullable=True),
-    sa.Column('codec', sa.String(length=50), nullable=True),
-    sa.Column('average_watch_time', sa.Integer(), nullable=True),
-    sa.Column('completion_rate', sa.Float(), nullable=True),
-    sa.Column('status', sa.String(length=50), nullable=True),
-    sa.Column('processing_status', sa.String(length=50), nullable=True),
-    sa.ForeignKeyConstraint(['category_id'], ['category.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('video_slug')
-    )
     op.create_table('video_channels',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
@@ -1044,19 +1008,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('subscriber_id', 'channel_id', name='unique_channel_subscription')
     )
-    op.create_table('comment',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('content_id', sa.Integer(), nullable=False),
-    sa.Column('content_type', sa.String(length=50), nullable=False),
-    sa.Column('text', sa.Text(), nullable=False),
-    sa.Column('timestamp', sa.Integer(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('video_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('distribution_submission',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
@@ -1091,17 +1042,6 @@ def upgrade():
     sa.Column('purchased_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['event_id'], ['live_event.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('favorite',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('video_id', sa.Integer(), nullable=True),
-    sa.Column('content_id', sa.Integer(), nullable=True),
-    sa.Column('content_type', sa.String(length=50), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('group_members',
@@ -1216,39 +1156,6 @@ def upgrade():
     sa.Column('playlist_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['playlist_id'], ['playlist_audio.id'], ),
     sa.ForeignKeyConstraint(['radio_station_id'], ['radio_station.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('music_distributions',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('track_id', sa.Integer(), nullable=False),
-    sa.Column('release_title', sa.String(length=200), nullable=False),
-    sa.Column('artist_name', sa.String(length=100), nullable=False),
-    sa.Column('label', sa.String(length=100), nullable=True),
-    sa.Column('genre', sa.String(length=50), nullable=True),
-    sa.Column('release_type', sa.String(length=20), nullable=True),
-    sa.Column('release_date', sa.Date(), nullable=True),
-    sa.Column('distribution_service', sa.String(length=50), nullable=True),
-    sa.Column('sonosuite_release_id', sa.String(length=100), nullable=True),
-    sa.Column('external_release_id', sa.String(length=100), nullable=True),
-    sa.Column('status', sa.String(length=50), nullable=True),
-    sa.Column('submission_date', sa.DateTime(), nullable=True),
-    sa.Column('expected_live_date', sa.DateTime(), nullable=True),
-    sa.Column('live_date', sa.DateTime(), nullable=True),
-    sa.Column('takedown_date', sa.DateTime(), nullable=True),
-    sa.Column('platforms', sa.Text(), nullable=True),
-    sa.Column('territories', sa.Text(), nullable=True),
-    sa.Column('total_streams', sa.BigInteger(), nullable=True),
-    sa.Column('total_revenue', sa.Numeric(precision=10, scale=2), nullable=True),
-    sa.Column('last_revenue_update', sa.DateTime(), nullable=True),
-    sa.Column('isrc_code', sa.String(length=20), nullable=True),
-    sa.Column('upc_code', sa.String(length=20), nullable=True),
-    sa.Column('explicit_content', sa.Boolean(), nullable=True),
-    sa.Column('copyright_info', sa.String(length=200), nullable=True),
-    sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('sonosuite_response', sa.Text(), nullable=True),
-    sa.ForeignKeyConstraint(['track_id'], ['audio.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -1532,71 +1439,52 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('stripe_subscription_id')
     )
-    op.create_table('video_clips',
+    op.create_table('video',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('channel_id', sa.Integer(), nullable=True),
-    sa.Column('source_video_id', sa.Integer(), nullable=True),
+    sa.Column('category_id', sa.Integer(), nullable=True),
     sa.Column('title', sa.String(length=255), nullable=False),
     sa.Column('description', sa.Text(), nullable=True),
-    sa.Column('video_url', sa.String(length=500), nullable=False),
+    sa.Column('file_url', sa.String(length=500), nullable=False),
     sa.Column('thumbnail_url', sa.String(length=500), nullable=True),
-    sa.Column('start_time', sa.Integer(), nullable=True),
-    sa.Column('end_time', sa.Integer(), nullable=True),
-    sa.Column('duration', sa.Integer(), nullable=False),
-    sa.Column('content_type', sa.String(length=50), nullable=True),
-    sa.Column('views', sa.Integer(), nullable=True),
+    sa.Column('duration', sa.Integer(), nullable=True),
+    sa.Column('width', sa.Integer(), nullable=True),
+    sa.Column('height', sa.Integer(), nullable=True),
+    sa.Column('frame_rate', sa.Integer(), nullable=True),
+    sa.Column('resolution', sa.String(length=20), nullable=True),
+    sa.Column('file_size', sa.BigInteger(), nullable=True),
+    sa.Column('codec', sa.String(length=50), nullable=True),
+    sa.Column('timeline_data', sa.JSON(), nullable=True),
+    sa.Column('uploaded_at', sa.DateTime(), nullable=True),
     sa.Column('likes', sa.Integer(), nullable=True),
-    sa.Column('comments', sa.Integer(), nullable=True),
-    sa.Column('shares', sa.Integer(), nullable=True),
+    sa.Column('views', sa.Integer(), nullable=True),
+    sa.Column('comments_count', sa.Integer(), nullable=True),
+    sa.Column('shares_count', sa.Integer(), nullable=True),
+    sa.Column('average_watch_time', sa.Integer(), nullable=True),
+    sa.Column('completion_rate', sa.Float(), nullable=True),
     sa.Column('tags', sa.JSON(), nullable=True),
+    sa.Column('category', sa.String(length=100), nullable=True),
     sa.Column('is_public', sa.Boolean(), nullable=True),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.Column('timeline_start', sa.Float(), nullable=True),
-    sa.Column('timeline_end', sa.Float(), nullable=True),
-    sa.Column('track_id', sa.Integer(), nullable=True),
+    sa.Column('is_premium', sa.Boolean(), nullable=True),
+    sa.Column('price', sa.Float(), nullable=True),
+    sa.Column('age_restricted', sa.Boolean(), nullable=True),
+    sa.Column('made_for_kids', sa.Boolean(), nullable=True),
+    sa.Column('contains_paid_promotion', sa.Boolean(), nullable=True),
+    sa.Column('original_content', sa.Boolean(), nullable=True),
+    sa.Column('allow_comments', sa.Boolean(), nullable=True),
+    sa.Column('allow_likes', sa.Boolean(), nullable=True),
+    sa.Column('allow_embedding', sa.Boolean(), nullable=True),
+    sa.Column('allow_downloads', sa.Boolean(), nullable=True),
+    sa.Column('video_slug', sa.String(length=255), nullable=True),
+    sa.Column('keywords', sa.Text(), nullable=True),
+    sa.Column('status', sa.String(length=50), nullable=True),
+    sa.Column('processing_status', sa.String(length=50), nullable=True),
+    sa.ForeignKeyConstraint(['category_id'], ['category.id'], ),
     sa.ForeignKeyConstraint(['channel_id'], ['video_channels.id'], ),
-    sa.ForeignKeyConstraint(['source_video_id'], ['video.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('video_likes',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('video_id', sa.Integer(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('user_id', 'video_id', name='unique_user_video_like')
-    )
-    op.create_table('video_playlist_video',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('playlist_id', sa.Integer(), nullable=False),
-    sa.Column('video_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['playlist_id'], ['video_playlist.id'], ),
-    sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('video_tags',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('video_id', sa.Integer(), nullable=False),
-    sa.Column('tag_name', sa.String(length=50), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('video_views',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('video_id', sa.Integer(), nullable=False),
-    sa.Column('ip_address', sa.String(length=45), nullable=True),
-    sa.Column('watch_time', sa.Integer(), nullable=True),
-    sa.Column('completed', sa.Boolean(), nullable=True),
-    sa.Column('viewed_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.UniqueConstraint('video_slug')
     )
     op.create_table('vr_access_ticket',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -1615,16 +1503,6 @@ def upgrade():
     sa.ForeignKeyConstraint(['track_id'], ['track.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('clip_likes',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('clip_id', sa.Integer(), nullable=False),
-    sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['clip_id'], ['video_clips.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('user_id', 'clip_id', name='unique_clip_like')
-    )
     op.create_table('collaborator',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('track_id', sa.Integer(), nullable=False),
@@ -1634,21 +1512,28 @@ def upgrade():
     sa.ForeignKeyConstraint(['track_id'], ['track.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('distribution_analytics',
+    op.create_table('comment',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('distribution_id', sa.Integer(), nullable=False),
-    sa.Column('platform', sa.String(length=50), nullable=False),
-    sa.Column('territory', sa.String(length=10), nullable=True),
-    sa.Column('streams', sa.BigInteger(), nullable=True),
-    sa.Column('downloads', sa.BigInteger(), nullable=True),
-    sa.Column('revenue', sa.Numeric(precision=10, scale=4), nullable=True),
-    sa.Column('report_date', sa.Date(), nullable=False),
-    sa.Column('report_period', sa.String(length=20), nullable=True),
-    sa.Column('unique_listeners', sa.Integer(), nullable=True),
-    sa.Column('playlist_adds', sa.Integer(), nullable=True),
-    sa.Column('saves', sa.Integer(), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('content_id', sa.Integer(), nullable=False),
+    sa.Column('content_type', sa.String(length=50), nullable=False),
+    sa.Column('text', sa.Text(), nullable=False),
+    sa.Column('timestamp', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['distribution_id'], ['music_distributions.id'], ),
+    sa.Column('video_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('favorite',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('video_id', sa.Integer(), nullable=True),
+    sa.Column('content_id', sa.Integer(), nullable=True),
+    sa.Column('content_type', sa.String(length=50), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('listening_party_attendee',
@@ -1658,6 +1543,33 @@ def upgrade():
     sa.Column('payment_status', sa.String(length=50), nullable=True),
     sa.Column('joined_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['party_id'], ['listening_party.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('music_distribution',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('track_id', sa.Integer(), nullable=True),
+    sa.Column('album_id', sa.Integer(), nullable=True),
+    sa.Column('title', sa.String(length=200), nullable=False),
+    sa.Column('artist_name', sa.String(length=200), nullable=False),
+    sa.Column('release_date', sa.DateTime(), nullable=True),
+    sa.Column('upc', sa.String(length=50), nullable=True),
+    sa.Column('isrc', sa.String(length=50), nullable=True),
+    sa.Column('status', sa.String(length=50), nullable=True),
+    sa.Column('submission_date', sa.DateTime(), nullable=True),
+    sa.Column('live_date', sa.DateTime(), nullable=True),
+    sa.Column('platforms', sa.JSON(), nullable=True),
+    sa.Column('platform_links', sa.JSON(), nullable=True),
+    sa.Column('sonosuite_release_id', sa.String(length=100), nullable=True),
+    sa.Column('sonosuite_status', sa.String(length=50), nullable=True),
+    sa.Column('genre', sa.String(length=100), nullable=True),
+    sa.Column('language', sa.String(length=50), nullable=True),
+    sa.Column('cover_art_url', sa.String(length=500), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['album_id'], ['album.id'], ),
+    sa.ForeignKeyConstraint(['track_id'], ['track.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -1733,6 +1645,114 @@ def upgrade():
     sa.ForeignKeyConstraint(['track_id'], ['track.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('video_clips',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('channel_id', sa.Integer(), nullable=True),
+    sa.Column('source_video_id', sa.Integer(), nullable=True),
+    sa.Column('title', sa.String(length=255), nullable=False),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('video_url', sa.String(length=500), nullable=False),
+    sa.Column('thumbnail_url', sa.String(length=500), nullable=True),
+    sa.Column('start_time', sa.Integer(), nullable=True),
+    sa.Column('end_time', sa.Integer(), nullable=True),
+    sa.Column('duration', sa.Integer(), nullable=False),
+    sa.Column('content_type', sa.String(length=50), nullable=True),
+    sa.Column('views', sa.Integer(), nullable=True),
+    sa.Column('likes', sa.Integer(), nullable=True),
+    sa.Column('comments', sa.Integer(), nullable=True),
+    sa.Column('shares', sa.Integer(), nullable=True),
+    sa.Column('tags', sa.JSON(), nullable=True),
+    sa.Column('is_public', sa.Boolean(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('timeline_start', sa.Float(), nullable=True),
+    sa.Column('timeline_end', sa.Float(), nullable=True),
+    sa.Column('track_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['channel_id'], ['video_channels.id'], ),
+    sa.ForeignKeyConstraint(['source_video_id'], ['video.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('video_likes',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('video_id', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id', 'video_id', name='unique_user_video_like')
+    )
+    op.create_table('video_playlist_video',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('playlist_id', sa.Integer(), nullable=False),
+    sa.Column('video_id', sa.Integer(), nullable=False),
+    sa.ForeignKeyConstraint(['playlist_id'], ['video_playlist.id'], ),
+    sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('video_tags',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('video_id', sa.Integer(), nullable=False),
+    sa.Column('tag_name', sa.String(length=50), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('video_views',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('video_id', sa.Integer(), nullable=False),
+    sa.Column('ip_address', sa.String(length=45), nullable=True),
+    sa.Column('watch_time', sa.Integer(), nullable=True),
+    sa.Column('completed', sa.Boolean(), nullable=True),
+    sa.Column('viewed_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['video_id'], ['video.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('clip_likes',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('clip_id', sa.Integer(), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['clip_id'], ['video_clips.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id', 'clip_id', name='unique_clip_like')
+    )
+    op.create_table('distribution_analytics',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('distribution_id', sa.Integer(), nullable=False),
+    sa.Column('platform', sa.String(length=50), nullable=False),
+    sa.Column('date', sa.Date(), nullable=False),
+    sa.Column('streams', sa.Integer(), nullable=True),
+    sa.Column('downloads', sa.Integer(), nullable=True),
+    sa.Column('revenue', sa.Float(), nullable=True),
+    sa.Column('listeners', sa.Integer(), nullable=True),
+    sa.Column('country', sa.String(length=100), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['distribution_id'], ['music_distribution.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('distribution_submissions',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('distribution_id', sa.Integer(), nullable=False),
+    sa.Column('platform', sa.String(length=50), nullable=False),
+    sa.Column('status', sa.String(length=50), nullable=False),
+    sa.Column('submission_date', sa.DateTime(), nullable=True),
+    sa.Column('status_update_date', sa.DateTime(), nullable=True),
+    sa.Column('response_message', sa.Text(), nullable=True),
+    sa.Column('platform_release_id', sa.String(length=200), nullable=True),
+    sa.Column('platform_url', sa.String(length=500), nullable=True),
+    sa.Column('error_code', sa.String(length=50), nullable=True),
+    sa.Column('error_message', sa.Text(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['distribution_id'], ['music_distribution.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('video_effects',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('clip_id', sa.Integer(), nullable=False),
@@ -1754,6 +1774,14 @@ def upgrade():
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('video_effects')
+    op.drop_table('distribution_submissions')
+    op.drop_table('distribution_analytics')
+    op.drop_table('clip_likes')
+    op.drop_table('video_views')
+    op.drop_table('video_tags')
+    op.drop_table('video_playlist_video')
+    op.drop_table('video_likes')
+    op.drop_table('video_clips')
     op.drop_table('radio_track')
     op.drop_table('podcast_purchase')
     op.drop_table('podcast_episode_interaction')
@@ -1761,17 +1789,14 @@ def downgrade():
     op.drop_table('music_purchase')
     op.drop_table('music_interaction')
     op.drop_table('music_earnings')
+    op.drop_table('music_distribution')
     op.drop_table('listening_party_attendee')
-    op.drop_table('distribution_analytics')
+    op.drop_table('favorite')
+    op.drop_table('comment')
     op.drop_table('collaborator')
-    op.drop_table('clip_likes')
     op.drop_table('album_track')
     op.drop_table('vr_access_ticket')
-    op.drop_table('video_views')
-    op.drop_table('video_tags')
-    op.drop_table('video_playlist_video')
-    op.drop_table('video_likes')
-    op.drop_table('video_clips')
+    op.drop_table('video')
     op.drop_table('user_subscription')
     op.drop_table('user_podcast_follow')
     op.drop_table('track')
@@ -1795,7 +1820,6 @@ def downgrade():
     op.drop_table('playlist_audio_association')
     op.drop_table('order')
     op.drop_table('music_licensing')
-    op.drop_table('music_distributions')
     op.drop_table('music')
     op.drop_table('message')
     op.drop_table('match_participant')
@@ -1805,10 +1829,8 @@ def downgrade():
     op.drop_table('indie_station_track')
     op.drop_table('indie_station_follower')
     op.drop_table('group_members')
-    op.drop_table('favorite')
     op.drop_table('event_ticket')
     op.drop_table('distribution_submission')
-    op.drop_table('comment')
     op.drop_table('channel_subscriptions')
     op.drop_table('audio_effects')
     op.drop_table('archived_show')
@@ -1816,7 +1838,6 @@ def downgrade():
     op.drop_table('video_playlist')
     op.drop_table('video_chat_sessions')
     op.drop_table('video_channels')
-    op.drop_table('video')
     op.drop_table('user_settings')
     op.drop_table('user_presence')
     op.drop_table('user_podcast')

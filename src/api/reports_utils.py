@@ -1,6 +1,6 @@
 from datetime import datetime
 from collections import defaultdict
-from api.models import db, MusicInteraction  # Import db and MusicInteraction
+from src.api.models import db, MusicInteraction  # Import db and MusicInteraction
 
 def generate_monthly_report():
     # Aggregate the music usage data for the past month

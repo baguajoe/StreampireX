@@ -1,7 +1,7 @@
 # tasks.py
-from api.utils.revelator_api import submit_release_to_revelator
-from api.extensions import db
-from api.models import Release
+from src.api.utils.revelator_api import submit_release_to_revelator
+from src.api.extensions import db
+from src.api.models import Release
 
 
 def send_release_to_revelator(release_id, payload):

@@ -2,7 +2,7 @@
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app, session
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow,VideoLike
+from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike
 
 
 import json
@@ -23,13 +23,13 @@ from sqlalchemy import func, desc, or_, and_, asc, distinct
 from flask_cors import CORS, cross_origin
 from flask_apscheduler import APScheduler
 from sqlalchemy.orm.exc import NoResultFound
-from api.subscription_utils import get_user_plan, plan_required
-from api.revenue_split import calculate_split, calculate_ad_revenue
-from api.reports_utils import generate_monthly_report
-from api.utils.revelator_api import submit_release_to_revelator
+from src.api.subscription_utils import get_user_plan, plan_required
+from src.api.revenue_split import calculate_split, calculate_ad_revenue
+from src.api.reports_utils import generate_monthly_report
+from src.api.utils.revelator_api import submit_release_to_revelator
 from rq import Queue
 from redis import Redis
-from api.utils.tasks import send_release_to_revelator
+from src.api.utils.tasks import send_release_to_revelator
 from mutagen import File
 # Add this import at the top of your routes.py file
 from flask import Flask, request, jsonify, send_file, Response, redirect
@@ -51,7 +51,7 @@ import soundfile as sf
 from mutagen.mp3 import MP3  # Add this line for MP3 support
 from mutagen.mp4 import MP4  # Add this for MP4/M4A support
 from mutagen.wave import WAVE  # Add this for WAV support
-from api.cloudinary_setup import uploadFile
+from src.api.cloudinary_setup import uploadFile
 from functools import wraps
 
 from pedalboard import (
@@ -61,7 +61,7 @@ from pedalboard import (
     PeakFilter
 )
 
-from api.email_service import (
+from src.api.email_service import (
     send_order_fulfillment_notification, 
     send_subscription_notification,
     send_distribution_notification
@@ -72,7 +72,7 @@ from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
 # ✅ FIXED: Only import the functions you need, not the SocketIO class
 from flask_socketio import join_room, emit, leave_room
-from api.cache import cache  # Assuming Flask-Caching is set up
+from src.api.cache import cache  # Assuming Flask-Caching is set up
 from apscheduler.schedulers.background import BackgroundScheduler
 scheduler = APScheduler()
 
@@ -6367,7 +6367,7 @@ def enable_ad_revenue():
     db.session.commit()
     return jsonify({"message": "📺 Ad revenue enabled!"}), 200
 
-from api.reports_utils import generate_monthly_report
+
 
 @api.route('/generate-report', methods=['GET'])
 @jwt_required()
@@ -14400,26 +14400,24 @@ def get_sales_by_date():
         return jsonify({"error": f"Failed to fetch sales by date: {str(e)}"}), 500
 
 
-from api.models import PricingPlan, UserSubscription, User, seed_video_editing_plans
-
 
 # ============ ADMIN VIDEO EDITOR ROUTES ============
 
-@api.route('/admin/video-editor/plans/seed', methods=['POST'])
-@jwt_required()  # Add admin authentication
-def seed_video_editor_pricing_plans():
-    """Initialize or update video editor pricing plans"""
-    try:
-        success = seed_video_editing_plans()
-        if success:
-            return jsonify({
-                'message': 'Video editor pricing plans seeded successfully',
-                'plans': [plan.serialize() for plan in PricingPlan.query.all()]
-            }), 200
-        else:
-            return jsonify({'error': 'Failed to seed video editor plans'}), 500
-    except Exception as e:
-        return jsonify({'error': f'Video editor seeding failed: {str(e)}'}), 500
+# @api.route('/admin/video-editor/plans/seed', methods=['POST'])
+# @jwt_required()  # Add admin authentication
+# def seed_video_editor_pricing_plans():
+#     """Initialize or update video editor pricing plans"""
+#     try:
+#         success = seed_video_editing_plans()
+#         if success:
+#             return jsonify({
+#                 'message': 'Video editor pricing plans seeded successfully',
+#                 'plans': [plan.serialize() for plan in PricingPlan.query.all()]
+#             }), 200
+#         else:
+#             return jsonify({'error': 'Failed to seed video editor plans'}), 500
+#     except Exception as e:
+#         return jsonify({'error': f'Video editor seeding failed: {str(e)}'}), 500
 
 @api.route('/admin/video-editor/plans', methods=['GET'])
 @jwt_required()  # Add admin authentication  
