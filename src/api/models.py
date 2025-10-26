@@ -4,16 +4,10 @@ from flask_jwt_extended import create_access_token
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import JSON
-from api.extensions import db
+from src.api.extensions import db
 
 import json
 
-# Global configuration to allow table redefinition
-from sqlalchemy import MetaData
-
-# This makes all tables use extend_existing by default
-metadata = MetaData()
-db = SQLAlchemy(metadata=metadata)
 
 # Set default for all tables
 import sqlalchemy as sa
@@ -2391,7 +2385,8 @@ class MusicDistribution(db.Model):
     user = db.relationship('User', backref='music_distributions')
     track = db.relationship('Track', backref='distributions')
     album = db.relationship('Album', backref='distributions')
-    analytics = db.relationship('DistributionAnalytics', back_populates='distribution', cascade='all, delete-orphan')
+    # CORRECT:
+    analytics = db.relationship('DistributionAnalytics', backref='distribution', cascade='all, delete-orphan')
     
     def serialize(self):
         return {
@@ -2417,47 +2412,6 @@ class MusicDistribution(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
 
-
-class DistributionAnalytics(db.Model):
-    """Analytics for distributed music across platforms"""
-    __tablename__ = 'distribution_analytics'
-    __table_args__ = {'extend_existing': True}
-    
-    id = db.Column(db.Integer, primary_key=True)
-    distribution_id = db.Column(db.Integer, db.ForeignKey('music_distribution.id'), nullable=False)
-    
-    # Platform-specific analytics
-    platform = db.Column(db.String(50), nullable=False)  # spotify, apple_music, etc.
-    date = db.Column(db.Date, nullable=False)
-    
-    # Metrics
-    streams = db.Column(db.Integer, default=0)
-    downloads = db.Column(db.Integer, default=0)
-    revenue = db.Column(db.Float, default=0.0)
-    listeners = db.Column(db.Integer, default=0)
-    
-    # Geographic data
-    country = db.Column(db.String(100), nullable=True)
-    
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    distribution = db.relationship('MusicDistribution', back_populates='analytics')
-    
-    def serialize(self):
-        return {
-            "id": self.id,
-            "distribution_id": self.distribution_id,
-            "platform": self.platform,
-            "date": self.date.isoformat() if self.date else None,
-            "streams": self.streams,
-            "downloads": self.downloads,
-            "revenue": self.revenue,
-            "listeners": self.listeners,
-            "country": self.country,
-            "created_at": self.created_at.isoformat() if self.created_at else None
-        }
 
 
 class DistributionSubmission(db.Model):
@@ -3772,54 +3726,45 @@ def reorder_inner_circle(self, new_order):
     db.session.commit()
 
 class DistributionAnalytics(db.Model):
-    __table_args__ = {'extend_existing': True}
-    """Store analytics data from distribution services"""
+    """Analytics for distributed music across platforms"""
     __tablename__ = 'distribution_analytics'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
-    distribution_id = db.Column(db.Integer, db.ForeignKey('music_distributions.id'), nullable=False)
+    distribution_id = db.Column(db.Integer, db.ForeignKey('music_distribution.id'), nullable=False)
     
-    # Platform-specific data
-    platform = db.Column(db.String(50), nullable=False)  # spotify, apple_music, etc.
-    territory = db.Column(db.String(10))  # US, UK, etc.
+    # Platform-specific analytics
+    platform = db.Column(db.String(50), nullable=False)
+    date = db.Column(db.Date, nullable=False)
     
     # Metrics
-    streams = db.Column(db.BigInteger, default=0)
-    downloads = db.Column(db.BigInteger, default=0)
-    revenue = db.Column(db.Numeric(10, 4), default=0.0000)
+    streams = db.Column(db.Integer, default=0)
+    downloads = db.Column(db.Integer, default=0)
+    revenue = db.Column(db.Float, default=0.0)
+    listeners = db.Column(db.Integer, default=0)
     
-    # Time period
-    report_date = db.Column(db.Date, nullable=False)
-    report_period = db.Column(db.String(20), default='daily')  # daily, weekly, monthly
-    
-    # Additional metrics
-    unique_listeners = db.Column(db.Integer, default=0)
-    playlist_adds = db.Column(db.Integer, default=0)
-    saves = db.Column(db.Integer, default=0)
+    # Geographic data
+    country = db.Column(db.String(100), nullable=True)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationships
-    distribution = db.relationship('MusicDistribution', backref=db.backref('analytics', lazy=True))
+    # NO relationship definition here - it's handled by backref in MusicDistribution
     
     def serialize(self):
         return {
             "id": self.id,
             "distribution_id": self.distribution_id,
             "platform": self.platform,
-            "territory": self.territory,
-            "streams": self.streams or 0,
-            "downloads": self.downloads or 0,
-            "revenue": float(self.revenue) if self.revenue else 0.0,
-            "report_date": self.report_date.isoformat() if self.report_date else None,
-            "report_period": self.report_period,
-            "unique_listeners": self.unique_listeners or 0,
-            "playlist_adds": self.playlist_adds or 0,
-            "saves": self.saves or 0,
+            "date": self.date.isoformat() if self.date else None,
+            "streams": self.streams,
+            "downloads": self.downloads,
+            "revenue": self.revenue,
+            "listeners": self.listeners,
+            "country": self.country,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
-
-
+    
 # ENHANCE YOUR EXISTING Audio MODEL by adding these fields if not already present:
 """
 Add these fields to your existing Audio model if they don't exist:

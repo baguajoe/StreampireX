@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from .utils import calculate_split  # Import the calculate_split function from utils
-from api.models import AdRevenue, db  # Ensure you import the AdRevenue model and db session
+from src.api.models import AdRevenue, db  # Ensure you import the AdRevenue model and db session
 
 def calculate_ad_revenue(amount, creator_id):
     revenue_type = "ad_revenue"  # This is for ad revenue
