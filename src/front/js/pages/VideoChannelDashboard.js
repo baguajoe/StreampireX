@@ -98,12 +98,12 @@ const VideoChannelDashboard = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setVideos(data);
+        setVideos(data.videos);
 
         // Calculate stats from videos
-        const totalViews = data.reduce((sum, video) => sum + (video.views || 0), 0);
-        const totalLikes = data.reduce((sum, video) => sum + (video.likes || 0), 0);
-        const totalComments = data.reduce((sum, video) => sum + (video.comments_count || 0), 0);
+        const totalViews = data.videos.reduce((sum, video) => sum + (video.views || 0), 0);
+        const totalLikes = data.videos.reduce((sum, video) => sum + (video.likes || 0), 0);
+        const totalComments = data.videos.reduce((sum, video) => sum + (video.comments_count || 0), 0);
 
         setChannelStats(prev => ({
           ...prev,
@@ -112,6 +112,7 @@ const VideoChannelDashboard = () => {
           totalComments,
           totalVideos: data.length
         }));
+        setLoading(false)
       }
     } catch (error) {
       console.error('Error fetching videos:', error);
