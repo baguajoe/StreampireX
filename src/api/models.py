@@ -2150,9 +2150,72 @@ class Track(db.Model):
     artist_name = db.Column(db.String(150), nullable=True)
     genre = db.Column(db.String(100), nullable=True)
     is_explicit = db.Column(db.Boolean, default=False)
-    lyrics = db.Column(db.Text, nullable=True)  # ✅ Add this line
+    lyrics = db.Column(db.Text, nullable=True)
     isrc = db.Column(db.String(50), nullable=True)
     album_id = db.Column(db.Integer, db.ForeignKey('album.id'), nullable=True)
+    
+    # Recommended additions
+    duration = db.Column(db.String(10), nullable=True)
+    plays_count = db.Column(db.Integer, default=0)
+    likes_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    status = db.Column(db.String(20), default='active')
+    
+    # Relationships
+    user = db.relationship('User', backref='tracks')
+    
+    
+    def serialize(self):
+        """Serialize Track object to dictionary"""
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'title': self.title,
+            'file_url': self.file_url,
+            'artist_name': self.artist_name if self.artist_name else (self.user.username if self.user else None),
+            'genre': self.genre,
+            'is_explicit': self.is_explicit,
+            'lyrics': self.lyrics,
+            'isrc': self.isrc,
+            'album_id': self.album_id,
+            'album_name': self.album.title if self.album else None,
+            'album_artwork': self.album.cover_image_url if self.album and hasattr(self.album, 'cover_image_url') else None,
+            'duration': self.duration if hasattr(self, 'duration') else '0:00',
+            'plays_count': self.plays_count if hasattr(self, 'plays_count') else 0,
+            'likes_count': self.likes_count if hasattr(self, 'likes_count') else 0,
+            'created_at': self.created_at.isoformat() if hasattr(self, 'created_at') and self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if hasattr(self, 'updated_at') and self.updated_at else None,
+            'status': self.status if hasattr(self, 'status') else 'active'
+        }
+    
+    def serialize_minimal(self):
+        """Lightweight serialization for lists/previews"""
+        return {
+            'id': self.id,
+            'title': self.title,
+            'artist_name': self.artist_name if self.artist_name else (self.user.username if self.user else None),
+            'file_url': self.file_url,
+            'duration': self.duration if hasattr(self, 'duration') else '0:00',
+            'plays_count': self.plays_count if hasattr(self, 'plays_count') else 0,
+            'album_artwork': self.album.cover_image_url if self.album and hasattr(self.album, 'cover_image_url') else None
+        }
+    
+    def serialize_for_player(self):
+        """Serialization optimized for music player"""
+        return {
+            'id': self.id,
+            'title': self.title,
+            'artist': self.artist_name if self.artist_name else (self.user.username if self.user else 'Unknown Artist'),
+            'audio_url': self.file_url,
+            'artwork': self.album.cover_image_url if self.album and hasattr(self.album, 'cover_image_url') else '/default-track-artwork.jpg',
+            'duration': self.duration if hasattr(self, 'duration') else '0:00',
+            'is_explicit': self.is_explicit,
+            'genre': self.genre
+        }
+    
+    def __repr__(self):
+        return f'<Track {self.id}: {self.title} by {self.artist_name}>'
 
 
 

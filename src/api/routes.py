@@ -13699,39 +13699,22 @@ def get_artist_tracks():
     try:
         user_id = get_jwt_identity()
         
-        # Assuming you have a Track model
-        # Replace this with your actual Track model query
-        tracks = []  # Track.query.filter_by(artist_id=user_id).all()
+        # Query tracks for the current artist
+        tracks = Track.query.filter_by(user_id=user_id).order_by(
+            Track.created_at.desc() if hasattr(Track, 'created_at') else Track.id.desc()
+        ).all()
         
-        # Mock data for now - replace with real data
-        mock_tracks = [
-            {
-                "id": 1,
-                "title": "Sample Track 1",
-                "artist_name": "Artist Name",
-                "album": "Sample Album",
-                "artwork": None,
-                "plays": 1500,
-                "likes": 89,
-                "duration": "3:24",
-                "created_at": "2024-01-15T10:30:00Z"
-            },
-            {
-                "id": 2,
-                "title": "Sample Track 2", 
-                "artist_name": "Artist Name",
-                "album": "Sample Album",
-                "artwork": None,
-                "plays": 2300,
-                "likes": 156,
-                "duration": "4:12",
-                "created_at": "2024-01-10T14:20:00Z"
-            }
-        ]
+        # If no tracks found, return empty array
+        if not tracks:
+            return jsonify([]), 200
         
-        return jsonify(mock_tracks), 200
+        # Serialize tracks using the model method
+        tracks_data = [track.serialize() for track in tracks]
+        
+        return jsonify(tracks_data), 200
         
     except Exception as e:
+        print(f"Error fetching artist tracks: {str(e)}")
         return jsonify({
             "error": f"Failed to fetch tracks: {str(e)}"
         }), 500
