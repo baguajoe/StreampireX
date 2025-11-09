@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useContext, useRef } from "react";
 import { Context } from "../store/appContext";
 import { Link, useNavigate } from "react-router-dom";
-import { 
-  getVideoRoomStatus, 
-  updateUserPresence, 
+import {
+  getVideoRoomStatus,
+  updateUserPresence,
   getCommunicationPreferences,
   updateCommunicationPreferences,
   getGamerProfile,
@@ -20,7 +20,15 @@ const GamerProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-  
+
+  // Steam Integration States
+  const [steamConnected, setSteamConnected] = useState(false);
+  const [steamData, setSteamData] = useState(null);
+  const [steamId, setSteamId] = useState('');
+  const [showSteamModal, setShowSteamModal] = useState(false);
+  const [steamLoading, setSteamLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
   // Essential Information States
   const [gamertag, setGamertag] = useState("");
   const [platforms, setPlatforms] = useState({
@@ -35,19 +43,19 @@ const GamerProfilePage = () => {
   const [gamingSchedule, setGamingSchedule] = useState("");
   const [skillLevel, setSkillLevel] = useState("intermediate");
   const [onlineStatus, setOnlineStatus] = useState("online");
-  
+
   // Social & Team Elements
   const [lookingFor, setLookingFor] = useState([]);
   const [communicationPrefs, setCommunicationPrefs] = useState([]);
   const [ageRange, setAgeRange] = useState("");
   const [timezone, setTimezone] = useState("");
   const [region, setRegion] = useState("");
-  
+
   // Gaming Preferences
   const [favoriteGenres, setFavoriteGenres] = useState([]);
   const [playstyle, setPlaystyle] = useState("");
   const [gameModes, setGameModes] = useState([]);
-  
+
   // Optional Elements
   const [setupDetails, setSetupDetails] = useState({
     headset: "",
@@ -58,14 +66,14 @@ const GamerProfilePage = () => {
   const [streamingPlatform, setStreamingPlatform] = useState("");
   const [languages, setLanguages] = useState([]);
   const [gamerBio, setGamerBio] = useState("");
-  
+
   // Video Chat & Team Room States
   const [isInVideoCall, setIsInVideoCall] = useState(false);
   const [currentRoomId, setCurrentRoomId] = useState("");
   const [teamRoomAvailable, setTeamRoomAvailable] = useState(false);
   const [squadMembersOnline, setSquadMembersOnline] = useState([]);
   const [videoRoomStatus, setVideoRoomStatus] = useState(null);
-  
+
   // Additional gaming stats
   const [gamingStats, setGamingStats] = useState({
     hoursPlayed: 1250,
@@ -82,7 +90,8 @@ const GamerProfilePage = () => {
       loadGamerProfileFromBackend();
       loadVideoRoomStatus();
       loadCommunicationPreferences();
-      
+      loadSteamData();
+
       if (store.user?.squad_id) {
         loadSquadMembersPresence();
       }
@@ -93,7 +102,7 @@ const GamerProfilePage = () => {
     try {
       const profileData = await getGamerProfile();
       setProfile(profileData);
-      
+
       if (profileData) {
         setGamertag(profileData.gamertag || "");
         setPlatforms(profileData.gaming_platforms || platforms);
@@ -182,7 +191,6 @@ const GamerProfilePage = () => {
       setGamerBio(data.gamerBio || "");
       setGamingStats(data.gamingStats || gamingStats);
     } else {
-      // Set mock profile data if no saved data exists
       setProfile({
         id: userId,
         username: store.user?.username || "Player",
@@ -194,9 +202,114 @@ const GamerProfilePage = () => {
     }
   };
 
+  // Steam Integration Functions
+  const loadSteamData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/steam/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSteamConnected(true);
+        setSteamData(data);
+
+        if (data.profile && !gamertag) {
+          setGamertag(data.profile.persona_name);
+        }
+      } else {
+        setSteamConnected(false);
+        setSteamData(null);
+      }
+    } catch (error) {
+      console.error('Error loading Steam data:', error);
+      setSteamConnected(false);
+    }
+  };
+
+  const connectSteamAccount = async () => {
+    if (!steamId || steamId.trim() === '') {
+      alert('Please enter your Steam ID');
+      return;
+    }
+
+    try {
+      setSteamLoading(true);
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/steam/connect`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ steam_id: steamId.trim() })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('Steam account connected successfully!');
+        setShowSteamModal(false);
+        setSteamId('');
+        await loadSteamData();
+      } else {
+        alert(`Error: ${data.error || 'Failed to connect Steam account'}`);
+      }
+    } catch (error) {
+      console.error('Error connecting Steam:', error);
+      alert('Failed to connect Steam account. Please try again.');
+    } finally {
+      setSteamLoading(false);
+    }
+  };
+
+  const disconnectSteam = async () => {
+    if (!window.confirm('Are you sure you want to disconnect your Steam account?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/steam/disconnect`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        alert('Steam account disconnected');
+        setSteamConnected(false);
+        setSteamData(null);
+      } else {
+        alert('Failed to disconnect Steam account');
+      }
+    } catch (error) {
+      console.error('Error disconnecting Steam:', error);
+      alert('Failed to disconnect Steam account');
+    }
+  };
+
+  const syncSteamData = async () => {
+    try {
+      setSyncing(true);
+      await loadSteamData();
+      alert('Steam data refreshed!');
+    } catch (error) {
+      console.error('Error syncing Steam:', error);
+      alert('Failed to refresh Steam data');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const checkTeamRoomAvailability = () => {
     setTeamRoomAvailable(true);
-    
+
     if (store.user?.squad_id) {
       setCurrentRoomId(`squad-${store.user.squad_id}`);
     } else {
@@ -260,25 +373,24 @@ const GamerProfilePage = () => {
 
     try {
       await updateGamerProfile(userId, gamerProfileData);
-      
+
       if (communicationPrefs.length > 0) {
         await updateCommunicationPreferences({
           preferred_communication: communicationPrefs
         });
       }
-      
+
       await updateUserPresence({
         online_status: onlineStatus,
         current_game: currentGames[0] || null
       });
-      
+
       alert("Profile saved successfully!");
       setIsEditing(false);
       loadVideoRoomStatus();
     } catch (error) {
       console.error("Error saving gamer profile:", error);
-      
-      // Fallback to localStorage
+
       const localData = {
         gamertag, platforms: platforms, currentGames, gamingSchedule, skillLevel, onlineStatus,
         lookingFor, communicationPrefs, ageRange, timezone, region,
@@ -330,15 +442,14 @@ const GamerProfilePage = () => {
 
   return (
     <div className="gamer-profile">
-      {/* Profile Mode Toggle */}
       <div className="profile-mode-toggle">
-        <button 
+        <button
           className={`mode-toggle-btn ${!isGamerMode ? 'active' : ''}`}
           onClick={() => setIsGamerMode(false)}
         >
           Regular Profile
         </button>
-        <button 
+        <button
           className={`mode-toggle-btn ${isGamerMode ? 'active' : ''}`}
           onClick={() => setIsGamerMode(true)}
         >
@@ -354,9 +465,7 @@ const GamerProfilePage = () => {
         </div>
       ) : (
         <>
-          {/* Header Section */}
           <div className="profile-header-section">
-            {/* Gamer Cover Photo */}
             <div className="cover-photo-container gaming-cover">
               <div className="gaming-overlay">
                 <h1>GAMER PROFILE</h1>
@@ -364,7 +473,6 @@ const GamerProfilePage = () => {
               </div>
             </div>
 
-            {/* Gamer Avatar and Basic Info */}
             <div className="profile-avatar-toggle-horizontal">
               <div className="profile-avatar-section">
                 <img
@@ -392,14 +500,14 @@ const GamerProfilePage = () => {
               </div>
 
               <div className="profile-quick-actions">
-                <button 
+                <button
                   className={`quick-action-btn ${isEditing ? 'active' : ''}`}
                   onClick={() => setIsEditing(!isEditing)}
                 >
                   {isEditing ? 'View' : 'Edit'}
                 </button>
                 <button className="quick-action-btn">Message</button>
-                <button 
+                <button
                   className="quick-action-btn primary"
                   onClick={handleStartVideoChat}
                 >
@@ -409,11 +517,8 @@ const GamerProfilePage = () => {
             </div>
           </div>
 
-          {/* Two Column Layout */}
           <div className="profile-main-content">
-            {/* LEFT SIDEBAR - Gaming Quick Info */}
             <div className="profile-sidebar">
-              {/* Video Chat & Team Room Section */}
               <div className="sidebar-section">
                 <h4>Video Chat & Rooms</h4>
                 <div className="video-chat-quick-access">
@@ -424,9 +529,9 @@ const GamerProfilePage = () => {
                       <small>{squadMembersOnline.filter(m => m.online_status === 'online').length} squad members online</small>
                     )}
                   </div>
-                  
+
                   <div className="chat-actions">
-                    <button 
+                    <button
                       className="chat-room-btn team-room"
                       onClick={handleJoinTeamRoom}
                       title="Join your team's video chat room"
@@ -438,8 +543,8 @@ const GamerProfilePage = () => {
                         <span className="room-active-indicator">Active</span>
                       )}
                     </button>
-                    
-                    <button 
+
+                    <button
                       className="chat-room-btn gamer-chat"
                       onClick={handleJoinGamerChatroom}
                       title="Join general gamer chatroom"
@@ -447,8 +552,8 @@ const GamerProfilePage = () => {
                       <span className="btn-icon">💬</span>
                       <span>Gamer Chat</span>
                     </button>
-                    
-                    <button 
+
+                    <button
                       className="chat-room-btn video-call primary"
                       onClick={handleStartVideoChat}
                       title="Start video call in team room"
@@ -457,7 +562,7 @@ const GamerProfilePage = () => {
                       <span>Video Call</span>
                     </button>
                   </div>
-                  
+
                   {currentRoomId && (
                     <div className="room-info">
                       <small>Room ID: {currentRoomId}</small>
@@ -466,7 +571,6 @@ const GamerProfilePage = () => {
                 </div>
               </div>
 
-              {/* Gaming Stats */}
               <div className="sidebar-section">
                 <h4>Gaming Stats</h4>
                 <div className="gamer-stats-sidebar">
@@ -491,7 +595,6 @@ const GamerProfilePage = () => {
                 </div>
               </div>
 
-              {/* Current Gaming Status */}
               <div className="sidebar-section">
                 <h4>Gaming Status</h4>
                 <div className="current-gaming-status">
@@ -506,8 +609,8 @@ const GamerProfilePage = () => {
                   )}
                   {isEditing && (
                     <div style={{ marginTop: '12px' }}>
-                      <select 
-                        value={onlineStatus} 
+                      <select
+                        value={onlineStatus}
                         onChange={(e) => setOnlineStatus(e.target.value)}
                         style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #4a9eff', background: 'rgba(255,255,255,0.1)', color: 'white' }}
                       >
@@ -520,7 +623,6 @@ const GamerProfilePage = () => {
                 </div>
               </div>
 
-              {/* Communication Preferences */}
               <div className="sidebar-section">
                 <h4>Communication</h4>
                 <div className="communication-quick-view">
@@ -545,7 +647,6 @@ const GamerProfilePage = () => {
                 </div>
               </div>
 
-              {/* Platforms */}
               <div className="sidebar-section">
                 <h4>Platforms</h4>
                 <div className="platforms-quick-view">
@@ -574,7 +675,6 @@ const GamerProfilePage = () => {
                 </div>
               </div>
 
-              {/* Skill Level & Playstyle */}
               <div className="sidebar-section">
                 <h4>Player Info</h4>
                 <div className="player-info-quick">
@@ -593,7 +693,6 @@ const GamerProfilePage = () => {
                 </div>
               </div>
 
-              {/* Gaming Schedule */}
               <div className="sidebar-section">
                 <h4>Schedule</h4>
                 <div className="gaming-schedule-quick">
@@ -606,16 +705,16 @@ const GamerProfilePage = () => {
                     </>
                   ) : (
                     <>
-                      <textarea 
-                        rows={3} 
-                        value={gamingSchedule} 
+                      <textarea
+                        rows={3}
+                        value={gamingSchedule}
                         onChange={(e) => setGamingSchedule(e.target.value)}
                         placeholder="When are you usually online? (e.g., Weekdays 7-10 PM EST)"
                         style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #4a9eff', background: 'rgba(255,255,255,0.1)', color: 'white', marginBottom: '8px' }}
                       />
-                      <input 
-                        type="text" 
-                        placeholder="Timezone (e.g., EST, PST, GMT)" 
+                      <input
+                        type="text"
+                        placeholder="Timezone (e.g., EST, PST, GMT)"
                         value={timezone}
                         onChange={(e) => setTimezone(e.target.value)}
                         style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #4a9eff', background: 'rgba(255,255,255,0.1)', color: 'white' }}
@@ -624,11 +723,119 @@ const GamerProfilePage = () => {
                   )}
                 </div>
               </div>
+
+              <div className="sidebar-section">
+                <h4>🎮 Steam Integration</h4>
+                {steamConnected && steamData ? (
+                  <div className="steam-connected">
+                    <div className="steam-profile">
+                      {steamData.profile && (
+                        <>
+                          <img
+                            src={steamData.profile.avatar_url || '/default-avatar.jpg'}
+                            alt="Steam Avatar"
+                            className="steam-avatar"
+                            onError={(e) => e.target.src = '/default-avatar.jpg'}
+                          />
+                          <div className="steam-info">
+                            <p className="steam-username"><strong>{steamData.profile.persona_name}</strong></p>
+                            <p className="steam-status">
+                              {steamData.profile.game_extra_info
+                                ? `🎮 ${steamData.profile.game_extra_info}`
+                                : steamData.profile.online_status || 'offline'}
+                            </p>
+                            {steamData.profile.location && (
+                              <p className="steam-location">📍 {steamData.profile.location}</p>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {steamData.profile?.games_owned !== undefined && (
+                      <div className="steam-stats">
+                        <div className="stat-item">
+                          <span className="stat-label">Games</span>
+                          <span className="stat-value">{steamData.profile.games_owned}</span>
+                        </div>
+                        <div className="stat-item">
+                          <span className="stat-label">Hours</span>
+                          <span className="stat-value">{steamData.profile.total_hours}h</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {steamData.profile?.top_games && steamData.profile.top_games.length > 0 && (
+                      <div className="steam-top-games">
+                        <h5>Top Games</h5>
+                        <ul>
+                          {steamData.profile.top_games.slice(0, 3).map((game, idx) => (
+                            <li key={idx}>
+                              <span className="game-name">{game.name}</span>
+                              <span className="game-hours">{game.hours}h</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {steamData.profile?.recently_played && steamData.profile.recently_played.length > 0 && (
+                      <div className="steam-recent-games">
+                        <h5>Recently Played</h5>
+                        <ul>
+                          {steamData.profile.recently_played.slice(0, 3).map((game, idx) => (
+                            <li key={idx}>
+                              <span className="game-name">{game.name}</span>
+                              <span className="game-hours">{game.hours_2weeks}h</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="steam-actions">
+                      <button
+                        onClick={syncSteamData}
+                        disabled={syncing}
+                        className="btn-steam-sync"
+                      >
+                        {syncing ? '⏳ Refreshing...' : '🔄 Refresh'}
+                      </button>
+
+                      {steamData.profile?.profile_url && (
+                        <a
+                          href={steamData.profile.profile_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-steam-profile"
+                        >
+                          View Steam Profile
+                        </a>
+                      )}
+
+                      <button
+                        onClick={disconnectSteam}
+                        className="btn-steam-disconnect"
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="steam-not-connected">
+                    <p>Connect your Steam account to display your gaming stats!</p>
+                    <button
+                      onClick={() => setShowSteamModal(true)}
+                      className="btn-connect-steam"
+                    >
+                      🎮 Connect Steam
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* RIGHT CONTENT AREA - Detailed Gaming Info */}
             <div className="profile-content-area">
-              {/* Content Tabs */}
               <div className="content-tabs-main">
                 <button
                   className={`content-tab-main ${activeTab === 'overview' ? 'active' : ''}`}
@@ -656,10 +863,8 @@ const GamerProfilePage = () => {
                 </button>
               </div>
 
-              {/* Tab Content */}
               {activeTab === 'overview' && (
                 <div className="tab-content">
-                  {/* Gamer Bio */}
                   <div className="gaming-card">
                     <h3>About {gamertag || 'Gamer'}</h3>
                     <div className="info-section">
@@ -667,9 +872,9 @@ const GamerProfilePage = () => {
                       {!isEditing ? (
                         <p>{gamerBio || "Share your gaming story..."}</p>
                       ) : (
-                        <textarea 
-                          rows={4} 
-                          value={gamerBio} 
+                        <textarea
+                          rows={4}
+                          value={gamerBio}
                           onChange={(e) => setGamerBio(e.target.value)}
                           placeholder="Tell other gamers about yourself..."
                         />
@@ -677,7 +882,6 @@ const GamerProfilePage = () => {
                     </div>
                   </div>
 
-                  {/* Current Games */}
                   <div className="gaming-card">
                     <h3>Current Games</h3>
                     <div className="games-list">
@@ -692,9 +896,9 @@ const GamerProfilePage = () => {
                     </div>
                     {isEditing && (
                       <div className="add-game">
-                        <input 
-                          type="text" 
-                          value={newGame} 
+                        <input
+                          type="text"
+                          value={newGame}
                           onChange={(e) => setNewGame(e.target.value)}
                           placeholder="Add a game..."
                           onKeyPress={(e) => {
@@ -712,7 +916,6 @@ const GamerProfilePage = () => {
                     )}
                   </div>
 
-                  {/* Essential Info */}
                   <div className="gaming-card">
                     <h3>Essential Info</h3>
                     <div className="info-section">
@@ -720,15 +923,15 @@ const GamerProfilePage = () => {
                       {!isEditing ? (
                         <p>{gamertag || "Not set"}</p>
                       ) : (
-                        <input 
-                          type="text" 
-                          value={gamertag} 
+                        <input
+                          type="text"
+                          value={gamertag}
                           onChange={(e) => setGamertag(e.target.value)}
                           placeholder="Your main gaming identity"
                         />
                       )}
                     </div>
-                    
+
                     <div className="info-section">
                       <label>Skill Level:</label>
                       {!isEditing ? (
@@ -749,15 +952,14 @@ const GamerProfilePage = () => {
 
               {activeTab === 'games' && (
                 <div className="tab-content">
-                  {/* Gaming Preferences */}
                   <div className="gaming-card">
                     <h3>Gaming Preferences</h3>
-                    
+
                     <div className="info-section">
                       <label>Favorite Genres:</label>
                       <div className="tag-grid">
                         {['FPS', 'RPG', 'Strategy', 'Sports', 'Racing', 'Puzzle', 'Adventure', 'Fighting'].map(genre => (
-                          <button 
+                          <button
                             key={genre}
                             className={`tag-btn ${favoriteGenres.includes(genre) ? 'active' : ''}`}
                             onClick={() => isEditing && toggleArrayItem(genre, favoriteGenres, setFavoriteGenres)}
@@ -789,7 +991,7 @@ const GamerProfilePage = () => {
                       <label>Game Modes:</label>
                       <div className="tag-grid">
                         {['Solo', 'Co-op', 'PvP', 'PvE', 'Team', 'Battle Royale'].map(mode => (
-                          <button 
+                          <button
                             key={mode}
                             className={`tag-btn ${gameModes.includes(mode) ? 'active' : ''}`}
                             onClick={() => isEditing && toggleArrayItem(mode, gameModes, setGameModes)}
@@ -802,7 +1004,6 @@ const GamerProfilePage = () => {
                     </div>
                   </div>
 
-                  {/* Platform Details */}
                   <div className="gaming-card">
                     <h3>Platforms</h3>
                     {!isEditing ? (
@@ -815,10 +1016,10 @@ const GamerProfilePage = () => {
                       <div className="platform-checkboxes">
                         {Object.entries(platforms).map(([platform, enabled]) => (
                           <label key={platform} className="platform-checkbox">
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               checked={enabled}
-                              onChange={(e) => setPlatforms({...platforms, [platform]: e.target.checked})}
+                              onChange={(e) => setPlatforms({ ...platforms, [platform]: e.target.checked })}
                             />
                             {platform.charAt(0).toUpperCase() + platform.slice(1)}
                           </label>
@@ -831,10 +1032,9 @@ const GamerProfilePage = () => {
 
               {activeTab === 'social' && (
                 <div className="tab-content">
-                  {/* Video Chat Integration */}
                   <div className="gaming-card">
                     <h3>Video Chat & Team Rooms</h3>
-                    
+
                     <div className="info-section">
                       <label>Quick Access:</label>
                       <div className="video-chat-integration">
@@ -849,7 +1049,7 @@ const GamerProfilePage = () => {
                               <small>Squad ID: {profile.squad_id}</small>
                             )}
                           </div>
-                          
+
                           <div className="chat-room-option">
                             <h4>Gamer Chatroom</h4>
                             <p>Connect with other gamers in the general community chat room.</p>
@@ -857,7 +1057,7 @@ const GamerProfilePage = () => {
                               Join Gamer Chat
                             </button>
                           </div>
-                          
+
                           <div className="chat-room-option">
                             <h4>Video Call</h4>
                             <p>Start an instant video call with your team or friends.</p>
@@ -870,15 +1070,14 @@ const GamerProfilePage = () => {
                     </div>
                   </div>
 
-                  {/* Social & Team Preferences */}
                   <div className="gaming-card">
                     <h3>Social & Team</h3>
-                    
+
                     <div className="info-section">
                       <label>Looking For:</label>
                       <div className="tag-grid">
                         {['Casual Friends', 'Competitive Teammates', 'Mentors', 'Coaching', 'Just Fun'].map(option => (
-                          <button 
+                          <button
                             key={option}
                             className={`tag-btn ${lookingFor.includes(option) ? 'active' : ''}`}
                             onClick={() => isEditing && toggleArrayItem(option, lookingFor, setLookingFor)}
@@ -894,7 +1093,7 @@ const GamerProfilePage = () => {
                       <label>Communication:</label>
                       <div className="tag-grid">
                         {['Voice Chat', 'Text Only', 'Discord', 'In-game Chat', 'Video Chat'].map(option => (
-                          <button 
+                          <button
                             key={option}
                             className={`tag-btn ${communicationPrefs.includes(option) ? 'active' : ''}`}
                             onClick={() => isEditing && toggleArrayItem(option, communicationPrefs, setCommunicationPrefs)}
@@ -927,9 +1126,9 @@ const GamerProfilePage = () => {
                       {!isEditing ? (
                         <p>{region || "Not set"}</p>
                       ) : (
-                        <input 
-                          type="text" 
-                          placeholder="Region (e.g., North America, EU West)" 
+                        <input
+                          type="text"
+                          placeholder="Region (e.g., North America, EU West)"
                           value={region}
                           onChange={(e) => setRegion(e.target.value)}
                         />
@@ -941,10 +1140,9 @@ const GamerProfilePage = () => {
 
               {activeTab === 'setup' && (
                 <div className="tab-content">
-                  {/* Setup & Streaming */}
                   <div className="gaming-card">
                     <h3>Setup & Streaming</h3>
-                    
+
                     <div className="info-section">
                       <label>Setup Details:</label>
                       {!isEditing ? (
@@ -955,25 +1153,25 @@ const GamerProfilePage = () => {
                         </div>
                       ) : (
                         <div>
-                          <input 
-                            type="text" 
-                            placeholder="Headset model" 
+                          <input
+                            type="text"
+                            placeholder="Headset model"
                             value={setupDetails.headset}
-                            onChange={(e) => setSetupDetails({...setupDetails, headset: e.target.value})}
+                            onChange={(e) => setSetupDetails({ ...setupDetails, headset: e.target.value })}
                             style={{ marginBottom: '8px' }}
                           />
-                          <input 
-                            type="text" 
-                            placeholder="Controller type" 
+                          <input
+                            type="text"
+                            placeholder="Controller type"
                             value={setupDetails.controller}
-                            onChange={(e) => setSetupDetails({...setupDetails, controller: e.target.value})}
+                            onChange={(e) => setSetupDetails({ ...setupDetails, controller: e.target.value })}
                             style={{ marginBottom: '8px' }}
                           />
-                          <input 
-                            type="text" 
-                            placeholder="Other equipment" 
+                          <input
+                            type="text"
+                            placeholder="Other equipment"
                             value={setupDetails.other}
-                            onChange={(e) => setSetupDetails({...setupDetails, other: e.target.value})}
+                            onChange={(e) => setSetupDetails({ ...setupDetails, other: e.target.value })}
                           />
                         </div>
                       )}
@@ -986,17 +1184,17 @@ const GamerProfilePage = () => {
                       ) : (
                         <div>
                           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                            <input 
-                              type="checkbox" 
+                            <input
+                              type="checkbox"
                               checked={streamingStatus}
                               onChange={(e) => setStreamingStatus(e.target.checked)}
                             />
                             I stream my gameplay
                           </label>
                           {streamingStatus && (
-                            <input 
-                              type="text" 
-                              placeholder="Platform (Twitch, YouTube, etc.)" 
+                            <input
+                              type="text"
+                              placeholder="Platform (Twitch, YouTube, etc.)"
                               value={streamingPlatform}
                               onChange={(e) => setStreamingPlatform(e.target.value)}
                             />
@@ -1009,7 +1207,7 @@ const GamerProfilePage = () => {
                       <label>Languages:</label>
                       <div className="tag-grid">
                         {['English', 'Spanish', 'French', 'German', 'Japanese', 'Korean', 'Chinese', 'Other'].map(lang => (
-                          <button 
+                          <button
                             key={lang}
                             className={`tag-btn ${languages.includes(lang) ? 'active' : ''}`}
                             onClick={() => isEditing && toggleArrayItem(lang, languages, setLanguages)}
@@ -1022,7 +1220,6 @@ const GamerProfilePage = () => {
                     </div>
                   </div>
 
-                  {/* WebRTC Capabilities */}
                   <div className="gaming-card">
                     <h3>Video Chat Capabilities</h3>
                     <div className="webrtc-capabilities-overview">
@@ -1060,8 +1257,7 @@ const GamerProfilePage = () => {
                   </div>
                 </div>
               )}
-              
-              {/* Save Button */}
+
               {isEditing && (
                 <div className="save-section">
                   <button onClick={handleSaveProfile} className="btn-primary gamer-save">
@@ -1075,6 +1271,70 @@ const GamerProfilePage = () => {
             </div>
           </div>
         </>
+      )}
+
+      {showSteamModal && (
+        <div className="modal-overlay" onClick={() => setShowSteamModal(false)}>
+          <div className="modal-content steam-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>🎮 Connect Steam Account</h3>
+              <button className="modal-close" onClick={() => setShowSteamModal(false)}>×</button>
+            </div>
+
+            <div className="modal-body">
+              <p>Enter your Steam ID to connect your account</p>
+
+              <div className="steam-id-input-group">
+                <input
+                  type="text"
+                  placeholder="Steam ID (e.g., 76561199662379942)"
+                  value={steamId}
+                  onChange={(e) => setSteamId(e.target.value)}
+                  className="steam-id-input"
+                  disabled={steamLoading}
+                />
+              </div>
+
+              <div className="steam-help">
+                <p><strong>How to find your Steam ID:</strong></p>
+                <ol>
+                  <li>Go to your Steam profile</li>
+                  <li>Look at the URL in your browser</li>
+                  <li>Copy the 17-digit number after /profiles/</li>
+                  <li>Example: steamcommunity.com/profiles/<strong>76561199662379942</strong></li>
+                </ol>
+                <p>
+                  <strong>Or use:</strong>{' '}
+                  <a href="https://steamid.io/" target="_blank" rel="noopener noreferrer">
+                    SteamID.io
+                  </a>
+                  {' '}to find your Steam ID
+                </p>
+
+                <div className="steam-privacy-note">
+                  <strong>⚠️ Important:</strong> Your Steam profile must be set to <strong>PUBLIC</strong> for this to work.
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button
+                onClick={connectSteamAccount}
+                className="btn-primary"
+                disabled={steamLoading || !steamId.trim()}
+              >
+                {steamLoading ? 'Connecting...' : 'Connect Steam'}
+              </button>
+              <button
+                onClick={() => setShowSteamModal(false)}
+                className="btn-secondary"
+                disabled={steamLoading}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
