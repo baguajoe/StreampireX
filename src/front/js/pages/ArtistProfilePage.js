@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import { Context } from "../store/appContext";
 import { Link } from "react-router-dom";
 import UploadTrackModal from "../component/UploadTrackModal";
@@ -7,9 +7,12 @@ import "../../styles/ArtistProfile.css";
 const ArtistProfilePage = () => {
   const { store } = useContext(Context);
   const [isArtistMode, setIsArtistMode] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(false); // kept, but not used for upload anymore
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // NEW: hidden file input for direct audio upload
+  const fileInputRef = useRef(null);
 
   // Tab state management
   const [activeTab, setActiveTab] = useState("overview");
@@ -62,10 +65,10 @@ const ArtistProfilePage = () => {
     { id: "artist", label: "🎵 Artist Profile", path: "/profile/artist" }
   ];
 
-  // Helper function for safe image URLs
-  const getImageUrl = (imageUrl, fallback = "https://via.placeholder.com/150x150/9c27b0/white?text=🎵") => {
+  // Helper function for safe image URLs (placeholders removed)
+  const getImageUrl = (imageUrl) => {
     if (!imageUrl || imageUrl === "/default-artist-avatar.png" || imageUrl === "/placeholder-album.jpg") {
-      return fallback;
+      return ""; // no external placeholder
     }
     return imageUrl;
   };
@@ -100,8 +103,8 @@ const ArtistProfilePage = () => {
           console.log("User data:", userData);
 
           setArtistInfo({
-            artistName: userData.artist_name || userData.username || "Your Artist Name",
-            genre: userData.genre || "Genre not set",
+            artistName: userData.artist_name || userData.username || "",
+            genre: userData.genre || "",
             bio: userData.bio || "",
             location: userData.location || "",
             website: userData.website || "",
@@ -159,7 +162,7 @@ const ArtistProfilePage = () => {
           setAnalytics({
             monthlyPlays: analyticsData.monthly_plays || 0,
             totalStreams: analyticsData.total_streams || 0,
-            topCountries: analyticsData.top_countries || ["United States", "Canada", "United Kingdom"],
+            topCountries: analyticsData.top_countries || [], // removed default countries
             revenueThisMonth: analyticsData.revenue_this_month || 0
           });
 
@@ -241,11 +244,53 @@ const ArtistProfilePage = () => {
     }
   };
 
-  // Handle track upload success
+  // Handle track upload success (kept)
   const handleUploadNewTrack = async (newTrack) => {
     console.log("New track uploaded:", newTrack);
     await fetchArtistData();
     setShowModal(false);
+  };
+
+  // NEW: direct audio upload helpers
+  const openUploader = () => {
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Please log in to upload audio");
+        return;
+      }
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("title", file.name.replace(/\.[^/.]+$/, ""));
+
+      const res = await fetch(`${BACKEND_URL}/api/artist/tracks/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || "Upload failed");
+      }
+
+      const data = await res.json();
+      await handleUploadNewTrack(data);
+    } catch (err) {
+      console.error("Audio upload error:", err);
+      setError("Audio upload failed. Please try again.");
+    } finally {
+      setLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = ""; // reset input
+    }
   };
 
   // Filter function for search
@@ -278,13 +323,13 @@ const ArtistProfilePage = () => {
               <div className="featured-track">
                 {tracks.length > 0 ? (
                   <>
-                    <img
-                      src={getImageUrl(tracks[0].artwork, "https://via.placeholder.com/80x80/9c27b0/white?text=🎵")}
-                      alt="Latest Release"
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/80x80/9c27b0/white?text=🎵";
-                      }}
-                    />
+                    {getImageUrl(tracks[0].artwork) && (
+                      <img
+                        src={getImageUrl(tracks[0].artwork)}
+                        alt="Latest Release"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
                     <div className="track-info">
                       <h3>{tracks[0].title}</h3>
                       <p>Released {tracks[0].created_at ? new Date(tracks[0].created_at).toLocaleDateString() : 'Recently'}</p>
@@ -297,15 +342,11 @@ const ArtistProfilePage = () => {
                   </>
                 ) : (
                   <>
-                    <img
-                      src="https://via.placeholder.com/80x80/9c27b0/white?text=🎵"
-                      alt="No Release"
-                    />
                     <div className="track-info">
                       <h3>No tracks yet</h3>
                       <p>Upload your first track to get started</p>
                     </div>
-                    <button onClick={() => setShowModal(true)} className="upload-btn">
+                    <button onClick={openUploader} className="upload-btn">
                       ➕ Upload Now
                     </button>
                   </>
@@ -317,7 +358,7 @@ const ArtistProfilePage = () => {
               <div className="section-header">
                 <h2>🎵 Popular Tracks</h2>
                 {tracks.length > 0 && (
-                  <button onClick={() => setShowModal(true)} className="upload-btn">
+                  <button onClick={openUploader} className="upload-btn">
                     ➕ Upload New Track
                   </button>
                 )}
@@ -327,14 +368,14 @@ const ArtistProfilePage = () => {
                 {tracks.length > 0 ? tracks.map((track, index) => (
                   <div key={track.id || index} className="track-item">
                     <span className="track-number">{index + 1}</span>
-                    <img
-                      src={getImageUrl(track.artwork, "https://via.placeholder.com/50x50/9c27b0/white?text=🎵")}
-                      alt={track.title}
-                      className="track-artwork"
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/50x50/9c27b0/white?text=🎵";
-                      }}
-                    />
+                    {getImageUrl(track.artwork) && (
+                      <img
+                        src={getImageUrl(track.artwork)}
+                        alt={track.title}
+                        className="track-artwork"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
                     <div className="track-details">
                       <h4>{track.title}</h4>
                       <p>{track.album || track.artist_name || artistInfo.artistName}</p>
@@ -346,7 +387,7 @@ const ArtistProfilePage = () => {
                 )) : (
                   <div className="no-tracks">
                     <p>🎵 No tracks uploaded yet</p>
-                    <button onClick={() => setShowModal(true)} className="upload-first-btn">
+                    <button onClick={openUploader} className="upload-first-btn">
                       Upload Your First Track
                     </button>
                   </div>
@@ -359,13 +400,13 @@ const ArtistProfilePage = () => {
               <div className="albums-grid">
                 {albums.length > 0 ? albums.map((album, index) => (
                   <div key={album.id || index} className="album-card">
-                    <img
-                      src={getImageUrl(album.artwork, "https://via.placeholder.com/200x200/9c27b0/white?text=💿")}
-                      alt={album.title}
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/200x200/9c27b0/white?text=💿";
-                      }}
-                    />
+                    {getImageUrl(album.artwork) && (
+                      <img
+                        src={getImageUrl(album.artwork)}
+                        alt={album.title}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
                     <h4>{album.title}</h4>
                     <p>{album.year || new Date().getFullYear()} • {album.track_count || album.trackCount || 0} tracks</p>
                   </div>
@@ -386,7 +427,7 @@ const ArtistProfilePage = () => {
             <section className="tracks-section">
               <div className="section-header">
                 <h2>🎵 All Tracks</h2>
-                <button onClick={() => setShowModal(true)} className="upload-btn">
+                <button onClick={openUploader} className="upload-btn">
                   ➕ Upload New Track
                 </button>
               </div>
@@ -395,14 +436,14 @@ const ArtistProfilePage = () => {
                 {filterItems(tracks, "title").length > 0 ? filterItems(tracks, "title").map((track, index) => (
                   <div key={track.id || index} className="track-item">
                     <span className="track-number">{index + 1}</span>
-                    <img
-                      src={getImageUrl(track.artwork, "https://via.placeholder.com/50x50/9c27b0/white?text=🎵")}
-                      alt={track.title}
-                      className="track-artwork"
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/50x50/9c27b0/white?text=🎵";
-                      }}
-                    />
+                    {getImageUrl(track.artwork) && (
+                      <img
+                        src={getImageUrl(track.artwork)}
+                        alt={track.title}
+                        className="track-artwork"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
                     <div className="track-details">
                       <h4>{track.title}</h4>
                       <p>{track.album || artistInfo.artistName}</p>
@@ -414,7 +455,7 @@ const ArtistProfilePage = () => {
                 )) : (
                   <div className="no-tracks">
                     <p>🎵 {searchQuery ? `No tracks found for "${searchQuery}"` : "No tracks uploaded yet"}</p>
-                    <button onClick={() => setShowModal(true)} className="upload-first-btn">
+                    <button onClick={openUploader} className="upload-first-btn">
                       Upload Your First Track
                     </button>
                   </div>
@@ -432,13 +473,13 @@ const ArtistProfilePage = () => {
               <div className="albums-grid">
                 {filterItems(albums, "title").length > 0 ? filterItems(albums, "title").map((album, index) => (
                   <div key={album.id || index} className="album-card">
-                    <img
-                      src={getImageUrl(album.artwork, "https://via.placeholder.com/200x200/9c27b0/white?text=💿")}
-                      alt={album.title}
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/200x200/9c27b0/white?text=💿";
-                      }}
-                    />
+                    {getImageUrl(album.artwork) && (
+                      <img
+                        src={getImageUrl(album.artwork)}
+                        alt={album.title}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
                     <h4>{album.title}</h4>
                     <p>{album.year || new Date().getFullYear()} • {album.track_count || album.trackCount || 0} tracks</p>
                   </div>
@@ -461,13 +502,13 @@ const ArtistProfilePage = () => {
               <div className="playlists-grid">
                 {filterItems(playlists, "name").length > 0 ? filterItems(playlists, "name").map((playlist, index) => (
                   <div key={playlist.id || index} className="playlist-card">
-                    <img
-                      src={getImageUrl(playlist.cover, "https://via.placeholder.com/200x200/9c27b0/white?text=📋")}
-                      alt={playlist.name}
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/200x200/9c27b0/white?text=📋";
-                      }}
-                    />
+                    {getImageUrl(playlist.cover) && (
+                      <img
+                        src={getImageUrl(playlist.cover)}
+                        alt={playlist.name}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
                     <h4>{playlist.name}</h4>
                     <p>{playlist.track_count || playlist.trackCount || 0} tracks • {playlist.duration || "0:00"}</p>
                   </div>
@@ -605,6 +646,15 @@ const ArtistProfilePage = () => {
 
   return (
     <div className="artist-profile-container">
+      {/* Hidden file input for audio uploads */}
+      <input
+        type="file"
+        accept="audio/*"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
+
       {showModal && (
         <UploadTrackModal
           onClose={() => setShowModal(false)}
@@ -636,13 +686,13 @@ const ArtistProfilePage = () => {
         }}>
           <div className="artist-overlay">
             <div className="artist-avatar">
-              <img
-                src={getImageUrl(artistInfo.profilePicture, "https://via.placeholder.com/150x150/9c27b0/white?text=🎤")}
-                alt="Artist Avatar"
-                onError={(e) => {
-                  e.target.src = "https://via.placeholder.com/150x150/9c27b0/white?text=🎤";
-                }}
-              />
+              {getImageUrl(artistInfo.profilePicture) && (
+                <img
+                  src={getImageUrl(artistInfo.profilePicture)}
+                  alt="Artist Avatar"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              )}
               {isVerified && <span className="verified-badge">✓</span>}
             </div>
             <div className="artist-info">
@@ -766,7 +816,7 @@ const ArtistProfilePage = () => {
               <h3>🛠️ Artist Tools</h3>
               <div className="tools-list">
                 {activeTab !== "overview" && (
-                  <button onClick={() => setShowModal(true)} className="tool-btn">⬆️ Upload Music</button>
+                  <button onClick={openUploader} className="tool-btn">⬆️ Upload Music</button>
                 )}
                 <Link to="/artist/analytics" className="tool-btn">📊 View Analytics</Link>
                 <Link to="/artist/promote" className="tool-btn">📢 Promote Track</Link>
