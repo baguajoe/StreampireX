@@ -1,9 +1,13 @@
 # src/api/routes.py - Final corrected imports
+import eventlet
+eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app, session
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
 from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike
-
+# ADD these imports
+from .steam_service import SteamService
+from datetime import datetime
 
 import json
 import os
@@ -16679,3 +16683,166 @@ def public_health_check():
         "message": "Backend server is running",
         "timestamp": datetime.utcnow().isoformat()
     }), 200
+
+# ============================================
+# STEAM INTEGRATION ROUTES
+# ============================================
+
+@api.route('/steam/connect', methods=['POST'])
+@jwt_required()
+def connect_steam_account():
+    """Connect user's Steam account"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        steam_id = data.get('steam_id')
+        
+        if not steam_id:
+            return jsonify({'error': 'Steam ID is required'}), 400
+        
+        print(f"Connecting Steam ID: {steam_id}")
+        
+        # Get complete profile (with games if API key exists)
+        profile = SteamService.get_complete_profile(steam_id)
+        
+        if not profile:
+            return jsonify({
+                'error': 'Could not fetch Steam profile. Make sure your Steam profile is PUBLIC.'
+            }), 400
+        
+        # Update user
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        user.steam_id = steam_id
+        user.steam_persona_name = profile.get('persona_name')
+        user.steam_avatar_url = profile.get('avatar_url')
+        user.steam_profile_url = profile.get('profile_url')
+        user.steam_sync_enabled = True
+        user.steam_last_synced = datetime.utcnow()
+        
+        db.session.commit()
+        
+        print(f"Successfully connected Steam for user {user_id}")
+        
+        return jsonify({
+            'message': 'Steam account connected successfully!',
+            'profile': profile
+        }), 200
+        
+    except Exception as e:
+        print(f"Error connecting Steam: {str(e)}")
+        return jsonify({'error': f'Failed to connect: {str(e)}'}), 500
+
+
+@api.route('/steam/profile', methods=['GET'])
+@jwt_required()
+def get_steam_profile():
+    """Get user's connected Steam profile"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        if not user.steam_id:
+            return jsonify({'error': 'No Steam account connected'}), 404
+        
+        # Fetch fresh data
+        profile = SteamService.get_complete_profile(user.steam_id)
+        
+        if not profile:
+            return jsonify({'error': 'Could not fetch Steam profile'}), 500
+        
+        return jsonify({
+            'steam_id': user.steam_id,
+            'profile': profile,
+            'last_synced': user.steam_last_synced.isoformat() if user.steam_last_synced else None
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching Steam profile: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@api.route('/steam/sync', methods=['POST'])
+@jwt_required()
+def sync_steam_data():
+    """Manually sync Steam data"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user or not user.steam_id:
+            return jsonify({'error': 'No Steam account connected'}), 404
+        
+        # Fetch fresh data
+        profile = SteamService.get_complete_profile(user.steam_id)
+        
+        if not profile:
+            return jsonify({'error': 'Could not sync Steam data'}), 500
+        
+        # Update user data
+        user.steam_persona_name = profile.get('persona_name')
+        user.steam_avatar_url = profile.get('avatar_url')
+        user.steam_last_synced = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Steam data synced successfully!',
+            'profile': profile
+        }), 200
+        
+    except Exception as e:
+        print(f"Error syncing Steam: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@api.route('/steam/disconnect', methods=['POST'])
+@jwt_required()
+def disconnect_steam_account():
+    """Disconnect Steam account"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        user.steam_id = None
+        user.steam_persona_name = None
+        user.steam_avatar_url = None
+        user.steam_profile_url = None
+        user.steam_sync_enabled = False
+        user.steam_last_synced = None
+        
+        db.session.commit()
+        
+        return jsonify({'message': 'Steam account disconnected'}), 200
+        
+    except Exception as e:
+        print(f"Error disconnecting Steam: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+
+@api.route('/steam/verify/<steam_id>', methods=['GET'])
+def verify_steam_id(steam_id):
+    """Verify a Steam ID (public endpoint)"""
+    try:
+        is_valid = SteamService.verify_steam_id(steam_id)
+        
+        if is_valid:
+            profile = SteamService.get_player_summary(steam_id)
+            return jsonify({
+                'valid': True,
+                'username': profile.get('persona_name'),
+                'avatar': profile.get('avatar_icon')
+            }), 200
+        else:
+            return jsonify({'valid': False}), 404
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

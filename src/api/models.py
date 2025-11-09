@@ -189,6 +189,13 @@ class User(db.Model):
     # 📻 Followers (existing)
     radio_follows = db.relationship('RadioFollower', back_populates='user', lazy='dynamic')
 
+    #steam
+
+    steam_id = db.Column(db.String(100), unique=True, nullable=True)  # Steam 64-bit ID
+    steam_profile_data = db.Column(db.JSON, nullable=True)  # Store full Steam profile
+    steam_connected_at = db.Column(db.DateTime, nullable=True)  # When they connected
+    steam_last_synced = db.Column(db.DateTime, nullable=True)  # Last time data was refreshed
+
     # 🎵 Artist Features
     is_artist = db.Column(db.Boolean, default=False)
     artist_bio = db.Column(db.Text, nullable=True)
@@ -289,7 +296,13 @@ class User(db.Model):
             "artist_social_links": self.artist_social_links or {},
             "is_verified_artist": self.is_verified_artist,
             "monthly_listeners": self.monthly_listeners,
-            "total_plays": self.total_plays
+            "total_plays": self.total_plays,
+
+            #steam
+
+            "steam_id": self.steam_id,
+            "steam_connected": bool(self.steam_id),
+            "steam_profile": self.steam_profile_data,
         }
     
 class UserSettings(db.Model):
