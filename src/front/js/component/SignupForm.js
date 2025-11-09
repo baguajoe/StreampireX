@@ -19,6 +19,11 @@ const SignupForm = () => {
         phoneNumber: "",
         dateOfBirth: "",
         
+        // Profile Type (maps to backend User.profile_type)
+        profile_type: "regular",       // "regular" | "artist" | "gamer" | "multiple"
+        is_artist: false,
+        is_gamer: false,
+
         // Profile Info
         role: "Explorer",
         artistName: "",
@@ -95,6 +100,17 @@ const SignupForm = () => {
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
+    };
+
+    // Handle profile type change (keeps booleans in sync)
+    const handleProfileTypeChange = (e) => {
+        const val = e.target.value; // "regular" | "artist" | "gamer" | "multiple"
+        setFormData(prev => ({
+            ...prev,
+            profile_type: val,
+            is_artist: val === "artist" || val === "multiple",
+            is_gamer:  val === "gamer"  || val === "multiple"
+        }));
     };
 
     // Handle file uploads
@@ -175,18 +191,44 @@ const SignupForm = () => {
         try {
             const submitData = new FormData();
 
-            // Add all form data
+            // Add all form data (ensure booleans always included)
             Object.keys(formData).forEach((key) => {
-                if (key === 'socialMedia' || key === 'notifications') {
-                    submitData.append(key, JSON.stringify(formData[key]));
-                } else if (Array.isArray(formData[key])) {
-                    submitData.append(key, JSON.stringify(formData[key]));
-                } else if (formData[key] && typeof formData[key] !== 'object') {
-                    submitData.append(key, formData[key]);
-                } else if (formData[key] instanceof File) {
-                    submitData.append(key, formData[key]);
+                const val = formData[key];
+
+                // Always include booleans (even if false)
+                if (typeof val === "boolean") {
+                    submitData.append(key, String(val));
+                    return;
+                }
+
+                // JSON for objects that aren't Files
+                if (key === "socialMedia" || key === "notifications") {
+                    submitData.append(key, JSON.stringify(val));
+                    return;
+                }
+
+                // Arrays as JSON
+                if (Array.isArray(val)) {
+                    submitData.append(key, JSON.stringify(val));
+                    return;
+                }
+
+                // Files
+                if (val instanceof File) {
+                    submitData.append(key, val);
+                    return;
+                }
+
+                // Primitives (strings, numbers) that are set
+                if (val !== null && val !== undefined && val !== "") {
+                    submitData.append(key, val);
                 }
             });
+
+            // Explicitly set canonical fields used by backend
+            submitData.append("profile_type", formData.profile_type);
+            submitData.append("is_artist", String(formData.is_artist));
+            submitData.append("is_gamer", String(formData.is_gamer));
 
             const data = await actions.signup(submitData);
 
@@ -361,6 +403,56 @@ const SignupForm = () => {
                 {currentStep === 2 && (
                     <div className="form-step">
                         <h3>Professional Information</h3>
+
+                        {/* Profile Type Chooser */}
+                        <div className="form-group">
+                            <label>Choose Your Profile Type *</label>
+                            <div className="radio-group">
+                                <label className="radio-label">
+                                    <input
+                                        type="radio"
+                                        name="profile_type"
+                                        value="regular"
+                                        checked={formData.profile_type === "regular"}
+                                        onChange={handleProfileTypeChange}
+                                    />
+                                    Regular
+                                </label>
+                                <label className="radio-label">
+                                    <input
+                                        type="radio"
+                                        name="profile_type"
+                                        value="artist"
+                                        checked={formData.profile_type === "artist"}
+                                        onChange={handleProfileTypeChange}
+                                    />
+                                    Artist
+                                </label>
+                                <label className="radio-label">
+                                    <input
+                                        type="radio"
+                                        name="profile_type"
+                                        value="gamer"
+                                        checked={formData.profile_type === "gamer"}
+                                        onChange={handleProfileTypeChange}
+                                    />
+                                    Gamer
+                                </label>
+                                <label className="radio-label">
+                                    <input
+                                        type="radio"
+                                        name="profile_type"
+                                        value="multiple"
+                                        checked={formData.profile_type === "multiple"}
+                                        onChange={handleProfileTypeChange}
+                                    />
+                                    Both (Artist + Gamer)
+                                </label>
+                            </div>
+                            <small>
+                                This sets <code>profile_type</code> and the flags <code>is_artist</code>/<code>is_gamer</code> on your account.
+                            </small>
+                        </div>
                         
                         <div className="form-group">
                             <label>Role *</label>

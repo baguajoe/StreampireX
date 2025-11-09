@@ -1379,4 +1379,331 @@
     font-size: 9px;
   }
 }
+/* ============================================
+   STEAM INTEGRATION STYLES
+   ============================================ */
+
+/* Steam Section in Sidebar */
+.steam-connected {
+  padding: 16px;
+  background: rgba(27, 40, 56, 0.9);
+  border-radius: 12px;
+  border: 1px solid rgba(102, 192, 244, 0.4);
+}
+
+.steam-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.steam-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  border: 2px solid #66c0f4;
+  object-fit: cover;
+}
+
+.steam-info {
+  flex: 1;
+}
+
+.steam-username {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 4px 0;
+}
+
+.steam-status {
+  font-size: 13px;
+  font-weight: 600;
+  color: #66c0f4;
+  text-transform: capitalize;
+  margin: 0 0 4px 0;
+}
+
+.steam-location {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.steam-details {
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.steam-member {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 6px 0;
+}
+
+.steam-synced {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+.steam-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-steam-sync,
+.btn-steam-profile,
+.btn-connect-steam {
+  padding: 12px;
+  background: linear-gradient(90deg, #06BFFF 0%, #2D73FF 100%);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+}
+
+.btn-steam-sync:hover,
+.btn-steam-profile:hover,
+.btn-connect-steam:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(6, 191, 255, 0.4);
+}
+
+.btn-steam-sync:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-steam-disconnect {
+  padding: 10px;
+  background: rgba(255, 0, 0, 0.15);
+  border: 1px solid rgba(255, 0, 0, 0.4);
+  border-radius: 8px;
+  color: #ff6b6b;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-steam-disconnect:hover {
+  background: rgba(255, 0, 0, 0.25);
+  border-color: rgba(255, 0, 0, 0.6);
+}
+
+.steam-not-connected {
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.steam-not-connected p {
+  margin-bottom: 16px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Steam Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content.steam-modal {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 0;
+  border-radius: 16px;
+  max-width: 550px;
+  width: 90%;
+  border: 1px solid #4a9eff;
+  box-shadow: 0 10px 40px rgba(74, 158, 255, 0.3);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  padding: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #66c0f4;
+  font-size: 24px;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 32px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: #fff;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-body > p {
+  margin-bottom: 20px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 15px;
+}
+
+.steam-id-input-group {
+  margin-bottom: 20px;
+}
+
+.steam-id-input {
+  width: 100%;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid #4a9eff;
+  border-radius: 8px;
+  color: white;
+  font-size: 15px;
+  font-family: 'Courier New', monospace;
+  transition: all 0.3s;
+}
+
+.steam-id-input:focus {
+  outline: none;
+  border-color: #66c0f4;
+  box-shadow: 0 0 16px rgba(102, 192, 244, 0.3);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.steam-id-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.steam-help {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  border-left: 3px solid #66c0f4;
+}
+
+.steam-help p {
+  margin: 0 0 10px 0;
+  color: #66c0f4;
+}
+
+.steam-help ol {
+  padding-left: 20px;
+  margin: 10px 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.steam-help li {
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.steam-help strong {
+  color: #fff;
+}
+
+.steam-help a {
+  color: #66c0f4;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.steam-help a:hover {
+  text-decoration: underline;
+}
+
+.steam-privacy-note {
+  margin-top: 12px;
+  padding: 10px;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 6px;
+  color: #ffc107;
+  font-size: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  padding: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-actions button {
+  flex: 1;
+  padding: 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.modal-actions .btn-primary {
+  background: linear-gradient(90deg, #06BFFF 0%, #2D73FF 100%);
+  border: none;
+  color: white;
+}
+
+.modal-actions .btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(6, 191, 255, 0.4);
+}
+
+.modal-actions .btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-actions .btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.modal-actions .btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
 }

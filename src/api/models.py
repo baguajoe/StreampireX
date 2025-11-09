@@ -110,6 +110,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     is_premium = db.Column(db.Boolean, default=False, server_default="False")
     avatar_url = db.Column(db.String(500))
+    profile_type = db.Column(db.String(20), default="regular")  # regular, artist, gamer, or multiple
     
     # ✅ Basic Gamer Features (existing)
     is_gamer = db.Column(db.Boolean, default=False)
@@ -256,6 +257,7 @@ class User(db.Model):
             "trial_end_date": self.trial_end_date.strftime("%Y-%m-%d") if self.trial_end_date else None,
             "role": self.role.name if self.role else None,
             "avatar_url": self.avatar_url,
+            "profile_type": self.profile_type,  # ← ADD THIS
             
             # 🎮 GAMER FIELDS
             "is_gamer": self.is_gamer,
