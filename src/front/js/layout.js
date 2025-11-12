@@ -4,6 +4,9 @@ import ScrollToTop from "./component/scrollToTop";
 import injectContext, { Context } from "./store/appContext";
 import { initializeAdvancedPWAFeatures } from './component/AdvancedPWAFeatures';
 
+import { Toaster } from "react-hot-toast";
+
+
 import Home from "./pages/home";
 import Login from "./pages/Login";
 import SignupForm from "./component/SignupForm";
@@ -88,7 +91,7 @@ const Layout = () => {
   const { store } = useContext(Context);
   const user = store.user;
 
-useEffect(() => {
+  useEffect(() => {
     initializeAdvancedPWAFeatures();
   }, []);
 
@@ -99,6 +102,9 @@ useEffect(() => {
 
   return (
     <Router basename={basename}>
+      {/* 🔥 TOAST NOTIFICATIONS - Add this right after Router */}
+      <Toaster />
+
       <ScrollToTop>
         <Navbar />
         <div className="app-layout">
@@ -128,7 +134,7 @@ useEffect(() => {
               <Route path="/upload-video" element={<VideoUpload />} />
               <Route path="/video-editor" element={<VideoEditor />} />
               <Route path="/video-details/:id" element={<VideoDetails />} />
-              
+
               {/* 📊 Dashboards */}
               <Route path="/creator-dashboard" element={<CreatorDashboard />} />
               <Route path="/radio/:id/schedule" element={<RadioSchedule />} />

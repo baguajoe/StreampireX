@@ -129,50 +129,73 @@ const SignupForm = () => {
         }));
     };
 
-    // Basic validation
+    // ✅ FIXED VALIDATION - Based on profile_type not role
     const validateForm = () => {
         const newErrors = {};
 
-        if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = "Valid email is required";
+        // Basic validation (ALWAYS required for all profile types)
+        if (!formData.email) {
+            newErrors.email = "Email is required";
+        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+            newErrors.email = "Email is invalid";
         }
-        if (!formData.username || formData.username.length < 3) {
+
+        if (!formData.username) {
+            newErrors.username = "Username is required";
+        } else if (formData.username.length < 3) {
             newErrors.username = "Username must be at least 3 characters";
         }
-        if (!formData.password || formData.password.length < 8) {
-            newErrors.password = "Password must be at least 8 characters";
+
+        if (!formData.password) {
+            newErrors.password = "Password is required";
+        } else if (formData.password.length < 6) {
+            newErrors.password = "Password must be at least 6 characters";
         }
+
         if (formData.password !== formData.confirmPassword) {
-            newErrors.confirmPassword = "Passwords don't match";
+            newErrors.confirmPassword = "Passwords do not match";
         }
+
         if (!formData.firstName) {
             newErrors.firstName = "First name is required";
         }
+
         if (!formData.lastName) {
             newErrors.lastName = "Last name is required";
         }
+
         if (!formData.dateOfBirth) {
             newErrors.dateOfBirth = "Date of birth is required";
         }
+
         if (!formData.termsAccepted) {
-            newErrors.termsAccepted = "You must accept the terms";
+            newErrors.termsAccepted = "You must accept the terms and conditions";
         }
+
         if (!formData.privacyAccepted) {
             newErrors.privacyAccepted = "You must accept the privacy policy";
         }
+
         if (!formData.ageVerification) {
             newErrors.ageVerification = "Age verification is required";
         }
 
-        // Role-specific validation
-        if (formData.role !== "Explorer") {
+        // ✅ FIXED: Profile-specific validation based on profile_type
+        if (formData.profile_type === "artist" || formData.profile_type === "multiple") {
+            // Artist fields required
             if (!formData.artistName && !formData.stageName) {
-                newErrors.artistName = "Professional name is required for this role";
+                newErrors.artistName = "Artist name or stage name is required for artist profiles";
             }
             if (!formData.industry) {
-                newErrors.industry = "Industry is required for this role";
+                newErrors.industry = "Industry is required for artist profiles";
             }
         }
+
+        if (formData.profile_type === "gamer" || formData.profile_type === "multiple") {
+            // Gamer fields validation (optional, currently no required fields)
+        }
+
+        // Regular profile has no additional required fields
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -236,52 +259,42 @@ const SignupForm = () => {
                 alert("Account created successfully! Please check your email for verification.");
                 navigate("/login");
             } else {
-                alert("Signup failed: " + (data.error || "Unknown error"));
+                setErrors({ submit: data.error || "Signup failed" });
             }
         } catch (error) {
-            alert("Signup failed: " + error.message);
+            console.error("Signup error:", error);
+            setErrors({ submit: "An error occurred during signup" });
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    // Step navigation
     const nextStep = () => {
-        if (currentStep < 4) setCurrentStep(currentStep + 1);
+        if (currentStep < 4) {
+            setCurrentStep(currentStep + 1);
+        }
     };
 
     const prevStep = () => {
-        if (currentStep > 1) setCurrentStep(currentStep - 1);
+        if (currentStep > 1) {
+            setCurrentStep(currentStep - 1);
+        }
     };
 
     return (
         <div className="signup-container">
             <div className="signup-header">
-                <h1>Create Your StreampireX Account</h1>
-                
-                {/* Progress Bar */}
-                <div className="progress-bar">
-                    {[1, 2, 3, 4].map(step => (
-                        <React.Fragment key={step}>
-                            <div className="progress-step">
-                                <div className={`step-circle ${currentStep >= step ? 'active' : ''}`}>
-                                    {step}
-                                </div>
-                                <span>
-                                    {step === 1 && 'Basic Info'}
-                                    {step === 2 && 'Professional'}
-                                    {step === 3 && 'Files & Location'}
-                                    {step === 4 && 'Legal'}
-                                </span>
-                            </div>
-                            {step < 4 && (
-                                <div className={`progress-line ${currentStep > step ? 'active' : ''}`}></div>
-                            )}
-                        </React.Fragment>
-                    ))}
+                <h2>Create Your StreampireX Account</h2>
+                <div className="step-indicator">
+                    <span className={currentStep >= 1 ? 'active' : ''}>1</span>
+                    <span className={currentStep >= 2 ? 'active' : ''}>2</span>
+                    <span className={currentStep >= 3 ? 'active' : ''}>3</span>
+                    <span className={currentStep >= 4 ? 'active' : ''}>4</span>
                 </div>
             </div>
 
-            <form onSubmit={handleSignup}>
+            <form onSubmit={handleSignup} className="signup-form">
                 {/* Step 1: Basic Information */}
                 {currentStep === 1 && (
                     <div className="form-step">
@@ -351,12 +364,12 @@ const SignupForm = () => {
                                     value={formData.password}
                                     onChange={handleChange}
                                     className={errors.password ? 'error' : ''}
-                                    placeholder="At least 8 characters"
+                                    placeholder="At least 6 characters"
                                     required
                                 />
                                 {errors.password && <span className="error-text">{errors.password}</span>}
                             </div>
-                            
+
                             <div className="form-group">
                                 <label>Confirm Password *</label>
                                 <input
@@ -371,42 +384,28 @@ const SignupForm = () => {
                             </div>
                         </div>
 
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Phone Number</label>
-                                <input
-                                    type="tel"
-                                    name="phoneNumber"
-                                    value={formData.phoneNumber}
-                                    onChange={handleChange}
-                                    placeholder="+1 (555) 123-4567"
-                                />
-                            </div>
-                            
-                            <div className="form-group">
-                                <label>Date of Birth *</label>
-                                <input
-                                    type="date"
-                                    name="dateOfBirth"
-                                    value={formData.dateOfBirth}
-                                    onChange={handleChange}
-                                    className={errors.dateOfBirth ? 'error' : ''}
-                                    required
-                                />
-                                {errors.dateOfBirth && <span className="error-text">{errors.dateOfBirth}</span>}
-                            </div>
+                        <div className="form-group">
+                            <label>Date of Birth *</label>
+                            <input
+                                type="date"
+                                name="dateOfBirth"
+                                value={formData.dateOfBirth}
+                                onChange={handleChange}
+                                className={errors.dateOfBirth ? 'error' : ''}
+                                required
+                            />
+                            {errors.dateOfBirth && <span className="error-text">{errors.dateOfBirth}</span>}
                         </div>
                     </div>
                 )}
 
-                {/* Step 2: Professional Information */}
+                {/* Step 2: Profile Type & Professional Info */}
                 {currentStep === 2 && (
                     <div className="form-step">
-                        <h3>Professional Information</h3>
+                        <h3>Choose Your Profile Type</h3>
 
-                        {/* Profile Type Chooser */}
                         <div className="form-group">
-                            <label>Choose Your Profile Type *</label>
+                            <label>Profile Type *</label>
                             <div className="radio-group">
                                 <label className="radio-label">
                                     <input
@@ -416,7 +415,7 @@ const SignupForm = () => {
                                         checked={formData.profile_type === "regular"}
                                         onChange={handleProfileTypeChange}
                                     />
-                                    Regular
+                                    Regular User (Listener/Fan)
                                 </label>
                                 <label className="radio-label">
                                     <input
@@ -426,7 +425,7 @@ const SignupForm = () => {
                                         checked={formData.profile_type === "artist"}
                                         onChange={handleProfileTypeChange}
                                     />
-                                    Artist
+                                    Artist / Creator
                                 </label>
                                 <label className="radio-label">
                                     <input
@@ -449,64 +448,45 @@ const SignupForm = () => {
                                     Both (Artist + Gamer)
                                 </label>
                             </div>
-                            <small>
-                                This sets <code>profile_type</code> and the flags <code>is_artist</code>/<code>is_gamer</code> on your account.
+                            <small className="help-text">
+                                Don't worry - you can upgrade your profile type later!
                             </small>
                         </div>
-                        
-                        <div className="form-group">
-                            <label>Role *</label>
-                            <select name="role" value={formData.role} onChange={handleChange}>
-                                <option value="Explorer">Explorer</option>
-                                <option value="DJ">DJ</option>
-                                <option value="Musician">Musician</option>
-                                <option value="Producer">Producer</option>
-                                <option value="Podcaster">Podcaster</option>
-                                <option value="Radio Host">Radio Host</option>
-                                <option value="Sound Engineer">Sound Engineer</option>
-                                <option value="Music Journalist">Music Journalist</option>
-                                <option value="A&R Representative">A&R Representative</option>
-                                <option value="Label Executive">Label Executive</option>
-                                <option value="Music Educator">Music Educator</option>
-                                <option value="Audio Technician">Audio Technician</option>
-                            </select>
-                        </div>
 
-                        {formData.role !== "Explorer" && (
-                            <>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label>Professional Name</label>
-                                        <input
-                                            type="text"
-                                            name="artistName"
-                                            value={formData.artistName}
-                                            onChange={handleChange}
-                                            className={errors.artistName ? 'error' : ''}
-                                            placeholder="Your professional name"
-                                        />
-                                        {errors.artistName && <span className="error-text">{errors.artistName}</span>}
-                                    </div>
-                                    
-                                    <div className="form-group">
-                                        <label>Industry *</label>
-                                        <select 
-                                            name="industry" 
-                                            value={formData.industry} 
-                                            onChange={handleChange}
-                                            className={errors.industry ? 'error' : ''}
-                                        >
-                                            <option value="">Select Industry</option>
-                                            <option value="Music">Music</option>
-                                            <option value="Podcasting">Podcasting</option>
-                                            <option value="Radio Broadcasting">Radio Broadcasting</option>
-                                            <option value="Audio Production">Audio Production</option>
-                                            <option value="Film & TV">Film & TV</option>
-                                            <option value="Gaming">Gaming</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                        {errors.industry && <span className="error-text">{errors.industry}</span>}
-                                    </div>
+                        {/* Conditional Artist Fields */}
+                        {(formData.profile_type === "artist" || formData.profile_type === "multiple") && (
+                            <div className="conditional-fields">
+                                <h4>Artist Information</h4>
+                                
+                                <div className="form-group">
+                                    <label>Artist Name / Stage Name *</label>
+                                    <input
+                                        type="text"
+                                        name="artistName"
+                                        value={formData.artistName}
+                                        onChange={handleChange}
+                                        className={errors.artistName ? 'error' : ''}
+                                        placeholder="Your professional name"
+                                    />
+                                    {errors.artistName && <span className="error-text">{errors.artistName}</span>}
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Industry / Genre *</label>
+                                    <select
+                                        name="industry"
+                                        value={formData.industry}
+                                        onChange={handleChange}
+                                        className={errors.industry ? 'error' : ''}
+                                    >
+                                        <option value="">Select your industry</option>
+                                        <option value="music">Music</option>
+                                        <option value="podcasting">Podcasting</option>
+                                        <option value="radio">Radio</option>
+                                        <option value="content-creator">Content Creator</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                    {errors.industry && <span className="error-text">{errors.industry}</span>}
                                 </div>
 
                                 <div className="form-group">
@@ -515,87 +495,49 @@ const SignupForm = () => {
                                         name="bio"
                                         value={formData.bio}
                                         onChange={handleChange}
-                                        placeholder="Tell us about yourself and your work..."
+                                        placeholder="Tell us about yourself..."
                                         rows="4"
                                     />
                                 </div>
+                            </div>
+                        )}
 
-                                <div className="form-group">
-                                    <label>Website/Portfolio</label>
-                                    <input
-                                        type="url"
-                                        name="website"
-                                        value={formData.website}
-                                        onChange={handleChange}
-                                        placeholder="https://yourwebsite.com"
-                                    />
-                                </div>
-
-                                {(formData.role === "Musician" || formData.role === "Producer" || formData.role === "DJ") && (
-                                    <div className="form-group">
-                                        <label>Do you own the rights to your music? *</label>
-                                        <div className="radio-group">
-                                            <label className="radio-label">
-                                                <input
-                                                    type="radio"
-                                                    name="ownRights"
-                                                    value="yes"
-                                                    checked={formData.ownRights === "yes"}
-                                                    onChange={handleChange}
-                                                />
-                                                Yes, I own all rights
-                                            </label>
-                                            <label className="radio-label">
-                                                <input
-                                                    type="radio"
-                                                    name="ownRights"
-                                                    value="partial"
-                                                    checked={formData.ownRights === "partial"}
-                                                    onChange={handleChange}
-                                                />
-                                                Partial ownership
-                                            </label>
-                                            <label className="radio-label">
-                                                <input
-                                                    type="radio"
-                                                    name="ownRights"
-                                                    value="no"
-                                                    checked={formData.ownRights === "no"}
-                                                    onChange={handleChange}
-                                                />
-                                                No, I don't own rights
-                                            </label>
-                                        </div>
-                                    </div>
-                                )}
-                            </>
+                        {/* Conditional Gamer Fields */}
+                        {(formData.profile_type === "gamer" || formData.profile_type === "multiple") && (
+                            <div className="conditional-fields">
+                                <h4>Gamer Information</h4>
+                                <p className="help-text">These fields are optional - complete your gamer profile later!</p>
+                            </div>
                         )}
                     </div>
                 )}
 
-                {/* Step 3: Files & Location */}
+                {/* Step 3: Additional Info */}
                 {currentStep === 3 && (
                     <div className="form-step">
-                        <h3>Files & Location</h3>
+                        <h3>Additional Information (Optional)</h3>
                         
+                        <div className="form-group">
+                            <label>Phone Number</label>
+                            <input
+                                type="tel"
+                                name="phoneNumber"
+                                value={formData.phoneNumber}
+                                onChange={handleChange}
+                            />
+                        </div>
+
                         <div className="form-row">
                             <div className="form-group">
                                 <label>Country</label>
-                                <select name="country" value={formData.country} onChange={handleChange}>
-                                    <option value="">Select Country</option>
-                                    <option value="US">United States</option>
-                                    <option value="CA">Canada</option>
-                                    <option value="UK">United Kingdom</option>
-                                    <option value="AU">Australia</option>
-                                    <option value="DE">Germany</option>
-                                    <option value="FR">France</option>
-                                    <option value="BR">Brazil</option>
-                                    <option value="MX">Mexico</option>
-                                    <option value="JP">Japan</option>
-                                    <option value="Other">Other</option>
-                                </select>
+                                <input
+                                    type="text"
+                                    name="country"
+                                    value={formData.country}
+                                    onChange={handleChange}
+                                />
                             </div>
-                            
+
                             <div className="form-group">
                                 <label>City</label>
                                 <input
@@ -603,59 +545,28 @@ const SignupForm = () => {
                                     name="city"
                                     value={formData.city}
                                     onChange={handleChange}
-                                    placeholder="Your city"
                                 />
                             </div>
                         </div>
 
-                        <div className="file-uploads">
-                            <div className="form-group">
-                                <label>Profile Picture</label>
-                                <input 
-                                    type="file" 
-                                    name="profilePicture" 
-                                    accept="image/*" 
-                                    onChange={handleFileChange}
-                                />
-                                <small>Recommended: 400x400px, max 5MB</small>
-                            </div>
-
-                            {(formData.role === "Musician" || formData.role === "Producer" || formData.role === "DJ") && (
-                                <div className="form-group">
-                                    <label>Sample Track</label>
-                                    <input 
-                                        type="file" 
-                                        name="sampleTrack" 
-                                        accept="audio/*" 
-                                        onChange={handleFileChange}
-                                    />
-                                    <small>MP3, WAV, or FLAC, max 50MB</small>
-                                </div>
-                            )}
+                        <div className="form-group">
+                            <label>Website</label>
+                            <input
+                                type="url"
+                                name="website"
+                                value={formData.website}
+                                onChange={handleChange}
+                                placeholder="https://yourwebsite.com"
+                            />
                         </div>
                     </div>
                 )}
 
-                {/* Step 4: Legal & Preferences */}
+                {/* Step 4: Legal & Agreements */}
                 {currentStep === 4 && (
                     <div className="form-step">
-                        <h3>Preferences & Legal</h3>
+                        <h3>Terms & Agreements</h3>
                         
-                        <div className="form-group">
-                            <label>Communication Preferences</label>
-                            <div className="checkbox-group">
-                                <label className="checkbox-label">
-                                    <input
-                                        type="checkbox"
-                                        name="marketingEmails"
-                                        checked={formData.marketingEmails}
-                                        onChange={handleChange}
-                                    />
-                                    Receive marketing emails and updates
-                                </label>
-                            </div>
-                        </div>
-
                         <div className="legal-section">
                             <div className="form-group">
                                 <label className="checkbox-label">
@@ -667,7 +578,7 @@ const SignupForm = () => {
                                         className={errors.termsAccepted ? 'error' : ''}
                                         required
                                     />
-                                    I accept the <Link to="/terms" target="_blank">Terms of Service</Link> *
+                                    I accept the <Link to="/terms" target="_blank">Terms and Conditions</Link> *
                                 </label>
                                 {errors.termsAccepted && <span className="error-text">{errors.termsAccepted}</span>}
                             </div>
@@ -701,7 +612,25 @@ const SignupForm = () => {
                                 </label>
                                 {errors.ageVerification && <span className="error-text">{errors.ageVerification}</span>}
                             </div>
+
+                            <div className="form-group">
+                                <label className="checkbox-label">
+                                    <input
+                                        type="checkbox"
+                                        name="marketingEmails"
+                                        checked={formData.marketingEmails}
+                                        onChange={handleChange}
+                                    />
+                                    I want to receive marketing emails and updates
+                                </label>
+                            </div>
                         </div>
+
+                        {errors.submit && (
+                            <div className="error-message">
+                                {errors.submit}
+                            </div>
+                        )}
                     </div>
                 )}
 

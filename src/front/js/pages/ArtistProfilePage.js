@@ -271,7 +271,7 @@ const ArtistProfilePage = () => {
       formData.append("file", file);
       formData.append("title", file.name.replace(/\.[^/.]+$/, ""));
 
-      const res = await fetch(`${BACKEND_URL}/api/artist/tracks/upload`, {
+      const res = await fetch(`${BACKEND_URL}/api/upload_track`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData

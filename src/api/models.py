@@ -446,56 +446,6 @@ playlist_audio_association = db.Table(
 
 # Add this to your models.py file
 
-class Audio(db.Model):
-    __table_args__ = {'extend_existing': True}
-    __tablename__ = 'audio'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    title = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.Text)
-    file_url = db.Column(db.String(500), nullable=False)
-    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
-    processed_file_url = db.Column(db.String(500))  # URL to processed audio file
-    processing_status = db.Column(db.String(50), default='original')  # 'original', 'processing', 'processed'
-    last_processed_at = db.Column(db.DateTime)
-    
-    # Optional additional fields
-    duration = db.Column(db.String(10))  # e.g., "3:45"
-    plays = db.Column(db.Integer, default=0)
-    likes = db.Column(db.Integer, default=0)
-    album = db.Column(db.String(255))
-    genre = db.Column(db.String(100))
-    artwork_url = db.Column(db.String(500))
-    is_public = db.Column(db.Boolean, default=True)
-    
-    # Relationships
-    user = db.relationship('User', backref=db.backref('audio_tracks', lazy=True))
-    
-    def serialize(self):
-        """Serialize the Audio model to a dictionary"""
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "title": self.title,
-            "description": self.description,
-            "file_url": self.file_url,
-            "uploaded_at": self.uploaded_at.isoformat() if self.uploaded_at else None,
-            "duration": self.duration or "0:00",
-            "plays": self.plays or 0,
-            "likes": self.likes or 0,
-            "album": self.album or "Single",
-            "genre": self.genre or "Unknown",
-            "artwork": self.artwork_url or "/default-track-artwork.jpg",
-            "is_public": self.is_public,
-            "artist_name": self.user.username if self.user else "Unknown Artist"
-        }
-    
-    def __repr__(self):
-        return f'<Audio {self.id}: {self.title}>'
-
-
-
 
 class PlaylistAudio(db.Model):
     __table_args__ = {'extend_existing': True}
@@ -2156,81 +2106,101 @@ class UserPodcast(db.Model):
         }
 
 
-class Track(db.Model):
+class Audio(db.Model):
     __table_args__ = {'extend_existing': True}
+    __tablename__ = 'audio'
+    
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    title = db.Column(db.String(150), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
     file_url = db.Column(db.String(500), nullable=False)
-    artist_name = db.Column(db.String(150), nullable=True)
-    genre = db.Column(db.String(100), nullable=True)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+    processed_file_url = db.Column(db.String(500))  # URL to processed audio file
+    processing_status = db.Column(db.String(50), default='original')  # 'original', 'processing', 'processed'
+    last_processed_at = db.Column(db.DateTime)
+    isrc_code = db.Column(db.String(50))
+    
+    # Optional additional fields
+    duration = db.Column(db.String(10))  # e.g., "3:45"
+    plays = db.Column(db.Integer, default=0)
+    likes = db.Column(db.Integer, default=0)
+    album = db.Column(db.String(255))
+    genre = db.Column(db.String(100))
+    artwork_url = db.Column(db.String(500))
+    is_public = db.Column(db.Boolean, default=True)
+    
+    # NEW: Added from Track model
+    artist_name = db.Column(db.String(150), nullable=True)  # Override user's name if needed
     is_explicit = db.Column(db.Boolean, default=False)
     lyrics = db.Column(db.Text, nullable=True)
-    isrc = db.Column(db.String(50), nullable=True)
-    album_id = db.Column(db.Integer, db.ForeignKey('album.id'), nullable=True)
-    
-    # Recommended additions
-    duration = db.Column(db.String(10), nullable=True)
-    plays_count = db.Column(db.Integer, default=0)
-    likes_count = db.Column(db.Integer, default=0)
+    album_id = db.Column(db.Integer, db.ForeignKey('album.id'), nullable=True)  # Proper album relationship
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    status = db.Column(db.String(20), default='active')
+    status = db.Column(db.String(20), default='active')  # 'active', 'archived', 'deleted', etc.
     
     # Relationships
-    user = db.relationship('User', backref='tracks')
-    
+    user = db.relationship('User', backref=db.backref('audio_tracks', lazy=True))
+    album_rel = db.relationship('Album', backref=db.backref('audio_tracks', lazy=True))  # NEW: Proper album relationship
     
     def serialize(self):
-        """Serialize Track object to dictionary"""
+        """Serialize the Audio model to a dictionary"""
         return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'title': self.title,
-            'file_url': self.file_url,
-            'artist_name': self.artist_name if self.artist_name else (self.user.username if self.user else None),
-            'genre': self.genre,
-            'is_explicit': self.is_explicit,
-            'lyrics': self.lyrics,
-            'isrc': self.isrc,
-            'album_id': self.album_id,
-            'album_name': self.album.title if self.album else None,
-            'album_artwork': self.album.cover_image_url if self.album and hasattr(self.album, 'cover_image_url') else None,
-            'duration': self.duration if hasattr(self, 'duration') else '0:00',
-            'plays_count': self.plays_count if hasattr(self, 'plays_count') else 0,
-            'likes_count': self.likes_count if hasattr(self, 'likes_count') else 0,
-            'created_at': self.created_at.isoformat() if hasattr(self, 'created_at') and self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if hasattr(self, 'updated_at') and self.updated_at else None,
-            'status': self.status if hasattr(self, 'status') else 'active'
+            "id": self.id,
+            "user_id": self.user_id,
+            "title": self.title,
+            "description": self.description,
+            "file_url": self.file_url,
+            "uploaded_at": self.uploaded_at.isoformat() if self.uploaded_at else None,
+            "duration": self.duration or "0:00",
+            "plays": self.plays or 0,
+            "likes": self.likes or 0,
+            "album": self.album or "Single",
+            "genre": self.genre or "Unknown",
+            "artwork": self.artwork_url or "/default-track-artwork.jpg",
+            "is_public": self.is_public,
+            "artist_name": self.artist_name or (self.user.username if self.user else "Unknown Artist"),
+            # NEW fields
+            "is_explicit": self.is_explicit,
+            "lyrics": self.lyrics,
+            "isrc": self.isrc_code,
+            "album_id": self.album_id,
+            "album_name": self.album_rel.title if self.album_rel else None,
+            "album_artwork": self.album_rel.cover_image_url if self.album_rel and hasattr(self.album_rel, 'cover_image_url') else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "status": self.status,
+            "processing_status": self.processing_status,
+            "processed_file_url": self.processed_file_url
         }
     
     def serialize_minimal(self):
-        """Lightweight serialization for lists/previews"""
+        """NEW: Lightweight serialization for lists/previews"""
         return {
             'id': self.id,
             'title': self.title,
-            'artist_name': self.artist_name if self.artist_name else (self.user.username if self.user else None),
+            'artist_name': self.artist_name or (self.user.username if self.user else "Unknown Artist"),
             'file_url': self.file_url,
-            'duration': self.duration if hasattr(self, 'duration') else '0:00',
-            'plays_count': self.plays_count if hasattr(self, 'plays_count') else 0,
-            'album_artwork': self.album.cover_image_url if self.album and hasattr(self.album, 'cover_image_url') else None
+            'duration': self.duration or '0:00',
+            'plays': self.plays or 0,
+            'album_artwork': self.album_rel.cover_image_url if self.album_rel and hasattr(self.album_rel, 'cover_image_url') else self.artwork_url or '/default-track-artwork.jpg'
         }
     
     def serialize_for_player(self):
-        """Serialization optimized for music player"""
+        """NEW: Serialization optimized for music player"""
         return {
             'id': self.id,
             'title': self.title,
-            'artist': self.artist_name if self.artist_name else (self.user.username if self.user else 'Unknown Artist'),
+            'artist': self.artist_name or (self.user.username if self.user else 'Unknown Artist'),
             'audio_url': self.file_url,
-            'artwork': self.album.cover_image_url if self.album and hasattr(self.album, 'cover_image_url') else '/default-track-artwork.jpg',
-            'duration': self.duration if hasattr(self, 'duration') else '0:00',
+            'artwork': self.artwork_url or (self.album_rel.cover_image_url if self.album_rel and hasattr(self.album_rel, 'cover_image_url') else '/default-track-artwork.jpg'),
+            'duration': self.duration or '0:00',
             'is_explicit': self.is_explicit,
-            'genre': self.genre
+            'genre': self.genre or 'Unknown'
         }
     
     def __repr__(self):
-        return f'<Track {self.id}: {self.title} by {self.artist_name}>'
+        return f'<Audio {self.id}: {self.title}>'
 
 
 
@@ -2428,7 +2398,7 @@ class MusicDistribution(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    track_id = db.Column(db.Integer, db.ForeignKey('track.id'), nullable=True)
+    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=True)
     album_id = db.Column(db.Integer, db.ForeignKey('album.id'), nullable=True)
     
     # Distribution details
@@ -2461,7 +2431,7 @@ class MusicDistribution(db.Model):
     
     # Relationships
     user = db.relationship('User', backref='music_distributions')
-    track = db.relationship('Track', backref='distributions')
+    audio = db.relationship('Audio', backref='distributions')
     album = db.relationship('Album', backref='distributions')
     # CORRECT:
     analytics = db.relationship('DistributionAnalytics', backref='distribution', cascade='all, delete-orphan')
@@ -2470,7 +2440,7 @@ class MusicDistribution(db.Model):
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "track_id": self.track_id,
+            "audio_id": self.track_id,
             "album_id": self.album_id,
             "title": self.title,
             "artist_name": self.artist_name,
@@ -2500,7 +2470,7 @@ class DistributionSubmission(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     distribution_id = db.Column(db.Integer, db.ForeignKey('music_distribution.id'), nullable=False)
     
-    # Submission tracking
+    # Submission audio
     platform = db.Column(db.String(50), nullable=False)
     status = db.Column(db.String(50), nullable=False)  # submitted, approved, rejected, live
     submission_date = db.Column(db.DateTime, default=datetime.utcnow)
@@ -2700,25 +2670,34 @@ class Product(db.Model):
     is_digital = db.Column(db.Boolean, default=True)  # ✅ Mark if it's a digital product
     sales_revenue = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
+    platform_cut = db.Column(db.Float, default=0.10)  # 15% by default
     creator_earnings = db.Column(db.Float)            # 85% automatically calculated
+    sales_count = db.Column(db.Integer, default=0)
+    views = db.Column(db.Integer, default=0)
+    rating = db.Column(db.Float, default=0.0)
+
 
 
     creator = db.relationship('User', backref=db.backref('products', lazy=True))
 
     def serialize(self):
         return {
-            "id": self.id,
-            "creator_id": self.creator_id,
-            "title": self.title,
-            "description": self.description,
-            "image_url": self.image_url,
-            "file_url": self.file_url if self.is_digital else None,  # ✅ Only show for digital products
-            "price": self.price,
-            "stock": self.stock if not self.is_digital else None,  # ✅ Only show for physical products
-            "is_digital": self.is_digital,
-            "sales_revenue": self.sales_revenue,
-            "created_at": self.created_at.isoformat(),
+        "id": self.id,
+        "creator_id": self.creator_id,
+        "title": self.title,
+        "name": self.title,
+        "description": self.description,
+        "image_url": self.image_url,
+        "file_url": self.file_url,
+        "price": float(self.price) if self.price else 0.0,
+        "stock": self.stock if self.stock else 0,
+        "is_digital": self.is_digital,
+        "category": self.category,
+        "sales_count": self.sales_count if self.sales_count else 0,
+        "views": self.views if self.views else 0,
+        "rating": float(self.rating) if self.rating else 0.0,
+        "created_at": self.created_at.isoformat() if self.created_at else None,
+        "is_available": True if self.is_digital else (self.stock > 0)
         }
     
 class Collaboration(db.Model):
@@ -2857,7 +2836,7 @@ class RadioTrack(db.Model):
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
-    track_id = db.Column(db.Integer, db.ForeignKey('track.id'), nullable=False)  # Linking to uploaded tracks
+    track_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)  # Linking to uploaded tracks
     added_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def serialize(self):
@@ -2980,7 +2959,7 @@ class Album(db.Model):
     # ✅ FIXED: Specify which foreign key to use for each relationship
     user = db.relationship("User", foreign_keys=[user_id], backref="albums")
     artist = db.relationship("User", foreign_keys=[artist_id], backref="artist_albums")
-    tracks = db.relationship("Track", backref="album", lazy=True)
+    
 
 
 class Artist(db.Model):
@@ -3352,18 +3331,18 @@ upc_code = db.Column(db.String(20))
 class Collaborator(db.Model):
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
-    track_id = db.Column(db.Integer, db.ForeignKey('track.id'), nullable=False)
+    track_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
     name = db.Column(db.String(120), nullable=False)
     role = db.Column(db.String(120))
     percentage = db.Column(db.Float)
 
-    track = db.relationship('Track', backref=db.backref('collaborators', lazy=True))
+    track = db.relationship('Audio', backref=db.backref('collaborators', lazy=True))
 
 class AlbumTrack(db.Model):
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     album_id = db.Column(db.Integer, db.ForeignKey('album.id'), nullable=False)
-    track_id = db.Column(db.Integer, db.ForeignKey('track.id'), nullable=False)
+    track_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
 
 
 class Post(db.Model):

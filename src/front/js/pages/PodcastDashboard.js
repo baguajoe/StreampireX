@@ -1,344 +1,319 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import Sidebar from '../component/sidebar';
-import PodcastOverview from '../component/PodcastOverview';
-import RecentEpisodes from '../component/RecentEpisodes';
-import MonetizationAnalytics from '../component/MonetizationAnalytics';
-import AudienceInteraction from '../component/AudienceInteraction';
-import ScheduleEpisodeForm from '../component/ScheduleEpisodeForm';
-import '../../styles/PodcastDashboard.css';
+import React, { useState, useEffect, useContext } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Context } from "../store/appContext";
+import LoadingSpinner from "../component/LoadingSpinner";
+import EmptyState from "../component/EmptyState";
+import { showToast } from "../utils/toast";
+import "../../styles/PodcastDashboard.css";
 
 const PodcastDashboard = () => {
-    const [podcasts, setPodcasts] = useState([]);
-    const [selectedPodcast, setSelectedPodcast] = useState(null);
-    const [episodes, setEpisodes] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [earnings, setEarnings] = useState({
-        total: 0,
-        ads: 0,
-        subscriptions: 0,
-        donations: 0
-    });
+  const { store } = useContext(Context);
+  const navigate = useNavigate();
 
-    // Helper function to check if URL is a video file
-    const isVideoFile = (url) => {
-        if (!url) return false;
-        return url.match(/\.(mp4|mov|avi|mkv|webm|m4v|3gp|flv)$/i);
-    };
+  const [podcasts, setPodcasts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalPodcasts: 0,
+    totalEpisodes: 0,
+    totalListeners: 0,
+    monthlyRevenue: 0
+  });
 
-    // Helper function to check if URL is an audio file
-    const isAudioFile = (url) => {
-        if (!url) return false;
-        return url.match(/\.(mp3|wav|flac|m4a|aac|ogg|wma)$/i);
-    };
+  useEffect(() => {
+    fetchPodcastData();
+  }, []);
 
-    useEffect(() => {
-        const fetchPodcasts = async () => {
-            try {
-                const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast/dashboard`, {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-                });
-                if (!res.ok) throw new Error(`Status: ${res.status}`);
-                const data = await res.json();
-                if (!Array.isArray(data)) throw new Error("Data is not an array");
-                setPodcasts(data);
-            } catch (err) {
-                console.error("Podcast fetch error:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchPodcasts();
-    }, []);
+  const fetchPodcastData = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      
+      if (!token) {
+        showToast.error("Please log in to view your podcasts");
+        navigate("/login");
+        return;
+      }
 
-    const loadEpisodes = (podcastId) => {
-        console.log("Loading episodes for podcast:", podcastId);
-        setSelectedPodcast(podcastId);
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast/${podcastId}/episodes`)
-            .then(res => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                return res.json();
-            })
-            .then(data => {
-                console.log("Episodes loaded:", data);
-                setEpisodes(data);
-            })
-            .catch(error => {
-                console.error('Error fetching episodes:', error);
-                setEpisodes([]);
-            });
-    };
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      
+      // Fetch user's podcasts
+      const podcastsResponse = await fetch(`${backendUrl}/api/podcast/dashboard`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
 
-    const deletePodcast = (podcastId) => {
-        if (!window.confirm('Are you sure you want to delete this podcast?')) return;
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcasts/${podcastId}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        })
-            .then(() => setPodcasts(podcasts.filter((p) => p.id !== podcastId)))
-            .catch((error) => console.error('Error deleting podcast:', error));
-    };
-
-    const deleteEpisode = (episodeId) => {
-        if (!window.confirm('Are you sure you want to delete this episode?')) return;
+      if (podcastsResponse.ok) {
+        const data = await podcastsResponse.json();
+        setPodcasts(data);
         
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/episodes/${episodeId}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        })
-            .then(() => {
-                setEpisodes(episodes.filter((ep) => ep.id !== episodeId));
-            })
-            .catch((error) => console.error('Error deleting episode:', error));
-    };
+        // Calculate stats
+        const totalEpisodes = data.reduce((sum, podcast) => sum + (podcast.episodes?.length || 0), 0);
+        const totalListeners = data.reduce((sum, podcast) => sum + (podcast.total_listens || 0), 0);
+        
+        setStats({
+          totalPodcasts: data.length,
+          totalEpisodes: totalEpisodes,
+          totalListeners: totalListeners,
+          monthlyRevenue: 0 // You can calculate this from your data
+        });
+      } else if (podcastsResponse.status === 401) {
+        showToast.error("Session expired. Please log in again.");
+        navigate("/login");
+      } else {
+        showToast.error("Failed to load podcasts");
+      }
+    } catch (error) {
+      console.error("Error fetching podcast data:", error);
+      showToast.error("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Enhanced media renderer that handles both audio and video
-    const renderMediaPlayer = (episode) => {
-        if (!episode.file_url) {
-            return <p style={{color: '#666', fontStyle: 'italic'}}>No media file available</p>;
+  const handleDeletePodcast = async (podcastId) => {
+    if (!window.confirm("Are you sure you want to delete this podcast? This action cannot be undone.")) {
+      return;
+    }
+
+    const toastId = showToast.loading("Deleting podcast...");
+
+    try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
+      const response = await fetch(`${backendUrl}/api/podcast/${podcastId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
         }
+      });
 
-        console.log("Rendering media for episode:", episode.title, "URL:", episode.file_url);
+      if (response.ok) {
+        showToast.success("Podcast deleted successfully!", { id: toastId });
+        // Remove from local state
+        setPodcasts(podcasts.filter(p => p.id !== podcastId));
+        // Update stats
+        setStats(prev => ({
+          ...prev,
+          totalPodcasts: prev.totalPodcasts - 1
+        }));
+      } else {
+        const data = await response.json();
+        showToast.error(data.error || "Failed to delete podcast", { id: toastId });
+      }
+    } catch (error) {
+      console.error("Error deleting podcast:", error);
+      showToast.error("Network error. Please try again.", { id: toastId });
+    }
+  };
 
-        if (isVideoFile(episode.file_url)) {
-            return (
-                <div className="video-container" style={{margin: '10px 0'}}>
-                    <video 
-                        controls 
-                        style={{ 
-                            width: '100%', 
-                            maxWidth: '600px', 
-                            height: 'auto',
-                            borderRadius: '8px'
-                        }}
-                        preload="metadata"
-                    >
-                        <source src={episode.file_url} type="video/mp4" />
-                        <source src={episode.file_url} type="video/webm" />
-                        <source src={episode.file_url} type="video/ogg" />
-                        Your browser does not support the video element.
-                    </video>
-                </div>
-            );
-        } else if (isAudioFile(episode.file_url)) {
-            return (
-                <div className="audio-container" style={{margin: '10px 0'}}>
-                    <audio 
-                        controls 
-                        style={{ 
-                            width: '100%', 
-                            maxWidth: '500px' 
-                        }}
-                        preload="metadata"
-                    >
-                        <source src={episode.file_url} type="audio/mpeg" />
-                        <source src={episode.file_url} type="audio/wav" />
-                        <source src={episode.file_url} type="audio/ogg" />
-                        Your browser does not support the audio element.
-                    </audio>
-                </div>
-            );
-        } else {
-            // Fallback for unknown file types - try both video and audio
-            return (
-                <div className="media-container" style={{margin: '10px 0'}}>
-                    <video 
-                        controls 
-                        style={{ 
-                            width: '100%', 
-                            maxWidth: '600px', 
-                            height: 'auto',
-                            borderRadius: '8px'
-                        }}
-                        preload="metadata"
-                        onError={(e) => {
-                            console.log("Video failed, trying audio...");
-                            // If video fails, hide it and show audio player
-                            e.target.style.display = 'none';
-                            const audioElement = e.target.nextElementSibling;
-                            if (audioElement) {
-                                audioElement.style.display = 'block';
-                            }
-                        }}
-                    >
-                        <source src={episode.file_url} />
-                        Your browser does not support the video element.
-                    </video>
-                    <audio 
-                        controls 
-                        style={{ 
-                            width: '100%', 
-                            maxWidth: '500px',
-                            display: 'none' // Hidden by default, shown if video fails
-                        }}
-                        preload="metadata"
-                    >
-                        <source src={episode.file_url} />
-                        Your browser does not support the audio element.
-                    </audio>
-                </div>
-            );
-        }
-    };
+  const handlePublishToggle = async (podcastId, currentStatus) => {
+    const newStatus = currentStatus === "published" ? "draft" : "published";
+    const toastId = showToast.loading(`${newStatus === "published" ? "Publishing" : "Unpublishing"} podcast...`);
 
-    if (loading) return <p className="loading">Loading your podcasts...</p>;
+    try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
-    return (
-        <div className="podcast-dashboard">
-            <h1>🎙 Podcast Dashboard</h1>
+      const response = await fetch(`${backendUrl}/api/podcast/${podcastId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
 
-            <div className="podcast-section">
-                <h2>📊 Summary</h2>
-                <div className="summary-info"><strong>Total Podcasts:</strong> {podcasts.length}</div>
-                <div className="summary-info"><strong>Total Earnings:</strong> ${earnings.total.toFixed(2)}</div>
-                <div className="summary-info"><strong>Ad Revenue:</strong> ${earnings.ads.toFixed(2)}</div>
-                <div className="summary-info"><strong>Subscription Revenue:</strong> ${earnings.subscriptions.toFixed(2)}</div>
-                <div className="summary-info"><strong>Donation Revenue:</strong> ${earnings.donations.toFixed(2)}</div>
-            </div>
+      if (response.ok) {
+        showToast.success(`Podcast ${newStatus === "published" ? "published" : "unpublished"} successfully!`, { id: toastId });
+        // Update local state
+        setPodcasts(podcasts.map(p => 
+          p.id === podcastId ? { ...p, status: newStatus } : p
+        ));
+      } else {
+        const data = await response.json();
+        showToast.error(data.error || "Failed to update status", { id: toastId });
+      }
+    } catch (error) {
+      console.error("Error updating podcast status:", error);
+      showToast.error("Network error. Please try again.", { id: toastId });
+    }
+  };
 
-            <div className="podcast-section">
-                <h2>🎥 Go Live</h2>
-                <Link to="/live-studio">
-                    <button className="btn-live">🎥 Start Live Podcast</button>
-                </Link>
-            </div>
+  if (loading) {
+    return <LoadingSpinner message="Loading your podcasts..." fullScreen />;
+  }
 
-            <div className="podcast-section">
-                <h2>🎙️ Your Podcasts</h2>
-                {podcasts.length === 0 ? (
-                    <p className="empty-state">No podcasts found. Create your first show!</p>
-                ) : (
-                    <div className="podcast-list">
-                        {podcasts.map((podcast) => (
-                            <div key={podcast.id} className="podcast-card">
-                                <img
-                                    src={podcast.cover_art_url || '/default-podcast-cover.png'}
-                                    alt={podcast.title}
-                                    className="podcast-cover"
-                                    onError={(e) => {
-                                        e.target.src = '/default-podcast-cover.png';
-                                    }}
-                                />
-                                <div className="podcast-content">
-                                    <h3>{podcast.title}</h3>
-                                    <p>{podcast.description}</p>
-                                    <div className="podcast-metadata">
-                                        <span className="podcast-category">{podcast.category}</span>
-                                        {podcast.subscription_tier && (
-                                            <span className="podcast-tier">{podcast.subscription_tier}</span>
-                                        )}
-                                    </div>
-                                    <div className="podcast-actions">
-                                        <button onClick={() => loadEpisodes(podcast.id)} className="btn-primary">
-                                            View Episodes
-                                        </button>
-                                        <Link to={`/podcasts/${podcast.id}/edit`} className="btn-edit">
-                                            Edit
-                                        </Link>
-                                        <button onClick={() => deletePodcast(podcast.id)} className="btn-delete">
-                                            Delete
-                                        </button>
-                                    </div>
-                                    <ScheduleEpisodeForm podcastId={podcast.id} />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-                <div className="create-podcast">
-                    <Link to="/create-podcast">
-                        <button className="btn-create">➕ Create New Podcast</button>
-                    </Link>
-                </div>
-            </div>
-
-            {selectedPodcast && (
-                <div className="podcast-section">
-                    <h2>🎧 Episodes</h2>
-                    {episodes.length === 0 ? (
-                        <p className="empty-state">No episodes found for this podcast.</p>
-                    ) : (
-                        <ul className="episode-list">
-                            {episodes.map((episode) => (
-                                <li key={episode.id} className="episode-item">
-                                    <div className="episode-header">
-                                        <h4>{episode.title || 'Untitled Episode'}</h4>
-                                        <div className="episode-actions">
-                                            <button 
-                                                onClick={() => deleteEpisode(episode.id)} 
-                                                className="btn-delete btn-small"
-                                            >
-                                                Delete
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    {episode.description && (
-                                        <p className="episode-description">{episode.description}</p>
-                                    )}
-                                    
-                                    <div className="episode-metadata">
-                                        {episode.duration && (
-                                            <span className="episode-duration">Duration: {episode.duration}s</span>
-                                        )}
-                                        {episode.release_date && (
-                                            <span className="episode-date">
-                                                Released: {new Date(episode.release_date).toLocaleDateString()}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <div className="episode-media">
-                                        {renderMediaPlayer(episode)}
-                                    </div>
-
-                                    {episode.file_url && (
-                                        <div className="episode-download">
-                                            <a 
-                                                href={episode.file_url} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                className="download-link"
-                                            >
-                                                Download {isVideoFile(episode.file_url) ? 'Video' : 'Audio'}
-                                            </a>
-                                        </div>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </div>
-            )}
-
-            <div className="podcast-section">
-                <h2>📈 Recent Episodes</h2>
-                <div className="placeholder-content">
-                    <p className="empty-state">No recent episodes to display.</p>
-                    <p>Your latest episodes will appear here once you start creating content.</p>
-                </div>
-            </div>
-
-            <div className="podcast-section">
-                <h2>👥 Audience Interaction</h2>
-                <div className="placeholder-content">
-                    <p className="empty-state">No audience interactions yet.</p>
-                    <p>Comments, likes, and audience engagement will be shown here.</p>
-                </div>
-            </div>
-
-            <div className="podcast-section">
-                <h2>🛠️ Podcast Tools</h2>
-                <ul className="tools-list">
-                    <li><Link to="/create-podcast">Create New Podcast</Link></li>
-                    <li><Link to="/upload-episode">Upload Episode</Link></li>
-                    <li><Link to="/analytics">View Analytics</Link></li>
-                    <li><Link to="/monetization">Monetization Settings</Link></li>
-                    <li><Link to="/audience-insights">Audience Insights</Link></li>
-                </ul>
-            </div>
+  return (
+    <div className="podcast-dashboard-container">
+      {/* Header */}
+      <div className="dashboard-header">
+        <div className="header-content">
+          <h1>🎙️ Podcast Dashboard</h1>
+          <p>Manage your podcasts and track performance</p>
         </div>
-    );
+        <Link to="/podcast-create" className="create-podcast-btn">
+          ➕ Create New Podcast
+        </Link>
+      </div>
+
+      {/* Stats Overview */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon">🎙️</div>
+          <div className="stat-content">
+            <h3>{stats.totalPodcasts}</h3>
+            <p>Total Podcasts</p>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">📻</div>
+          <div className="stat-content">
+            <h3>{stats.totalEpisodes}</h3>
+            <p>Total Episodes</p>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">👥</div>
+          <div className="stat-content">
+            <h3>{stats.totalListeners.toLocaleString()}</h3>
+            <p>Total Listeners</p>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon">💰</div>
+          <div className="stat-content">
+            <h3>${stats.monthlyRevenue.toFixed(2)}</h3>
+            <p>Monthly Revenue</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Podcasts List */}
+      {podcasts.length > 0 ? (
+        <div className="podcasts-section">
+          <h2>Your Podcasts</h2>
+          <div className="podcasts-grid">
+            {podcasts.map(podcast => (
+              <div key={podcast.id} className="podcast-card">
+                <div className="podcast-image">
+                  {podcast.cover_image ? (
+                    <img src={podcast.cover_image} alt={podcast.title} />
+                  ) : (
+                    <div className="podcast-placeholder">🎙️</div>
+                  )}
+                  <span className={`status-badge ${podcast.status || 'draft'}`}>
+                    {podcast.status === 'published' ? '● Live' : '○ Draft'}
+                  </span>
+                </div>
+
+                <div className="podcast-info">
+                  <h3>{podcast.title}</h3>
+                  <p className="podcast-description">
+                    {podcast.description 
+                      ? (podcast.description.length > 100 
+                          ? podcast.description.substring(0, 100) + '...' 
+                          : podcast.description)
+                      : 'No description'}
+                  </p>
+
+                  <div className="podcast-stats">
+                    <div className="stat">
+                      <span className="stat-label">Episodes:</span>
+                      <span className="stat-value">{podcast.episodes?.length || 0}</span>
+                    </div>
+                    <div className="stat">
+                      <span className="stat-label">Listens:</span>
+                      <span className="stat-value">{podcast.total_listens?.toLocaleString() || '0'}</span>
+                    </div>
+                  </div>
+
+                  <div className="podcast-actions">
+                    <Link 
+                      to={`/podcast/${podcast.id}`} 
+                      className="action-btn view"
+                      title="View Podcast"
+                    >
+                      👁️ View
+                    </Link>
+                    <Link 
+                      to={`/podcast/${podcast.id}/edit`} 
+                      className="action-btn edit"
+                      title="Edit Podcast"
+                    >
+                      ✏️ Edit
+                    </Link>
+                    <button
+                      onClick={() => handlePublishToggle(podcast.id, podcast.status)}
+                      className={`action-btn ${podcast.status === 'published' ? 'unpublish' : 'publish'}`}
+                      title={podcast.status === 'published' ? 'Unpublish' : 'Publish'}
+                    >
+                      {podcast.status === 'published' ? '📴 Unpublish' : '🚀 Publish'}
+                    </button>
+                    <button
+                      onClick={() => handleDeletePodcast(podcast.id)}
+                      className="action-btn delete"
+                      title="Delete Podcast"
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <EmptyState
+          icon="🎙️"
+          title="No Podcasts Yet"
+          message="Start your podcasting journey by creating your first show. Share your voice with the world!"
+          actionText="Create Your First Podcast"
+          actionLink="/podcast-create"
+          secondaryActionText="Learn More"
+          secondaryActionLink="/podcasts"
+        />
+      )}
+
+      {/* Quick Actions */}
+      {podcasts.length > 0 && (
+        <div className="quick-actions-section">
+          <h2>Quick Actions</h2>
+          <div className="quick-actions-grid">
+            <Link to="/podcast-create" className="quick-action-card">
+              <div className="action-icon">➕</div>
+              <h3>Create New Podcast</h3>
+              <p>Start a new podcast series</p>
+            </Link>
+
+            <Link to="/browse-podcast-categories" className="quick-action-card">
+              <div className="action-icon">🔍</div>
+              <h3>Browse Podcasts</h3>
+              <p>Discover other shows</p>
+            </Link>
+
+            <Link to="/creator-dashboard" className="quick-action-card">
+              <div className="action-icon">📊</div>
+              <h3>Creator Dashboard</h3>
+              <p>View all analytics</p>
+            </Link>
+
+            <Link to="/settings" className="quick-action-card">
+              <div className="action-icon">⚙️</div>
+              <h3>Settings</h3>
+              <p>Manage your account</p>
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default PodcastDashboard;
