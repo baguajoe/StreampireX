@@ -6,10 +6,10 @@ const ProductUploadForm = ({ onUpload }) => {
     description: "",
     price: "",
     stock: "",
-    is_digital: false, // Changed default to false for better UX
+    is_digital: false,
   });
   const [imageFile, setImageFile] = useState(null);
-  const [digitalFile, setDigitalFile] = useState(null); // For actual file upload
+  const [digitalFile, setDigitalFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
 
@@ -101,8 +101,8 @@ const ProductUploadForm = ({ onUpload }) => {
     }
 
     try {
-      // Updated API endpoint to match backend
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/storefront/add-product`, {
+      // ✅ FIXED: Corrected the fetch URL syntax
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

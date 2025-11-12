@@ -1,8 +1,9 @@
-// Complete MusicDistribution.js with Full Width Layout and SonoSuite Dashboard Integration
-
 import React, { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import { Context } from "../store/appContext";
+import LoadingSpinner from "../component/LoadingSpinner";
+import EmptyState from "../component/EmptyState";
+import { showToast } from "../utils/toast";
 import "../../styles/MusicDistribution.css";
 
 const MusicDistribution = () => {
@@ -58,52 +59,12 @@ const MusicDistribution = () => {
 
   // Streaming platforms data
   const streamingPlatforms = [
-    { name: "Spotify", icon: "🎵", status: "active", streams: "2.4M" },
-    { name: "Apple Music", icon: "🍎", status: "active", streams: "1.8M" },
-    { name: "Amazon Music", icon: "📦", status: "active", streams: "1.2M" },
-    { name: "YouTube Music", icon: "📺", status: "active", streams: "3.1M" },
-    { name: "Deezer", icon: "🎼", status: "active", streams: "890K" },
-    { name: "Tidal", icon: "🌊", status: "active", streams: "650K" },
-    { name: "Pandora", icon: "📻", status: "pending", streams: "0" },
-    { name: "SoundCloud", icon: "☁️", status: "active", streams: "1.5M" },
-    { name: "Bandcamp", icon: "🎪", status: "active", streams: "320K" },
-    { name: "TikTok", icon: "🎵", status: "active", streams: "5.2M" },
-    { name: "Instagram", icon: "📸", status: "active", streams: "2.8M" },
-    { name: "Facebook", icon: "👥", status: "active", streams: "1.1M" }
-  ];
-
-  // Distribution process steps
-  const distributionProcess = [
-    {
-      step: 1,
-      icon: "🎵",
-      title: "Upload Your Music",
-      description: "Upload your high-quality audio files and artwork through StreampireX"
-    },
-    {
-      step: 2,
-      icon: "📝",
-      title: "Add Release Details",
-      description: "Fill in artist info, release date, genre, and platform preferences"
-    },
-    {
-      step: 3,
-      icon: "🔄",
-      title: "Review & Submit",
-      description: "Review your submission and send to our distribution network"
-    },
-    {
-      step: 4,
-      icon: "🚀",
-      title: "Go Live",
-      description: "Your music goes live on 150+ platforms worldwide within 24-48 hours"
-    },
-    {
-      step: 5,
-      icon: "📊",
-      title: "Track Performance",
-      description: "Monitor streams, earnings, and analytics across all platforms"
-    }
+    { id: "spotify", name: "Spotify", icon: "🎵" },
+    { id: "apple_music", name: "Apple Music", icon: "🍎" },
+    { id: "amazon_music", name: "Amazon Music", icon: "📦" },
+    { id: "youtube_music", name: "YouTube Music", icon: "▶️" },
+    { id: "deezer", name: "Deezer", icon: "🎧" },
+    { id: "tidal", name: "Tidal", icon: "🌊" }
   ];
 
   const genres = [
@@ -128,24 +89,20 @@ const MusicDistribution = () => {
         external_id: store.user.id.toString(),
         sonosuite_email: store.user.email || prev.sonosuite_email
       }));
-      console.log("Connection form auto-filled with user data");
     }
   }, [store.user]);
 
   // Enhanced: Fetch user plan and check distribution access
   const fetchUserPlan = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       if (!token) {
-        console.log("No token found, user not logged in");
         setUserPlan({ plan: { name: "Free", includes_music_distribution: false } });
         setPlanLoading(false);
         return;
       }
 
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
-      console.log("Fetching user plan from:", `${backendUrl}/api/user/plan-status`);
-      
       const response = await fetch(`${backendUrl}/api/user/plan-status`, {
         headers: { 
           "Authorization": `Bearer ${token}`,
@@ -153,11 +110,7 @@ const MusicDistribution = () => {
         }
       });
 
-      console.log("Plan status response status:", response.status);
-
       if (response.status === 404) {
-        // User doesn't have a plan yet, assign free plan
-        console.log("User plan not found, defaulting to free plan");
         setUserPlan({ 
           plan: { 
             name: "Free", 
@@ -167,12 +120,8 @@ const MusicDistribution = () => {
         });
       } else if (response.ok) {
         const data = await response.json();
-        console.log("User plan data:", data);
         setUserPlan(data);
       } else {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error("Plan fetch error:", errorData);
-        // Fallback to free plan on error
         setUserPlan({ 
           plan: { 
             name: "Free", 
@@ -183,7 +132,6 @@ const MusicDistribution = () => {
       }
     } catch (error) {
       console.error("Error fetching user plan:", error);
-      // Fallback to free plan on error
       setUserPlan({ 
         plan: { 
           name: "Free", 
@@ -201,9 +149,10 @@ const MusicDistribution = () => {
     setDashboardLoading(true);
     setDashboardError(null);
 
+    const toastId = showToast.loading('Accessing dashboard...');
+
     try {
-      // Get user's JWT token
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       if (!token) {
         throw new Error('Please log in first');
       }
@@ -222,7 +171,7 @@ const MusicDistribution = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Redirect to SonoSuite dashboard - user is automatically logged in
+        showToast.success('Redirecting to dashboard...', { id: toastId });
         window.location.href = data.redirect_url;
       } else {
         throw new Error(data.error || 'Failed to access dashboard');
@@ -230,6 +179,7 @@ const MusicDistribution = () => {
 
     } catch (err) {
       setDashboardError(err.message);
+      showToast.error(err.message, { id: toastId });
       console.error('Dashboard access error:', err);
     } finally {
       setDashboardLoading(false);
@@ -239,7 +189,7 @@ const MusicDistribution = () => {
   // Enhanced: Check SonoSuite connection status
   const checkSonoSuiteConnectionStatus = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       if (!token) {
         setSonosuiteStatus({ connected: false, loading: false });
         return;
@@ -260,7 +210,6 @@ const MusicDistribution = () => {
           loading: false
         });
       } else {
-        console.error("SonoSuite status check failed:", response.status);
         setSonosuiteStatus({
           connected: false,
           loading: false,
@@ -280,7 +229,7 @@ const MusicDistribution = () => {
   // Fetch distribution data
   const fetchDistributionData = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
       
       const [statsRes, releasesRes] = await Promise.all([
@@ -310,15 +259,15 @@ const MusicDistribution = () => {
   // Fetch user tracks
   const fetchUserTracks = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
       
-      const response = await fetch(`${backendUrl}/user/audio`, {
+      const response = await fetch(`${backendUrl}/api/music/user`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
-        setUserTracks(data.audio || []);
+        setUserTracks(data || []);
       }
     } catch (error) {
       console.error('Error fetching user tracks:', error);
@@ -328,8 +277,10 @@ const MusicDistribution = () => {
   // Enhanced: Auto-connect to SonoSuite with fallback to manual
   const connectToSonoSuite = async () => {
     setIsConnecting(true);
+    const toastId = showToast.loading('Connecting to distribution system...');
+
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       const userId = store.user?.id;
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
 
@@ -352,19 +303,16 @@ const MusicDistribution = () => {
           loading: false,
           connection: data.connection
         });
-        alert("✅ Distribution system connected! You can now distribute your music globally.");
-
-        // Refresh distribution data after connecting
+        showToast.success("✅ Distribution system connected! You can now distribute your music globally.", { id: toastId });
         fetchDistributionData();
       } else {
-        // Show manual connection form if auto-connect fails
         setShowManualConnection(true);
-        alert(`⚠️ Auto-connection failed: ${data.error}. Please try manual connection.`);
+        showToast.error(`Auto-connection failed: ${data.error}. Please try manual connection.`, { id: toastId });
       }
     } catch (error) {
       console.error("Error connecting distribution system:", error);
       setShowManualConnection(true);
-      alert("⚠️ Auto-connection failed. Please try manual connection.");
+      showToast.error("Auto-connection failed. Please try manual connection.", { id: toastId });
     } finally {
       setIsConnecting(false);
     }
@@ -374,9 +322,10 @@ const MusicDistribution = () => {
   const handleManualConnect = async (e) => {
     e.preventDefault();
     setIsConnecting(true);
+    const toastId = showToast.loading('Connecting to SonoSuite...');
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
       
       const response = await fetch(`${backendUrl}/api/sonosuite/connect`, {
@@ -391,7 +340,7 @@ const MusicDistribution = () => {
       const data = await response.json();
 
       if (response.ok) {
-        alert("✅ SonoSuite account connected successfully!");
+        showToast.success("✅ SonoSuite account connected successfully!", { id: toastId });
         setSonosuiteStatus({
           connected: true,
           connection: data.connection,
@@ -401,11 +350,11 @@ const MusicDistribution = () => {
         setShowManualConnection(false);
         fetchDistributionData();
       } else {
-        alert(`❌ Connection failed: ${data.error}`);
+        showToast.error(`Connection failed: ${data.error}`, { id: toastId });
       }
     } catch (error) {
       console.error("Error connecting SonoSuite:", error);
-      alert("❌ Connection failed. Please try again.");
+      showToast.error("Connection failed. Please try again.", { id: toastId });
     } finally {
       setIsConnecting(false);
     }
@@ -413,12 +362,14 @@ const MusicDistribution = () => {
 
   // Enhanced: Disconnect SonoSuite
   const handleDisconnect = async () => {
-    if (!confirm("Are you sure you want to disconnect your SonoSuite account? This will disable music distribution features.")) {
+    if (!window.confirm("Are you sure you want to disconnect your SonoSuite account? This will disable music distribution features.")) {
       return;
     }
 
+    const toastId = showToast.loading('Disconnecting...');
+
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
       
       const response = await fetch(`${backendUrl}/api/sonosuite/disconnect`, {
@@ -427,7 +378,7 @@ const MusicDistribution = () => {
       });
 
       if (response.ok) {
-        alert("✅ SonoSuite account disconnected successfully!");
+        showToast.success("✅ SonoSuite account disconnected successfully!", { id: toastId });
         setSonosuiteStatus({
           connected: false,
           loading: false,
@@ -435,56 +386,28 @@ const MusicDistribution = () => {
         });
       } else {
         const data = await response.json();
-        alert(`❌ Disconnect failed: ${data.error}`);
+        showToast.error(`Disconnect failed: ${data.error}`, { id: toastId });
       }
     } catch (error) {
       console.error("Error disconnecting SonoSuite:", error);
-      alert("❌ Disconnect failed. Please try again.");
-    }
-  };
-
-  // Open SonoSuite Dashboard with SSO
-  const openSonoSuiteDashboard = async (section = '/dashboard') => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const backendUrl = process.env.REACT_APP_BACKEND_URL;
-
-      const response = await fetch(
-        `${backendUrl}/api/sonosuite/redirect?return_to=${encodeURIComponent(section)}`,
-        {
-          headers: { "Authorization": `Bearer ${token}` }
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Redirect to SonoSuite with JWT authentication
-        window.location.href = data.redirect_url;
-      } else {
-        alert(`❌ Unable to access SonoSuite dashboard: ${data.error || data.message}`);
-
-        // If not connected, show connection prompt
-        if (data.error && data.error.includes("not connected")) {
-          setSonosuiteStatus(prev => ({ ...prev, connected: false }));
-        }
-      }
-    } catch (error) {
-      console.error("Error opening SonoSuite dashboard:", error);
-      alert("❌ Unable to access dashboard. Please try again.");
-    } finally {
-      setLoading(false);
+      showToast.error("Disconnect failed. Please try again.", { id: toastId });
     }
   };
 
   // Submit music for distribution
   const handleSubmitDistribution = async (e) => {
     e.preventDefault();
+    
+    if (!submissionForm.track_id || !submissionForm.release_title) {
+      showToast.error('Please fill in all required fields');
+      return;
+    }
+
     setLoading(true);
+    const toastId = showToast.loading('Submitting your music for distribution...');
 
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
       
       const response = await fetch(`${backendUrl}/api/music/distribute`, {
@@ -498,7 +421,7 @@ const MusicDistribution = () => {
 
       const data = await response.json();
       if (response.ok) {
-        alert('✅ Music submitted for distribution! You\'ll receive updates as it goes live on platforms.');
+        showToast.success('🎉 Music submitted for distribution! You\'ll receive updates as it goes live.', { id: toastId });
         setShowSubmissionForm(false);
         // Reset form
         setSubmissionForm({
@@ -514,10 +437,10 @@ const MusicDistribution = () => {
         });
         fetchDistributionData();
       } else {
-        alert(`Error: ${data.error}`);
+        showToast.error(data.error || 'Failed to submit distribution', { id: toastId });
       }
     } catch (error) {
-      alert(`Network error: ${error.message}`);
+      showToast.error('Network error. Please try again.', { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -532,439 +455,114 @@ const MusicDistribution = () => {
     }));
   };
 
-  // NEW: Enhanced Plan Selection Component
+  // Plan Selection Component
   const PlanSelectionSection = () => (
-    <section className="plan-selection-section" style={{
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      borderRadius: '15px',
-      padding: '40px 20px',
-      marginBottom: '30px',
-      color: 'white',
-      textAlign: 'center',
-      width: '100%'
-    }}>
-      <h2 style={{ marginBottom: '15px', fontSize: '2rem' }}>🎵 Choose Your Distribution Plan</h2>
-      <p style={{ marginBottom: '30px', fontSize: '1.1rem', opacity: 0.9 }}>
-        Select the plan that fits your music distribution needs
-      </p>
+    <section className="plan-selection-section">
+      <h2>🎵 Choose Your Distribution Plan</h2>
+      <p>Select the plan that fits your music distribution needs</p>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: '20px',
-        marginBottom: '30px',
-        width: '100%'
-      }}>
+      <div className="plans-grid">
         {/* Free Plan Card */}
-        <div style={{
-          background: 'rgba(255,255,255,0.1)',
-          padding: '25px',
-          borderRadius: '12px',
-          border: '2px solid rgba(255,255,255,0.2)',
-          width: '100%'
-        }}>
-          <h3 style={{ marginBottom: '10px' }}>🆓 Free Plan</h3>
-          <p style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '10px' }}>$0</p>
-          <p style={{ fontSize: '0.9rem', marginBottom: '15px', opacity: 0.8 }}>
-            Listen, follow, gaming community
-          </p>
-          <p style={{ fontSize: '0.9rem', marginBottom: '20px' }}>
-            ❌ No music distribution
-          </p>
-          <Link 
-            to="/pricing/plans" 
-            style={{
-              display: 'inline-block',
-              padding: '12px 20px',
-              background: 'rgba(255,255,255,0.2)',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '8px',
-              border: '1px solid rgba(255,255,255,0.3)',
-              transition: 'all 0.3s ease',
-              width: '80%'
-            }}
-          >
-            Current Plan
-          </Link>
+        <div className="plan-card free">
+          <h3>🆓 Free Plan</h3>
+          <p className="plan-price">$0</p>
+          <p className="plan-desc">Listen, follow, gaming community</p>
+          <p className="plan-feature-status">❌ No music distribution</p>
+          <Link to="/pricing/plans" className="plan-btn">Current Plan</Link>
         </div>
 
         {/* Pro Plan Card */}
-        <div style={{
-          background: 'rgba(255,255,255,0.15)',
-          padding: '25px',
-          borderRadius: '12px',
-          border: '2px solid #FFD700',
-          position: 'relative',
-          width: '100%'
-        }}>
-          <div style={{
-            position: 'absolute',
-            top: '-12px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: '#FFD700',
-            color: '#333',
-            padding: '5px 15px',
-            borderRadius: '15px',
-            fontSize: '0.8rem',
-            fontWeight: 'bold'
-          }}>
-            POPULAR
-          </div>
-          <h3 style={{ marginBottom: '10px' }}>⭐ Pro Plan</h3>
-          <p style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '5px' }}>$21.99</p>
-          <p style={{ fontSize: '0.8rem', marginBottom: '10px', opacity: 0.8 }}>/month</p>
-          <p style={{ fontSize: '0.9rem', marginBottom: '15px', opacity: 0.9 }}>
-            Upload content, livestreaming, analytics
-          </p>
-          <div style={{ fontSize: '0.9rem', marginBottom: '20px', textAlign: 'left' }}>
-            <div>✅ Limited Music Distribution</div>
-            <div>✅ SonoSuite Access</div>
-            <div>✅ Create Podcasts</div>
-            <div>✅ Radio Stations</div>
-          </div>
-          <Link 
-            to="/pricing" 
-            style={{
-              display: 'inline-block',
-              padding: '12px 20px',
-              background: '#FFD700',
-              color: '#333',
-              textDecoration: 'none',
-              borderRadius: '8px',
-              fontWeight: 'bold',
-              transition: 'all 0.3s ease',
-              width: '80%'
-            }}
-          >
-            Choose Pro Plan
-          </Link>
+        <div className="plan-card pro popular">
+          <div className="popular-badge">POPULAR</div>
+          <h3>⭐ Pro Plan</h3>
+          <p className="plan-price">$21.99<span>/month</span></p>
+          <p className="plan-desc">Upload content, livestreaming, analytics</p>
+          <ul className="plan-features">
+            <li>✅ Limited Music Distribution</li>
+            <li>✅ SonoSuite Access</li>
+            <li>✅ Create Podcasts</li>
+            <li>✅ Radio Stations</li>
+          </ul>
+          <Link to="/pricing" className="plan-btn primary">Choose Pro Plan</Link>
         </div>
 
         {/* Premium Plan Card */}
-        <div style={{
-          background: 'rgba(255,255,255,0.1)',
-          padding: '25px',
-          borderRadius: '12px',
-          border: '2px solid rgba(255,255,255,0.2)',
-          width: '100%'
-        }}>
-          <h3 style={{ marginBottom: '10px' }}>💎 Premium Plan</h3>
-          <p style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '5px' }}>$39.99</p>
-          <p style={{ fontSize: '0.8rem', marginBottom: '10px', opacity: 0.8 }}>/month</p>
-          <p style={{ fontSize: '0.9rem', marginBottom: '15px', opacity: 0.9 }}>
-            Full creators, sell merch, marketplace
-          </p>
-          <div style={{ fontSize: '0.9rem', marginBottom: '20px', textAlign: 'left' }}>
-            <div>✅ Unlimited Music Distribution</div>
-            <div>✅ Digital & Merch Sales</div>
-            <div>✅ Live Events</div>
-            <div>✅ All Pro Features</div>
-          </div>
-          <Link 
-            to="/pricing/plans" 
-            style={{
-              display: 'inline-block',
-              padding: '12px 20px',
-              background: 'rgba(255,255,255,0.2)',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '8px',
-              border: '1px solid rgba(255,255,255,0.3)',
-              transition: 'all 0.3s ease',
-              width: '80%'
-            }}
-          >
-            Upgrade to Premium
-          </Link>
+        <div className="plan-card premium">
+          <h3>💎 Premium Plan</h3>
+          <p className="plan-price">$29.99<span>/month</span></p>
+          <p className="plan-desc">Full creators, sell merch, marketplace</p>
+          <ul className="plan-features">
+            <li>✅ Unlimited Music Distribution</li>
+            <li>✅ Digital & Merch Sales</li>
+            <li>✅ Live Events</li>
+            <li>✅ All Pro Features</li>
+          </ul>
+          <Link to="/pricing/plans" className="plan-btn">Upgrade to Premium</Link>
         </div>
       </div>
 
-      {/* Standalone Distribution Option */}
-      <div style={{
-        background: 'rgba(255,255,255,0.1)',
-        padding: '25px',
-        borderRadius: '12px',
-        border: '1px solid rgba(255,255,255,0.2)',
-        marginTop: '20px',
-        width: '100%'
-      }}>
-        <h3 style={{ marginBottom: '15px' }}>🎵 Standalone Music Distribution</h3>
-        <p style={{ marginBottom: '20px', opacity: 0.9 }}>
-          Don't need other features? Get music distribution only.
-        </p>
-        <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>Artist Distribution</p>
-            <p style={{ fontSize: '1.5rem', marginBottom: '10px' }}>$22.99</p>
-            <Link 
-              to="/pricing/plans" 
-              style={{
-                display: 'inline-block',
-                padding: '10px 20px',
-                background: 'rgba(255,255,255,0.2)',
-                color: 'white',
-                textDecoration: 'none',
-                borderRadius: '6px',
-                fontSize: '0.9rem'
-              }}
-            >
-              Choose Artist
-            </Link>
+      {/* Standalone Distribution */}
+      <div className="standalone-section">
+        <h3>🎵 Standalone Music Distribution</h3>
+        <p>Don't need other features? Get music distribution only.</p>
+        <div className="standalone-options">
+          <div className="standalone-option">
+            <p className="option-name">Artist Distribution</p>
+            <p className="option-price">$22.99/year</p>
+            <Link to="/pricing/plans" className="option-btn">Choose Artist</Link>
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>Label Distribution</p>
-            <p style={{ fontSize: '1.5rem', marginBottom: '10px' }}>$74.99</p>
-            <Link 
-              to="/pricing/plans" 
-              style={{
-                display: 'inline-block',
-                padding: '10px 20px',
-                background: 'rgba(255,255,255,0.2)',
-                color: 'white',
-                textDecoration: 'none',
-                borderRadius: '6px',
-                fontSize: '0.9rem'
-              }}
-            >
-              Choose Label
-            </Link>
+          <div className="standalone-option">
+            <p className="option-name">Label Distribution</p>
+            <p className="option-price">$74.99/year</p>
+            <Link to="/pricing/plans" className="option-btn">Choose Label</Link>
           </div>
         </div>
       </div>
 
-      {/* Call to Action */}
-      <div style={{ marginTop: '30px' }}>
-        <Link 
-          to="/pricing"
-          style={{
-            display: 'inline-block',
-            padding: '15px 30px',
-            background: 'white',
-            color: '#667eea',
-            textDecoration: 'none',
-            borderRadius: '25px',
-            fontSize: '1.1rem',
-            fontWeight: 'bold',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-            transition: 'all 0.3s ease'
-          }}
-        >
-          🎯 Choose a Plan & Start Distributing
-        </Link>
+      <div className="plan-cta">
+        <Link to="/pricing" className="cta-btn">🎯 Choose a Plan & Start Distributing</Link>
       </div>
     </section>
   );
 
-  // Simple Dashboard Buttons Component
+  // Dashboard Buttons Component
   const SimpleDashboardButtons = () => (
-    <section className="simple-dashboard-section" style={{
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      borderRadius: '12px',
-      padding: '30px 20px',
-      marginBottom: '30px',
-      color: 'white',
-      width: '100%'
-    }}>
-      <h2 style={{ marginBottom: '20px', color: 'white' }}>📊 Quick Dashboard Access</h2>
-      <p style={{ marginBottom: '25px', opacity: 0.9 }}>
-        Access your distribution dashboard with one click - no double login required!
-      </p>
+    <section className="dashboard-section">
+      <h2>📊 Quick Dashboard Access</h2>
+      <p>Access your distribution dashboard with one click - no double login required!</p>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '15px',
-        width: '100%'
-      }}>
-        {/* Dashboard buttons with full width */}
-        <button
-          onClick={() => goToDashboard("/dashboard")}
-          disabled={dashboardLoading}
-          style={{
-            background: 'rgba(255,255,255,0.2)',
-            color: 'white',
-            border: '1px solid rgba(255,255,255,0.3)',
-            padding: '15px 20px',
-            borderRadius: '8px',
-            fontSize: '16px',
-            cursor: dashboardLoading ? 'not-allowed' : 'pointer',
-            transition: 'all 0.3s ease',
-            fontWeight: '500',
-            width: '100%'
-          }}
-        >
+      <div className="dashboard-buttons">
+        <button onClick={() => goToDashboard("/dashboard")} disabled={dashboardLoading}>
           {dashboardLoading ? '🔄 Loading...' : '📊 Dashboard'}
         </button>
-
-        <button
-          onClick={() => goToDashboard("/albums")}
-          disabled={dashboardLoading}
-          style={{
-            background: 'rgba(255,255,255,0.2)',
-            color: 'white',
-            border: '1px solid rgba(255,255,255,0.3)',
-            padding: '15px 20px',
-            borderRadius: '8px',
-            fontSize: '16px',
-            cursor: dashboardLoading ? 'not-allowed' : 'pointer',
-            transition: 'all 0.3s ease',
-            fontWeight: '500',
-            width: '100%'
-          }}
-        >
+        <button onClick={() => goToDashboard("/albums")} disabled={dashboardLoading}>
           📀 Albums
         </button>
-
-        <button
-          onClick={() => goToDashboard("/analytics")}
-          disabled={dashboardLoading}
-          style={{
-            background: 'rgba(255,255,255,0.2)',
-            color: 'white',
-            border: '1px solid rgba(255,255,255,0.3)',
-            padding: '15px 20px',
-            borderRadius: '8px',
-            fontSize: '16px',
-            cursor: dashboardLoading ? 'not-allowed' : 'pointer',
-            transition: 'all 0.3s ease',
-            fontWeight: '500',
-            width: '100%'
-          }}
-        >
+        <button onClick={() => goToDashboard("/analytics")} disabled={dashboardLoading}>
           📈 Analytics
         </button>
-
-        <button
-          onClick={() => goToDashboard("/releases")}
-          disabled={dashboardLoading}
-          style={{
-            background: 'rgba(255,255,255,0.2)',
-            color: 'white',
-            border: '1px solid rgba(255,255,255,0.3)',
-            padding: '15px 20px',
-            borderRadius: '8px',
-            fontSize: '16px',
-            cursor: dashboardLoading ? 'not-allowed' : 'pointer',
-            transition: 'all 0.3s ease',
-            fontWeight: '500',
-            width: '100%'
-          }}
-        >
+        <button onClick={() => goToDashboard("/releases")} disabled={dashboardLoading}>
           🎵 Releases
         </button>
       </div>
 
-      {/* Error message */}
       {dashboardError && (
-        <div style={{
-          color: '#ffcccb',
-          fontSize: '14px',
-          marginTop: '15px',
-          padding: '10px',
-          background: 'rgba(255,0,0,0.1)',
-          borderRadius: '6px',
-          border: '1px solid rgba(255,0,0,0.2)',
-          width: '100%'
-        }}>
+        <div className="dashboard-error">
           ❌ {dashboardError}
         </div>
       )}
     </section>
   );
 
-  // Enhanced: Plan upgrade prompt component
-  const PlanUpgradePrompt = () => (
-    <div className="upgrade-section" style={{
-      background: 'linear-gradient(135deg, #667eea, #764ba2)',
-      color: 'white',
-      padding: '3rem 2rem',
-      borderRadius: '15px',
-      textAlign: 'center',
-      marginBottom: '2rem',
-      width: '100%'
-    }}>
-      <h2>🎵 Unlock Global Music Distribution</h2>
-      <p style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>
-        Distribute your music to 150+ platforms including Spotify, Apple Music, Amazon Music, and more!
-      </p>
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-        gap: '1rem', 
-        marginBottom: '2rem',
-        width: '100%'
-      }}>
-        <div>✅ Global music distribution</div>
-        <div>✅ Keep 100% of your royalties</div>
-        <div>✅ Detailed analytics and reporting</div>
-        <div>✅ Release scheduling</div>
-        <div>✅ Social media integration</div>
-        <div>✅ YouTube Content ID protection</div>
-      </div>
-      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-        <Link 
-          to="/pricing" 
-          style={{ 
-            background: 'white', 
-            color: '#667eea',
-            padding: '15px 35px',
-            fontSize: '1.1rem',
-            borderRadius: '50px',
-            textDecoration: 'none',
-            fontWeight: 'bold',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-          }}
-        >
-          🚀 Choose a Plan - Start Distributing
-        </Link>
-        <Link 
-          to="/pricing" 
-          style={{ 
-            background: 'transparent',
-            color: 'white',
-            border: '2px solid white',
-            padding: '15px 35px',
-            fontSize: '1.1rem',
-            borderRadius: '50px',
-            textDecoration: 'none',
-            fontWeight: 'bold',
-            transition: 'all 0.3s ease'
-          }}
-        >
-          View All Plans
-        </Link>
-      </div>
-    </div>
-  );
-
-  // Enhanced: SonoSuite connection prompt with manual fallback
+  // Connection Prompt Component
   const ConnectionPrompt = () => (
-    <div className="connection-section" style={{
-      background: 'white',
-      border: '2px solid #28a745',
-      borderRadius: '15px',
-      padding: '2rem',
-      marginBottom: '2rem',
-      textAlign: 'center',
-      width: '100%'
-    }}>
+    <div className="connection-section">
       <h2>🎼 Connect Distribution System</h2>
-      <p style={{ marginBottom: '1.5rem' }}>
-        Ready to distribute your music globally? We'll connect your StreampireX account to our distribution network.
-      </p>
+      <p>Ready to distribute your music globally? We'll connect your StreamPireX account to our distribution network.</p>
 
-      <div style={{ marginBottom: '2rem' }}>
+      <div className="connection-benefits">
         <p><strong>What you'll get:</strong></p>
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-          gap: '1rem', 
-          marginTop: '1rem',
-          width: '100%'
-        }}>
+        <div className="benefits-grid">
           <div>🌍 Global distribution to 150+ platforms</div>
           <div>💰 Keep 100% of your royalties</div>
           <div>📊 Detailed analytics and reporting</div>
@@ -973,107 +571,47 @@ const MusicDistribution = () => {
       </div>
 
       <button 
-        className="btn-primary large"
+        className="connect-btn"
         onClick={connectToSonoSuite}
         disabled={isConnecting}
-        style={{ 
-          background: '#28a745', 
-          color: 'white', 
-          border: 'none', 
-          padding: '1rem 2rem', 
-          borderRadius: '8px', 
-          fontSize: '1.1rem',
-          cursor: isConnecting ? 'not-allowed' : 'pointer',
-          marginBottom: '1rem'
-        }}
       >
         {isConnecting ? "🔄 Connecting..." : "🔗 Connect Distribution System"}
       </button>
 
-      {/* Manual Connection Form (fallback) */}
+      {/* Manual Connection Form */}
       {showManualConnection && (
-        <div style={{
-          background: '#f8f9fa',
-          border: '1px solid #dee2e6',
-          borderRadius: '8px',
-          padding: '1.5rem',
-          marginTop: '1rem',
-          width: '100%'
-        }}>
+        <div className="manual-connection-form">
           <h4>Manual Connection</h4>
-          <p style={{ marginBottom: '1rem', fontSize: '0.9rem' }}>
-            If auto-connection failed, please enter your details manually:
-          </p>
+          <p>If auto-connection failed, please enter your details manually:</p>
           
-          <form onSubmit={handleManualConnect} style={{ width: '100%' }}>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                SonoSuite Email:
-              </label>
+          <form onSubmit={handleManualConnect}>
+            <div className="form-group">
+              <label>SonoSuite Email:</label>
               <input 
                 type="email"
                 value={connectionForm.sonosuite_email}
                 onChange={(e) => setConnectionForm(prev => ({ ...prev, sonosuite_email: e.target.value }))}
                 required
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  boxSizing: 'border-box'
-                }}
                 placeholder="your-email@example.com"
               />
             </div>
             
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-                External ID:
-              </label>
+            <div className="form-group">
+              <label>External ID:</label>
               <input 
                 type="text"
                 value={connectionForm.external_id}
                 onChange={(e) => setConnectionForm(prev => ({ ...prev, external_id: e.target.value }))}
                 required
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  boxSizing: 'border-box'
-                }}
                 placeholder="Your user ID"
               />
             </div>
             
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button 
-                type="submit"
-                disabled={isConnecting}
-                style={{
-                  background: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '4px',
-                  cursor: isConnecting ? 'not-allowed' : 'pointer'
-                }}
-              >
+            <div className="form-actions">
+              <button type="submit" disabled={isConnecting} className="btn-primary">
                 {isConnecting ? "🔄 Connecting..." : "🔗 Connect to SonoSuite"}
               </button>
-              
-              <button 
-                type="button"
-                onClick={() => setShowManualConnection(false)}
-                style={{
-                  background: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
+              <button type="button" onClick={() => setShowManualConnection(false)} className="btn-secondary">
                 Cancel
               </button>
             </div>
@@ -1083,88 +621,28 @@ const MusicDistribution = () => {
     </div>
   );
 
-  // Enhanced: Connected state component
+  // Connected State Component
   const ConnectedState = () => (
-    <div className="connected-state" style={{
-      background: '#d4edda',
-      border: '1px solid #c3e6cb',
-      borderRadius: '15px',
-      padding: '2rem',
-      marginBottom: '2rem',
-      width: '100%'
-    }}>
-      <div className="connection-info" style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h3>✅ Connected to StreampireX Distribution</h3>
+    <div className="connected-state">
+      <div className="connection-info">
+        <h3>✅ Connected to StreamPireX Distribution</h3>
         <p><strong>Email:</strong> {sonosuiteStatus.connection?.sonosuite_email}</p>
         <p><strong>External ID:</strong> {sonosuiteStatus.connection?.sonosuite_external_id}</p>
         <p><strong>Connected:</strong> {new Date(sonosuiteStatus.connection?.created_at).toLocaleDateString()}</p>
         <p><strong>Plan:</strong> {userPlan?.plan?.name}</p>
       </div>
 
-      {/* Quick Action Buttons */}
       <SimpleDashboardButtons />
 
-      {/* Plan Management Section */}
-      <div className="plan-management-section" style={{ 
-        textAlign: 'center', 
-        marginTop: '2rem', 
-        padding: '1.5rem', 
-        background: '#f8f9fa', 
-        borderRadius: '10px',
-        width: '100%'
-      }}>
-        <h4 style={{ marginBottom: '1rem', color: '#333' }}>🎯 Manage Your Plan</h4>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
-          <Link 
-            to="/pricing/plans"
-            style={{
-              display: 'inline-block',
-              padding: '0.75rem 1.5rem',
-              background: '#667eea',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              fontWeight: '500',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            📊 View All Plans
-          </Link>
-          <Link 
-            to="/pricing/plans"
-            style={{
-              display: 'inline-block',
-              padding: '0.75rem 1.5rem',
-              background: '#28a745',
-              color: 'white',
-              textDecoration: 'none',
-              borderRadius: '8px',
-              fontSize: '1rem',
-              fontWeight: '500',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            🚀 Upgrade Plan
-          </Link>
+      <div className="plan-management">
+        <h4>🎯 Manage Your Plan</h4>
+        <div className="plan-actions">
+          <Link to="/pricing/plans" className="btn-view-plans">📊 View All Plans</Link>
+          <Link to="/pricing/plans" className="btn-upgrade">🚀 Upgrade Plan</Link>
         </div>
-        <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
-          Current Plan: <strong>{userPlan?.plan?.name || 'Loading...'}</strong>
-        </p>
-        
-        <button 
-          onClick={handleDisconnect}
-          style={{ 
-            background: '#dc3545', 
-            color: 'white', 
-            border: 'none', 
-            padding: '0.5rem 1rem', 
-            borderRadius: '5px', 
-            cursor: 'pointer',
-            fontSize: '0.9rem'
-          }}
-        >
-          🔌 Disconnect StreampireX
+        <p>Current Plan: <strong>{userPlan?.plan?.name || 'Loading...'}</strong></p>
+        <button onClick={handleDisconnect} className="btn-disconnect">
+          🔌 Disconnect StreamPireX
         </button>
       </div>
     </div>
@@ -1176,116 +654,56 @@ const MusicDistribution = () => {
       <h2>📊 Your Distribution Overview</h2>
       <div className="stats-grid">
         <div className="stat-card">
-          <h3 style={{ color: '#667eea', marginBottom: '0.5rem' }}>Total Tracks</h3>
-          <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0 }}>{distributionStats.totalTracks}</p>
-        </div>
-        
-        <div className="stat-card">
-          <h3 style={{ color: '#667eea', marginBottom: '0.5rem' }}>Platforms</h3>
-          <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0 }}>{distributionStats.platformsReached}</p>
-        </div>
-        
-        <div className="stat-card">
-          <h3 style={{ color: '#667eea', marginBottom: '0.5rem' }}>Total Streams</h3>
-          <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0 }}>{distributionStats.totalStreams.toLocaleString()}</p>
-        </div>
-        
-        <div className="stat-card">
-          <h3 style={{ color: '#667eea', marginBottom: '0.5rem' }}>Monthly Earnings</h3>
-          <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0 }}>${distributionStats.monthlyEarnings}</p>
-        </div>
-      </div>
-    </section>
-  );
-
-  // Streaming Platforms Section
-  const StreamingPlatformsSection = () => (
-    <section className="platforms-section">
-      <h2>🎵 Supported Streaming Platforms</h2>
-      <div className="platforms-grid">
-        {streamingPlatforms.map((platform, index) => (
-          <div key={index} className="platform-card" style={{
-            border: platform.status === 'active' ? '2px solid #28a745' : '2px solid #ffc107'
-          }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{platform.icon}</div>
-            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem' }}>{platform.name}</h4>
-            <p style={{ 
-              margin: 0, 
-              fontSize: '0.8rem', 
-              color: platform.status === 'active' ? '#28a745' : '#ffc107',
-              fontWeight: 'bold'
-            }}>
-              {platform.status === 'active' ? `${platform.streams} streams` : 'Coming Soon'}
-            </p>
+          <div className="stat-icon">🎵</div>
+          <div className="stat-content">
+            <h3>{distributionStats.totalTracks}</h3>
+            <p>Total Tracks</p>
           </div>
-        ))}
-      </div>
-    </section>
-  );
-
-  // Distribution Process Section
-  const DistributionProcessSection = () => (
-    <section className="how-it-works">
-      <h2>🚀 How Distribution Works</h2>
-      <div className="process-steps">
-        {distributionProcess.map((step, index) => (
-          <div key={index} className="process-step">
-            <div className="step-number">
-              {step.step}
-            </div>
-            <div className="step-icon">{step.icon}</div>
-            <div className="step-content">
-              <h3>{step.title}</h3>
-              <p>{step.description}</p>
-            </div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon">🌐</div>
+          <div className="stat-content">
+            <h3>{distributionStats.platformsReached}</h3>
+            <p>Platforms</p>
           </div>
-        ))}
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon">📈</div>
+          <div className="stat-content">
+            <h3>{distributionStats.totalStreams.toLocaleString()}</h3>
+            <p>Total Streams</p>
+          </div>
+        </div>
+        
+        <div className="stat-card">
+          <div className="stat-icon">💰</div>
+          <div className="stat-content">
+            <h3>${distributionStats.monthlyEarnings.toFixed(2)}</h3>
+            <p>Monthly Earnings</p>
+          </div>
+        </div>
       </div>
     </section>
   );
 
-  // Music Submission Form (keeping existing implementation)
+  // Music Submission Form
   const MusicSubmissionForm = () => (
-    <div className="submission-overlay" style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0,0,0,0.8)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '1rem'
-    }}>
-      <div className="submission-form" style={{
-        background: 'white',
-        borderRadius: '15px',
-        padding: '2rem',
-        maxWidth: '600px',
-        width: '100%',
-        maxHeight: '90vh',
-        overflowY: 'auto'
-      }}>
-        <h2 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>🎵 Submit Music for Distribution</h2>
+    <div className="submission-overlay">
+      <div className="submission-form">
+        <div className="form-header">
+          <h2>🎵 Submit Music for Distribution</h2>
+          <button className="close-btn" onClick={() => setShowSubmissionForm(false)}>✕</button>
+        </div>
         
         <form onSubmit={handleSubmitDistribution}>
-          {/* Track Selection */}
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              Select Track:
-            </label>
+          <div className="form-group">
+            <label>Select Track *</label>
             <select
               value={submissionForm.track_id}
               onChange={(e) => setSubmissionForm(prev => ({ ...prev, track_id: e.target.value }))}
               required
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ccc',
-                borderRadius: '4px'
-              }}
             >
               <option value="">Choose a track...</option>
               {userTracks.map(track => (
@@ -1296,151 +714,102 @@ const MusicDistribution = () => {
             </select>
           </div>
 
-          {/* Release Title */}
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              Release Title:
-            </label>
-            <input
-              type="text"
-              value={submissionForm.release_title}
-              onChange={(e) => setSubmissionForm(prev => ({ ...prev, release_title: e.target.value }))}
-              required
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ccc',
-                borderRadius: '4px'
-              }}
-              placeholder="Your Song Title"
-            />
+          <div className="form-row">
+            <div className="form-group">
+              <label>Release Title *</label>
+              <input
+                type="text"
+                value={submissionForm.release_title}
+                onChange={(e) => setSubmissionForm(prev => ({ ...prev, release_title: e.target.value }))}
+                required
+                placeholder="Your Song Title"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Artist Name *</label>
+              <input
+                type="text"
+                value={submissionForm.artist_name}
+                onChange={(e) => setSubmissionForm(prev => ({ ...prev, artist_name: e.target.value }))}
+                required
+                placeholder="Your Artist Name"
+              />
+            </div>
           </div>
 
-          {/* Artist Name */}
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              Artist Name:
-            </label>
-            <input
-              type="text"
-              value={submissionForm.artist_name}
-              onChange={(e) => setSubmissionForm(prev => ({ ...prev, artist_name: e.target.value }))}
-              required
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ccc',
-                borderRadius: '4px'
-              }}
-              placeholder="Your Artist Name"
-            />
+          <div className="form-row">
+            <div className="form-group">
+              <label>Genre *</label>
+              <select
+                value={submissionForm.genre}
+                onChange={(e) => setSubmissionForm(prev => ({ ...prev, genre: e.target.value }))}
+                required
+              >
+                <option value="">Select genre...</option>
+                {genres.map(genre => (
+                  <option key={genre} value={genre}>{genre}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Release Date *</label>
+              <input
+                type="date"
+                value={submissionForm.release_date}
+                onChange={(e) => setSubmissionForm(prev => ({ ...prev, release_date: e.target.value }))}
+                required
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
           </div>
 
-          {/* Genre */}
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              Genre:
-            </label>
-            <select
-              value={submissionForm.genre}
-              onChange={(e) => setSubmissionForm(prev => ({ ...prev, genre: e.target.value }))}
-              required
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ccc',
-                borderRadius: '4px'
-              }}
-            >
-              <option value="">Select genre...</option>
-              {genres.map(genre => (
-                <option key={genre} value={genre}>{genre}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Release Date */}
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              Release Date:
-            </label>
-            <input
-              type="date"
-              value={submissionForm.release_date}
-              onChange={(e) => setSubmissionForm(prev => ({ ...prev, release_date: e.target.value }))}
-              required
-              min={new Date().toISOString().split('T')[0]}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ccc',
-                borderRadius: '4px'
-              }}
-            />
-          </div>
-
-          {/* Label */}
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
-              Label:
-            </label>
+          <div className="form-group">
+            <label>Label</label>
             <input
               type="text"
               value={submissionForm.label}
               onChange={(e) => setSubmissionForm(prev => ({ ...prev, label: e.target.value }))}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #ccc',
-                borderRadius: '4px'
-              }}
               placeholder="StreampireX Records"
             />
           </div>
 
-          {/* Explicit Content */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className="form-group">
+            <label>Select Platforms</label>
+            <div className="platforms-grid">
+              {streamingPlatforms.map(platform => (
+                <label key={platform.id} className="platform-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={submissionForm.platforms.includes(platform.id)}
+                    onChange={() => handlePlatformToggle(platform.id)}
+                  />
+                  <span className="platform-label">
+                    <span className="platform-icon">{platform.icon}</span>
+                    {platform.name}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="checkbox-label">
               <input
                 type="checkbox"
                 checked={submissionForm.explicit}
                 onChange={(e) => setSubmissionForm(prev => ({ ...prev, explicit: e.target.checked }))}
               />
-              <span style={{ fontWeight: 'bold' }}>Contains explicit content</span>
+              <span>Contains explicit content</span>
             </label>
           </div>
 
-          {/* Form Actions */}
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                background: '#667eea',
-                color: 'white',
-                border: 'none',
-                padding: '1rem 2rem',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                cursor: loading ? 'not-allowed' : 'pointer'
-              }}
-            >
+          <div className="form-actions">
+            <button type="submit" disabled={loading} className="btn-primary">
               {loading ? '🔄 Submitting...' : '🚀 Submit for Distribution'}
             </button>
-            
-            <button
-              type="button"
-              onClick={() => setShowSubmissionForm(false)}
-              style={{
-                background: '#6c757d',
-                color: 'white',
-                border: 'none',
-                padding: '1rem 2rem',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                cursor: 'pointer'
-              }}
-            >
+            <button type="button" onClick={() => setShowSubmissionForm(false)} className="btn-secondary">
               Cancel
             </button>
           </div>
@@ -1452,107 +821,69 @@ const MusicDistribution = () => {
   // Active Releases Section
   const ActiveReleasesSection = () => (
     <section className="active-distributions">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+      <div className="section-header">
         <h2>🎵 Your Active Releases</h2>
         {sonosuiteStatus.connected && userPlan?.plan?.includes_music_distribution && (
-          <button
-            onClick={() => setShowSubmissionForm(true)}
-            style={{
-              background: '#667eea',
-              color: 'white',
-              border: 'none',
-              padding: '0.75rem 1.5rem',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '1rem'
-            }}
-          >
+          <button onClick={() => setShowSubmissionForm(true)} className="submit-release-btn">
             🚀 Submit New Release
           </button>
         )}
       </div>
 
       {activeDistributions.length > 0 ? (
-        <div className="releases-list">
-          {activeDistributions.map((release, index) => (
-            <div key={index} className="release-card active">
-              <div className="release-info">
-                <h4 style={{ marginBottom: '0.5rem', color: '#333' }}>{release.title}</h4>
-                <p style={{ marginBottom: '0.5rem', color: '#666' }}>Artist: {release.artist}</p>
-                <p style={{ marginBottom: '0.5rem', color: '#666' }}>Status: {release.status}</p>
-                <p style={{ marginBottom: '1rem', color: '#666' }}>Platforms: {release.platforms?.length || 0}</p>
+        <div className="distributions-grid">
+          {activeDistributions.map(dist => (
+            <div key={dist.id} className="distribution-card">
+              <div className="card-header">
+                <h3>{dist.title}</h3>
+                <span className="status-badge live">● Live</span>
               </div>
-              
-              <div className="release-actions">
-                <button
-                  onClick={() => openSonoSuiteDashboard(`/releases/${release.id}`)}
-                  className="btn-secondary"
-                >
-                  📊 View Analytics
-                </button>
+              <p className="artist-name">{dist.artist_name}</p>
+              <div className="distribution-stats">
+                <div className="stat">
+                  <span className="stat-label">Platforms:</span>
+                  <span className="stat-value">{dist.platforms?.length || 0}</span>
+                </div>
+                <div className="stat">
+                  <span className="stat-label">Streams:</span>
+                  <span className="stat-value">{dist.streams?.toLocaleString() || '0'}</span>
+                </div>
               </div>
+              <button className="btn-view">📊 View Analytics</button>
             </div>
           ))}
         </div>
       ) : (
-        <div className="empty-state">
-          <h3>No active releases yet</h3>
-          <p>Submit your first track to get started!</p>
-        </div>
+        <EmptyState
+          icon="🎵"
+          title="No active releases yet"
+          message="Submit your first track to get started!"
+          actionText="Submit Track"
+          onAction={() => setShowSubmissionForm(true)}
+        />
       )}
     </section>
   );
 
   // Show loading state
   if (planLoading || sonosuiteStatus.loading) {
-    return (
-      <div className="music-distribution" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-        <h1>🎵 Music Distribution</h1>
-        <p>Loading your distribution status...</p>
-        <div style={{ 
-          width: '50px', 
-          height: '50px', 
-          border: '3px solid #f3f3f3', 
-          borderTop: '3px solid #667eea',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite',
-          margin: '2rem auto'
-        }}></div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading your distribution status..." fullScreen />;
   }
 
   // Main render
   return (
     <div className="music-distribution">
       {/* Header */}
-      <header style={{ textAlign: 'center', marginBottom: '3rem', width: '100%' }}>
-        <h1 style={{ 
-          fontSize: '3rem', 
-          marginBottom: '1rem',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text'
-        }}>
-          🎵 Global Music Distribution
-        </h1>
-        <p style={{ fontSize: '1.2rem', color: '#666' }}>
-          Distribute your music to 150+ platforms worldwide with StreampireX
-        </p>
+      <header className="distribution-header">
+        <h1>🎵 Global Music Distribution</h1>
+        <p>Distribute your music to 150+ platforms worldwide with StreamPireX</p>
       </header>
 
       {/* Conditional Rendering Based on Plan and Connection Status */}
       {!userPlan?.plan?.includes_music_distribution ? (
-        <>
-          <PlanSelectionSection />
-          <PlanUpgradePrompt />
-        </>
+        <PlanSelectionSection />
       ) : !sonosuiteStatus.connected ? (
-        <>
-          <ConnectionPrompt />
-          <DistributionProcessSection />
-        </>
+        <ConnectionPrompt />
       ) : (
         <>
           <ConnectedState />
@@ -1561,9 +892,23 @@ const MusicDistribution = () => {
         </>
       )}
 
-      {/* Always show these sections */}
-      <StreamingPlatformsSection />
-      <DistributionProcessSection />
+      {/* Pending Releases */}
+      {pendingReleases.length > 0 && (
+        <section className="pending-section">
+          <h2>⏳ Pending Releases</h2>
+          <div className="pending-list">
+            {pendingReleases.map(release => (
+              <div key={release.id} className="pending-card">
+                <div className="pending-info">
+                  <h4>{release.title}</h4>
+                  <p>{release.artist_name}</p>
+                </div>
+                <span className="status-badge pending">Processing</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Submission Form Modal */}
       {showSubmissionForm && <MusicSubmissionForm />}

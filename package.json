@@ -9,16 +9,14 @@
 	"scripts": {
 		"start": "webpack-dev-server --config webpack.dev.js --port 3000",
 		"build": "webpack --config webpack.prod.js",
-		
 		"test": "playwright test",
 		"test:install": "playwright install",
 		"test:headed": "playwright test --headed",
 		"test:debug": "playwright test --debug",
 		"test:ui": "playwright test --ui",
 		"test:report": "playwright show-report",
-		
 		"test:auth": "playwright test tests/auth/ --project=auth-tests",
-		"test:api": "playwright test tests/api/ --project=api-integration", 
+		"test:api": "playwright test tests/api/ --project=api-integration",
 		"test:frontend": "playwright test tests/frontend --project=frontend-tests",
 		"test:sonosuite": "playwright test tests/sonosuite/ --project=sonosuite-integration",
 		"test:music": "playwright test tests/music/ --project=music-features",
@@ -28,40 +26,32 @@
 		"test:video-editor": "playwright test tests/video-editor/ --project=video-editor-features",
 		"test:marketplace": "playwright test tests/marketplace/ --project=marketplace-features",
 		"test:distribution": "playwright test tests/distribution/ --project=distribution-features",
-		
 		"test:mobile": "playwright test tests/mobile/ --project=mobile-chrome",
 		"test:cross-browser": "playwright test --project=firefox --project=webkit",
 		"test:all-browsers": "playwright test --project=chromium --project=firefox --project=webkit",
-		
 		"test:working-features": "playwright test tests/auth/ tests/api/ tests/frontend/",
 		"test:pending-features": "playwright test tests/sonosuite/ tests/distribution/ --reporter=list",
 		"test:core": "playwright test tests/auth/ tests/api/ tests/frontend/ --project=chromium",
 		"test:integration": "playwright test tests/integration/ --project=integration-tests",
-		
 		"test:performance": "playwright test tests/performance/ --project=performance-tests",
 		"test:accessibility": "playwright test tests/accessibility/ --project=a11y-tests",
 		"test:visual": "playwright test tests/visual/ --project=visual-tests",
-		
 		"test:health": "curl -f http://localhost:3001/health || echo 'Backend not running'",
 		"test:backend-health": "curl -f http://localhost:3001/api/health || echo 'API not responding'",
 		"test:endpoints": "playwright test tests/api/endpoint-validation.spec.js",
-		
 		"test:ci": "playwright test --reporter=junit --reporter=html",
 		"test:ci-core": "playwright test tests/auth/ tests/api/ --reporter=junit",
 		"test:ci-features": "playwright test tests/music/ tests/podcasts/ tests/radio/ --reporter=junit",
 		"test:smoke": "playwright test tests/smoke/ --project=smoke-tests",
-		
 		"test:watch": "playwright test --watch",
 		"test:update-snapshots": "playwright test --update-snapshots",
 		"test:trace": "playwright test --trace=on",
 		"test:record": "playwright codegen http://localhost:3000",
-		
 		"test:login-flow": "playwright test tests/auth/login.spec.js --headed",
-		"test:registration-flow": "playwright test tests/auth/registration.spec.js --headed", 
+		"test:registration-flow": "playwright test tests/auth/registration.spec.js --headed",
 		"test:jwt-validation": "playwright test tests/auth/jwt-validation.spec.js",
 		"test:sonosuite-urls": "playwright test tests/sonosuite/url-construction.spec.js",
 		"test:upload-workflows": "playwright test tests/music/upload-flow.spec.js tests/podcasts/upload-flow.spec.js",
-		
 		"test:full-suite": "npm run test:working-features && npm run test:pending-features",
 		"test:production-ready": "npm run test:core && npm run test:performance && npm run test:accessibility",
 		"test:feature-complete": "npm run test:music && npm run test:podcasts && npm run test:radio && npm run test:gaming",
@@ -73,7 +63,7 @@
 	},
 	"contributors": [
 		{
-			"name": "Alejandro Sanchez", 
+			"name": "Alejandro Sanchez",
 			"url": "http://alesanchezr.com/"
 		},
 		{
@@ -152,6 +142,7 @@
 		"react-beautiful-dnd": "^13.1.1",
 		"react-chartjs-2": "^5.3.0",
 		"react-dom": "^18.3.1",
+		"react-hot-toast": "^2.6.0",
 		"react-i18next": "^15.4.1",
 		"react-icons": "^4.12.0",
 		"react-polyfills": "0.0.1",

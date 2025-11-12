@@ -1,0 +1,125 @@
+/* Empty State Container */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  text-align: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 20px;
+  border: 2px dashed #cbd5e1;
+  margin: 40px 0;
+  min-height: 400px;
+}
+
+/* Empty State Icon */
+.empty-state-icon {
+  font-size: 80px;
+  margin-bottom: 24px;
+  opacity: 0.6;
+  animation: floatIcon 3s ease-in-out infinite;
+}
+
+/* Empty State Title */
+.empty-state-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+}
+
+/* Empty State Message */
+.empty-state-message {
+  font-size: 16px;
+  color: #64748b;
+  max-width: 500px;
+  line-height: 1.6;
+  margin: 0 0 32px 0;
+}
+
+/* Empty State Actions */
+.empty-state-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Empty State Buttons */
+.empty-state-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.empty-state-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.empty-state-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.empty-state-btn.secondary {
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+.empty-state-btn.secondary:hover {
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.2);
+}
+
+/* Animation */
+@keyframes floatIcon {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .empty-state {
+    padding: 60px 24px;
+    min-height: 300px;
+  }
+
+  .empty-state-icon {
+    font-size: 60px;
+  }
+
+  .empty-state-title {
+    font-size: 24px;
+  }
+
+  .empty-state-message {
+    font-size: 14px;
+  }
+
+  .empty-state-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .empty-state-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

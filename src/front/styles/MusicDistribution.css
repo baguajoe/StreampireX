@@ -225,12 +225,14 @@
 }
 
 /* Platforms Section */
-.platforms-section, .social-platforms-section {
+.platforms-section,
+.social-platforms-section {
   margin-bottom: 50px;
   width: 100%;
 }
 
-.platforms-section h2, .social-platforms-section h2 {
+.platforms-section h2,
+.social-platforms-section h2 {
   font-size: 2rem;
   margin-bottom: 30px;
   color: #1e293b;
@@ -312,12 +314,14 @@
 }
 
 /* Releases Section */
-.pending-releases, .active-distributions {
+.pending-releases,
+.active-distributions {
   margin-bottom: 50px;
   max-width: 100%;
 }
 
-.pending-releases h2, .active-distributions h2 {
+.pending-releases h2,
+.active-distributions h2 {
   font-size: 2rem;
   margin-bottom: 30px;
   color: #1e293b;
@@ -569,7 +573,8 @@
   max-width: 100%;
 }
 
-.btn-primary.large, .btn-secondary.large {
+.btn-primary.large,
+.btn-secondary.large {
   padding: 15px 35px;
   font-size: 1.1rem;
   border-radius: 50px;
@@ -723,7 +728,8 @@
 }
 
 /* Prevent horizontal overflow and ensure full width usage */
-html, body {
+html,
+body {
   overflow-x: hidden;
   width: 100%;
   margin: 0;
@@ -744,4 +750,813 @@ html, body {
   background-color: #ffffff;
   box-sizing: border-box;
   min-height: 100vh;
+  /* ============================================
+   SONOSUITE INTEGRATION SECTIONS
+   ============================================ */
+
+  /* Plan Selection Section */
+  .plan-selection-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 40px 20px;
+    margin-bottom: 30px;
+    color: white;
+    text-align: center;
+  }
+
+  .plan-selection-section h2 {
+    font-size: 2rem;
+    margin-bottom: 15px;
+  }
+
+  .plan-selection-section>p {
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+    opacity: 0.9;
+  }
+
+  .plans-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .plan-card {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 25px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+  }
+
+  .plan-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .plan-card.popular {
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid #FFD700;
+    position: relative;
+  }
+
+  .popular-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #FFD700;
+    color: #333;
+    padding: 5px 15px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+  }
+
+  .plan-card h3 {
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+  }
+
+  .plan-price {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 10px 0;
+  }
+
+  .plan-price span {
+    font-size: 0.8rem;
+    opacity: 0.8;
+  }
+
+  .plan-desc {
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    opacity: 0.9;
+  }
+
+  .plan-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px 0;
+    text-align: left;
+    font-size: 0.9rem;
+  }
+
+  .plan-features li {
+    margin-bottom: 8px;
+  }
+
+  .plan-feature-status {
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+  }
+
+  .plan-btn {
+    display: inline-block;
+    width: 80%;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+    font-weight: 500;
+  }
+
+  .plan-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    text-decoration: none;
+    color: white;
+  }
+
+  .plan-btn.primary {
+    background: #FFD700;
+    color: #333;
+    border: none;
+    font-weight: bold;
+  }
+
+  .plan-btn.primary:hover {
+    background: #FFC700;
+    color: #333;
+  }
+
+  /* Standalone Distribution Section */
+  .standalone-section {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-top: 20px;
+  }
+
+  .standalone-section h3 {
+    margin-bottom: 15px;
+  }
+
+  .standalone-options {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .standalone-option {
+    text-align: center;
+  }
+
+  .option-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+
+  .option-price {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+
+  .option-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+  }
+
+  .option-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    text-decoration: none;
+    color: white;
+  }
+
+  .plan-cta {
+    margin-top: 30px;
+  }
+
+  .cta-btn {
+    display: inline-block;
+    padding: 15px 30px;
+    background: white;
+    color: #667eea;
+    text-decoration: none;
+    border-radius: 25px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+  }
+
+  .cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    text-decoration: none;
+    color: #667eea;
+  }
+
+  /* Dashboard Section */
+  .dashboard-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 30px 20px;
+    margin-bottom: 30px;
+    color: white;
+  }
+
+  .dashboard-section h2 {
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+  }
+
+  .dashboard-section>p {
+    margin-bottom: 25px;
+    opacity: 0.9;
+  }
+
+  .dashboard-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+  }
+
+  .dashboard-buttons button {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 15px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .dashboard-buttons button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .dashboard-buttons button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .dashboard-error {
+    color: #ffcccb;
+    font-size: 14px;
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255, 0, 0, 0.1);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 0, 0, 0.2);
+  }
+
+  /* Connection Section */
+  .connection-section {
+    background: white;
+    border: 2px solid #28a745;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .connection-section h2 {
+    color: #1e293b;
+    margin-bottom: 1rem;
+  }
+
+  .connection-section>p {
+    color: #64748b;
+    margin-bottom: 1.5rem;
+  }
+
+  .connection-benefits {
+    margin: 2rem 0;
+  }
+
+  .connection-benefits p {
+    color: #1e293b;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+    color: #64748b;
+  }
+
+  .connect-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+    font-weight: 600;
+  }
+
+  .connect-btn:hover:not(:disabled) {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  }
+
+  .connect-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /* Manual Connection Form */
+  .manual-connection-form {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    text-align: left;
+  }
+
+  .manual-connection-form h4 {
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+  }
+
+  .manual-connection-form>p {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  .manual-connection-form .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .manual-connection-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #1e293b;
+  }
+
+  .manual-connection-form input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+
+  /* Connected State */
+  .connected-state {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .connection-info {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .connection-info h3 {
+    color: #155724;
+    margin-bottom: 1rem;
+  }
+
+  .connection-info p {
+    color: #1e293b;
+    margin: 0.5rem 0;
+  }
+
+  .connection-info strong {
+    color: #155724;
+  }
+
+  .plan-management {
+    text-align: center;
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: #f8f9fa;
+    border-radius: 10px;
+  }
+
+  .plan-management h4 {
+    color: #1e293b;
+    margin-bottom: 1rem;
+  }
+
+  .plan-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .btn-view-plans,
+  .btn-upgrade {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+  }
+
+  .btn-view-plans {
+    background: #667eea;
+    color: white;
+  }
+
+  .btn-view-plans:hover {
+    background: #5568d3;
+    text-decoration: none;
+    color: white;
+  }
+
+  .btn-upgrade {
+    background: #28a745;
+    color: white;
+  }
+
+  .btn-upgrade:hover {
+    background: #218838;
+    text-decoration: none;
+    color: white;
+  }
+
+  .plan-management>p {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 1rem;
+  }
+
+  .btn-disconnect {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+  }
+
+  .btn-disconnect:hover {
+    background: #c82333;
+  }
+
+  /* Submission Overlay */
+  .submission-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+  }
+
+  .submission-form {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .submission-form .form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f1f5f9;
+  }
+
+  .submission-form .form-header h2 {
+    margin: 0;
+    color: #1e293b;
+  }
+
+  .submission-form .close-btn {
+    background: #f1f5f9;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    font-size: 20px;
+    cursor: pointer;
+    color: #64748b;
+    transition: all 0.2s ease;
+  }
+
+  .submission-form .close-btn:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+  }
+
+  .submission-form .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .submission-form .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .submission-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #1e293b;
+  }
+
+  .submission-form input,
+  .submission-form select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+
+  .submission-form .platforms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .submission-form .platform-checkbox {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .submission-form .platform-checkbox:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+  }
+
+  .submission-form .platform-checkbox input {
+    width: auto;
+    margin-right: 10px;
+  }
+
+  .submission-form .platform-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+  }
+
+  .submission-form .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+
+  .submission-form .checkbox-label input {
+    width: auto;
+  }
+
+  .submission-form .form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 2px solid #f1f5f9;
+  }
+
+  /* Active Distributions */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .submit-release-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+
+  .submit-release-btn:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+  }
+
+  .distributions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  .distribution-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s ease;
+  }
+
+  .distribution-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .distribution-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 12px;
+  }
+
+  .distribution-card .card-header h3 {
+    font-size: 1.1rem;
+    margin: 0;
+    color: #1e293b;
+  }
+
+  .distribution-card .status-badge.live {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .distribution-card .artist-name {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+  }
+
+  .distribution-card .distribution-stats {
+    display: flex;
+    gap: 20px;
+    padding: 12px 0;
+    border-top: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f1f5f9;
+    margin-bottom: 12px;
+  }
+
+  .distribution-card .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .distribution-card .stat-label {
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  .distribution-card .stat-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  .distribution-card .btn-view {
+    width: 100%;
+    padding: 10px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .distribution-card .btn-view:hover {
+    background: #f1f5f9;
+    border-color: #667eea;
+  }
+
+  /* Pending Section */
+  .pending-section {
+    margin-bottom: 40px;
+  }
+
+  .pending-section h2 {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+    color: #1e293b;
+  }
+
+  .pending-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .pending-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+  }
+
+  .pending-info h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0 0 4px 0;
+  }
+
+  .pending-info p {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0;
+  }
+
+  /* Mobile Responsiveness for New Sections */
+  @media (max-width: 768px) {
+    .plans-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .dashboard-buttons {
+      grid-template-columns: 1fr;
+    }
+
+    .benefits-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .standalone-options {
+      flex-direction: column;
+    }
+
+    .plan-actions {
+      flex-direction: column;
+    }
+
+    .submission-form .form-row {
+      grid-template-columns: 1fr;
+    }
+
+    .submission-form .platforms-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .distributions-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .section-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 15px;
+    }
+
+    .submit-release-btn {
+      width: 100%;
+    }
+
+    .plan-btn {
+      width: 100%;
+    }
+  }
 }

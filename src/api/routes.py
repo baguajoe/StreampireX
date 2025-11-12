@@ -4,7 +4,7 @@ eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app, session
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Track, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike
+from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike
 # ADD these imports
 from .steam_service import SteamService
 from datetime import datetime
@@ -3358,24 +3358,98 @@ def get_product(id):
         return jsonify({'error': str(e)}), 500
 
 @api.route('/products', methods=['POST'])
+@jwt_required()
 def create_product():
+    """Create product with image upload support"""
     try:
-        data = request.get_json()
-        new_product = Product(
-            creator_id=data['creator_id'],
-            title=data['title'],
-            description=data.get('description'),
-            image_url=data['image_url'],
-            file_url=data.get('file_url'),
-            price=data['price'],
-            stock=data.get('stock'),
-            is_digital=data['is_digital']
+        user_id = get_jwt_identity()
+        
+        if request.is_json:
+            data = request.get_json()
+            title = data.get('title')
+            description = data.get('description', '')
+            price = data.get('price')
+            category = data.get('category', 'merch')
+            stock = data.get('stock', 0)
+            is_digital = data.get('is_digital', False)
+            image_url = data.get('image_url', 'https://via.placeholder.com/400x300')
+            file_url = data.get('file_url')
+        else:
+            title = request.form.get('title')
+            description = request.form.get('description', '')
+            price = request.form.get('price')
+            category = request.form.get('category', 'merch')
+            stock = request.form.get('stock', 0)
+            is_digital = request.form.get('is_digital', 'false').lower() == 'true'
+            
+            image_url = 'https://via.placeholder.com/400x300'
+            if 'image' in request.files:
+                image_file = request.files['image']
+                if image_file and image_file.filename:
+                    upload_result = uploadFile(image_file, folder="marketplace/products")
+                    image_url = upload_result.get('secure_url')
+            
+            file_url = None
+            if is_digital and 'file' in request.files:
+                digital_file = request.files['file']
+                if digital_file and digital_file.filename:
+                    upload_result = uploadFile(digital_file, folder="marketplace/digital")
+                    file_url = upload_result.get('secure_url')
+        
+        if not title or not price:
+            return jsonify({"error": "Title and price are required"}), 400
+        
+        product = Product(
+            creator_id=user_id,
+            title=title,
+            description=description,
+            image_url=image_url,
+            file_url=file_url,
+            price=float(price),
+            stock=int(stock) if not is_digital else 0,
+            is_digital=is_digital,
+            category=category,
+            sales_count=0,
+            views=0,
+            rating=0.0
         )
-        db.session.add(new_product)
+        
+        db.session.add(product)
         db.session.commit()
-        return jsonify(new_product.serialize()), 201
+        
+        return jsonify({"message": "Product created successfully", "product": product.serialize()}), 201
+    except ValueError as e:
+        return jsonify({"error": f"Invalid data format: {str(e)}"}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        db.session.rollback()
+        return jsonify({"error": "Failed to create product", "message": str(e)}), 500
+
+@api.route('/marketplace/my-products', methods=['GET'])
+@jwt_required()
+def get_my_products():
+    """Get all products created by the current user"""
+    try:
+        user_id = get_jwt_identity()
+        
+        products = Product.query.filter_by(creator_id=user_id).order_by(
+            Product.created_at.desc()
+        ).all()
+        
+        total_revenue = sum((p.sales_count or 0) * p.price * 0.9 for p in products)
+        total_sales = sum(p.sales_count or 0 for p in products)
+        
+        return jsonify({
+            "products": [p.serialize() for p in products],
+            "stats": {
+                "total_products": len(products),
+                "total_sales": total_sales,
+                "total_revenue": round(total_revenue, 2)
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({"error": "Failed to fetch products", "message": str(e)}), 500
+
+
 
 @api.route('/products/<int:id>', methods=['PUT'])
 def update_product(id):
@@ -3512,7 +3586,7 @@ def get_admin_revenue():
         # Admin revenue breakdown
         total_ad_revenue = db.session.query(db.func.sum(AdRevenue.amount)).scalar() or 0
         total_donations = db.session.query(db.func.sum(CreatorDonation.amount)).scalar() or 0
-        total_music_sales = db.session.query(db.func.sum(Track.sales_revenue)).scalar() or 0
+        total_music_sales = db.session.query(db.func.sum(Audio.sales_revenue)).scalar() or 0
         total_merch_sales = db.session.query(db.func.sum(Product.sales_revenue)).scalar() or 0
         total_subscriptions = db.session.query(db.func.sum(Subscription.price)).scalar() or 0
         active_subscriptions = Subscription.query.count()
@@ -3534,7 +3608,7 @@ def get_admin_revenue():
 
     # If user is an artist, return only their revenue breakdown
     artist_donations = db.session.query(db.func.sum(CreatorDonation.amount)).filter_by(user_id=user_id).scalar() or 0
-    artist_music_sales = db.session.query(db.func.sum(Track.sales_revenue)).filter_by(artist_id=user_id).scalar() or 0
+    artist_music_sales = db.session.query(db.func.sum(Audio.sales_revenue)).filter_by(artist_id=user_id).scalar() or 0
     artist_merch_sales = db.session.query(db.func.sum(Product.sales_revenue)).filter_by(seller_id=user_id).scalar() or 0
     artist_subscription_earnings = db.session.query(db.func.sum(Subscription.price)).filter_by(user_id=user_id).scalar() or 0
 
@@ -3930,10 +4004,15 @@ def upload_track():
         title = request.form.get("title")
         isrc = request.form.get("isrc")
         
-        if 'audio' not in request.files:
+        if 'file' not in request.files:
             return jsonify({"error": "No audio file provided"}), 400
         
-        audio_file = request.files['audio']
+        audio_file = request.files['file']
+
+        print("YOU SHOULD BE SEEING FILE NAMES BELOW THIS LINE")
+        print(request.files)
+        print(request.files['file'])
+
         if not audio_file or audio_file.filename == '':
             return jsonify({"error": "No valid audio file selected"}), 400
         
@@ -4846,7 +4925,7 @@ def get_podcast_dashboard():
 
 @api.route('/artist/dashboard', methods=['GET'])
 def get_artist_dashboard():
-    tracks = Track.query.filter_by(artist_id=request.args.get("user_id")).all()
+    tracks = Audio.query.filter_by(artist_id=request.args.get("user_id")).all()
     return jsonify([track.serialize() for track in tracks])
 
 @api.route('/delete_dashboard', methods=['POST'])
@@ -4856,7 +4935,7 @@ def delete_dashboard():
     # Delete all associated data
     RadioStation.query.filter_by(owner_id=user_id).delete()
     Podcast.query.filter_by(creator_id=user_id).delete()
-    Track.query.filter_by(artist_id=user_id).delete()
+    Audio.query.filter_by(artist_id=user_id).delete()
 
     db.session.commit()
     return jsonify({"message": "Dashboard deleted successfully."})
@@ -5559,7 +5638,7 @@ def get_creator_revenue():
 
     # Revenue streams for creators
     artist_donations = db.session.query(db.func.sum(CreatorDonation.amount)).filter_by(user_id=user_id).scalar() or 0
-    artist_music_sales = db.session.query(db.func.sum(Track.sales_revenue)).filter_by(artist_id=user_id).scalar() or 0
+    artist_music_sales = db.session.query(db.func.sum(Audio.sales_revenue)).filter_by(artist_id=user_id).scalar() or 0
     artist_merch_sales = db.session.query(db.func.sum(Product.sales_revenue)).filter_by(seller_id=user_id).scalar() or 0
     artist_subscription_earnings = db.session.query(db.func.sum(Subscription.price)).filter_by(creator_id=user_id).scalar() or 0
     total_analytics_revenue = db.session.query(db.func.sum(Analytics.revenue_generated)).filter_by(user_id=user_id).scalar() or 0
@@ -7853,7 +7932,7 @@ def create_release():
         return jsonify({"error": "All fields are required."}), 400
 
     # ✅ Track ownership check
-    track = Track.query.get(track_id)
+    track = Audio.query.get(track_id)
     if not track or track.user_id != user_id:
         return jsonify({"error": "Invalid or unauthorized track ID."}), 403
 
@@ -7914,7 +7993,7 @@ def upload_lyrics():
     if not all([track_id, lyrics]):
         return jsonify({"error": "Missing track ID or lyrics"}), 400
 
-    track = Track.query.get(track_id)
+    track = Audio.query.get(track_id)
     if not track or track.user_id != user_id:
         return jsonify({"error": "Unauthorized or invalid track"}), 403
 
@@ -8000,7 +8079,7 @@ def add_track_to_album(album_id):
         return jsonify({"error": "Album not found or unauthorized"}), 403
 
     # Validate track ownership
-    track = Track.query.get(track_id)
+    track = Audio.query.get(track_id)
     if not track or track.user_id != user_id:
         return jsonify({"error": "Track not found or unauthorized"}), 403
 
@@ -8032,7 +8111,7 @@ def remove_track_from_album(album_id):
         return jsonify({"error": "Album not found or unauthorized"}), 403
 
     # Validate track ownership and that it's in this album
-    track = Track.query.get(track_id)
+    track = Audio.query.get(track_id)
     if not track or track.user_id != user_id:
         return jsonify({"error": "Track not found or unauthorized"}), 403
     
@@ -8056,7 +8135,7 @@ def get_album_detail(album_id):
     if not album or album.user_id != user_id:
         return jsonify({"error": "Album not found or unauthorized"}), 403
 
-    tracks = Track.query.filter_by(album_id=album_id).order_by(Track.created_at).all()
+    tracks = Audio.query.filter_by(album_id=album_id).order_by(Audio.created_at).all()
 
     return jsonify({
         "album": album.serialize(),
@@ -8080,7 +8159,7 @@ def edit_track(track_id):
     user_id = get_jwt_identity()
     data = request.get_json()
 
-    track = Track.query.get(track_id)
+    track = Audio.query.get(track_id)
     if not track or track.user_id != user_id:
         return jsonify({"error": "Track not found or unauthorized"}), 403
 
@@ -8113,7 +8192,7 @@ def edit_track(track_id):
 def get_unassigned_tracks():
     """Get all tracks that are not assigned to any album"""
     user_id = get_jwt_identity()
-    tracks = Track.query.filter_by(user_id=user_id, album_id=None).order_by(Track.created_at.desc()).all()
+    tracks = Audio.query.filter_by(user_id=user_id, album_id=None).order_by(Audio.created_at.desc()).all()
     return jsonify([t.serialize() for t in tracks]), 200
 
 
@@ -8121,7 +8200,7 @@ def get_unassigned_tracks():
 @jwt_required()
 def get_top_track():
     user_id = get_jwt_identity()
-    top_track = Track.query.filter_by(user_id=user_id).order_by(Track.play_count.desc()).first()
+    top_track = Audio.query.filter_by(user_id=user_id).order_by(Audio.play_count.desc()).first()
 
     if not top_track:
         return jsonify({"message": "No tracks found"}), 404
@@ -10218,11 +10297,11 @@ def get_marketplace_products():
         if search:
             search_term = f"%{search}%"
             query = query.filter(
-                db.or_(
-                    Product.name.ilike(search_term),
-                    Product.description.ilike(search_term)
-                )
-            )
+            db.or_(
+            Product.title.ilike(search_term),
+            Product.description.ilike(search_term)
+        )
+    )
         
         # Apply sorting
         if sort_by == 'price-low':
@@ -10258,54 +10337,56 @@ def get_marketplace_products():
 
 @api.route('/marketplace/categories', methods=['GET'])
 def get_marketplace_categories():
-    """Get marketplace categories"""
+    """Get marketplace categories from database"""
     try:
-        categories = [
-            {"id": 1, "name": "Apparel", "slug": "apparel", "count": 25},
-            {"id": 2, "name": "Digital Content", "slug": "digital", "count": 18},
-            {"id": 3, "name": "Merchandise", "slug": "merch", "count": 42},
-            {"id": 4, "name": "Music", "slug": "music", "count": 33}
-        ]
+        categories_query = db.session.query(
+            Product.category,
+            db.func.count(Product.id).label('count')
+        ).group_by(Product.category).all()
         
-        return jsonify({
-            "categories": categories
-        }), 200
+        categories = []
+        for idx, (cat_name, count) in enumerate(categories_query, 1):
+            if cat_name:
+                categories.append({
+                    "id": idx,
+                    "name": cat_name.title(),
+                    "slug": cat_name.lower().replace(' ', '-'),
+                    "count": count
+                })
         
+        if not categories:
+            categories = [
+                {"id": 1, "name": "Apparel", "slug": "apparel", "count": 0},
+                {"id": 2, "name": "Digital Content", "slug": "digital", "count": 0},
+                {"id": 3, "name": "Merchandise", "slug": "merch", "count": 0},
+                {"id": 4, "name": "Music", "slug": "music", "count": 0}
+            ]
+        
+        return jsonify({"categories": categories}), 200
     except Exception as e:
-        return jsonify({
-            "error": "Failed to fetch categories",
-            "message": str(e)
-        }), 500
+        return jsonify({"error": "Failed to fetch categories", "message": str(e)}), 500
 
 # Featured Products
 @api.route('/marketplace/featured', methods=['GET'])
 def get_featured_products():
-    """Get featured marketplace products"""
+    """Get featured products from database based on sales"""
     try:
-        featured_products = [
-            {
-                "id": 1,
-                "name": "Artist T-Shirt",
-                "price": 24.99,
-                "image_url": "https://via.placeholder.com/300x200"
-            },
-            {
-                "id": 3,
-                "name": "Artist Poster", 
-                "price": 19.99,
-                "image_url": "https://via.placeholder.com/300x200"
-            },
-            {
-                "id": 4,
-                "name": "Podcast Merch Bundle",
-                "price": 49.99,
-                "image_url": "https://via.placeholder.com/300x200"
-            }
-        ]
+        featured = Product.query.order_by(Product.sales_count.desc()).limit(6).all()
         
-        return jsonify({
-            "products": featured_products
-        }), 200
+        if not featured:
+            return jsonify({"products": []}), 200
+        
+        products = []
+        for product in featured:
+            product_data = product.serialize()
+            creator = User.query.get(product.creator_id)
+            if creator:
+                product_data['creator_name'] = creator.username
+            products.append(product_data)
+        
+        return jsonify({"products": products}), 200
+    except Exception as e:
+        return jsonify({"error": "Failed to fetch featured products", "message": str(e)}), 500
         
     except Exception as e:
         return jsonify({
@@ -13704,8 +13785,8 @@ def get_artist_tracks():
         user_id = get_jwt_identity()
         
         # Query tracks for the current artist
-        tracks = Track.query.filter_by(user_id=user_id).order_by(
-            Track.created_at.desc() if hasattr(Track, 'created_at') else Track.id.desc()
+        tracks = Audio.query.filter_by(user_id=user_id).order_by(
+            Audio.created_at.desc() if hasattr(Audio, 'created_at') else Audio.id.desc()
         ).all()
         
         # If no tracks found, return empty array
