@@ -42,6 +42,8 @@ const ArtistProfilePage = () => {
   const [followers, setFollowers] = useState(0);
   const [monthlyListeners, setMonthlyListeners] = useState(0);
   const [isVerified, setIsVerified] = useState(false);
+  const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
+  const audioRef = useRef(new Audio());
 
   const [artistStats, setArtistStats] = useState({
     totalPlays: 0,
@@ -244,6 +246,39 @@ const ArtistProfilePage = () => {
     }
   };
 
+  const handlePlayTrack = (track) => {
+    const audio = audioRef.current;
+
+    // If clicking the same track that's playing, pause it
+    if (currentlyPlaying?.id === track.id && !audio.paused) {
+      audio.pause();
+      setCurrentlyPlaying(null);
+      return;
+    }
+
+    // If there's a different track playing, stop it
+    if (currentlyPlaying?.id !== track.id) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+
+    // Play the new track
+    if (track.audio_url || track.file_url) {
+      audio.src = track.audio_url || track.file_url;
+      audio.play()
+        .then(() => {
+          setCurrentlyPlaying(track);
+        })
+        .catch(err => {
+          console.error("Playback failed:", err);
+          setError("Failed to play track. Audio file may not be available.");
+        });
+    } else {
+      setError("No audio file available for this track");
+    }
+  };
+
+
   // Handle track upload success (kept)
   const handleUploadNewTrack = async (newTrack) => {
     console.log("New track uploaded:", newTrack);
@@ -338,7 +373,12 @@ const ArtistProfilePage = () => {
                         <span>❤️ {tracks[0].likes || 0} likes</span>
                       </div>
                     </div>
-                    <button className="play-btn">▶️</button>
+                    <button
+                      className="play-btn"
+                      onClick={() => handlePlayTrack(tracks[0])}
+                    >
+                      {currentlyPlaying?.id === tracks[0].id ? '⏸️' : '▶️'}
+                    </button>
                   </>
                 ) : (
                   <>
@@ -382,7 +422,12 @@ const ArtistProfilePage = () => {
                     </div>
                     <span className="track-plays">{track.plays || 0} plays</span>
                     <span className="track-duration">{track.duration || "3:24"}</span>
-                    <button className="track-play-btn">▶️</button>
+                    <button
+                      className="track-play-btn"
+                      onClick={() => handlePlayTrack(track)}
+                    >
+                      {currentlyPlaying?.id === track.id ? '⏸️' : '▶️'}
+                    </button>
                   </div>
                 )) : (
                   <div className="no-tracks">
@@ -450,7 +495,12 @@ const ArtistProfilePage = () => {
                     </div>
                     <span className="track-plays">{track.plays || 0} plays</span>
                     <span className="track-duration">{track.duration || "3:24"}</span>
-                    <button className="track-play-btn">▶️</button>
+                    <button
+                      className="track-play-btn"
+                      onClick={() => handlePlayTrack(track)}
+                    >
+                      {currentlyPlaying?.id === track.id ? '⏸️' : '▶️'}
+                    </button>
                   </div>
                 )) : (
                   <div className="no-tracks">
