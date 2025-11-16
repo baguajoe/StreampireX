@@ -7,12 +7,16 @@ import "../../styles/ArtistProfile.css";
 const ArtistProfilePage = () => {
   const { store } = useContext(Context);
   const [isArtistMode, setIsArtistMode] = useState(true);
-  const [showModal, setShowModal] = useState(false); // kept, but not used for upload anymore
+  const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
-  // NEW: hidden file input for direct audio upload
+  // Audio playback state
   const fileInputRef = useRef(null);
+  const audioRef = useRef(new Audio());
+  const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   // Tab state management
   const [activeTab, setActiveTab] = useState("overview");
@@ -42,8 +46,6 @@ const ArtistProfilePage = () => {
   const [followers, setFollowers] = useState(0);
   const [monthlyListeners, setMonthlyListeners] = useState(0);
   const [isVerified, setIsVerified] = useState(false);
-  const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
-  const audioRef = useRef(new Audio());
 
   const [artistStats, setArtistStats] = useState({
     totalPlays: 0,
@@ -67,13 +69,37 @@ const ArtistProfilePage = () => {
     { id: "artist", label: "🎵 Artist Profile", path: "/profile/artist" }
   ];
 
-  // Helper function for safe image URLs (placeholders removed)
+  // Helper function for safe image URLs
   const getImageUrl = (imageUrl) => {
     if (!imageUrl || imageUrl === "/default-artist-avatar.png" || imageUrl === "/placeholder-album.jpg") {
-      return ""; // no external placeholder
+      return "";
     }
     return imageUrl;
   };
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      const audio = audioRef.current;
+      audio.pause();
+      audio.src = '';
+    };
+  }, []);
+
+  // Clear messages after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   // BACKEND INTEGRATION - Fetch all artist data
   useEffect(() => {
@@ -164,7 +190,7 @@ const ArtistProfilePage = () => {
           setAnalytics({
             monthlyPlays: analyticsData.monthly_plays || 0,
             totalStreams: analyticsData.total_streams || 0,
-            topCountries: analyticsData.top_countries || [], // removed default countries
+            topCountries: analyticsData.top_countries || [],
             revenueThisMonth: analyticsData.revenue_this_month || 0
           });
 
@@ -182,7 +208,7 @@ const ArtistProfilePage = () => {
         console.warn("Analytics endpoint error:", err);
       }
 
-      // 4. Optional endpoints (won't break if they fail)
+      // 4. Optional endpoints
       await fetchOptionalData(BACKEND_URL, token);
 
     } catch (error) {
@@ -246,6 +272,46 @@ const ArtistProfilePage = () => {
     }
   };
 
+  // FUNCTIONAL: Increment play count
+  const incrementPlayCount = async (trackId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+      
+      await fetch(`${BACKEND_URL}/api/tracks/${trackId}/play`, {
+        method: "POST",
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Update local state immediately
+      setTracks(prevTracks => 
+        prevTracks.map(track => 
+          track.id === trackId 
+            ? { ...track, plays: (track.plays || 0) + 1 }
+            : track
+        )
+      );
+
+      // Update total plays in stats
+      setArtistStats(prev => ({
+        ...prev,
+        totalPlays: prev.totalPlays + 1
+      }));
+
+      setAnalytics(prev => ({
+        ...prev,
+        totalStreams: prev.totalStreams + 1,
+        monthlyPlays: prev.monthlyPlays + 1
+      }));
+    } catch (err) {
+      console.error("Failed to increment play count:", err);
+    }
+  };
+
+  // FUNCTIONAL: Handle track playback
   const handlePlayTrack = (track) => {
     const audio = audioRef.current;
 
@@ -268,6 +334,9 @@ const ArtistProfilePage = () => {
       audio.play()
         .then(() => {
           setCurrentlyPlaying(track);
+          // Increment play count when playback starts successfully
+          incrementPlayCount(track.id);
+          setSuccessMessage(`Now playing: ${track.title}`);
         })
         .catch(err => {
           console.error("Playback failed:", err);
@@ -278,15 +347,116 @@ const ArtistProfilePage = () => {
     }
   };
 
+  // FUNCTIONAL: Handle follow button
+  const handleFollow = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
 
-  // Handle track upload success (kept)
+      const response = await fetch(`${BACKEND_URL}/api/artist/follow`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setIsFollowing(!isFollowing);
+        setArtistStats(prev => ({
+          ...prev,
+          totalFollowers: isFollowing ? prev.totalFollowers - 1 : prev.totalFollowers + 1
+        }));
+        setSuccessMessage(isFollowing ? "Unfollowed!" : "Followed successfully!");
+      }
+    } catch (err) {
+      console.error("Follow error:", err);
+      setError("Failed to update follow status");
+    }
+  };
+
+  // FUNCTIONAL: Handle share button
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    const shareText = `Check out ${artistInfo.artistName}'s music on StreamPireX!`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${artistInfo.artistName} - StreamPireX`,
+          text: shareText,
+          url: shareUrl
+        });
+        setSuccessMessage("Shared successfully!");
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error("Share error:", err);
+        }
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setSuccessMessage("Link copied to clipboard!");
+      } catch (err) {
+        setError("Failed to copy link");
+      }
+    }
+  };
+
+  // FUNCTIONAL: Handle like button
+  const handleLikeTrack = async (trackId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+
+      const response = await fetch(`${BACKEND_URL}/api/tracks/${trackId}/like`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Update local state
+        setTracks(prevTracks =>
+          prevTracks.map(track =>
+            track.id === trackId
+              ? { ...track, likes: (track.likes || 0) + 1, isLiked: !track.isLiked }
+              : track
+          )
+        );
+        setSuccessMessage("Track liked!");
+      }
+    } catch (err) {
+      console.error("Like error:", err);
+      setError("Failed to like track");
+    }
+  };
+
+  // FUNCTIONAL: Create album
+  const handleCreateAlbum = () => {
+    // Redirect to album creation page or show modal
+    setSuccessMessage("Album creation coming soon!");
+    // You can implement: navigate('/artist/albums/create');
+  };
+
+  // FUNCTIONAL: Create playlist
+  const handleCreatePlaylist = () => {
+    setSuccessMessage("Playlist creation coming soon!");
+    // You can implement: navigate('/artist/playlists/create');
+  };
+
+  // Handle track upload success
   const handleUploadNewTrack = async (newTrack) => {
     console.log("New track uploaded:", newTrack);
     await fetchArtistData();
     setShowModal(false);
+    setSuccessMessage("Track uploaded successfully!");
   };
 
-  // NEW: direct audio upload helpers
+  // Direct audio upload helpers
   const openUploader = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
@@ -294,6 +464,7 @@ const ArtistProfilePage = () => {
   const handleFileChange = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
+    
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
@@ -301,6 +472,7 @@ const ArtistProfilePage = () => {
         setError("Please log in to upload audio");
         return;
       }
+      
       const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
       const formData = new FormData();
       formData.append("file", file);
@@ -324,7 +496,7 @@ const ArtistProfilePage = () => {
       setError("Audio upload failed. Please try again.");
     } finally {
       setLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = ""; // reset input
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -370,14 +542,21 @@ const ArtistProfilePage = () => {
                       <p>Released {tracks[0].created_at ? new Date(tracks[0].created_at).toLocaleDateString() : 'Recently'}</p>
                       <div className="track-stats">
                         <span>🎧 {tracks[0].plays || 0} plays</span>
-                        <span>❤️ {tracks[0].likes || 0} likes</span>
+                        <span>
+                          <button 
+                            onClick={() => handleLikeTrack(tracks[0].id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit' }}
+                          >
+                            {tracks[0].isLiked ? '❤️' : '🤍'} {tracks[0].likes || 0} likes
+                          </button>
+                        </span>
                       </div>
                     </div>
                     <button
                       className="play-btn"
                       onClick={() => handlePlayTrack(tracks[0])}
                     >
-                      {currentlyPlaying?.id === tracks[0].id ? '⏸️' : '▶️'}
+                      {currentlyPlaying?.id === tracks[0].id && !audioRef.current.paused ? '⏸️' : '▶️'}
                     </button>
                   </>
                 ) : (
@@ -426,7 +605,7 @@ const ArtistProfilePage = () => {
                       className="track-play-btn"
                       onClick={() => handlePlayTrack(track)}
                     >
-                      {currentlyPlaying?.id === track.id ? '⏸️' : '▶️'}
+                      {currentlyPlaying?.id === track.id && !audioRef.current.paused ? '⏸️' : '▶️'}
                     </button>
                   </div>
                 )) : (
@@ -458,7 +637,9 @@ const ArtistProfilePage = () => {
                 )) : (
                   <div className="no-content">
                     <p>💿 No albums created yet</p>
-                    <button className="create-btn">Create Your First Album</button>
+                    <button onClick={handleCreateAlbum} className="create-btn">
+                      Create Your First Album
+                    </button>
                   </div>
                 )}
               </div>
@@ -499,7 +680,7 @@ const ArtistProfilePage = () => {
                       className="track-play-btn"
                       onClick={() => handlePlayTrack(track)}
                     >
-                      {currentlyPlaying?.id === track.id ? '⏸️' : '▶️'}
+                      {currentlyPlaying?.id === track.id && !audioRef.current.paused ? '⏸️' : '▶️'}
                     </button>
                   </div>
                 )) : (
@@ -536,7 +717,9 @@ const ArtistProfilePage = () => {
                 )) : (
                   <div className="no-content">
                     <p>💿 {searchQuery ? `No albums found for "${searchQuery}"` : "No albums created yet"}</p>
-                    <button className="create-btn">Create Your First Album</button>
+                    <button onClick={handleCreateAlbum} className="create-btn">
+                      Create Your First Album
+                    </button>
                   </div>
                 )}
               </div>
@@ -565,7 +748,9 @@ const ArtistProfilePage = () => {
                 )) : (
                   <div className="no-content">
                     <p>📋 {searchQuery ? `No playlists found for "${searchQuery}"` : "No playlists created yet"}</p>
-                    <button className="create-btn">Create Your First Playlist</button>
+                    <button onClick={handleCreatePlaylist} className="create-btn">
+                      Create Your First Playlist
+                    </button>
                   </div>
                 )}
               </div>
@@ -715,6 +900,14 @@ const ArtistProfilePage = () => {
       {error && (
         <div className="error-banner">
           <p>⚠️ {error}</p>
+          <button onClick={() => setError(null)}>✕</button>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="success-banner">
+          <p>✓ {successMessage}</p>
+          <button onClick={() => setSuccessMessage(null)}>✕</button>
         </div>
       )}
 
@@ -759,8 +952,10 @@ const ArtistProfilePage = () => {
               </div>
             </div>
             <div className="artist-actions">
-              <button className="follow-btn">🎵 Follow</button>
-              <button className="share-btn">🔗 Share</button>
+              <button onClick={handleFollow} className="follow-btn">
+                {isFollowing ? '✓ Following' : '🎵 Follow'}
+              </button>
+              <button onClick={handleShare} className="share-btn">🔗 Share</button>
               <button className="more-btn">⋯</button>
             </div>
           </div>

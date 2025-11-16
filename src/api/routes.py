@@ -4,7 +4,7 @@ eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app, session
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike
+from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow
 # ADD these imports
 from .steam_service import SteamService
 from datetime import datetime
@@ -16927,3 +16927,275 @@ def verify_steam_id(steam_id):
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@api.route('/tracks/<int:track_id>/play', methods=['POST'])
+@jwt_required()
+def increment_track_play(track_id):
+    """Increment play count for a track"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Find the audio/track
+        audio = Audio.query.get(track_id)
+        
+        if not audio:
+            return jsonify({"error": "Track not found"}), 404
+        
+        # Increment play count
+        if audio.plays is None:
+            audio.plays = 1
+        else:
+            audio.plays += 1
+        
+        # Update last played timestamp
+        audio.last_played = datetime.utcnow()
+        
+        # Commit to database
+        db.session.commit()
+        
+        # Optional: Log the play event for analytics
+        play_event = PlayHistory(
+            user_id=current_user_id,
+            audio_id=track_id,
+            played_at=datetime.utcnow()
+        )
+        db.session.add(play_event)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "track_id": track_id,
+            "plays": audio.plays,
+            "message": "Play count updated"
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error incrementing play count: {str(e)}")
+        return jsonify({"error": "Failed to update play count"}), 500
+
+
+@api.route('/tracks/<int:track_id>/like', methods=['POST'])
+@jwt_required()
+def toggle_track_like(track_id):
+    """Like or unlike a track"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Find the audio/track
+        audio = Audio.query.get(track_id)
+        
+        if not audio:
+            return jsonify({"error": "Track not found"}), 404
+        
+        # Check if user already liked this track
+        existing_like = AudioLike.query.filter_by(
+            user_id=current_user_id,
+            audio_id=track_id
+        ).first()
+        
+        if existing_like:
+            # Unlike - remove the like
+            db.session.delete(existing_like)
+            if audio.likes > 0:
+                audio.likes -= 1
+            is_liked = False
+            message = "Track unliked"
+        else:
+            # Like - add new like
+            new_like = AudioLike(
+                user_id=current_user_id,
+                audio_id=track_id,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(new_like)
+            
+            if audio.likes is None:
+                audio.likes = 1
+            else:
+                audio.likes += 1
+            
+            is_liked = True
+            message = "Track liked"
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "track_id": track_id,
+            "likes": audio.likes,
+            "is_liked": is_liked,
+            "message": message
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error toggling like: {str(e)}")
+        return jsonify({"error": "Failed to update like status"}), 500
+
+
+@api.route('/tracks/<int:track_id>', methods=['PUT'])
+@jwt_required()
+def update_track(track_id):
+    """Update track metadata (title, artist, album, etc.)"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Find the audio/track
+        audio = Audio.query.get(track_id)
+        
+        if not audio:
+            return jsonify({"error": "Track not found"}), 404
+        
+        # Verify ownership
+        if audio.user_id != current_user_id:
+            return jsonify({"error": "Unauthorized to update this track"}), 403
+        
+        # Get update data from request
+        data = request.get_json()
+        
+        # Update allowed fields
+        if 'title' in data:
+            audio.title = data['title']
+        
+        if 'artist_name' in data:
+            audio.artist_name = data['artist_name']
+        
+        if 'album' in data:
+            audio.album = data['album']
+        
+        if 'genre' in data:
+            audio.genre = data['genre']
+        
+        if 'duration' in data:
+            audio.duration = data['duration']
+        
+        if 'description' in data:
+            audio.description = data['description']
+        
+        if 'lyrics' in data:
+            audio.lyrics = data['lyrics']
+        
+        if 'release_date' in data:
+            audio.release_date = datetime.strptime(data['release_date'], '%Y-%m-%d')
+        
+        if 'is_public' in data:
+            audio.is_public = data['is_public']
+        
+        # Update timestamp
+        audio.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Track updated successfully",
+            "track": {
+                "id": audio.id,
+                "title": audio.title,
+                "artist_name": audio.artist_name,
+                "album": audio.album,
+                "genre": audio.genre,
+                "duration": audio.duration,
+                "plays": audio.plays,
+                "likes": audio.likes,
+                "updated_at": audio.updated_at.isoformat() if audio.updated_at else None
+            }
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating track: {str(e)}")
+        return jsonify({"error": "Failed to update track"}), 500
+
+
+@api.route('/tracks/<int:track_id>', methods=['DELETE'])
+@jwt_required()
+def delete_track(track_id):
+    """Delete a track"""
+    try:
+        current_user_id = get_jwt_identity()
+        
+        # Find the audio/track
+        audio = Audio.query.get(track_id)
+        
+        if not audio:
+            return jsonify({"error": "Track not found"}), 404
+        
+        # Verify ownership
+        if audio.user_id != current_user_id:
+            return jsonify({"error": "Unauthorized to delete this track"}), 403
+        
+        # Optional: Delete associated files from storage
+        # if audio.audio_url:
+        #     delete_file_from_storage(audio.audio_url)
+        # if audio.artwork:
+        #     delete_file_from_storage(audio.artwork)
+        
+        # Delete from database
+        db.session.delete(audio)
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Track deleted successfully"
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting track: {str(e)}")
+        return jsonify({"error": "Failed to delete track"}), 500
+
+
+@api.route('/artist/follow', methods=['POST'])
+@jwt_required()
+def toggle_artist_follow():
+    """Follow or unfollow an artist"""
+    try:
+        current_user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        artist_id = data.get('artist_id')
+        
+        if not artist_id:
+            # If no artist_id provided, assume following self (for profile page)
+            artist_id = current_user_id
+        
+        # Check if already following
+        existing_follow = ArtistFollow.query.filter_by(
+            follower_id=current_user_id,
+            artist_id=artist_id
+        ).first()
+        
+        if existing_follow:
+            # Unfollow
+            db.session.delete(existing_follow)
+            is_following = False
+            message = "Unfollowed successfully"
+        else:
+            # Follow
+            new_follow = ArtistFollow(
+                follower_id=current_user_id,
+                artist_id=artist_id,
+                created_at=datetime.utcnow()
+            )
+            db.session.add(new_follow)
+            is_following = True
+            message = "Followed successfully"
+        
+        db.session.commit()
+        
+        # Get updated follower count
+        follower_count = ArtistFollow.query.filter_by(artist_id=artist_id).count()
+        
+        return jsonify({
+            "success": True,
+            "is_following": is_following,
+            "follower_count": follower_count,
+            "message": message
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error toggling follow: {str(e)}")
+        return jsonify({"error": "Failed to update follow status"}), 500
