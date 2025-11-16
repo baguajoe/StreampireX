@@ -2120,6 +2120,7 @@ class Audio(db.Model):
     processing_status = db.Column(db.String(50), default='original')  # 'original', 'processing', 'processed'
     last_processed_at = db.Column(db.DateTime)
     isrc_code = db.Column(db.String(50))
+    last_played = db.Column(db.DateTime, nullable=True)
     
     # Optional additional fields
     duration = db.Column(db.String(10))  # e.g., "3:45"
@@ -2202,7 +2203,84 @@ class Audio(db.Model):
     def __repr__(self):
         return f'<Audio {self.id}: {self.title}>'
 
+# Add these to your models.py file
 
+class AudioLike(db.Model):
+    __table_args__ = {'extend_existing': True}
+    __tablename__ = 'audio_likes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='audio_likes')
+    audio = db.relationship('Audio', backref='audio_likes')
+    
+    # Ensure a user can only like a track once
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'audio_id', name='unique_user_audio_like'),
+        {'extend_existing': True}
+    )
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "audio_id": self.audio_id,
+            "created_at": self.created_at.isoformat()
+        }
+
+
+class PlayHistory(db.Model):
+    __table_args__ = {'extend_existing': True}
+    __tablename__ = 'play_history'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
+    played_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='play_history')
+    audio = db.relationship('Audio', backref='play_history')
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "audio_id": self.audio_id,
+            "played_at": self.played_at.isoformat()
+        }
+
+
+class ArtistFollow(db.Model):
+    __table_args__ = {'extend_existing': True}
+    __tablename__ = 'artist_follows'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    follower_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    artist_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    follower = db.relationship('User', foreign_keys=[follower_id], backref='following_artists')
+    artist = db.relationship('User', foreign_keys=[artist_id], backref='artist_followers')
+    
+    # Ensure a user can only follow an artist once
+    __table_args__ = (
+        db.UniqueConstraint('follower_id', 'artist_id', name='unique_follower_artist'),
+        {'extend_existing': True}
+    )
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "follower_id": self.follower_id,
+            "artist_id": self.artist_id,
+            "created_at": self.created_at.isoformat()
+        }
 
 
 class Music(db.Model):
