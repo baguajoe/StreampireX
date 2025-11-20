@@ -37,7 +37,7 @@ const RadioStationDashboard = () => {
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
       
       // Fetch user's radio stations
-      const response = await fetch(`${backendUrl}/api/radio/my-stations`, {
+      const response = await fetch(`${backendUrl}/api/radio-stations`, {
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"

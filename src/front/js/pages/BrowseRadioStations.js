@@ -1,13 +1,12 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../../styles/BrowseStations.css";
 
-// Your station images
+// Station images
 import LofiDreamsImg from "../../img/LofiDreams.png";
 import JazzLoungeImg from "../../img/JazzLounge.png";
 import TalkNationImg from "../../img/TalkNation.png";
 import ElectricVibesImg from "../../img/ElectricVibes.png";
-// ... other imports
 
 const BrowseRadioStations = () => {
   const scrollRef = useRef(null);
@@ -26,245 +25,128 @@ const BrowseRadioStations = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // 🎯 MINIMAL REAL CONTENT STRATEGY
-  // Create one real station per major category to seed your platform
+  // Built-in seed stations
   const seedStations = [
     {
       id: "seed_lofi",
       name: "StreampireX LoFi",
       genre: "Lo-Fi",
-      description: "Official StreampireX lo-fi station for study and focus",
+      description: "Official StreampireX lo-fi station",
       image: LofiDreamsImg,
       creator_name: "StreampireX",
       is_live: true,
-      isOfficial: true,
-      stream_url: "your-actual-lofi-stream-url"
+      isOfficial: true
     },
     {
       id: "seed_news",
       name: "StreampireX News",
       genre: "News",
-      description: "Breaking news and tech updates",
+      description: "Breaking news & updates",
       image: TalkNationImg,
       creator_name: "StreampireX",
       is_live: true,
-      isOfficial: true,
-      stream_url: "your-actual-news-stream-url"
+      isOfficial: true
     },
     {
       id: "seed_electronic",
       name: "StreampireX Electronic",
       genre: "Electronic",
-      description: "Latest electronic and EDM hits",
+      description: "Official EDM & electronic stream",
       image: ElectricVibesImg,
       creator_name: "StreampireX",
       is_live: true,
-      isOfficial: true,
-      stream_url: "your-actual-electronic-stream-url"
+      isOfficial: true
     }
-    // Add 1-2 more in your strongest categories
   ];
 
-  // 🌐 SMART EXTERNAL FALLBACK STRATEGY
-  // Only fetch external stations for genres where you have no content
- 
-
-  // 📡 FETCH YOUR REAL USER STATIONS
   const fetchUserStations = async () => {
     try {
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
-      const response = await fetch(`${backendUrl}/api/radio-stations`, {
-        signal: AbortSignal.timeout(8000)
-      });
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+      const res = await fetch(`${backendUrl}/api/radio-stations`);
 
-      if (!response.ok) throw new Error(`API Error: ${response.status}`);
+      if (!res.ok) throw new Error("Failed to load stations");
 
-      const data = await response.json();
-      let stations = Array.isArray(data) ? data : (data?.stations || []);
+      const data = await res.json();
+      const stations = Array.isArray(data) ? data : data?.stations || [];
 
-      const validStations = stations.map(station => ({
-        id: station.id,
-        name: station.name || 'Unnamed Station',
-        genre: station.genre || station.genres?.[0] || 'Music',
-        description: station.description || 'Community radio station',
-        image: station.image || station.logo_url || '/default-station.png',
-        creator_name: station.creator_name || 'Community Creator',
-        is_live: station.is_live || false,
-        isUserCreated: true,
-        followers_count: station.followers_count || 0
+      const formatted = stations.map((s) => ({
+        id: s.id,
+        name: s.name || "Unnamed Station",
+        genre: s.genre || s.genres?.[0] || "Music",
+        description: s.description || "Community radio",
+        image: s.image || "/default-station.png",
+        creator_name: s.creator_name || "Community Creator",
+        is_live: s.is_live || false,
+        followers_count: s.followers_count || 0,
+        isUserCreated: true
       }));
 
-      setUserStations(validStations);
-      console.log(`✅ Loaded ${validStations.length} user stations`);
-
-    } catch (error) {
-      console.error('❌ User stations failed:', error);
-      setError('Could not load community stations');
+      setUserStations(formatted);
+    } catch (err) {
+      setError("Unable to load user stations");
     }
   };
 
-  // 🎯 MAIN LOADING STRATEGY
   useEffect(() => {
-    const loadContent = async () => {
+    const load = async () => {
       setLoading(true);
-      
-      // Always try to load user stations first
       await fetchUserStations();
-      
-      // Get genre coverage
-      const allRealStations = [...seedStations, ...userStations];
-      const coveredGenres = new Set(allRealStations.map(s => s.genre));
-      const uncoveredGenres = genres.filter(g => !coveredGenres.has(g));
-
-      // Only fetch external for uncovered genres (limit to prevent overwhelming)
-     
-
       setLoading(false);
     };
 
-    loadContent();
+    load();
   }, []);
 
-  // 🎨 SMART CONTENT AGGREGATION
-  const allAvailableStations = React.useMemo(() => {
-    return [
-      ...seedStations,           // Your minimal real content first
-      ...userStations,           // User-created content  
-      ...externalStations        // External fallback for missing genres
-    ];
-  }, [userStations, externalStations]);
+  // ALL STATIONS (official + user + external)
+  const allStations = useMemo(
+    () => [...seedStations, ...userStations, ...externalStations],
+    [userStations, externalStations]
+  );
 
-  // 🔍 FILTERING WITH SMART FALLBACKS
-  const getStationsForGenre = (genre) => {
-    const genreStations = allAvailableStations.filter(s => s.genre === genre);
-    
-    // If no stations for this genre, show message with create button
-    if (genreStations.length === 0) {
-      return {
-        stations: [],
-        isEmpty: true,
-        message: `No ${genre} stations yet. Be the first to create one!`
-      };
-    }
-    
-    return { stations: genreStations, isEmpty: false };
+  const filterByGenre = (genre) => {
+    return allStations.filter((s) => s.genre === genre);
   };
 
-  // 📱 SCROLL CONTROLS
-  const scrollLeft = () => scrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
-  const scrollRight = () => scrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' });
+  const scrollLeft = () => scrollRef.current?.scrollBy({ left: -200, behavior: "smooth" });
+  const scrollRight = () => scrollRef.current?.scrollBy({ left: 200, behavior: "smooth" });
 
-  // 🎨 SECTION RENDERER WITH SMART EMPTY STATES
-  const renderSection = (title, stationList, genre = null) => {
+  // Render radio section
+  const renderSection = (title, stations, genre = null) => {
     return (
-      <div className="podcast-section">
-        <h2 className="section-title">{title}</h2>
-        {stationList.length === 0 ? (
-          <div className="empty-genre-state" style={{
-            background: '#1a1a1a',
-            padding: '2rem',
-            borderRadius: '12px',
-            textAlign: 'center',
-            border: '2px dashed #333'
-          }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🎙️</div>
-            <h4>No {genre || 'stations'} yet!</h4>
-            <p>Be the first creator in this category</p>
-            <button 
-              onClick={() => navigate('/create-radio-station')}
-              style={{
-                background: '#00ffc8',
-                color: '#000',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                marginTop: '10px',
-                fontWeight: 'bold'
-              }}
+      <div className="radio-section">
+        <h2 className="radio-section-title">{title}</h2>
+
+        {stations.length === 0 ? (
+          <div className="radio-empty">
+            <h4>No {genre || "stations"} available.</h4>
+            <button
+              className="radio-create-btn"
+              onClick={() => navigate("/create-radio-station")}
             >
-              🚀 Create {genre || 'Station'}
+              Create Station
             </button>
           </div>
         ) : (
-          <div className="podcast-scroll-row">
-            {stationList.map((station) => (
+          <div className="radio-grid">
+            {stations.map((station) => (
               <Link
-                to={`/radio/station/${station.id}/${station.isOfficial || station.isUserCreated ? 'dynamic' : 'external'}`}
                 key={station.id}
-                className="podcast-card"
-                style={{ position: 'relative' }}
+                to={`/radio/station/${station.id}`}
+                className="radio-card"
               >
-                {/* Official badge */}
-                {station.isOfficial && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '8px',
-                    left: '8px',
-                    background: '#00ffc8',
-                    color: '#000',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    fontWeight: 'bold',
-                    zIndex: 2
-                  }}>
-                    ✅ OFFICIAL
-                  </div>
-                )}
-
-                {/* Live indicator */}
-                {station.is_live && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    background: '#ff4757',
-                    color: 'white',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    fontWeight: 'bold',
-                    zIndex: 2
-                  }}>
-                    🔴 LIVE
-                  </div>
-                )}
-
-                {/* External indicator */}
-                {station.isExternal && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '60px',
-                    right: '8px',
-                    background: '#666',
-                    color: 'white',
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    fontSize: '9px',
-                    zIndex: 2
-                  }}>
-                    🌐 GLOBAL
-                  </div>
-                )}
+                {station.isOfficial && <span className="radio-badge official">OFFICIAL</span>}
+                {station.is_live && <span className="radio-badge live">LIVE</span>}
 
                 <img
                   src={station.image}
+                  onError={(e) => (e.target.src = "/default-station.png")}
                   alt={station.name}
-                  className="podcast-img"
-                  onError={(e) => e.target.src = '/default-station.png'}
                 />
-                <h3 className="podcast-title">{station.name}</h3>
-                <span className="podcast-label">{station.genre}</span>
-                <p className="podcast-desc">{station.description}</p>
-                <p className="station-creator" style={{ fontSize: '12px', color: '#888' }}>
-                  by {station.creator_name}
-                </p>
-                {station.followers_count > 0 && (
-                  <p style={{ fontSize: '12px', color: '#00ffc8' }}>
-                    👥 {station.followers_count}
-                  </p>
-                )}
+
+                <h3>{station.name}</h3>
+                <span className="radio-genre">{station.genre}</span>
+                <p className="radio-desc">{station.description}</p>
+                <p className="radio-creator">by {station.creator_name}</p>
               </Link>
             ))}
           </div>
@@ -274,148 +156,46 @@ const BrowseRadioStations = () => {
   };
 
   return (
-    <div className="categories-wrapper">
-      <h1 className="categories-heading">📡 Browse Radio Stations</h1>
+    <div className="radio-wrapper">
+      <h1 className="radio-title">📡 Browse Radio Stations</h1>
 
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <div style={{ fontSize: '2rem' }}>🔄</div>
-          <p>Loading stations...</p>
-        </div>
-      )}
+      {/* GENRE NAVIGATION */}
+      <div className="radio-nav">
+        <button className="radio-scroll-btn" onClick={scrollLeft}>‹</button>
 
-      {error && (
-        <div style={{
-          background: '#fee',
-          border: '1px solid #fcc',
-          padding: '15px',
-          borderRadius: '8px',
-          margin: '15px 0',
-          color: '#c33'
-        }}>
-          ⚠️ {error} - Showing available content
-        </div>
-      )}
+        <div className="radio-nav-scroll" ref={scrollRef}>
+          <div
+            className={`radio-pill ${!selectedGenre ? "active" : ""}`}
+            onClick={() => setSelectedGenre(null)}
+          >
+            All Stations
+          </div>
 
-      {!loading && (
-        <>
-          {/* Genre Navigation */}
-          <div className="category-nav">
-            <button onClick={scrollLeft} className="scroll-button">‹</button>
-            <div className="categories-scroll" ref={scrollRef}>
-              <div
-                onClick={() => setSelectedGenre(null)}
-                className={`category-pill ${!selectedGenre ? "active" : ""}`}
-              >
-                All Stations
-              </div>
-              {genres.map((genre, index) => {
-                const genreStations = allAvailableStations.filter(s => s.genre === genre);
-                return (
-                  <div
-                    key={index}
-                    onClick={() => setSelectedGenre(genre)}
-                    className={`category-pill ${selectedGenre === genre ? "active" : ""}`}
-                    style={{
-                      opacity: genreStations.length === 0 ? 0.6 : 1,
-                      position: 'relative'
-                    }}
-                  >
-                    {genre}
-                    {genreStations.length === 0 && (
-                      <span style={{
-                        position: 'absolute',
-                        top: '-5px',
-                        right: '-5px',
-                        background: '#ff4757',
-                        color: 'white',
-                        fontSize: '8px',
-                        padding: '1px 3px',
-                        borderRadius: '50%'
-                      }}>
-                        !
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
+          {genres.map((genre, idx) => (
+            <div
+              key={idx}
+              className={`radio-pill ${selectedGenre === genre ? "active" : ""}`}
+              onClick={() => setSelectedGenre(genre)}
+            >
+              {genre}
             </div>
-            <button onClick={scrollRight} className="scroll-button">›</button>
-          </div>
+          ))}
+        </div>
 
-          {/* Content Sections */}
-          {selectedGenre ? (
-            // Single genre view
-            (() => {
-              const result = getStationsForGenre(selectedGenre);
-              return renderSection(`🎯 ${selectedGenre} Stations`, result.stations, selectedGenre);
-            })()
-          ) : (
-            // All sections view
-            <>
-              {/* Always show your official stations first */}
-              {renderSection("🏢 StreampireX Official", seedStations)}
-              
-              {/* Community stations if any exist */}
-              {userStations.length > 0 && 
-                renderSection("🎙️ Community Stations", userStations)
-              }
-              
-              {/* External fallback content */}
-              {externalStations.length > 0 && 
-                renderSection("🌐 Discover Global Radio", externalStations.slice(0, 12))
-              }
+        <button className="radio-scroll-btn" onClick={scrollRight}>›</button>
+      </div>
 
-              {/* Call to action for empty platform */}
-              {userStations.length === 0 && (
-                <div style={{
-                  background: '#1a1a1a',
-                  padding: '3rem',
-                  borderRadius: '12px',
-                  textAlign: 'center',
-                  margin: '2rem 0'
-                }}>
-                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚀</div>
-                  <h3>Ready to Start Broadcasting?</h3>
-                  <p>StreampireX is just getting started. Be an early creator and help build the community!</p>
-                  <button 
-                    onClick={() => navigate('/create-radio-station')}
-                    style={{
-                      background: '#00ffc8',
-                      color: '#000',
-                      border: 'none',
-                      padding: '15px 30px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      fontWeight: 'bold',
-                      marginTop: '1rem'
-                    }}
-                  >
-                    🎙️ Create Your Radio Station
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Platform stats */}
-          <div style={{
-            textAlign: 'center',
-            padding: '2rem',
-            color: '#888',
-            fontSize: '14px'
-          }}>
-            <p>
-              {allAvailableStations.length} total stations • 
-              {seedStations.length} official • 
-              {userStations.length} community • 
-              {externalStations.length} global
-            </p>
-            <p style={{ marginTop: '5px' }}>
-              Platform is growing - be part of the early creator community! 🚀
-            </p>
-          </div>
+      {/* PAGE CONTENT */}
+      {loading ? (
+        <div className="radio-loading">Loading…</div>
+      ) : selectedGenre ? (
+        renderSection(`${selectedGenre} Stations`, filterByGenre(selectedGenre), selectedGenre)
+      ) : (
+        <>
+          {renderSection("⭐ Official Stations", seedStations)}
+          {userStations.length > 0 && renderSection("🎙 Community Stations", userStations)}
+          {externalStations.length > 0 &&
+            renderSection("🌍 Global Stations", externalStations.slice(0, 12))}
         </>
       )}
     </div>

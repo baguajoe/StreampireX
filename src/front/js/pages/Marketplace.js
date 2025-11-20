@@ -1,4 +1,4 @@
-// src/front/js/pages/Marketplace.js - Complete Working Implementation
+// src/front/js/pages/Marketplace.js - Updated to match browse/pricing style
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import "../../styles/marketplace.css";
@@ -28,6 +28,20 @@ const Marketplace = () => {
   
   const navigate = useNavigate();
 
+  // Apply same dark gradient background as Browse / Pricing pages
+  useEffect(() => {
+    document.body.style.background =
+      "linear-gradient(135deg, #050816 0%, #020617 45%, #04101a 100%)";
+    document.body.style.minHeight = "100vh";
+    document.body.style.color = "#e1e4e8";
+
+    return () => {
+      document.body.style.background = "";
+      document.body.style.minHeight = "";
+      document.body.style.color = "";
+    };
+  }, []);
+
   // Utility Functions
   const getAuthToken = () => {
     return localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -35,7 +49,6 @@ const Marketplace = () => {
 
   const testConnection = async () => {
     try {
-      // Use a simple public endpoint that doesn't require auth
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/public-health`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
@@ -64,7 +77,6 @@ const Marketplace = () => {
       setError(null);
       setConnectionStatus('connecting');
 
-      // Build URL with query parameters
       const params = new URLSearchParams({
         category: categoryFilter !== 'all' ? categoryFilter : '',
         search: searchTerm,
@@ -105,7 +117,6 @@ const Marketplace = () => {
       setError(err.message);
       setConnectionStatus('error');
       
-      // Remove automatic retry to prevent infinite loops
       if (retryCount < 2 && err.message !== 'Invalid response format from server') {
         setTimeout(() => {
           setRetryCount(prev => prev + 1);
@@ -114,7 +125,7 @@ const Marketplace = () => {
     } finally {
       setLoading(false);
     }
-  }, [categoryFilter, searchTerm, sortBy, priceRange.min, priceRange.max]);
+  }, [categoryFilter, searchTerm, sortBy, priceRange.min, priceRange.max, retryCount]);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -242,7 +253,7 @@ const Marketplace = () => {
     }
   };
 
-  // Filter products
+  // Filter + sort products
   const filteredProducts = products.filter(product => {
     const matchesSearch = !searchTerm || 
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -254,7 +265,6 @@ const Marketplace = () => {
     return matchesSearch && matchesCategory && matchesPrice;
   });
 
-  // Sort products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
       case 'price-low':
@@ -273,198 +283,200 @@ const Marketplace = () => {
     }
   });
 
-  // Configuration error
+  // Config error
   if (!process.env.REACT_APP_BACKEND_URL) {
     return (
-      <div className="marketplace-container">
-        <div className="error-state">
+      <div className="marketplace-page">
+        <div className="marketplace-error-state">
           <h2>Configuration Error</h2>
-          <div className="error-details">
-            <p>Backend URL not configured</p>
-            <div className="troubleshooting">
-              <h3>Setup Instructions:</h3>
-              <ol>
-                <li>Create a <code>.env</code> file in your project root</li>
-                <li>Add: <code>REACT_APP_BACKEND_URL=https://your-backend-url</code></li>
-                <li>Restart your development server</li>
-                <li>Ensure your backend is running on the specified URL</li>
-              </ol>
-            </div>
-          </div>
+          <p>Backend URL not configured. Set <code>REACT_APP_BACKEND_URL</code> in your .env file.</p>
         </div>
       </div>
     );
   }
 
   // Loading state
-  if (loading && !error) {
+  if (loading && !error && products.length === 0) {
     return (
-      <div className="marketplace-container">
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <h2>Loading Marketplace...</h2>
-          <p>Connecting to: {process.env.REACT_APP_BACKEND_URL}</p>
-          <p>Status: {connectionStatus}</p>
-          {retryCount > 0 && <p>Retry attempt: {retryCount}/3</p>}
+      <div className="marketplace-page marketplace-loading">
+        <div className="marketplace-loading-inner">
+          <div className="marketplace-spinner" />
+          <h2 className="marketplace-loading-text">Loading Marketplace...</h2>
+          <p className="marketplace-loading-sub">
+            Connecting to: {process.env.REACT_APP_BACKEND_URL}
+          </p>
         </div>
       </div>
     );
   }
 
-  // Error state
+  // Error state (hard fail)
   if (error && products.length === 0) {
     return (
-      <div className="marketplace-container">
-        <div className="error-state">
+      <div className="marketplace-page">
+        <div className="marketplace-error-state">
           <h2>Unable to Load Marketplace</h2>
-          <div className="error-details">
-            <p><strong>Error:</strong> {error}</p>
-            
-            <div className="debug-info">
-              <h3>Debug Information:</h3>
-              <ul>
-                <li><strong>Backend URL:</strong> {process.env.REACT_APP_BACKEND_URL}</li>
-                <li><strong>Connection Status:</strong> {connectionStatus}</li>
-                <li><strong>Auth Token:</strong> {getAuthToken() ? 'Present' : 'Missing'}</li>
-                <li><strong>Retry Count:</strong> {retryCount}/3</li>
-                <li><strong>Environment:</strong> {process.env.NODE_ENV === 'production' ? 'Production' : 'Development'}</li>
-              </ul>
-            </div>
-
-            <div className="troubleshooting">
-              <h3>Troubleshooting Steps:</h3>
-              <ol>
-                <li>Check if your backend server is running on {process.env.REACT_APP_BACKEND_URL}</li>
-                <li>Verify your authentication token is valid</li>
-                <li>Check browser console for detailed errors</li>
-                <li>Ensure database connection is working</li>
-                <li>Verify the marketplace API endpoint exists</li>
-              </ol>
-            </div>
-
-            <div className="action-buttons">
-              <button className="retry-btn" onClick={handleRetry}>
-                Retry Now
-              </button>
-              <button 
-                className="test-btn" 
-                onClick={() => window.open(process.env.REACT_APP_BACKEND_URL + '/api/public-health', '_blank')}
-              >
-                Test Backend
-              </button>
-            </div>
-          </div>
+          <p className="marketplace-error-message">{error}</p>
+          <button className="marketplace-primary-btn" onClick={handleRetry}>
+            Retry
+          </button>
+          <button
+            className="marketplace-secondary-btn"
+            onClick={() => window.open(
+              `${process.env.REACT_APP_BACKEND_URL}/api/public-health`,
+              "_blank"
+            )}
+          >
+            Test Backend
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="marketplace-container">
-      {/* Header Section */}
-      <div className="marketplace-header">
-        <div className="header-content">
-          <h1>Artist Merch Store</h1>
-          <p>Discover exclusive merchandise and digital content from your favorite creators</p>
-          
-          {/* Connection Status Indicator */}
-          <div className={`connection-indicator ${connectionStatus}`}>
-            <span className="status-dot"></span>
-            <span>{connectionStatus === 'connected' ? 'Online' : connectionStatus}</span>
+    <div className="marketplace-page">
+      {/* HEADER */}
+      <header className="marketplace-header">
+        <div className="marketplace-header-main">
+          <div className="marketplace-header-text">
+            <h1 className="marketplace-title">Browse Marketplace</h1>
+            <p className="marketplace-subtext">
+              {pagination
+                ? `Showing ${products.length} of ${pagination.total || products.length} products`
+                : `${products.length} products found`}
+            </p>
           </div>
 
-          {/* Cart Summary */}
-          <div className="cart-summary" onClick={() => setShowCart(!showCart)}>
-            <span className="cart-icon">Cart</span>
-            <span className="cart-count">{cartItems.length}</span>
-            <span className="cart-total">
-              ${cartItems.reduce((total, item) => total + (item.product.price * item.quantity), 0).toFixed(2)}
-            </span>
+          <div className="marketplace-header-right">
+            <div className={`connection-indicator ${connectionStatus}`}>
+              <span className="status-dot" />
+              <span>
+                {connectionStatus === "connected"
+                  ? "Online"
+                  : connectionStatus === "connecting"
+                  ? "Connecting..."
+                  : "Offline"}
+              </span>
+            </div>
+
+            <div
+              className="cart-summary"
+              onClick={() => setShowCart(!showCart)}
+            >
+              <span className="cart-icon">🛒</span>
+              <span className="cart-count">{cartItems.length}</span>
+              <span className="cart-total">
+                $
+                {cartItems
+                  .reduce(
+                    (total, item) =>
+                      total + item.product.price * item.quantity,
+                    0
+                  )
+                  .toFixed(2)}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Featured Products Banner */}
+      {/* FEATURED STRIP */}
       {featuredProducts.length > 0 && (
-        <div className="featured-section">
-          <h2>Featured Products</h2>
+        <section className="featured-section">
+          <h2 className="featured-title">Featured Drops</h2>
           <div className="featured-carousel">
             {featuredProducts.slice(0, 3).map(product => (
-              <div key={product.id} className="featured-card">
-                <img 
-                  src={product.image_url || '/placeholder-product.jpg'} 
+              <article key={product.id} className="featured-card">
+                <img
+                  src={product.image_url || "/placeholder-product.jpg"}
                   alt={product.name}
-                  onError={(e) => e.target.src = '/placeholder-product.jpg'}
+                  className="featured-image"
+                  onError={(e) => (e.target.src = "/placeholder-product.jpg")}
                 />
                 <div className="featured-info">
                   <h3>{product.name}</h3>
                   <p className="featured-price">${product.price}</p>
-                  <button 
+                  <button
                     className="featured-cta"
                     onClick={() => quickBuy(product)}
                   >
-                    Quick Buy
+                    ⚡ Quick Buy
                   </button>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Search and Filter Controls */}
-      <div className="marketplace-controls">
-        <div className="search-section">
+      {/* SEARCH + FILTER BAR */}
+      <section className="marketplace-controls">
+        <div className="marketplace-search-row">
           <div className="search-bar">
             <input
               type="text"
-              placeholder="Search products, artists, categories..."
+              placeholder="Search products, artists, or categories..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
             />
-            <button className="search-btn">Search</button>
+            {searchTerm && (
+              <button
+                className="search-clear"
+                onClick={() => setSearchTerm("")}
+              >
+                ✖
+              </button>
+            )}
           </div>
-          
-          <button 
-            className="filter-toggle"
+
+          <button
+            className={
+              "filter-toggle" + (showFilters ? " filter-toggle-active" : "")
+            }
             onClick={() => setShowFilters(!showFilters)}
           >
-            Filters {showFilters ? 'Up' : 'Down'}
+            {showFilters ? "Hide Filters" : "Show Filters"}
           </button>
         </div>
-        
-        {/* Advanced Filters Panel */}
+
         {showFilters && (
           <div className="filters-panel">
             <div className="filter-row">
               <div className="filter-group">
-                <label>Category:</label>
-                <select 
-                  value={categoryFilter} 
+                <label>Category</label>
+                <select
+                  value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
                   className="filter-select"
                 >
                   <option value="all">All Categories</option>
-                  {categories && categories.length > 0 ? categories.map(category => (
-                    <option key={category.id || category.slug} value={category.slug}>
-                      {category.name} {category.count ? `(${category.count})` : ''}
-                    </option>
-                  )) : (
+                  {categories && categories.length > 0 ? (
+                    categories.map((category) => (
+                      <option
+                        key={category.id || category.slug}
+                        value={category.slug}
+                      >
+                        {category.name}
+                        {category.count ? ` (${category.count})` : ""}
+                      </option>
+                    ))
+                  ) : (
                     <>
                       <option value="apparel">Apparel</option>
                       <option value="digital">Digital</option>
-                      <option value="merch">Merchandise</option>
+                      <option value="merch">Merch</option>
                       <option value="music">Music</option>
                     </>
                   )}
                 </select>
               </div>
-              
+
               <div className="filter-group">
-                <label>Sort by:</label>
-                <select 
-                  value={sortBy} 
+                <label>Sort by</label>
+                <select
+                  value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="filter-select"
                 >
@@ -477,17 +489,24 @@ const Marketplace = () => {
                 </select>
               </div>
             </div>
-            
+
             <div className="filter-row">
               <div className="filter-group">
-                <label>Price Range: ${priceRange.min} - ${priceRange.max}</label>
+                <label>
+                  Price Range: ${priceRange.min} – ${priceRange.max}
+                </label>
                 <div className="price-range">
                   <input
                     type="range"
                     min="0"
                     max="1000"
                     value={priceRange.min}
-                    onChange={(e) => setPriceRange(prev => ({ ...prev, min: parseInt(e.target.value) }))}
+                    onChange={(e) =>
+                      setPriceRange((prev) => ({
+                        ...prev,
+                        min: parseInt(e.target.value)
+                      }))
+                    }
                     className="price-slider"
                   />
                   <input
@@ -495,180 +514,214 @@ const Marketplace = () => {
                     min="0"
                     max="1000"
                     value={priceRange.max}
-                    onChange={(e) => setPriceRange(prev => ({ ...prev, max: parseInt(e.target.value) }))}
+                    onChange={(e) =>
+                      setPriceRange((prev) => ({
+                        ...prev,
+                        max: parseInt(e.target.value)
+                      }))
+                    }
                     className="price-slider"
                   />
                 </div>
               </div>
-              
+
               <div className="filter-actions">
-                <button className="clear-filters-btn" onClick={clearFilters}>
-                  Clear All
+                <button
+                  className="clear-filters-btn"
+                  onClick={clearFilters}
+                >
+                  Clear
                 </button>
-                <button className="apply-filters-btn" onClick={() => setShowFilters(false)}>
-                  Apply Filters
+                <button
+                  className="apply-filters-btn"
+                  onClick={() => setShowFilters(false)}
+                >
+                  Apply
                 </button>
               </div>
             </div>
           </div>
         )}
-        
-        {/* Results Summary */}
-        <div className="results-summary">
-          <span>
-            {pagination ? 
-              `Showing ${products.length} of ${pagination.total} products` :
-              `${products.length} products found`
-            }
-          </span>
-          {(searchTerm || categoryFilter !== 'all') && (
-            <button className="clear-search" onClick={clearFilters}>
-              Clear Search
-            </button>
-          )}
-        </div>
-      </div>
+      </section>
 
-      {/* Products Grid */}
-      <div className="products-grid">
+      {/* GRID */}
+      <section className="products-grid">
         {sortedProducts.length === 0 ? (
-          <div className="no-products">
+          <div className="marketplace-empty">
+            <div className="empty-icon">📦</div>
             <h3>No products found</h3>
-            <p>Try adjusting your search or filters</p>
-            <button onClick={clearFilters} className="reset-filters-btn">
+            <p>Try adjusting your search or filters.</p>
+            <button
+              className="marketplace-primary-btn"
+              onClick={clearFilters}
+            >
               Reset Filters
             </button>
           </div>
         ) : (
-          <>
-            {sortedProducts.map(product => (
-              <div key={product.id} className="product-card">
-                <div className="product-image">
-                  <img 
-                    src={product.image_url || '/placeholder-product.jpg'} 
-                    alt={product.name}
-                    onError={(e) => {
-                      e.target.src = '/placeholder-product.jpg';
-                    }}
-                  />
-                  
-                  {/* Product Badges */}
-                  <div className="product-badges">
-                    {product.stock === 0 && <span className="badge out-of-stock">Out of Stock</span>}
-                    {product.is_featured && <span className="badge featured">Featured</span>}
-                    {product.is_new && <span className="badge new">New</span>}
-                    {product.discount_percentage > 0 && (
-                      <span className="badge sale">-{product.discount_percentage}%</span>
-                    )}
-                  </div>
-                  
-                  {/* Quick Actions */}
-                  <div className="quick-actions">
-                    <button 
-                      className={`wishlist-btn ${wishlistItems.some(item => item.product_id === product.id) ? 'active' : ''}`}
-                      onClick={() => toggleWishlist(product)}
-                    >
-                      Heart
-                    </button>
-                    <Link to={`/marketplace/product/${product.id}`} className="quick-view-btn">
-                      View
-                    </Link>
-                  </div>
+          sortedProducts.map((product) => (
+            <article key={product.id} className="product-card">
+              <div className="product-image">
+                <img
+                  src={product.image_url || "/placeholder-product.jpg"}
+                  alt={product.name}
+                  onError={(e) =>
+                    (e.target.src = "/placeholder-product.jpg")
+                  }
+                />
+
+                <div className="product-badges">
+                  {product.stock === 0 && (
+                    <span className="badge out-of-stock">Sold Out</span>
+                  )}
+                  {product.is_featured && (
+                    <span className="badge featured">Featured</span>
+                  )}
+                  {product.is_new && (
+                    <span className="badge new">New</span>
+                  )}
+                  {product.discount_percentage > 0 && (
+                    <span className="badge sale">
+                      -{product.discount_percentage}%
+                    </span>
+                  )}
                 </div>
-                
-                <div className="product-info">
-                  <div className="product-header">
-                    <h3 className="product-name">{product.name}</h3>
-                    <span className="product-category">{product.category}</span>
-                  </div>
-                  
-                  <p className="product-description">
-                    {product.description?.substring(0, 100)}...
-                  </p>
-                  
-                  <div className="product-creator">
-                    <img 
-                      src={product.creator_avatar || '/default-avatar.jpg'}
-                      alt={product.creator_name}
-                      className="creator-avatar"
-                    />
-                    <span>By: {product.creator_name}</span>
-                  </div>
-                  
-                  <div className="product-stats">
-                    <div className="rating">
-                      <span className="stars">{'★'.repeat(Math.floor(product.rating || 0))}</span>
-                      <span className="rating-text">({product.review_count || 0})</span>
-                    </div>
-                    <span className="sales-count">{product.sales_count || 0} sold</span>
-                  </div>
-                  
-                  <div className="product-price">
-                    {product.original_price > product.price && (
-                      <span className="original-price">${product.original_price.toFixed(2)}</span>
-                    )}
-                    <span className="current-price">${product.price.toFixed(2)}</span>
-                  </div>
-                  
-                  <div className="product-actions">
-                    <button 
-                      className="btn-add-cart"
-                      onClick={() => addToCart(product)}
-                      disabled={product.stock === 0}
-                    >
-                      Add to Cart
-                    </button>
-                    <button 
-                      className="btn-quick-buy"
-                      onClick={() => quickBuy(product)}
-                      disabled={product.stock === 0}
-                    >
-                      Quick Buy
-                    </button>
-                  </div>
+
+                <div className="quick-actions">
+                  <button
+                    className={
+                      "wishlist-btn" +
+                      (wishlistItems.some(
+                        (item) => item.product_id === product.id
+                      )
+                        ? " active"
+                        : "")
+                    }
+                    onClick={() => toggleWishlist(product)}
+                  >
+                    ♥
+                  </button>
+                  <Link
+                    to={`/marketplace/product/${product.id}`}
+                    className="quick-view-btn"
+                  >
+                    👁
+                  </Link>
                 </div>
               </div>
-            ))}
-          </>
-        )}
-      </div>
 
-      {/* Creator CTA */}
-      <div className="creator-cta">
+              <div className="product-info">
+                <div className="product-header">
+                  <h3 className="product-name">{product.name}</h3>
+                  <span className="product-category">
+                    {product.category}
+                  </span>
+                </div>
+
+                <p className="product-description">
+                  {product.description?.substring(0, 110)}...
+                </p>
+
+                <div className="product-creator">
+                  <img
+                    src={product.creator_avatar || "/default-avatar.jpg"}
+                    alt={product.creator_name}
+                    className="creator-avatar"
+                  />
+                  <span>By {product.creator_name}</span>
+                </div>
+
+                <div className="product-stats">
+                  <div className="rating">
+                    <span className="stars">
+                      {"★".repeat(Math.floor(product.rating || 0))}
+                    </span>
+                    <span className="rating-text">
+                      ({product.review_count || 0})
+                    </span>
+                  </div>
+                  <span className="sales-count">
+                    {product.sales_count || 0} sold
+                  </span>
+                </div>
+
+                <div className="product-price">
+                  {product.original_price > product.price && (
+                    <span className="original-price">
+                      ${product.original_price.toFixed(2)}
+                    </span>
+                  )}
+                  <span className="current-price">
+                    ${product.price.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="product-actions">
+                  <button
+                    className="btn-add-cart"
+                    onClick={() => addToCart(product)}
+                    disabled={product.stock === 0}
+                  >
+                    Add to Cart
+                  </button>
+                  <button
+                    className="btn-quick-buy"
+                    onClick={() => quickBuy(product)}
+                    disabled={product.stock === 0}
+                  >
+                    Quick Buy
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))
+        )}
+      </section>
+
+      {/* CREATOR CTA */}
+      <section className="creator-cta">
         <div className="cta-content">
           <h2>Are you a creator?</h2>
-          <p>Start selling your merchandise and digital content to thousands of fans!</p>
+          <p>
+            Launch your own store and sell merch & digital packs directly
+            to your fans.
+          </p>
           <Link to="/creator-signup" className="btn-creator-signup">
-            Join as Creator
+            Become a Seller
           </Link>
         </div>
-      </div>
+      </section>
 
-      {/* Show error notification if products loaded but there was an error */}
+      {/* Soft error notification */}
       {error && products.length > 0 && (
-        <div className="error-notification">
-          <p>Some data may be outdated. {error}</p>
+        <div className="marketplace-toast">
+          <span>Some data may be outdated: {error}</span>
           <button onClick={handleRetry}>Refresh</button>
         </div>
       )}
 
-      {/* Cart Sidebar */}
+      {/* CART SIDEBAR */}
       {showCart && (
-        <div className="cart-sidebar">
+        <aside className="cart-sidebar">
           <div className="cart-header">
-            <h3>Shopping Cart</h3>
-            <button onClick={() => setShowCart(false)}>X</button>
+            <h3>Your Cart</h3>
+            <button onClick={() => setShowCart(false)}>✖</button>
           </div>
           <div className="cart-items">
             {cartItems.length === 0 ? (
-              <p>Your cart is empty</p>
+              <p className="cart-empty">Your cart is empty.</p>
             ) : (
-              cartItems.map(item => (
+              cartItems.map((item) => (
                 <div key={item.product.id} className="cart-item">
-                  <img src={item.product.image_url} alt={item.product.name} />
+                  <img
+                    src={item.product.image_url || "/placeholder-product.jpg"}
+                    alt={item.product.name}
+                  />
                   <div className="cart-item-details">
                     <h4>{item.product.name}</h4>
-                    <p>${item.product.price} x {item.quantity}</p>
+                    <p>
+                      ${item.product.price} × {item.quantity}
+                    </p>
                   </div>
                 </div>
               ))
@@ -677,11 +730,25 @@ const Marketplace = () => {
           {cartItems.length > 0 && (
             <div className="cart-footer">
               <div className="cart-total">
-                Total: ${cartItems.reduce((total, item) => total + (item.product.price * item.quantity), 0).toFixed(2)}
+                Total: $
+                {cartItems
+                  .reduce(
+                    (total, item) =>
+                      total + item.product.price * item.quantity,
+                    0
+                  )
+                  .toFixed(2)}
               </div>
-              <button className="checkout-btn">Proceed to Checkout</button>
+              <button className="checkout-btn">Checkout</button>
             </div>
           )}
+        </aside>
+      )}
+
+      {/* LIGHT LOADING OVERLAY WHEN REFRESHING */}
+      {loading && products.length > 0 && (
+        <div className="marketplace-loading-overlay">
+          <div className="marketplace-spinner" />
         </div>
       )}
     </div>

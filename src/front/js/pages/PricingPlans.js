@@ -749,26 +749,6 @@ const PricingPlans = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Debug Info */}
-            <div className="debug-info" style={{ 
-                background: '#f8f9fa', 
-                padding: '1rem', 
-                borderRadius: '8px', 
-                marginTop: '2rem',
-                fontSize: '0.8rem',
-                color: '#666',
-                border: '1px solid #e0e0e0'
-            }}>
-                <h4>🔍 Debug Information:</h4>
-                <p>Backend URL: {process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}</p>
-                <p>Plans loaded: {plans.length}</p>
-                <p>Regular plans: {regularPlans.length}</p>
-                <p>Distribution plans: {distributionPlans.length}</p>
-                <p>Current plan: {currentPlan ? currentPlan.name : 'None'}</p>
-                <p>Environment: {process.env.NODE_ENV || 'development'}</p>
-                <p>Selected billing: {selectedBilling}</p>
-            </div>
         </div>
     );
 };

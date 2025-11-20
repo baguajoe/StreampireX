@@ -2170,8 +2170,7 @@ def get_all_radio_stations():
     except Exception as e:
         print(f"❌ Error fetching radio stations: {e}")
         return jsonify([]), 200  # Return empty array on error
-
-
+   
 # @api.route('/radio-stations', methods=['GET'])
 # def get_public_radio_stations():
 #     """Public endpoint to get all radio stations without authentication"""

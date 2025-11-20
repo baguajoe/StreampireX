@@ -1,50 +1,179 @@
-.podcast-section {
+/* ROOT */
+.radio-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  background: linear-gradient(135deg, #0d1117, #161b22);
+  min-height: 100vh;
+  color: #e1e4e8;
+}
+
+.radio-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #00ffc8;
+  margin-bottom: 20px;
+  text-shadow: 0 0 18px rgba(0, 255, 200, 0.35);
+}
+
+/* NAVIGATION */
+.radio-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 1rem;
+  background: #111827;
+  border-radius: 12px;
+  border: 1px solid #333;
+  margin-bottom: 30px;
+}
+
+.radio-scroll-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #00ffc8;
+  color: #000;
+  cursor: pointer;
+}
+
+.radio-nav-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 10px;
+  flex: 1;
+  scrollbar-width: none;
+}
+
+.radio-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.radio-pill {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #0d1117;
+  border: 1px solid #333;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.radio-pill.active {
+  background: #00ffc8;
+  color: #000;
+  border-color: #00ffc8;
+}
+
+/* SECTIONS */
+.radio-section {
+  background: #111827;
+  padding: 1.5rem;
+  border-radius: 14px;
+  border: 1px solid #333;
   margin-bottom: 40px;
 }
 
-.podcast-scroll-row {
+.radio-section-title {
+  color: #00ffc8;
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+/* GRID */
+.radio-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr); /* 6 per row */
+  grid-template-columns: repeat(6, 1fr);
   gap: 20px;
 }
 
-.podcast-card {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+@media (max-width: 1200px) { .radio-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 900px)  { .radio-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 700px)  { .radio-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px)  { .radio-grid { grid-template-columns: 1fr; } }
+
+/* CARDS */
+.radio-card {
+  background: #0b1120;
   padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #333;
   text-align: center;
-  width: 100%;         /* ✅ Make each card fill its grid column */
-  min-width: 0;         /* ✅ Prevent overflow */
+  transition: 0.25s;
+  position: relative;
+  text-decoration: none;
+  color: inherit;
 }
 
+.radio-card:hover {
+  transform: translateY(-4px);
+  border-color: #00ffc8;
+}
 
-.podcast-img-placeholder {
+.radio-card img {
   width: 100%;
   height: 160px;
-  background-color: #ddd;
+  object-fit: cover;
   border-radius: 10px;
-  margin-bottom: 10px;
 }
 
-.podcast-title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 6px 0 4px;
-  color: #222;
-}
-
-.podcast-label {
-  background: #ff6600;
-  color: white;
-  font-size: 0.75rem;
-  padding: 2px 6px;
+/* BADGES */
+.radio-badge {
+  position: absolute;
+  top: 8px;
+  padding: 3px 8px;
   border-radius: 6px;
-  display: inline-block;
-  margin-bottom: 6px;
+  font-size: 10px;
+  font-weight: bold;
 }
 
-.podcast-desc {
+.radio-badge.live {
+  right: 8px;
+  background: #ff4757;
+  color: #fff;
+}
+
+.radio-badge.official {
+  left: 8px;
+  background: #00ffc8;
+  color: #000;
+}
+
+/* TEXT */
+.radio-genre {
+  background: #00ffc8;
+  color: #000;
+  padding: 2px 6px;
+  font-size: 12px;
+  border-radius: 12px;
+  margin-bottom: 5px;
+  display: inline-block;
+}
+
+.radio-desc {
+  color: #aaa;
   font-size: 0.85rem;
-  color: #666;
+}
+
+.radio-creator {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+/* EMPTY */
+.radio-empty {
+  text-align: center;
+  padding: 2rem;
+  border: 1px dashed #444;
+  border-radius: 14px;
+}
+
+.radio-create-btn {
+  background: #00ffc8;
+  color: #000;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }

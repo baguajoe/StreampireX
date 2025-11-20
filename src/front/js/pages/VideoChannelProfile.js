@@ -1,265 +1,180 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Context } from '../store/appContext';
+import { showToast } from '../utils/toast';
 import '../../styles/VideoChannelProfile.css';
 
 const VideoChannelProfile = () => {
   const { store } = useContext(Context);
+  const { channelId } = useParams();
+  const navigate = useNavigate();
+  
+  // State
   const [channelData, setChannelData] = useState(null);
+  const [videos, setVideos] = useState([]);
+  const [clips, setClips] = useState([]);
+  const [playlists, setPlaylists] = useState([]);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [activeTab, setActiveTab] = useState('home');
+  const [sortBy, setSortBy] = useState('newest');
 
-  // Form data state
-  const [formData, setFormData] = useState({
-    channelName: '',
-    description: '',
-    customUrl: '',
-    primaryCategory: '',
-    secondaryCategory: '',
-    country: '',
-    language: 'en',
-    isPublic: true,
-    allowComments: true,
-    allowLikes: true,
-    ageRestricted: false,
-    madeForKids: false,
-    enableMonetization: false
-  });
-
-  // Media upload state
-  const [mediaUploads, setMediaUploads] = useState({
-    avatar: null,
-    banner: null,
-    watermark: null
-  });
-
-  // Branding state
-  const [branding, setBranding] = useState({
-    themeColor: '#667eea',
-    accentColor: '#764ba2',
-    customCSS: ''
-  });
-
-  // Social links state
-  const [socialLinks, setSocialLinks] = useState({
-    website: '',
-    twitter: '',
-    instagram: '',
-    facebook: '',
-    tiktok: '',
-    discord: '',
-    twitch: ''
-  });
-
-  // File input refs
-  const avatarInputRef = useRef(null);
-  const bannerInputRef = useRef(null);
-  const watermarkInputRef = useRef(null);
-
-  // Categories data
-  const categories = [
-    'Gaming', 'Music', 'Education', 'Entertainment', 'Technology',
-    'Science', 'Sports', 'News', 'Comedy', 'Lifestyle', 'Travel',
-    'Food', 'Health', 'Business', 'Arts', 'DIY', 'Automotive', 'Other'
-  ];
-
-  const languages = [
-    { code: 'en', name: 'English' },
-    { code: 'es', name: 'Spanish' },
-    { code: 'fr', name: 'French' },
-    { code: 'de', name: 'German' },
-    { code: 'it', name: 'Italian' },
-    { code: 'pt', name: 'Portuguese' },
-    { code: 'ru', name: 'Russian' },
-    { code: 'ja', name: 'Japanese' },
-    { code: 'ko', name: 'Korean' },
-    { code: 'zh', name: 'Chinese' }
-  ];
+  // Check if this is the user's own channel
+  const isOwnChannel = !channelId || (channelData && channelData.user_id === store.user?.id);
 
   useEffect(() => {
-    fetchChannelData();
-  }, []);
+    loadChannelProfile();
+  }, [channelId]);
 
-  const fetchChannelData = async () => {
+  const loadChannelProfile = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      
+      // Get channel ID to fetch
+      const targetChannelId = channelId || 'me';
+      
+      // Fetch channel data
+      const channelRes = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/video/channel/${targetChannelId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
-      });
+      );
 
-      if (response.ok) {
-        const data = await response.json();
-        setChannelData(data);
-        populateFormData(data);
-      } else if (response.status === 404) {
-        // No channel exists, create one
-        await createDefaultChannel();
-      } else {
-        throw new Error('Failed to fetch channel data');
+      if (channelRes.ok) {
+        const channel = await channelRes.json();
+        setChannelData(channel);
+        
+        // Fetch videos
+        const videosRes = await fetch(
+          `${process.env.REACT_APP_BACKEND_URL}/api/video/user?user_id=${channel.user_id}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        
+        if (videosRes.ok) {
+          const videosData = await videosRes.json();
+          setVideos(videosData.videos || []);
+        }
+        
+        // Check subscription status if not own channel
+        if (!isOwnChannel) {
+          checkSubscriptionStatus(channel.id);
+        }
+      } else if (channelRes.status === 404) {
+        // No channel exists
+        if (isOwnChannel) {
+          // Redirect to create channel
+          navigate('/video-dashboard');
+        } else {
+          showToast.error("Channel not found");
+          navigate('/browse-channels');
+        }
       }
     } catch (error) {
-      console.error('Error fetching channel data:', error);
-      setError('Failed to load channel data');
+      console.error('Error loading channel:', error);
+      showToast.error("Failed to load channel");
     } finally {
       setLoading(false);
     }
   };
 
-  const createDefaultChannel = async () => {
+  const checkSubscriptionStatus = async (channelId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/create`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          channel_name: `${store.user?.username || 'My'} Channel`,
-          description: 'Welcome to my video channel!'
-        })
-      });
-
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/video/channel/${channelId}/subscription-status`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+      
       if (response.ok) {
         const data = await response.json();
-        setChannelData(data.channel);
-        populateFormData(data.channel);
+        setIsSubscribed(data.isSubscribed);
       }
     } catch (error) {
-      console.error('Error creating channel:', error);
-      setError('Failed to create channel');
+      console.error('Error checking subscription:', error);
     }
   };
 
-  const populateFormData = (data) => {
-    setFormData({
-      channelName: data.channel_name || '',
-      description: data.description || '',
-      customUrl: data.custom_url || '',
-      primaryCategory: data.primary_category || '',
-      secondaryCategory: data.secondary_category || '',
-      country: data.country || '',
-      language: data.language || 'en',
-      isPublic: data.is_public !== false,
-      allowComments: data.allow_comments !== false,
-      allowLikes: data.allow_likes !== false,
-      ageRestricted: data.age_restricted || false,
-      madeForKids: data.made_for_kids || false,
-      enableMonetization: data.enable_monetization || false
-    });
-
-    setBranding({
-      themeColor: data.theme_color || '#667eea',
-      accentColor: data.accent_color || '#764ba2',
-      customCSS: data.custom_css || ''
-    });
-
-    setSocialLinks({
-      website: data.website_url || '',
-      twitter: data.twitter_url || '',
-      instagram: data.instagram_url || '',
-      facebook: data.facebook_url || '',
-      tiktok: data.tiktok_url || '',
-      discord: data.discord_url || '',
-      twitch: data.twitch_url || ''
-    });
-  };
-
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSocialLinkChange = (platform, value) => {
-    setSocialLinks(prev => ({
-      ...prev,
-      [platform]: value
-    }));
-  };
-
-  const handleBrandingChange = (field, value) => {
-    setBranding(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleFileUpload = async (type, file) => {
-    if (!file) return;
+  const handleSubscribe = async () => {
+    if (!store.user) {
+      showToast.error("Please login to subscribe");
+      navigate('/login');
+      return;
+    }
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload/cloudinary`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/video/channel/${channelData.id}/subscribe`,
+        {
+          method: isSubscribed ? 'DELETE' : 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
       if (response.ok) {
-        const data = await response.json();
-        setMediaUploads(prev => ({
+        setIsSubscribed(!isSubscribed);
+        showToast.success(isSubscribed ? "Unsubscribed" : "Subscribed!");
+        
+        // Update subscriber count
+        setChannelData(prev => ({
           ...prev,
-          [type]: data.secure_url
+          subscriber_count: isSubscribed 
+            ? (prev.subscriber_count || 0) - 1 
+            : (prev.subscriber_count || 0) + 1
         }));
-        setSuccessMessage(`${type.charAt(0).toUpperCase() + type.slice(1)} uploaded successfully!`);
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        throw new Error('Upload failed');
       }
     } catch (error) {
-      console.error('Upload error:', error);
-      setError(`Failed to upload ${type}`);
+      console.error('Error toggling subscription:', error);
+      showToast.error("Failed to update subscription");
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    setError(null);
+  const formatCount = (count) => {
+    if (!count) return '0';
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
 
-    try {
-      const token = localStorage.getItem('token');
-      const updateData = {
-        ...formData,
-        ...branding,
-        ...socialLinks,
-        avatar_url: mediaUploads.avatar || channelData?.avatar_url,
-        banner_url: mediaUploads.banner || channelData?.banner_url,
-        watermark_url: mediaUploads.watermark || channelData?.watermark_url
-      };
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    if (diff < 7) return `${diff} days ago`;
+    if (diff < 30) return `${Math.floor(diff / 7)} weeks ago`;
+    if (diff < 365) return `${Math.floor(diff / 30)} months ago`;
+    return `${Math.floor(diff / 365)} years ago`;
+  };
 
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/update`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updateData)
-      });
-
-      if (response.ok) {
-        const updatedData = await response.json();
-        setChannelData(updatedData);
-        setSuccessMessage('Channel updated successfully!');
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        throw new Error('Failed to update channel');
-      }
-    } catch (error) {
-      console.error('Save error:', error);
-      setError('Failed to save changes');
-    } finally {
-      setSaving(false);
+  const getSortedVideos = () => {
+    const sorted = [...videos];
+    switch (sortBy) {
+      case 'popular':
+        return sorted.sort((a, b) => (b.views || 0) - (a.views || 0));
+      case 'oldest':
+        return sorted.sort((a, b) => new Date(a.uploaded_at) - new Date(b.uploaded_at));
+      case 'newest':
+      default:
+        return sorted.sort((a, b) => new Date(b.uploaded_at) - new Date(a.uploaded_at));
     }
   };
 
@@ -268,7 +183,21 @@ const VideoChannelProfile = () => {
       <div className="channel-profile-container">
         <div className="loading-state">
           <div className="loading-spinner"></div>
-          <p>Loading channel profile...</p>
+          <p>Loading channel...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!channelData) {
+    return (
+      <div className="channel-profile-container">
+        <div className="no-channel-state">
+          <h2>Channel Not Found</h2>
+          <p>This channel doesn't exist or has been removed.</p>
+          <Link to="/browse-channels" className="browse-btn">
+            Browse Channels
+          </Link>
         </div>
       </div>
     );
@@ -276,400 +205,325 @@ const VideoChannelProfile = () => {
 
   return (
     <div className="channel-profile-container">
-      {/* Header */}
-      <div className="profile-header">
-        <h1>📹 Channel Profile Settings</h1>
-        <p>Customize your video channel appearance and settings</p>
+      {/* Channel Header/Banner */}
+      <div className="channel-header">
+        <div className="channel-banner">
+          {channelData.banner_url ? (
+            <img src={channelData.banner_url} alt="Channel banner" className="banner-image" />
+          ) : (
+            <div className="default-banner-gradient" />
+          )}
+        </div>
+        
+        <div className="channel-info-section">
+          <div className="channel-profile-details">
+            <div className="channel-avatar">
+              {channelData.avatar_url ? (
+                <img src={channelData.avatar_url} alt={channelData.channel_name} />
+              ) : (
+                <div className="default-avatar">📹</div>
+              )}
+            </div>
+            
+            <div className="channel-text-info">
+              <h1 className="channel-name">{channelData.channel_name}</h1>
+              <div className="channel-stats">
+                <span className="stat-item">
+                  <strong>{formatCount(channelData.subscriber_count || 0)}</strong> subscribers
+                </span>
+                <span className="stat-separator">•</span>
+                <span className="stat-item">
+                  <strong>{videos.length}</strong> videos
+                </span>
+                <span className="stat-separator">•</span>
+                <span className="stat-item">
+                  <strong>{formatCount(channelData.total_views || 0)}</strong> views
+                </span>
+              </div>
+              {channelData.description && (
+                <p className="channel-description">{channelData.description}</p>
+              )}
+            </div>
+          </div>
+          
+          <div className="channel-actions">
+            {isOwnChannel ? (
+              <>
+                <Link to="/upload-video" className="action-btn upload">
+                  📤 Upload Video
+                </Link>
+                <Link to="/video-channel-settings" className="action-btn settings">
+                  ⚙️ Customize Channel
+                </Link>
+                <Link to="/video-dashboard" className="action-btn dashboard">
+                  📊 Dashboard
+                </Link>
+              </>
+            ) : (
+              <button 
+                onClick={handleSubscribe} 
+                className={`action-btn subscribe ${isSubscribed ? 'subscribed' : ''}`}
+              >
+                {isSubscribed ? '🔔 Subscribed' : '🔔 Subscribe'}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Success/Error Messages */}
-      {successMessage && (
-        <div className="success-message">
-          ✅ {successMessage}
-        </div>
-      )}
-      {error && (
-        <div className="error-message">
-          ❌ {error}
-        </div>
-      )}
-
-      <div className="profile-content">
-        {/* Channel Information */}
-        <section className="profile-section">
-          <h2>📝 Channel Information</h2>
-          <div className="form-grid">
-            <div className="form-group">
-              <label>Channel Name *</label>
-              <input
-                type="text"
-                value={formData.channelName}
-                onChange={(e) => handleInputChange('channelName', e.target.value)}
-                placeholder="Enter channel name"
-                maxLength="100"
-              />
-              <small>{formData.channelName.length}/100 characters</small>
-            </div>
-
-            <div className="form-group">
-              <label>Custom URL</label>
-              <div className="url-input-group">
-                <span className="url-prefix">streampirex.com/c/</span>
-                <input
-                  type="text"
-                  value={formData.customUrl}
-                  onChange={(e) => handleInputChange('customUrl', e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ''))}
-                  placeholder="channel-url"
-                  maxLength="50"
-                />
-              </div>
-            </div>
-
-            <div className="form-group full-width">
-              <label>Description</label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Tell viewers about your channel..."
-                maxLength="1000"
-                rows="4"
-              />
-              <small>{formData.description.length}/1000 characters</small>
-            </div>
-
-            <div className="form-group">
-              <label>Primary Category</label>
-              <select
-                value={formData.primaryCategory}
-                onChange={(e) => handleInputChange('primaryCategory', e.target.value)}
-              >
-                <option value="">Select category</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Secondary Category</label>
-              <select
-                value={formData.secondaryCategory}
-                onChange={(e) => handleInputChange('secondaryCategory', e.target.value)}
-              >
-                <option value="">Select category</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Country</label>
-              <input
-                type="text"
-                value={formData.country}
-                onChange={(e) => handleInputChange('country', e.target.value)}
-                placeholder="United States"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Primary Language</label>
-              <select
-                value={formData.language}
-                onChange={(e) => handleInputChange('language', e.target.value)}
-              >
-                {languages.map(lang => (
-                  <option key={lang.code} value={lang.code}>{lang.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </section>
-
-        {/* Channel Branding */}
-        <section className="profile-section">
-          <h2>🎨 Channel Branding</h2>
-
-          {/* Avatar Upload */}
-          <div className="branding-grid">
-            <div className="upload-section">
-              <h3>Channel Avatar</h3>
-              <div className="upload-area avatar-upload">
-                {(mediaUploads.avatar || channelData?.avatar_url) ? (
-                  <div className="current-image">
-                    <img
-                      src={mediaUploads.avatar || channelData?.avatar_url}
-                      alt="Channel Avatar"
-                      className="preview-avatar"
-                    />
-                    <button
-                      className="change-btn"
-                      onClick={() => avatarInputRef.current?.click()}
-                    >
-                      Change
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    className="upload-placeholder"
-                    onClick={() => avatarInputRef.current?.click()}
-                  >
-                    <span className="upload-icon">📷</span>
-                    <p>Upload Avatar</p>
-                    <small>Recommended: 800x800px</small>
-                  </div>
-                )}
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileUpload('avatar', e.target.files[0])}
-                  style={{ display: 'none' }}
-                />
-              </div>
-            </div>
-
-            {/* Banner Upload */}
-            <div className="upload-section">
-              <h3>Channel Banner</h3>
-              <div className="upload-area banner-upload">
-                {(mediaUploads.banner || channelData?.banner_url) ? (
-                  <div className="current-image">
-                    <img
-                      src={mediaUploads.banner || channelData?.banner_url}
-                      alt="Channel Banner"
-                      className="preview-banner"
-                    />
-                    <button
-                      className="change-btn"
-                      onClick={() => bannerInputRef.current?.click()}
-                    >
-                      Change
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    className="upload-placeholder"
-                    onClick={() => bannerInputRef.current?.click()}
-                  >
-                    <span className="upload-icon">🖼️</span>
-                    <p>Upload Banner</p>
-                    <small>Recommended: 2560x1440px</small>
-                  </div>
-                )}
-                <input
-                  ref={bannerInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileUpload('banner', e.target.files[0])}
-                  style={{ display: 'none' }}
-                />
-              </div>
-            </div>
-
-            {/* Watermark Upload */}
-            <div className="upload-section">
-              <h3>Video Watermark</h3>
-              <div className="upload-area watermark-upload">
-                {(mediaUploads.watermark || channelData?.watermark_url) ? (
-                  <div className="current-image">
-                    <img
-                      src={mediaUploads.watermark || channelData?.watermark_url}
-                      alt="Video Watermark"
-                      className="preview-watermark"
-                    />
-                    <button
-                      className="change-btn"
-                      onClick={() => watermarkInputRef.current?.click()}
-                    >
-                      Change
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    className="upload-placeholder"
-                    onClick={() => watermarkInputRef.current?.click()}
-                  >
-                    <span className="upload-icon">🏷️</span>
-                    <p>Upload Watermark</p>
-                    <small>Recommended: 150x150px</small>
-                  </div>
-                )}
-                <input
-                  ref={watermarkInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileUpload('watermark', e.target.files[0])}
-                  style={{ display: 'none' }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Color Theme */}
-          <div className="color-section">
-            <h3>Color Theme</h3>
-            <div className="color-grid">
-              <div className="color-group">
-                <label>Primary Color</label>
-                <div className="color-input-group">
-                  <input
-                    type="color"
-                    value={branding.themeColor}
-                    onChange={(e) => handleBrandingChange('themeColor', e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    value={branding.themeColor}
-                    onChange={(e) => handleBrandingChange('themeColor', e.target.value)}
-                    placeholder="#667eea"
-                  />
-                </div>
-              </div>
-
-              <div className="color-group">
-                <label>Accent Color</label>
-                <div className="color-input-group">
-                  <input
-                    type="color"
-                    value={branding.accentColor}
-                    onChange={(e) => handleBrandingChange('accentColor', e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    value={branding.accentColor}
-                    onChange={(e) => handleBrandingChange('accentColor', e.target.value)}
-                    placeholder="#764ba2"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Channel Settings */}
-        <section className="profile-section">
-          <h2>⚙️ Channel Settings</h2>
-          <div className="settings-grid">
-            <div className="setting-group">
-              <div className="setting-item">
-                <label className="setting-label">
-                  <input
-                    type="checkbox"
-                    checked={formData.isPublic}
-                    onChange={(e) => handleInputChange('isPublic', e.target.checked)}
-                  />
-                  <span className="checkmark"></span>
-                  Make channel public
-                </label>
-                <small>Allow others to find and view your channel</small>
-              </div>
-
-              <div className="setting-item">
-                <label className="setting-label">
-                  <input
-                    type="checkbox"
-                    checked={formData.allowComments}
-                    onChange={(e) => handleInputChange('allowComments', e.target.checked)}
-                  />
-                  <span className="checkmark"></span>
-                  Allow comments on videos
-                </label>
-                <small>Let viewers comment on your videos</small>
-              </div>
-
-              <div className="setting-item">
-                <label className="setting-label">
-                  <input
-                    type="checkbox"
-                    checked={formData.allowLikes}
-                    onChange={(e) => handleInputChange('allowLikes', e.target.checked)}
-                  />
-                  <span className="checkmark"></span>
-                  Allow likes/dislikes
-                </label>
-                <small>Enable like and dislike buttons</small>
-              </div>
-            </div>
-
-            <div className="setting-group">
-              <div className="setting-item">
-                <label className="setting-label">
-                  <input
-                    type="checkbox"
-                    checked={formData.ageRestricted}
-                    onChange={(e) => handleInputChange('ageRestricted', e.target.checked)}
-                  />
-                  <span className="checkmark"></span>
-                  Age-restricted content
-                </label>
-                <small>Mark channel as 18+ content</small>
-              </div>
-
-              <div className="setting-item">
-                <label className="setting-label">
-                  <input
-                    type="checkbox"
-                    checked={formData.madeForKids}
-                    onChange={(e) => handleInputChange('madeForKids', e.target.checked)}
-                  />
-                  <span className="checkmark"></span>
-                  Made for kids
-                </label>
-                <small>Channel content is designed for children</small>
-              </div>
-
-              <div className="setting-item">
-                <label className="setting-label">
-                  <input
-                    type="checkbox"
-                    checked={formData.enableMonetization}
-                    onChange={(e) => handleInputChange('enableMonetization', e.target.checked)}
-                  />
-                  <span className="checkmark"></span>
-                  Enable monetization
-                </label>
-                <small>Allow ads and revenue generation</small>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Social Links */}
-        <section className="profile-section">
-          <h2>🔗 Social Links</h2>
-          <div className="social-grid">
-            {Object.entries(socialLinks).map(([platform, url]) => (
-              <div key={platform} className="social-group">
-                <label>{platform.charAt(0).toUpperCase() + platform.slice(1)}</label>
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => handleSocialLinkChange(platform, e.target.value)}
-                  placeholder={`https://${platform === 'website' ? 'example.com' : platform + '.com/username'}`}
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Save Actions */}
-        <div className="save-actions">
-          <button
-            className="save-btn primary"
-            onClick={handleSave}
-            disabled={saving}
+      {/* Navigation Tabs */}
+      <div className="channel-nav">
+        <div className="nav-tabs">
+          <button 
+            className={`nav-tab ${activeTab === 'home' ? 'active' : ''}`}
+            onClick={() => setActiveTab('home')}
           >
-            {saving ? 'Saving...' : '💾 Save Changes'}
+            HOME
           </button>
-          <button
-            className="save-btn secondary"
-            onClick={() => window.history.back()}
+          <button 
+            className={`nav-tab ${activeTab === 'videos' ? 'active' : ''}`}
+            onClick={() => setActiveTab('videos')}
           >
-            Cancel
+            VIDEOS
+          </button>
+          <button 
+            className={`nav-tab ${activeTab === 'playlists' ? 'active' : ''}`}
+            onClick={() => setActiveTab('playlists')}
+          >
+            PLAYLISTS
+          </button>
+          <button 
+            className={`nav-tab ${activeTab === 'community' ? 'active' : ''}`}
+            onClick={() => setActiveTab('community')}
+          >
+            COMMUNITY
+          </button>
+          <button 
+            className={`nav-tab ${activeTab === 'about' ? 'active' : ''}`}
+            onClick={() => setActiveTab('about')}
+          >
+            ABOUT
           </button>
         </div>
+        
+        {activeTab === 'videos' && (
+          <div className="sort-controls">
+            <select 
+              value={sortBy} 
+              onChange={(e) => setSortBy(e.target.value)}
+              className="sort-select"
+            >
+              <option value="newest">Newest First</option>
+              <option value="popular">Most Popular</option>
+              <option value="oldest">Oldest First</option>
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* Content Area */}
+      <div className="channel-content">
+        {/* Home Tab - Featured Video + Recent */}
+        {activeTab === 'home' && (
+          <div className="home-content">
+            {videos.length > 0 ? (
+              <>
+                {/* Featured Video */}
+                <div className="featured-section">
+                  <h2>Featured Video</h2>
+                  <div className="featured-video">
+                    <Link to={`/video-details/${videos[0].id}`} className="video-link">
+                      <div className="video-thumbnail-large">
+                        <img src={videos[0].thumbnail_url || '/default-thumbnail.jpg'} alt={videos[0].title} />
+                        <div className="play-overlay">
+                          <div className="play-button">▶</div>
+                        </div>
+                      </div>
+                      <div className="video-info-large">
+                        <h3>{videos[0].title}</h3>
+                        <div className="video-meta">
+                          <span>{formatCount(videos[0].views || 0)} views</span>
+                          <span>•</span>
+                          <span>{formatDate(videos[0].uploaded_at)}</span>
+                        </div>
+                        <p className="video-description">{videos[0].description}</p>
+                      </div>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Recent Uploads */}
+                <div className="recent-section">
+                  <h2>Recent Uploads</h2>
+                  <div className="videos-grid">
+                    {videos.slice(1, 7).map(video => (
+                      <Link key={video.id} to={`/video-details/${video.id}`} className="video-card">
+                        <div className="video-thumbnail">
+                          <img src={video.thumbnail_url || '/default-thumbnail.jpg'} alt={video.title} />
+                          <span className="duration">{video.duration || '0:00'}</span>
+                        </div>
+                        <div className="video-info">
+                          <h4>{video.title}</h4>
+                          <div className="video-stats">
+                            <span>{formatCount(video.views || 0)} views</span>
+                            <span>•</span>
+                            <span>{formatDate(video.uploaded_at)}</span>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-icon">🎬</div>
+                <h3>No videos yet</h3>
+                <p>{isOwnChannel ? "Upload your first video to get started!" : "This channel hasn't uploaded any videos yet."}</p>
+                {isOwnChannel && (
+                  <Link to="/upload-video" className="upload-btn">
+                    📤 Upload Video
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Videos Tab - All Videos Grid */}
+        {activeTab === 'videos' && (
+          <div className="videos-content">
+            {videos.length > 0 ? (
+              <div className="videos-grid">
+                {getSortedVideos().map(video => (
+                  <Link key={video.id} to={`/video-details/${video.id}`} className="video-card">
+                    <div className="video-thumbnail">
+                      <img src={video.thumbnail_url || '/default-thumbnail.jpg'} alt={video.title} />
+                      <span className="duration">{video.duration || '0:00'}</span>
+                      {isOwnChannel && (
+                        <div className="video-actions">
+                          <button onClick={(e) => {
+                            e.preventDefault();
+                            navigate(`/video-edit/${video.id}`);
+                          }}>✏️</button>
+                          <button onClick={(e) => {
+                            e.preventDefault();
+                            // Handle delete
+                          }}>🗑️</button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="video-info">
+                      <h4>{video.title}</h4>
+                      <div className="video-stats">
+                        <span>{formatCount(video.views || 0)} views</span>
+                        <span>•</span>
+                        <span>{formatDate(video.uploaded_at)}</span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-icon">🎬</div>
+                <h3>No videos uploaded</h3>
+                <p>Check back later for new content!</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Playlists Tab */}
+        {activeTab === 'playlists' && (
+          <div className="playlists-content">
+            {playlists.length > 0 ? (
+              <div className="playlists-grid">
+                {playlists.map(playlist => (
+                  <div key={playlist.id} className="playlist-card">
+                    <div className="playlist-thumbnail">
+                      <img src={playlist.thumbnail || '/default-playlist.jpg'} alt={playlist.name} />
+                      <div className="playlist-count">{playlist.video_count} videos</div>
+                    </div>
+                    <h4>{playlist.name}</h4>
+                    <p>{playlist.description}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-icon">📁</div>
+                <h3>No playlists yet</h3>
+                <p>{isOwnChannel ? "Create playlists to organize your videos" : "This channel hasn't created any playlists"}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Community Tab */}
+        {activeTab === 'community' && (
+          <div className="community-content">
+            <div className="empty-state">
+              <div className="empty-icon">💬</div>
+              <h3>Community posts coming soon</h3>
+              <p>Channel owners will be able to share updates with their subscribers here</p>
+            </div>
+          </div>
+        )}
+
+        {/* About Tab */}
+        {activeTab === 'about' && (
+          <div className="about-content">
+            <div className="about-section">
+              <h3>Description</h3>
+              <p>{channelData.description || "No description provided"}</p>
+            </div>
+            
+            <div className="about-section">
+              <h3>Details</h3>
+              <div className="details-grid">
+                <div className="detail-item">
+                  <span className="detail-label">Joined</span>
+                  <span className="detail-value">
+                    {new Date(channelData.created_at).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Total views</span>
+                  <span className="detail-value">{formatCount(channelData.total_views || 0)}</span>
+                </div>
+                {channelData.location && (
+                  <div className="detail-item">
+                    <span className="detail-label">Location</span>
+                    <span className="detail-value">{channelData.location}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {channelData.social_links && (
+              <div className="about-section">
+                <h3>Links</h3>
+                <div className="social-links">
+                  {channelData.social_links.instagram && (
+                    <a href={channelData.social_links.instagram} target="_blank" rel="noopener noreferrer">
+                      Instagram
+                    </a>
+                  )}
+                  {channelData.social_links.twitter && (
+                    <a href={channelData.social_links.twitter} target="_blank" rel="noopener noreferrer">
+                      Twitter
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
