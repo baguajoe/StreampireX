@@ -13,29 +13,6 @@ import "../../styles/BrowseVideos.css";
 const ITEMS_PER_PAGE = 20;
 const DEBOUNCE_DELAY = 300;
 
-const DEFAULT_CATEGORIES = [
-  { id: 0, name: "All", video_count: 0 },
-  { id: 1, name: "Music", video_count: 0 },
-  { id: 2, name: "Podcasts", video_count: 0 },
-  { id: 3, name: "Live Concerts", video_count: 0 },
-  { id: 4, name: "Music Videos", video_count: 0 },
-  { id: 5, name: "DJ Sets", video_count: 0 },
-  { id: 6, name: "Gaming", video_count: 0 },
-  { id: 7, name: "Education", video_count: 0 },
-  { id: 8, name: "Tech", video_count: 0 },
-  { id: 9, name: "Comedy", video_count: 0 },
-  { id: 10, name: "Sports", video_count: 0 },
-  { id: 11, name: "News", video_count: 0 },
-  { id: 12, name: "Lifestyle", video_count: 0 },
-  { id: 13, name: "Travel", video_count: 0 },
-  { id: 14, name: "Food & Cooking", video_count: 0 },
-  { id: 15, name: "Art & Design", video_count: 0 },
-  { id: 16, name: "Business", video_count: 0 },
-  { id: 17, name: "Documentary", video_count: 0 },
-  { id: 18, name: "ASMR", video_count: 0 },
-  { id: 19, name: "Vlogs", video_count: 0 }
-];
-
 // Debounce hook
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -50,22 +27,27 @@ const useDebounce = (value, delay) => {
 
 // API hook
 const useApi = () => {
-  const baseUrl = process.env.REACT_APP_BACKEND_URL;
+  const baseUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
 
   const apiCall = useCallback(
     async (endpoint, options = {}) => {
-      const response = await fetch(`${baseUrl}${endpoint}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(options.headers || {})
-        },
-        ...options
-      });
+      try {
+        const response = await fetch(`${baseUrl}${endpoint}`, {
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {})
+          },
+          ...options
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      } catch (error) {
+        console.error(`API call failed for ${endpoint}:`, error);
+        throw error;
       }
-      return response.json();
     },
     [baseUrl]
   );
@@ -82,7 +64,6 @@ const BrowseVideosPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState("newest");
   const [isLoading, setIsLoading] = useState(true);
-  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [pagination, setPagination] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState(null);
@@ -130,26 +111,20 @@ const BrowseVideosPage = () => {
     return `${minutes}:${remaining.toString().padStart(2, "0")}`;
   }, []);
 
-  // Category scrolling (still works if overflow is auto)
+  // Category scrolling
   const scrollLeft = () => {
-    if (scrollRef.current) scrollRef.current.scrollLeft -= 200;
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft -= 200;
+    }
   };
 
   const scrollRight = () => {
-    if (scrollRef.current) scrollRef.current.scrollLeft += 200;
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft += 200;
+    }
   };
 
   // API calls
-  const fetchCategories = useCallback(async () => {
-    try {
-      const data = await apiCall("/api/videos/categories");
-      setCategories(data.categories || DEFAULT_CATEGORIES);
-    } catch (err) {
-      console.error("Failed to fetch categories:", err);
-      setCategories(DEFAULT_CATEGORIES);
-    }
-  }, [apiCall]);
-
   const fetchVideos = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -268,17 +243,13 @@ const BrowseVideosPage = () => {
 
   // Effects
   useEffect(() => {
-    // (Optional) if you want body text color, but background is now on .browse-page
     document.body.style.color = "#e1e4e8";
     return () => {
       document.body.style.color = "";
     };
   }, []);
 
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-
+  // Fetch content when mode or filters change
   useEffect(() => {
     if (browseMode === "videos") {
       fetchVideos();
@@ -291,10 +262,8 @@ const BrowseVideosPage = () => {
 
   // Reset to page 1 when filters change
   useEffect(() => {
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    }
-  }, [debouncedSearchTerm, selectedCategory, sortBy, browseMode, currentPage]);
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, selectedCategory, sortBy, browseMode]);
 
   const getModeLabel = () => {
     if (browseMode === "clips") return "Clips";
@@ -340,28 +309,19 @@ const BrowseVideosPage = () => {
       <div className="browse-mode-toggle">
         <button
           onClick={() => handleBrowseModeChange("videos")}
-          className={
-            "browse-mode-btn" +
-            (browseMode === "videos" ? " active" : "")
-          }
+          className={`browse-mode-btn${browseMode === "videos" ? " active" : ""}`}
         >
           📹 Videos
         </button>
         <button
           onClick={() => handleBrowseModeChange("clips")}
-          className={
-            "browse-mode-btn" +
-            (browseMode === "clips" ? " active" : "")
-          }
+          className={`browse-mode-btn${browseMode === "clips" ? " active" : ""}`}
         >
           ⚡ Clips
         </button>
         <button
           onClick={() => handleBrowseModeChange("channels")}
-          className={
-            "browse-mode-btn" +
-            (browseMode === "channels" ? " active" : "")
-          }
+          className={`browse-mode-btn${browseMode === "channels" ? " active" : ""}`}
         >
           📺 Channels
         </button>
@@ -396,9 +356,7 @@ const BrowseVideosPage = () => {
               <div
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={
-                  "browse-tab" + (activeTab === tab ? " active" : "")
-                }
+                className={`browse-tab${activeTab === tab ? " active" : ""}`}
               >
                 <span className="browse-tab-icon">
                   {tab === "history"
@@ -449,7 +407,7 @@ const BrowseVideosPage = () => {
         </div>
       )}
 
-      {/* Categories – only for videos */}
+      {/* Categories – HARDCODED VERSION THAT WILL WORK */}
       {browseMode === "videos" && (
         <div className="browse-categories">
           <button
@@ -458,19 +416,130 @@ const BrowseVideosPage = () => {
           >
             ‹
           </button>
-          <div className="browse-cat-scroll" ref={scrollRef}>
-            {categories.map(category => (
-              <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.name)}
-                className={
-                  "browse-cat-pill" +
-                  (selectedCategory === category.name ? " active" : "")
-                }
-              >
-                {category.name}
-              </button>
-            ))}
+          <div 
+            className="browse-cat-scroll" 
+            ref={scrollRef}
+          >
+            <button
+              onClick={() => setSelectedCategory("All")}
+              className={`browse-cat-pill${selectedCategory === "All" ? " active" : ""}`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Music")}
+              className={`browse-cat-pill${selectedCategory === "Music" ? " active" : ""}`}
+            >
+              Music
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Podcasts")}
+              className={`browse-cat-pill${selectedCategory === "Podcasts" ? " active" : ""}`}
+            >
+              Podcasts
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Live Concerts")}
+              className={`browse-cat-pill${selectedCategory === "Live Concerts" ? " active" : ""}`}
+            >
+              Live Concerts
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Music Videos")}
+              className={`browse-cat-pill${selectedCategory === "Music Videos" ? " active" : ""}`}
+            >
+              Music Videos
+            </button>
+            <button
+              onClick={() => setSelectedCategory("DJ Sets")}
+              className={`browse-cat-pill${selectedCategory === "DJ Sets" ? " active" : ""}`}
+            >
+              DJ Sets
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Gaming")}
+              className={`browse-cat-pill${selectedCategory === "Gaming" ? " active" : ""}`}
+            >
+              Gaming
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Education")}
+              className={`browse-cat-pill${selectedCategory === "Education" ? " active" : ""}`}
+            >
+              Education
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Tech")}
+              className={`browse-cat-pill${selectedCategory === "Tech" ? " active" : ""}`}
+            >
+              Tech
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Comedy")}
+              className={`browse-cat-pill${selectedCategory === "Comedy" ? " active" : ""}`}
+            >
+              Comedy
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Sports")}
+              className={`browse-cat-pill${selectedCategory === "Sports" ? " active" : ""}`}
+            >
+              Sports
+            </button>
+            <button
+              onClick={() => setSelectedCategory("News")}
+              className={`browse-cat-pill${selectedCategory === "News" ? " active" : ""}`}
+            >
+              News
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Lifestyle")}
+              className={`browse-cat-pill${selectedCategory === "Lifestyle" ? " active" : ""}`}
+            >
+              Lifestyle
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Travel")}
+              className={`browse-cat-pill${selectedCategory === "Travel" ? " active" : ""}`}
+            >
+              Travel
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Food & Cooking")}
+              className={`browse-cat-pill${selectedCategory === "Food & Cooking" ? " active" : ""}`}
+            >
+              Food & Cooking
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Art & Design")}
+              className={`browse-cat-pill${selectedCategory === "Art & Design" ? " active" : ""}`}
+            >
+              Art & Design
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Business")}
+              className={`browse-cat-pill${selectedCategory === "Business" ? " active" : ""}`}
+            >
+              Business
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Documentary")}
+              className={`browse-cat-pill${selectedCategory === "Documentary" ? " active" : ""}`}
+            >
+              Documentary
+            </button>
+            <button
+              onClick={() => setSelectedCategory("ASMR")}
+              className={`browse-cat-pill${selectedCategory === "ASMR" ? " active" : ""}`}
+            >
+              ASMR
+            </button>
+            <button
+              onClick={() => setSelectedCategory("Vlogs")}
+              className={`browse-cat-pill${selectedCategory === "Vlogs" ? " active" : ""}`}
+            >
+              Vlogs
+            </button>
           </div>
           <button
             className="browse-cat-scroll-btn"
@@ -655,10 +724,7 @@ const BrowseVideosPage = () => {
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={!pagination.has_prev}
-            className={
-              "browse-page-btn" +
-              (!pagination.has_prev ? " disabled" : "")
-            }
+            className={`browse-page-btn${!pagination.has_prev ? " disabled" : ""}`}
           >
             ← Previous
           </button>
@@ -673,10 +739,7 @@ const BrowseVideosPage = () => {
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={!pagination.has_next}
-            className={
-              "browse-page-btn" +
-              (!pagination.has_next ? " disabled" : "")
-            }
+            className={`browse-page-btn${!pagination.has_next ? " disabled" : ""}`}
           >
             Next →
           </button>
