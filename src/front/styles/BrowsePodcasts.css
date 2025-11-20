@@ -104,10 +104,50 @@
 
 /* SECTION TITLES – crisp, no glow */
 .section-title {
-  font-size: 22px;
-  font-weight: 700;
-  margin-bottom: 18px;
-  color: #00ffc8;
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  margin-bottom: 24px !important;
+  color: #00ffc8 !important;  /* BRIGHT TEAL - MUST BE VISIBLE */
+  
+  /* Add glow effect for better visibility */
+  text-shadow: 
+    0 0 20px rgba(0, 255, 200, 0.6),
+    0 0 40px rgba(0, 255, 200, 0.4) !important;
+  
+  letter-spacing: 0.02em !important;
+  position: relative !important;
+  padding-bottom: 12px !important;
+  
+  /* Ensure it's not being hidden */
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+}
+
+/* Special styling for StreampireX Originals */
+.podcast-section:first-child .section-title {
+  font-size: 32px !important;
+  font-weight: 900 !important;
+  color: #00ffc8 !important;
+  text-shadow: 
+    0 0 30px rgba(0, 255, 200, 0.7),
+    0 0 60px rgba(0, 255, 200, 0.5) !important;
+  margin-bottom: 32px !important;
+}
+
+/* Alternative: If the above doesn't work, target h2 directly */
+.podcast-section h2 {
+  color: #00ffc8 !important;
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  text-shadow: 0 0 20px rgba(0, 255, 200, 0.5) !important;
+}
+
+/* Make sure all section headers are visible */
+h2.section-title {
+  color: #00ffc8 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 /* GRID / ROW */
@@ -217,4 +257,179 @@
   .podcast-scroll-row {
     grid-template-columns: 1fr;
   }
+  /* ADD THIS TO YOUR BrowsePodcasts.css FILE */
+/* Update the section title to match StreamPireX branding */
+
+/* SECTION TITLES - Enhanced visibility with teal branding */
+.section-title {
+  font-size: 26px;  /* Slightly larger */
+  font-weight: 800;  /* Bolder */
+  margin-bottom: 24px;
+  color: #00ffc8;
+  
+  /* Add glow effect like other StreamPireX titles */
+  text-shadow: 
+    0 0 20px rgba(0, 255, 200, 0.5),
+    0 0 40px rgba(0, 255, 200, 0.3);
+  
+  /* Add spacing and emphasis */
+  letter-spacing: 0.02em;
+  position: relative;
+  padding-bottom: 12px;
+}
+
+/* Optional: Add an underline accent */
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #00ffc8, #38bdf8);
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(0, 255, 200, 0.5);
+}
+
+/* Make the emoji and text align better */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Alternative standalone class for maximum impact */
+.podcast-section-header {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 28px;
+  color: #00ffc8;
+  text-shadow: 
+    0 0 25px rgba(0, 255, 200, 0.6),
+    0 0 50px rgba(0, 255, 200, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative;
+  display: inline-block;
+}
+
+/* Specific targeting for StreampireX Originals */
+.podcast-section:first-child .section-title,
+.section-title:contains("StreampireX Originals"),
+.section-title:contains("Originals") {
+  font-size: 32px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #00ffc8 0%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  position: relative;
+  padding-bottom: 16px;
+  margin-bottom: 32px;
+}
+
+/* Add a premium badge effect for Originals */
+.podcast-section:first-child .section-title::before {
+  content: '⭐';
+  position: absolute;
+  left: -35px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 24px;
+  filter: drop-shadow(0 0 10px #fbbf24);
+}
+
+/* Enhanced section container for Originals */
+.podcast-section:first-child {
+  background: radial-gradient(
+    ellipse at top left,
+    rgba(0, 255, 200, 0.05) 0%,
+    transparent 50%
+  );
+  padding: 2rem 1.5rem;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add a subtle glow line at the top of Originals section */
+.podcast-section:first-child::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #00ffc8 20%,
+    #38bdf8 50%,
+    #00ffc8 80%,
+    transparent 100%
+  );
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% {
+    opacity: 0.5;
+    transform: translateX(-10%);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(10%);
+  }
+}
+
+/* Make all section titles consistent but with hierarchy */
+.podcast-section h2.section-title {
+  /* Base styles for all sections */
+  font-size: 24px;
+  font-weight: 700;
+  color: #00ffc8;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+/* Hover effect for interactivity */
+.podcast-section h2.section-title:hover {
+  text-shadow: 
+    0 0 30px rgba(0, 255, 200, 0.7),
+    0 0 60px rgba(0, 255, 200, 0.5);
+  transform: translateX(5px);
+}
+
+/* Categories header should also stand out */
+.categories-heading {
+  font-size: 36px;
+  font-weight: 800;
+  margin-bottom: 28px;
+  color: #00ffc8;
+  text-shadow: 
+    0 0 30px rgba(0, 255, 200, 0.6),
+    0 0 60px rgba(0, 255, 200, 0.4);
+  letter-spacing: 0.04em;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    text-shadow: 
+      0 0 20px rgba(0, 255, 200, 0.5),
+      0 0 40px rgba(0, 255, 200, 0.3);
+  }
+  50% {
+    text-shadow: 
+      0 0 30px rgba(0, 255, 200, 0.7),
+      0 0 60px rgba(0, 255, 200, 0.5);
+  }
+}
 }
