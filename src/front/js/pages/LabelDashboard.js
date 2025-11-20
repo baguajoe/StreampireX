@@ -1,57 +1,174 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Context } from "../store/appContext";
+import { showToast } from "../utils/toast";
 import "../../styles/LabelDashboard.css";
-import AddArtist from "../component/AddArtist"; // moved to component
 
 const LabelDashboard = () => {
+  const { store } = useContext(Context);
   const [labelInfo, setLabelInfo] = useState({});
   const [artists, setArtists] = useState([]);
-  const [selectedArtistId, setSelectedArtistId] = useState(null);
+  const [revenueData, setRevenueData] = useState(null);
   const [showAddArtist, setShowAddArtist] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [newArtist, setNewArtist] = useState({
+    username: "",
+    email: "",
+    display_name: "",
+    bio: "",
+    genre: ""
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
     setLoading(true);
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/label-dashboard`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        // ✅ Add null checks and fallbacks
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      // Fetch label dashboard data
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/label-dashboard`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
         setLabelInfo(data?.label || {});
         setArtists(data?.artists || []);
         setError(null);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch label info", err);
-        setError("Failed to load label dashboard");
-        setLabelInfo({});
-        setArtists([]);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
-
-  const handleSelectArtist = (id) => {
-    setSelectedArtistId(id);
-    navigate(`/artist-dashboard/${id}`);
+        
+        // Fetch revenue data if available
+        fetchRevenueData();
+      } else if (response.status === 403) {
+        // Not a label account
+        setError("This account is not registered as a label. Please contact support to upgrade.");
+      } else if (response.status === 404) {
+        // Label not found - maybe need to create one
+        setError("No label found. You may need to set up your label account.");
+      } else {
+        throw new Error("Failed to fetch label data");
+      }
+    } catch (err) {
+      console.error("Failed to fetch label info", err);
+      setError("Failed to load label dashboard. Please try again later.");
+      setLabelInfo({});
+      setArtists([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // ✅ Loading state
+  const fetchRevenueData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/label/revenue`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRevenueData(data);
+      }
+    } catch (err) {
+      console.error("Error fetching revenue:", err);
+    }
+  };
+
+  const handleAddArtist = async (e) => {
+    e.preventDefault();
+    
+    if (!newArtist.username || !newArtist.email) {
+      showToast.error("Username and email are required");
+      return;
+    }
+
+    const toastId = showToast.loading("Adding artist to your label...");
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/label/add-artist`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newArtist),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        showToast.success("Artist added successfully!", { id: toastId });
+        
+        // Update local state
+        setArtists([...artists, data.artist]);
+        setShowAddArtist(false);
+        setNewArtist({
+          username: "",
+          email: "",
+          display_name: "",
+          bio: "",
+          genre: ""
+        });
+      } else {
+        const error = await response.json();
+        showToast.error(error.message || "Failed to add artist", { id: toastId });
+      }
+    } catch (err) {
+      console.error("Error adding artist:", err);
+      showToast.error("Failed to add artist. Please try again.", { id: toastId });
+    }
+  };
+
+  const handleRemoveArtist = async (artistId) => {
+    if (!window.confirm("Are you sure you want to remove this artist from your label?")) {
+      return;
+    }
+
+    const toastId = showToast.loading("Removing artist...");
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/label/remove-artist/${artistId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        showToast.success("Artist removed from label", { id: toastId });
+        setArtists(artists.filter(a => a.id !== artistId));
+      } else {
+        throw new Error("Failed to remove artist");
+      }
+    } catch (err) {
+      console.error("Error removing artist:", err);
+      showToast.error("Failed to remove artist", { id: toastId });
+    }
+  };
+
+  const handleManageArtist = (artistId) => {
+    navigate(`/artist-dashboard/${artistId}`);
+  };
+
+  // Loading state
   if (loading) {
     return (
-      <div className="profile-container">
-        <div className="loading-state" style={{
-          textAlign: 'center',
-          padding: '60px 20px',
-          color: '#666'
-        }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎼</div>
+      <div className="label-dashboard">
+        <div className="loading-state">
+          <div className="loading-icon">🎼</div>
           <h3>Loading Label Dashboard...</h3>
           <p>Please wait while we load your label information.</p>
         </div>
@@ -59,33 +176,15 @@ const LabelDashboard = () => {
     );
   }
 
-  // ✅ Error state
+  // Error state
   if (error) {
     return (
-      <div className="profile-container">
-        <div className="error-state" style={{
-          textAlign: 'center',
-          padding: '60px 20px',
-          color: '#dc3545'
-        }}>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
-          <h3>Failed to Load Label Dashboard</h3>
+      <div className="label-dashboard">
+        <div className="error-state">
+          <div className="error-icon">⚠️</div>
+          <h3>Dashboard Access Issue</h3>
           <p>{error}</p>
-          <p style={{ color: '#666', marginTop: '20px' }}>
-            Make sure your backend server is running and you have proper authentication.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              marginTop: '20px',
-              padding: '10px 20px',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer'
-            }}
-          >
+          <button onClick={() => window.location.reload()} className="retry-btn">
             🔄 Retry
           </button>
         </div>
@@ -94,255 +193,314 @@ const LabelDashboard = () => {
   }
 
   return (
-    <div className="profile-container">
-      <div className="profile-layout">
-        {/* LEFT COLUMN */}
-        <div className="left-column">
-          <h3>🎙️ {labelInfo?.name || "Label Dashboard"}</h3>
-          <p>Manage your artists and uploads from one place.</p>
+    <div className="label-dashboard">
+      {/* Header Section */}
+      <div className="label-dashboard-header">
+        <h1>🎙️ {labelInfo?.name || "Label Dashboard"}</h1>
+        <p>Manage your artists and music distribution from one centralized hub</p>
+      </div>
 
-          {/* ✅ Show label info if available */}
+      <div className="profile-layout">
+        {/* Left Column - Label Info & Stats */}
+        <div className="left-column">
+          <h3>📊 Label Overview</h3>
+          
           {labelInfo?.description && (
-            <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+            <div className="label-info-section">
               <h4>About This Label</h4>
               <p>{labelInfo.description}</p>
             </div>
           )}
 
-          {/* ✅ Quick stats */}
-          <div style={{ marginTop: '20px' }}>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '10px',
-              fontSize: '14px',
-              color: '#666'
-            }}>
-              <div>
-                <strong>Total Artists:</strong> {artists.length}
-              </div>
-              <div>
-                <strong>Status:</strong> {labelInfo?.status || 'Active'}
-              </div>
+          <div className="label-stats">
+            <div className="stat-item">
+              <strong>{artists.length}</strong>
+              <span>Artists</span>
+            </div>
+            <div className="stat-item">
+              <strong>{labelInfo?.total_releases || 0}</strong>
+              <span>Releases</span>
+            </div>
+            <div className="stat-item">
+              <strong>{labelInfo?.total_streams || 0}</strong>
+              <span>Streams</span>
+            </div>
+            <div className="stat-item">
+              <strong>${revenueData?.total_revenue || 0}</strong>
+              <span>Revenue</span>
             </div>
           </div>
+
+          {/* Revenue Overview */}
+          {revenueData && (
+            <div className="label-info-section" style={{ marginTop: '20px' }}>
+              <h4>💰 Revenue This Month</h4>
+              <p>Total: <strong>${revenueData.month_revenue || 0}</strong></p>
+              <p>Pending: <strong>${revenueData.pending_revenue || 0}</strong></p>
+            </div>
+          )}
         </div>
 
-        {/* MIDDLE COLUMN */}
+        {/* Middle Column - Artists Management */}
         <div className="middle-column">
-          <h3>👥 Your Artists</h3>
+          <h3>👥 Artist Roster</h3>
+          
           {artists.length === 0 ? (
-            <div style={{
-              textAlign: 'center',
-              padding: '40px 20px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '8px',
-              margin: '20px 0'
-            }}>
-              <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎤</div>
+            <div className="empty-artists-state">
+              <div className="empty-icon">🎤</div>
               <h4>No Artists Yet</h4>
-              <p style={{ color: '#666', marginBottom: '20px' }}>
-                Start building your label by adding artists to your roster.
-              </p>
-              <button
-                className="btn-podcast"
+              <p>Start building your label by adding artists to your roster.</p>
+              <button 
+                className="cta-btn" 
                 onClick={() => setShowAddArtist(true)}
-                style={{
-                  backgroundColor: '#007bff',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '5px',
-                  cursor: 'pointer'
-                }}
               >
                 ➕ Add Your First Artist
               </button>
             </div>
           ) : (
-            artists.map((artist) => (
-              <div key={artist.id} className="post-card" style={{
-                border: '1px solid #e0e0e0',
-                borderRadius: '8px',
-                padding: '20px',
-                marginBottom: '15px',
-                backgroundColor: 'white'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  {artist.profile_picture && (
-                    <img
-                      src={artist.profile_picture}
-                      alt={artist.display_name || artist.username}
-                      style={{
-                        width: '50px',
-                        height: '50px',
-                        borderRadius: '50%',
-                        objectFit: 'cover'
-                      }}
-                    />
-                  )}
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: '0 0 5px 0' }}>
-                      <strong>{artist.display_name || artist.username}</strong>
-                    </p>
-                    <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
-                      {artist.bio || "No bio available."}
-                    </p>
-                    {artist.genre && (
-                      <span style={{
-                        display: 'inline-block',
-                        backgroundColor: '#e3f2fd',
-                        color: '#1976d2',
-                        padding: '2px 8px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        marginTop: '8px'
-                      }}>
-                        🎵 {artist.genre}
-                      </span>
+            <>
+              {artists.map((artist) => (
+                <div key={artist.id} className="artist-card">
+                  <div className="artist-card-content">
+                    {artist.profile_picture && (
+                      <img
+                        src={artist.profile_picture}
+                        alt={artist.display_name || artist.username}
+                        className="artist-avatar"
+                      />
                     )}
+                    <div className="artist-info">
+                      <h3 className="artist-name">
+                        {artist.display_name || artist.username}
+                      </h3>
+                      <p className="artist-bio">
+                        {artist.bio || "No bio available."}
+                      </p>
+                      {artist.genre && (
+                        <span className="artist-genre">
+                          🎵 {artist.genre}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
+                      <button
+                        onClick={() => handleManageArtist(artist.id)}
+                        className="manage-artist-btn"
+                      >
+                        🎛️ Manage
+                      </button>
+                      <button
+                        onClick={() => handleRemoveArtist(artist.id)}
+                        className="action-btn danger"
+                        style={{ padding: '8px 16px', fontSize: '0.9rem' }}
+                      >
+                        ❌ Remove
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => handleSelectArtist(artist.id)}
-                    style={{
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      border: 'none',
-                      padding: '8px 16px',
-                      borderRadius: '5px',
-                      cursor: 'pointer',
-                      fontSize: '14px'
-                    }}
-                  >
-                    🎛️ Manage Artist
-                  </button>
                 </div>
-              </div>
-            ))
+              ))}
+
+              <button 
+                className="action-btn primary" 
+                onClick={() => setShowAddArtist(true)}
+                style={{ width: '100%', marginTop: '20px' }}
+              >
+                ➕ Add Another Artist
+              </button>
+            </>
           )}
 
+          {/* Add Artist Form */}
           {showAddArtist && (
-            <div style={{
-              marginTop: "20px",
-              padding: '20px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '8px',
-              border: '1px solid #dee2e6'
-            }}>
+            <div className="add-artist-section">
               <h4>➕ Add New Artist</h4>
-              <AddArtist onSuccess={() => setShowAddArtist(false)} />
+              <form onSubmit={handleAddArtist}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  <input
+                    type="text"
+                    placeholder="Username *"
+                    value={newArtist.username}
+                    onChange={(e) => setNewArtist({...newArtist, username: e.target.value})}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: '1px solid #374151',
+                      background: '#0d1117',
+                      color: '#e1e4e8',
+                      fontSize: '14px'
+                    }}
+                    required
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email *"
+                    value={newArtist.email}
+                    onChange={(e) => setNewArtist({...newArtist, email: e.target.value})}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: '1px solid #374151',
+                      background: '#0d1117',
+                      color: '#e1e4e8',
+                      fontSize: '14px'
+                    }}
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="Display Name"
+                    value={newArtist.display_name}
+                    onChange={(e) => setNewArtist({...newArtist, display_name: e.target.value})}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: '1px solid #374151',
+                      background: '#0d1117',
+                      color: '#e1e4e8',
+                      fontSize: '14px'
+                    }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Genre"
+                    value={newArtist.genre}
+                    onChange={(e) => setNewArtist({...newArtist, genre: e.target.value})}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: '1px solid #374151',
+                      background: '#0d1117',
+                      color: '#e1e4e8',
+                      fontSize: '14px'
+                    }}
+                  />
+                  <textarea
+                    placeholder="Artist Bio"
+                    value={newArtist.bio}
+                    onChange={(e) => setNewArtist({...newArtist, bio: e.target.value})}
+                    rows="3"
+                    style={{
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: '1px solid #374151',
+                      background: '#0d1117',
+                      color: '#e1e4e8',
+                      fontSize: '14px',
+                      resize: 'vertical'
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button type="submit" className="action-btn primary" style={{ flex: 1 }}>
+                      ✅ Add Artist
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setShowAddArtist(false)}
+                      className="action-btn danger" 
+                      style={{ flex: 1 }}
+                    >
+                      ❌ Cancel
+                    </button>
+                  </div>
+                </div>
+              </form>
             </div>
           )}
         </div>
 
-        {/* RIGHT COLUMN */}
+        {/* Right Column - Quick Actions */}
         <div className="right-column">
           <div className="quick-actions">
-            <h3>➕ Artist Management</h3>
-            <button
-              className="btn-podcast"
-              onClick={() => setShowAddArtist(!showAddArtist)}
-              style={{
-                width: '100%',
-                marginBottom: '15px',
-                backgroundColor: showAddArtist ? '#dc3545' : '#007bff',
-                color: 'white',
-                border: 'none',
-                padding: '12px',
-                borderRadius: '5px',
-                cursor: 'pointer'
-              }}
-            >
-              {showAddArtist ? "❌ Cancel" : "➕ Add New Artist"}
-            </button>
-
-            <h3>💸 Revenue Split</h3>
-            <Link to="/revenue-dashboard">
-              <button
-                className="btn-radio"
-                style={{
-                  width: '100%',
-                  marginBottom: '15px',
-                  backgroundColor: '#17a2b8',
-                  color: 'white',
-                  border: 'none',
-                  padding: '12px',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  textDecoration: 'none'
-                }}
-              >
-                📊 View Revenue Breakdown
+            <h3>⚡ Quick Actions</h3>
+            
+            <Link to="/upload-music?as=label" style={{ textDecoration: 'none' }}>
+              <button className="action-btn primary">
+                🎵 Upload Music
               </button>
             </Link>
 
-            <h3>📦 Upload on Behalf</h3>
-            <Link to="/upload?as=label">
-              <button
-                className="btn-indie-upload"
-                style={{
-                  width: '100%',
-                  marginBottom: '15px',
-                  backgroundColor: '#6f42c1',
-                  color: 'white',
-                  border: 'none',
-                  padding: '12px',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  textDecoration: 'none'
-                }}
-              >
-                🎵 Upload Content
+            <Link to="/revenue-dashboard" style={{ textDecoration: 'none' }}>
+              <button className="action-btn info">
+                💸 Revenue Dashboard
               </button>
             </Link>
 
-            {/* ✅ Additional Quick Actions */}
+            <Link to="/distribution" style={{ textDecoration: 'none' }}>
+              <button className="action-btn secondary">
+                📡 Distribution Status
+              </button>
+            </Link>
+
+            <Link to="/create-release" style={{ textDecoration: 'none' }}>
+              <button className="action-btn warning">
+                💿 New Release
+              </button>
+            </Link>
+          </div>
+
+          <div className="tools-section">
             <h3>🔧 Label Tools</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="tools-grid">
               <Link to="/analytics" style={{ textDecoration: 'none' }}>
-                <button style={{
-                  width: '100%',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}>
-                  📈 Analytics Overview
+                <button className="action-btn neutral">
+                  📊 Analytics
                 </button>
               </Link>
 
               <Link to="/contracts" style={{ textDecoration: 'none' }}>
-                <button style={{
-                  width: '100%',
-                  backgroundColor: '#fd7e14',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}>
-                  📋 Contracts & Agreements
+                <button className="action-btn neutral">
+                  📋 Contracts
+                </button>
+              </Link>
+
+              <Link to="/royalty-splits" style={{ textDecoration: 'none' }}>
+                <button className="action-btn neutral">
+                  💰 Royalty Splits
                 </button>
               </Link>
 
               <Link to="/label-settings" style={{ textDecoration: 'none' }}>
-                <button style={{
-                  width: '100%',
-                  backgroundColor: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}>
-                  ⚙️ Label Settings
+                <button className="action-btn neutral">
+                  ⚙️ Settings
                 </button>
               </Link>
+
+              <Link to="/marketing-tools" style={{ textDecoration: 'none' }}>
+                <button className="action-btn neutral">
+                  📢 Marketing
+                </button>
+              </Link>
+
+              <Link to="/playlist-pitch" style={{ textDecoration: 'none' }}>
+                <button className="action-btn neutral">
+                  🎧 Playlist Pitch
+                </button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Label Stats Widget */}
+          <div className="tools-section">
+            <h3>📈 Performance</h3>
+            <div style={{
+              background: '#0d1117',
+              padding: '15px',
+              borderRadius: '12px',
+              border: '1px solid #374151'
+            }}>
+              <div style={{ marginBottom: '10px' }}>
+                <small style={{ color: '#8b949e' }}>This Week</small>
+                <div style={{ fontSize: '1.5rem', color: '#00ffc8', fontWeight: 'bold' }}>
+                  {labelInfo?.week_streams || 0} streams
+                </div>
+              </div>
+              <div>
+                <small style={{ color: '#8b949e' }}>Growth</small>
+                <div style={{ fontSize: '1.2rem', color: '#FF6600' }}>
+                  +{labelInfo?.growth_percentage || 0}%
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -1,30 +1,31 @@
-/* SalesDashboard.css - Matching your app's design system */
+/* Sales Dashboard - Complete Standalone CSS */
+/* StreamPireX Design System Implementation */
 
-/* ========================================
-   MAIN CONTAINER
-======================================== */
+/* ===== Base & Container Styles ===== */
 .sales-dashboard-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
   padding: 2rem;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #e1e4e8;
 }
 
-/* ========================================
-   HEADER SECTION
-======================================== */
+/* ===== Header Section ===== */
 .sales-dashboard-header {
   margin-bottom: 2rem;
+  background: linear-gradient(145deg, #1f2937, #111827);
+  padding: 2rem;
+  border-radius: 20px;
+  border: 2px solid #00ffc8;
+  box-shadow: 0 10px 40px rgba(0, 255, 200, 0.1);
 }
 
 .sales-dashboard-title {
   font-size: 2.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #00ffc8;
+  text-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
   font-weight: bold;
-  margin: 0;
+  margin: 0 0 1rem 0;
 }
 
 .sales-header-actions {
@@ -49,33 +50,33 @@
 }
 
 .sales-action-btn.success {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
+  box-shadow: 0 4px 15px rgba(0, 255, 200, 0.3);
 }
 
 .sales-action-btn.primary {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #FF6600, #ff8833);
   color: white;
+  box-shadow: 0 4px 15px rgba(255, 102, 0, 0.3);
 }
 
 .sales-action-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 20px rgba(0, 255, 200, 0.4);
 }
 
-/* ========================================
-   TIME FILTER SECTION
-======================================== */
+/* ===== Time Filter Section ===== */
 .time-filter-section {
   margin-bottom: 2rem;
 }
 
 .time-filter-group {
   display: inline-flex;
-  background: white;
+  background: linear-gradient(145deg, #1f2937, #111827);
   border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border: 1px solid #374151;
   overflow: hidden;
 }
 
@@ -83,11 +84,11 @@
   padding: 0.75rem 1.5rem;
   border: none;
   background: transparent;
-  color: #64748b;
+  color: #8b949e;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 500;
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid #374151;
 }
 
 .time-filter-btn:last-child {
@@ -95,18 +96,16 @@
 }
 
 .time-filter-btn.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
 }
 
 .time-filter-btn:not(.active):hover {
-  background: #f8fafc;
-  color: #334155;
+  background: rgba(0, 255, 200, 0.1);
+  color: #00ffc8;
 }
 
-/* ========================================
-   METRICS CARDS
-======================================== */
+/* ===== Metrics Cards ===== */
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -115,40 +114,47 @@
 }
 
 .metric-card {
-  background: white;
+  background: linear-gradient(145deg, #1f2937, #111827);
   border-radius: 15px;
   padding: 1.5rem;
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
-  border: 2px solid transparent;
+  border: 1px solid #374151;
   position: relative;
   overflow: hidden;
 }
 
+.metric-card:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, #00ffc8, #00e6b3);
+}
+
 .metric-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 12px 35px rgba(0, 255, 200, 0.2);
+  border-color: #00ffc8;
 }
 
 /* Card color variants */
-.metric-card.success {
-  border-color: #28a745;
-  background: linear-gradient(135deg, #ffffff 0%, #f0fff4 100%);
+.metric-card.success:before {
+  background: linear-gradient(to bottom, #00ffc8, #00e6b3);
 }
 
-.metric-card.primary {
-  border-color: #667eea;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+.metric-card.primary:before {
+  background: linear-gradient(to bottom, #FF6600, #ff8833);
 }
 
-.metric-card.info {
-  border-color: #17a2b8;
-  background: linear-gradient(135deg, #ffffff 0%, #f0fcff 100%);
+.metric-card.info:before {
+  background: linear-gradient(to bottom, #3498db, #2980b9);
 }
 
-.metric-card.warning {
-  border-color: #ffc107;
-  background: linear-gradient(135deg, #ffffff 0%, #fffbf0 100%);
+.metric-card.warning:before {
+  background: linear-gradient(to bottom, #fbbf24, #f59e0b);
 }
 
 .metric-content {
@@ -158,12 +164,12 @@
 }
 
 .metric-info h6 {
-  color: #64748b;
+  color: #8b949e;
   font-size: 0.9rem;
   margin: 0 0 0.5rem 0;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
 .metric-value {
@@ -171,27 +177,29 @@
   font-weight: bold;
   margin: 0;
   line-height: 1;
+  color: #e1e4e8;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .metric-card.success .metric-value {
-  color: #28a745;
+  color: #00ffc8;
 }
 
 .metric-card.primary .metric-value {
-  color: #667eea;
+  color: #FF6600;
 }
 
 .metric-card.info .metric-value {
-  color: #17a2b8;
+  color: #3498db;
 }
 
 .metric-card.warning .metric-value {
-  color: #ffc107;
+  color: #fbbf24;
 }
 
 .metric-subtitle {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: #6b7280;
   margin-top: 0.25rem;
 }
 
@@ -199,40 +207,38 @@
   font-size: 2.5rem;
   opacity: 0.3;
   align-self: center;
+  color: #00ffc8;
 }
 
-/* ========================================
-   CONTENT CARDS
-======================================== */
+/* ===== Content Cards ===== */
 .content-card {
-  background: white;
+  background: linear-gradient(145deg, #1f2937, #111827);
   border-radius: 15px;
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border: 1px solid #374151;
   margin-bottom: 2rem;
   overflow: hidden;
 }
 
 .card-header {
   padding: 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border-bottom: 1px solid #374151;
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
 }
 
 .card-header h5 {
   margin: 0;
-  color: #334155;
+  color: #00ffc8;
   font-weight: 600;
   font-size: 1.25rem;
+  text-shadow: 0 0 10px rgba(0, 255, 200, 0.2);
 }
 
 .card-body {
   padding: 1.5rem;
 }
 
-/* ========================================
-   REVENUE BREAKDOWN
-======================================== */
+/* ===== Revenue Breakdown ===== */
 .revenue-breakdown {
   margin-bottom: 1.5rem;
 }
@@ -242,31 +248,32 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 0;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #374151;
 }
 
 .breakdown-item:last-child {
   border-bottom: none;
-  border-top: 2px solid #e2e8f0;
+  border-top: 2px solid #00ffc8;
   margin-top: 0.5rem;
   padding-top: 1rem;
   font-weight: 600;
 }
 
 .breakdown-label {
-  color: #64748b;
+  color: #8b949e;
 }
 
 .breakdown-value {
   font-weight: 600;
+  color: #e1e4e8;
 }
 
 .breakdown-value.success {
-  color: #28a745;
+  color: #00ffc8;
 }
 
 .breakdown-value.muted {
-  color: #94a3b8;
+  color: #6b7280;
 }
 
 /* Progress bar styling */
@@ -276,13 +283,13 @@
 
 .progress-label {
   font-size: 0.8rem;
-  color: #64748b;
+  color: #8b949e;
   margin-bottom: 0.5rem;
 }
 
 .progress-bar-custom {
   height: 25px;
-  background: #e2e8f0;
+  background: #374151;
   border-radius: 12px;
   overflow: hidden;
   position: relative;
@@ -290,20 +297,19 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(135deg, #28a745, #20c997);
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #0d1117;
   font-weight: 600;
   font-size: 0.8rem;
   transition: width 0.6s ease;
+  box-shadow: 0 0 10px rgba(0, 255, 200, 0.4);
 }
 
-/* ========================================
-   QUICK STATS
-======================================== */
+/* ===== Quick Stats ===== */
 .quick-stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -313,7 +319,7 @@
 
 .stat-item {
   padding: 1rem;
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid #374151;
 }
 
 .stat-item:nth-child(even) {
@@ -322,27 +328,26 @@
 
 .stat-item:nth-child(3),
 .stat-item:nth-child(4) {
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #374151;
   padding-top: 1.5rem;
 }
 
 .stat-value {
   font-size: 1.8rem;
   font-weight: bold;
-  color: #334155;
+  color: #FF6600;
   margin-bottom: 0.25rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .stat-label {
   font-size: 0.8rem;
-  color: #64748b;
+  color: #8b949e;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
-/* ========================================
-   TABLES
-======================================== */
+/* ===== Tables ===== */
 .table-responsive {
   border-radius: 8px;
   overflow: hidden;
@@ -351,29 +356,30 @@
 .sales-table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
+  background: transparent;
 }
 
 .sales-table th {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  color: #334155;
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  color: #00ffc8;
   font-weight: 600;
   padding: 1rem;
   text-align: left;
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 2px solid #00ffc8;
   font-size: 0.9rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
 }
 
 .sales-table td {
   padding: 1rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #374151;
   vertical-align: middle;
+  color: #e1e4e8;
 }
 
 .sales-table tr:hover {
-  background: #f8fafc;
+  background: rgba(0, 255, 200, 0.05);
 }
 
 /* Product image in table */
@@ -383,6 +389,7 @@
   border-radius: 6px;
   object-fit: cover;
   margin-right: 0.75rem;
+  border: 2px solid #374151;
 }
 
 .product-info {
@@ -393,12 +400,12 @@
 .product-details h6 {
   margin: 0;
   font-weight: 600;
-  color: #334155;
+  color: #00ffc8;
 }
 
 .product-id {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: #6b7280;
   margin-top: 0.25rem;
 }
 
@@ -413,13 +420,13 @@
 }
 
 .badge-primary {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #FF6600, #ff8833);
   color: white;
 }
 
 .badge-success {
-  background: linear-gradient(135deg, #28a745, #20c997);
-  color: white;
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
 }
 
 /* Action buttons */
@@ -430,9 +437,9 @@
 
 .action-btn {
   padding: 0.375rem 0.75rem;
-  border: 1px solid #e2e8f0;
-  background: white;
-  color: #64748b;
+  border: 1px solid #374151;
+  background: transparent;
+  color: #8b949e;
   border-radius: 6px;
   font-size: 0.8rem;
   cursor: pointer;
@@ -441,50 +448,51 @@
 }
 
 .action-btn:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #334155;
+  background: rgba(0, 255, 200, 0.1);
+  border-color: #00ffc8;
+  color: #00ffc8;
 }
 
 .action-btn.primary {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: #00ffc8;
+  color: #00ffc8;
 }
 
 .action-btn.primary:hover {
-  background: #667eea;
-  color: white;
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
 }
 
-/* ========================================
-   EMPTY STATES
-======================================== */
+/* ===== Empty States ===== */
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  color: #64748b;
+  color: #8b949e;
 }
 
 .empty-state-icon {
   font-size: 4rem;
   margin-bottom: 1.5rem;
   opacity: 0.3;
+  color: #374151;
 }
 
 .empty-state h5 {
-  color: #334155;
+  color: #c9d1d9;
   margin-bottom: 1rem;
   font-weight: 600;
+  font-size: 1.5rem;
 }
 
 .empty-state p {
   margin-bottom: 2rem;
   line-height: 1.6;
+  color: #8b949e;
 }
 
 .empty-state-btn {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
   padding: 0.75rem 2rem;
   border: none;
   border-radius: 8px;
@@ -495,16 +503,15 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  box-shadow: 0 4px 15px rgba(0, 255, 200, 0.3);
 }
 
 .empty-state-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 6px 20px rgba(0, 255, 200, 0.4);
 }
 
-/* ========================================
-   LOADING STATES
-======================================== */
+/* ===== Loading States ===== */
 .loading-container {
   text-align: center;
   padding: 4rem 2rem;
@@ -513,8 +520,8 @@
 .loading-spinner {
   width: 50px;
   height: 50px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #667eea;
+  border: 3px solid #374151;
+  border-top: 3px solid #00ffc8;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 1rem auto;
@@ -526,34 +533,34 @@
 }
 
 .loading-text {
-  color: #64748b;
+  color: #8b949e;
   font-size: 1.1rem;
 }
 
-/* ========================================
-   ERROR STATES
-======================================== */
+/* ===== Error States ===== */
 .error-container {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  border: 1px solid #fca5a5;
+  background: linear-gradient(145deg, #2d1f1f, #1f1111);
+  border: 2px solid #ff6b6b;
   border-radius: 12px;
   padding: 2rem;
   text-align: center;
   margin: 2rem 0;
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.2);
 }
 
 .error-container h4 {
-  color: #dc2626;
+  color: #ff6b6b;
   margin-bottom: 1rem;
+  font-size: 1.5rem;
 }
 
 .error-container p {
-  color: #7f1d1d;
+  color: #fca5a5;
   margin-bottom: 1.5rem;
 }
 
 .retry-btn {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  background: linear-gradient(135deg, #ff6b6b, #ff5252);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -565,12 +572,163 @@
 
 .retry-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(220, 38, 38, 0.3);
+  box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
 }
 
-/* ========================================
-   RESPONSIVE DESIGN
-======================================== */
+/* ===== Bootstrap Override Styles ===== */
+.container {
+  max-width: 100%;
+}
+
+.btn {
+  transition: all 0.3s ease;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #FF6600, #ff8833);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #ff8833, #FF6600);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 102, 0, 0.3);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, #00e6b3, #00ffc8);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 255, 200, 0.3);
+}
+
+.btn-outline-primary {
+  background: transparent;
+  color: #00ffc8;
+  border: 2px solid #00ffc8;
+}
+
+.btn-outline-primary:hover {
+  background: rgba(0, 255, 200, 0.1);
+  color: #00ffc8;
+  border-color: #00ffc8;
+}
+
+.btn-group {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.card {
+  background: linear-gradient(145deg, #1f2937, #111827);
+  border: 1px solid #374151;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  color: #e1e4e8;
+}
+
+.card-header {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  border-bottom: 2px solid #374151;
+  color: #00ffc8;
+}
+
+.card-body {
+  background: transparent;
+}
+
+.table {
+  color: #e1e4e8;
+}
+
+.table th {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  color: #00ffc8;
+  border-bottom: 2px solid #00ffc8;
+}
+
+.table td {
+  border-bottom: 1px solid #374151;
+}
+
+.table-hover tbody tr:hover {
+  background: rgba(0, 255, 200, 0.05);
+  color: #e1e4e8;
+}
+
+.badge {
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 15px;
+}
+
+.bg-primary {
+  background: linear-gradient(135deg, #FF6600, #ff8833) !important;
+}
+
+.bg-success {
+  background: linear-gradient(135deg, #00ffc8, #00e6b3) !important;
+  color: #0d1117 !important;
+}
+
+.bg-info {
+  background: linear-gradient(135deg, #3498db, #2980b9) !important;
+}
+
+.bg-warning {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+}
+
+.text-success {
+  color: #00ffc8 !important;
+}
+
+.text-muted {
+  color: #8b949e !important;
+}
+
+.text-white {
+  color: #e1e4e8 !important;
+}
+
+.progress {
+  background: #374151;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(0, 255, 200, 0.4);
+}
+
+.alert {
+  background: linear-gradient(145deg, #1f2937, #111827);
+  border: 1px solid #374151;
+  color: #e1e4e8;
+}
+
+.alert-danger {
+  background: linear-gradient(145deg, #2d1f1f, #1f1111);
+  border-color: #ff6b6b;
+  color: #fca5a5;
+}
+
+.spinner-border {
+  border-color: #374151;
+  border-top-color: #00ffc8;
+}
+
+/* ===== Responsive Design ===== */
 @media (max-width: 1200px) {
   .metrics-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -597,6 +755,7 @@
   
   .sales-action-btn {
     justify-content: center;
+    width: 100%;
   }
   
   .metrics-grid {
@@ -620,7 +779,7 @@
   
   .stat-item {
     border-right: none;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #374151;
     padding: 1rem 0;
   }
   
@@ -634,7 +793,6 @@
     padding-top: 1rem;
   }
   
-  /* Stack table content on mobile */
   .sales-table {
     font-size: 0.8rem;
   }
@@ -645,6 +803,10 @@
   
   .action-btn {
     width: 100%;
+  }
+  
+  .sales-dashboard-header {
+    padding: 1.5rem;
   }
 }
 
@@ -673,4 +835,23 @@
   .empty-state-icon {
     font-size: 3rem;
   }
+}
+
+/* ===== Scrollbar Styling ===== */
+.sales-dashboard-container::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sales-dashboard-container::-webkit-scrollbar-track {
+  background: #0d1117;
+  border-radius: 5px;
+}
+
+.sales-dashboard-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #00ffc8, #00e6b3);
+  border-radius: 5px;
+}
+
+.sales-dashboard-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #00e6b3, #00ffc8);
 }
