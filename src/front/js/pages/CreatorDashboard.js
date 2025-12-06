@@ -1,4 +1,4 @@
-// src/front/js/pages/CreatorDashboard.js - Updated with Product Upload Integration
+// src/front/js/pages/CreatorDashboard.js - Two Column Layout with Left Sidebar
 import React, { useEffect, useState } from "react";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Line, Doughnut } from 'react-chartjs-2';
@@ -118,17 +118,16 @@ const CreatorDashboard = () => {
 
   const getActivityIcon = (type) => {
     switch (type) {
-      case 'podcast': return 'microphone';
-      case 'music': return 'music';
-      case 'radio': return 'radio';
-      case 'livestream': return 'video';
-      case 'product': return 'shopping-bag';
-      default: return 'file';
+      case 'podcast': return '🎙️';
+      case 'music': return '🎵';
+      case 'radio': return '📻';
+      case 'livestream': return '📹';
+      case 'product': return '🛍️';
+      default: return '📄';
     }
   };
 
   const handleProductUploaded = () => {
-    // Refresh products list after upload
     const token = localStorage.getItem("token");
     fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/my-products`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -144,7 +143,7 @@ const CreatorDashboard = () => {
 
   const calculateTotalEarnings = () => {
     const productEarnings = myProducts.reduce((total, product) => {
-      return total + ((product.sales_count || 0) * (product.price || 0) * 0.9); // 90% after 10% platform fee
+      return total + ((product.sales_count || 0) * (product.price || 0) * 0.9);
     }, 0);
     
     return {
@@ -158,6 +157,7 @@ const CreatorDashboard = () => {
 
   return (
     <div className="creator-dashboard">
+      {/* Header Section */}
       <header className="dashboard-header">
         <div className="creator-profile-overview">
           <img
@@ -200,72 +200,224 @@ const CreatorDashboard = () => {
           className={`nav-tab ${activeTab === 'overview' ? 'active' : ''}`}
           onClick={() => setActiveTab('overview')}
         >
-          Overview
+          📊 Overview
         </button>
         <button 
           className={`nav-tab ${activeTab === 'products' ? 'active' : ''}`}
           onClick={() => setActiveTab('products')}
         >
-          My Products ({myProducts.length})
+          🛍️ My Products ({myProducts.length})
         </button>
         <button 
           className={`nav-tab ${activeTab === 'upload' ? 'active' : ''}`}
           onClick={() => setActiveTab('upload')}
         >
-          Upload Product
+          ⬆️ Upload Product
         </button>
         <button 
           className={`nav-tab ${activeTab === 'analytics' ? 'active' : ''}`}
           onClick={() => setActiveTab('analytics')}
         >
-          Analytics
+          📈 Analytics
         </button>
       </nav>
 
+      {/* Main Content */}
       <div className="dashboard-content">
-        {/* Overview Tab */}
+        {/* Overview Tab - Two Column Layout */}
         {activeTab === 'overview' && (
-          <div className="overview-tab">
-            <section className="quick-actions">
-              <h2>Quick Actions</h2>
-              <div className="action-buttons">
-                <Link to="/podcast-create" className="action-btn podcast">
-                  <span className="btn-icon">mic</span><span>Create Podcast</span>
+          <div className="overview-tab" style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '20px',
+            alignItems: 'flex-start'
+          }}>
+            {/* LEFT COLUMN - Quick Actions */}
+            <section style={{
+              order: 1,
+              flex: '0 0 160px',
+              width: '160px',
+              position: 'static',
+              alignSelf: 'stretch',
+              background: 'linear-gradient(145deg, #1f2937, #111827)',
+              padding: '15px',
+              borderRadius: '12px',
+              border: '1px solid #374151',
+              marginTop: '0'
+            }}>
+              <div style={{
+                marginBottom: '12px',
+                paddingBottom: '10px',
+                borderBottom: '2px solid #374151'
+              }}>
+                <h2 style={{ fontSize: '14px', color: '#00ffc8', margin: 0, fontWeight: 600 }}>Quick Actions</h2>
+              </div>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <Link to="/podcast-create" style={{ 
+                  display: 'block',
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #fd79a8, #e84393)',
+                  color: '#0d1117',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  fontSize: '12px',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}>
+                  🎙️ Podcast
                 </Link>
-                <Link to="/upload-music" className="action-btn music">
-                  <span className="btn-icon">music</span><span>Upload Music</span>
+                <Link to="/upload-music" style={{ 
+                  display: 'block',
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #00b894, #00cec9)',
+                  color: '#0d1117',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  fontSize: '12px',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}>
+                  🎵 Music
                 </Link>
-                <Link to="/create-radio" className="action-btn radio">
-                  <span className="btn-icon">radio</span><span>Create Radio Station</span>
+                <Link to="/create-radio" style={{ 
+                  display: 'block',
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #6c5ce7, #a29bfe)',
+                  color: '#0d1117',
+                  textDecoration: 'none',
+                  fontWeight: 600,
+                  fontSize: '12px',
+                  width: '100%',
+                  boxSizing: 'border-box'
+                }}>
+                  📻 Radio
                 </Link>
                 <button 
-                  className="action-btn marketplace" 
                   onClick={() => setActiveTab('upload')}
+                  style={{ 
+                    display: 'block',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #FF6600, #ff8833)',
+                    color: '#0d1117',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    textAlign: 'left'
+                  }}
                 >
-                  <span className="btn-icon">plus</span><span>Upload Product</span>
+                  🛍️ Product
                 </button>
               </div>
             </section>
 
-            <section className="analytics-section">
-              <div className="charts-grid">
-                <div className="chart-container">
-                  <h3>Social Media Shares</h3>
-                  <Doughnut data={shareBreakdownData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }} />
+            {/* RIGHT COLUMN - Analytics Charts */}
+            <section style={{
+              order: 2,
+              flex: '1 1 0',
+              minWidth: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px'
+            }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '20px'
+              }}>
+                <div style={{
+                  background: 'linear-gradient(145deg, #1f2937, #111827)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid #374151'
+                }}>
+                  <h3 style={{ color: '#00ffc8', fontSize: '16px', margin: '0 0 15px 0', fontWeight: 600 }}>Social Media Shares</h3>
+                  <div style={{ height: '220px', position: 'relative' }}>
+                    <Doughnut 
+                      data={shareBreakdownData} 
+                      options={{ 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { 
+                          legend: { 
+                            position: 'bottom',
+                            labels: { color: '#c9d1d9', padding: 15 }
+                          } 
+                        } 
+                      }} 
+                    />
+                  </div>
                 </div>
 
-                <div className="chart-container">
-                  <h3>Content Breakdown</h3>
-                  <Doughnut data={contentBreakdownData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }} />
+                <div style={{
+                  background: 'linear-gradient(145deg, #1f2937, #111827)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid #374151'
+                }}>
+                  <h3 style={{ color: '#00ffc8', fontSize: '16px', margin: '0 0 15px 0', fontWeight: 600 }}>Content Breakdown</h3>
+                  <div style={{ height: '220px', position: 'relative' }}>
+                    <Doughnut 
+                      data={contentBreakdownData} 
+                      options={{ 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { 
+                          legend: { 
+                            position: 'bottom',
+                            labels: { color: '#c9d1d9', padding: 15 }
+                          } 
+                        } 
+                      }} 
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="growth-chart">
-                <h3>Monthly Growth Trend</h3>
-                <Line data={monthlyGrowthData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }} />
+              <div style={{
+                background: 'linear-gradient(145deg, #1f2937, #111827)',
+                padding: '20px',
+                borderRadius: '12px',
+                border: '1px solid #374151'
+              }}>
+                <h3 style={{ color: '#00ffc8', fontSize: '16px', margin: '0 0 15px 0', fontWeight: 600 }}>Monthly Growth Trend</h3>
+                <div style={{ height: '220px', position: 'relative' }}>
+                  <Line 
+                    data={monthlyGrowthData} 
+                    options={{ 
+                      responsive: true, 
+                      maintainAspectRatio: false, 
+                      plugins: { 
+                        legend: { display: false } 
+                      }, 
+                      scales: { 
+                        y: { 
+                          beginAtZero: true,
+                          grid: { color: '#374151' },
+                          ticks: { color: '#8b949e' }
+                        },
+                        x: {
+                          grid: { color: '#374151' },
+                          ticks: { color: '#8b949e' }
+                        }
+                      } 
+                    }} 
+                  />
+                </div>
               </div>
             </section>
 
+            {/* FULL WIDTH - Recent Activity */}
             <section className="recent-activity">
               <h2>Recent Activity</h2>
               <div className="activity-list">
@@ -278,7 +430,9 @@ const CreatorDashboard = () => {
                     </div>
                   </div>
                 )) : (
-                  <p className="no-activity">No recent activity. Start creating content!</p>
+                  <div className="no-activity">
+                    <p>🎬 No recent activity. Start creating content!</p>
+                  </div>
                 )}
               </div>
             </section>
@@ -294,13 +448,13 @@ const CreatorDashboard = () => {
                 className="btn-primary"
                 onClick={() => setActiveTab('upload')}
               >
-                Upload New Product
+                + Upload New Product
               </button>
             </div>
 
             {myProducts.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">shopping-bag</div>
+                <div className="empty-icon">🛍️</div>
                 <h3>No products yet</h3>
                 <p>Start selling by uploading your first product</p>
                 <button 
@@ -333,15 +487,15 @@ const CreatorDashboard = () => {
                       
                       <div className="product-stats">
                         <div className="stat">
-                          <span className="stat-label">Price:</span>
+                          <span className="stat-label">Price</span>
                           <span className="stat-value">${product.price}</span>
                         </div>
                         <div className="stat">
-                          <span className="stat-label">Sales:</span>
+                          <span className="stat-label">Sales</span>
                           <span className="stat-value">{product.sales_count || 0}</span>
                         </div>
                         <div className="stat">
-                          <span className="stat-label">Revenue:</span>
+                          <span className="stat-label">Revenue</span>
                           <span className="stat-value">
                             ${((product.sales_count || 0) * product.price * 0.9).toFixed(2)}
                           </span>
@@ -349,8 +503,8 @@ const CreatorDashboard = () => {
                       </div>
                       
                       <div className="product-actions">
-                        <button className="btn-edit">Edit</button>
-                        <button className="btn-view">View</button>
+                        <button className="btn-edit">✏️ Edit</button>
+                        <button className="btn-view">👁️ View</button>
                       </div>
                     </div>
                   </div>
@@ -378,19 +532,19 @@ const CreatorDashboard = () => {
             
             <div className="analytics-grid">
               <div className="analytics-card">
-                <h3>Product Performance</h3>
+                <h3>📦 Product Performance</h3>
                 <div className="metric">
-                  <span className="metric-label">Total Products:</span>
+                  <span className="metric-label">Total Products</span>
                   <span className="metric-value">{myProducts.length}</span>
                 </div>
                 <div className="metric">
-                  <span className="metric-label">Total Sales:</span>
+                  <span className="metric-label">Total Sales</span>
                   <span className="metric-value">
                     {myProducts.reduce((total, product) => total + (product.sales_count || 0), 0)}
                   </span>
                 </div>
                 <div className="metric">
-                  <span className="metric-label">Average Price:</span>
+                  <span className="metric-label">Average Price</span>
                   <span className="metric-value">
                     ${myProducts.length > 0 ? 
                       (myProducts.reduce((total, product) => total + product.price, 0) / myProducts.length).toFixed(2) 
@@ -400,31 +554,32 @@ const CreatorDashboard = () => {
               </div>
 
               <div className="analytics-card">
-                <h3>Revenue Breakdown</h3>
+                <h3>💰 Revenue Breakdown</h3>
                 <div className="revenue-chart">
                   <div className="revenue-item">
-                    <span className="revenue-label">Product Sales:</span>
+                    <span className="revenue-label">Product Sales</span>
                     <span className="revenue-value">${totalEarnings.products.toFixed(2)}</span>
                   </div>
                   <div className="revenue-item">
-                    <span className="revenue-label">Content Revenue:</span>
+                    <span className="revenue-label">Content Revenue</span>
                     <span className="revenue-value">${totalEarnings.content.toFixed(2)}</span>
                   </div>
                   <div className="revenue-item total">
-                    <span className="revenue-label">Total Earnings:</span>
+                    <span className="revenue-label">Total Earnings</span>
                     <span className="revenue-value">${totalEarnings.total.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
 
               <div className="analytics-card">
-                <h3>Top Performing Products</h3>
+                <h3>🏆 Top Performing Products</h3>
                 <div className="top-products">
                   {myProducts
                     .sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0))
                     .slice(0, 3)
-                    .map(product => (
+                    .map((product, index) => (
                       <div key={product.id} className="top-product">
+                        <span className="top-rank">#{index + 1}</span>
                         <img 
                           src={product.image_url || '/placeholder-product.jpg'} 
                           alt={product.title}
@@ -437,7 +592,7 @@ const CreatorDashboard = () => {
                       </div>
                     ))}
                   {myProducts.length === 0 && (
-                    <p className="no-products">No products to show</p>
+                    <p className="no-products">No products to show yet</p>
                   )}
                 </div>
               </div>
