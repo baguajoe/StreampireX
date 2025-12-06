@@ -1,5 +1,6 @@
-/* Creator Dashboard - Complete Standalone CSS */
-/* StreamPireX Design System Implementation */
+/* Creator Dashboard - Fixed Left Column Layout */
+/* StreamPireX Design System */
+/* Quick Actions MUST be on the LEFT inside the content area */
 
 /* ===== Base & Container Styles ===== */
 .creator-dashboard {
@@ -14,13 +15,13 @@
 /* ===== Dashboard Header ===== */
 .dashboard-header {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   justify-content: space-between;
   gap: 30px;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
   background: linear-gradient(145deg, #1f2937, #111827);
-  padding: 30px;
-  border-radius: 20px;
+  padding: 25px 30px;
+  border-radius: 16px;
   border: 2px solid #00ffc8;
   box-shadow: 0 10px 40px rgba(0, 255, 200, 0.1);
 }
@@ -28,134 +29,121 @@
 .creator-profile-overview {
   display: flex;
   align-items: center;
-  gap: 25px;
+  gap: 20px;
   flex: 1;
 }
 
 .profile-avatar {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
-  border: 4px solid #00ffc8;
+  border: 3px solid #00ffc8;
   box-shadow: 0 0 20px rgba(0, 255, 200, 0.3);
+  flex-shrink: 0;
 }
 
 .profile-info {
   flex: 1;
+  min-width: 0;
 }
 
 .profile-info h1 {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
   color: #00ffc8;
   text-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
 }
 
 .profile-subtitle {
-  font-size: 16px;
+  font-size: 14px;
   color: #8b949e;
-  margin: 0 0 15px 0;
+  margin: 0 0 12px 0;
 }
 
 .profile-stats {
   display: flex;
-  gap: 25px;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .profile-stats .stat {
-  font-size: 14px;
+  font-size: 13px;
   color: #c9d1d9;
 }
 
 .profile-stats .stat strong {
   color: #00ffc8;
-  font-size: 18px;
-  margin-right: 5px;
+  font-size: 16px;
+  margin-right: 4px;
 }
 
 /* Earnings Overview Card */
 .earnings-overview {
   background: linear-gradient(135deg, #FF6600, #ff8833);
-  padding: 25px;
-  border-radius: 15px;
-  min-width: 250px;
+  padding: 20px 25px;
+  border-radius: 12px;
+  min-width: 200px;
   box-shadow: 0 8px 25px rgba(255, 102, 0, 0.2);
+  flex-shrink: 0;
 }
 
 .earnings-card h3 {
-  margin: 0 0 15px 0;
-  font-size: 16px;
+  margin: 0 0 10px 0;
+  font-size: 12px;
   font-weight: 600;
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.9);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .earnings-amount {
-  font-size: 36px;
+  font-size: 28px;
   font-weight: bold;
   color: #ffffff;
-  margin-bottom: 10px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  margin-bottom: 8px;
 }
 
 .earnings-breakdown {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
 }
 
 .earnings-breakdown small {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
 }
 
 /* ===== Navigation Tabs ===== */
 .dashboard-nav {
   display: flex;
-  gap: 10px;
-  margin-bottom: 30px;
+  gap: 8px;
+  margin-bottom: 25px;
   background: #1f2937;
-  padding: 10px;
-  border-radius: 15px;
+  padding: 8px;
+  border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  flex-wrap: wrap;
 }
 
 .nav-tab {
-  padding: 12px 24px;
+  padding: 10px 20px;
   background: transparent;
   border: 2px solid transparent;
   color: #8b949e;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.nav-tab:before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 0;
-  height: 100%;
-  background: linear-gradient(90deg, #00ffc8, #00e6b3);
-  transition: width 0.3s ease;
-  z-index: -1;
+  white-space: nowrap;
 }
 
 .nav-tab:hover {
   color: #ffffff;
-  transform: translateY(-2px);
-}
-
-.nav-tab:hover:before {
-  width: 100%;
+  background: rgba(0, 255, 200, 0.1);
 }
 
 .nav-tab.active {
@@ -168,203 +156,238 @@
 /* ===== Dashboard Content Container ===== */
 .dashboard-content {
   background: #161b22;
-  border-radius: 20px;
-  padding: 30px;
+  border-radius: 16px;
+  padding: 25px;
   min-height: 500px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
-/* ===== Quick Actions Section ===== */
-.quick-actions {
-  margin-bottom: 40px;
+/* ============================================= */
+/* OVERVIEW TAB - TWO COLUMN LAYOUT              */
+/* Quick Actions LEFT, Charts RIGHT              */
+/* ============================================= */
+.overview-tab {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 25px !important;
+  animation: fadeIn 0.4s ease;
+}
+
+/* ===== QUICK ACTIONS - LEFT COLUMN ===== */
+/* This MUST appear on the LEFT side */
+.overview-tab .quick-actions {
+  order: 1 !important;
+  flex: 0 0 200px !important;
+  width: 200px !important;
+  min-width: 200px !important;
+  max-width: 200px !important;
+  background: linear-gradient(145deg, #1f2937, #111827) !important;
+  padding: 20px !important;
+  border-radius: 12px !important;
+  border: 1px solid #374151 !important;
+  height: fit-content !important;
+  /* Reset any positioning that might float it */
+  position: static !important;
+  float: none !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+}
+
+.quick-actions-header {
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #374151;
 }
 
 .quick-actions h2 {
-  font-size: 24px;
+  font-size: 16px;
   color: #00ffc8;
-  margin-bottom: 20px;
-  font-weight: 700;
-  text-shadow: 0 0 10px rgba(0, 255, 200, 0.2);
+  margin: 0;
+  font-weight: 600;
 }
 
 .action-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
 }
 
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 15px 25px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 15px;
-  text-decoration: none;
-  color: #0d1117;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+.overview-tab .action-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 14px 16px !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  text-decoration: none !important;
+  color: #0d1117 !important;
+  transition: all 0.3s ease !important;
+  border: none !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  width: 100% !important;
+  text-align: left !important;
+  /* Reset positioning */
+  position: static !important;
+  float: none !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  transform: none !important;
 }
 
-.action-btn:before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  transform: translate(-50%, -50%);
-  transition: width 0.5s ease, height 0.5s ease;
-}
-
-.action-btn:hover:before {
-  width: 300px;
-  height: 300px;
+.action-btn:hover {
+  transform: translateX(5px) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
 }
 
 .action-btn .btn-icon {
-  font-size: 20px;
-  position: relative;
-  z-index: 1;
+  font-size: 18px;
+  flex-shrink: 0;
 }
 
-.action-btn span {
-  position: relative;
-  z-index: 1;
+.action-btn .btn-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Action Button Colors */
 .action-btn.podcast {
-  background: linear-gradient(135deg, #fd79a8, #fdcb6e);
+  background: linear-gradient(135deg, #fd79a8, #e84393) !important;
 }
 
 .action-btn.podcast:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(253, 121, 168, 0.4);
+  box-shadow: 0 6px 20px rgba(253, 121, 168, 0.4) !important;
 }
 
 .action-btn.music {
-  background: linear-gradient(135deg, #00b894, #00cec9);
+  background: linear-gradient(135deg, #00b894, #00cec9) !important;
 }
 
 .action-btn.music:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 206, 201, 0.4);
+  box-shadow: 0 6px 20px rgba(0, 206, 201, 0.4) !important;
 }
 
 .action-btn.radio {
-  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe) !important;
 }
 
 .action-btn.radio:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
+  box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4) !important;
 }
 
 .action-btn.marketplace {
-  background: linear-gradient(135deg, #FF6600, #ff8833);
+  background: linear-gradient(135deg, #FF6600, #ff8833) !important;
 }
 
 .action-btn.marketplace:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(255, 102, 0, 0.4);
+  box-shadow: 0 6px 20px rgba(255, 102, 0, 0.4) !important;
 }
 
-/* ===== Analytics Section ===== */
-.analytics-section {
-  margin-top: 40px;
-}
-
-.analytics-section h3 {
-  color: #00ffc8;
-  font-size: 20px;
-  margin-bottom: 15px;
-  font-weight: 600;
+/* ===== ANALYTICS SECTION - RIGHT COLUMN ===== */
+.overview-tab .analytics-section {
+  order: 2 !important;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
 }
 
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 25px;
-  margin-bottom: 25px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
 }
 
 .chart-container {
   background: linear-gradient(145deg, #1f2937, #111827);
-  padding: 25px;
-  border-radius: 15px;
+  padding: 20px;
+  border-radius: 12px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   border: 1px solid #374151;
-  height: 350px;
 }
 
 .chart-container h3 {
   color: #00ffc8;
-  font-size: 18px;
-  margin-bottom: 20px;
+  font-size: 16px;
+  margin: 0 0 15px 0;
   font-weight: 600;
+}
+
+.chart-wrapper {
+  height: 220px;
+  position: relative;
 }
 
 .growth-chart {
   background: linear-gradient(145deg, #1f2937, #111827);
-  padding: 25px;
-  border-radius: 15px;
-  height: 350px;
+  padding: 20px;
+  border-radius: 12px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   border: 1px solid #374151;
 }
 
 .growth-chart h3 {
   color: #00ffc8;
-  font-size: 18px;
-  margin-bottom: 20px;
+  font-size: 16px;
+  margin: 0 0 15px 0;
   font-weight: 600;
 }
 
-/* ===== Recent Activity Section ===== */
-.recent-activity {
-  margin-top: 40px;
+.growth-chart .chart-wrapper {
+  height: 250px;
+}
+
+/* ===== Recent Activity Section - FULL WIDTH BOTTOM ===== */
+.overview-tab .recent-activity {
+  order: 3 !important;
+  flex: 0 0 100% !important;
+  width: 100% !important;
+  background: linear-gradient(145deg, #1f2937, #111827);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #374151;
 }
 
 .recent-activity h2 {
-  font-size: 24px;
+  font-size: 18px;
   color: #00ffc8;
-  margin-bottom: 20px;
-  font-weight: 700;
+  margin: 0 0 15px 0;
+  font-weight: 600;
 }
 
 .activity-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
 }
 
 .activity-item {
   display: flex;
-  align-items: flex-start;
-  gap: 15px;
-  padding: 15px;
-  background: linear-gradient(145deg, #1f2937, #111827);
-  border-radius: 12px;
-  border-left: 4px solid #00ffc8;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 15px;
+  background: #0d1117;
+  border-radius: 10px;
+  border-left: 3px solid #00ffc8;
   transition: all 0.3s ease;
 }
 
 .activity-item:hover {
   transform: translateX(5px);
-  box-shadow: 0 4px 15px rgba(0, 255, 200, 0.2);
+  background: rgba(0, 255, 200, 0.05);
 }
 
 .activity-icon {
-  font-size: 24px;
-  color: #FF6600;
+  font-size: 20px;
 }
 
 .activity-content {
@@ -372,38 +395,44 @@
 }
 
 .activity-text {
-  margin: 0 0 5px 0;
+  margin: 0 0 3px 0;
   font-weight: 500;
   color: #e1e4e8;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .activity-time {
-  font-size: 13px;
+  font-size: 12px;
   color: #8b949e;
 }
 
 .no-activity {
   text-align: center;
-  padding: 40px;
+  padding: 30px;
   color: #8b949e;
-  font-size: 16px;
+  font-size: 14px;
+  background: #0d1117;
+  border-radius: 10px;
+}
+
+.no-activity p {
+  margin: 0;
 }
 
 /* ===== Products Tab Styles ===== */
 .products-tab {
-  animation: fadeIn 0.5s ease;
+  animation: fadeIn 0.4s ease;
 }
 
 .products-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
 .products-header h2 {
-  font-size: 28px;
+  font-size: 24px;
   color: #00ffc8;
   font-weight: 700;
   margin: 0;
@@ -412,11 +441,11 @@
 .btn-primary {
   background: linear-gradient(135deg, #00ffc8, #00e6b3);
   color: #0d1117;
-  padding: 12px 24px;
+  padding: 12px 20px;
   border-radius: 10px;
   border: none;
   font-weight: 600;
-  font-size: 15px;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 255, 200, 0.3);
@@ -432,18 +461,17 @@
   text-align: center;
   padding: 60px 20px;
   background: linear-gradient(145deg, #1f2937, #111827);
-  border-radius: 20px;
+  border-radius: 16px;
   border: 2px dashed #374151;
 }
 
 .empty-icon {
-  font-size: 64px;
-  color: #374151;
+  font-size: 56px;
   margin-bottom: 20px;
 }
 
 .empty-state h3 {
-  font-size: 24px;
+  font-size: 22px;
   color: #c9d1d9;
   margin-bottom: 10px;
   font-weight: 600;
@@ -451,20 +479,20 @@
 
 .empty-state p {
   color: #8b949e;
-  font-size: 16px;
+  font-size: 15px;
   margin-bottom: 25px;
 }
 
 /* Products Grid */
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 25px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
 }
 
 .product-card {
   background: linear-gradient(145deg, #1f2937, #111827);
-  border-radius: 15px;
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   border: 1px solid #374151;
@@ -472,15 +500,15 @@
 }
 
 .product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 35px rgba(0, 255, 200, 0.2);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 35px rgba(0, 255, 200, 0.15);
   border-color: #00ffc8;
 }
 
 .product-image {
   position: relative;
   width: 100%;
-  height: 200px;
+  height: 180px;
   background: #0d1117;
 }
 
@@ -497,9 +525,9 @@
 }
 
 .status-badge {
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -515,20 +543,20 @@
 }
 
 .product-info {
-  padding: 20px;
+  padding: 18px;
 }
 
 .product-title {
-  font-size: 18px;
+  font-size: 16px;
   color: #00ffc8;
-  margin: 0 0 10px 0;
+  margin: 0 0 8px 0;
   font-weight: 600;
 }
 
 .product-description {
   color: #8b949e;
-  font-size: 14px;
-  margin: 0 0 20px 0;
+  font-size: 13px;
+  margin: 0 0 15px 0;
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -539,9 +567,9 @@
 .product-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  margin-bottom: 20px;
-  padding: 15px 0;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding: 12px 0;
   border-top: 1px solid #374151;
   border-bottom: 1px solid #374151;
 }
@@ -552,22 +580,23 @@
 
 .stat-label {
   display: block;
-  font-size: 12px;
+  font-size: 10px;
   color: #8b949e;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .stat-value {
   display: block;
-  font-size: 16px;
+  font-size: 15px;
   color: #FF6600;
   font-weight: 600;
 }
 
 .product-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .btn-edit,
@@ -576,7 +605,7 @@
   padding: 10px;
   border-radius: 8px;
   border: none;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -605,58 +634,59 @@
 
 /* ===== Upload Tab Styles ===== */
 .upload-tab {
-  animation: fadeIn 0.5s ease;
+  animation: fadeIn 0.4s ease;
 }
 
 .upload-header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 30px;
 }
 
 .upload-header h2 {
-  font-size: 28px;
+  font-size: 24px;
   color: #00ffc8;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   font-weight: 700;
 }
 
 .upload-header p {
   color: #8b949e;
-  font-size: 16px;
+  font-size: 14px;
+  margin: 0;
 }
 
 /* ===== Analytics Tab Styles ===== */
 .analytics-tab {
-  animation: fadeIn 0.5s ease;
+  animation: fadeIn 0.4s ease;
 }
 
-.analytics-tab h2 {
-  font-size: 28px;
+.analytics-tab > h2 {
+  font-size: 24px;
   color: #00ffc8;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
   font-weight: 700;
 }
 
 .analytics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 25px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
 }
 
 .analytics-card {
   background: linear-gradient(145deg, #1f2937, #111827);
-  padding: 25px;
-  border-radius: 15px;
+  padding: 22px;
+  border-radius: 12px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   border: 1px solid #374151;
 }
 
 .analytics-card h3 {
-  font-size: 20px;
+  font-size: 16px;
   color: #00ffc8;
-  margin-bottom: 20px;
+  margin: 0 0 18px 0;
   font-weight: 600;
-  padding-bottom: 15px;
+  padding-bottom: 12px;
   border-bottom: 2px solid #374151;
 }
 
@@ -664,7 +694,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
+  padding: 10px 0;
   border-bottom: 1px solid #2d3748;
 }
 
@@ -674,18 +704,20 @@
 
 .metric-label {
   color: #8b949e;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .metric-value {
   color: #FF6600;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
 }
 
 /* Revenue Breakdown */
 .revenue-chart {
-  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .revenue-item {
@@ -693,9 +725,8 @@
   justify-content: space-between;
   padding: 12px;
   background: #0d1117;
-  margin-bottom: 10px;
   border-radius: 8px;
-  border-left: 4px solid #FF6600;
+  border-left: 3px solid #FF6600;
 }
 
 .revenue-item.total {
@@ -710,12 +741,12 @@
 
 .revenue-label {
   color: #8b949e;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .revenue-value {
   color: #00ffc8;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -723,18 +754,17 @@
 .top-products {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin-top: 15px;
+  gap: 12px;
 }
 
 .top-product {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 12px;
+  gap: 12px;
+  padding: 10px;
   background: #0d1117;
   border-radius: 10px;
-  border-left: 4px solid #00ffc8;
+  border-left: 3px solid #00ffc8;
   transition: all 0.3s ease;
 }
 
@@ -743,24 +773,31 @@
   background: #1f2937;
 }
 
+.top-rank {
+  font-size: 14px;
+  font-weight: 700;
+  color: #FF6600;
+  min-width: 30px;
+}
+
 .top-product-image {
-  width: 50px;
-  height: 50px;
+  width: 45px;
+  height: 45px;
   border-radius: 8px;
   object-fit: cover;
   border: 2px solid #374151;
 }
 
 .top-product-info h4 {
-  margin: 0 0 5px 0;
-  font-size: 14px;
+  margin: 0 0 3px 0;
+  font-size: 13px;
   color: #e1e4e8;
   font-weight: 600;
 }
 
 .top-product-info p {
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
   color: #00ffc8;
 }
 
@@ -768,14 +805,14 @@
   text-align: center;
   color: #8b949e;
   padding: 20px;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 /* ===== Animations ===== */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(15px);
   }
   to {
     opacity: 1;
@@ -792,6 +829,50 @@
   
   .earnings-overview {
     width: 100%;
+  }
+  
+  /* Stack to single column on tablets */
+  .overview-tab {
+    flex-direction: column !important;
+  }
+  
+  .overview-tab .quick-actions {
+    order: 1 !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 100% !important;
+  }
+  
+  .action-buttons {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px !important;
+  }
+  
+  .overview-tab .action-btn {
+    flex-direction: column !important;
+    text-align: center !important;
+    padding: 15px 10px !important;
+    gap: 8px !important;
+  }
+  
+  .action-btn .btn-icon {
+    font-size: 22px;
+  }
+  
+  .action-btn .btn-text {
+    font-size: 11px;
+  }
+  
+  .overview-tab .analytics-section {
+    order: 2 !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+  }
+  
+  .overview-tab .recent-activity {
+    order: 3 !important;
   }
   
   .charts-grid {
@@ -813,49 +894,25 @@
   }
   
   .profile-avatar {
-    width: 70px;
-    height: 70px;
+    width: 60px;
+    height: 60px;
   }
   
   .profile-info h1 {
-    font-size: 22px;
-  }
-  
-  .dashboard-nav {
-    flex-wrap: wrap;
+    font-size: 20px;
   }
   
   .nav-tab {
-    flex: 1 1 45%;
-    min-width: 120px;
-    text-align: center;
+    padding: 8px 14px;
+    font-size: 13px;
   }
   
   .action-buttons {
-    flex-direction: column;
-  }
-  
-  .action-btn {
-    width: 100%;
-    justify-content: center;
+    grid-template-columns: repeat(2, 1fr) !important;
   }
   
   .products-grid {
     grid-template-columns: 1fr;
-  }
-  
-  .product-stats {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  
-  .profile-stats {
-    flex-direction: column;
-    gap: 10px;
-  }
-  
-  .earnings-amount {
-    font-size: 28px;
   }
   
   .products-header {
@@ -875,20 +932,52 @@
     text-align: center;
   }
   
+  .profile-stats {
+    justify-content: center;
+  }
+  
+  .dashboard-nav {
+    gap: 5px;
+    padding: 6px;
+  }
+  
   .nav-tab {
-    flex: 1 1 100%;
-    padding: 10px;
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 12px;
+    text-align: center;
   }
   
   .dashboard-content {
-    padding: 20px 15px;
+    padding: 15px;
   }
   
-  .chart-container {
-    height: 250px;
+  .overview-tab .quick-actions {
+    padding: 15px !important;
   }
   
-  .growth-chart {
-    height: 250px;
+  .action-buttons {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  
+  .overview-tab .action-btn {
+    padding: 12px 8px !important;
+  }
+  
+  .action-btn .btn-text {
+    display: none;
+  }
+  
+  .action-btn .btn-icon {
+    font-size: 24px;
+  }
+  
+  .chart-wrapper {
+    height: 180px;
+  }
+  
+  .growth-chart .chart-wrapper {
+    height: 200px;
   }
 }

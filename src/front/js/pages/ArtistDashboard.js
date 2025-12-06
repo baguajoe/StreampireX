@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import '../../styles/ArtistDashboard.css';
 import {
@@ -59,6 +59,11 @@ const ArtistDashboard = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // ========== AUDIO PLAYBACK STATE (ADDED) ==========
+  const audioRef = useRef(new Audio());
+  const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
   // Sample data for demo
   const recentActivity = [
     { action: "Track uploaded", track: "Midnight Vibes", time: "2 hours ago" },
@@ -76,6 +81,39 @@ const ArtistDashboard = () => {
   useEffect(() => {
     fetchArtistData();
     fetchGenres();
+  }, []);
+
+  // ========== CLEANUP AUDIO ON UNMOUNT (ADDED) ==========
+  useEffect(() => {
+    const audio = audioRef.current;
+    
+    // Handle audio ending
+    const handleEnded = () => {
+      setCurrentlyPlaying(null);
+      setIsPlaying(false);
+    };
+
+    // Handle audio pause
+    const handlePause = () => {
+      setIsPlaying(false);
+    };
+
+    // Handle audio play
+    const handlePlay = () => {
+      setIsPlaying(true);
+    };
+
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('play', handlePlay);
+
+    return () => {
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('play', handlePlay);
+      audio.pause();
+      audio.src = '';
+    };
   }, []);
 
   const fetchArtistData = async () => {
@@ -129,6 +167,71 @@ const ArtistDashboard = () => {
     }
   };
 
+  // ========== AUDIO PLAYBACK HANDLER (ADDED) ==========
+  const handlePlayTrack = (track) => {
+    const audio = audioRef.current;
+
+    // If clicking the same track that's playing, pause it
+    if (currentlyPlaying?.id === track.id && !audio.paused) {
+      audio.pause();
+      setCurrentlyPlaying(null);
+      setIsPlaying(false);
+      return;
+    }
+
+    // If there's a different track playing, stop it
+    if (currentlyPlaying?.id !== track.id) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+
+    // Get the audio URL - check multiple possible field names
+    const audioUrl = track.audio_url || track.file_url || track.url || track.audioUrl;
+
+    // Play the new track
+    if (audioUrl) {
+      audio.src = audioUrl;
+      audio.play()
+        .then(() => {
+          setCurrentlyPlaying(track);
+          setIsPlaying(true);
+          // Optionally increment play count
+          incrementPlayCount(track.id);
+        })
+        .catch(err => {
+          console.error("Playback failed:", err);
+          setErrorMessage("Failed to play track. Audio file may not be available.");
+        });
+    } else {
+      setErrorMessage("No audio file available for this track");
+    }
+  };
+
+  // ========== INCREMENT PLAY COUNT (ADDED) ==========
+  const incrementPlayCount = async (trackId) => {
+    try {
+      const token = localStorage.getItem("token");
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/tracks/${trackId}/play`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Update local state
+      setTracks(prevTracks =>
+        prevTracks.map(track =>
+          track.id === trackId
+            ? { ...track, plays: (track.plays || 0) + 1 }
+            : track
+        )
+      );
+    } catch (err) {
+      console.error("Failed to increment play count:", err);
+    }
+  };
+
   const handleAudioUpload = async () => {
     if (!trackTitle || !genre || !audioFile) {
       setErrorMessage("Please fill in all fields before uploading.");
@@ -164,6 +267,35 @@ const ArtistDashboard = () => {
       }
     } catch (err) {
       setErrorMessage("Server error during upload.");
+    }
+  };
+
+  // ========== DELETE TRACK HANDLER (ADDED) ==========
+  const handleDeleteTrack = async (trackId) => {
+    if (!window.confirm("Are you sure you want to delete this track?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/tracks/${trackId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        // Stop playing if this track is currently playing
+        if (currentlyPlaying?.id === trackId) {
+          audioRef.current.pause();
+          setCurrentlyPlaying(null);
+          setIsPlaying(false);
+        }
+        // Remove from local state
+        setTracks(prevTracks => prevTracks.filter(t => t.id !== trackId));
+      } else {
+        setErrorMessage("Failed to delete track");
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      setErrorMessage("Error deleting track");
     }
   };
 
@@ -298,6 +430,24 @@ const ArtistDashboard = () => {
         </button>
       </div>
 
+      {/* Now Playing Indicator */}
+      {currentlyPlaying && (
+        <div className="now-playing-banner">
+          <FaMusic className="now-playing-icon" />
+          <span>Now Playing: <strong>{currentlyPlaying.title}</strong></span>
+          <button 
+            className="stop-btn"
+            onClick={() => {
+              audioRef.current.pause();
+              setCurrentlyPlaying(null);
+              setIsPlaying(false);
+            }}
+          >
+            <FaPause /> Stop
+          </button>
+        </div>
+      )}
+
       {tracks.length === 0 ? (
         <div className="empty-state">
           <FaMusic className="empty-icon" />
@@ -320,8 +470,12 @@ const ArtistDashboard = () => {
                   alt={track.title}
                 />
                 <div className="track-overlay">
-                  <button className="play-btn">
-                    <FaPlay />
+                  {/* ========== FIXED PLAY BUTTON (ADDED onClick) ========== */}
+                  <button 
+                    className="play-btn"
+                    onClick={() => handlePlayTrack(track)}
+                  >
+                    {currentlyPlaying?.id === track.id && isPlaying ? <FaPause /> : <FaPlay />}
                   </button>
                 </div>
               </div>
@@ -352,6 +506,7 @@ const ArtistDashboard = () => {
                 <button
                   className="btn-icon danger"
                   title="Delete"
+                  onClick={() => handleDeleteTrack(track.id)}
                 >
                   <FaTrash />
                 </button>
@@ -563,7 +718,7 @@ const ArtistDashboard = () => {
       {/* Modals */}
       {studioOpen && <LiveStudio onClose={() => setStudioOpen(false)} />}
       {showTermsModal && <TermsAgreementModal onClose={() => setShowTermsModal(false)} />}
-      {trackBeingEdited && <EditTrackForm track={trackBeingEdited} onClose={() => setTrackBeingEdited(null)} />}
+      {trackBeingEdited && <EditTrackForm track={trackBeingEdited} onClose={() => setTrackBeingEdited(null)} onSave={fetchArtistData} />}
       {albumBeingEdited && <EditAlbumForm album={albumBeingEdited} onClose={() => setAlbumBeingEdited(null)} />}
       {showAlbumCreator && <AlbumCard onClose={() => setShowAlbumCreator(false)} />}
     </div>
