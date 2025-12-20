@@ -3,8 +3,8 @@
 
 /* ===== Base & Container Styles ===== */
 .radio-dashboard-container {
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0 0;
   padding: 40px 24px;
   background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
   min-height: 100vh;
