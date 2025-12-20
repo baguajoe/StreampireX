@@ -52,8 +52,8 @@
 }
 
 .header-content {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0 0;
   padding: 0 30px;
   display: flex;
   justify-content: space-between;
@@ -236,8 +236,8 @@
 
 /* ===== Main Content ===== */
 .dashboard-content {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0 0;
   padding: 30px;
   background: #161b22;
   min-height: 500px;
