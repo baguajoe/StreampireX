@@ -27,6 +27,7 @@ from sqlalchemy import func, desc, or_, and_, asc, distinct
 from flask_cors import CORS, cross_origin
 from flask_apscheduler import APScheduler
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy import or_, and_
 from src.api.subscription_utils import get_user_plan, plan_required
 from src.api.revenue_split import calculate_split, calculate_ad_revenue
 from src.api.reports_utils import generate_monthly_report
@@ -7598,12 +7599,12 @@ def get_user_profile():
 # 🔍 Discover Users - Browse/Search Users
 @api.route('/users/discover', methods=['GET'])
 def discover_users():
-    """Browse and search users"""
+    """Browse and search users - handles users with or without profile_type"""
     try:
         page = int(request.args.get('page', 1))
         per_page = int(request.args.get('per_page', 20))
         search = request.args.get('search', '').strip()
-        profile_type = request.args.get('profile_type', '').strip()
+        profile_type_filter = request.args.get('profile_type', '').strip()
         
         query = User.query
         
@@ -7612,36 +7613,98 @@ def discover_users():
             query = query.filter(
                 or_(
                     User.username.ilike(f'%{search}%'),
-                    User.display_name.ilike(f'%{search}%')
+                    User.display_name.ilike(f'%{search}%'),
+                    User.artist_name.ilike(f'%{search}%')
                 )
             )
         
-        # Profile type filter
-        if profile_type and profile_type != 'all':
-            if profile_type == 'creator':
-                query = query.filter(User.profile_type.in_(['creator', 'multiple']))
-            else:
-                query = query.filter(User.profile_type == profile_type)
+        # Profile type filter - only apply if not 'all' and not empty
+        if profile_type_filter and profile_type_filter != 'all':
+            if profile_type_filter == 'artist':
+                # Artists = profile_type is 'artist' OR is_artist is True
+                query = query.filter(
+                    or_(
+                        User.profile_type == 'artist',
+                        User.is_artist == True
+                    )
+                )
+            elif profile_type_filter == 'gamer':
+                # Gamers = profile_type is 'gamer' OR is_gamer is True
+                query = query.filter(
+                    or_(
+                        User.profile_type == 'gamer',
+                        User.is_gamer == True
+                    )
+                )
+            elif profile_type_filter == 'creator':
+                # Creators = podcasters, radio hosts, video creators, streamers
+                query = query.filter(
+                    or_(
+                        User.profile_type == 'creator',
+                        User.profile_type == 'multiple',
+                        User.is_streamer == True,
+                        User.podcast != None,
+                        User.podcast != '',
+                        User.radio_station != None,
+                        User.radio_station != '',
+                        User.videos != None
+                    )
+                )
+            elif profile_type_filter == 'regular':
+                # Members = regular users who are NOT artists, gamers, or creators
+                query = query.filter(
+                    and_(
+                        or_(
+                            User.profile_type == 'regular',
+                            User.profile_type == None,
+                            User.profile_type == ''
+                        ),
+                        or_(User.is_artist == False, User.is_artist == None),
+                        or_(User.is_gamer == False, User.is_gamer == None),
+                        or_(User.is_streamer == False, User.is_streamer == None),
+                        or_(User.podcast == None, User.podcast == ''),
+                        or_(User.radio_station == None, User.radio_station == '')
+                    )
+                )
         
-        # Order by followers or recent
-        query = query.order_by(User.created_at.desc())
+        # Order by most recent first
+        query = query.order_by(User.id.desc())
         
         # Paginate
         paginated = query.paginate(page=page, per_page=per_page, error_out=False)
         
         users_data = []
         for user in paginated.items:
-            followers_count = Follow.query.filter_by(following_id=user.id).count() if hasattr(Follow, 'query') else 0
+            # Count followers
+            followers_count = 0
+            try:
+                followers_count = Follow.query.filter_by(following_id=user.id).count()
+            except:
+                pass
+            
+            # Determine profile type using multiple fields
+            user_profile_type = user.profile_type
+            
+            # If profile_type is not set, check various flags and fields
+            if not user_profile_type or user_profile_type == '' or user_profile_type == 'regular':
+                if user.is_artist:
+                    user_profile_type = 'artist'
+                elif user.is_gamer:
+                    user_profile_type = 'gamer'
+                elif user.is_streamer or user.podcast or user.radio_station or (user.videos and len(user.videos) > 0):
+                    user_profile_type = 'creator'
+                else:
+                    user_profile_type = 'regular'
             
             users_data.append({
                 "id": user.id,
                 "username": user.username,
-                "display_name": getattr(user, 'display_name', None) or user.username,
-                "profile_type": getattr(user, 'profile_type', 'regular'),
-                "bio": getattr(user, 'bio', None),
-                "profile_picture": getattr(user, 'profile_picture', None) or getattr(user, 'avatar_url', None),
+                "display_name": user.display_name or user.artist_name or user.username,
+                "profile_type": user_profile_type,
+                "bio": user.bio or user.artist_bio or user.gamer_bio,
+                "profile_picture": user.profile_picture or user.avatar_url,
                 "followers_count": followers_count,
-                "is_verified": getattr(user, 'is_verified', False)
+                "is_verified": getattr(user, 'is_verified', False) or getattr(user, 'is_verified_artist', False)
             })
         
         return jsonify({
@@ -7654,7 +7717,9 @@ def discover_users():
         
     except Exception as e:
         print(f"Error discovering users: {e}")
-        return jsonify({"users": [], "total": 0}), 200
+        import traceback
+        traceback.print_exc()
+        return jsonify({"users": [], "total": 0, "error": str(e)}), 200
 
 # Add these endpoints to your routes.py file
 

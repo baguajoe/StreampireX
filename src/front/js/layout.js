@@ -1,5 +1,5 @@
 import React, { useContext, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import ScrollToTop from "./component/scrollToTop";
 import injectContext, { Context } from "./store/appContext";
 import { initializeAdvancedPWAFeatures } from './component/AdvancedPWAFeatures';
@@ -135,7 +135,12 @@ const Layout = () => {
               <Route path="/upload-video" element={<VideoUpload />} />
               {/* <Route path="/video-editor" element={<VideoEditor />} /> */}
               <Route path="/video-details/:id" element={<VideoDetails />} />
-             <Route path="/discover-users" element={<DiscoverUsersPage />} />
+              
+              {/* 🔍 Discover Users - Main route + redirects from old routes */}
+              <Route path="/discover-users" element={<DiscoverUsersPage />} />
+              <Route path="/search-artists" element={<Navigate to="/discover-users" replace />} />
+              <Route path="/search" element={<Navigate to="/discover-users" replace />} />
+              <Route path="/browse-users" element={<Navigate to="/discover-users" replace />} />
 
               {/* 📊 Dashboards */}
               <Route path="/creator-dashboard" element={<CreatorDashboard />} />
@@ -174,10 +179,11 @@ const Layout = () => {
               <Route path="/artist-dashboard" element={<ArtistDashboard />} />
               <Route path="/upload-music" element={<UploadMusic />} />
               <Route path="/music-distribution" element={<MusicDistribution />} />
-              {/* <Route path="/search" element={<SearchArtists />} /> */}
+              
               {/* 👤 Public User Profile (for viewing other users) */}
               <Route path="/user/:userId" element={<UserSearchProfilePage />} />
               <Route path="/user/u/:username" element={<UserSearchProfilePage />} />
+              <Route path="/artist/:id" element={<ArtistProfilePage />} />
               <Route path="/artist-profile/:id" element={<ArtistProfilePage />} />
 
               {/* 📺 Live Streaming */}

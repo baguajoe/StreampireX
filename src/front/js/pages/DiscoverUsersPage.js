@@ -15,13 +15,13 @@ const DiscoverUsersPage = () => {
   const [hasMore, setHasMore] = useState(true);
   const [totalUsers, setTotalUsers] = useState(0);
 
-  // Filter options
+  // Filter options - All categories included
   const filterOptions = [
-    { id: "all", label: "👥 All Users", icon: "👥" },
-    { id: "artist", label: "🎵 Artists", icon: "🎵" },
-    { id: "gamer", label: "🎮 Gamers", icon: "🎮" },
-    { id: "creator", label: "⭐ Creators", icon: "⭐" },
-    { id: "regular", label: "👤 Members", icon: "👤" }
+    { id: "all", label: "All", icon: "👥" },
+    { id: "artist", label: "Artists", icon: "🎵" },
+    { id: "gamer", label: "Gamers", icon: "🎮" },
+    { id: "creator", label: "Creators", icon: "⭐" },
+    { id: "regular", label: "Members", icon: "👤" }
   ];
 
   // Demo users for testing when API isn't ready
@@ -243,7 +243,7 @@ const DiscoverUsersPage = () => {
               onClick={() => setActiveFilter(filter.id)}
             >
               <span className="filter-icon">{filter.icon}</span>
-              <span className="filter-label">{filter.label.split(" ")[1]}</span>
+              <span className="filter-label">{filter.label}</span>
             </button>
           ))}
         </div>
