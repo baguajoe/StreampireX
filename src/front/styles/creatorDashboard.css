@@ -1,6 +1,5 @@
-/* Creator Dashboard - Fixed Left Column Layout */
-/* StreamPireX Design System */
-/* Quick Actions MUST be on the LEFT inside the content area */
+/* Creator Dashboard - Complete Standalone CSS */
+/* StreamPireX Design System Implementation */
 
 /* ===== Base & Container Styles ===== */
 .creator-dashboard {
@@ -162,145 +161,151 @@
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
-/* ============================================= */
-/* OVERVIEW TAB - TWO COLUMN LAYOUT              */
-/* Quick Actions LEFT, Charts RIGHT              */
-/* ============================================= */
+/* ===== OVERVIEW TAB ===== */
 .overview-tab {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 25px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
   animation: fadeIn 0.4s ease;
 }
 
-/* ===== QUICK ACTIONS - LEFT COLUMN ===== */
-/* This MUST appear on the LEFT side */
-.overview-tab .quick-actions {
-  order: 1 !important;
-  flex: 0 0 200px !important;
-  width: 200px !important;
-  min-width: 200px !important;
-  max-width: 200px !important;
-  background: linear-gradient(145deg, #1f2937, #111827) !important;
-  padding: 20px !important;
-  border-radius: 12px !important;
-  border: 1px solid #374151 !important;
-  height: fit-content !important;
-  /* Reset any positioning that might float it */
-  position: static !important;
-  float: none !important;
-  left: auto !important;
-  right: auto !important;
-  top: auto !important;
-  bottom: auto !important;
-  transform: none !important;
-  margin: 0 !important;
+/* ===== QUICK ACTIONS SECTION - HORIZONTAL COLORFUL GRID ===== */
+.quick-actions-section {
+  margin-bottom: 20px;
 }
 
-.quick-actions-header {
-  margin-bottom: 18px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #374151;
-}
-
-.quick-actions h2 {
-  font-size: 16px;
+.quick-actions-section h2 {
+  font-size: 24px;
+  font-weight: 700;
   color: #00ffc8;
-  margin: 0;
+  margin: 0 0 20px 0;
+  text-shadow: 0 0 10px rgba(0, 255, 200, 0.2);
+}
+
+/* Horizontal 4-column grid */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  width: 100%;
+}
+
+/* Base quick action card - colorful gradient style */
+.quick-action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 30px 20px;
+  border-radius: 15px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
   font-weight: 600;
-}
-
-.action-buttons {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 10px !important;
-}
-
-.overview-tab .action-btn {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  padding: 14px 16px !important;
-  border-radius: 10px !important;
-  font-weight: 600 !important;
-  font-size: 13px !important;
-  text-decoration: none !important;
-  color: #0d1117 !important;
-  transition: all 0.3s ease !important;
-  border: none !important;
-  cursor: pointer !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
-  width: 100% !important;
-  text-align: left !important;
-  /* Reset positioning */
-  position: static !important;
-  float: none !important;
-  left: auto !important;
-  right: auto !important;
-  top: auto !important;
-  bottom: auto !important;
-  transform: none !important;
-}
-
-.action-btn:hover {
-  transform: translateX(5px) !important;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3) !important;
-}
-
-.action-btn .btn-icon {
-  font-size: 18px;
-  flex-shrink: 0;
-}
-
-.action-btn .btn-text {
-  white-space: nowrap;
+  position: relative;
   overflow: hidden;
-  text-overflow: ellipsis;
+  border: none;
+  min-height: 120px;
+  text-align: center;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
-/* Action Button Colors */
-.action-btn.podcast {
-  background: linear-gradient(135deg, #fd79a8, #e84393) !important;
+/* Hover effect - expanding circle */
+.quick-action-card:before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transform: translate(-50%, -50%);
+  transition: width 0.5s ease, height 0.5s ease;
 }
 
-.action-btn.podcast:hover {
-  box-shadow: 0 6px 20px rgba(253, 121, 168, 0.4) !important;
+.quick-action-card:hover:before {
+  width: 300px;
+  height: 300px;
 }
 
-.action-btn.music {
-  background: linear-gradient(135deg, #00b894, #00cec9) !important;
+.quick-action-card:hover {
+  transform: translateY(-5px);
+  text-decoration: none;
 }
 
-.action-btn.music:hover {
-  box-shadow: 0 6px 20px rgba(0, 206, 201, 0.4) !important;
+/* Icon styling */
+.quick-action-card .action-icon {
+  font-size: 36px;
+  z-index: 1;
+  margin-bottom: 0;
+  filter: none;
+  color: inherit;
+  display: block;
 }
 
-.action-btn.radio {
-  background: linear-gradient(135deg, #6c5ce7, #a29bfe) !important;
+.quick-action-card h3 {
+  z-index: 1;
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  color: inherit;
 }
 
-.action-btn.radio:hover {
-  box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4) !important;
+.quick-action-card p {
+  z-index: 1;
+  font-size: 12px;
+  margin: 0;
+  opacity: 0.9;
+  color: inherit;
 }
 
-.action-btn.marketplace {
-  background: linear-gradient(135deg, #FF6600, #ff8833) !important;
+/* Podcast - Pink/Coral gradient */
+.quick-action-card:nth-child(1) {
+  background: linear-gradient(135deg, #fd79a8, #e84393);
+  color: #ffffff;
+  box-shadow: 0 8px 25px rgba(253, 121, 168, 0.3);
 }
 
-.action-btn.marketplace:hover {
-  box-shadow: 0 6px 20px rgba(255, 102, 0, 0.4) !important;
+.quick-action-card:nth-child(1):hover {
+  box-shadow: 0 15px 40px rgba(253, 121, 168, 0.5);
 }
 
-/* ===== ANALYTICS SECTION - RIGHT COLUMN ===== */
-.overview-tab .analytics-section {
-  order: 2 !important;
-  flex: 1 1 0 !important;
-  min-width: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 20px !important;
+/* Music - Teal/Cyan gradient */
+.quick-action-card:nth-child(2) {
+  background: linear-gradient(135deg, #00b894, #00cec9);
+  color: #0d1117;
+  box-shadow: 0 8px 25px rgba(0, 206, 201, 0.3);
 }
 
+.quick-action-card:nth-child(2):hover {
+  box-shadow: 0 15px 40px rgba(0, 206, 201, 0.5);
+}
+
+/* Radio - Purple gradient */
+.quick-action-card:nth-child(3) {
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  color: #ffffff;
+  box-shadow: 0 8px 25px rgba(108, 92, 231, 0.3);
+}
+
+.quick-action-card:nth-child(3):hover {
+  box-shadow: 0 15px 40px rgba(108, 92, 231, 0.5);
+}
+
+/* Product - Orange gradient */
+.quick-action-card:nth-child(4) {
+  background: linear-gradient(135deg, #FF6600, #ff8833);
+  color: #ffffff;
+  box-shadow: 0 8px 25px rgba(255, 102, 0, 0.3);
+}
+
+.quick-action-card:nth-child(4):hover {
+  box-shadow: 0 15px 40px rgba(255, 102, 0, 0.5);
+}
+
+/* ===== Analytics Charts Grid ===== */
 .charts-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -346,15 +351,13 @@
   height: 250px;
 }
 
-/* ===== Recent Activity Section - FULL WIDTH BOTTOM ===== */
-.overview-tab .recent-activity {
-  order: 3 !important;
-  flex: 0 0 100% !important;
-  width: 100% !important;
+/* ===== Recent Activity Section ===== */
+.recent-activity {
   background: linear-gradient(145deg, #1f2937, #111827);
   padding: 20px;
   border-radius: 12px;
   border: 1px solid #374151;
+  margin-top: 20px;
 }
 
 .recent-activity h2 {
@@ -821,6 +824,16 @@
 }
 
 /* ===== Responsive Design ===== */
+@media (max-width: 1200px) {
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1024px) {
   .dashboard-header {
     flex-direction: column;
@@ -829,54 +842,6 @@
   
   .earnings-overview {
     width: 100%;
-  }
-  
-  /* Stack to single column on tablets */
-  .overview-tab {
-    flex-direction: column !important;
-  }
-  
-  .overview-tab .quick-actions {
-    order: 1 !important;
-    flex: 0 0 auto !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 100% !important;
-  }
-  
-  .action-buttons {
-    display: grid !important;
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 10px !important;
-  }
-  
-  .overview-tab .action-btn {
-    flex-direction: column !important;
-    text-align: center !important;
-    padding: 15px 10px !important;
-    gap: 8px !important;
-  }
-  
-  .action-btn .btn-icon {
-    font-size: 22px;
-  }
-  
-  .action-btn .btn-text {
-    font-size: 11px;
-  }
-  
-  .overview-tab .analytics-section {
-    order: 2 !important;
-    flex: 0 0 auto !important;
-    width: 100% !important;
-  }
-  
-  .overview-tab .recent-activity {
-    order: 3 !important;
-  }
-  
-  .charts-grid {
-    grid-template-columns: 1fr;
   }
   
   .analytics-grid {
@@ -907,8 +872,22 @@
     font-size: 13px;
   }
   
-  .action-buttons {
-    grid-template-columns: repeat(2, 1fr) !important;
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+  
+  .quick-action-card {
+    padding: 25px 15px;
+    min-height: 100px;
+  }
+  
+  .quick-action-card .action-icon {
+    font-size: 28px;
+  }
+  
+  .quick-action-card h3 {
+    font-size: 13px;
   }
   
   .products-grid {
@@ -952,25 +931,22 @@
     padding: 15px;
   }
   
-  .overview-tab .quick-actions {
-    padding: 15px !important;
+  .quick-action-card {
+    padding: 20px 12px;
+    min-height: 90px;
+    gap: 8px;
   }
   
-  .action-buttons {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 8px !important;
-  }
-  
-  .overview-tab .action-btn {
-    padding: 12px 8px !important;
-  }
-  
-  .action-btn .btn-text {
-    display: none;
-  }
-  
-  .action-btn .btn-icon {
+  .quick-action-card .action-icon {
     font-size: 24px;
+  }
+  
+  .quick-action-card h3 {
+    font-size: 12px;
+  }
+  
+  .quick-action-card p {
+    display: none;
   }
   
   .chart-wrapper {
@@ -980,4 +956,23 @@
   .growth-chart .chart-wrapper {
     height: 200px;
   }
+}
+
+/* ===== Scrollbar Styling ===== */
+.creator-dashboard::-webkit-scrollbar {
+  width: 10px;
+}
+
+.creator-dashboard::-webkit-scrollbar-track {
+  background: #0d1117;
+  border-radius: 5px;
+}
+
+.creator-dashboard::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #00ffc8, #00e6b3);
+  border-radius: 5px;
+}
+
+.creator-dashboard::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #00e6b3, #00ffc8);
 }

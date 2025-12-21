@@ -1,5 +1,24 @@
 /* Video Channel Dashboard - Complete Standalone CSS */
-/* StreamPireX Design System Implementation */
+/* StreamPireX Design System - Matching Artist Dashboard Layout */
+/* CRITICAL: Force horizontal quick actions, remove sidebar */
+
+/* ===== FORCE REMOVE ANY FIXED SIDEBAR ===== */
+.video-dashboard-container .quick-actions,
+.video-dashboard-container .quick-actions-section,
+.video-dashboard-container .action-buttons {
+  position: static !important;
+  position: relative !important;
+  right: auto !important;
+  left: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  flex-direction: row !important;
+  z-index: auto !important;
+}
 
 /* ===== Base & Container Styles ===== */
 .video-dashboard-container {
@@ -9,6 +28,9 @@
   min-height: 100vh;
   font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
   color: #e1e4e8;
+  /* Ensure no sidebar spacing */
+  margin-right: 0 !important;
+  padding-right: 30px !important;
 }
 
 /* ===== Loading & Empty States ===== */
@@ -169,7 +191,7 @@
   gap: 15px;
 }
 
-.action-btn {
+.header-btn {
   padding: 12px 24px;
   border: none;
   border-radius: 10px;
@@ -183,24 +205,24 @@
   font-size: 0.95rem;
 }
 
-.action-btn.primary {
+.header-btn.primary {
   background: linear-gradient(135deg, #00ffc8, #00e6b3);
   color: #0d1117;
   box-shadow: 0 4px 15px rgba(0, 255, 200, 0.3);
 }
 
-.action-btn.secondary {
+.header-btn.secondary {
   background: transparent;
   color: #00ffc8;
   border: 2px solid #00ffc8;
 }
 
-.action-btn:hover {
+.header-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 255, 200, 0.4);
 }
 
-.action-btn.secondary:hover {
+.header-btn.secondary:hover {
   background: rgba(0, 255, 200, 0.1);
 }
 
@@ -222,7 +244,7 @@
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 25px;
 }
 
@@ -289,7 +311,6 @@
   font-weight: 700;
   color: #e1e4e8;
   margin-bottom: 5px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .metric-label {
@@ -306,93 +327,196 @@
   font-weight: 600;
 }
 
-/* ===== Quick Actions ===== */
+/* ===== QUICK ACTIONS - Artist Dashboard Style ===== */
+/* FORCED HORIZONTAL LAYOUT - NOT A SIDEBAR */
+.quick-actions-section,
 .quick-actions {
-  margin-bottom: 40px;
+  margin-bottom: 40px !important;
+  position: static !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
 }
 
+.quick-actions-section h3,
 .quick-actions h2 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #00ffc8;
-  margin-bottom: 25px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-shadow: 0 0 10px rgba(0, 255, 200, 0.2);
+  margin: 0 0 20px 0 !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: #00ffc8 !important;
+  text-shadow: 0 0 10px rgba(0, 255, 200, 0.2) !important;
 }
 
+/* Horizontal Grid - 4 columns like Artist Dashboard */
+/* FORCED OVERRIDE OF ANY SIDEBAR STYLING */
+.actions-grid,
 .action-buttons {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 25px !important;
+  position: static !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
 }
 
+/* Base Action Card - Artist Dashboard Style */
+/* FORCED HORIZONTAL CARD STYLING */
+.action-card,
 .action-buttons .action-btn {
-  background: linear-gradient(145deg, #1f2937, #111827);
-  color: #e1e4e8;
-  border: 2px solid #374151;
-  padding: 20px;
-  border-radius: 12px;
-  text-align: center;
-  flex-direction: column;
-  gap: 10px;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 15px !important;
+  padding: 30px 20px !important;
+  border-radius: 15px !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  border: none !important;
+  min-height: 120px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  /* Remove any fixed positioning */
+  right: auto !important;
+  left: auto !important;
+  top: auto !important;
+  bottom: auto !important;
 }
 
+/* Hover effect - expanding circle */
+.action-card:before,
 .action-buttons .action-btn:before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(0, 255, 200, 0.2);
-  transform: translate(-50%, -50%);
-  transition: width 0.5s ease, height 0.5s ease;
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+  transform: translate(-50%, -50%) !important;
+  transition: width 0.5s ease, height 0.5s ease !important;
 }
 
+.action-card:hover:before,
 .action-buttons .action-btn:hover:before {
-  width: 300px;
-  height: 300px;
+  width: 300px !important;
+  height: 300px !important;
 }
 
+.action-card:hover,
 .action-buttons .action-btn:hover {
-  border-color: #00ffc8;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 255, 200, 0.3);
+  transform: translateY(-5px) !important;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4) !important;
+  text-decoration: none !important;
 }
 
-.btn-icon {
-  font-size: 2rem;
-  position: relative;
-  z-index: 1;
+/* Icon styling */
+.action-card .action-icon,
+.action-buttons .action-btn .btn-icon {
+  font-size: 36px !important;
+  z-index: 1 !important;
 }
 
+.action-card .action-label,
 .action-buttons .action-btn span {
-  position: relative;
-  z-index: 1;
-  color: #00ffc8;
-  font-weight: 600;
+  z-index: 1 !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: inherit !important;
 }
 
+/* Upload Video - Pink/Coral gradient (like Artist Dashboard Upload Track) */
+.action-card.upload,
 .action-buttons .action-btn.upload {
-  border-color: #00ffc8;
+  background: linear-gradient(135deg, #fd79a8, #e84393) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 25px rgba(253, 121, 168, 0.3) !important;
+  border: none !important;
 }
 
+.action-card.upload:hover,
+.action-buttons .action-btn.upload:hover {
+  box-shadow: 0 15px 40px rgba(253, 121, 168, 0.5) !important;
+}
+
+/* Go Live - Teal/Cyan gradient (like Artist Dashboard Live Studio) */
+.action-card.live,
+.action-buttons .action-btn.live {
+  background: linear-gradient(135deg, #00b894, #00cec9) !important;
+  color: #0d1117 !important;
+  box-shadow: 0 8px 25px rgba(0, 206, 201, 0.3) !important;
+  border: none !important;
+}
+
+.action-card.live:hover,
+.action-buttons .action-btn.live:hover {
+  box-shadow: 0 15px 40px rgba(0, 206, 201, 0.5) !important;
+}
+
+/* Create Clip - Purple gradient (like Artist Dashboard Music Distribution) */
+.action-card.clip,
 .action-buttons .action-btn.clip {
-  border-color: #FF6600;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 25px rgba(108, 92, 231, 0.3) !important;
+  border: none !important;
 }
 
-.action-buttons .action-btn.analytics {
-  border-color: #3498db;
+.action-card.clip:hover,
+.action-buttons .action-btn.clip:hover {
+  box-shadow: 0 15px 40px rgba(108, 92, 231, 0.5) !important;
 }
 
+/* View Channel - Orange gradient (like Artist Dashboard Create Album) */
+.action-card.channel,
 .action-buttons .action-btn.channel {
-  border-color: #9b59b6;
+  background: linear-gradient(135deg, #FF6600, #ff8833) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 25px rgba(255, 102, 0, 0.3) !important;
+  border: none !important;
+}
+
+.action-card.channel:hover,
+.action-buttons .action-btn.channel:hover {
+  box-shadow: 0 15px 40px rgba(255, 102, 0, 0.5) !important;
+}
+
+/* View Analytics - Blue gradient */
+.action-card.analytics,
+.action-buttons .action-btn.analytics {
+  background: linear-gradient(135deg, #0984e3, #74b9ff) !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 25px rgba(9, 132, 227, 0.3) !important;
+  border: none !important;
+}
+
+.action-card.analytics:hover,
+.action-buttons .action-btn.analytics:hover {
+  box-shadow: 0 15px 40px rgba(9, 132, 227, 0.5) !important;
+}
+
+/* Settings - Green gradient */
+.action-card.settings,
+.action-buttons .action-btn.settings {
+  background: linear-gradient(135deg, #00b894, #55efc4) !important;
+  color: #0d1117 !important;
+  box-shadow: 0 8px 25px rgba(0, 184, 148, 0.3) !important;
+  border: none !important;
+}
+
+.action-card.settings:hover,
+.action-buttons .action-btn.settings:hover {
+  box-shadow: 0 15px 40px rgba(0, 184, 148, 0.5) !important;
 }
 
 /* ===== Analytics Section ===== */
@@ -528,7 +652,7 @@
   opacity: 1;
 }
 
-.action-icon {
+.video-action-icon {
   width: 32px;
   height: 32px;
   background: rgba(0, 255, 200, 0.9);
@@ -543,7 +667,7 @@
   font-size: 0.9rem;
 }
 
-.action-icon:hover {
+.video-action-icon:hover {
   background: #00ffc8;
   transform: scale(1.1);
 }
@@ -621,71 +745,106 @@
   box-shadow: 0 6px 20px rgba(0, 255, 200, 0.4);
 }
 
-/* ===== Recent Activity ===== */
-.recent-activity {
+/* ===== Dashboard Grid (Activity & Events) ===== */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
   margin-bottom: 40px;
 }
 
-.recent-activity h2 {
-  font-size: 1.8rem;
-  font-weight: 700;
+.activity-section,
+.events-section {
+  background: linear-gradient(145deg, #1f2937, #111827);
+  backdrop-filter: blur(20px);
+  border-radius: 15px;
+  padding: 25px;
+  border: 1px solid #374151;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.activity-section h3,
+.events-section h3 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  font-weight: 600;
   color: #00ffc8;
-  margin-bottom: 25px;
   display: flex;
   align-items: center;
   gap: 10px;
-  text-shadow: 0 0 10px rgba(0, 255, 200, 0.2);
 }
 
-.activity-list {
-  background: linear-gradient(145deg, #1f2937, #111827);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  border: 1px solid #374151;
-}
-
-.activity-item {
+.activity-list,
+.events-list {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: 15px;
-  padding: 15px 0;
-  border-bottom: 1px solid #374151;
 }
 
-.activity-item:last-child {
-  border-bottom: none;
-}
-
-.activity-icon {
-  font-size: 1.5rem;
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, #FF6600, #ff8833);
-  border-radius: 50%;
+.activity-item,
+.event-item {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  padding: 15px;
+  background: #0d1117;
+  border-radius: 10px;
+  border-left: 4px solid #00ffc8;
+  transition: all 0.3s ease;
 }
 
-.activity-content {
-  flex: 1;
+.activity-item:hover,
+.event-item:hover {
+  transform: translateX(5px);
+  background: #1f2937;
+  box-shadow: 0 4px 15px rgba(0, 255, 200, 0.2);
 }
 
 .activity-content p {
   margin: 0 0 5px 0;
-  color: #e1e4e8;
-  font-size: 0.95rem;
 }
 
-.activity-content strong {
-  color: #00ffc8;
+.activity-content p:first-child {
+  font-weight: 600;
+  color: #e1e4e8;
+}
+
+.activity-content p:last-child {
+  color: #8b949e;
+  font-size: 14px;
 }
 
 .activity-time {
+  font-size: 13px;
   color: #8b949e;
-  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.event-type {
+  background: linear-gradient(135deg, #FF6600, #ff8833);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.event-details p {
+  margin: 0 0 5px 0;
+}
+
+.event-details p:first-child {
+  font-weight: 600;
+  color: #e1e4e8;
+  font-size: 15px;
+}
+
+.event-details p:last-child {
+  color: #8b949e;
+  font-size: 14px;
 }
 
 /* ===== Growth Tips ===== */
@@ -763,22 +922,6 @@
   font-size: 0.9rem;
 }
 
-/* ===== Animations ===== */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in {
-  animation: fadeIn 0.5s ease;
-}
-
 /* ===== Responsive Design ===== */
 @media (max-width: 1200px) {
   .video-dashboard-container {
@@ -786,7 +929,11 @@
   }
   
   .metrics-grid {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
   
   .charts-grid {
@@ -818,12 +965,26 @@
     grid-template-columns: 1fr;
   }
   
-  .metric-card {
-    padding: 20px;
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
   }
   
-  .action-buttons {
-    grid-template-columns: repeat(2, 1fr);
+  .action-card {
+    padding: 25px 15px;
+    min-height: 100px;
+  }
+  
+  .action-card .action-icon {
+    font-size: 30px;
+  }
+  
+  .action-card .action-label {
+    font-size: 14px;
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
   }
   
   .videos-grid {
@@ -849,8 +1010,23 @@
     padding: 30px 20px;
   }
   
-  .action-buttons {
-    grid-template-columns: 1fr;
+  .actions-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  
+  .action-card {
+    padding: 20px 12px;
+    min-height: 90px;
+    gap: 10px;
+  }
+  
+  .action-card .action-icon {
+    font-size: 26px;
+  }
+  
+  .action-card .action-label {
+    font-size: 13px;
   }
   
   .channel-stats-inline {
@@ -863,7 +1039,7 @@
     width: 100%;
   }
   
-  .action-btn {
+  .header-btn {
     justify-content: center;
     width: 100%;
   }
@@ -898,4 +1074,111 @@
 
 .video-dashboard-container::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to bottom, #00e6b3, #00ffc8);
+}
+
+/* ============================================= */
+/* CRITICAL: FORCE OVERRIDE ANY SIDEBAR STYLING */
+/* These rules MUST be at the end to take priority */
+/* ============================================= */
+
+/* Remove any fixed/absolute positioning from quick actions */
+.video-dashboard-container .quick-actions,
+.video-dashboard-container .quick-actions-section,
+.quick-actions,
+.quick-actions-section {
+  position: static !important;
+  right: unset !important;
+  left: unset !important;
+  top: unset !important;
+  bottom: unset !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: auto !important;
+  z-index: auto !important;
+  display: block !important;
+  margin-bottom: 40px !important;
+}
+
+/* Force action buttons grid to full width */
+.video-dashboard-container .action-buttons,
+.video-dashboard-container .actions-grid,
+.action-buttons,
+.actions-grid {
+  position: static !important;
+  right: unset !important;
+  left: unset !important;
+  top: unset !important;
+  bottom: unset !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: auto !important;
+  z-index: auto !important;
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 25px !important;
+  justify-content: stretch !important;
+  align-items: stretch !important;
+}
+
+/* Ensure all action buttons/cards are horizontal grid items */
+.video-dashboard-container .action-btn,
+.video-dashboard-container .action-card,
+.video-dashboard-container .action-buttons .action-btn,
+.action-buttons .action-btn,
+.action-btn,
+.action-card {
+  position: relative !important;
+  right: unset !important;
+  left: unset !important;
+  top: unset !important;
+  bottom: unset !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 120px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 1 !important;
+}
+
+/* Make sure the container doesn't have right margin for sidebar */
+.video-dashboard-container {
+  margin-right: 0 !important;
+  padding-right: 30px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Responsive overrides */
+@media (max-width: 1200px) {
+  .video-dashboard-container .action-buttons,
+  .video-dashboard-container .actions-grid,
+  .action-buttons,
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .video-dashboard-container .action-buttons,
+  .video-dashboard-container .actions-grid,
+  .action-buttons,
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  
+  .video-dashboard-container .action-btn,
+  .video-dashboard-container .action-card,
+  .action-btn,
+  .action-card {
+    min-height: 90px !important;
+    padding: 15px 10px !important;
+  }
 }
