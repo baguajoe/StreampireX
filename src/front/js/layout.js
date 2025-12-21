@@ -31,6 +31,7 @@ import VideoChannelDashboard from "./pages/VideoChannelDashboard";
 import VideoChannelProfile from "./pages/VideoChannelProfile";
 import MyVideoChannel from "./pages/MyVideoChannel";
 import RadioSchedule from "./pages/RadioSchedule";
+import DiscoverUsersPage from "./pages/DiscoverUsersPage";
 
 import VideoUpload from "./pages/VideoUpload";
 import VideoDetails from "./component/VideoDetails";
@@ -46,7 +47,7 @@ import PricingPlans from "./pages/PricingPlans";
 
 import ArtistDashboard from "./pages/ArtistDashboard";
 import UploadMusic from "./pages/UploadMusic";
-import SearchArtists from "./pages/BrowseProfile";
+import UserSearchProfilePage from "./pages/UserSearchProfilePage";
 
 import NotificationsPage from "./pages/NotificationsPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -134,6 +135,7 @@ const Layout = () => {
               <Route path="/upload-video" element={<VideoUpload />} />
               {/* <Route path="/video-editor" element={<VideoEditor />} /> */}
               <Route path="/video-details/:id" element={<VideoDetails />} />
+             <Route path="/discover-users" element={<DiscoverUsersPage />} />
 
               {/* 📊 Dashboards */}
               <Route path="/creator-dashboard" element={<CreatorDashboard />} />
@@ -172,7 +174,10 @@ const Layout = () => {
               <Route path="/artist-dashboard" element={<ArtistDashboard />} />
               <Route path="/upload-music" element={<UploadMusic />} />
               <Route path="/music-distribution" element={<MusicDistribution />} />
-              <Route path="/search" element={<SearchArtists />} />
+              {/* <Route path="/search" element={<SearchArtists />} /> */}
+              {/* 👤 Public User Profile (for viewing other users) */}
+              <Route path="/user/:userId" element={<UserSearchProfilePage />} />
+              <Route path="/user/u/:username" element={<UserSearchProfilePage />} />
               <Route path="/artist-profile/:id" element={<ArtistProfilePage />} />
 
               {/* 📺 Live Streaming */}

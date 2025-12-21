@@ -7595,6 +7595,67 @@ def get_user_profile():
             "error": f"Failed to retrieve profile: {str(e)}"
         }), 500
 
+# 🔍 Discover Users - Browse/Search Users
+@api.route('/users/discover', methods=['GET'])
+def discover_users():
+    """Browse and search users"""
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+        search = request.args.get('search', '').strip()
+        profile_type = request.args.get('profile_type', '').strip()
+        
+        query = User.query
+        
+        # Search filter
+        if search:
+            query = query.filter(
+                or_(
+                    User.username.ilike(f'%{search}%'),
+                    User.display_name.ilike(f'%{search}%')
+                )
+            )
+        
+        # Profile type filter
+        if profile_type and profile_type != 'all':
+            if profile_type == 'creator':
+                query = query.filter(User.profile_type.in_(['creator', 'multiple']))
+            else:
+                query = query.filter(User.profile_type == profile_type)
+        
+        # Order by followers or recent
+        query = query.order_by(User.created_at.desc())
+        
+        # Paginate
+        paginated = query.paginate(page=page, per_page=per_page, error_out=False)
+        
+        users_data = []
+        for user in paginated.items:
+            followers_count = Follow.query.filter_by(following_id=user.id).count() if hasattr(Follow, 'query') else 0
+            
+            users_data.append({
+                "id": user.id,
+                "username": user.username,
+                "display_name": getattr(user, 'display_name', None) or user.username,
+                "profile_type": getattr(user, 'profile_type', 'regular'),
+                "bio": getattr(user, 'bio', None),
+                "profile_picture": getattr(user, 'profile_picture', None) or getattr(user, 'avatar_url', None),
+                "followers_count": followers_count,
+                "is_verified": getattr(user, 'is_verified', False)
+            })
+        
+        return jsonify({
+            "users": users_data,
+            "total": paginated.total,
+            "page": page,
+            "pages": paginated.pages,
+            "has_more": paginated.has_next
+        }), 200
+        
+    except Exception as e:
+        print(f"Error discovering users: {e}")
+        return jsonify({"users": [], "total": 0}), 200
+
 # Add these endpoints to your routes.py file
 
 # Add this endpoint to your routes.py file
@@ -8787,7 +8848,7 @@ def get_artist_profile(user_id):
     user = User.query.get(user_id)
     if not user or not user.is_artist:
         return jsonify({"error": "Artist profile not found"}), 404
-    return jsonify(user.serialize()), 200
+    return jsonify(user.serialize_artist()), 200
 
 # Update Artist Profile
 # Update Artist Profile - Add error handling

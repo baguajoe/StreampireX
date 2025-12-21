@@ -131,10 +131,13 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/content-library" className={isActive("/content-library") ? "active" : ""}>
         📚 Content Library
       </MenuItem>
+      <MenuItem to="/discover-users" className={isActive("/discover-users") ? "active" : ""}>
+        🔍 Discover Users
+      </MenuItem>
 
       {/* Profile Sub-section */}
       <div style={{ marginLeft: '10px', borderLeft: '2px solid #ffa726', paddingLeft: '5px' }}>
-        <ProfileMenuItem to="/profile" className={isActive("/profile") && !isActive("/profile/gamer") && !isActive("/profile/artist") ? "active" : ""}>
+        <ProfileMenuItem to="/profile" className={isActive("/profile") && !isActive("/profile/gamer") && !isActive("/profile/artist") && !isActive("/profile/video") ? "active" : ""}>
           👤 Regular Profile
         </ProfileMenuItem>
         <ProfileMenuItem to="/profile/gamer" className={isActive("/profile/gamer") ? "active" : ""}>
@@ -173,10 +176,7 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/label-dashboard" className={isActive("/label-dashboard") ? "active" : ""}>
         🏢 Label Dashboard
       </MenuItem>
-      <MenuItem to="/sellar-dashboard" className={isActive("/sellar-dashboard") ? "active" : ""}>
-        🏢 Seller Dashboard
-      </MenuItem>
-
+      
       <SectionHeader>🎤 Indie Artists</SectionHeader>
       <MenuItem to="/music-distribution" className={isActive("/music-distribution") ? "active" : ""}>
         🌍 Music Distribution
