@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { Context } from "../store/appContext";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import UploadTrackModal from "../component/UploadTrackModal";
 import "../../styles/ArtistProfile.css";
 
@@ -105,7 +105,7 @@ const ArtistProfilePage = () => {
   useEffect(() => {
     fetchArtistData();
   }, []);
-
+  const {id}=useParams()
   const fetchArtistData = async () => {
     try {
       setLoading(true);
@@ -122,7 +122,7 @@ const ArtistProfilePage = () => {
 
       // 1. Fetch user profile data
       try {
-        const profileRes = await fetch(`${BACKEND_URL}/api/user/profile`, {
+        const profileRes = await fetch(`${BACKEND_URL}/api/profile/artist/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 

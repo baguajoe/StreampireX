@@ -236,6 +236,25 @@ class User(db.Model):
                                               foreign_keys="FriendRequest.receiver_id", 
                                               back_populates="receiver")
     
+    def serialize_artist(self):
+
+        return {
+                  # 🎵 ARTIST FIELDS
+            "is_artist": self.is_artist,
+            "artist_bio": self.artist_bio,
+            "artist_genre": self.artist_genre,
+            "artist_location": self.artist_location,
+            "artist_website": self.artist_website,
+            "artist_social_links": self.artist_social_links or {},
+            "is_verified_artist": self.is_verified_artist,
+            "monthly_listeners": self.monthly_listeners,
+            "total_plays": self.total_plays,
+            "id": self.id,
+            "username": self.username,
+            "artist_name": self.artist_name
+
+        }
+
     def serialize(self):
         return {
             "id": self.id,
@@ -289,17 +308,6 @@ class User(db.Model):
             "last_seen": self.last_seen.strftime("%Y-%m-%d %H:%M:%S") if self.last_seen else None,
             "current_game_activity": self.current_game_activity,
             
-            # 🎵 ARTIST FIELDS
-            "is_artist": self.is_artist,
-            "artist_bio": self.artist_bio,
-            "artist_genre": self.artist_genre,
-            "artist_location": self.artist_location,
-            "artist_website": self.artist_website,
-            "artist_social_links": self.artist_social_links or {},
-            "is_verified_artist": self.is_verified_artist,
-            "monthly_listeners": self.monthly_listeners,
-            "total_plays": self.total_plays,
-
             #steam
 
             "steam_id": self.steam_id,
