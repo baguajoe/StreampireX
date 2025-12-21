@@ -245,31 +245,32 @@ const RadioStationDashboard = () => {
                     </div>
                   </div>
 
+                  {/* RENAMED: station-action-btn instead of action-btn */}
                   <div className="station-actions">
                     <Link 
                       to={`/radio/station/${station.id}/station`} 
-                      className="action-btn view"
+                      className="station-action-btn view"
                       title="View Station"
                     >
                       👁️ View
                     </Link>
                     <Link 
                       to={`/radio/${station.id}/schedule`} 
-                      className="action-btn schedule"
+                      className="station-action-btn schedule"
                       title="Manage Schedule"
                     >
                       📅 Schedule
                     </Link>
                     <button
                       onClick={() => handleToggleLive(station.id, station.is_live)}
-                      className={`action-btn ${station.is_live ? 'stop' : 'start'}`}
+                      className={`station-action-btn ${station.is_live ? 'stop' : 'start'}`}
                       title={station.is_live ? 'Stop Broadcast' : 'Start Broadcast'}
                     >
                       {station.is_live ? '⏹️ Stop' : '▶️ Start'}
                     </button>
                     <button
                       onClick={() => handleDeleteStation(station.id)}
-                      className="action-btn delete"
+                      className="station-action-btn delete"
                       title="Delete Station"
                     >
                       🗑️ Delete

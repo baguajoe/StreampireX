@@ -59,7 +59,7 @@ const ArtistDashboard = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // ========== AUDIO PLAYBACK STATE (ADDED) ==========
+  // Audio playback state
   const audioRef = useRef(new Audio());
   const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -83,22 +83,19 @@ const ArtistDashboard = () => {
     fetchGenres();
   }, []);
 
-  // ========== CLEANUP AUDIO ON UNMOUNT (ADDED) ==========
+  // Cleanup audio on unmount
   useEffect(() => {
     const audio = audioRef.current;
     
-    // Handle audio ending
     const handleEnded = () => {
       setCurrentlyPlaying(null);
       setIsPlaying(false);
     };
 
-    // Handle audio pause
     const handlePause = () => {
       setIsPlaying(false);
     };
 
-    // Handle audio play
     const handlePlay = () => {
       setIsPlaying(true);
     };
@@ -167,11 +164,10 @@ const ArtistDashboard = () => {
     }
   };
 
-  // ========== AUDIO PLAYBACK HANDLER (ADDED) ==========
+  // Audio playback handler
   const handlePlayTrack = (track) => {
     const audio = audioRef.current;
 
-    // If clicking the same track that's playing, pause it
     if (currentlyPlaying?.id === track.id && !audio.paused) {
       audio.pause();
       setCurrentlyPlaying(null);
@@ -179,23 +175,19 @@ const ArtistDashboard = () => {
       return;
     }
 
-    // If there's a different track playing, stop it
     if (currentlyPlaying?.id !== track.id) {
       audio.pause();
       audio.currentTime = 0;
     }
 
-    // Get the audio URL - check multiple possible field names
     const audioUrl = track.audio_url || track.file_url || track.url || track.audioUrl;
 
-    // Play the new track
     if (audioUrl) {
       audio.src = audioUrl;
       audio.play()
         .then(() => {
           setCurrentlyPlaying(track);
           setIsPlaying(true);
-          // Optionally increment play count
           incrementPlayCount(track.id);
         })
         .catch(err => {
@@ -207,7 +199,7 @@ const ArtistDashboard = () => {
     }
   };
 
-  // ========== INCREMENT PLAY COUNT (ADDED) ==========
+  // Increment play count
   const incrementPlayCount = async (trackId) => {
     try {
       const token = localStorage.getItem("token");
@@ -219,7 +211,6 @@ const ArtistDashboard = () => {
         }
       });
 
-      // Update local state
       setTracks(prevTracks =>
         prevTracks.map(track =>
           track.id === trackId
@@ -260,7 +251,7 @@ const ArtistDashboard = () => {
         setGenre('');
         setAudioFile(null);
         setExplicit(false);
-        fetchArtistData(); // Refresh data
+        fetchArtistData();
         alert("Track uploaded successfully!");
       } else {
         setErrorMessage(data.error || "Upload failed.");
@@ -270,7 +261,7 @@ const ArtistDashboard = () => {
     }
   };
 
-  // ========== DELETE TRACK HANDLER (ADDED) ==========
+  // Delete track handler
   const handleDeleteTrack = async (trackId) => {
     if (!window.confirm("Are you sure you want to delete this track?")) return;
 
@@ -282,13 +273,11 @@ const ArtistDashboard = () => {
       });
 
       if (res.ok) {
-        // Stop playing if this track is currently playing
         if (currentlyPlaying?.id === trackId) {
           audioRef.current.pause();
           setCurrentlyPlaying(null);
           setIsPlaying(false);
         }
-        // Remove from local state
         setTracks(prevTracks => prevTracks.filter(t => t.id !== trackId));
       } else {
         setErrorMessage("Failed to delete track");
@@ -348,42 +337,7 @@ const ArtistDashboard = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="quick-actions-section">
-        <h3>Quick Actions</h3>
-        <div className="actions-grid">
-          <button
-            className="action-card upload"
-            onClick={() => setActiveTab('upload')}
-          >
-            <FaUpload />
-            <span>Upload Track</span>
-          </button>
-
-          <button
-            className="action-card studio"
-            onClick={() => setStudioOpen(true)}
-          >
-            <FaBroadcastTower />
-            <span>Live Studio</span>
-          </button>
-
-          <Link to="/upload-music" className="action-card distribute">
-            <FaGuitar />
-            <span>Music Distribution</span>
-          </Link>
-
-          <button
-            className="action-card album"
-            onClick={() => setShowAlbumCreator(true)}
-          >
-            <FaMusic />
-            <span>Create Album</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Recent Activity & Upcoming Events */}
+      {/* Recent Activity & Upcoming Events - IN THE MIDDLE */}
       <div className="dashboard-grid">
         <div className="activity-section">
           <h3><FaChartLine /> Recent Activity</h3>
@@ -413,6 +367,45 @@ const ArtistDashboard = () => {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Quick Actions - AT THE BOTTOM */}
+      <div className="quick-actions-section">
+        <h3>Quick Actions</h3>
+        <div className="quick-actions-grid">
+          <button
+            className="quick-action-card"
+            onClick={() => setActiveTab('upload')}
+          >
+            <div className="action-icon">⬆️</div>
+            <h4>Upload Track</h4>
+            <p>Share your music</p>
+          </button>
+
+          <button
+            className="quick-action-card"
+            onClick={() => setStudioOpen(true)}
+          >
+            <div className="action-icon">📡</div>
+            <h4>Live Studio</h4>
+            <p>Start broadcasting</p>
+          </button>
+
+          <Link to="/upload-music" className="quick-action-card">
+            <div className="action-icon">🎸</div>
+            <h4>Music Distribution</h4>
+            <p>Distribute globally</p>
+          </Link>
+
+          <button
+            className="quick-action-card"
+            onClick={() => setShowAlbumCreator(true)}
+          >
+            <div className="action-icon">💿</div>
+            <h4>Create Album</h4>
+            <p>Bundle your tracks</p>
+          </button>
         </div>
       </div>
     </div>
@@ -470,7 +463,6 @@ const ArtistDashboard = () => {
                   alt={track.title}
                 />
                 <div className="track-overlay">
-                  {/* ========== FIXED PLAY BUTTON (ADDED onClick) ========== */}
                   <button 
                     className="play-btn"
                     onClick={() => handlePlayTrack(track)}

@@ -56,7 +56,7 @@ const PodcastDashboard = () => {
           totalPodcasts: data.length,
           totalEpisodes: totalEpisodes,
           totalListeners: totalListeners,
-          monthlyRevenue: 0 // You can calculate this from your data
+          monthlyRevenue: 0
         });
       } else if (podcastsResponse.status === 401) {
         showToast.error("Session expired. Please log in again.");
@@ -93,9 +93,7 @@ const PodcastDashboard = () => {
 
       if (response.ok) {
         showToast.success("Podcast deleted successfully!", { id: toastId });
-        // Remove from local state
         setPodcasts(podcasts.filter(p => p.id !== podcastId));
-        // Update stats
         setStats(prev => ({
           ...prev,
           totalPodcasts: prev.totalPodcasts - 1
@@ -129,7 +127,6 @@ const PodcastDashboard = () => {
 
       if (response.ok) {
         showToast.success(`Podcast ${newStatus === "published" ? "published" : "unpublished"} successfully!`, { id: toastId });
-        // Update local state
         setPodcasts(podcasts.map(p => 
           p.id === podcastId ? { ...p, status: newStatus } : p
         ));
@@ -234,31 +231,32 @@ const PodcastDashboard = () => {
                     </div>
                   </div>
 
+                  {/* RENAMED: podcast-action-btn instead of action-btn */}
                   <div className="podcast-actions">
                     <Link 
                       to={`/podcast/${podcast.id}`} 
-                      className="action-btn view"
+                      className="podcast-action-btn view"
                       title="View Podcast"
                     >
                       👁️ View
                     </Link>
                     <Link 
                       to={`/podcast/${podcast.id}/edit`} 
-                      className="action-btn edit"
+                      className="podcast-action-btn edit"
                       title="Edit Podcast"
                     >
                       ✏️ Edit
                     </Link>
                     <button
                       onClick={() => handlePublishToggle(podcast.id, podcast.status)}
-                      className={`action-btn ${podcast.status === 'published' ? 'unpublish' : 'publish'}`}
+                      className={`podcast-action-btn ${podcast.status === 'published' ? 'unpublish' : 'publish'}`}
                       title={podcast.status === 'published' ? 'Unpublish' : 'Publish'}
                     >
                       {podcast.status === 'published' ? '📴 Unpublish' : '🚀 Publish'}
                     </button>
                     <button
                       onClick={() => handleDeletePodcast(podcast.id)}
-                      className="action-btn delete"
+                      className="podcast-action-btn delete"
                       title="Delete Podcast"
                     >
                       🗑️ Delete

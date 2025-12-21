@@ -1,4 +1,4 @@
-// src/front/js/pages/CreatorDashboard.js - Two Column Layout with Left Sidebar
+// src/front/js/pages/CreatorDashboard.js - Two Column Layout with Bottom Quick Actions
 import React, { useEffect, useState } from "react";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Line, Doughnut } from 'react-chartjs-2';
@@ -65,6 +65,15 @@ const CreatorDashboard = () => {
         if (productsRes.ok) {
           const productsData = await productsRes.json();
           setMyProducts(productsData.products || []);
+        }
+
+        // Fetch recent activity
+        const activityRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/recent-activity`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (activityRes.ok) {
+          const activityData = await activityRes.json();
+          setRecentActivity(activityData.activities || []);
         }
 
       } catch (error) {
@@ -224,125 +233,15 @@ const CreatorDashboard = () => {
 
       {/* Main Content */}
       <div className="dashboard-content">
-        {/* Overview Tab - Two Column Layout */}
+        {/* Overview Tab - Charts First, Quick Actions at Bottom */}
         {activeTab === 'overview' && (
-          <div className="overview-tab" style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '20px',
-            alignItems: 'flex-start'
-          }}>
-            {/* LEFT COLUMN - Quick Actions */}
-            <section style={{
-              order: 1,
-              flex: '0 0 160px',
-              width: '160px',
-              position: 'static',
-              alignSelf: 'stretch',
-              background: 'linear-gradient(145deg, #1f2937, #111827)',
-              padding: '15px',
-              borderRadius: '12px',
-              border: '1px solid #374151',
-              marginTop: '0'
-            }}>
-              <div style={{
-                marginBottom: '12px',
-                paddingBottom: '10px',
-                borderBottom: '2px solid #374151'
-              }}>
-                <h2 style={{ fontSize: '14px', color: '#00ffc8', margin: 0, fontWeight: 600 }}>Quick Actions</h2>
-              </div>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
-                <Link to="/podcast-create" style={{ 
-                  display: 'block',
-                  padding: '8px 10px',
-                  borderRadius: '8px',
-                  background: 'linear-gradient(135deg, #fd79a8, #e84393)',
-                  color: '#0d1117',
-                  textDecoration: 'none',
-                  fontWeight: 600,
-                  fontSize: '12px',
-                  width: '100%',
-                  boxSizing: 'border-box'
-                }}>
-                  🎙️ Podcast
-                </Link>
-                <Link to="/upload-music" style={{ 
-                  display: 'block',
-                  padding: '8px 10px',
-                  borderRadius: '8px',
-                  background: 'linear-gradient(135deg, #00b894, #00cec9)',
-                  color: '#0d1117',
-                  textDecoration: 'none',
-                  fontWeight: 600,
-                  fontSize: '12px',
-                  width: '100%',
-                  boxSizing: 'border-box'
-                }}>
-                  🎵 Music
-                </Link>
-                <Link to="/create-radio" style={{ 
-                  display: 'block',
-                  padding: '8px 10px',
-                  borderRadius: '8px',
-                  background: 'linear-gradient(135deg, #6c5ce7, #a29bfe)',
-                  color: '#0d1117',
-                  textDecoration: 'none',
-                  fontWeight: 600,
-                  fontSize: '12px',
-                  width: '100%',
-                  boxSizing: 'border-box'
-                }}>
-                  📻 Radio
-                </Link>
-                <button 
-                  onClick={() => setActiveTab('upload')}
-                  style={{ 
-                    display: 'block',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #FF6600, #ff8833)',
-                    color: '#0d1117',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    fontSize: '12px',
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    textAlign: 'left'
-                  }}
-                >
-                  🛍️ Product
-                </button>
-              </div>
-            </section>
-
-            {/* RIGHT COLUMN - Analytics Charts */}
-            <section style={{
-              order: 2,
-              flex: '1 1 0',
-              minWidth: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '20px'
-            }}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '20px'
-              }}>
-                <div style={{
-                  background: 'linear-gradient(145deg, #1f2937, #111827)',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '1px solid #374151'
-                }}>
-                  <h3 style={{ color: '#00ffc8', fontSize: '16px', margin: '0 0 15px 0', fontWeight: 600 }}>Social Media Shares</h3>
-                  <div style={{ height: '220px', position: 'relative' }}>
+          <div className="overview-tab">
+            {/* Analytics Charts Section */}
+            <section className="analytics-section">
+              <div className="charts-grid">
+                <div className="chart-container">
+                  <h3>Social Media Shares</h3>
+                  <div className="chart-wrapper">
                     <Doughnut 
                       data={shareBreakdownData} 
                       options={{ 
@@ -359,14 +258,9 @@ const CreatorDashboard = () => {
                   </div>
                 </div>
 
-                <div style={{
-                  background: 'linear-gradient(145deg, #1f2937, #111827)',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '1px solid #374151'
-                }}>
-                  <h3 style={{ color: '#00ffc8', fontSize: '16px', margin: '0 0 15px 0', fontWeight: 600 }}>Content Breakdown</h3>
-                  <div style={{ height: '220px', position: 'relative' }}>
+                <div className="chart-container">
+                  <h3>Content Breakdown</h3>
+                  <div className="chart-wrapper">
                     <Doughnut 
                       data={contentBreakdownData} 
                       options={{ 
@@ -384,14 +278,9 @@ const CreatorDashboard = () => {
                 </div>
               </div>
 
-              <div style={{
-                background: 'linear-gradient(145deg, #1f2937, #111827)',
-                padding: '20px',
-                borderRadius: '12px',
-                border: '1px solid #374151'
-              }}>
-                <h3 style={{ color: '#00ffc8', fontSize: '16px', margin: '0 0 15px 0', fontWeight: 600 }}>Monthly Growth Trend</h3>
-                <div style={{ height: '220px', position: 'relative' }}>
+              <div className="growth-chart">
+                <h3>Monthly Growth Trend</h3>
+                <div className="chart-wrapper">
                   <Line 
                     data={monthlyGrowthData} 
                     options={{ 
@@ -417,7 +306,7 @@ const CreatorDashboard = () => {
               </div>
             </section>
 
-            {/* FULL WIDTH - Recent Activity */}
+            {/* Recent Activity Section */}
             <section className="recent-activity">
               <h2>Recent Activity</h2>
               <div className="activity-list">
@@ -434,6 +323,39 @@ const CreatorDashboard = () => {
                     <p>🎬 No recent activity. Start creating content!</p>
                   </div>
                 )}
+              </div>
+            </section>
+
+            {/* Quick Actions - AT THE BOTTOM */}
+            <section className="quick-actions-section">
+              <h2>Quick Actions</h2>
+              <div className="quick-actions-grid">
+                <Link to="/podcast-create" className="quick-action-card">
+                  <div className="action-icon">🎙️</div>
+                  <h3>Create Podcast</h3>
+                  <p>Start a new show</p>
+                </Link>
+
+                <Link to="/upload-music" className="quick-action-card">
+                  <div className="action-icon">🎵</div>
+                  <h3>Upload Music</h3>
+                  <p>Share your tracks</p>
+                </Link>
+
+                <Link to="/create-radio" className="quick-action-card">
+                  <div className="action-icon">📻</div>
+                  <h3>Create Radio</h3>
+                  <p>Start broadcasting</p>
+                </Link>
+
+                <button 
+                  onClick={() => setActiveTab('upload')}
+                  className="quick-action-card"
+                >
+                  <div className="action-icon">🛍️</div>
+                  <h3>Sell Product</h3>
+                  <p>Upload to marketplace</p>
+                </button>
               </div>
             </section>
           </div>

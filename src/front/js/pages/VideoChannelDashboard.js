@@ -112,7 +112,7 @@ const VideoChannelDashboard = () => {
           totalComments,
           totalVideos: data.length
         }));
-        setLoading(false)
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error fetching videos:', error);
@@ -224,8 +224,8 @@ const VideoChannelDashboard = () => {
       {
         label: 'Monthly Views',
         data: analytics.monthlyViews || [],
-        borderColor: '#667eea',
-        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+        borderColor: '#00ffc8',
+        backgroundColor: 'rgba(0, 255, 200, 0.1)',
         tension: 0.4,
         fill: true
       }
@@ -238,8 +238,8 @@ const VideoChannelDashboard = () => {
       {
         label: 'Subscribers',
         data: analytics.monthlySubscribers || [],
-        borderColor: '#48bb78',
-        backgroundColor: 'rgba(72, 187, 120, 0.1)',
+        borderColor: '#00ffc8',
+        backgroundColor: 'rgba(0, 255, 200, 0.1)',
         tension: 0.4,
         fill: true
       }
@@ -247,12 +247,14 @@ const VideoChannelDashboard = () => {
   };
 
   const categoryChartData = {
-    labels: Object.keys(analytics.viewsByCategory || {}),
+    labels: Object.keys(analytics.viewsByCategory || { 'Gaming': 30, 'Music': 25, 'Vlogs': 20, 'Tutorials': 15, 'Other': 10 }),
     datasets: [
       {
-        data: Object.values(analytics.viewsByCategory || {}),
-        backgroundColor: ['#667eea', '#48bb78', '#ed8936', '#9f7aea'],
-        hoverBackgroundColor: ['#5a67d8', '#38a169', '#dd6b20', '#805ad5']
+        data: Object.values(analytics.viewsByCategory || { 'Gaming': 30, 'Music': 25, 'Vlogs': 20, 'Tutorials': 15, 'Other': 10 }),
+        backgroundColor: ['#00ffc8', '#FF6600', '#6c5ce7', '#0984e3', '#fd79a8'],
+        hoverBackgroundColor: ['#00e6b3', '#ff8833', '#a29bfe', '#74b9ff', '#fab1a0'],
+        borderColor: '#0d1117',
+        borderWidth: 3
       }
     ]
   };
@@ -262,12 +264,29 @@ const VideoChannelDashboard = () => {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'bottom'
+        position: 'bottom',
+        labels: {
+          color: '#8b949e'
+        }
       }
     },
     scales: {
+      x: {
+        grid: {
+          color: 'rgba(255, 255, 255, 0.1)'
+        },
+        ticks: {
+          color: '#8b949e'
+        }
+      },
       y: {
-        beginAtZero: true
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(255, 255, 255, 0.1)'
+        },
+        ticks: {
+          color: '#8b949e'
+        }
       }
     }
   };
@@ -388,21 +407,21 @@ const VideoChannelDashboard = () => {
         </div>
       </section>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - Artist Dashboard Style with Colorful Gradients */}
       <section className="quick-actions">
-        <h2>⚡ Quick Actions</h2>
+        <h2>Quick Actions</h2>
         <div className="action-buttons">
           <Link to="/upload-video" className="action-btn upload">
             <span className="btn-icon">📤</span>
             <span>Upload Video</span>
           </Link>
+          <Link to="/go-live" className="action-btn live">
+            <span className="btn-icon">🎥</span>
+            <span>Go Live</span>
+          </Link>
           <Link to="/create-clip" className="action-btn clip">
             <span className="btn-icon">✂️</span>
             <span>Create Clip</span>
-          </Link>
-          <Link to="/video-analytics" className="action-btn analytics">
-            <span className="btn-icon">📊</span>
-            <span>View Analytics</span>
           </Link>
           <Link to="/my-channel" className="action-btn channel">
             <span className="btn-icon">📹</span>
@@ -431,7 +450,12 @@ const VideoChannelDashboard = () => {
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } }
+                plugins: { 
+                  legend: { 
+                    position: 'bottom',
+                    labels: { color: '#8b949e' }
+                  } 
+                }
               }}
             />
           </div>

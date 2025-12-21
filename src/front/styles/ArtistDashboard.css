@@ -256,7 +256,7 @@
 /* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 25px;
 }
 
@@ -338,9 +338,10 @@
   color: #00ffc8;
 }
 
-/* ===== Quick Actions Section ===== */
+/* ===== QUICK ACTIONS SECTION - HORIZONTAL COLORFUL GRID ===== */
 .quick-actions-section {
   margin-top: 20px;
+  margin-bottom: 30px;
 }
 
 .quick-actions-section h3 {
@@ -351,32 +352,37 @@
   text-shadow: 0 0 10px rgba(0, 255, 200, 0.2);
 }
 
-.actions-grid {
+/* Horizontal 4-column grid */
+.quick-actions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  width: 100%;
 }
 
-.action-card {
+/* Base quick action card - colorful gradient style */
+.quick-action-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
-  padding: 25px 20px;
-  background: linear-gradient(145deg, #1f2937, #111827);
-  border: 2px solid #374151;
+  justify-content: center;
+  gap: 12px;
+  padding: 30px 20px;
   border-radius: 15px;
   text-decoration: none;
-  color: #e1e4e8;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 600;
-  font-size: 15px;
   position: relative;
   overflow: hidden;
+  border: none;
+  min-height: 120px;
+  text-align: center;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
-.action-card:before {
+/* Hover effect - expanding circle */
+.quick-action-card:before {
   content: '';
   position: absolute;
   top: 50%;
@@ -384,54 +390,86 @@
   width: 0;
   height: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   transform: translate(-50%, -50%);
   transition: width 0.5s ease, height 0.5s ease;
 }
 
-.action-card:hover:before {
+.quick-action-card:hover:before {
   width: 300px;
   height: 300px;
 }
 
-.action-card:hover {
+.quick-action-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  color: #ffffff;
   text-decoration: none;
 }
 
-.action-card svg {
-  font-size: 32px;
+/* Icon styling */
+.quick-action-card .action-icon {
+  font-size: 36px;
   z-index: 1;
+  color: inherit;
 }
 
-.action-card span {
+.quick-action-card h4 {
   z-index: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: inherit;
+  margin: 0;
 }
 
-.action-card.upload {
-  background: linear-gradient(135deg, #fd79a8, #fdcb6e);
-  border-color: rgba(253, 121, 168, 0.3);
-  color: #0d1117;
+.quick-action-card p {
+  z-index: 1;
+  font-size: 12px;
+  margin: 0;
+  opacity: 0.9;
+  color: inherit;
 }
 
-.action-card.studio {
+/* Upload Track - Pink/Coral gradient (1st card) */
+.quick-action-card:nth-child(1) {
+  background: linear-gradient(135deg, #fd79a8, #e84393);
+  color: #ffffff;
+  box-shadow: 0 8px 25px rgba(253, 121, 168, 0.3);
+}
+
+.quick-action-card:nth-child(1):hover {
+  box-shadow: 0 15px 40px rgba(253, 121, 168, 0.5);
+}
+
+/* Live Studio - Teal/Cyan gradient (2nd card) */
+.quick-action-card:nth-child(2) {
   background: linear-gradient(135deg, #00b894, #00cec9);
-  border-color: rgba(0, 206, 201, 0.3);
   color: #0d1117;
+  box-shadow: 0 8px 25px rgba(0, 206, 201, 0.3);
 }
 
-.action-card.distribute {
+.quick-action-card:nth-child(2):hover {
+  box-shadow: 0 15px 40px rgba(0, 206, 201, 0.5);
+}
+
+/* Music Distribution - Purple gradient (3rd card) */
+.quick-action-card:nth-child(3) {
   background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-  border-color: rgba(108, 92, 231, 0.3);
   color: #ffffff;
+  box-shadow: 0 8px 25px rgba(108, 92, 231, 0.3);
 }
 
-.action-card.album {
+.quick-action-card:nth-child(3):hover {
+  box-shadow: 0 15px 40px rgba(108, 92, 231, 0.5);
+}
+
+/* Create Album - Orange gradient (4th card) */
+.quick-action-card:nth-child(4) {
   background: linear-gradient(135deg, #FF6600, #ff8833);
-  border-color: rgba(255, 102, 0, 0.3);
   color: #ffffff;
+  box-shadow: 0 8px 25px rgba(255, 102, 0, 0.3);
+}
+
+.quick-action-card:nth-child(4):hover {
+  box-shadow: 0 15px 40px rgba(255, 102, 0, 0.5);
 }
 
 /* ===== Dashboard Grid (Activity & Events) ===== */
@@ -529,6 +567,53 @@
 .event-details p:last-child {
   color: #8b949e;
   font-size: 14px;
+}
+
+/* ===== Now Playing Banner ===== */
+.now-playing-banner {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px 20px;
+  background: linear-gradient(135deg, #1f2937, #111827);
+  border-radius: 12px;
+  border: 2px solid #00ffc8;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0, 255, 200, 0.2);
+}
+
+.now-playing-icon {
+  color: #00ffc8;
+  font-size: 24px;
+  animation: pulse 1.5s infinite;
+}
+
+.now-playing-banner span {
+  flex: 1;
+  color: #e1e4e8;
+  font-size: 15px;
+}
+
+.now-playing-banner strong {
+  color: #00ffc8;
+}
+
+.stop-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(255, 107, 107, 0.2);
+  color: #ff6b6b;
+  border: 1px solid #ff6b6b;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.stop-btn:hover {
+  background: rgba(255, 107, 107, 0.3);
 }
 
 /* ===== Tracks Content ===== */
@@ -991,6 +1076,16 @@
 }
 
 /* ===== Responsive Design ===== */
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 1024px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
@@ -1042,12 +1137,26 @@
   }
   
   .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 15px;
   }
   
-  .actions-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  .quick-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+  
+  .quick-action-card {
+    padding: 25px 15px;
+    min-height: 100px;
+  }
+  
+  .quick-action-card .action-icon {
+    font-size: 28px;
+  }
+  
+  .quick-action-card h4 {
+    font-size: 13px;
   }
   
   .tracks-header {
@@ -1107,8 +1216,22 @@
     font-size: 24px;
   }
   
-  .action-card {
-    padding: 20px 15px;
+  .quick-action-card {
+    padding: 20px 12px;
+    min-height: 90px;
+    gap: 8px;
+  }
+  
+  .quick-action-card .action-icon {
+    font-size: 24px;
+  }
+  
+  .quick-action-card h4 {
+    font-size: 12px;
+  }
+  
+  .quick-action-card p {
+    display: none;
   }
   
   .dashboard-grid {
