@@ -113,7 +113,7 @@ const DiscoverUsersPage = () => {
     try {
       setLoading(true);
       const currentPage = resetPage ? 1 : page;
-      
+
       const params = new URLSearchParams({
         page: currentPage,
         per_page: 20,
@@ -122,7 +122,8 @@ const DiscoverUsersPage = () => {
       });
 
       const token = localStorage.getItem("token");
-      const response = await fetch(`/api/users/discover?${params}`, {
+      const BACKEND_URL = "https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev";
+      const response = await fetch(`${BACKEND_URL}/api/users/discover?${params}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
 
@@ -131,14 +132,14 @@ const DiscoverUsersPage = () => {
       }
 
       const data = await response.json();
-      
+
       if (resetPage) {
         setUsers(data.users || []);
         setPage(1);
       } else {
         setUsers(prev => currentPage === 1 ? data.users : [...prev, ...(data.users || [])]);
       }
-      
+
       setTotalUsers(data.total || data.users?.length || 0);
       setHasMore(data.has_more || (data.users?.length === 20));
       setError(null);
@@ -188,7 +189,7 @@ const DiscoverUsersPage = () => {
     switch (type) {
       case "artist": return { icon: "🎵", label: "Artist", color: "#9c27b0" };
       case "gamer": return { icon: "🎮", label: "Gamer", color: "#4a9eff" };
-      case "creator": 
+      case "creator":
       case "multiple": return { icon: "⭐", label: "Creator", color: "#FF6600" };
       default: return { icon: "👤", label: "Member", color: "#00ffc8" };
     }
@@ -281,8 +282,8 @@ const DiscoverUsersPage = () => {
                 <div className="user-card-header">
                   <div className="user-avatar">
                     {user.profile_picture || user.avatar_url ? (
-                      <img 
-                        src={user.profile_picture || user.avatar_url} 
+                      <img
+                        src={user.profile_picture || user.avatar_url}
                         alt={user.display_name || user.username}
                         onError={(e) => { e.target.style.display = 'none'; }}
                       />
@@ -293,7 +294,7 @@ const DiscoverUsersPage = () => {
                       <span className="verified-badge">✓</span>
                     )}
                   </div>
-                  <span 
+                  <span
                     className="profile-type-tag"
                     style={{ backgroundColor: `${badge.color}20`, color: badge.color, borderColor: badge.color }}
                   >
@@ -330,7 +331,7 @@ const DiscoverUsersPage = () => {
           <div className="empty-icon">🔍</div>
           <h3>No users found</h3>
           <p>
-            {searchQuery 
+            {searchQuery
               ? `No users match "${searchQuery}". Try a different search.`
               : "No users available with the selected filter."}
           </p>
