@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import StorageStatus from "./StorageStatus";
+import "../../styles/StorageStatus.css";
 import '../../styles/VideoUploadForm.css';
 
 const VideoUploadForm = ({ onClose, onUploadSuccess }) => {
@@ -156,6 +158,12 @@ const VideoUploadForm = ({ onClose, onUploadSuccess }) => {
   const renderStep1 = () => (
     <div className="upload-step">
       <h2>📹 Upload Video</h2>
+      
+      {/* Storage Status - Show before file selection */}
+      <div className="storage-status-wrapper">
+        <StorageStatus compact={true} />
+      </div>
+      
       <div className="file-drop-zone" onClick={() => fileInputRef.current?.click()}>
         <div className="drop-zone-content">
           <div className="upload-icon">📁</div>

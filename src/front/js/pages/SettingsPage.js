@@ -1,8 +1,12 @@
-// src/front/js/pages/SettingsPage.js - Enhanced with comprehensive error handling
+// src/front/js/pages/SettingsPage.js - Enhanced with Storage & Bandwidth Status
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ErrorHandler, AuthErrorHandler } from "../utils/errorUtils";
 import PayoutRequest from "../component/PayoutRequest";
+import StorageStatus from "../component/StorageStatus";
+import BandwidthStatus from "../component/BandwidthStatus";
+import "../../styles/StorageStatus.css";
+import "../../styles/BandwidthStatus.css";
 import "../../styles/SettingsPage.css";
 
 const SettingsPage = () => {
@@ -158,9 +162,9 @@ const SettingsPage = () => {
   // Navigation handlers
   const handleUpgrade = useCallback(() => {
     try {
-      navigate("/billing");
+      navigate("/pricing");
     } catch (error) {
-      setError("Navigation error: Unable to access billing page");
+      setError("Navigation error: Unable to access pricing page");
     }
   }, [navigate]);
 
@@ -305,6 +309,18 @@ const SettingsPage = () => {
       )}
 
       <div className="settings-content">
+
+        {/* ========== USAGE & LIMITS SECTION ========== */}
+        <div className="settings-section">
+          <h2>📊 Usage & Limits</h2>
+          <p className="section-description">Monitor your storage and bandwidth usage</p>
+          
+          <div className="usage-grid">
+            <StorageStatus />
+            <BandwidthStatus />
+          </div>
+        </div>
+
         {/* General Settings */}
         <div className="settings-section">
           <h2>🔧 General Settings</h2>
@@ -458,11 +474,9 @@ const SettingsPage = () => {
               <span className="plan-name">{settings.subscription}</span>
             </div>
             
-            {settings.subscription === "Free Plan" && (
-              <button className="upgrade-btn" onClick={handleUpgrade}>
-                🚀 Upgrade to Premium
-              </button>
-            )}
+            <button className="upgrade-btn" onClick={handleUpgrade}>
+              {settings.subscription === "Free Plan" ? '🚀 Upgrade to Premium' : '⚙️ Manage Subscription'}
+            </button>
           </div>
         </div>
 
