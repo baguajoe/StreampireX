@@ -18,7 +18,8 @@ import {
   FaTrash,
   FaEye,
   FaPause,
-  FaPlay
+  FaPlay,
+  FaTicketAlt
 } from 'react-icons/fa';
 
 // Required component imports
@@ -64,6 +65,23 @@ const ArtistDashboard = () => {
   const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // ========== CONCERTS STATE ==========
+  const [myConcerts, setMyConcerts] = useState([]);
+  const [showConcertForm, setShowConcertForm] = useState(false);
+  const [concertBeingEdited, setConcertBeingEdited] = useState(null);
+  const [newConcert, setNewConcert] = useState({
+    title: '',
+    date: '',
+    time: '',
+    price: '',
+    description: '',
+    category: 'Music',
+    venue: '',
+    max_tickets: ''
+  });
+  const [concertMessage, setConcertMessage] = useState('');
+  const [savingConcert, setSavingConcert] = useState(false);
+
   // Sample data for demo
   const recentActivity = [
     { action: "Track uploaded", track: "Midnight Vibes", time: "2 hours ago" },
@@ -81,6 +99,7 @@ const ArtistDashboard = () => {
   useEffect(() => {
     fetchArtistData();
     fetchGenres();
+    fetchMyConcerts();
   }, []);
 
   // Cleanup audio on unmount
@@ -162,6 +181,156 @@ const ArtistDashboard = () => {
     } catch (error) {
       setErrorMessage("Error fetching genres.");
     }
+  };
+
+  // ========== CONCERTS FUNCTIONS ==========
+  const fetchMyConcerts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/concerts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMyConcerts(data);
+      }
+    } catch (error) {
+      console.error("Error fetching concerts:", error);
+    }
+  };
+
+  const handleCreateConcert = async () => {
+    if (!newConcert.title.trim()) {
+      setConcertMessage("❌ Please enter a concert title");
+      return;
+    }
+    if (!newConcert.date) {
+      setConcertMessage("❌ Please select a date");
+      return;
+    }
+    if (!newConcert.price || newConcert.price < 0) {
+      setConcertMessage("❌ Please enter a valid ticket price (0 for free)");
+      return;
+    }
+
+    setSavingConcert(true);
+    setConcertMessage("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/concerts/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(newConcert),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setConcertMessage("✅ Concert created successfully!");
+        setMyConcerts([...myConcerts, data.concert || data]);
+        resetConcertForm();
+        setTimeout(() => setConcertMessage(""), 3000);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create concert");
+      }
+    } catch (err) {
+      console.error("Error creating concert:", err);
+      setConcertMessage(`❌ ${err.message}`);
+    } finally {
+      setSavingConcert(false);
+    }
+  };
+
+  const handleUpdateConcert = async () => {
+    if (!concertBeingEdited) return;
+
+    setSavingConcert(true);
+    setConcertMessage("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/concerts/${concertBeingEdited.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(newConcert),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setConcertMessage("✅ Concert updated successfully!");
+        setMyConcerts(myConcerts.map(c => c.id === concertBeingEdited.id ? (data.concert || data) : c));
+        resetConcertForm();
+        setTimeout(() => setConcertMessage(""), 3000);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update concert");
+      }
+    } catch (err) {
+      console.error("Error updating concert:", err);
+      setConcertMessage(`❌ ${err.message}`);
+    } finally {
+      setSavingConcert(false);
+    }
+  };
+
+  const handleDeleteConcert = async (concertId) => {
+    if (!window.confirm("Are you sure you want to delete this concert? This cannot be undone.")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/concerts/${concertId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        setMyConcerts(myConcerts.filter(c => c.id !== concertId));
+        setConcertMessage("✅ Concert deleted");
+        setTimeout(() => setConcertMessage(""), 3000);
+      } else {
+        setConcertMessage("❌ Failed to delete concert");
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      setConcertMessage("❌ Error deleting concert");
+    }
+  };
+
+  const editConcert = (concert) => {
+    setConcertBeingEdited(concert);
+    setNewConcert({
+      title: concert.title || '',
+      date: concert.date ? concert.date.split('T')[0] : '',
+      time: concert.time || '',
+      price: concert.price || '',
+      description: concert.description || '',
+      category: concert.category || 'Music',
+      venue: concert.venue || '',
+      max_tickets: concert.max_tickets || ''
+    });
+    setShowConcertForm(true);
+  };
+
+  const resetConcertForm = () => {
+    setNewConcert({
+      title: '',
+      date: '',
+      time: '',
+      price: '',
+      description: '',
+      category: 'Music',
+      venue: '',
+      max_tickets: ''
+    });
+    setConcertBeingEdited(null);
+    setShowConcertForm(false);
   };
 
   // Audio playback handler
@@ -392,11 +561,14 @@ const ArtistDashboard = () => {
             <p>Start broadcasting</p>
           </button>
 
-          <Link to="/upload-music" className="quick-action-card">
-            <div className="action-icon">🎸</div>
-            <h4>Music Distribution</h4>
-            <p>Distribute globally</p>
-          </Link>
+          <button
+            className="quick-action-card"
+            onClick={() => setActiveTab('concerts')}
+          >
+            <div className="action-icon">🎭</div>
+            <h4>Create Concert</h4>
+            <p>Schedule a live show</p>
+          </button>
 
           <button
             className="quick-action-card"
@@ -603,6 +775,213 @@ const ArtistDashboard = () => {
     </div>
   );
 
+  // ========== RENDER CONCERTS TAB ==========
+  const renderConcerts = () => (
+    <div className="concerts-content">
+      <div className="concerts-tab-header">
+        <h3><FaTicketAlt /> My Concerts ({myConcerts.length})</h3>
+        <button
+          className="btn-primary"
+          onClick={() => {
+            resetConcertForm();
+            setShowConcertForm(true);
+          }}
+        >
+          + Create Concert
+        </button>
+      </div>
+
+      {/* Concert Message */}
+      {concertMessage && (
+        <div className={`concert-alert ${concertMessage.includes('❌') ? 'error' : 'success'}`}>
+          {concertMessage}
+        </div>
+      )}
+
+      {/* Concert Form */}
+      {showConcertForm && (
+        <div className="concert-form-card">
+          <div className="concert-form-header">
+            <h4>{concertBeingEdited ? '✏️ Edit Concert' : '🎭 Create New Concert'}</h4>
+            <button className="close-btn" onClick={resetConcertForm}>✕</button>
+          </div>
+
+          <div className="concert-form-grid">
+            <div className="form-group">
+              <label>Concert Title *</label>
+              <input
+                type="text"
+                placeholder="Enter concert title"
+                value={newConcert.title}
+                onChange={(e) => setNewConcert({ ...newConcert, title: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Category</label>
+              <select
+                value={newConcert.category}
+                onChange={(e) => setNewConcert({ ...newConcert, category: e.target.value })}
+              >
+                <option value="Music">Music</option>
+                <option value="Live DJs">Live DJs</option>
+                <option value="Comedy">Comedy</option>
+                <option value="Talk Shows">Talk Shows</option>
+                <option value="Art">Art Performance</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Date *</label>
+              <input
+                type="date"
+                value={newConcert.date}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => setNewConcert({ ...newConcert, date: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Time</label>
+              <input
+                type="time"
+                value={newConcert.time}
+                onChange={(e) => setNewConcert({ ...newConcert, time: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Ticket Price ($) *</label>
+              <input
+                type="number"
+                placeholder="0.00 (free)"
+                min="0"
+                step="0.01"
+                value={newConcert.price}
+                onChange={(e) => setNewConcert({ ...newConcert, price: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Max Tickets (optional)</label>
+              <input
+                type="number"
+                placeholder="Unlimited"
+                min="1"
+                value={newConcert.max_tickets}
+                onChange={(e) => setNewConcert({ ...newConcert, max_tickets: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Venue / Location</label>
+              <input
+                type="text"
+                placeholder="e.g., Virtual Stage, Studio A"
+                value={newConcert.venue}
+                onChange={(e) => setNewConcert({ ...newConcert, venue: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group full-width">
+              <label>Description</label>
+              <textarea
+                placeholder="Describe your concert, what fans can expect..."
+                value={newConcert.description}
+                onChange={(e) => setNewConcert({ ...newConcert, description: e.target.value })}
+                rows="3"
+              />
+            </div>
+          </div>
+
+          <div className="concert-form-actions">
+            <button className="btn-secondary" onClick={resetConcertForm}>
+              Cancel
+            </button>
+            <button
+              className="btn-primary"
+              onClick={concertBeingEdited ? handleUpdateConcert : handleCreateConcert}
+              disabled={savingConcert}
+            >
+              {savingConcert ? '⏳ Saving...' : concertBeingEdited ? '💾 Update Concert' : '🎭 Create Concert'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Concerts List */}
+      {myConcerts.length === 0 && !showConcertForm ? (
+        <div className="empty-state">
+          <FaTicketAlt className="empty-icon" />
+          <h4>No concerts scheduled yet</h4>
+          <p>Create your first virtual concert and sell tickets to your fans!</p>
+          <button
+            className="btn-primary"
+            onClick={() => setShowConcertForm(true)}
+          >
+            🎭 Create Your First Concert
+          </button>
+        </div>
+      ) : (
+        <div className="my-concerts-grid">
+          {myConcerts.map((concert) => (
+            <div key={concert.id} className="my-concert-card">
+              <div className="concert-status-badge">
+                {new Date(concert.date) > new Date() ? '🟢 Upcoming' : '⚫ Past'}
+              </div>
+              
+              <h4>{concert.title}</h4>
+              
+              <div className="concert-meta">
+                <p>📅 {new Date(concert.date).toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                })}</p>
+                {concert.time && <p>🕐 {concert.time}</p>}
+                {concert.venue && <p>📍 {concert.venue}</p>}
+              </div>
+
+              <div className="concert-pricing">
+                <span className="price-tag">
+                  {concert.price > 0 ? `$${parseFloat(concert.price).toFixed(2)}` : 'FREE'}
+                </span>
+                <span className="tickets-sold">
+                  🎟️ {concert.tickets_sold || 0} sold
+                </span>
+              </div>
+
+              <div className="concert-card-actions">
+                <button
+                  className="btn-icon"
+                  onClick={() => editConcert(concert)}
+                  title="Edit"
+                >
+                  <FaEdit />
+                </button>
+                <Link
+                  to={`/concert/${concert.id}`}
+                  className="btn-icon"
+                  title="View"
+                >
+                  <FaEye />
+                </Link>
+                <button
+                  className="btn-icon danger"
+                  onClick={() => handleDeleteConcert(concert.id)}
+                  title="Delete"
+                >
+                  <FaTrash />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   const renderAnalytics = () => (
     <div className="analytics-content">
       <h3><FaChartLine /> Analytics & Insights</h3>
@@ -663,7 +1042,7 @@ const ArtistDashboard = () => {
             />
             <div className="artist-details">
               <h1>Welcome back, {user.display_name || user.username || 'Artist'}!</h1>
-              <p className="artist-status">Independent Artist • {tracks.length} tracks</p>
+              <p className="artist-status">Independent Artist • {tracks.length} tracks • {myConcerts.length} concerts</p>
             </div>
           </div>
 
@@ -684,6 +1063,7 @@ const ArtistDashboard = () => {
           {[
             { id: 'overview', label: 'Overview', icon: FaChartLine },
             { id: 'tracks', label: 'My Tracks', icon: FaMusic },
+            { id: 'concerts', label: 'Concerts', icon: FaTicketAlt },
             { id: 'upload', label: 'Upload', icon: FaUpload },
             { id: 'analytics', label: 'Analytics', icon: FaChartLine }
           ].map((tab) => (
@@ -703,6 +1083,7 @@ const ArtistDashboard = () => {
       <div className="dashboard-content">
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'tracks' && renderTracks()}
+        {activeTab === 'concerts' && renderConcerts()}
         {activeTab === 'upload' && renderUpload()}
         {activeTab === 'analytics' && renderAnalytics()}
       </div>

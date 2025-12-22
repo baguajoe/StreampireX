@@ -160,12 +160,12 @@ const OrderHistoryPage = () => {
 
     if (loading) {
         return (
-            <div className="container mt-4">
-                <div className="text-center">
+            <div className="order-history-container">
+                <div className="text-center py-5">
                     <div className="spinner-border" role="status">
                         <span className="visually-hidden">Loading...</span>
                     </div>
-                    <p className="mt-2">Loading your order history...</p>
+                    <p className="mt-3">Loading your order history...</p>
                 </div>
             </div>
         );
@@ -173,7 +173,7 @@ const OrderHistoryPage = () => {
 
     if (error) {
         return (
-            <div className="container mt-4">
+            <div className="order-history-container">
                 <div className="alert alert-danger">
                     <h4>Error Loading Orders</h4>
                     <p>{error}</p>
@@ -188,7 +188,7 @@ const OrderHistoryPage = () => {
     const filteredOrders = getFilteredOrders();
 
     return (
-        <div className="container mt-4">
+        <div className="order-history-container">
             {/* Header */}
             <div className="row mb-4">
                 <div className="col-12">

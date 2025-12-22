@@ -1,74 +1,531 @@
-/* Squad Finder Styles */
+/* ===== STREAMPIREX SQUAD FINDER - DARK THEME ===== */
+/* Signature Colors: Teal #00ffc8, Orange #FF6600 */
+
+/* Main Container */
 .squad-finder-container {
+  width: 100%;
   max-width: 100%;
-  margin: 0 auto;
-  padding: 30px;
-  background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
-  min-height: 100vh;
-  color: white;
-  font-family: 'Arial', sans-serif;
+  margin: 0;
+  padding: 30px 40px;
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
+  min-height: calc(100vh - 85px - 50px);
+  color: #e1e4e8;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* Break out of parent padding */
+.main-content .squad-finder-container {
+  width: calc(100% + 40px) !important;
+  margin-left: -20px !important;
+  margin-right: -20px !important;
+  margin-top: -20px !important;
+  padding: 30px 40px;
+}
+
+/* Header */
 .squad-header {
-  font-size: 1.8rem;
-  color: #4a9eff;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #00ffc8;
   text-align: center;
   margin-bottom: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
+  text-shadow: 0 0 20px rgba(0, 255, 200, 0.3);
+}
+
+.squad-header-text {
+  color: #00ffc8;
+}
+
+/* Search & Filters Section */
+.squad-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 30px;
+  justify-content: center;
+}
+
+.squad-search {
+  flex: 1;
+  min-width: 250px;
+  max-width: 400px;
+  padding: 12px 20px;
+  border: 2px solid rgba(0, 255, 200, 0.3);
+  border-radius: 50px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #e1e4e8;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.squad-search::placeholder {
+  color: #8b949e;
+}
+
+.squad-search:focus {
+  outline: none;
+  border-color: #00ffc8;
+  box-shadow: 0 0 0 3px rgba(0, 255, 200, 0.15);
+}
+
+.filter-select {
+  padding: 12px 20px;
+  border: 2px solid rgba(0, 255, 200, 0.3);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #e1e4e8;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2300ffc8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  padding-right: 40px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #00ffc8;
+}
+
+.filter-select option {
+  background: #1f2937;
+  color: #e1e4e8;
+}
+
+/* Create Squad Button */
+.create-squad-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #FF6600, #ff8533);
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 102, 0, 0.3);
+}
+
+.create-squad-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(255, 102, 0, 0.4);
+}
+
+/* ===== SQUAD CARDS GRID ===== */
+.squad-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 25px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 /* Squad Card */
 .squad-card {
-  background: rgba(26, 26, 46, 0.8);
-  border: 1px solid #4a9eff;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
+  background: linear-gradient(145deg, #1f2937, #111827);
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  border-radius: 16px;
+  padding: 25px;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  /* Fallback if not in grid - limit card width */
+  max-width: 450px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* If cards are direct children of container (no grid wrapper) */
+.squad-finder-container > .squad-card,
+.squad-finder-container .squad-card:not(.squad-grid .squad-card) {
+  margin-bottom: 20px;
+}
+
+/* Make container act as grid if cards are direct children */
+.squad-finder-container {
+  /* Add these to make it act as a flex/grid container for cards */
+}
+
+/* Cards wrapper - applies grid layout */
+.squad-cards-wrapper,
+.squads-list,
+.squad-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 25px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Reset max-width when inside a grid */
+.squad-grid .squad-card,
+.squad-cards-wrapper .squad-card,
+.squads-list .squad-card,
+.squad-list .squad-card {
+  max-width: none;
+  margin-bottom: 0;
+}
+
+.squad-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #00ffc8, #00e6b3);
 }
 
 .squad-card:hover {
-  border-color: #6fcaff;
-  background: rgba(35, 35, 58, 0.9);
+  transform: translateY(-5px);
+  border-color: rgba(0, 255, 200, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Squad Card Header */
+.squad-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.squad-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #e1e4e8;
+  margin: 0;
+}
+
+.squad-game {
+  font-size: 0.9rem;
+  color: #00ffc8;
+  margin-top: 5px;
+}
+
+.squad-status {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.squad-status.open {
+  background: rgba(0, 255, 200, 0.15);
+  color: #00ffc8;
+}
+
+.squad-status.full {
+  background: rgba(255, 107, 107, 0.15);
+  color: #ff6b6b;
+}
+
+.squad-status.in-game {
+  background: rgba(255, 102, 0, 0.15);
+  color: #FF6600;
+}
+
+/* Squad Description */
+.squad-description {
+  font-size: 0.9rem;
+  color: #8b949e;
+  margin-bottom: 15px;
+  line-height: 1.5;
+}
+
+/* Squad Meta Info */
+.squad-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 15px;
+  font-size: 0.85rem;
+  color: #8b949e;
+}
+
+.squad-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.squad-meta-item span {
+  color: #e1e4e8;
+}
+
+/* Members Count */
+.squad-members {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.member-avatars {
+  display: flex;
+}
+
+.member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #161b22;
+  margin-left: -8px;
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #0d1117;
+}
+
+.member-avatar:first-child {
+  margin-left: 0;
+}
+
+.member-count {
+  font-size: 0.9rem;
+  color: #8b949e;
+}
+
+.member-count span {
+  color: #00ffc8;
+  font-weight: 700;
 }
 
 /* Platform Tags */
+.platform-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
 .platform-tag {
   display: inline-block;
-  background: rgba(255, 255, 255, 0.05);
-  color: #cccccc;
-  padding: 4px 10px;
-  margin-right: 6px;
-  margin-top: 6px;
-  border-radius: 15px;
-  font-size: 12px;
-  border: 1px solid #4a9eff;
+  background: rgba(0, 255, 200, 0.1);
+  color: #00ffc8;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(0, 255, 200, 0.3);
+}
+
+.platform-tag.pc {
+  background: rgba(74, 158, 255, 0.1);
+  color: #4a9eff;
+  border-color: rgba(74, 158, 255, 0.3);
+}
+
+.platform-tag.playstation {
+  background: rgba(0, 112, 210, 0.1);
+  color: #0070d2;
+  border-color: rgba(0, 112, 210, 0.3);
+}
+
+.platform-tag.xbox {
+  background: rgba(16, 124, 16, 0.1);
+  color: #107c10;
+  border-color: rgba(16, 124, 16, 0.3);
+}
+
+.platform-tag.switch {
+  background: rgba(230, 0, 18, 0.1);
+  color: #e60012;
+  border-color: rgba(230, 0, 18, 0.3);
+}
+
+/* Squad Card Footer */
+.squad-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 15px;
+  border-top: 1px solid rgba(0, 255, 200, 0.1);
+}
+
+.squad-host {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #8b949e;
+}
+
+.host-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6600, #ff8533);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: white;
+}
+
+.host-name {
+  color: #e1e4e8;
+  font-weight: 600;
 }
 
 /* Join Button */
 .join-squad-btn {
-  background: #ff6b35;
-  color: white;
+  padding: 10px 20px;
   border: none;
-  padding: 10px 16px;
   border-radius: 8px;
-  font-weight: bold;
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
+  font-size: 0.9rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.3s ease;
-  margin-top: 15px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 255, 200, 0.3);
 }
 
 .join-squad-btn:hover {
-  background: #e55a2b;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 255, 200, 0.4);
 }
 
-.squad-header-text {
-  color: #4a9eff;
+.join-squad-btn:disabled {
+  background: #374151;
+  color: #8b949e;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
-.squad-name {
-  color: #ffffff;
+.join-squad-btn.full {
+  background: transparent;
+  border: 2px solid #374151;
+  color: #8b949e;
+  box-shadow: none;
+}
+
+/* Empty State */
+.no-squads {
+  text-align: center;
+  padding: 60px 30px;
+  background: linear-gradient(145deg, #1f2937, #111827);
+  border-radius: 16px;
+  border: 2px dashed rgba(0, 255, 200, 0.2);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.no-squads-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.no-squads h3 {
+  color: #e1e4e8;
+  margin-bottom: 10px;
+}
+
+.no-squads p {
+  color: #8b949e;
+  margin-bottom: 25px;
+}
+
+/* Loading State */
+.squad-loading {
+  text-align: center;
+  padding: 60px;
+  color: #00ffc8;
+}
+
+.squad-loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(0, 255, 200, 0.2);
+  border-top-color: #00ffc8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 992px) {
+  .squad-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .squad-finder-container {
+    padding: 20px;
+  }
+  
+  .squad-header {
+    font-size: 1.8rem;
+  }
+  
+  .squad-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .squad-search {
+    max-width: 100%;
+  }
+  
+  .squad-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .squad-card {
+    padding: 20px;
+  }
+  
+  .squad-card-footer {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .join-squad-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .squad-finder-container {
+    padding: 15px;
+  }
+  
+  .squad-header {
+    font-size: 1.5rem;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .squad-card {
+    padding: 15px;
+  }
+  
+  .squad-name {
+    font-size: 1.1rem;
+  }
+  
+  .squad-meta {
+    flex-direction: column;
+    gap: 8px;
+  }
 }
