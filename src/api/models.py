@@ -4528,7 +4528,7 @@ class StationFollow(db.Model):
 # ADD THIS MODEL TO YOUR src/api/models.py
 # =============================================================================
 
-"""
+
 class BandwidthLog(db.Model):
     '''Track bandwidth usage for cost control'''
     __tablename__ = 'bandwidth_logs'
@@ -4645,7 +4645,7 @@ class VideoQuality(db.Model):
             'bitrate_kbps': self.bitrate_kbps,
             'is_ready': self.is_ready
         }
-"""
+
 
 
 # =============================================================================
