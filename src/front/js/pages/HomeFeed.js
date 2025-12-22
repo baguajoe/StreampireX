@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import UploadVideo from "../component/UploadVideo";
 import WebRTCChat from "../component/WebRTCChat";
-import "../../styles/ProfilePage.css";
+import "../../styles/HomeFeed.css";
 
 const HomeFeed = () => {
   const [posts, setPosts] = useState([]);
@@ -208,8 +208,9 @@ const HomeFeed = () => {
 
   if (loading) {
     return (
-      <div className="profile-container">
-        <div className="loading-spinner">
+      <div className="home-feed-container">
+        <div className="feed-loading">
+          <div className="feed-spinner"></div>
           <p>Loading your feed...</p>
         </div>
       </div>
@@ -217,80 +218,87 @@ const HomeFeed = () => {
   }
 
   return (
-    <div className="profile-container">
+    <div className="home-feed-container">
+      {/* Header */}
+      <div className="home-feed-header">
+        <h1>🏠 Home Feed</h1>
+        <p>Discover the latest from creators you follow</p>
+      </div>
+
       {error && (
-        <div className="error-banner" style={{ 
-          background: '#ff6b6b', 
-          color: 'white', 
-          padding: '10px', 
-          borderRadius: '5px', 
-          margin: '10px 0' 
-        }}>
+        <div className="error-banner">
           <p>⚠️ Connection Error: {error}</p>
           <p>Some features may not work properly. Check your backend connection.</p>
         </div>
       )}
       
-      <div className="profile-layout">
+      <div className="feed-layout">
         {/* LEFT COLUMN */}
-        <div className="left-column">
-          <h3>👥 Suggested to Follow</h3>
-          {suggestedUsers.length > 0 ? (
-            suggestedUsers.map((suggestedUser, idx) => (
-              <div key={idx} className="favorite-item">
-                <img 
-                  src={suggestedUser.profile_picture || '/default-avatar.png'} 
-                  alt="avatar" 
-                  className="favorite-avatar"
-                  onError={(e) => {
-                    e.target.src = '/default-avatar.png';
-                  }}
-                />
-                <div>
-                  <strong>@{suggestedUser.username}</strong>
-                  <p>{suggestedUser.bio || "New creator on the rise!"}</p>
+        <div className="feed-sidebar left">
+          <div className="sidebar-section">
+            <h3>👥 Suggested to Follow</h3>
+            {suggestedUsers.length > 0 ? (
+              suggestedUsers.map((suggestedUser, idx) => (
+                <div key={idx} className="suggested-user-card">
+                  <img 
+                    src={suggestedUser.profile_picture || '/default-avatar.png'} 
+                    alt="avatar" 
+                    className="suggested-avatar"
+                    onError={(e) => {
+                      e.target.src = '/default-avatar.png';
+                    }}
+                  />
+                  <div className="suggested-info">
+                    <strong>@{suggestedUser.username}</strong>
+                    <p>{suggestedUser.bio || "New creator on the rise!"}</p>
+                  </div>
+                  <button className="follow-btn">Follow</button>
                 </div>
-              </div>
-            ))
-          ) : (
-            <p>No suggested users at the moment.</p>
-          )}
+              ))
+            ) : (
+              <p className="empty-text">No suggested users at the moment.</p>
+            )}
+          </div>
 
-          <h3>📈 Trending</h3>
-          {trendingContent.length > 0 ? (
-            trendingContent.map((item, idx) => (
-              <div key={idx} className="favorite-item">
-                <img 
-                  src={item.image_url || '/default-trending.png'} 
-                  alt="trend" 
-                  className="favorite-avatar"
-                  onError={(e) => {
-                    e.target.src = '/default-trending.png';
-                  }}
-                />
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>{item.description}</p>
+          <div className="sidebar-section">
+            <h3>📈 Trending</h3>
+            {trendingContent.length > 0 ? (
+              trendingContent.map((item, idx) => (
+                <div key={idx} className="trending-item">
+                  <img 
+                    src={item.image_url || '/default-trending.png'} 
+                    alt="trend" 
+                    className="trending-thumb"
+                    onError={(e) => {
+                      e.target.src = '/default-trending.png';
+                    }}
+                  />
+                  <div className="trending-info">
+                    <strong>{item.title}</strong>
+                    <p>{item.description}</p>
+                  </div>
                 </div>
-              </div>
-            ))
-          ) : (
-            <p>No trending content available.</p>
-          )}
+              ))
+            ) : (
+              <p className="empty-text">No trending content available.</p>
+            )}
+          </div>
         </div>
 
-        {/* MIDDLE COLUMN */}
-        <div className="middle-column">
-          <h3>📝 What's on your mind?</h3>
-          <div className="post-creation">
+        {/* MIDDLE COLUMN - Main Feed */}
+        <div className="feed-main">
+          {/* Post Creation */}
+          <div className="post-creation-card">
+            <h3>📝 What's on your mind?</h3>
             <textarea
               value={postContent}
               onChange={(e) => setPostContent(e.target.value)}
               placeholder="Share something with your followers..."
               maxLength={500}
               rows={4}
+              className="post-textarea"
             />
-            <div className="post-controls">
+            <div className="post-creation-actions">
               <input
                 type="file"
                 accept="image/*"
@@ -298,7 +306,7 @@ const HomeFeed = () => {
                 id="image-upload"
                 style={{ display: 'none' }}
               />
-              <label htmlFor="image-upload" className="file-upload-label">
+              <label htmlFor="image-upload" className="upload-image-btn">
                 📷 Add Image
               </label>
               {postImage && (
@@ -306,58 +314,86 @@ const HomeFeed = () => {
                   <img 
                     src={URL.createObjectURL(postImage)} 
                     alt="Preview" 
-                    style={{ maxWidth: '100px', maxHeight: '100px', objectFit: 'cover' }}
                   />
                   <button 
                     onClick={() => setPostImage(null)}
-                    className="remove-image"
+                    className="remove-image-btn"
                   >
-                    ❌
+                    ✕
                   </button>
                 </div>
               )}
               <button 
                 onClick={handleCreatePost}
                 disabled={!postContent.trim()}
-                className="post-button"
+                className="create-post-btn"
               >
                 📤 Post
               </button>
             </div>
           </div>
 
-          <div className="posts-feed">
+          {/* Posts Feed */}
+          <div className="posts-list">
             {posts.length > 0 ? (
               posts.map((post) => (
-                <div key={post.id} className="post-card">
-                  <div className="post-header">
-                    <strong>@{post.author}</strong>
-                    {post.created_at && (
-                      <span className="post-time">
-                        {new Date(post.created_at).toLocaleDateString()}
-                      </span>
+                <div key={post.id} className="feed-card">
+                  <div className="feed-card-header">
+                    <img 
+                      src={post.author_avatar || '/default-avatar.png'} 
+                      alt="avatar"
+                      className="feed-avatar"
+                    />
+                    <div className="feed-user-info">
+                      <div className="feed-username">
+                        <Link to={`/profile/${post.author}`}>@{post.author}</Link>
+                      </div>
+                      {post.created_at && (
+                        <div className="feed-timestamp">
+                          {new Date(post.created_at).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+                    <span className="feed-content-type post">Post</span>
+                  </div>
+
+                  <div className="feed-card-body">
+                    <p className="feed-description">{post.content}</p>
+                    {post.image && (
+                      <img 
+                        src={post.image} 
+                        alt="Post" 
+                        className="feed-media"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
                     )}
                   </div>
-                  <p className="post-content">{post.content}</p>
-                  {post.image && (
-                    <img 
-                      src={post.image} 
-                      alt="Post" 
-                      className="post-image"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                      }}
-                    />
-                  )}
 
-                  <div className="post-interactions">
-                    <h5>💬 Comments</h5>
-                    <ul className="comments-list">
+                  <div className="feed-card-footer">
+                    <div className="feed-actions">
+                      <button className="feed-action-btn">
+                        🤍 <span className="action-count">{post.likes || 0}</span>
+                      </button>
+                      <button className="feed-action-btn">
+                        💬 <span className="action-count">{(postComments[post.id] || []).length}</span>
+                      </button>
+                      <button className="feed-action-btn">
+                        🔄 <span className="action-count">{post.shares || 0}</span>
+                      </button>
+                    </div>
+                    <button className="feed-share-btn">📤 Share</button>
+                  </div>
+
+                  {/* Comments Section */}
+                  <div className="comments-section">
+                    <div className="comments-list">
                       {(postComments[post.id] || []).map((comment, idx) => (
-                        <li key={idx} className="comment-item">{comment}</li>
+                        <div key={idx} className="comment-item">{comment}</div>
                       ))}
-                    </ul>
-                    <div className="comment-input">
+                    </div>
+                    <div className="comment-input-row">
                       <input
                         type="text"
                         placeholder="Write a comment..."
@@ -373,49 +409,60 @@ const HomeFeed = () => {
                             handleAddComment(post.id);
                           }
                         }}
+                        className="comment-input"
                       />
                       <button
                         onClick={() => handleAddComment(post.id)}
                         disabled={!newCommentText[post.id]?.trim()}
+                        className="comment-submit-btn"
                       >
-                        💬 Reply
+                        💬
                       </button>
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="no-posts">
-                <p>No posts yet. Be the first to share something!</p>
+              <div className="feed-empty">
+                <div className="feed-empty-icon">📭</div>
+                <h3>No posts yet</h3>
+                <p>Be the first to share something!</p>
               </div>
             )}
           </div>
         </div>
 
         {/* RIGHT COLUMN */}
-        <div className="right-column">
-          <div className="quick-actions">
+        <div className="feed-sidebar right">
+          <div className="sidebar-section">
             <h3>🎛️ Quick Actions</h3>
-            <Link to="/podcast/create">
-              <button className="btn-podcast">🎙️ Create Podcast</button>
-            </Link>
-            <Link to="/create-radio">
-              <button className="btn-radio">📡 Create Radio Station</button>
-            </Link>
-            <Link to="/indie-artist-upload">
-              <button className="btn-indie-upload">🎤 Indie Artist Upload</button>
-            </Link>
+            <div className="sidebar-actions">
+              <Link to="/podcast-create" className="sidebar-action-btn">
+                🎙️ Create Podcast
+              </Link>
+              <Link to="/create-radio" className="sidebar-action-btn">
+                📡 Create Radio Station
+              </Link>
+              <Link to="/upload-music" className="sidebar-action-btn">
+                🎤 Upload Music
+              </Link>
+              <Link to="/upload-video" className="sidebar-action-btn">
+                📹 Upload Video
+              </Link>
+            </div>
 
             {user?.id && (
-              <WebRTCChat
-                roomId={`user-${user.id}`}
-                userId={user.id}
-                userName={user.display_name || user.username || "Anonymous"}
-              />
+              <div className="webrtc-section">
+                <WebRTCChat
+                  roomId={`user-${user.id}`}
+                  userId={user.id}
+                  userName={user.display_name || user.username || "Anonymous"}
+                />
+              </div>
             )}
           </div>
 
-          <div className="upload-section">
+          <div className="sidebar-section">
             <h3>📹 Upload Video</h3>
             {user ? (
               <UploadVideo 
@@ -423,11 +470,65 @@ const HomeFeed = () => {
                 onUpload={() => alert("Video uploaded!")} 
               />
             ) : (
-              <p>Please log in to upload videos.</p>
+              <p className="empty-text">Please log in to upload videos.</p>
             )}
           </div>
         </div>
       </div>
+
+      {/* Quick Actions - AT THE BOTTOM */}
+      <section className="quick-actions-section">
+        <h2>⚡ Quick Actions</h2>
+        <div className="quick-actions-grid">
+          <Link to="/upload-video" className="quick-action-card">
+            <div className="action-icon">📹</div>
+            <h3>Upload Video</h3>
+            <p>Share your content</p>
+          </Link>
+
+          <Link to="/upload-music" className="quick-action-card">
+            <div className="action-icon">🎵</div>
+            <h3>Upload Music</h3>
+            <p>Share your tracks</p>
+          </Link>
+
+          <Link to="/podcast-create" className="quick-action-card">
+            <div className="action-icon">🎙️</div>
+            <h3>Create Podcast</h3>
+            <p>Start a new episode</p>
+          </Link>
+
+          <Link to="/live-streams" className="quick-action-card">
+            <div className="action-icon">🔴</div>
+            <h3>Go Live</h3>
+            <p>Start streaming</p>
+          </Link>
+
+          <Link to="/create-radio" className="quick-action-card">
+            <div className="action-icon">📻</div>
+            <h3>Create Radio</h3>
+            <p>Start a station</p>
+          </Link>
+
+          <Link to="/discover-users" className="quick-action-card">
+            <div className="action-icon">🔍</div>
+            <h3>Discover</h3>
+            <p>Find creators</p>
+          </Link>
+
+          <Link to="/marketplace" className="quick-action-card">
+            <div className="action-icon">🛒</div>
+            <h3>Marketplace</h3>
+            <p>Shop products</p>
+          </Link>
+
+          <Link to="/gamers/chat" className="quick-action-card">
+            <div className="action-icon">🎮</div>
+            <h3>Gamer Chat</h3>
+            <p>Join the community</p>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 };
