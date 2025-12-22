@@ -247,10 +247,7 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
         📡 Live Streams
       </MenuItem>
-      <MenuItem to="/live-concerts" className={isActive("/live-concerts") ? "active" : ""}>
-        🎶 Live Concerts
-      </MenuItem>
-
+      
       <SectionHeader>🛍️ Store & Marketplace</SectionHeader>
       <MenuItem to="/marketplace" className={isActive("/marketplace") ? "active" : ""}>
         🛒 Browse Marketplace
