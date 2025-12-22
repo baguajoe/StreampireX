@@ -38,6 +38,22 @@ from src.api.utils.tasks import send_release_to_revelator
 from mutagen import File
 # Add this import at the top of your routes.py file
 from flask import Flask, request, jsonify, send_file, Response, redirect
+# Import bandwidth utilities at top of file:
+from .bandwidth_utils import (
+    get_bandwidth_status,
+    check_streaming_allowed,
+    get_optimal_quality,
+    get_transcode_config,
+    should_transcode_resolution,
+    log_bandwidth_usage,
+    check_rate_limit,
+    register_stream,
+    unregister_stream,
+    get_active_streams,
+    bandwidth_required,
+    BANDWIDTH_TIERS,
+    QUALITY_BITRATES
+)
 
 import uuid
 import ffmpeg

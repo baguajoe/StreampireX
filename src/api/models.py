@@ -4523,3 +4523,202 @@ class StationFollow(db.Model):
     
     # Unique constraint to prevent duplicate follows
     __table_args__ = (db.UniqueConstraint('user_id', 'station_id'),)
+
+# =============================================================================
+# ADD THIS MODEL TO YOUR src/api/models.py
+# =============================================================================
+
+"""
+class BandwidthLog(db.Model):
+    '''Track bandwidth usage for cost control'''
+    __tablename__ = 'bandwidth_logs'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Transfer details
+    bytes_transferred = db.Column(db.BigInteger, nullable=False)
+    transfer_type = db.Column(db.String(20), nullable=False)  # 'stream', 'upload', 'download'
+    content_type = db.Column(db.String(20), nullable=True)    # 'video', 'audio', 'live'
+    content_id = db.Column(db.Integer, nullable=True)
+    quality = db.Column(db.String(10), nullable=True)         # '360p', '720p', '1080p', '4k'
+    
+    # Timing
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    duration_seconds = db.Column(db.Integer, nullable=True)   # For streams
+    
+    # Client info (for analytics)
+    client_ip = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(255), nullable=True)
+    country_code = db.Column(db.String(2), nullable=True)
+    
+    # Relationships
+    user = db.relationship('User', backref='bandwidth_logs')
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'bytes_transferred': self.bytes_transferred,
+            'transfer_type': self.transfer_type,
+            'content_type': self.content_type,
+            'content_id': self.content_id,
+            'quality': self.quality,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'duration_seconds': self.duration_seconds
+        }
+
+
+class TranscodeJob(db.Model):
+    '''Track video transcoding jobs for cost management'''
+    __tablename__ = 'transcode_jobs'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    video_id = db.Column(db.Integer, db.ForeignKey('video.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Job details
+    resolution = db.Column(db.String(10), nullable=False)     # '360p', '720p', etc.
+    status = db.Column(db.String(20), default='pending')      # 'pending', 'processing', 'completed', 'failed', 'deferred'
+    priority = db.Column(db.String(10), default='normal')     # 'low', 'normal', 'high', 'highest'
+    
+    # Timing
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    started_at = db.Column(db.DateTime, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    
+    # Results
+    output_url = db.Column(db.String(500), nullable=True)
+    output_size_bytes = db.Column(db.BigInteger, nullable=True)
+    error_message = db.Column(db.Text, nullable=True)
+    
+    # Lazy transcoding
+    deferred_until_views = db.Column(db.Integer, nullable=True)  # Only process after X views
+    
+    # Relationships
+    video = db.relationship('Video', backref='transcode_jobs')
+    user = db.relationship('User', backref='transcode_jobs')
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'video_id': self.video_id,
+            'resolution': self.resolution,
+            'status': self.status,
+            'priority': self.priority,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'output_url': self.output_url,
+            'output_size_bytes': self.output_size_bytes
+        }
+
+
+class VideoQuality(db.Model):
+    '''Track available quality versions for each video'''
+    __tablename__ = 'video_qualities'
+    __table_args__ = (
+        db.UniqueConstraint('video_id', 'resolution', name='unique_video_resolution'),
+        {'extend_existing': True}
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    video_id = db.Column(db.Integer, db.ForeignKey('video.id'), nullable=False)
+    
+    resolution = db.Column(db.String(10), nullable=False)     # '360p', '720p', '1080p', '4k'
+    url = db.Column(db.String(500), nullable=False)
+    file_size_bytes = db.Column(db.BigInteger, nullable=True)
+    bitrate_kbps = db.Column(db.Integer, nullable=True)
+    
+    is_ready = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    video = db.relationship('Video', backref='quality_versions')
+    
+    def serialize(self):
+        return {
+            'resolution': self.resolution,
+            'url': self.url,
+            'file_size_bytes': self.file_size_bytes,
+            'bitrate_kbps': self.bitrate_kbps,
+            'is_ready': self.is_ready
+        }
+"""
+
+
+# =============================================================================
+# DATABASE MIGRATION SQL
+# =============================================================================
+
+MIGRATION_SQL = """
+-- Bandwidth Logs Table
+CREATE TABLE IF NOT EXISTS bandwidth_logs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES "user"(id),
+    bytes_transferred BIGINT NOT NULL,
+    transfer_type VARCHAR(20) NOT NULL,
+    content_type VARCHAR(20),
+    content_id INTEGER,
+    quality VARCHAR(10),
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    duration_seconds INTEGER,
+    client_ip VARCHAR(45),
+    user_agent VARCHAR(255),
+    country_code VARCHAR(2)
+);
+
+-- Indexes for bandwidth queries
+CREATE INDEX IF NOT EXISTS idx_bandwidth_user_timestamp ON bandwidth_logs(user_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_bandwidth_user_type ON bandwidth_logs(user_id, transfer_type);
+CREATE INDEX IF NOT EXISTS idx_bandwidth_timestamp ON bandwidth_logs(timestamp);
+
+-- Transcode Jobs Table
+CREATE TABLE IF NOT EXISTS transcode_jobs (
+    id SERIAL PRIMARY KEY,
+    video_id INTEGER NOT NULL REFERENCES video(id),
+    user_id INTEGER NOT NULL REFERENCES "user"(id),
+    resolution VARCHAR(10) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',
+    priority VARCHAR(10) DEFAULT 'normal',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    output_url VARCHAR(500),
+    output_size_bytes BIGINT,
+    error_message TEXT,
+    deferred_until_views INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_transcode_status ON transcode_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_transcode_video ON transcode_jobs(video_id);
+CREATE INDEX IF NOT EXISTS idx_transcode_priority ON transcode_jobs(priority, status);
+
+-- Video Qualities Table
+CREATE TABLE IF NOT EXISTS video_qualities (
+    id SERIAL PRIMARY KEY,
+    video_id INTEGER NOT NULL REFERENCES video(id),
+    resolution VARCHAR(10) NOT NULL,
+    url VARCHAR(500) NOT NULL,
+    file_size_bytes BIGINT,
+    bitrate_kbps INTEGER,
+    is_ready BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(video_id, resolution)
+);
+
+CREATE INDEX IF NOT EXISTS idx_video_quality_video ON video_qualities(video_id);
+CREATE INDEX IF NOT EXISTS idx_video_quality_ready ON video_qualities(video_id, is_ready);
+
+-- Add view_count to Video if not exists (for lazy transcoding)
+ALTER TABLE video ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0;
+
+-- Partition bandwidth_logs by month (optional, for scale)
+-- This is PostgreSQL specific; skip for other databases
+-- CREATE TABLE bandwidth_logs_y2025m01 PARTITION OF bandwidth_logs
+--     FOR VALUES FROM ('2025-01-01') TO ('2025-02-01');
+"""
+
+print("📊 Bandwidth Migration SQL:")
+print(MIGRATION_SQL)

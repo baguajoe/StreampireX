@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import styled from "styled-components";
+import StorageStatus from "./StorageStatus";
+import BandwidthStatus from "./BandwidthStatus";
 import "../../styles/sidebar.css";
 
 const SidebarContainer = styled.div`
@@ -97,6 +99,15 @@ const NotificationBadge = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const UsageSection = styled.div`
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 `;
 
 const Sidebar = ({ user }) => {
@@ -265,6 +276,12 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/settings" className={isActive("/settings") ? "active" : ""}>
         ⚙️ Settings
       </MenuItem>
+
+      {/* Usage Status - Compact versions at bottom */}
+      <UsageSection>
+        <StorageStatus compact={true} />
+        <BandwidthStatus compact={true} />
+      </UsageSection>
     </SidebarContainer>
   );
 };

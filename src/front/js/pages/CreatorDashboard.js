@@ -4,6 +4,10 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import { Line, Doughnut } from 'react-chartjs-2';
 import { Link } from "react-router-dom";
 import ProductUploadForm from "../component/ProductUploadForm";
+import StorageStatus from "../component/StorageStatus";
+import BandwidthStatus from "../component/BandwidthStatus";
+import "../../styles/StorageStatus.css";
+import "../../styles/BandwidthStatus.css";
 import "../../styles/creatorDashboard.css";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
@@ -236,6 +240,16 @@ const CreatorDashboard = () => {
         {/* Overview Tab - Charts First, Quick Actions at Bottom */}
         {activeTab === 'overview' && (
           <div className="overview-tab">
+            
+            {/* Usage & Limits Section - Storage and Bandwidth */}
+            <section className="usage-section">
+              <h2>📊 Usage & Limits</h2>
+              <div className="usage-grid">
+                <StorageStatus />
+                <BandwidthStatus />
+              </div>
+            </section>
+
             {/* Analytics Charts Section */}
             <section className="analytics-section">
               <div className="charts-grid">

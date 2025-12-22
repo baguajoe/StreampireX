@@ -275,30 +275,69 @@
     width: 95%;
     margin: 20px;
   }
-  
+
   .upload-header {
     padding: 15px 20px;
   }
-  
+
   .upload-step {
     padding: 20px;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .file-drop-zone {
     padding: 40px 15px;
   }
-  
+
   .form-actions {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .btn-primary,
   .btn-secondary {
     width: 100%;
+  }
+
+  /* ============================================
+   ADD THIS TO YOUR VideoUploadForm.css
+   ============================================ */
+
+  /* Storage Status Wrapper in Upload Form */
+  .storage-status-wrapper {
+    margin-bottom: 20px;
+  }
+
+  .storage-status-wrapper .storage-status.compact {
+    background: linear-gradient(145deg, rgba(26, 29, 35, 0.9) 0%, rgba(18, 21, 26, 0.9) 100%);
+    border: 1px solid rgba(255, 102, 0, 0.2);
+    border-radius: 10px;
+    padding: 14px 18px;
+  }
+
+  /* Alert styling if storage is low */
+  .storage-status-wrapper .storage-status.compact .storage-progress-container {
+    margin-top: 8px;
+  }
+
+  .storage-status-wrapper .upgrade-link-compact {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 4px 10px;
+    background: rgba(255, 102, 0, 0.15);
+    border: 1px solid #FF6600;
+    border-radius: 4px;
+    color: #FF6600;
+    font-size: 11px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .storage-status-wrapper .upgrade-link-compact:hover {
+    background: rgba(255, 102, 0, 0.25);
   }
 }
