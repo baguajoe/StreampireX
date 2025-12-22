@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import EarningsPage from "../components/EarningsPage";
 import EarningsDashboard from "../components/EarningsDashboard";
 import EarningsReport from "../components/EarningsReport"; // Optional admin-only
+import '../../styles/MyEarningsPage.css';
 
 const MyEarningsPage = ({ isAdmin = false, artistId = null }) => {
   const [activeTab, setActiveTab] = useState("overview");

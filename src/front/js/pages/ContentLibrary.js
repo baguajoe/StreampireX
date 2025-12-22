@@ -1,6 +1,7 @@
 // src/front/js/pages/ContentLibrary.js - Complete solution
 import React, { useState, useEffect } from 'react';
 import UniversalSocialShare from '../component/UniversalSocialShare';
+import "../../styles/ContentLibrary.css";
 
 const ContentLibrary = () => {
   const [allContent, setAllContent] = useState([]);

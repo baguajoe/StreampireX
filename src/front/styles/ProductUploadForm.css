@@ -1,6 +1,7 @@
-/* ProductUploadForm.css - Matching App Design System */
+/* ===== STREAMPIREX PRODUCT UPLOAD FORM - DARK THEME ===== */
+/* Signature Colors: Teal #00ffc8, Orange #FF6600 */
 
-/* Main container styling to match app theme */
+/* Main container styling */
 .product-upload-container {
   max-width: 900px;
   margin: 2rem auto;
@@ -8,20 +9,20 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Card styling matching app design */
+/* Card styling */
 .product-upload-card {
-  background: white;
+  background: linear-gradient(145deg, #1f2937, #111827);
   border-radius: 15px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
   overflow: hidden;
-  border: 1px solid #e9ecef;
+  border: 1px solid rgba(0, 255, 200, 0.2);
 }
 
 .product-upload-card .card-header {
-  background: linear-gradient(135deg, #004080, #0056b3);
-  color: white;
+  background: linear-gradient(135deg, rgba(0, 255, 200, 0.15), rgba(0, 255, 200, 0.05));
+  color: #00ffc8;
   padding: 1.5rem 2rem;
-  border-bottom: 3px solid #FF6600;
+  border-bottom: 3px solid #00ffc8;
 }
 
 .product-upload-card .card-header h4 {
@@ -31,93 +32,138 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  text-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
 }
 
 .product-upload-card .card-body {
   padding: 2rem;
+  background: transparent;
 }
 
-/* Form styling to match app theme */
-.form-label {
-  color: #2c3e50;
+/* Form styling */
+.product-upload-card .form-label {
+  color: #00ffc8;
   font-weight: 600;
   margin-bottom: 0.5rem;
   display: block;
 }
 
-.form-control, 
-.form-select {
-  border: 2px solid #e9ecef;
+.product-upload-card .form-control, 
+.product-upload-card .form-select {
+  border: 2px solid rgba(0, 255, 200, 0.2);
   border-radius: 8px;
   padding: 0.75rem 1rem;
   font-size: 0.95rem;
   transition: all 0.3s ease;
-  background: white;
+  background: rgba(0, 0, 0, 0.3);
+  color: #e1e4e8;
 }
 
-.form-control:focus,
-.form-select:focus {
-  border-color: #FF6600;
-  box-shadow: 0 0 0 0.2rem rgba(255, 102, 0, 0.25);
+.product-upload-card .form-control::placeholder {
+  color: #8b949e;
+}
+
+.product-upload-card .form-control:focus,
+.product-upload-card .form-select:focus {
+  border-color: #00ffc8;
+  box-shadow: 0 0 0 0.2rem rgba(0, 255, 200, 0.2);
   outline: none;
+  background: rgba(0, 0, 0, 0.4);
 }
 
-.form-control.is-invalid {
-  border-color: #dc3545;
-  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+.product-upload-card .form-control.is-invalid {
+  border-color: #ff6b6b;
+  box-shadow: 0 0 0 0.2rem rgba(255, 107, 107, 0.2);
 }
 
-.invalid-feedback {
-  color: #dc3545;
+.product-upload-card .invalid-feedback {
+  color: #ff6b6b;
   font-size: 0.875rem;
   margin-top: 0.25rem;
 }
 
+.product-upload-card .form-select option {
+  background: #1f2937;
+  color: #e1e4e8;
+}
+
 /* Product type radio buttons */
 .product-type-section {
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  background: rgba(0, 0, 0, 0.2);
   padding: 1.5rem;
   border-radius: 10px;
   margin-bottom: 1.5rem;
-  border: 2px solid #e9ecef;
+  border: 1px solid rgba(0, 255, 200, 0.15);
 }
 
-.form-check-inline {
+.product-upload-card .form-check-inline {
   margin-right: 2rem;
 }
 
-.form-check-input:checked {
-  background-color: #FF6600;
-  border-color: #FF6600;
+.product-upload-card .form-check-input {
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(0, 255, 200, 0.3);
 }
 
-.form-check-label {
+.product-upload-card .form-check-input:checked {
+  background-color: #00ffc8;
+  border-color: #00ffc8;
+}
+
+.product-upload-card .form-check-input:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 255, 200, 0.2);
+}
+
+.product-upload-card .form-check-label {
   font-weight: 500;
-  color: #495057;
+  color: #e1e4e8;
   cursor: pointer;
   padding-left: 0.5rem;
 }
 
 /* Input group styling */
-.input-group-text {
-  background: linear-gradient(135deg, #004080, #0056b3);
-  color: white;
-  border: 2px solid #004080;
+.product-upload-card .input-group-text {
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
+  border: 2px solid #00ffc8;
   font-weight: 600;
 }
 
 /* File upload styling */
 .file-upload-section {
-  background: #f8f9fa;
+  background: rgba(0, 0, 0, 0.2);
   padding: 1.5rem;
   border-radius: 10px;
-  border: 2px dashed #dee2e6;
+  border: 2px dashed rgba(0, 255, 200, 0.3);
   transition: all 0.3s ease;
+  text-align: center;
 }
 
 .file-upload-section:hover {
-  border-color: #FF6600;
-  background: #fff8f0;
+  border-color: #00ffc8;
+  background: rgba(0, 255, 200, 0.05);
+}
+
+.file-upload-section.dragging {
+  border-color: #00ffc8;
+  background: rgba(0, 255, 200, 0.1);
+  box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
+}
+
+.file-upload-section .upload-icon {
+  font-size: 2.5rem;
+  color: #00ffc8;
+  margin-bottom: 1rem;
+}
+
+.file-upload-section .upload-text {
+  color: #8b949e;
+}
+
+.file-upload-section .upload-text span {
+  color: #00ffc8;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* Image preview */
@@ -126,16 +172,16 @@
   text-align: center;
 }
 
-.img-thumbnail {
-  border: 3px solid #FF6600;
+.product-upload-card .img-thumbnail {
+  border: 3px solid #00ffc8;
   border-radius: 10px;
   padding: 0.25rem;
-  background: white;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 255, 200, 0.2);
 }
 
-/* Button styling matching app theme */
-.btn {
+/* Button styling */
+.product-upload-card .btn {
   border-radius: 8px;
   padding: 0.75rem 1.5rem;
   font-weight: 600;
@@ -148,34 +194,33 @@
   gap: 0.5rem;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #FF6600, #e55d00);
+.product-upload-card .btn-primary {
+  background: linear-gradient(135deg, #FF6600, #ff8533);
   color: white;
   box-shadow: 0 4px 15px rgba(255, 102, 0, 0.3);
 }
 
-.btn-primary:hover {
-  background: linear-gradient(135deg, #e55d00, #cc5200);
+.product-upload-card .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 102, 0, 0.4);
+  box-shadow: 0 6px 25px rgba(255, 102, 0, 0.5);
 }
 
-.btn-primary:disabled {
-  background: #6c757d;
+.product-upload-card .btn-primary:disabled {
+  background: #374151;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
-.btn-outline-secondary {
-  background: white;
-  color: #6c757d;
-  border: 2px solid #6c757d;
+.product-upload-card .btn-outline-secondary {
+  background: transparent;
+  color: #8b949e;
+  border: 2px solid #6b7280;
 }
 
-.btn-outline-secondary:hover {
-  background: #6c757d;
-  color: white;
+.product-upload-card .btn-outline-secondary:hover {
+  background: rgba(107, 114, 128, 0.2);
+  color: #e1e4e8;
   transform: translateY(-1px);
 }
 
@@ -188,8 +233,8 @@
 
 /* Help section styling */
 .help-section {
-  background: linear-gradient(135deg, #fff8e1, #fff3c4);
-  border: 1px solid #ffc107;
+  background: rgba(255, 102, 0, 0.1);
+  border: 1px solid rgba(255, 102, 0, 0.3);
   border-radius: 15px;
   margin-top: 2rem;
 }
@@ -199,7 +244,7 @@
 }
 
 .help-section .card-title {
-  color: #e65100;
+  color: #FF6600;
   font-weight: 600;
   margin-bottom: 1rem;
   display: flex;
@@ -214,50 +259,62 @@
 }
 
 .help-section li {
-  color: #333;
+  color: #e1e4e8;
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
+.help-section li::before {
+  content: '✓';
+  color: #00ffc8;
+  font-weight: bold;
+}
+
 /* Character counter */
-.form-text {
-  color: #6c757d;
+.product-upload-card .form-text {
+  color: #8b949e;
   font-size: 0.875rem;
   margin-top: 0.25rem;
 }
 
 /* Checkbox styling */
-.form-check {
+.product-upload-card .form-check {
   padding: 1rem;
-  background: #f8f9fa;
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 8px;
-  border: 1px solid #dee2e6;
+  border: 1px solid rgba(0, 255, 200, 0.1);
 }
 
-.form-check-input {
+.product-upload-card .form-check-input {
   margin-top: 0.2rem;
   margin-right: 0.5rem;
 }
 
-.form-check-label {
+.product-upload-card .form-check-label {
   cursor: pointer;
 }
 
-.form-check-label strong {
-  color: #2c3e50;
+.product-upload-card .form-check-label strong {
+  color: #00ffc8;
 }
 
 /* Success indicators */
-.text-success {
-  color: #28a745 !important;
+.product-upload-card .text-success {
+  color: #00ffc8 !important;
   font-weight: 500;
 }
 
 /* Category select styling */
-.form-select option {
+.product-upload-card .form-select option {
   padding: 0.5rem;
+}
+
+/* Textarea */
+.product-upload-card textarea.form-control {
+  min-height: 120px;
+  resize: vertical;
 }
 
 /* Responsive adjustments */
@@ -276,14 +333,15 @@
     font-size: 1.25rem;
   }
   
-  .form-check-inline {
+  .product-upload-card .form-check-inline {
     margin-right: 1rem;
     margin-bottom: 0.5rem;
   }
   
-  .btn {
+  .product-upload-card .btn {
     width: 100%;
     margin-bottom: 0.5rem;
+    justify-content: center;
   }
   
   .d-md-flex {
@@ -300,7 +358,7 @@
     font-size: 1.1rem;
   }
   
-  .btn {
+  .product-upload-card .btn {
     font-size: 0.9rem;
     padding: 0.6rem 1rem;
   }

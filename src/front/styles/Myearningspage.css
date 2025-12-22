@@ -1,0 +1,423 @@
+/* ===== STREAMPIREX MY EARNINGS PAGE - DARK THEME ===== */
+/* Signature Colors: Teal #00ffc8, Orange #FF6600 */
+
+/* Container override */
+.container.mt-4 {
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
+  min-height: 100vh;
+  padding: 30px !important;
+  color: #e1e4e8;
+}
+
+/* Page Title */
+.mb-4 {
+  color: #00ffc8 !important;
+  font-size: 2.2rem !important;
+  font-weight: 700 !important;
+  text-shadow: 0 0 20px rgba(0, 255, 200, 0.4);
+  margin-bottom: 30px !important;
+}
+
+/* Bootstrap Nav Tabs - Dark Theme */
+.nav-tabs {
+  border-bottom: 2px solid rgba(0, 255, 200, 0.2) !important;
+  margin-bottom: 30px !important;
+  gap: 5px;
+}
+
+.nav-tabs .nav-item {
+  margin-bottom: -2px;
+}
+
+.nav-tabs .nav-link {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 2px solid rgba(0, 255, 200, 0.2) !important;
+  border-bottom: none !important;
+  border-radius: 12px 12px 0 0 !important;
+  color: #8b949e !important;
+  font-weight: 600 !important;
+  padding: 14px 28px !important;
+  transition: all 0.3s ease !important;
+  font-size: 15px !important;
+}
+
+.nav-tabs .nav-link:hover {
+  background: rgba(0, 255, 200, 0.1) !important;
+  border-color: rgba(0, 255, 200, 0.4) !important;
+  color: #00ffc8 !important;
+}
+
+.nav-tabs .nav-link.active {
+  background: linear-gradient(135deg, #00ffc8, #00e6b3) !important;
+  border-color: #00ffc8 !important;
+  color: #0d1117 !important;
+  box-shadow: 0 -4px 20px rgba(0, 255, 200, 0.3) !important;
+}
+
+.nav-tabs .nav-link:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(0, 255, 200, 0.2) !important;
+}
+
+/* Tab Content */
+.tab-content {
+  background: linear-gradient(145deg, #1f2937, #111827);
+  border-radius: 0 16px 16px 16px;
+  padding: 30px;
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Earnings Overview Styles */
+.earnings-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+.earnings-card {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 16px;
+  padding: 25px;
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  transition: all 0.3s ease;
+}
+
+.earnings-card:hover {
+  border-color: rgba(0, 255, 200, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 255, 200, 0.1);
+}
+
+.earnings-card-label {
+  font-size: 13px;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.earnings-card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #FF6600;
+  text-shadow: 0 0 15px rgba(255, 102, 0, 0.4);
+}
+
+.earnings-card-change {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.earnings-card-change.positive {
+  color: #00ffc8;
+}
+
+.earnings-card-change.negative {
+  color: #ff6b6b;
+}
+
+/* Earnings Table */
+.earnings-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.earnings-table thead {
+  background: rgba(0, 255, 200, 0.1);
+}
+
+.earnings-table th {
+  padding: 16px 20px;
+  text-align: left;
+  color: #00ffc8;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid rgba(0, 255, 200, 0.2);
+}
+
+.earnings-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(0, 255, 200, 0.1);
+  font-size: 14px;
+  color: #e1e4e8;
+}
+
+.earnings-table tbody tr:hover {
+  background: rgba(0, 255, 200, 0.05);
+}
+
+.earnings-table .amount {
+  font-weight: 700;
+  color: #FF6600;
+}
+
+.earnings-table .status {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.earnings-table .status.paid {
+  background: rgba(0, 255, 200, 0.15);
+  color: #00ffc8;
+}
+
+.earnings-table .status.pending {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+.earnings-table .status.processing {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+/* Payout Button */
+.request-payout-btn {
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
+  padding: 14px 32px;
+  border-radius: 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 255, 200, 0.4);
+  transition: all 0.3s ease;
+  font-size: 15px;
+}
+
+.request-payout-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(0, 255, 200, 0.5);
+}
+
+.request-payout-btn:disabled {
+  background: #374151;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Music Distribution Tab Styles */
+.distribution-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.distribution-stat {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  text-align: center;
+}
+
+.distribution-stat-icon {
+  font-size: 2rem;
+  color: #00ffc8;
+  margin-bottom: 10px;
+}
+
+.distribution-stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #FF6600;
+}
+
+.distribution-stat-label {
+  font-size: 13px;
+  color: #8b949e;
+  margin-top: 5px;
+}
+
+/* Platform Breakdown */
+.platform-breakdown {
+  margin-top: 30px;
+}
+
+.platform-breakdown h3 {
+  color: #00ffc8;
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+}
+
+.platform-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(0, 255, 200, 0.1);
+}
+
+.platform-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.platform-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.platform-icon.spotify {
+  background: #1db954;
+}
+
+.platform-icon.apple {
+  background: linear-gradient(135deg, #fc3c44, #fc3c44);
+}
+
+.platform-icon.youtube {
+  background: #ff0000;
+}
+
+.platform-icon.tidal {
+  background: #000;
+}
+
+.platform-name {
+  font-weight: 600;
+  color: #e1e4e8;
+}
+
+.platform-streams {
+  font-size: 13px;
+  color: #8b949e;
+}
+
+.platform-earnings {
+  font-weight: 700;
+  color: #FF6600;
+  font-size: 1.1rem;
+}
+
+/* Admin View Styles */
+.admin-panel {
+  background: rgba(255, 107, 107, 0.05);
+  border: 1px solid rgba(255, 107, 107, 0.2);
+  border-radius: 14px;
+  padding: 25px;
+}
+
+.admin-panel h3 {
+  color: #ff6b6b;
+  margin-bottom: 20px;
+}
+
+.admin-warning {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #ffc107;
+  font-size: 14px;
+}
+
+/* Empty State */
+.earnings-empty {
+  text-align: center;
+  padding: 60px 30px;
+}
+
+.earnings-empty-icon {
+  font-size: 4rem;
+  color: #374151;
+  margin-bottom: 20px;
+}
+
+.earnings-empty h3 {
+  color: #e1e4e8;
+  margin-bottom: 10px;
+}
+
+.earnings-empty p {
+  color: #8b949e;
+  margin-bottom: 25px;
+}
+
+/* Loading State */
+.earnings-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 20px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(0, 255, 200, 0.2);
+  border-top: 4px solid #00ffc8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container.mt-4 {
+    padding: 20px !important;
+  }
+  
+  .nav-tabs .nav-link {
+    padding: 12px 18px !important;
+    font-size: 14px !important;
+  }
+  
+  .tab-content {
+    padding: 20px;
+  }
+  
+  .earnings-overview {
+    grid-template-columns: 1fr;
+  }
+  
+  .earnings-table {
+    font-size: 13px;
+  }
+  
+  .earnings-table th,
+  .earnings-table td {
+    padding: 12px;
+  }
+  
+  .platform-item {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+  
+  .platform-info {
+    flex-direction: column;
+  }
+}

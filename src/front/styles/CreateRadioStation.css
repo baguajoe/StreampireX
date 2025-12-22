@@ -1,0 +1,624 @@
+/* ===== STREAMPIREX CREATE RADIO STATION - DARK THEME ===== */
+/* Signature Colors: Teal #00ffc8, Orange #FF6600 */
+
+/* ============================================
+   MAIN CONTAINER - FULL WIDTH DARK
+   ============================================ */
+.create-radio-container {
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
+  min-height: calc(100vh - 85px - 50px);
+  padding: 30px 40px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #e1e4e8;
+  width: 100%;
+  max-width: 100%;
+  text-align: left;
+}
+
+/* Break out of parent padding if needed */
+.main-content .create-radio-container {
+  width: calc(100% + 40px) !important;
+  margin-left: -20px !important;
+  margin-right: -20px !important;
+  margin-top: -20px !important;
+  padding: 30px 40px;
+}
+
+/* Inner content wrapper - full width */
+.create-radio-container .form-wrapper {
+  max-width: 100%;
+  width: 100%;
+  margin: 0;
+}
+
+/* ============================================
+   PAGE TITLE
+   ============================================ */
+.create-radio-container h2 {
+  color: #00ffc8;
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 30px;
+  text-shadow: 0 0 20px rgba(0, 255, 200, 0.4);
+  text-align: center;
+}
+
+/* ============================================
+   FORM SECTIONS
+   ============================================ */
+.create-radio-container .form-section {
+  background: linear-gradient(145deg, #1f2937, #111827);
+  margin-bottom: 25px;
+  padding: 25px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4);
+}
+
+.create-radio-container .form-section h3 {
+  color: #00ffc8;
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid rgba(0, 255, 200, 0.2);
+  text-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
+}
+
+.create-radio-container .form-section h4 {
+  color: #e1e4e8;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.create-radio-container .section-description {
+  font-size: 14px;
+  color: #8b949e;
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+/* ============================================
+   FORM INPUTS
+   ============================================ */
+.create-radio-container input[type="text"],
+.create-radio-container input[type="number"],
+.create-radio-container input[type="url"],
+.create-radio-container textarea,
+.create-radio-container select {
+  width: 100%;
+  padding: 14px 18px;
+  margin-bottom: 15px;
+  border-radius: 10px;
+  border: 2px solid rgba(0, 255, 200, 0.2);
+  font-size: 15px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.3);
+  color: #e1e4e8;
+  transition: all 0.3s ease;
+}
+
+.create-radio-container input[type="text"]::placeholder,
+.create-radio-container input[type="number"]::placeholder,
+.create-radio-container input[type="url"]::placeholder,
+.create-radio-container textarea::placeholder {
+  color: #8b949e;
+}
+
+.create-radio-container input[type="text"]:focus,
+.create-radio-container input[type="number"]:focus,
+.create-radio-container input[type="url"]:focus,
+.create-radio-container textarea:focus,
+.create-radio-container select:focus {
+  outline: none;
+  border-color: #00ffc8;
+  box-shadow: 0 0 0 3px rgba(0, 255, 200, 0.15);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.create-radio-container textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.create-radio-container select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2300ffc8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 15px center;
+  padding-right: 40px;
+}
+
+.create-radio-container select option {
+  background: #1f2937;
+  color: #e1e4e8;
+  padding: 10px;
+}
+
+/* Half-width inputs in a row */
+.create-radio-container .row-inputs {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.create-radio-container .row-inputs input {
+  width: 48%;
+  flex: 1;
+}
+
+/* ============================================
+   MESSAGE/ALERT BOX
+   ============================================ */
+.create-radio-container .message {
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding: 15px 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.create-radio-container .message.error {
+  background: rgba(255, 107, 107, 0.15);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  color: #ff6b6b;
+}
+
+.create-radio-container .message.warning {
+  background: rgba(255, 193, 7, 0.15);
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  color: #ffc107;
+}
+
+.create-radio-container .message.info {
+  background: rgba(0, 255, 200, 0.1);
+  border: 1px solid rgba(0, 255, 200, 0.3);
+  color: #00ffc8;
+}
+
+.create-radio-container .message.success {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+/* ============================================
+   CHECKBOX CONTAINER
+   ============================================ */
+.create-radio-container .checkbox-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  gap: 12px;
+}
+
+.create-radio-container .checkbox-container input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: #00ffc8;
+  cursor: pointer;
+}
+
+.create-radio-container .checkbox-container label {
+  color: #e1e4e8;
+  font-weight: 500;
+  cursor: pointer;
+  margin: 0;
+}
+
+/* ============================================
+   IMAGE UPLOAD SECTION
+   ============================================ */
+.create-radio-container .image-upload-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 25px;
+  margin-bottom: 15px;
+}
+
+.create-radio-container .image-upload-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.create-radio-container .image-upload-box h4 {
+  color: #e1e4e8;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.create-radio-container .upload-preview {
+  width: 180px;
+  height: 180px;
+  border: 2px dashed rgba(0, 255, 200, 0.3);
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(0, 0, 0, 0.3);
+  margin-bottom: 10px;
+  transition: all 0.3s ease;
+}
+
+.create-radio-container .upload-preview:hover {
+  border-color: #00ffc8;
+  background-color: rgba(0, 255, 200, 0.05);
+}
+
+.create-radio-container .upload-preview p {
+  color: #8b949e;
+  font-size: 14px;
+  text-align: center;
+  padding: 10px;
+}
+
+.create-radio-container .cover-preview {
+  width: 280px;
+  height: 140px;
+}
+
+.create-radio-container .upload-hint {
+  font-size: 12px;
+  color: #8b949e;
+  margin: 0;
+  text-align: center;
+}
+
+/* ============================================
+   AUDIO UPLOAD SECTION
+   ============================================ */
+.create-radio-container .audio-upload-container {
+  margin-bottom: 20px;
+}
+
+.create-radio-container .audio-dropzone {
+  width: 100%;
+  min-height: 140px;
+  border: 2px dashed rgba(0, 255, 200, 0.3);
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
+}
+
+.create-radio-container .audio-dropzone:hover {
+  border-color: #00ffc8;
+  background: rgba(0, 255, 200, 0.05);
+}
+
+.create-radio-container .audio-dropzone.has-file {
+  border-color: #00ffc8;
+  border-style: solid;
+}
+
+.create-radio-container .upload-prompt {
+  text-align: center;
+  padding: 25px;
+}
+
+.create-radio-container .upload-prompt p {
+  color: #8b949e;
+  margin: 5px 0;
+}
+
+.create-radio-container .upload-prompt p strong {
+  color: #00ffc8;
+}
+
+.create-radio-container .upload-icon {
+  font-size: 56px;
+  margin-bottom: 15px;
+}
+
+.create-radio-container .audio-file-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 25px;
+}
+
+.create-radio-container .audio-icon {
+  font-size: 56px;
+  color: #00ffc8;
+}
+
+.create-radio-container .audio-file-info strong {
+  color: #e1e4e8;
+  font-size: 16px;
+}
+
+.create-radio-container .audio-file-info p {
+  color: #8b949e;
+  margin: 5px 0;
+}
+
+.create-radio-container .audio-preview {
+  width: 100%;
+  max-width: 350px;
+  margin-top: 15px;
+  border-radius: 8px;
+}
+
+.create-radio-container .audio-preview::-webkit-media-controls-panel {
+  background: #1f2937;
+}
+
+/* ============================================
+   MIX METADATA SECTION
+   ============================================ */
+.create-radio-container .mix-metadata {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 255, 200, 0.1);
+  margin-top: 20px;
+}
+
+.create-radio-container .mix-metadata h4 {
+  color: #00ffc8;
+  margin-bottom: 20px;
+}
+
+/* ============================================
+   TRACKLIST SECTION
+   ============================================ */
+.create-radio-container .tracklist-section {
+  margin-top: 25px;
+  padding: 20px;
+  background: rgba(0, 255, 200, 0.05);
+  border-radius: 12px;
+  border: 2px solid rgba(0, 255, 200, 0.3);
+}
+
+.create-radio-container .tracklist-header {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.create-radio-container .tracklist-header h4 {
+  color: #00ffc8;
+  margin-bottom: 10px;
+}
+
+.create-radio-container .compliance-note {
+  font-size: 13px;
+  color: #8b949e;
+  font-style: italic;
+  margin: 5px 0;
+}
+
+.create-radio-container .track-item {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 20px;
+  margin-bottom: 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 255, 200, 0.1);
+}
+
+.create-radio-container .track-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.create-radio-container .track-header h5 {
+  color: #00ffc8;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.create-radio-container .remove-track-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #ff6b6b, #ef4444);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.create-radio-container .remove-track-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+
+.create-radio-container .add-track-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 255, 200, 0.3);
+}
+
+.create-radio-container .add-track-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 255, 200, 0.5);
+}
+
+/* ============================================
+   ROYALTY NOTICE
+   ============================================ */
+.create-radio-container .royalty-notice {
+  background: rgba(255, 102, 0, 0.1);
+  border: 1px solid rgba(255, 102, 0, 0.3);
+  border-radius: 10px;
+  padding: 20px;
+  font-size: 13px;
+}
+
+.create-radio-container .royalty-notice p {
+  color: #e1e4e8;
+  margin: 0 0 10px 0;
+}
+
+.create-radio-container .royalty-notice strong {
+  color: #FF6600;
+}
+
+.create-radio-container .royalty-notice ul {
+  margin: 10px 0;
+  padding-left: 20px;
+  color: #8b949e;
+}
+
+.create-radio-container .royalty-notice li {
+  margin: 5px 0;
+}
+
+/* ============================================
+   SUBMIT BUTTON
+   ============================================ */
+.create-radio-container .submit-btn {
+  width: 100%;
+  padding: 18px;
+  background: linear-gradient(135deg, #FF6600, #ff8533);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 25px rgba(255, 102, 0, 0.4);
+  margin-top: 10px;
+}
+
+.create-radio-container .submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 35px rgba(255, 102, 0, 0.5);
+}
+
+.create-radio-container .submit-btn:disabled {
+  background: #374151;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ============================================
+   NEXT STEPS INFO
+   ============================================ */
+.create-radio-container .next-steps-info {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: #8b949e;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+@media (max-width: 992px) {
+  .create-radio-container {
+    padding: 20px;
+  }
+  
+  .main-content .create-radio-container {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .create-radio-container {
+    padding: 15px;
+  }
+  
+  .create-radio-container h2 {
+    font-size: 1.8rem;
+  }
+  
+  .create-radio-container .form-section {
+    padding: 20px;
+  }
+  
+  .create-radio-container .row-inputs {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .create-radio-container .row-inputs input {
+    width: 100%;
+  }
+  
+  .create-radio-container .image-upload-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .create-radio-container .upload-preview {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .create-radio-container .cover-preview {
+    width: 100%;
+    max-width: 300px;
+    height: 150px;
+  }
+  
+  .create-radio-container .audio-file-info {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .create-radio-container .audio-preview {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .create-radio-container h2 {
+    font-size: 1.5rem;
+  }
+  
+  .create-radio-container .form-section h3 {
+    font-size: 1.2rem;
+  }
+  
+  .create-radio-container input[type="text"],
+  .create-radio-container input[type="number"],
+  .create-radio-container input[type="url"],
+  .create-radio-container textarea,
+  .create-radio-container select {
+    padding: 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .create-radio-container .submit-btn {
+    padding: 16px;
+    font-size: 16px;
+  }
+  
+  .create-radio-container .track-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .create-radio-container .remove-track-btn {
+    width: 100%;
+  }
+}

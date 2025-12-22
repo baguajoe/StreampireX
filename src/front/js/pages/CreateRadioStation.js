@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import "../../styles/CreateRadioStation.css";
 
 const CreateRadioStation = () => {
     const [stationName, setStationName] = useState("");
@@ -63,6 +64,19 @@ const CreateRadioStation = () => {
 
         // For manual navigation:
         window.location.href = path;
+    };
+
+    // Helper function to get message type class
+    const getMessageClass = () => {
+        if (message.includes('Error') || message.includes('required') || message.includes('must')) {
+            return 'message error';
+        } else if (message.includes('Using offline')) {
+            return 'message warning';
+        } else if (message.includes('Creating')) {
+            return 'message info';
+        } else {
+            return 'message success';
+        }
     };
 
     // Fetch radio categories from the backend
@@ -432,634 +446,371 @@ const CreateRadioStation = () => {
     };
 
     return (
-        <div style={styles.container}>
-            <h2>Create a New Radio Station</h2>
+        <div className="create-radio-container">
+            <div className="form-wrapper">
+                <h2>📻 Create a New Radio Station</h2>
 
-            {message && (
-                <p style={{
-                    ...styles.message,
-                    color: message.includes('Error') || message.includes('required') || message.includes('must') ? '#dc3545' :
-                        message.includes('Using offline') ? '#ffc107' :
-                            message.includes('Creating') ? '#007bff' : '#28a745'
-                }}>
-                    {message}
-                </p>
-            )}
+                {message && (
+                    <p className={getMessageClass()}>
+                        {message}
+                    </p>
+                )}
 
-            <div style={styles.formSection}>
-                <h3>Basic Information</h3>
-
-                <input
-                    type="text"
-                    placeholder="Enter Radio Station Name *"
-                    value={stationName}
-                    onChange={(e) => setStationName(e.target.value)}
-                    style={styles.input}
-                />
-
-                <textarea
-                    placeholder="Enter Description *"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    style={styles.textarea}
-                ></textarea>
-
-                <select value={category} onChange={(e) => setCategory(e.target.value)} style={styles.select}>
-                    <option value="">Select a Category *</option>
-                    {categories.map((cat, index) => (
-                        <option key={index} value={cat}>{cat}</option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Initial Mix Upload Section */}
-            <div style={styles.formSection}>
-                <h3>Upload Your Initial Mix *</h3>
-                <p style={styles.sectionDescription}>
-                    Upload a mix or playlist to get your station started. This will be the first thing listeners hear!
-                </p>
-
-                <div style={styles.audioUploadContainer}>
-                    <div
-                        style={{
-                            ...styles.audioDropzone,
-                            borderColor: initialMixFile ? '#28A745' : '#ccc'
-                        }}
-                        onClick={() => audioInputRef.current.click()}
-                    >
-                        {initialMixFile ? (
-                            <div style={styles.audioFileInfo}>
-                                <div style={styles.audioIcon}>🎵</div>
-                                <div>
-                                    <strong>{initialMixFile.name}</strong>
-                                    <p>{formatFileSize(initialMixFile.size)}</p>
-                                    {audioPreview && (
-                                        <audio controls style={styles.audioPreview}>
-                                            <source src={audioPreview} type={initialMixFile.type} />
-                                        </audio>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div style={styles.uploadPrompt}>
-                                <div style={styles.uploadIcon}>🎧</div>
-                                <p><strong>Click to upload your mix</strong></p>
-                                <p>MP3, WAV, or other audio formats • Max 120MB</p>
-                            </div>
-                        )}
-                    </div>
+                <div className="form-section">
+                    <h3>Basic Information</h3>
 
                     <input
-                        type="file"
-                        ref={audioInputRef}
-                        accept="audio/*"
-                        onChange={handleAudioChange}
-                        style={{ display: 'none' }}
+                        type="text"
+                        placeholder="Enter Radio Station Name *"
+                        value={stationName}
+                        onChange={(e) => setStationName(e.target.value)}
                     />
+
+                    <textarea
+                        placeholder="Enter Description *"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                    ></textarea>
+
+                    <select value={category} onChange={(e) => setCategory(e.target.value)}>
+                        <option value="">Select a Category *</option>
+                        {categories.map((cat, index) => (
+                            <option key={index} value={cat}>{cat}</option>
+                        ))}
+                    </select>
                 </div>
 
-                {/* Mix Metadata - MANDATORY FIELDS */}
-                {initialMixFile && (
-                    <div style={styles.mixMetadata}>
-                        <h4>Mix Details</h4>
+                {/* Initial Mix Upload Section */}
+                <div className="form-section">
+                    <h3>🎧 Upload Your Initial Mix *</h3>
+                    <p className="section-description">
+                        Upload a mix or playlist to get your station started. This will be the first thing listeners hear!
+                    </p>
 
-                        <input
-                            type="text"
-                            placeholder="Mix Title *"
-                            value={mixTitle}
-                            onChange={(e) => setMixTitle(e.target.value)}
-                            style={styles.input}
-                        />
-
-                        <textarea
-                            placeholder="Mix Description *"
-                            value={mixDescription}
-                            onChange={(e) => setMixDescription(e.target.value)}
-                            style={styles.textarea}
-                        />
-
-                        <div style={styles.rowInputs}>
-                            <input
-                                type="text"
-                                placeholder="DJ Name *"
-                                value={djName}
-                                onChange={(e) => setDjName(e.target.value)}
-                                style={styles.inputHalf}
-                            />
-                            <input
-                                type="text"
-                                placeholder="BPM (optional)"
-                                value={bpm}
-                                onChange={(e) => setBpm(e.target.value)}
-                                style={styles.inputHalf}
-                            />
-                        </div>
-
-                        <div style={styles.rowInputs}>
-                            <input
-                                type="text"
-                                placeholder="Mood/Vibe (e.g., Chill, Energetic)"
-                                value={mood}
-                                onChange={(e) => setMood(e.target.value)}
-                                style={styles.inputHalf}
-                            />
-                            <input
-                                type="text"
-                                placeholder="Sub-genres (e.g., Deep House, Techno)"
-                                value={subGenres}
-                                onChange={(e) => setSubGenres(e.target.value)}
-                                style={styles.inputHalf}
-                            />
-                        </div>
-
-                        {/* MANDATORY TRACKLIST FOR ROYALTY COMPLIANCE */}
-                        <div style={styles.tracklistSection}>
-                            <div style={styles.tracklistHeader}>
-                                <h4>Tracklist * (Required for BMI/ASCAP Royalty Reporting)</h4>
-                                <p style={styles.complianceNote}>
-                                    Complete track information is legally required for proper royalty distribution to artists, songwriters, and publishers.
-                                </p>
-                            </div>
-
-                            {tracklist.map((track, index) => (
-                                <div key={index} style={styles.trackItem}>
-                                    <div style={styles.trackHeader}>
-                                        <h5>Track {track.playOrderNumber}</h5>
-                                        {tracklist.length > 1 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => removeTrackFromList(index)}
-                                                style={styles.removeTrackBtn}
-                                            >
-                                                Remove
-                                            </button>
+                    <div className="audio-upload-container">
+                        <div
+                            className={`audio-dropzone ${initialMixFile ? 'has-file' : ''}`}
+                            onClick={() => audioInputRef.current.click()}
+                        >
+                            {initialMixFile ? (
+                                <div className="audio-file-info">
+                                    <div className="audio-icon">🎵</div>
+                                    <div>
+                                        <strong>{initialMixFile.name}</strong>
+                                        <p>{formatFileSize(initialMixFile.size)}</p>
+                                        {audioPreview && (
+                                            <audio controls className="audio-preview">
+                                                <source src={audioPreview} type={initialMixFile.type} />
+                                            </audio>
                                         )}
                                     </div>
-
-                                    {/* Required Fields */}
-                                    <div style={styles.rowInputs}>
-                                        <input
-                                            type="text"
-                                            placeholder="Song Title *"
-                                            value={track.songTitle}
-                                            onChange={(e) => updateTrack(index, 'songTitle', e.target.value)}
-                                            style={styles.inputHalf}
-                                            required
-                                        />
-                                        <input
-                                            type="text"
-                                            placeholder="Artist Name *"
-                                            value={track.artistName}
-                                            onChange={(e) => updateTrack(index, 'artistName', e.target.value)}
-                                            style={styles.inputHalf}
-                                            required
-                                        />
-                                    </div>
-
-                                    <input
-                                        type="text"
-                                        placeholder="Songwriter(s) * (Required for royalties - separate multiple with commas)"
-                                        value={track.songwriterNames}
-                                        onChange={(e) => updateTrack(index, 'songwriterNames', e.target.value)}
-                                        style={styles.input}
-                                        required
-                                    />
-
-                                    {/* Additional Metadata */}
-                                    <div style={styles.rowInputs}>
-                                        <input
-                                            type="text"
-                                            placeholder="Album Name (if applicable)"
-                                            value={track.albumName}
-                                            onChange={(e) => updateTrack(index, 'albumName', e.target.value)}
-                                            style={styles.inputHalf}
-                                        />
-                                        <input
-                                            type="text"
-                                            placeholder="Record Label (if known)"
-                                            value={track.recordLabel}
-                                            onChange={(e) => updateTrack(index, 'recordLabel', e.target.value)}
-                                            style={styles.inputHalf}
-                                        />
-                                    </div>
-
-                                    <div style={styles.rowInputs}>
-                                        <input
-                                            type="text"
-                                            placeholder="Publisher (if known)"
-                                            value={track.publisherName}
-                                            onChange={(e) => updateTrack(index, 'publisherName', e.target.value)}
-                                            style={styles.inputHalf}
-                                        />
-                                        <input
-                                            type="text"
-                                            placeholder="Duration (e.g., 3:45)"
-                                            value={track.approximateDuration}
-                                            onChange={(e) => updateTrack(index, 'approximateDuration', e.target.value)}
-                                            style={styles.inputHalf}
-                                        />
-                                    </div>
-
-                                    <input
-                                        type="text"
-                                        placeholder="Start Time in Mix (e.g., 0:00, 3:45)"
-                                        value={track.approximateStartTime}
-                                        onChange={(e) => updateTrack(index, 'approximateStartTime', e.target.value)}
-                                        style={styles.input}
-                                    />
                                 </div>
-                            ))}
+                            ) : (
+                                <div className="upload-prompt">
+                                    <div className="upload-icon">🎧</div>
+                                    <p><strong>Click to upload your mix</strong></p>
+                                    <p>MP3, WAV, or other audio formats • Max 120MB</p>
+                                </div>
+                            )}
+                        </div>
 
-                            <button
-                                type="button"
-                                onClick={addTrackToList}
-                                style={styles.addTrackBtn}
-                            >
-                                Add Another Track
-                            </button>
+                        <input
+                            type="file"
+                            ref={audioInputRef}
+                            accept="audio/*"
+                            onChange={handleAudioChange}
+                            style={{ display: 'none' }}
+                        />
+                    </div>
 
-                            <div style={styles.royaltyNotice}>
-                                <p><strong>Important:</strong> This tracklist will be used for:</p>
-                                <ul>
-                                    <li>BMI & ASCAP royalty reporting</li>
-                                    <li>SoundExchange digital performance royalties</li>
-                                    <li>Mechanical license compliance</li>
-                                    <li>Artist and songwriter credit attribution</li>
-                                </ul>
-                                <p>Incomplete information may result in legal compliance issues and unpaid royalties to rights holders.</p>
+                    {/* Mix Metadata - MANDATORY FIELDS */}
+                    {initialMixFile && (
+                        <div className="mix-metadata">
+                            <h4>Mix Details</h4>
+
+                            <input
+                                type="text"
+                                placeholder="Mix Title *"
+                                value={mixTitle}
+                                onChange={(e) => setMixTitle(e.target.value)}
+                            />
+
+                            <textarea
+                                placeholder="Mix Description *"
+                                value={mixDescription}
+                                onChange={(e) => setMixDescription(e.target.value)}
+                            />
+
+                            <div className="row-inputs">
+                                <input
+                                    type="text"
+                                    placeholder="DJ Name *"
+                                    value={djName}
+                                    onChange={(e) => setDjName(e.target.value)}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="BPM (optional)"
+                                    value={bpm}
+                                    onChange={(e) => setBpm(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="row-inputs">
+                                <input
+                                    type="text"
+                                    placeholder="Mood/Vibe (e.g., Chill, Energetic)"
+                                    value={mood}
+                                    onChange={(e) => setMood(e.target.value)}
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Sub-genres (e.g., Deep House, Techno)"
+                                    value={subGenres}
+                                    onChange={(e) => setSubGenres(e.target.value)}
+                                />
+                            </div>
+
+                            {/* MANDATORY TRACKLIST FOR ROYALTY COMPLIANCE */}
+                            <div className="tracklist-section">
+                                <div className="tracklist-header">
+                                    <h4>📋 Tracklist * (Required for BMI/ASCAP Royalty Reporting)</h4>
+                                    <p className="compliance-note">
+                                        Complete track information is legally required for proper royalty distribution to artists, songwriters, and publishers.
+                                    </p>
+                                </div>
+
+                                {tracklist.map((track, index) => (
+                                    <div key={index} className="track-item">
+                                        <div className="track-header">
+                                            <h5>Track {track.playOrderNumber}</h5>
+                                            {tracklist.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeTrackFromList(index)}
+                                                    className="remove-track-btn"
+                                                >
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Required Fields */}
+                                        <div className="row-inputs">
+                                            <input
+                                                type="text"
+                                                placeholder="Song Title *"
+                                                value={track.songTitle}
+                                                onChange={(e) => updateTrack(index, 'songTitle', e.target.value)}
+                                                required
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Artist Name *"
+                                                value={track.artistName}
+                                                onChange={(e) => updateTrack(index, 'artistName', e.target.value)}
+                                                required
+                                            />
+                                        </div>
+
+                                        <input
+                                            type="text"
+                                            placeholder="Songwriter(s) * (Required for royalties - separate multiple with commas)"
+                                            value={track.songwriterNames}
+                                            onChange={(e) => updateTrack(index, 'songwriterNames', e.target.value)}
+                                            required
+                                        />
+
+                                        {/* Additional Metadata */}
+                                        <div className="row-inputs">
+                                            <input
+                                                type="text"
+                                                placeholder="Album Name (if applicable)"
+                                                value={track.albumName}
+                                                onChange={(e) => updateTrack(index, 'albumName', e.target.value)}
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Record Label (if known)"
+                                                value={track.recordLabel}
+                                                onChange={(e) => updateTrack(index, 'recordLabel', e.target.value)}
+                                            />
+                                        </div>
+
+                                        <div className="row-inputs">
+                                            <input
+                                                type="text"
+                                                placeholder="Publisher (if known)"
+                                                value={track.publisherName}
+                                                onChange={(e) => updateTrack(index, 'publisherName', e.target.value)}
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Duration (e.g., 3:45)"
+                                                value={track.approximateDuration}
+                                                onChange={(e) => updateTrack(index, 'approximateDuration', e.target.value)}
+                                            />
+                                        </div>
+
+                                        <input
+                                            type="text"
+                                            placeholder="Start Time in Mix (e.g., 0:00, 3:45)"
+                                            value={track.approximateStartTime}
+                                            onChange={(e) => updateTrack(index, 'approximateStartTime', e.target.value)}
+                                        />
+                                    </div>
+                                ))}
+
+                                <button
+                                    type="button"
+                                    onClick={addTrackToList}
+                                    className="add-track-btn"
+                                >
+                                    + Add Another Track
+                                </button>
+
+                                <div className="royalty-notice">
+                                    <p><strong>Important:</strong> This tracklist will be used for:</p>
+                                    <ul>
+                                        <li>BMI & ASCAP royalty reporting</li>
+                                        <li>SoundExchange digital performance royalties</li>
+                                        <li>Mechanical license compliance</li>
+                                        <li>Artist and songwriter credit attribution</li>
+                                    </ul>
+                                    <p>Incomplete information may result in legal compliance issues and unpaid royalties to rights holders.</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
 
-            <div style={styles.formSection}>
-                <h3>Station Visuals</h3>
+                <div className="form-section">
+                    <h3>🎨 Station Visuals</h3>
 
-                <div style={styles.imageUploadContainer}>
-                    <div style={styles.imageUploadBox}>
-                        <h4>Station Logo *</h4>
-                        <div
-                            style={{
-                                ...styles.uploadPreview,
-                                backgroundImage: logoPreview ? `url(${logoPreview})` : 'none'
-                            }}
-                            onClick={() => logoInputRef.current.click()}
-                        >
-                            {!logoPreview && <p>Click to upload logo</p>}
+                    <div className="image-upload-container">
+                        <div className="image-upload-box">
+                            <h4>Station Logo *</h4>
+                            <div
+                                className="upload-preview"
+                                style={{
+                                    backgroundImage: logoPreview ? `url(${logoPreview})` : 'none'
+                                }}
+                                onClick={() => logoInputRef.current.click()}
+                            >
+                                {!logoPreview && <p>Click to upload logo</p>}
+                            </div>
+                            <p className="upload-hint">Square image, max 2MB</p>
+                            <input
+                                type="file"
+                                ref={logoInputRef}
+                                accept="image/jpeg, image/png, image/gif"
+                                onChange={handleLogoChange}
+                                style={{ display: 'none' }}
+                            />
                         </div>
-                        <p style={styles.uploadHint}>Square image, max 2MB</p>
-                        <input
-                            type="file"
-                            ref={logoInputRef}
-                            accept="image/jpeg, image/png, image/gif"
-                            onChange={handleLogoChange}
-                            style={{ display: 'none' }}
-                        />
-                    </div>
-                    <div style={styles.imageUploadBox}>
-                        <h4>Cover Image (Optional)</h4>
-                        <div
-                            style={{
-                                ...styles.uploadPreview,
-                                ...styles.coverPreview,
-                                backgroundImage: coverPreview ? `url(${coverPreview})` : 'none'
-                            }}
-                            onClick={() => coverInputRef.current.click()}
-                        >
-                            {!coverPreview && <p>Click to upload cover</p>}
+                        <div className="image-upload-box">
+                            <h4>Cover Image (Optional)</h4>
+                            <div
+                                className="upload-preview cover-preview"
+                                style={{
+                                    backgroundImage: coverPreview ? `url(${coverPreview})` : 'none'
+                                }}
+                                onClick={() => coverInputRef.current.click()}
+                            >
+                                {!coverPreview && <p>Click to upload cover</p>}
+                            </div>
+                            <p className="upload-hint">Banner image, max 5MB</p>
+                            <input
+                                type="file"
+                                ref={coverInputRef}
+                                accept="image/jpeg, image/png"
+                                onChange={handleCoverChange}
+                                style={{ display: 'none' }}
+                            />
                         </div>
-                        <p style={styles.uploadHint}>Banner image, max 5MB</p>
-                        <input
-                            type="file"
-                            ref={coverInputRef}
-                            accept="image/jpeg, image/png"
-                            onChange={handleCoverChange}
-                            style={{ display: 'none' }}
-                        />
                     </div>
                 </div>
-            </div>
 
-            <div style={styles.formSection}>
-                <h3>Audience & Content</h3>
+                <div className="form-section">
+                    <h3>👥 Audience & Content</h3>
 
-                <input
-                    type="text"
-                    placeholder="Target Audience *"
-                    value={targetAudience}
-                    onChange={(e) => setTargetAudience(e.target.value)}
-                    style={styles.input}
-                />
-
-                <select
-                    value={broadcastHours}
-                    onChange={(e) => setBroadcastHours(e.target.value)}
-                    style={styles.select}
-                >
-                    <option value="24/7">24/7 Broadcasting</option>
-                    <option value="mornings">Morning Hours</option>
-                    <option value="evenings">Evening Hours</option>
-                    <option value="weekends">Weekends Only</option>
-                    <option value="custom">Custom Schedule</option>
-                </select>
-
-                <div style={styles.checkboxContainer}>
                     <input
-                        type="checkbox"
-                        id="explicitContent"
-                        checked={isExplicit}
-                        onChange={(e) => setIsExplicit(e.target.checked)}
+                        type="text"
+                        placeholder="Target Audience *"
+                        value={targetAudience}
+                        onChange={(e) => setTargetAudience(e.target.value)}
                     />
-                    <label htmlFor="explicitContent">Contains explicit content</label>
+
+                    <select
+                        value={broadcastHours}
+                        onChange={(e) => setBroadcastHours(e.target.value)}
+                    >
+                        <option value="24/7">24/7 Broadcasting</option>
+                        <option value="mornings">Morning Hours</option>
+                        <option value="evenings">Evening Hours</option>
+                        <option value="weekends">Weekends Only</option>
+                        <option value="custom">Custom Schedule</option>
+                    </select>
+
+                    <div className="checkbox-container">
+                        <input
+                            type="checkbox"
+                            id="explicitContent"
+                            checked={isExplicit}
+                            onChange={(e) => setIsExplicit(e.target.checked)}
+                        />
+                        <label htmlFor="explicitContent">Contains explicit content</label>
+                    </div>
+
+                    <input
+                        type="text"
+                        placeholder="Tags (comma-separated)"
+                        value={tags}
+                        onChange={(e) => setTags(e.target.value)}
+                    />
+
+                    <textarea
+                        placeholder="Welcome Message for Listeners"
+                        value={welcomeMessage}
+                        onChange={(e) => setWelcomeMessage(e.target.value)}
+                    ></textarea>
                 </div>
 
-                <input
-                    type="text"
-                    placeholder="Tags (comma-separated)"
-                    value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                    style={styles.input}
-                />
+                <div className="form-section">
+                    <h3>🔗 Social Media Links</h3>
 
-                <textarea
-                    placeholder="Welcome Message for Listeners"
-                    value={welcomeMessage}
-                    onChange={(e) => setWelcomeMessage(e.target.value)}
-                    style={styles.textarea}
-                ></textarea>
+                    <input
+                        type="url"
+                        placeholder="Website URL"
+                        value={socialLinks.website}
+                        onChange={(e) => handleSocialLinkChange("website", e.target.value)}
+                    />
+
+                    <input
+                        type="text"
+                        placeholder="Instagram Handle"
+                        value={socialLinks.instagram}
+                        onChange={(e) => handleSocialLinkChange("instagram", e.target.value)}
+                    />
+
+                    <input
+                        type="text"
+                        placeholder="Twitter Handle"
+                        value={socialLinks.twitter}
+                        onChange={(e) => handleSocialLinkChange("twitter", e.target.value)}
+                    />
+                </div>
+
+                <button onClick={createStation} className="submit-btn" disabled={loading}>
+                    {loading ? "⏳ Creating Station..." : "🚀 Create Station"}
+                </button>
+
+                <p className="next-steps-info">
+                    After creating your station, you'll be able to upload more music and manage your playlists.
+                </p>
             </div>
-
-            <div style={styles.formSection}>
-                <h3>Social Media Links</h3>
-
-                <input
-                    type="url"
-                    placeholder="Website URL"
-                    value={socialLinks.website}
-                    onChange={(e) => handleSocialLinkChange("website", e.target.value)}
-                    style={styles.input}
-                />
-
-                <input
-                    type="text"
-                    placeholder="Instagram Handle"
-                    value={socialLinks.instagram}
-                    onChange={(e) => handleSocialLinkChange("instagram", e.target.value)}
-                    style={styles.input}
-                />
-
-                <input
-                    type="text"
-                    placeholder="Twitter Handle"
-                    value={socialLinks.twitter}
-                    onChange={(e) => handleSocialLinkChange("twitter", e.target.value)}
-                    style={styles.input}
-                />
-            </div>
-
-            <button onClick={createStation} style={styles.button} disabled={loading}>
-                {loading ? "Creating Station..." : "Create Station"}
-            </button>
-
-            <p style={styles.nextStepsInfo}>
-                After creating your station, you'll be able to upload more music and manage your playlists.
-            </p>
         </div>
     );
-};
-
-// Enhanced Styling with audio upload styles
-const styles = {
-    container: {
-        maxWidth: "700px",
-        margin: "auto",
-        padding: "20px",
-        textAlign: "left",
-        border: "2px solid #ddd",
-        borderRadius: "10px",
-        backgroundColor: "#fff",
-        boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)"
-    },
-    formSection: {
-        marginBottom: "20px",
-        padding: "15px",
-        borderRadius: "8px",
-        backgroundColor: "#f9f9f9"
-    },
-    sectionDescription: {
-        fontSize: "14px",
-        color: "#666",
-        marginBottom: "15px",
-        fontStyle: "italic"
-    },
-    input: {
-        width: "100%",
-        padding: "12px",
-        marginBottom: "10px",
-        borderRadius: "5px",
-        border: "1px solid #ccc",
-        fontSize: "16px",
-        boxSizing: "border-box"
-    },
-    inputHalf: {
-        width: "48%",
-        padding: "12px",
-        marginBottom: "10px",
-        borderRadius: "5px",
-        border: "1px solid #ccc",
-        fontSize: "16px",
-        boxSizing: "border-box"
-    },
-    rowInputs: {
-        display: "flex",
-        justifyContent: "space-between",
-        gap: "10px"
-    },
-    textarea: {
-        width: "100%",
-        padding: "12px",
-        marginBottom: "10px",
-        borderRadius: "5px",
-        border: "1px solid #ccc",
-        minHeight: "80px",
-        fontSize: "16px",
-        boxSizing: "border-box"
-    },
-    select: {
-        width: "100%",
-        padding: "12px",
-        marginBottom: "10px",
-        borderRadius: "5px",
-        border: "1px solid #ccc",
-        fontSize: "16px"
-    },
-    button: {
-        width: "100%",
-        padding: "12px",
-        backgroundColor: "#28A745",
-        color: "#fff",
-        borderRadius: "5px",
-        cursor: "pointer",
-        border: "none",
-        fontSize: "16px"
-    },
-    message: {
-        fontWeight: "bold",
-        marginBottom: "10px",
-        padding: "10px",
-        borderRadius: "5px",
-        backgroundColor: "#f8f9fa",
-        border: "1px solid #dee2e6"
-    },
-    checkboxContainer: {
-        display: "flex",
-        alignItems: "center",
-        marginBottom: "10px"
-    },
-    imageUploadContainer: {
-        display: "flex",
-        flexDirection: "row",
-        justifyContent: "space-between",
-        gap: "15px",
-        marginBottom: "10px"
-    },
-    imageUploadBox: {
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center"
-    },
-    uploadPreview: {
-        width: "150px",
-        height: "150px",
-        border: "2px dashed #ccc",
-        borderRadius: "5px",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        cursor: "pointer",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        marginBottom: "10px"
-    },
-    coverPreview: {
-        width: "250px",
-        height: "120px",
-    },
-    uploadHint: {
-        fontSize: "12px",
-        color: "#666",
-        margin: "0"
-    },
-    // Audio upload styles
-    audioUploadContainer: {
-        marginBottom: "15px"
-    },
-    audioDropzone: {
-        width: "100%",
-        minHeight: "120px",
-        border: "2px dashed #ccc",
-        borderRadius: "8px",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        cursor: "pointer",
-        backgroundColor: "#fafafa",
-        transition: "border-color 0.3s ease",
-        marginBottom: "15px"
-    },
-    uploadPrompt: {
-        textAlign: "center",
-        padding: "20px"
-    },
-    uploadIcon: {
-        fontSize: "48px",
-        marginBottom: "10px"
-    },
-    audioFileInfo: {
-        display: "flex",
-        alignItems: "center",
-        gap: "15px",
-        padding: "20px"
-    },
-    audioIcon: {
-        fontSize: "48px",
-        color: "#28A745"
-    },
-    audioPreview: {
-        width: "300px",
-        marginTop: "10px"
-    },
-    mixMetadata: {
-        backgroundColor: "#fff",
-        padding: "15px",
-        borderRadius: "8px",
-        border: "1px solid #e0e0e0"
-    },
-    tracklistSection: {
-        marginTop: "20px",
-        padding: "15px",
-        backgroundColor: "#f8f9fa",
-        borderRadius: "8px",
-        border: "2px solid #007bff"
-    },
-    tracklistHeader: {
-        marginBottom: "15px",
-        textAlign: "center"
-    },
-    complianceNote: {
-        fontSize: "12px",
-        color: "#666",
-        fontStyle: "italic",
-        margin: "5px 0"
-    },
-    trackItem: {
-        backgroundColor: "#fff",
-        padding: "15px",
-        marginBottom: "15px",
-        borderRadius: "6px",
-        border: "1px solid #ddd"
-    },
-    trackHeader: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "10px"
-    },
-    removeTrackBtn: {
-        padding: "5px 10px",
-        backgroundColor: "#dc3545",
-        color: "white",
-        border: "none",
-        borderRadius: "4px",
-        cursor: "pointer",
-        fontSize: "12px"
-    },
-    addTrackBtn: {
-        width: "100%",
-        padding: "10px",
-        backgroundColor: "#007bff",
-        color: "white",
-        border: "none",
-        borderRadius: "4px",
-        cursor: "pointer",
-        fontSize: "14px",
-        marginBottom: "15px"
-    },
-    royaltyNotice: {
-        backgroundColor: "#fff3cd",
-        border: "1px solid #ffeaa7",
-        borderRadius: "4px",
-        padding: "15px",
-        fontSize: "12px"
-    },
-    nextStepsInfo: {
-        textAlign: "center",
-        marginTop: "15px",
-        fontSize: "14px",
-        color: "#666"
-    }
 };
 
 export default CreateRadioStation;
