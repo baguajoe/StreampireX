@@ -4,7 +4,7 @@ eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app, session
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow
+from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality
 # ADD these imports
 from .steam_service import SteamService
 from datetime import datetime
@@ -17340,3 +17340,369 @@ def toggle_artist_follow():
         db.session.rollback()
         print(f"Error toggling follow: {str(e)}")
         return jsonify({"error": "Failed to update follow status"}), 500
+
+# =============================================================================
+# ADD THESE ROUTES TO YOUR src/api/routes.py
+# =============================================================================
+
+# First, add these imports at the top of routes.py:
+# from .models import BandwidthLog, TranscodeJob, VideoQuality
+
+# =============================================================================
+# STORAGE STATUS ROUTE
+# =============================================================================
+
+@api.route('/user/storage', methods=['GET'])
+@jwt_required()
+def get_user_storage():
+    """Get user's storage usage and limits"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Storage tier limits (in bytes)
+        STORAGE_TIERS = {
+            'free': {
+                'name': 'Free',
+                'total_limit': 5 * 1024 * 1024 * 1024,        # 5 GB
+                'per_upload_limit': 500 * 1024 * 1024,         # 500 MB
+            },
+            'pro': {
+                'name': 'Pro',
+                'total_limit': 50 * 1024 * 1024 * 1024,       # 50 GB
+                'per_upload_limit': 2 * 1024 * 1024 * 1024,    # 2 GB
+            },
+            'premium': {
+                'name': 'Premium',
+                'total_limit': 250 * 1024 * 1024 * 1024,      # 250 GB
+                'per_upload_limit': 5 * 1024 * 1024 * 1024,    # 5 GB
+            },
+            'professional': {
+                'name': 'Professional',
+                'total_limit': 1024 * 1024 * 1024 * 1024,     # 1 TB
+                'per_upload_limit': 20 * 1024 * 1024 * 1024,   # 20 GB
+            }
+        }
+        
+        # Determine user's tier based on subscription
+        tier = 'free'
+        subscription = Subscription.query.filter_by(user_id=user_id, status='active').first()
+        if subscription and subscription.plan:
+            plan_name = subscription.plan.name.lower()
+            if 'professional' in plan_name:
+                tier = 'professional'
+            elif 'premium' in plan_name:
+                tier = 'premium'
+            elif 'pro' in plan_name or 'basic' in plan_name:
+                tier = 'pro'
+        
+        tier_config = STORAGE_TIERS.get(tier, STORAGE_TIERS['free'])
+        
+        # Calculate actual storage used
+        storage_breakdown = {
+            'videos': 0,
+            'clips': 0,
+            'audio': 0,
+            'podcasts': 0
+        }
+        
+        # Sum video sizes
+        videos = Video.query.filter_by(user_id=user_id).all()
+        for video in videos:
+            if hasattr(video, 'file_size') and video.file_size:
+                storage_breakdown['videos'] += video.file_size
+        
+        # Sum video clips
+        clips = VideoClip.query.filter_by(user_id=user_id).all()
+        for clip in clips:
+            if hasattr(clip, 'file_size') and clip.file_size:
+                storage_breakdown['clips'] += clip.file_size
+        
+        # Sum audio files
+        audios = Audio.query.filter_by(user_id=user_id).all()
+        for audio in audios:
+            if hasattr(audio, 'file_size') and audio.file_size:
+                storage_breakdown['audio'] += audio.file_size
+        
+        # Sum podcast episodes
+        podcasts = Podcast.query.filter_by(user_id=user_id).all()
+        for podcast in podcasts:
+            episodes = PodcastEpisode.query.filter_by(podcast_id=podcast.id).all()
+            for episode in episodes:
+                if hasattr(episode, 'file_size') and episode.file_size:
+                    storage_breakdown['podcasts'] += episode.file_size
+        
+        total_used = sum(storage_breakdown.values())
+        total_limit = tier_config['total_limit']
+        per_upload_limit = tier_config['per_upload_limit']
+        
+        # Calculate percentage
+        percentage_used = round((total_used / total_limit) * 100, 1) if total_limit > 0 else 0
+        
+        # Determine status
+        if percentage_used >= 100:
+            status_level = 'over_limit'
+            status_message = '⛔ Storage limit exceeded'
+        elif percentage_used >= 90:
+            status_level = 'critical'
+            status_message = '🔴 Storage almost full'
+        elif percentage_used >= 75:
+            status_level = 'warning'
+            status_message = '🟡 Storage getting low'
+        else:
+            status_level = 'ok'
+            status_message = '✅ Storage OK'
+        
+        def format_bytes(bytes_val):
+            if bytes_val >= 1024 * 1024 * 1024:
+                return f"{bytes_val / (1024 * 1024 * 1024):.2f} GB"
+            elif bytes_val >= 1024 * 1024:
+                return f"{bytes_val / (1024 * 1024):.1f} MB"
+            else:
+                return f"{bytes_val / 1024:.0f} KB"
+        
+        return jsonify({
+            'success': True,
+            'storage': {
+                'tier': tier,
+                'tier_name': tier_config['name'],
+                'used_bytes': total_used,
+                'used_display': format_bytes(total_used),
+                'limit_bytes': total_limit,
+                'limit_display': format_bytes(total_limit),
+                'remaining_bytes': max(0, total_limit - total_used),
+                'remaining_display': format_bytes(max(0, total_limit - total_used)),
+                'percentage_used': percentage_used,
+                'per_upload_limit_bytes': per_upload_limit,
+                'per_upload_limit_display': format_bytes(per_upload_limit),
+                'breakdown': storage_breakdown,
+                'breakdown_display': {
+                    'videos': format_bytes(storage_breakdown['videos']),
+                    'clips': format_bytes(storage_breakdown['clips']),
+                    'audio': format_bytes(storage_breakdown['audio']),
+                    'podcasts': format_bytes(storage_breakdown['podcasts'])
+                },
+                'status_level': status_level,
+                'status_message': status_message
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting storage status: {e}")
+        return jsonify({'error': 'Failed to get storage status'}), 500
+
+
+# =============================================================================
+# BANDWIDTH STATUS ROUTE
+# =============================================================================
+
+@api.route('/user/bandwidth', methods=['GET'])
+@jwt_required()
+def get_user_bandwidth():
+    """Get user's bandwidth usage and limits"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Bandwidth tier limits
+        BANDWIDTH_TIERS = {
+            'free': {
+                'name': 'Free',
+                'monthly_streaming_gb': 50,
+                'daily_streaming_gb': 5,
+                'daily_views': 500,
+                'max_streaming_quality': '720p',
+                'available_qualities': ['360p', '480p', '720p'],
+                'concurrent_streams': 1,
+                'allow_download': False,
+                'allow_4k': False,
+                'allow_live_streaming': False,
+            },
+            'pro': {
+                'name': 'Pro',
+                'monthly_streaming_gb': 500,
+                'daily_streaming_gb': 25,
+                'daily_views': 5000,
+                'max_streaming_quality': '1080p',
+                'available_qualities': ['360p', '480p', '720p', '1080p'],
+                'concurrent_streams': 3,
+                'allow_download': True,
+                'allow_4k': False,
+                'allow_live_streaming': True,
+            },
+            'premium': {
+                'name': 'Premium',
+                'monthly_streaming_gb': 2000,
+                'daily_streaming_gb': 100,
+                'daily_views': 50000,
+                'max_streaming_quality': '4k',
+                'available_qualities': ['360p', '480p', '720p', '1080p', '4k'],
+                'concurrent_streams': 5,
+                'allow_download': True,
+                'allow_4k': True,
+                'allow_live_streaming': True,
+            },
+            'professional': {
+                'name': 'Professional',
+                'monthly_streaming_gb': -1,  # Unlimited
+                'daily_streaming_gb': -1,
+                'daily_views': -1,
+                'max_streaming_quality': '4k',
+                'available_qualities': ['360p', '480p', '720p', '1080p', '4k'],
+                'concurrent_streams': 10,
+                'allow_download': True,
+                'allow_4k': True,
+                'allow_live_streaming': True,
+            }
+        }
+        
+        # Determine user's tier
+        tier = 'free'
+        subscription = Subscription.query.filter_by(user_id=user_id, status='active').first()
+        if subscription and subscription.plan:
+            plan_name = subscription.plan.name.lower()
+            if 'professional' in plan_name:
+                tier = 'professional'
+            elif 'premium' in plan_name:
+                tier = 'premium'
+            elif 'pro' in plan_name or 'basic' in plan_name:
+                tier = 'pro'
+        
+        tier_config = BANDWIDTH_TIERS.get(tier, BANDWIDTH_TIERS['free'])
+        
+        # Get current month's bandwidth usage from BandwidthLog (if table exists)
+        monthly_used = 0
+        daily_used = 0
+        daily_views = 0
+        
+        try:
+            from datetime import datetime, timedelta
+            
+            month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            # Monthly bandwidth
+            monthly_result = db.session.query(
+                db.func.sum(BandwidthLog.bytes_transferred)
+            ).filter(
+                BandwidthLog.user_id == user_id,
+                BandwidthLog.timestamp >= month_start,
+                BandwidthLog.transfer_type == 'stream'
+            ).scalar()
+            monthly_used = monthly_result or 0
+            
+            # Daily bandwidth
+            daily_result = db.session.query(
+                db.func.sum(BandwidthLog.bytes_transferred)
+            ).filter(
+                BandwidthLog.user_id == user_id,
+                BandwidthLog.timestamp >= today_start,
+                BandwidthLog.transfer_type == 'stream'
+            ).scalar()
+            daily_used = daily_result or 0
+            
+            # Daily views count
+            daily_views = BandwidthLog.query.filter(
+                BandwidthLog.user_id == user_id,
+                BandwidthLog.timestamp >= today_start,
+                BandwidthLog.transfer_type == 'stream'
+            ).count()
+            
+        except Exception as e:
+            print(f"BandwidthLog query error (table may not exist yet): {e}")
+            # Continue with zeros if table doesn't exist
+        
+        # Convert limits to bytes
+        monthly_limit = tier_config['monthly_streaming_gb'] * 1024 * 1024 * 1024 if tier_config['monthly_streaming_gb'] > 0 else -1
+        daily_limit = tier_config['daily_streaming_gb'] * 1024 * 1024 * 1024 if tier_config['daily_streaming_gb'] > 0 else -1
+        views_limit = tier_config['daily_views']
+        
+        # Calculate percentages
+        monthly_pct = round((monthly_used / monthly_limit) * 100, 1) if monthly_limit > 0 else 0
+        daily_pct = round((daily_used / daily_limit) * 100, 1) if daily_limit > 0 else 0
+        views_pct = round((daily_views / views_limit) * 100, 1) if views_limit > 0 else 0
+        
+        # Determine status
+        if monthly_limit > 0 and monthly_pct >= 100:
+            status_level = 'over_limit'
+            status_message = '⛔ Monthly bandwidth limit reached'
+            can_stream = False
+        elif daily_limit > 0 and daily_pct >= 100:
+            status_level = 'daily_limit'
+            status_message = '⏳ Daily bandwidth limit reached'
+            can_stream = False
+        elif views_limit > 0 and daily_views >= views_limit:
+            status_level = 'views_limit'
+            status_message = '👀 Daily view limit reached'
+            can_stream = False
+        elif monthly_pct >= 90 or daily_pct >= 90:
+            status_level = 'warning'
+            status_message = '⚠️ Approaching bandwidth limit'
+            can_stream = True
+        else:
+            status_level = 'ok'
+            status_message = '✅ Bandwidth OK'
+            can_stream = True
+        
+        def format_gb(bytes_val):
+            if bytes_val < 0:
+                return 'Unlimited'
+            gb = bytes_val / (1024 * 1024 * 1024)
+            if gb >= 1000:
+                return f"{gb/1000:.1f} TB"
+            return f"{gb:.2f} GB"
+        
+        return jsonify({
+            'success': True,
+            'bandwidth': {
+                'tier': tier,
+                'tier_name': tier_config['name'],
+                
+                # Monthly usage
+                'monthly_used_bytes': monthly_used,
+                'monthly_used_display': format_gb(monthly_used),
+                'monthly_limit_bytes': monthly_limit,
+                'monthly_limit_display': format_gb(monthly_limit) if monthly_limit > 0 else 'Unlimited',
+                'monthly_percentage': monthly_pct if monthly_limit > 0 else 0,
+                'monthly_remaining_display': format_gb(monthly_limit - monthly_used) if monthly_limit > 0 else 'Unlimited',
+                
+                # Daily usage
+                'daily_used_bytes': daily_used,
+                'daily_used_display': format_gb(daily_used),
+                'daily_limit_bytes': daily_limit,
+                'daily_limit_display': format_gb(daily_limit) if daily_limit > 0 else 'Unlimited',
+                'daily_percentage': daily_pct if daily_limit > 0 else 0,
+                
+                # Views
+                'daily_views': daily_views,
+                'daily_views_limit': views_limit if views_limit > 0 else 'Unlimited',
+                'views_percentage': views_pct if views_limit > 0 else 0,
+                
+                # Quality limits
+                'max_quality': tier_config['max_streaming_quality'],
+                'available_qualities': tier_config['available_qualities'],
+                
+                # Features
+                'allow_download': tier_config['allow_download'],
+                'allow_4k': tier_config['allow_4k'],
+                'allow_live_streaming': tier_config['allow_live_streaming'],
+                'concurrent_streams': tier_config['concurrent_streams'],
+                
+                # Status
+                'status_level': status_level,
+                'status_message': status_message,
+                'can_stream': can_stream
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting bandwidth status: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to get bandwidth status'}), 500

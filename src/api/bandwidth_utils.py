@@ -6,6 +6,7 @@ from flask_jwt_extended import get_jwt_identity
 from flask import jsonify, request
 from datetime import datetime, timedelta
 from collections import defaultdict
+from src.api.models import BandwidthLog
 import time
 
 # =============================================================================
