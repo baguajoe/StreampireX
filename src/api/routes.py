@@ -17352,6 +17352,10 @@ def toggle_artist_follow():
 # STORAGE STATUS ROUTE
 # =============================================================================
 
+# =============================================================================
+# REPLACE YOUR /user/storage ROUTE WITH THIS MORE ROBUST VERSION
+# =============================================================================
+
 @api.route('/user/storage', methods=['GET'])
 @jwt_required()
 def get_user_storage():
@@ -17389,15 +17393,19 @@ def get_user_storage():
         
         # Determine user's tier based on subscription
         tier = 'free'
-        subscription = Subscription.query.filter_by(user_id=user_id, status='active').first()
-        if subscription and subscription.plan:
-            plan_name = subscription.plan.name.lower()
-            if 'professional' in plan_name:
-                tier = 'professional'
-            elif 'premium' in plan_name:
-                tier = 'premium'
-            elif 'pro' in plan_name or 'basic' in plan_name:
-                tier = 'pro'
+        try:
+            subscription = Subscription.query.filter_by(user_id=user_id, status='active').first()
+            if subscription and hasattr(subscription, 'plan') and subscription.plan:
+                plan_name = subscription.plan.name.lower()
+                if 'professional' in plan_name:
+                    tier = 'professional'
+                elif 'premium' in plan_name:
+                    tier = 'premium'
+                elif 'pro' in plan_name or 'basic' in plan_name:
+                    tier = 'pro'
+        except Exception as e:
+            print(f"Error checking subscription: {e}")
+            # Continue with free tier
         
         tier_config = STORAGE_TIERS.get(tier, STORAGE_TIERS['free'])
         
@@ -17409,31 +17417,55 @@ def get_user_storage():
             'podcasts': 0
         }
         
-        # Sum video sizes
-        videos = Video.query.filter_by(user_id=user_id).all()
-        for video in videos:
-            if hasattr(video, 'file_size') and video.file_size:
-                storage_breakdown['videos'] += video.file_size
+        # Sum video sizes (safely)
+        try:
+            videos = Video.query.filter_by(user_id=user_id).all()
+            for video in videos:
+                if hasattr(video, 'file_size') and video.file_size:
+                    storage_breakdown['videos'] += video.file_size
+                elif hasattr(video, 'size') and video.size:
+                    storage_breakdown['videos'] += video.size
+        except Exception as e:
+            print(f"Error querying videos: {e}")
         
-        # Sum video clips
-        clips = VideoClip.query.filter_by(user_id=user_id).all()
-        for clip in clips:
-            if hasattr(clip, 'file_size') and clip.file_size:
-                storage_breakdown['clips'] += clip.file_size
+        # Sum video clips (safely)
+        try:
+            # Try VideoClip model
+            clips = VideoClip.query.filter_by(user_id=user_id).all()
+            for clip in clips:
+                if hasattr(clip, 'file_size') and clip.file_size:
+                    storage_breakdown['clips'] += clip.file_size
+                elif hasattr(clip, 'size') and clip.size:
+                    storage_breakdown['clips'] += clip.size
+        except Exception as e:
+            print(f"Error querying video clips: {e}")
         
-        # Sum audio files
-        audios = Audio.query.filter_by(user_id=user_id).all()
-        for audio in audios:
-            if hasattr(audio, 'file_size') and audio.file_size:
-                storage_breakdown['audio'] += audio.file_size
+        # Sum audio files (safely)
+        try:
+            audios = Audio.query.filter_by(user_id=user_id).all()
+            for audio in audios:
+                if hasattr(audio, 'file_size') and audio.file_size:
+                    storage_breakdown['audio'] += audio.file_size
+                elif hasattr(audio, 'size') and audio.size:
+                    storage_breakdown['audio'] += audio.size
+        except Exception as e:
+            print(f"Error querying audio: {e}")
         
-        # Sum podcast episodes
-        podcasts = Podcast.query.filter_by(user_id=user_id).all()
-        for podcast in podcasts:
-            episodes = PodcastEpisode.query.filter_by(podcast_id=podcast.id).all()
-            for episode in episodes:
-                if hasattr(episode, 'file_size') and episode.file_size:
-                    storage_breakdown['podcasts'] += episode.file_size
+        # Sum podcast episodes (safely)
+        try:
+            podcasts = Podcast.query.filter_by(user_id=user_id).all()
+            for podcast in podcasts:
+                try:
+                    episodes = PodcastEpisode.query.filter_by(podcast_id=podcast.id).all()
+                    for episode in episodes:
+                        if hasattr(episode, 'file_size') and episode.file_size:
+                            storage_breakdown['podcasts'] += episode.file_size
+                        elif hasattr(episode, 'size') and episode.size:
+                            storage_breakdown['podcasts'] += episode.size
+                except Exception as ep_err:
+                    print(f"Error querying podcast episodes: {ep_err}")
+        except Exception as e:
+            print(f"Error querying podcasts: {e}")
         
         total_used = sum(storage_breakdown.values())
         total_limit = tier_config['total_limit']
@@ -17461,8 +17493,10 @@ def get_user_storage():
                 return f"{bytes_val / (1024 * 1024 * 1024):.2f} GB"
             elif bytes_val >= 1024 * 1024:
                 return f"{bytes_val / (1024 * 1024):.1f} MB"
-            else:
+            elif bytes_val >= 1024:
                 return f"{bytes_val / 1024:.0f} KB"
+            else:
+                return f"{bytes_val} B"
         
         return jsonify({
             'success': True,
@@ -17492,7 +17526,9 @@ def get_user_storage():
         
     except Exception as e:
         print(f"Error getting storage status: {e}")
-        return jsonify({'error': 'Failed to get storage status'}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to get storage status: {str(e)}'}), 500
 
 
 # =============================================================================
