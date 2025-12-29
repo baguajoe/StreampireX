@@ -5,9 +5,10 @@ import ChatModal from "../component/ChatModal";
 import VideoChatPopup from "../component/VideoChatPopup";
 import InboxDrawer from "../component/InboxDrawer";
 import SocialMediaManager from "../component/SocialMediaManager";
+import PostCard from '../component/PostCard';
 import VideoChannelManager from "../component/VideoChannelManager";
-import ProfileVideoCallButton from "../component/ProfileVideoCallButton";
 import "../../styles/ProfilePage.css";
+import "../../styles/PostCard.css";  // ✅ Correct
 
 // Image imports
 import lady1 from "../../img/lady1.png";
@@ -132,6 +133,8 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
+
+
 
     const fetchInnerCircle = useCallback(async () => {
         try {
@@ -993,6 +996,54 @@ const ProfilePage = () => {
         setUi(prev => ({ ...prev, activeTab: tab }));
     }, []);
 
+    // Post handlers - used by PostCard component
+    const handleEditPost = useCallback(async (postId, newContent) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${BACKEND_URL}/api/posts/${postId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content: newContent })
+            });
+
+            if (response.ok) {
+                setPosts(prev => prev.map(post =>
+                    post.id === postId
+                        ? { ...post, content: newContent, edited: true }
+                        : post
+                ));
+            }
+        } catch (error) {
+            console.error('Error editing post:', error);
+        }
+    }, []);
+
+    const handleDeletePost = useCallback(async (postId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${BACKEND_URL}/api/posts/${postId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                setPosts(prev => prev.filter(post => post.id !== postId));
+            }
+        } catch (error) {
+            console.error('Error deleting post:', error);
+        }
+    }, []);
+
+    const handleSharePost = useCallback((postId) => {
+        const postUrl = `${window.location.origin}/post/${postId}`;
+        navigator.clipboard.writeText(postUrl).then(() => {
+            alert('Post link copied to clipboard!');
+        });
+    }, []);
+
     // Media upload handlers
     const handleProfilePicChange = useCallback(async (event) => {
         const file = event.target.files[0];
@@ -1049,6 +1100,7 @@ const ProfilePage = () => {
             }
         }
     }, []);
+
 
     const handlePostImageChange = useCallback(async (event) => {
         const file = event.target.files[0];
@@ -1227,7 +1279,7 @@ const ProfilePage = () => {
     const handleLikePost = useCallback((postId) => {
         setPosts(prev => prev.map(post =>
             post.id === postId
-                ? { ...post, likes: post.likes + 1 }
+                ? { ...post, likes: post.liked ? post.likes - 1 : post.likes + 1, liked: !post.liked }
                 : post
         ));
     }, []);
@@ -1446,13 +1498,6 @@ const ProfilePage = () => {
                         </button>
 
                         {/* ✅ USE THE NEW COMPONENT */}
-                        <ProfileVideoCallButton
-                            targetUser={{
-                                id: user.id || authState.userId,
-                                username: user.username || authState.username,
-                                display_name: user.display_name || authState.username
-                            }}
-                        />
 
                         <button
                             className="quick-action-btn"
@@ -1995,57 +2040,20 @@ const ProfilePage = () => {
                                 </div>
                             </div>
 
-                            {/* Posts Grid */}
+                            {/* Posts Grid - Using PostCard Component */}
                             <div className="posts-grid">
                                 {posts.map((post) => (
-                                    <div key={post.id} className="post-card-grid">
-                                        <div className="post-header">
-                                            <img
-                                                src={post.avatar}
-                                                alt={post.username}
-                                                className="post-author-avatar"
-                                            />
-                                            <div className="post-author-info">
-                                                <h6 className="post-author-name">{post.username}</h6>
-                                                <p className="post-timestamp">{post.timestamp}</p>
-                                            </div>
-                                            <button className="post-menu-btn">⋮</button>
-                                        </div>
-
-                                        <div className="post-content">
-                                            <p className="post-text">{post.content}</p>
-                                            {post.image && (
-                                                <img
-                                                    src={post.image}
-                                                    alt="Post content"
-                                                    className="post-image"
-                                                />
-                                            )}
-                                        </div>
-
-                                        <div className="post-engagement">
-                                            <button
-                                                onClick={() => handleLikePost(post.id)}
-                                                className="engagement-btn"
-                                            >
-                                                Like {post.likes}
-                                            </button>
-                                            <button className="engagement-btn">
-                                                Comment {(post.comments || []).length}
-                                            </button>
-                                            <button className="engagement-btn">
-                                                Share
-                                            </button>
-                                        </div>
-
-                                        {/* Comments Section */}
-                                        <CommentSection
-                                            postId={post.id}
-                                            comments={post.comments || []}
-                                            currentUser={user}
-                                            onAddComment={handleAddComment}
-                                        />
-                                    </div>
+                                    <PostCard
+                                        key={post.id}
+                                        post={post}
+                                        currentUser={user}
+                                        isOwnProfile={true}
+                                        onLike={handleLikePost}
+                                        onEdit={handleEditPost}
+                                        onDelete={handleDeletePost}
+                                        onComment={handleAddComment}
+                                        onShare={handleSharePost}
+                                    />
                                 ))}
                             </div>
 

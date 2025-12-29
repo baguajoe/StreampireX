@@ -1,295 +1,334 @@
-/* WebRTC Better Styling & Fix Choose File Buttons */
+/* ===== WEBRTC VIDEO CHAT STYLES ===== */
+/* StreamPireX Dark Theme - Teal (#00ffc8) & Orange (#FF6600) */
 
-/* Hide the duplicate Choose File buttons in WebRTC */
-.webrtc-chat-container input[type="file"],
-.webrtc-section input[type="file"],
-.middle-column .webrtc-chat-container input[type="file"] {
-  display: none !important;
+.webrtc-chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 400px;
+    background: linear-gradient(145deg, #1a1f2e, #0d1117);
+    border-radius: 12px;
+    overflow: hidden;
 }
 
-/* Hide any file upload elements in WebRTC that shouldn't be there */
-.webrtc-chat-container .file-upload,
-.webrtc-chat-container [type="file"],
-.webrtc-section .file-upload,
-.webrtc-section [type="file"] {
-  display: none !important;
+/* ===== HEADER ===== */
+.webrtc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(0, 255, 200, 0.1);
 }
 
-/* Better WebRTC Container Styling */
-.middle-column .webrtc-section {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border-radius: 16px;
-  padding: 25px;
-  margin: 30px 0;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.1),
-    0 2px 8px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
-  position: relative;
-  overflow: hidden;
+.webrtc-room-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-/* Add subtle background pattern */
-.middle-column .webrtc-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(76, 175, 80, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(33, 150, 243, 0.03) 0%, transparent 50%);
-  pointer-events: none;
+.room-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #00ffc8;
 }
 
-/* Beautiful header styling */
-.middle-column .webrtc-section h3 {
-  margin: 0 0 25px 0;
-  color: #2c3e50;
-  font-size: 24px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-align: center;
-  justify-content: center;
-  position: relative;
-  z-index: 1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+.room-id {
+    font-size: 11px;
+    color: #6b7280;
 }
 
-/* Improved WebRTC container */
-.middle-column .webrtc-chat-container {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  border-radius: 12px !important;
-  box-shadow: 
-    0 4px 20px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
-  min-width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 !important;
-  padding: 20px !important;
-  position: relative;
-  z-index: 1;
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #f59e0b;
+    padding: 6px 12px;
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: 20px;
+    border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
-/* Better header in WebRTC */
-.middle-column .webrtc-header {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+.connection-status.connected {
+    color: #00ffc8;
+    background: rgba(0, 255, 200, 0.1);
+    border-color: rgba(0, 255, 200, 0.2);
 }
 
-.middle-column .webrtc-title {
-  color: #495057 !important;
-  font-size: 16px !important;
-  font-weight: 600 !important;
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 2s infinite;
 }
 
-.middle-column .webrtc-room-info {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;
-  color: #1565c0 !important;
-  border: 1px solid #90caf9;
-  font-weight: 500;
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
-/* Stunning video containers */
-.middle-column .webrtc-videos {
-  gap: 20px !important;
-  margin-bottom: 25px !important;
-  padding: 0 !important;
+/* ===== VIDEO GRID ===== */
+.webrtc-video-grid {
+    flex: 1;
+    position: relative;
+    background: #0d1117;
+    min-height: 300px;
 }
 
-.middle-column .webrtc-video-container {
-  position: relative;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  background: linear-gradient(135deg, #263238 0%, #37474f 100%);
+/* Remote Video (Main - Full Size) */
+.remote-video-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
-/* Perfect video styling */
-.middle-column .webrtc-video {
-  height: 320px !important;
-  min-width: 100% !important;
-  max-width: 100% !important;
-  border: 3px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 12px !important;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
-  background: linear-gradient(135deg, #263238 0%, #37474f 100%) !important;
-  position: relative;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.remote-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #161b22;
 }
 
-.middle-column .webrtc-video:hover {
-  transform: translateY(-2px);
-  box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+.video-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, #1f2937, #111827);
+    color: #6b7280;
 }
 
-/* Beautiful video labels */
-.middle-column .webrtc-video-label {
-  color: #495057 !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  margin-bottom: 8px !important;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+.placeholder-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
 }
 
-/* Gorgeous control buttons */
-.middle-column .webrtc-controls {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  border-radius: 12px !important;
-  padding: 16px !important;
-  gap: 12px !important;
-  box-shadow: 
-    0 4px 20px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+.video-placeholder p {
+    font-size: 14px;
+    color: #9ca3af;
 }
 
-/* Premium button styling */
-.middle-column .webrtc-btn {
-  min-width: 80px !important;
-  height: 40px !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  padding: 0 16px !important;
-  border-radius: 8px !important;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  position: relative;
-  overflow: hidden;
+/* Local Video (Picture-in-Picture) */
+.local-video-container {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    width: 160px;
+    height: 120px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid rgba(0, 255, 200, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+    transition: all 0.3s ease;
 }
 
-.middle-column .webrtc-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s;
+.local-video-container:hover {
+    transform: scale(1.05);
+    border-color: #00ffc8;
 }
 
-.middle-column .webrtc-btn:hover::before {
-  left: 100%;
+.local-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #161b22;
+    transform: scaleX(-1); /* Mirror effect */
 }
 
-.middle-column .webrtc-btn.start {
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%) !important;
-  box-shadow: 
-    0 4px 16px rgba(76, 175, 80, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+.video-disabled-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(17, 24, 39, 0.95);
+    color: #6b7280;
 }
 
-.middle-column .webrtc-btn.start:hover {
-  background: linear-gradient(135deg, #45a049 0%, #3d8b40 100%) !important;
-  transform: translateY(-2px);
-  box-shadow: 
-    0 6px 24px rgba(76, 175, 80, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+.video-disabled-overlay span {
+    font-size: 24px;
+    margin-bottom: 4px;
 }
 
-.middle-column .webrtc-btn.stop {
-  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%) !important;
-  box-shadow: 
-    0 4px 16px rgba(244, 67, 54, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+.video-disabled-overlay p {
+    font-size: 10px;
+    margin: 0;
 }
 
-.middle-column .webrtc-btn.stop:hover {
-  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%) !important;
-  transform: translateY(-2px);
-  box-shadow: 
-    0 6px 24px rgba(244, 67, 54, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+.video-label {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    padding: 4px 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #e1e4e8;
+    font-size: 11px;
+    border-radius: 6px;
+    backdrop-filter: blur(4px);
 }
 
-/* Status styling */
-.middle-column .webrtc-status {
-  border-radius: 8px !important;
-  padding: 12px 16px !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  margin-top: 15px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.local-video-container .video-label {
+    bottom: 4px;
+    left: 4px;
+    font-size: 9px;
+    padding: 2px 6px;
 }
 
-.middle-column .webrtc-status.active {
-  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%) !important;
-  border: 1px solid #a5d6a7 !important;
-  color: #2e7d32 !important;
+/* ===== CONTROLS ===== */
+.webrtc-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.4);
+    border-top: 1px solid rgba(0, 255, 200, 0.1);
 }
 
-.middle-column .webrtc-status.inactive {
-  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%) !important;
-  border: 1px solid #ef9a9a !important;
-  color: #c62828 !important;
+.control-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 255, 200, 0.15);
+    color: #00ffc8;
+    border: 1px solid rgba(0, 255, 200, 0.3);
 }
 
-/* Debug section styling */
-.middle-column .webrtc-debug {
-  margin-top: 20px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  padding-top: 15px;
+.control-btn:hover {
+    background: rgba(0, 255, 200, 0.25);
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(0, 255, 200, 0.3);
 }
 
-.middle-column .webrtc-debug summary {
-  color: #6c757d !important;
-  font-weight: 500;
-  padding: 8px;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.02);
-  transition: all 0.2s ease;
+.control-btn.disabled {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
 }
 
-.middle-column .webrtc-debug summary:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: #495057;
+.control-btn.disabled:hover {
+    background: rgba(239, 68, 68, 0.25);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
 }
 
-/* Responsive improvements */
-@media (max-width: 768px) {
-  .middle-column .webrtc-section {
-    padding: 20px;
-    margin: 20px 0;
-  }
-  
-  .middle-column .webrtc-video {
-    height: 240px !important;
-  }
-  
-  .middle-column .webrtc-btn {
-    min-width: 70px !important;
-    height: 36px !important;
-    font-size: 12px !important;
-  }
+.control-btn.end-call {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    transform: rotate(135deg);
 }
 
+.control-btn.end-call:hover {
+    background: linear-gradient(135deg, #f87171, #ef4444);
+    transform: rotate(135deg) scale(1.1);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+}
+
+/* ===== RESPONSIVE ===== */
 @media (max-width: 480px) {
-  .middle-column .webrtc-section {
-    padding: 15px;
-  }
-  
-  .middle-column .webrtc-video {
-    height: 200px !important;
-  }
-  
-  .middle-column .webrtc-videos {
-    grid-template-columns: 1fr;
-    gap: 15px !important;
-  }
+    .webrtc-chat-container {
+        min-height: 350px;
+    }
+
+    .local-video-container {
+        width: 100px;
+        height: 75px;
+        bottom: 12px;
+        right: 12px;
+    }
+
+    .webrtc-controls {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .control-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+    }
+
+    .webrtc-header {
+        padding: 10px 12px;
+    }
+
+    .room-label {
+        font-size: 13px;
+    }
+
+    .connection-status {
+        font-size: 11px;
+        padding: 4px 10px;
+    }
+}
+
+/* ===== FULLSCREEN MODE ===== */
+.webrtc-chat-container.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    border-radius: 0;
+}
+
+.webrtc-chat-container.fullscreen .local-video-container {
+    width: 240px;
+    height: 180px;
+    bottom: 100px;
+    right: 24px;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.webrtc-chat-container {
+    animation: fadeIn 0.3s ease;
+}
+
+/* ===== CONNECTING STATE ===== */
+.connecting-animation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.connecting-animation::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top-color: #00ffc8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }

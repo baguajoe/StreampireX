@@ -7,6 +7,10 @@ import "../styles/index.css";
 
 //import your own components
 import Layout from "./layout";
-
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js');
+    });
+}
 //render your react application
 ReactDOM.render(<Layout />, document.querySelector("#app"));

@@ -1,0 +1,305 @@
+/* ===== POST CARD EDIT/DELETE MENU STYLES ===== */
+/* Add to ProfilePage.css or create as PostCard.css */
+
+/* Post Menu Container */
+.post-menu-container {
+    position: relative;
+}
+
+.post-menu-btn {
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.post-menu-btn:hover {
+    background: rgba(0, 255, 200, 0.1);
+    color: #00ffc8;
+}
+
+/* Dropdown Menu */
+.post-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: linear-gradient(145deg, #1f2937, #111827);
+    border: 1px solid rgba(0, 255, 200, 0.2);
+    border-radius: 12px;
+    padding: 8px 0;
+    min-width: 160px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    z-index: 100;
+    animation: dropdownFadeIn 0.2s ease;
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.post-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    color: #e1e4e8;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.post-dropdown-item:hover {
+    background: rgba(0, 255, 200, 0.1);
+    color: #00ffc8;
+}
+
+.post-dropdown-item.delete {
+    color: #f87171;
+}
+
+.post-dropdown-item.delete:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.dropdown-icon {
+    font-size: 16px;
+}
+
+/* ===== EDIT MODE ===== */
+.post-edit-mode {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.post-edit-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 14px;
+    background: rgba(13, 17, 23, 0.8);
+    border: 1px solid rgba(0, 255, 200, 0.3);
+    border-radius: 10px;
+    color: #e1e4e8;
+    font-size: 14px;
+    line-height: 1.6;
+    resize: vertical;
+    font-family: inherit;
+    transition: all 0.3s ease;
+}
+
+.post-edit-textarea:focus {
+    outline: none;
+    border-color: #00ffc8;
+    box-shadow: 0 0 0 3px rgba(0, 255, 200, 0.1);
+}
+
+.post-edit-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.edit-char-count {
+    font-size: 12px;
+    color: #6b7280;
+    margin-right: auto;
+}
+
+.edit-cancel-btn {
+    padding: 8px 16px;
+    background: rgba(107, 114, 128, 0.2);
+    border: 1px solid rgba(107, 114, 128, 0.3);
+    border-radius: 8px;
+    color: #9ca3af;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.edit-cancel-btn:hover {
+    background: rgba(107, 114, 128, 0.3);
+    color: #e1e4e8;
+}
+
+.edit-save-btn {
+    padding: 8px 20px;
+    background: linear-gradient(135deg, #00ffc8, #00e6b3);
+    border: none;
+    border-radius: 8px;
+    color: #0d1117;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.edit-save-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 255, 200, 0.4);
+}
+
+.edit-save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ===== DELETE CONFIRMATION MODAL ===== */
+.delete-confirm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.delete-confirm-modal {
+    background: linear-gradient(145deg, #1f2937, #111827);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 360px;
+    width: 90%;
+    text-align: center;
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.delete-confirm-modal h4 {
+    color: #f87171;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+}
+
+.delete-confirm-modal p {
+    color: #9ca3af;
+    font-size: 14px;
+    margin: 0 0 20px 0;
+}
+
+.delete-confirm-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.delete-cancel-btn {
+    flex: 1;
+    padding: 10px 20px;
+    background: rgba(107, 114, 128, 0.2);
+    border: 1px solid rgba(107, 114, 128, 0.3);
+    border-radius: 8px;
+    color: #9ca3af;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.delete-cancel-btn:hover {
+    background: rgba(107, 114, 128, 0.3);
+    color: #e1e4e8;
+}
+
+.delete-confirm-btn {
+    flex: 1;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.delete-confirm-btn:hover {
+    background: linear-gradient(135deg, #f87171, #ef4444);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+}
+
+/* ===== LIKED STATE ===== */
+.engagement-btn.liked {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* ===== EDITED INDICATOR ===== */
+.post-edited-indicator {
+    font-size: 11px;
+    color: #6b7280;
+    font-style: italic;
+    margin-left: 8px;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 480px) {
+    .post-dropdown-menu {
+        min-width: 140px;
+    }
+
+    .post-dropdown-item {
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+
+    .delete-confirm-modal {
+        padding: 20px;
+    }
+
+    .delete-confirm-actions {
+        flex-direction: column;
+    }
+
+    .delete-cancel-btn,
+    .delete-confirm-btn {
+        width: 100%;
+    }
+}
