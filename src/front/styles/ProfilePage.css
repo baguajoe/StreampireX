@@ -2519,3 +2519,35 @@
   color: #FF6600;
   font-style: italic;
 }
+
+/* Add to Inner Circle Button Styles */
+/* Add this to your ProfilePage.css */
+
+.quick-action-btn.add-circle {
+    background: linear-gradient(135deg, #00ffc8, #00d4a8);
+    color: #0a0a1a;
+    font-weight: 600;
+    border: none;
+}
+
+.quick-action-btn.add-circle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 255, 200, 0.4);
+}
+
+.quick-action-btn.in-circle {
+    background: rgba(255, 165, 0, 0.2);
+    color: #ffa500;
+    border: 1px solid #ffa500;
+}
+
+.quick-action-btn.in-circle:hover {
+    background: rgba(255, 107, 107, 0.2);
+    color: #ff6b6b;
+    border-color: #ff6b6b;
+}
+
+.quick-action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
