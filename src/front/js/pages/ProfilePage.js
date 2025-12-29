@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import UploadVideo from "../component/UploadVideo";
 import ChatModal from "../component/ChatModal";
 import VideoChatPopup from "../component/VideoChatPopup";
@@ -8,7 +8,7 @@ import SocialMediaManager from "../component/SocialMediaManager";
 import PostCard from '../component/PostCard';
 import VideoChannelManager from "../component/VideoChannelManager";
 import "../../styles/ProfilePage.css";
-import "../../styles/PostCard.css";  // ✅ Correct
+import "../../styles/PostCardStyles.css";
 
 // Image imports
 import lady1 from "../../img/lady1.png";
@@ -629,6 +629,9 @@ const createSocket = (token) => {
 };
 
 const ProfilePage = () => {
+    // Get profile ID from URL (if viewing someone else's profile)
+    const { userId: profileUserId } = useParams();
+    
     // Authentication state
     const [authState, setAuthState] = useState({
         token: null,
@@ -636,10 +639,15 @@ const ProfilePage = () => {
         username: 'User'
     });
 
+    // Determine if viewing own profile
+    const isOwnProfile = !profileUserId || profileUserId === authState.userId;
+
     // Core user state
     const [user, setUser] = useState({});
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [isInCircle, setIsInCircle] = useState(false);
+    const [addingToCircle, setAddingToCircle] = useState(false);
 
     // Form and editing state
     const [formData, setFormData] = useState({
@@ -1044,6 +1052,99 @@ const ProfilePage = () => {
         });
     }, []);
 
+    // Add to Inner Circle handler (for other users' profiles)
+    const handleAddToCircle = useCallback(async () => {
+        if (!profileUserId || isOwnProfile) return;
+        
+        try {
+            setAddingToCircle(true);
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                alert('Please log in to add to your inner circle');
+                return;
+            }
+
+            const response = await fetch(`${BACKEND_URL}/api/profile/inner-circle/add`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ friend_user_id: profileUserId })
+            });
+
+            if (response.ok) {
+                setIsInCircle(true);
+                alert('Added to your Inner Circle!');
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Failed to add to inner circle');
+            }
+        } catch (error) {
+            console.error('Error adding to inner circle:', error);
+            alert('Error adding to inner circle');
+        } finally {
+            setAddingToCircle(false);
+        }
+    }, [profileUserId, isOwnProfile]);
+
+    // Remove from Inner Circle handler
+    const handleRemoveFromCircle = useCallback(async () => {
+        if (!profileUserId || isOwnProfile) return;
+        
+        if (!window.confirm('Remove this person from your inner circle?')) return;
+
+        try {
+            setAddingToCircle(true);
+            const token = localStorage.getItem('token');
+
+            const response = await fetch(`${BACKEND_URL}/api/profile/inner-circle/remove/${profileUserId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                setIsInCircle(false);
+                alert('Removed from your Inner Circle');
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Failed to remove from inner circle');
+            }
+        } catch (error) {
+            console.error('Error removing from inner circle:', error);
+        } finally {
+            setAddingToCircle(false);
+        }
+    }, [profileUserId, isOwnProfile]);
+
+    // Check if viewed user is in your circle
+    const checkIfInCircle = useCallback(async () => {
+        if (isOwnProfile || !profileUserId) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${BACKEND_URL}/api/profile/my-inner-circle`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const inCircle = (data.inner_circle || []).some(
+                    member => member.friend_user_id === parseInt(profileUserId) || member.friend_user_id === profileUserId
+                );
+                setIsInCircle(inCircle);
+            }
+        } catch (error) {
+            console.error('Error checking circle status:', error);
+        }
+    }, [profileUserId, isOwnProfile]);
+
     // Media upload handlers
     const handleProfilePicChange = useCallback(async (event) => {
         const file = event.target.files[0];
@@ -1328,6 +1429,7 @@ const ProfilePage = () => {
             fetchUserPhotos();
             fetchUserVideos();
             fetchUserCircle();
+            checkIfInCircle();
         }
 
         return () => {
@@ -1336,7 +1438,7 @@ const ProfilePage = () => {
                 socket.current = null;
             }
         };
-    }, [authState.token, fetchProfile, initializeSocket, fetchSocialAccounts, fetchSocialAnalytics, fetchUserPhotos, fetchUserVideos, fetchUserCircle]);
+    }, [authState.token, fetchProfile, initializeSocket, fetchSocialAccounts, fetchSocialAnalytics, fetchUserPhotos, fetchUserVideos, fetchUserCircle, checkIfInCircle]);
 
     useEffect(() => {
         if (media.profilePicture) {
@@ -1371,7 +1473,7 @@ const ProfilePage = () => {
         );
     }
 
-    const effectiveUserId = user?.id || authState.userId;
+    const effectiveUserId = profileUserId || user?.id || authState.userId;
     const effectiveUserName = user?.display_name || user?.username || authState.username || `User ${effectiveUserId}`;
 
     return (
@@ -1497,7 +1599,17 @@ const ProfilePage = () => {
                             Chat
                         </button>
 
-                        {/* ✅ USE THE NEW COMPONENT */}
+                        {/* Add to Inner Circle button - only show on other users' profiles */}
+                        {!isOwnProfile && (
+                            <button
+                                className={`quick-action-btn ${isInCircle ? 'in-circle' : 'add-circle'}`}
+                                onClick={isInCircle ? handleRemoveFromCircle : handleAddToCircle}
+                                disabled={addingToCircle}
+                                title={isInCircle ? 'Remove from Inner Circle' : 'Add to Inner Circle'}
+                            >
+                                {addingToCircle ? '...' : isInCircle ? '⭐ In Circle' : '➕ Add to Circle'}
+                            </button>
+                        )}
 
                         <button
                             className="quick-action-btn"
@@ -1727,7 +1839,7 @@ const ProfilePage = () => {
                 </div>
 
                 {/* Inner Circle Section */}
-                <InnerCircle userId={effectiveUserId} isOwnProfile={true} />
+                <InnerCircle userId={effectiveUserId} isOwnProfile={isOwnProfile} />
             </div>
 
             {/* Main Content - 2 Column Layout */}
@@ -2047,7 +2159,7 @@ const ProfilePage = () => {
                                         key={post.id}
                                         post={post}
                                         currentUser={user}
-                                        isOwnProfile={true}
+                                        isOwnProfile={isOwnProfile}
                                         onLike={handleLikePost}
                                         onEdit={handleEditPost}
                                         onDelete={handleDeletePost}
