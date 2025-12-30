@@ -8,7 +8,8 @@ import SocialMediaManager from "../component/SocialMediaManager";
 import PostCard from '../component/PostCard';
 import VideoChannelManager from "../component/VideoChannelManager";
 import "../../styles/ProfilePage.css";
-import "../../styles/PostCardStyles.css";
+import "../../styles/PostCard.css";
+import "../../styles/QuickActionModals.css";
 
 // Image imports
 import lady1 from "../../img/lady1.png";
@@ -1894,16 +1895,17 @@ const ProfilePage = () => {
                                 ))}
                             </div>
 
-                            {ui.currentMood !== 'custom' && (
-                                <button
-                                    className="mood-btn-compact custom"
-                                    onClick={() => setShowCustomMoodInput(true)}
-                                    style={{ gridColumn: '1 / -1', marginTop: '8px' }}
-                                >
-                                    <span className="mood-emoji">🎭</span>
-                                    <span className="mood-label">Custom Mood</span>
-                                </button>
-                            )}
+                            {/* Custom Mood Button - Always show, change text based on state */}
+                            <button
+                                className={`mood-btn-compact custom ${ui.currentMood === 'custom' ? 'active' : ''}`}
+                                onClick={() => setShowCustomMoodInput(true)}
+                                style={{ gridColumn: '1 / -1', marginTop: '8px' }}
+                            >
+                                <span className="mood-emoji">{ui.currentMood === 'custom' ? (ui.customMoodEmoji || '🎭') : '🎭'}</span>
+                                <span className="mood-label">
+                                    {ui.currentMood === 'custom' ? `${ui.customMoodLabel || 'Custom'} (Edit)` : 'Custom Mood'}
+                                </span>
+                            </button>
 
                             {showCustomMoodInput && (
                                 <div className="custom-mood-input" style={{ marginTop: '10px' }}>
@@ -2431,6 +2433,131 @@ const ProfilePage = () => {
                     socialAccounts={socialAccounts}
                     onAccountsUpdate={fetchSocialAccounts}
                 />
+            )}
+
+            {/* Video Manager Modal */}
+            {ui.showVideoManager && (
+                <div className="modal-backdrop" onClick={() => setUi(prev => ({ ...prev, showVideoManager: false }))}>
+                    <div className="video-manager-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Video Manager</h3>
+                            <button 
+                                className="modal-close-btn"
+                                onClick={() => setUi(prev => ({ ...prev, showVideoManager: false }))}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="modal-content">
+                            <UploadVideo 
+                                onUploadComplete={(video) => {
+                                    setMedia(prev => ({
+                                        ...prev,
+                                        userVideos: [video, ...prev.userVideos]
+                                    }));
+                                    setUi(prev => ({ ...prev, showVideoManager: false }));
+                                }}
+                            />
+                            
+                            <div className="existing-videos">
+                                <h4>Your Videos ({media.userVideos.length})</h4>
+                                <div className="video-list">
+                                    {media.userVideos.map((video, index) => (
+                                        <div key={video.id || index} className="video-manager-item">
+                                            <img 
+                                                src={video.thumbnail_url || campfire} 
+                                                alt={video.title}
+                                                className="video-thumb"
+                                            />
+                                            <div className="video-details">
+                                                <h5>{video.title || `Video ${index + 1}`}</h5>
+                                                <p>{video.views || 0} views • {video.likes || 0} likes</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Clip Creator Modal */}
+            {ui.showClipCreator && (
+                <div className="modal-backdrop" onClick={() => setUi(prev => ({ ...prev, showClipCreator: false }))}>
+                    <div className="clip-creator-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Create Clip</h3>
+                            <button 
+                                className="modal-close-btn"
+                                onClick={() => setUi(prev => ({ ...prev, showClipCreator: false }))}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="modal-content">
+                            <p className="clip-description">
+                                Select a video to create a short clip from:
+                            </p>
+                            
+                            {media.userVideos.length > 0 ? (
+                                <div className="clip-video-select">
+                                    {media.userVideos.map((video, index) => (
+                                        <div 
+                                            key={video.id || index} 
+                                            className={`clip-video-option ${ui.selectedVideoForClip === video.id ? 'selected' : ''}`}
+                                            onClick={() => setUi(prev => ({ ...prev, selectedVideoForClip: video.id }))}
+                                        >
+                                            <img 
+                                                src={video.thumbnail_url || campfire} 
+                                                alt={video.title}
+                                                className="clip-video-thumb"
+                                            />
+                                            <div className="clip-video-info">
+                                                <h5>{video.title || `Video ${index + 1}`}</h5>
+                                                <p>{video.duration || '0:00'}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="no-videos-message">
+                                    <p>No videos yet. Upload a video first to create clips!</p>
+                                    <button 
+                                        className="upload-video-btn"
+                                        onClick={() => {
+                                            setUi(prev => ({ 
+                                                ...prev, 
+                                                showClipCreator: false,
+                                                showVideoManager: true 
+                                            }));
+                                        }}
+                                    >
+                                        Upload Video
+                                    </button>
+                                </div>
+                            )}
+
+                            {ui.selectedVideoForClip && (
+                                <div className="clip-controls">
+                                    <div className="clip-time-inputs">
+                                        <div className="time-input-group">
+                                            <label>Start Time:</label>
+                                            <input type="text" placeholder="0:00" className="time-input" />
+                                        </div>
+                                        <div className="time-input-group">
+                                            <label>End Time:</label>
+                                            <input type="text" placeholder="0:30" className="time-input" />
+                                        </div>
+                                    </div>
+                                    <button className="create-clip-btn">
+                                        Create Clip
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Share Modal */}

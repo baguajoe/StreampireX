@@ -73,7 +73,6 @@ import StorefrontPage from "./pages/StorefrontPage";
 import LiveStreamPage from "./pages/LiveStreams";
 import LiveConcerts from "./pages/LiveConcerts";
 import LiveShowPage from "./pages/LiveShowPage";
-import LabelDashboard from "./pages/LabelDashboard";
 import ReleaseList from "./pages/ReleaseList";
 
 import UserVideoChannelPage from "./pages/UserVideoChannelPage";
@@ -190,7 +189,6 @@ const Layout = () => {
               <Route path="/live-streams" element={<LiveStreamPage />} />
               <Route path="/live-concerts" element={<LiveConcerts />} />
               <Route path="/live-show/:id" element={<LiveShowPage />} />
-              <Route path="/label-dashboard" element={<LabelDashboard />} />
 
               {/* 👤 User - ALL PROFILE TYPES */}
               <Route path="/home-feed" element={<HomeFeed />} />

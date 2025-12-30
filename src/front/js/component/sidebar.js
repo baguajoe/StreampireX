@@ -184,10 +184,7 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/sales-dashboard" className={isActive("/sales-dashboard") ? "active" : ""}>
         💰 Sales Dashboard
       </MenuItem>
-      <MenuItem to="/label-dashboard" className={isActive("/label-dashboard") ? "active" : ""}>
-        🏢 Label Dashboard
-      </MenuItem>
-      
+     
       <SectionHeader>🎤 Indie Artists</SectionHeader>
       <MenuItem to="/music-distribution" className={isActive("/music-distribution") ? "active" : ""}>
         🌍 Music Distribution
