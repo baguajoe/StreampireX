@@ -18,10 +18,12 @@ def calculate_split(amount, revenue_type):
     """
     # Define revenue splits for different types of revenue
     splits = {
-        "ad_revenue": 0.15,  # 15% platform cut for ad revenue
-        "tip_jar": 0.10,     # 10% platform cut for tip jar
-        "live_tickets": 0.20,  # 20% platform cut for live tickets
-        "subscription": 0.25  # 25% platform cut for subscription revenue
+        "ad_revenue": 0.10,      # 10% platform cut for ad revenue
+        "tip_jar": 0.10,         # 10% platform cut for tip jar
+        "live_tickets": 0.10,    # 10% platform cut for live tickets
+        "subscription": 0.10,    # 10% platform cut for subscription revenue
+        "merch_sales": 0.10,     # 10% platform cut for merchandise
+        "digital_sales": 0.10    # 10% platform cut for digital products
     }
 
     # Default to a 15% platform cut if no specific type is matched

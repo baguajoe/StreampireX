@@ -1,0 +1,326 @@
+/* =====================================================
+   MODAL STYLES - Video Manager & Clip Creator
+   StreamPireX Dark Theme
+   ===================================================== */
+
+/* Modal Backdrop */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+}
+
+/* Base Modal Styles */
+.video-manager-modal,
+.clip-creator-modal,
+.share-modal {
+    background: #1a1a2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Modal Header */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #2a2a4a;
+}
+
+.modal-header h3 {
+    color: #ffffff;
+    font-size: 18px;
+    margin: 0;
+}
+
+.modal-close-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ff6b6b;
+}
+
+/* Modal Content */
+.modal-content {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* =====================================================
+   VIDEO MANAGER MODAL
+   ===================================================== */
+.existing-videos {
+    margin-top: 24px;
+}
+
+.existing-videos h4 {
+    color: #00ffc8;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.video-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.video-manager-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    background: #0d0d1a;
+    border: 1px solid #2a2a4a;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+.video-manager-item:hover {
+    border-color: #00ffc8;
+}
+
+.video-thumb {
+    width: 80px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.video-details h5 {
+    color: #ffffff;
+    font-size: 14px;
+    margin: 0 0 4px 0;
+}
+
+.video-details p {
+    color: #888;
+    font-size: 12px;
+    margin: 0;
+}
+
+/* =====================================================
+   CLIP CREATOR MODAL
+   ===================================================== */
+.clip-description {
+    color: #aaa;
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.clip-video-select {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.clip-video-option {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    background: #0d0d1a;
+    border: 2px solid #2a2a4a;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clip-video-option:hover {
+    border-color: #00ffc8;
+}
+
+.clip-video-option.selected {
+    border-color: #00ffc8;
+    background: rgba(0, 255, 200, 0.1);
+}
+
+.clip-video-thumb {
+    width: 100px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.clip-video-info h5 {
+    color: #ffffff;
+    font-size: 14px;
+    margin: 0 0 4px 0;
+}
+
+.clip-video-info p {
+    color: #888;
+    font-size: 12px;
+    margin: 0;
+}
+
+.no-videos-message {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.no-videos-message p {
+    color: #888;
+    margin-bottom: 16px;
+}
+
+/* Clip Controls */
+.clip-controls {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #2a2a4a;
+}
+
+.clip-time-inputs {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.time-input-group {
+    flex: 1;
+}
+
+.time-input-group label {
+    display: block;
+    color: #888;
+    font-size: 12px;
+    margin-bottom: 6px;
+}
+
+.time-input {
+    width: 100%;
+    padding: 10px 12px;
+    background: #0d0d1a;
+    border: 1px solid #3a3a5a;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.time-input:focus {
+    outline: none;
+    border-color: #00ffc8;
+}
+
+.create-clip-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(135deg, #00ffc8, #00d4a8);
+    border: none;
+    border-radius: 8px;
+    color: #0a0a1a;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.create-clip-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 255, 200, 0.3);
+}
+
+/* =====================================================
+   SHARE MODAL
+   ===================================================== */
+.share-modal {
+    max-width: 450px;
+}
+
+.share-content {
+    padding: 0;
+}
+
+.share-content p {
+    color: #aaa;
+    margin-bottom: 16px;
+}
+
+.share-link-container {
+    display: flex;
+    gap: 8px;
+}
+
+.share-link-input {
+    flex: 1;
+    padding: 12px;
+    background: #0d0d1a;
+    border: 1px solid #3a3a5a;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 13px;
+}
+
+.share-link-container button {
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #00ffc8, #00d4a8);
+    border: none;
+    border-radius: 8px;
+    color: #0a0a1a;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.share-link-container button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 255, 200, 0.3);
+}
+
+/* =====================================================
+   MOBILE RESPONSIVE
+   ===================================================== */
+@media (max-width: 768px) {
+    .video-manager-modal,
+    .clip-creator-modal,
+    .share-modal {
+        width: 95%;
+        max-height: 90vh;
+        margin: 20px;
+    }
+
+    .clip-time-inputs {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .share-link-container {
+        flex-direction: column;
+    }
+}
