@@ -266,6 +266,7 @@ async function syncMusicUploads() {
   } catch (error) {
     console.error('❌ SW: Music uploads sync failed:', error);
   }
+  
 }
 
 // IndexedDB helpers (simplified - implement full IndexedDB operations)

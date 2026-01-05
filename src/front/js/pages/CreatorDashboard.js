@@ -20,74 +20,114 @@ const CreatorDashboard = () => {
   const [earnings, setEarnings] = useState({});
   const [myProducts, setMyProducts] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [monthlyGrowth, setMonthlyGrowth] = useState({
+    labels: [],
+    engagement: []
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchOverviewData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const headers = { Authorization: `Bearer ${token}` };
-
-        // Fetch profile data - FIXED: removed /creator/ prefix
-        const profileRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/profile`, {
-          headers
-        });
-        if (profileRes.ok) {
-          const profileData = await profileRes.json();
-          setProfile(profileData);
-        }
-
-        // Fetch social shares data - FIXED: removed /creator/ prefix
-        const sharesRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/social-shares`, {
-          headers
-        });
-        if (sharesRes.ok) {
-          const sharesData = await sharesRes.json();
-          setSocialShares(sharesData);
-        }
-
-        // Fetch content breakdown - FIXED: removed /creator/ prefix
-        const contentRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/content-breakdown`, {
-          headers
-        });
-        if (contentRes.ok) {
-          const contentData = await contentRes.json();
-          setContentBreakdown(contentData);
-        }
-
-        // Fetch earnings data - FIXED: removed /creator/ prefix
-        const earningsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/earnings`, {
-          headers
-        });
-        if (earningsRes.ok) {
-          const earningsData = await earningsRes.json();
-          setEarnings(earningsData);
-        }
-
-        // Fetch my products - FIXED: changed to /marketplace/my-products
-        const productsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/my-products`, {
-          headers
-        });
-        if (productsRes.ok) {
-          const productsData = await productsRes.json();
-          setMyProducts(productsData.products || []);
-        }
-
-        // Fetch recent activity - FIXED: removed /creator/ prefix
-        const activityRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/recent-activity`, {
-          headers
-        });
-        if (activityRes.ok) {
-          const activityData = await activityRes.json();
-          setRecentActivity(activityData.activities || []);
-        }
-
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-
     fetchOverviewData();
+    
+    // Auto-refresh activity every 30 seconds
+    const activityInterval = setInterval(() => {
+      fetchRecentActivity();
+    }, 30000);
+    
+    return () => clearInterval(activityInterval);
   }, []);
+
+  const fetchOverviewData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const headers = { Authorization: `Bearer ${token}` };
+
+      // Fetch all data in parallel
+      const [
+        profileRes,
+        sharesRes,
+        contentRes,
+        earningsRes,
+        productsRes,
+        activityRes,
+        growthRes
+      ] = await Promise.allSettled([
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/profile`, { headers }),
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/social-shares`, { headers }),
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/content-breakdown`, { headers }),
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/earnings`, { headers }),
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/my-products`, { headers }),
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/recent-activity`, { headers }),
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/monthly-growth`, { headers })
+      ]);
+
+      // Process profile
+      if (profileRes.status === 'fulfilled' && profileRes.value.ok) {
+        const profileData = await profileRes.value.json();
+        setProfile(profileData);
+      }
+
+      // Process social shares
+      if (sharesRes.status === 'fulfilled' && sharesRes.value.ok) {
+        const sharesData = await sharesRes.value.json();
+        setSocialShares(sharesData);
+      }
+
+      // Process content breakdown
+      if (contentRes.status === 'fulfilled' && contentRes.value.ok) {
+        const contentData = await contentRes.value.json();
+        setContentBreakdown(contentData);
+      }
+
+      // Process earnings
+      if (earningsRes.status === 'fulfilled' && earningsRes.value.ok) {
+        const earningsData = await earningsRes.value.json();
+        setEarnings(earningsData);
+      }
+
+      // Process products
+      if (productsRes.status === 'fulfilled' && productsRes.value.ok) {
+        const productsData = await productsRes.value.json();
+        setMyProducts(productsData.products || []);
+      }
+
+      // Process recent activity
+      if (activityRes.status === 'fulfilled' && activityRes.value.ok) {
+        const activityData = await activityRes.value.json();
+        setRecentActivity(activityData.activities || []);
+      }
+
+      // Process monthly growth
+      if (growthRes.status === 'fulfilled' && growthRes.value.ok) {
+        const growthData = await growthRes.value.json();
+        setMonthlyGrowth({
+          labels: growthData.labels || [],
+          engagement: growthData.engagement || []
+        });
+      }
+
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRecentActivity = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/recent-activity`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRecentActivity(data.activities || []);
+      }
+    } catch (error) {
+      console.error("Error refreshing activity:", error);
+    }
+  };
 
   const shareBreakdownData = {
     labels: ['Facebook', 'Twitter', 'Instagram', 'TikTok'],
@@ -118,13 +158,18 @@ const CreatorDashboard = () => {
     }]
   };
 
+  // REAL DATA - No more hardcoded values!
   const monthlyGrowthData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    labels: monthlyGrowth.labels.length > 0 
+      ? monthlyGrowth.labels 
+      : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
     datasets: [{
       label: 'Total Engagement',
-      data: [1200, 1900, 3000, 5000, 7000, 8956],
-      borderColor: '#45B7D1',
-      backgroundColor: 'rgba(69, 183, 209, 0.1)',
+      data: monthlyGrowth.engagement.length > 0 
+        ? monthlyGrowth.engagement 
+        : [0, 0, 0, 0, 0, 0],
+      borderColor: '#00ffc8',
+      backgroundColor: 'rgba(0, 255, 200, 0.1)',
       tension: 0.4,
       fill: true
     }]
@@ -137,13 +182,14 @@ const CreatorDashboard = () => {
       case 'radio': return '📻';
       case 'livestream': return '📹';
       case 'product': return '🛍️';
+      case 'tip': return '💰';
+      case 'follower': return '👤';
       default: return '📄';
     }
   };
 
   const handleProductUploaded = () => {
     const token = localStorage.getItem("token");
-    // FIXED: changed to /marketplace/my-products
     fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/my-products`, {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -154,6 +200,9 @@ const CreatorDashboard = () => {
       }
     })
     .catch(error => console.error("Error refreshing products:", error));
+    
+    // Also refresh activity
+    fetchRecentActivity();
   };
 
   const calculateTotalEarnings = () => {
@@ -164,11 +213,33 @@ const CreatorDashboard = () => {
     return {
       products: productEarnings,
       content: earnings.content || 0,
+      tips: earnings.tips || 0,
+      ads: earnings.ads || 0,
+      subscriptions: earnings.subscriptions || 0,
       total: productEarnings + (earnings.content || 0)
     };
   };
 
   const totalEarnings = calculateTotalEarnings();
+
+  // Check if there's any data to show
+  const hasShareData = (socialShares.facebook || 0) + (socialShares.twitter || 0) + 
+                       (socialShares.instagram || 0) + (socialShares.tiktok || 0) > 0;
+  
+  const hasContentData = (contentBreakdown.podcasts || 0) + (contentBreakdown.radioStations || 0) + 
+                         (contentBreakdown.musicTracks || 0) + (contentBreakdown.liveStreams || 0) + 
+                         myProducts.length > 0;
+
+  if (loading) {
+    return (
+      <div className="creator-dashboard">
+        <div className="loading-state">
+          <div className="loading-spinner"></div>
+          <p>Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="creator-dashboard">
@@ -181,7 +252,7 @@ const CreatorDashboard = () => {
             className="profile-avatar"
           />
           <div className="profile-info">
-            <h1>{profile.username || 'Creator'}</h1>
+            <h1>{profile.display_name || profile.username || 'Creator'}</h1>
             <p className="profile-subtitle">{profile.bio || 'Content Creator'}</p>
             <div className="profile-stats">
               <span className="stat">
@@ -257,40 +328,54 @@ const CreatorDashboard = () => {
               <div className="charts-grid">
                 <div className="chart-container">
                   <h3>Social Media Shares</h3>
-                  <div className="chart-wrapper">
-                    <Doughnut 
-                      data={shareBreakdownData} 
-                      options={{ 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
-                        plugins: { 
-                          legend: { 
-                            position: 'bottom',
-                            labels: { color: '#c9d1d9', padding: 15 }
+                  {hasShareData ? (
+                    <div className="chart-wrapper">
+                      <Doughnut 
+                        data={shareBreakdownData} 
+                        options={{ 
+                          responsive: true, 
+                          maintainAspectRatio: false, 
+                          plugins: { 
+                            legend: { 
+                              position: 'bottom',
+                              labels: { color: '#c9d1d9', padding: 15 }
+                            } 
                           } 
-                        } 
-                      }} 
-                    />
-                  </div>
+                        }} 
+                      />
+                    </div>
+                  ) : (
+                    <div className="chart-empty">
+                      <p>📤 No social shares yet</p>
+                      <small>Share your content to see analytics here</small>
+                    </div>
+                  )}
                 </div>
 
                 <div className="chart-container">
                   <h3>Content Breakdown</h3>
-                  <div className="chart-wrapper">
-                    <Doughnut 
-                      data={contentBreakdownData} 
-                      options={{ 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
-                        plugins: { 
-                          legend: { 
-                            position: 'bottom',
-                            labels: { color: '#c9d1d9', padding: 15 }
+                  {hasContentData ? (
+                    <div className="chart-wrapper">
+                      <Doughnut 
+                        data={contentBreakdownData} 
+                        options={{ 
+                          responsive: true, 
+                          maintainAspectRatio: false, 
+                          plugins: { 
+                            legend: { 
+                              position: 'bottom',
+                              labels: { color: '#c9d1d9', padding: 15 }
+                            } 
                           } 
-                        } 
-                      }} 
-                    />
-                  </div>
+                        }} 
+                      />
+                    </div>
+                  ) : (
+                    <div className="chart-empty">
+                      <p>📁 No content yet</p>
+                      <small>Upload content to see breakdown here</small>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -324,9 +409,18 @@ const CreatorDashboard = () => {
 
             {/* Recent Activity Section */}
             <section className="recent-activity">
-              <h2>Recent Activity</h2>
+              <div className="section-header">
+                <h2>Recent Activity</h2>
+                <button 
+                  className="refresh-btn" 
+                  onClick={fetchRecentActivity}
+                  title="Refresh Activity"
+                >
+                  🔄
+                </button>
+              </div>
               <div className="activity-list">
-                {recentActivity.length > 0 ? recentActivity.map((activity, index) => (
+                {recentActivity.length > 0 ? recentActivity.slice(0, 10).map((activity, index) => (
                   <div key={index} className="activity-item">
                     <span className="activity-icon">{getActivityIcon(activity.type)}</span>
                     <div className="activity-content">
@@ -336,10 +430,19 @@ const CreatorDashboard = () => {
                   </div>
                 )) : (
                   <div className="no-activity">
-                    <p>🎬 No recent activity. Start creating content!</p>
+                    <p>🎬 No recent activity yet.</p>
+                    <p>Start creating content to see activity here!</p>
                   </div>
                 )}
               </div>
+              {recentActivity.length > 10 && (
+                <button 
+                  className="view-all-btn"
+                  onClick={() => setActiveTab('analytics')}
+                >
+                  View All Activity ({recentActivity.length})
+                </button>
+              )}
             </section>
 
             {/* Quick Actions - AT THE BOTTOM */}
@@ -499,13 +602,41 @@ const CreatorDashboard = () => {
                     <span className="revenue-value">${totalEarnings.products.toFixed(2)}</span>
                   </div>
                   <div className="revenue-item">
-                    <span className="revenue-label">Content Revenue</span>
-                    <span className="revenue-value">${totalEarnings.content.toFixed(2)}</span>
+                    <span className="revenue-label">Tips</span>
+                    <span className="revenue-value">${(earnings.tips || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="revenue-item">
+                    <span className="revenue-label">Ad Revenue</span>
+                    <span className="revenue-value">${(earnings.ads || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="revenue-item">
+                    <span className="revenue-label">Subscriptions</span>
+                    <span className="revenue-value">${(earnings.subscriptions || 0).toFixed(2)}</span>
                   </div>
                   <div className="revenue-item total">
                     <span className="revenue-label">Total Earnings</span>
                     <span className="revenue-value">${totalEarnings.total.toFixed(2)}</span>
                   </div>
+                </div>
+              </div>
+
+              <div className="analytics-card">
+                <h3>📊 Content Stats</h3>
+                <div className="metric">
+                  <span className="metric-label">Podcasts</span>
+                  <span className="metric-value">{contentBreakdown.podcasts || 0}</span>
+                </div>
+                <div className="metric">
+                  <span className="metric-label">Music Tracks</span>
+                  <span className="metric-value">{contentBreakdown.musicTracks || 0}</span>
+                </div>
+                <div className="metric">
+                  <span className="metric-label">Radio Stations</span>
+                  <span className="metric-value">{contentBreakdown.radioStations || 0}</span>
+                </div>
+                <div className="metric">
+                  <span className="metric-label">Live Streams</span>
+                  <span className="metric-value">{contentBreakdown.liveStreams || 0}</span>
                 </div>
               </div>
 
@@ -522,6 +653,7 @@ const CreatorDashboard = () => {
                           src={product.image_url || '/placeholder-product.jpg'} 
                           alt={product.title}
                           className="top-product-image"
+                          onError={(e) => e.target.src = '/placeholder-product.jpg'}
                         />
                         <div className="top-product-info">
                           <h4>{product.title}</h4>
@@ -534,6 +666,26 @@ const CreatorDashboard = () => {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Full Activity Log */}
+            <div className="full-activity-section">
+              <h3>📋 Complete Activity Log</h3>
+              {recentActivity.length === 0 ? (
+                <p className="no-activity">No activity recorded yet.</p>
+              ) : (
+                <div className="full-activity-list">
+                  {recentActivity.map((activity, index) => (
+                    <div key={index} className="full-activity-item">
+                      <span className="activity-icon-large">{getActivityIcon(activity.type)}</span>
+                      <div className="activity-details">
+                        <p className="activity-text">{activity.text}</p>
+                      </div>
+                      <span className="activity-timestamp">{activity.time}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
