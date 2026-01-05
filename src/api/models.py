@@ -155,6 +155,7 @@ class User(db.Model):
     
     # Gamer Bio (separate from regular bio)
     gamer_bio = db.Column(db.Text, nullable=True)
+    country = db.Column(db.Text, nullable=True)
     
     # Availability & Status
     online_status = db.Column(db.String(20), default="offline")  # "online", "away", "busy", "offline"

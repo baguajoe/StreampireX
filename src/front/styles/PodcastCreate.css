@@ -3,27 +3,23 @@
 
 /* ============================================
    MAIN CONTAINER - FULL WIDTH DARK BACKGROUND
+   Breaks out of .main-content padding (20px)
    ============================================ */
 .podcast-create-container {
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
-  padding: 40px 30px;
-  background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
-  min-height: calc(100vh - 85px - 50px);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: #e1e4e8;
-  box-sizing: border-box;
-}
-
-/* Break out of parent padding */
-.main-content .podcast-create-container {
   width: calc(100% + 40px) !important;
   max-width: none !important;
   margin-left: -20px !important;
   margin-right: -20px !important;
   margin-top: -20px !important;
   padding: 40px 30px !important;
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%) !important;
+  min-height: calc(100vh - 100px);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #e1e4e8;
+  box-sizing: border-box !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* ============================================
@@ -39,16 +35,18 @@
   background: linear-gradient(135deg, #00ffc8 0%, #00e6b3 50%, #00b894 100%);
   border-radius: 16px 16px 0 0;
   max-width: 850px;
+  width: 100%;
   box-shadow: 0 8px 32px rgba(0, 255, 200, 0.3);
+  box-sizing: border-box;
 }
 
 /* Form wrapper for centered content */
 .podcast-create-container form,
-.podcast-create-container > label:first-of-type,
-.podcast-create-container {
+.podcast-create-container > label:first-of-type {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
 }
 
 /* Create a visual form card */
@@ -240,13 +238,13 @@
 }
 
 /* ============================================
-   FORM SECTIONS (Optional grouping)
+   FORM SECTIONS
    ============================================ */
 .podcast-create-container .form-section {
   background: linear-gradient(145deg, #1f2937, #111827);
-  border-radius: 12px;
-  padding: 25px;
-  margin: 20px 0;
+  border-radius: 16px;
+  padding: 30px;
+  margin: 0 0 25px 0;
   border: 1px solid rgba(0, 255, 200, 0.1);
   width: 100%;
   max-width: 850px;
@@ -259,6 +257,12 @@
   margin: 0 0 20px 0;
   padding-bottom: 15px;
   border-bottom: 1px solid rgba(0, 255, 200, 0.2);
+}
+
+.podcast-create-container .section-desc {
+  color: #8b949e;
+  font-size: 0.95rem;
+  margin: -10px 0 20px 0;
 }
 
 /* ============================================
@@ -282,8 +286,41 @@
   margin: 0;
 }
 
+/* Form rows and groups inside sections */
+.podcast-create-container .form-section .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 15px 0;
+}
+
+.podcast-create-container .form-section .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.podcast-create-container .form-section .form-group label {
+  margin: 0 0 8px 0;
+}
+
+.podcast-create-container .form-section label {
+  margin: 15px 0 8px 0;
+}
+
+.podcast-create-container .form-section label:first-of-type {
+  margin-top: 0;
+}
+
+.podcast-create-container .form-section input,
+.podcast-create-container .form-section select,
+.podcast-create-container .form-section textarea {
+  margin: 0;
+  width: 100%;
+  max-width: none;
+}
+
 /* ============================================
-   TOGGLE SWITCH (Alternative to checkbox)
+   TOGGLE WRAPPER
    ============================================ */
 .podcast-create-container .toggle-wrapper {
   display: flex;
@@ -371,67 +408,6 @@
   max-width: 850px;
   width: 100%;
   box-sizing: border-box;
-}
-
-/* ============================================
-   FORM SECTIONS
-   ============================================ */
-.podcast-create-container .form-section {
-  background: linear-gradient(145deg, #1f2937, #111827);
-  border-radius: 16px;
-  padding: 30px;
-  margin: 0 0 25px 0;
-  border: 1px solid rgba(0, 255, 200, 0.1);
-  width: 100%;
-  max-width: 850px;
-  box-sizing: border-box;
-}
-
-.podcast-create-container .form-section h2 {
-  font-size: 1.3rem;
-  color: #00ffc8;
-  margin: 0 0 20px 0;
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgba(0, 255, 200, 0.2);
-}
-
-.podcast-create-container .section-desc {
-  color: #8b949e;
-  font-size: 0.95rem;
-  margin: -10px 0 20px 0;
-}
-
-/* Form rows and groups inside sections */
-.podcast-create-container .form-section .form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin: 15px 0;
-}
-
-.podcast-create-container .form-section .form-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.podcast-create-container .form-section .form-group label {
-  margin: 0 0 8px 0;
-}
-
-.podcast-create-container .form-section label {
-  margin: 15px 0 8px 0;
-}
-
-.podcast-create-container .form-section label:first-of-type {
-  margin-top: 0;
-}
-
-.podcast-create-container .form-section input,
-.podcast-create-container .form-section select,
-.podcast-create-container .form-section textarea {
-  margin: 0;
-  width: 100%;
-  max-width: none;
 }
 
 /* ============================================
@@ -655,6 +631,9 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  margin: 0;
+  max-width: none;
+  width: auto;
 }
 
 .podcast-create-container .suggested-prices button:hover {
@@ -951,7 +930,10 @@
    ============================================ */
 @media (max-width: 768px) {
   .podcast-create-container {
-    padding: 30px 20px;
+    width: calc(100% + 40px) !important;
+    margin-left: -20px !important;
+    margin-right: -20px !important;
+    padding: 30px 20px !important;
   }
   
   .podcast-create-container h1 {
@@ -982,7 +964,8 @@
     padding: 20px;
   }
   
-  .podcast-create-container .form-section .form-row {
+  .podcast-create-container .form-section .form-row,
+  .podcast-create-container .form-row {
     grid-template-columns: 1fr;
   }
   
@@ -1013,7 +996,10 @@
 
 @media (max-width: 480px) {
   .podcast-create-container {
-    padding: 20px 15px;
+    width: calc(100% + 40px) !important;
+    margin-left: -20px !important;
+    margin-right: -20px !important;
+    padding: 20px 15px !important;
   }
   
   .podcast-create-container h1 {
@@ -1032,7 +1018,7 @@
   .podcast-create-container select,
   .podcast-create-container input[type="file"] {
     padding: 12px 14px;
-    font-size: 16px; /* Prevents iOS zoom */
+    font-size: 16px;
   }
   
   .podcast-create-container .btn-primary,

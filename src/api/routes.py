@@ -14053,27 +14053,896 @@ def get_artist_tracks():
 @api.route('/artist/analytics', methods=['GET'])
 @jwt_required()
 def get_artist_analytics():
-    """Get analytics data for the current artist"""
+    """Get real analytics data for the current artist"""
     try:
+        from sqlalchemy import func
+        from datetime import datetime, timedelta
+        
         user_id = get_jwt_identity()
         
-        # Mock analytics data - replace with real calculations
+        # Get date ranges
+        now = datetime.utcnow()
+        thirty_days_ago = now - timedelta(days=30)
+        
+        # ===== TOTAL PLAYS (all time) =====
+        total_plays = db.session.query(func.coalesce(func.sum(Audio.plays), 0))\
+            .filter(Audio.user_id == user_id).scalar() or 0
+        
+        # ===== MONTHLY PLAYS (last 30 days) =====
+        # Count from PlayHistory table for accurate monthly tracking
+        monthly_plays = db.session.query(func.count(PlayHistory.id))\
+            .join(Audio, PlayHistory.audio_id == Audio.id)\
+            .filter(Audio.user_id == user_id)\
+            .filter(PlayHistory.played_at >= thirty_days_ago).scalar() or 0
+        
+        # If PlayHistory is empty, fall back to a percentage estimate
+        if monthly_plays == 0 and total_plays > 0:
+            monthly_plays = int(total_plays * 0.15)  # Estimate ~15% of total plays in last month
+        
+        # ===== TOTAL STREAMS (same as plays, or use StreamingHistory) =====
+        total_streams = db.session.query(func.count(StreamingHistory.id))\
+            .filter(StreamingHistory.content_type == 'audio')\
+            .filter(StreamingHistory.content_id.in_(
+                db.session.query(Audio.id).filter(Audio.user_id == user_id)
+            )).scalar() or total_plays  # Fall back to plays count
+        
+        # ===== MONTHLY LISTENERS (unique users who played in last 30 days) =====
+        monthly_listeners = db.session.query(func.count(func.distinct(PlayHistory.user_id)))\
+            .join(Audio, PlayHistory.audio_id == Audio.id)\
+            .filter(Audio.user_id == user_id)\
+            .filter(PlayHistory.played_at >= thirty_days_ago).scalar() or 0
+        
+        # ===== TOTAL FOLLOWERS =====
+        total_followers = db.session.query(func.count(ArtistFollow.id))\
+            .filter(ArtistFollow.artist_id == user_id).scalar() or 0
+        
+        # ===== REVENUE THIS MONTH =====
+        # Sum from Revenue table
+        revenue_this_month = db.session.query(func.coalesce(func.sum(Revenue.creator_earnings), 0))\
+            .filter(Revenue.user_id == user_id)\
+            .filter(Revenue.timestamp >= thirty_days_ago).scalar() or 0.0
+        
+        # Also add tips received
+        tips_this_month = db.session.query(func.coalesce(func.sum(Tip.amount), 0))\
+            .filter(Tip.recipient_id == user_id)\
+            .filter(Tip.created_at >= thirty_days_ago).scalar() or 0.0
+        
+        # Add ad revenue if available
+        ad_revenue_month = db.session.query(func.coalesce(func.sum(AdRevenue.amount), 0))\
+            .filter(AdRevenue.creator_id == user_id)\
+            .filter(AdRevenue.created_at >= thirty_days_ago).scalar() or 0.0
+        
+        total_revenue_month = float(revenue_this_month) + float(tips_this_month) + float(ad_revenue_month)
+        
+        # ===== TOP COUNTRIES (from StreamingHistory or PlayHistory with user location) =====
+        # If you store user location, you can query it; otherwise use placeholder
+        # This requires user.country or similar field
+        top_countries_query = db.session.query(
+            User.country,
+            func.count(PlayHistory.id).label('play_count')
+        ).join(PlayHistory, PlayHistory.user_id == User.id)\
+         .join(Audio, PlayHistory.audio_id == Audio.id)\
+         .filter(Audio.user_id == user_id)\
+         .filter(User.country.isnot(None))\
+         .filter(User.country != '')\
+         .group_by(User.country)\
+         .order_by(func.count(PlayHistory.id).desc())\
+         .limit(5).all()
+        
+        if top_countries_query:
+            top_countries = [country for country, _ in top_countries_query]
+        else:
+            # Default if no location data
+            top_countries = ["United States", "United Kingdom", "Canada", "Germany", "Australia"]
+        
         analytics_data = {
-            "monthly_plays": 15420,
-            "total_streams": 87650,
-            "monthly_listeners": 3240,
-            "total_plays": 125000,
-            "total_followers": 890,
-            "revenue_this_month": 245.80,
-            "top_countries": ["United States", "Canada", "United Kingdom", "Germany", "Australia"]
+            "monthly_plays": int(monthly_plays),
+            "total_streams": int(total_streams),
+            "monthly_listeners": int(monthly_listeners),
+            "total_plays": int(total_plays),
+            "total_followers": int(total_followers),
+            "revenue_this_month": round(total_revenue_month, 2),
+            "top_countries": top_countries
         }
         
         return jsonify(analytics_data), 200
         
     except Exception as e:
+        print(f"Analytics error: {str(e)}")
         return jsonify({
             "error": f"Failed to fetch analytics: {str(e)}"
         }), 500
+
+# ARTIST RECENT ACTIVITY ENDPOINT
+# ========== ARTIST RECENT ACTIVITY ENDPOINT ==========
+@api.route('/artist/recent-activity', methods=['GET'])
+@jwt_required()
+def get_artist_recent_activity():
+    """Get real recent activity for the current artist"""
+    try:
+        from sqlalchemy import desc
+        from datetime import datetime, timedelta
+        
+        user_id = get_jwt_identity()
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        
+        activities = []
+        
+        # 1. Recent Track Uploads
+        recent_tracks = Audio.query.filter(
+            Audio.user_id == user_id,
+            Audio.uploaded_at >= thirty_days_ago
+        ).order_by(desc(Audio.uploaded_at)).limit(10).all()
+        
+        for track in recent_tracks:
+            activities.append({
+                "type": "track_upload",
+                "action": "Track uploaded",
+                "title": track.title,
+                "icon": "🎵",
+                "timestamp": track.uploaded_at.isoformat(),
+                "time_ago": get_time_ago(track.uploaded_at)
+            })
+        
+        # 2. New Followers
+        try:
+            recent_followers = db.session.query(ArtistFollow, User).join(
+                User, ArtistFollow.follower_id == User.id
+            ).filter(
+                ArtistFollow.artist_id == user_id,
+                ArtistFollow.created_at >= thirty_days_ago
+            ).order_by(desc(ArtistFollow.created_at)).limit(10).all()
+            
+            for follow, follower in recent_followers:
+                activities.append({
+                    "type": "new_follower",
+                    "action": "New follower",
+                    "title": follower.username or follower.display_name or "Someone",
+                    "icon": "👤",
+                    "timestamp": follow.created_at.isoformat(),
+                    "time_ago": get_time_ago(follow.created_at)
+                })
+        except Exception as e:
+            print(f"Follower fetch error: {e}")
+        
+        # 3. Recent Album Creations
+        try:
+            recent_albums = Album.query.filter(
+                Album.user_id == user_id,
+                Album.created_at >= thirty_days_ago
+            ).order_by(desc(Album.created_at)).limit(5).all()
+            
+            for album in recent_albums:
+                activities.append({
+                    "type": "album_created",
+                    "action": "Album created",
+                    "title": getattr(album, 'title', None) or getattr(album, 'name', 'Untitled'),
+                    "icon": "💿",
+                    "timestamp": album.created_at.isoformat(),
+                    "time_ago": get_time_ago(album.created_at)
+                })
+        except Exception as e:
+            print(f"Album fetch error: {e}")
+        
+        # 4. Recent Track Plays (on your tracks)
+        try:
+            recent_plays = db.session.query(
+                PlayHistory, Audio, User
+            ).join(
+                Audio, PlayHistory.audio_id == Audio.id
+            ).join(
+                User, PlayHistory.user_id == User.id
+            ).filter(
+                Audio.user_id == user_id,
+                PlayHistory.played_at >= thirty_days_ago,
+                PlayHistory.user_id != user_id
+            ).order_by(desc(PlayHistory.played_at)).limit(10).all()
+            
+            for play, track, listener in recent_plays:
+                activities.append({
+                    "type": "track_played",
+                    "action": f"{listener.username or 'Someone'} played",
+                    "title": track.title,
+                    "icon": "▶️",
+                    "timestamp": play.played_at.isoformat(),
+                    "time_ago": get_time_ago(play.played_at)
+                })
+        except Exception as e:
+            print(f"PlayHistory fetch error: {e}")
+        
+        # 5. Recent Likes on your tracks
+        try:
+            recent_likes = db.session.query(
+                AudioLike, Audio, User
+            ).join(
+                Audio, AudioLike.audio_id == Audio.id
+            ).join(
+                User, AudioLike.user_id == User.id
+            ).filter(
+                Audio.user_id == user_id,
+                AudioLike.created_at >= thirty_days_ago,
+                AudioLike.user_id != user_id
+            ).order_by(desc(AudioLike.created_at)).limit(10).all()
+            
+            for like, track, liker in recent_likes:
+                activities.append({
+                    "type": "track_liked",
+                    "action": f"{liker.username or 'Someone'} liked",
+                    "title": track.title,
+                    "icon": "❤️",
+                    "timestamp": like.created_at.isoformat(),
+                    "time_ago": get_time_ago(like.created_at)
+                })
+        except Exception as e:
+            print(f"AudioLike fetch error: {e}")
+        
+        # 6. Recent Tips Received
+        try:
+            recent_tips = db.session.query(Tip, User).join(
+                User, Tip.sender_id == User.id
+            ).filter(
+                Tip.recipient_id == user_id,
+                Tip.created_at >= thirty_days_ago
+            ).order_by(desc(Tip.created_at)).limit(5).all()
+            
+            for tip, sender in recent_tips:
+                activities.append({
+                    "type": "tip_received",
+                    "action": f"${tip.amount:.2f} tip from",
+                    "title": sender.username or sender.display_name or "Someone",
+                    "icon": "💰",
+                    "timestamp": tip.created_at.isoformat(),
+                    "time_ago": get_time_ago(tip.created_at)
+                })
+        except Exception as e:
+            print(f"Tip fetch error: {e}")
+        
+        # 7. Recent Comments on your content
+        try:
+            audio_ids = [a.id for a in Audio.query.filter_by(user_id=user_id).all()]
+            
+            if audio_ids:
+                recent_comments = db.session.query(Comment, User).join(
+                    User, Comment.user_id == User.id
+                ).filter(
+                    Comment.content_type == 'audio',
+                    Comment.content_id.in_(audio_ids),
+                    Comment.created_at >= thirty_days_ago,
+                    Comment.user_id != user_id
+                ).order_by(desc(Comment.created_at)).limit(5).all()
+                
+                for comment, commenter in recent_comments:
+                    track = Audio.query.get(comment.content_id)
+                    activities.append({
+                        "type": "comment_received",
+                        "action": f"{commenter.username or 'Someone'} commented on",
+                        "title": track.title if track else "your track",
+                        "icon": "💬",
+                        "timestamp": comment.created_at.isoformat(),
+                        "time_ago": get_time_ago(comment.created_at)
+                    })
+        except Exception as e:
+            print(f"Comment fetch error: {e}")
+        
+        # 8. Recent Live Streams
+        try:
+            recent_streams = LiveStream.query.filter(
+                LiveStream.user_id == user_id,
+                LiveStream.started_at >= thirty_days_ago
+            ).order_by(desc(LiveStream.started_at)).limit(5).all()
+            
+            for stream in recent_streams:
+                activities.append({
+                    "type": "live_stream",
+                    "action": "Live session",
+                    "title": stream.title or "Studio Session",
+                    "icon": "📡",
+                    "timestamp": stream.started_at.isoformat(),
+                    "time_ago": get_time_ago(stream.started_at)
+                })
+        except Exception as e:
+            print(f"LiveStream fetch error: {e}")
+        
+        # 9. Recent Concert Creations
+        try:
+            recent_concerts = Concert.query.filter(
+                Concert.user_id == user_id,
+                Concert.created_at >= thirty_days_ago
+            ).order_by(desc(Concert.created_at)).limit(5).all()
+            
+            for concert in recent_concerts:
+                activities.append({
+                    "type": "concert_created",
+                    "action": "Concert scheduled",
+                    "title": concert.title,
+                    "icon": "🎭",
+                    "timestamp": concert.created_at.isoformat(),
+                    "time_ago": get_time_ago(concert.created_at)
+                })
+        except Exception as e:
+            print(f"Concert fetch error: {e}")
+        
+        # Sort all activities by timestamp (newest first)
+        activities.sort(key=lambda x: x['timestamp'], reverse=True)
+        
+        return jsonify({
+            "activities": activities[:20],
+            "total_count": len(activities)
+        }), 200
+        
+    except Exception as e:
+        print(f"Recent activity error: {str(e)}")
+        return jsonify({
+            "error": f"Failed to fetch recent activity: {str(e)}",
+            "activities": []
+        }), 500
+
+
+# ========== ARTIST UPCOMING EVENTS ENDPOINT ==========
+@api.route('/artist/upcoming-events', methods=['GET'])
+@jwt_required()
+def get_artist_upcoming_events():
+    """Get upcoming events for the current artist"""
+    try:
+        from sqlalchemy import desc, asc
+        from datetime import datetime, timedelta
+        
+        user_id = get_jwt_identity()
+        now = datetime.utcnow()
+        
+        events = []
+        
+        # 1. Upcoming Concerts
+        try:
+            upcoming_concerts = Concert.query.filter(
+                Concert.user_id == user_id,
+                Concert.date >= now
+            ).order_by(asc(Concert.date)).limit(10).all()
+            
+            for concert in upcoming_concerts:
+                concert_date = concert.date if isinstance(concert.date, datetime) else datetime.strptime(str(concert.date), '%Y-%m-%d')
+                events.append({
+                    "type": "Concert",
+                    "title": concert.title,
+                    "date": concert_date.strftime('%b %d, %Y'),
+                    "time": concert.time or "",
+                    "icon": "🎭",
+                    "id": concert.id,
+                    "timestamp": concert_date.isoformat()
+                })
+        except Exception as e:
+            print(f"Concert events error: {e}")
+        
+        # 2. Upcoming Live Streams (scheduled)
+        try:
+            upcoming_streams = LiveStream.query.filter(
+                LiveStream.user_id == user_id,
+                LiveStream.scheduled_at >= now,
+                LiveStream.status == 'scheduled'
+            ).order_by(asc(LiveStream.scheduled_at)).limit(5).all()
+            
+            for stream in upcoming_streams:
+                events.append({
+                    "type": "Live Session",
+                    "title": stream.title or "Live Session",
+                    "date": stream.scheduled_at.strftime('%b %d, %Y'),
+                    "time": stream.scheduled_at.strftime('%I:%M %p'),
+                    "icon": "📡",
+                    "id": stream.id,
+                    "timestamp": stream.scheduled_at.isoformat()
+                })
+        except Exception as e:
+            print(f"LiveStream events error: {e}")
+        
+        # 3. Scheduled Track Releases
+        try:
+            scheduled_releases = Audio.query.filter(
+                Audio.user_id == user_id,
+                Audio.status == 'scheduled',
+                Audio.uploaded_at >= now
+            ).order_by(asc(Audio.uploaded_at)).limit(5).all()
+            
+            for track in scheduled_releases:
+                events.append({
+                    "type": "Release",
+                    "title": track.title,
+                    "date": track.uploaded_at.strftime('%b %d, %Y'),
+                    "time": track.uploaded_at.strftime('%I:%M %p'),
+                    "icon": "🎵",
+                    "id": track.id,
+                    "timestamp": track.uploaded_at.isoformat()
+                })
+        except Exception as e:
+            print(f"Scheduled releases error: {e}")
+        
+        # 4. Listening Parties
+        try:
+            upcoming_parties = ListeningParty.query.filter(
+                ListeningParty.artist_id == user_id,
+                ListeningParty.start_time >= now,
+                ListeningParty.is_active == True
+            ).order_by(asc(ListeningParty.start_time)).limit(5).all()
+            
+            for party in upcoming_parties:
+                events.append({
+                    "type": "Listening Party",
+                    "title": party.album_name,
+                    "date": party.start_time.strftime('%b %d, %Y'),
+                    "time": party.start_time.strftime('%I:%M %p'),
+                    "icon": "🎧",
+                    "id": party.id,
+                    "timestamp": party.start_time.isoformat()
+                })
+        except Exception as e:
+            print(f"ListeningParty events error: {e}")
+        
+        # 5. Collaborations
+        try:
+            upcoming_collabs = Collaboration.query.filter(
+                Collaboration.user_id == user_id,
+                Collaboration.status == 'scheduled'
+            ).limit(5).all()
+            
+            for collab in upcoming_collabs:
+                events.append({
+                    "type": "Collaboration",
+                    "title": collab.title or "Studio Session",
+                    "date": collab.created_at.strftime('%b %d, %Y') if collab.created_at else "TBD",
+                    "time": "",
+                    "icon": "🤝",
+                    "id": collab.id,
+                    "timestamp": collab.created_at.isoformat() if collab.created_at else now.isoformat()
+                })
+        except Exception as e:
+            print(f"Collaboration events error: {e}")
+        
+        # Sort events by timestamp
+        events.sort(key=lambda x: x['timestamp'])
+        
+        return jsonify({
+            "events": events[:10],
+            "total_count": len(events)
+        }), 200
+        
+    except Exception as e:
+        print(f"Upcoming events error: {str(e)}")
+        return jsonify({
+            "error": f"Failed to fetch upcoming events: {str(e)}",
+            "events": []
+        }), 500
+
+
+def get_time_ago(timestamp):
+    """Convert timestamp to human-readable 'time ago' string"""
+    if not timestamp:
+        return "Unknown"
+    
+    now = datetime.utcnow()
+    diff = now - timestamp
+    
+    seconds = diff.total_seconds()
+    
+    if seconds < 60:
+        return "Just now"
+    elif seconds < 3600:
+        minutes = int(seconds / 60)
+        return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
+    elif seconds < 86400:
+        hours = int(seconds / 3600)
+        return f"{hours} hour{'s' if hours != 1 else ''} ago"
+    elif seconds < 604800:
+        days = int(seconds / 86400)
+        return f"{days} day{'s' if days != 1 else ''} ago"
+    elif seconds < 2592000:
+        weeks = int(seconds / 604800)
+        return f"{weeks} week{'s' if weeks != 1 else ''} ago"
+    else:
+        months = int(seconds / 2592000)
+        return f"{months} month{'s' if months != 1 else ''} ago"
+
+# ========== CREATOR DASHBOARD ENDPOINTS ==========
+
+@api.route('/profile', methods=['GET'])
+@jwt_required()
+def get_creator_profile():
+    """Get creator profile data"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Count followers and following
+        followers_count = Follow.query.filter_by(followed_id=user_id).count()
+        following_count = Follow.query.filter_by(follower_id=user_id).count()
+        
+        return jsonify({
+            "id": user.id,
+            "username": user.username,
+            "display_name": user.display_name or user.username,
+            "email": user.email,
+            "bio": user.bio or "Content Creator on StreamPireX",
+            "profile_picture": user.profile_picture,
+            "followers": followers_count,
+            "following": following_count,
+            "created_at": user.created_at.isoformat() if user.created_at else None
+        }), 200
+        
+    except Exception as e:
+        print(f"Profile error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/earnings', methods=['GET'])
+@jwt_required()
+def get_creator_earnings():
+    """Get earnings breakdown for creator"""
+    try:
+        from sqlalchemy import func
+        from datetime import datetime, timedelta
+        
+        user_id = get_jwt_identity()
+        now = datetime.utcnow()
+        thirty_days_ago = now - timedelta(days=30)
+        six_months_ago = now - timedelta(days=180)
+        
+        # Product sales earnings
+        try:
+            product_earnings = db.session.query(func.coalesce(func.sum(Order.total_amount), 0))\
+                .join(Product, Order.product_id == Product.id)\
+                .filter(Product.user_id == user_id)\
+                .filter(Order.status == 'completed').scalar() or 0
+            product_earnings = float(product_earnings) * 0.9  # 90% creator cut
+        except:
+            product_earnings = 0
+        
+        # Tips received
+        try:
+            tips_earnings = db.session.query(func.coalesce(func.sum(Tip.amount), 0))\
+                .filter(Tip.recipient_id == user_id).scalar() or 0
+            tips_earnings = float(tips_earnings) * 0.85  # 85% after platform cut
+        except:
+            tips_earnings = 0
+        
+        # Ad revenue
+        try:
+            ad_earnings = db.session.query(func.coalesce(func.sum(AdRevenue.amount), 0))\
+                .filter(AdRevenue.creator_id == user_id).scalar() or 0
+            ad_earnings = float(ad_earnings)
+        except:
+            ad_earnings = 0
+        
+        # Subscription revenue
+        try:
+            subscription_earnings = db.session.query(func.coalesce(func.sum(CreatorMembershipTier.price_monthly), 0))\
+                .join(UserSubscription)\
+                .filter(CreatorMembershipTier.creator_id == user_id)\
+                .filter(UserSubscription.status == 'active').scalar() or 0
+            subscription_earnings = float(subscription_earnings) * 0.85
+        except:
+            subscription_earnings = 0
+        
+        # Donations
+        try:
+            donation_earnings = db.session.query(func.coalesce(func.sum(CreatorDonation.amount), 0))\
+                .filter(CreatorDonation.creator_id == user_id).scalar() or 0
+            donation_earnings = float(donation_earnings) * 0.85
+        except:
+            donation_earnings = 0
+        
+        # Revenue history by month (last 6 months)
+        monthly_data = []
+        for i in range(6):
+            month_start = (now - timedelta(days=30 * (5 - i))).replace(day=1)
+            month_end = (month_start + timedelta(days=32)).replace(day=1)
+            
+            # Get revenue for this month
+            try:
+                month_revenue = db.session.query(func.coalesce(func.sum(Revenue.creator_earnings), 0))\
+                    .filter(Revenue.user_id == user_id)\
+                    .filter(Revenue.timestamp >= month_start)\
+                    .filter(Revenue.timestamp < month_end).scalar() or 0
+            except:
+                month_revenue = 0
+            
+            monthly_data.append({
+                "month": month_start.strftime('%b'),
+                "revenue": float(month_revenue)
+            })
+        
+        total_earnings = product_earnings + tips_earnings + ad_earnings + subscription_earnings + donation_earnings
+        
+        # This month's earnings
+        try:
+            this_month_earnings = db.session.query(func.coalesce(func.sum(Revenue.creator_earnings), 0))\
+                .filter(Revenue.user_id == user_id)\
+                .filter(Revenue.timestamp >= thirty_days_ago).scalar() or 0
+        except:
+            this_month_earnings = 0
+        
+        return jsonify({
+            "total": round(total_earnings, 2),
+            "products": round(product_earnings, 2),
+            "tips": round(tips_earnings, 2),
+            "ads": round(ad_earnings, 2),
+            "subscriptions": round(subscription_earnings, 2),
+            "donations": round(donation_earnings, 2),
+            "content": round(tips_earnings + ad_earnings + subscription_earnings + donation_earnings, 2),
+            "this_month": round(float(this_month_earnings), 2),
+            "monthly_data": monthly_data
+        }), 200
+        
+    except Exception as e:
+        print(f"Earnings error: {str(e)}")
+        return jsonify({
+            "total": 0,
+            "products": 0,
+            "tips": 0,
+            "ads": 0,
+            "subscriptions": 0,
+            "donations": 0,
+            "content": 0,
+            "this_month": 0,
+            "monthly_data": []
+        }), 200
+
+
+@api.route('/recent-activity', methods=['GET'])
+@jwt_required()
+def get_creator_recent_activity():
+    """Get recent activity for creator dashboard"""
+    try:
+        from sqlalchemy import desc
+        from datetime import datetime, timedelta
+        
+        user_id = get_jwt_identity()
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        
+        activities = []
+        
+        # Recent uploads (Audio)
+        try:
+            recent_audio = Audio.query.filter(
+                Audio.user_id == user_id,
+                Audio.uploaded_at >= thirty_days_ago
+            ).order_by(desc(Audio.uploaded_at)).limit(5).all()
+            
+            for audio in recent_audio:
+                activities.append({
+                    "type": "music",
+                    "text": f"Uploaded track: {audio.title}",
+                    "time": get_time_ago(audio.uploaded_at),
+                    "timestamp": audio.uploaded_at.isoformat()
+                })
+        except Exception as e:
+            print(f"Audio activity error: {e}")
+        
+        # Recent podcasts
+        try:
+            recent_podcasts = Podcast.query.filter(
+                Podcast.creator_id == user_id,
+                Podcast.uploaded_at >= thirty_days_ago
+            ).order_by(desc(Podcast.uploaded_at)).limit(5).all()
+            
+            for podcast in recent_podcasts:
+                activities.append({
+                    "type": "podcast",
+                    "text": f"Created podcast: {podcast.title}",
+                    "time": get_time_ago(podcast.uploaded_at),
+                    "timestamp": podcast.uploaded_at.isoformat()
+                })
+        except Exception as e:
+            print(f"Podcast activity error: {e}")
+        
+        # Recent radio stations
+        try:
+            recent_radio = RadioStation.query.filter(
+                RadioStation.user_id == user_id,
+                RadioStation.created_at >= thirty_days_ago
+            ).order_by(desc(RadioStation.created_at)).limit(5).all()
+            
+            for station in recent_radio:
+                activities.append({
+                    "type": "radio",
+                    "text": f"Created radio station: {station.name}",
+                    "time": get_time_ago(station.created_at),
+                    "timestamp": station.created_at.isoformat()
+                })
+        except Exception as e:
+            print(f"Radio activity error: {e}")
+        
+        # Recent live streams
+        try:
+            recent_streams = LiveStream.query.filter(
+                LiveStream.user_id == user_id,
+                LiveStream.started_at >= thirty_days_ago
+            ).order_by(desc(LiveStream.started_at)).limit(5).all()
+            
+            for stream in recent_streams:
+                activities.append({
+                    "type": "livestream",
+                    "text": f"Live session: {stream.title or 'Untitled'}",
+                    "time": get_time_ago(stream.started_at),
+                    "timestamp": stream.started_at.isoformat()
+                })
+        except Exception as e:
+            print(f"LiveStream activity error: {e}")
+        
+        # Recent products
+        try:
+            recent_products = Product.query.filter(
+                Product.user_id == user_id,
+                Product.created_at >= thirty_days_ago
+            ).order_by(desc(Product.created_at)).limit(5).all()
+            
+            for product in recent_products:
+                activities.append({
+                    "type": "product",
+                    "text": f"Listed product: {product.title}",
+                    "time": get_time_ago(product.created_at),
+                    "timestamp": product.created_at.isoformat()
+                })
+        except Exception as e:
+            print(f"Product activity error: {e}")
+        
+        # Recent sales
+        try:
+            recent_sales = db.session.query(Order, Product).join(
+                Product, Order.product_id == Product.id
+            ).filter(
+                Product.user_id == user_id,
+                Order.created_at >= thirty_days_ago,
+                Order.status == 'completed'
+            ).order_by(desc(Order.created_at)).limit(5).all()
+            
+            for order, product in recent_sales:
+                activities.append({
+                    "type": "product",
+                    "text": f"Sold: {product.title} for ${order.total_amount}",
+                    "time": get_time_ago(order.created_at),
+                    "timestamp": order.created_at.isoformat()
+                })
+        except Exception as e:
+            print(f"Sales activity error: {e}")
+        
+        # Recent tips received
+        try:
+            recent_tips = db.session.query(Tip, User).join(
+                User, Tip.sender_id == User.id
+            ).filter(
+                Tip.recipient_id == user_id,
+                Tip.created_at >= thirty_days_ago
+            ).order_by(desc(Tip.created_at)).limit(5).all()
+            
+            for tip, sender in recent_tips:
+                activities.append({
+                    "type": "tip",
+                    "text": f"Received ${tip.amount:.2f} tip from {sender.username or 'Someone'}",
+                    "time": get_time_ago(tip.created_at),
+                    "timestamp": tip.created_at.isoformat()
+                })
+        except Exception as e:
+            print(f"Tips activity error: {e}")
+        
+        # Recent followers
+        try:
+            recent_follows = db.session.query(Follow, User).join(
+                User, Follow.follower_id == User.id
+            ).filter(
+                Follow.followed_id == user_id,
+                Follow.created_at >= thirty_days_ago
+            ).order_by(desc(Follow.created_at)).limit(5).all()
+            
+            for follow, follower in recent_follows:
+                activities.append({
+                    "type": "follower",
+                    "text": f"New follower: {follower.username or 'Someone'}",
+                    "time": get_time_ago(follow.created_at),
+                    "timestamp": follow.created_at.isoformat()
+                })
+        except Exception as e:
+            print(f"Follows activity error: {e}")
+        
+        # Sort by timestamp (newest first)
+        activities.sort(key=lambda x: x['timestamp'], reverse=True)
+        
+        return jsonify({
+            "activities": activities[:15],
+            "total_count": len(activities)
+        }), 200
+        
+    except Exception as e:
+        print(f"Recent activity error: {str(e)}")
+        return jsonify({
+            "activities": [],
+            "total_count": 0
+        }), 200
+
+
+@api.route('/monthly-growth', methods=['GET'])
+@jwt_required()
+def get_monthly_growth():
+    """Get monthly growth data for charts"""
+    try:
+        from sqlalchemy import func
+        from datetime import datetime, timedelta
+        
+        user_id = get_jwt_identity()
+        now = datetime.utcnow()
+        
+        monthly_data = []
+        
+        for i in range(6):
+            # Calculate month boundaries
+            month_offset = 5 - i
+            month_start = (now - timedelta(days=30 * month_offset)).replace(day=1, hour=0, minute=0, second=0)
+            if month_offset > 0:
+                month_end = (now - timedelta(days=30 * (month_offset - 1))).replace(day=1, hour=0, minute=0, second=0)
+            else:
+                month_end = now
+            
+            # Count engagements for this month
+            plays = 0
+            followers = 0
+            likes = 0
+            
+            # Plays on your content
+            try:
+                plays = db.session.query(func.count(PlayHistory.id))\
+                    .join(Audio, PlayHistory.audio_id == Audio.id)\
+                    .filter(Audio.user_id == user_id)\
+                    .filter(PlayHistory.played_at >= month_start)\
+                    .filter(PlayHistory.played_at < month_end).scalar() or 0
+            except:
+                pass
+            
+            # New followers this month
+            try:
+                followers = Follow.query.filter(
+                    Follow.followed_id == user_id,
+                    Follow.created_at >= month_start,
+                    Follow.created_at < month_end
+                ).count()
+            except:
+                pass
+            
+            # Likes this month
+            try:
+                likes = db.session.query(func.count(AudioLike.id))\
+                    .join(Audio, AudioLike.audio_id == Audio.id)\
+                    .filter(Audio.user_id == user_id)\
+                    .filter(AudioLike.created_at >= month_start)\
+                    .filter(AudioLike.created_at < month_end).scalar() or 0
+            except:
+                pass
+            
+            total_engagement = plays + (followers * 10) + (likes * 2)  # Weighted engagement
+            
+            monthly_data.append({
+                "month": month_start.strftime('%b'),
+                "plays": plays,
+                "followers": followers,
+                "likes": likes,
+                "engagement": total_engagement
+            })
+        
+        return jsonify({
+            "monthly_data": monthly_data,
+            "labels": [d["month"] for d in monthly_data],
+            "engagement": [d["engagement"] for d in monthly_data],
+            "plays": [d["plays"] for d in monthly_data],
+            "followers": [d["followers"] for d in monthly_data]
+        }), 200
+        
+    except Exception as e:
+        print(f"Monthly growth error: {str(e)}")
+        return jsonify({
+            "monthly_data": [],
+            "labels": ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            "engagement": [0, 0, 0, 0, 0, 0],
+            "plays": [0, 0, 0, 0, 0, 0],
+            "followers": [0, 0, 0, 0, 0, 0]
+        }), 200
 
 # 3. ARTIST ALBUMS ENDPOINT (Optional)
 @api.route('/artist/albums', methods=['GET'])
@@ -18470,100 +19339,3 @@ def get_content_breakdown():
         }), 500
 
 
-# =====================================================
-# EARNINGS - FIXED to use Audio model and remove undefined models
-# =====================================================
-@api.route('/earnings', methods=['GET'])
-@jwt_required()
-def get_creator_earnings():
-    """Get creator's earnings breakdown"""
-    try:
-        user_id = get_jwt_identity()
-        
-        # Initialize earnings data
-        earnings_data = {
-            'content': 0.0,
-            'products': 0.0,
-            'tips': 0.0,
-            'subscriptions': 0.0,
-            'ads': 0.0,
-            'total': 0.0,
-            'pending': 0.0,
-            'paid_out': 0.0
-        }
-        
-        # Calculate product earnings (90% creator share)
-        try:
-            products = Product.query.filter_by(creator_id=user_id).all()
-            for product in products:
-                sales = getattr(product, 'sales_count', 0) or 0
-                price = float(getattr(product, 'price', 0) or 0)
-                earnings_data['products'] += sales * price * 0.9  # 90% to creator
-        except Exception as e:
-            print(f"Error calculating product earnings: {e}")
-        
-        # Calculate content earnings from Audio (streams, plays)
-        # Example: $0.003 per play
-        try:
-            audios = Audio.query.filter_by(user_id=user_id).all()
-            for audio in audios:
-                plays = getattr(audio, 'plays', 0) or getattr(audio, 'play_count', 0) or 0
-                earnings_data['content'] += plays * 0.003
-        except Exception as e:
-            print(f"Error calculating audio earnings: {e}")
-        
-        # Calculate video earnings
-        # Example: $0.002 per view
-        try:
-            videos = Video.query.filter_by(user_id=user_id).all()
-            for video in videos:
-                views = getattr(video, 'views', 0) or getattr(video, 'view_count', 0) or 0
-                earnings_data['content'] += views * 0.002
-        except Exception as e:
-            print(f"Error calculating video earnings: {e}")
-        
-        # Calculate podcast earnings
-        # Example: $0.005 per listen
-        try:
-            podcasts = Podcast.query.filter_by(user_id=user_id).all()
-            for podcast in podcasts:
-                listens = getattr(podcast, 'total_listens', 0) or 0
-                earnings_data['content'] += listens * 0.005
-        except Exception as e:
-            print(f"Error calculating podcast earnings: {e}")
-        
-        # Calculate total
-        earnings_data['total'] = (
-            earnings_data['content'] +
-            earnings_data['products'] +
-            earnings_data['tips'] +
-            earnings_data['subscriptions'] +
-            earnings_data['ads']
-        )
-        
-        # Round all values to 2 decimal places
-        for key in earnings_data:
-            earnings_data[key] = round(earnings_data[key], 2)
-        
-        # Add period breakdowns
-        earnings_data['this_month'] = earnings_data['total']
-        earnings_data['last_month'] = 0.0
-        earnings_data['this_year'] = earnings_data['total']
-        
-        return jsonify({
-            'success': True,
-            **earnings_data
-        }), 200
-        
-    except Exception as e:
-        print(f"Error getting earnings: {e}")
-        return jsonify({
-            'success': False,
-            'content': 0,
-            'products': 0,
-            'tips': 0,
-            'subscriptions': 0,
-            'ads': 0,
-            'total': 0,
-            'error': str(e)
-        }), 200

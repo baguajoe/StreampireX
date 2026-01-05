@@ -82,24 +82,25 @@ const ArtistDashboard = () => {
   const [concertMessage, setConcertMessage] = useState('');
   const [savingConcert, setSavingConcert] = useState(false);
 
-  // Sample data for demo
-  const recentActivity = [
-    { action: "Track uploaded", track: "Midnight Vibes", time: "2 hours ago" },
-    { action: "New follower", user: "MusicLover23", time: "4 hours ago" },
-    { action: "Album created", album: "Summer Sessions", time: "1 day ago" },
-    { action: "Live session started", session: "Studio Session #12", time: "2 days ago" }
-  ];
+  // ========== REAL-TIME ACTIVITY STATE ==========
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(true);
 
-  const upcomingEvents = [
-    { type: "Live Session", title: "Acoustic Evening", date: "Dec 15, 2024", time: "8:00 PM" },
-    { type: "Release", title: "New Single Drop", date: "Dec 20, 2024", time: "12:00 PM" },
-    { type: "Collaboration", title: "Studio Session with DJ Nova", date: "Dec 22, 2024", time: "3:00 PM" }
-  ];
+  // ========== UPCOMING EVENTS STATE ==========
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
 
   useEffect(() => {
     fetchArtistData();
     fetchGenres();
     fetchMyConcerts();
+    fetchRecentActivity();
+    fetchUpcomingEvents();
+
+    // Auto-refresh activity every 30 seconds for real-time feel
+    const activityInterval = setInterval(fetchRecentActivity, 30000);
+
+    return () => clearInterval(activityInterval);
   }, []);
 
   // Cleanup audio on unmount
@@ -183,6 +184,53 @@ const ArtistDashboard = () => {
     }
   };
 
+  // ========== FETCH REAL-TIME ACTIVITY ==========
+  const fetchRecentActivity = async () => {
+    try {
+      setActivityLoading(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/recent-activity`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setRecentActivity(data.activities || []);
+      } else {
+        // If endpoint doesn't exist yet, use empty array
+        setRecentActivity([]);
+      }
+    } catch (error) {
+      console.error("Error fetching recent activity:", error);
+      setRecentActivity([]);
+    } finally {
+      setActivityLoading(false);
+    }
+  };
+
+  // ========== FETCH UPCOMING EVENTS ==========
+  const fetchUpcomingEvents = async () => {
+    try {
+      setEventsLoading(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/artist/upcoming-events`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUpcomingEvents(data.events || []);
+      } else {
+        setUpcomingEvents([]);
+      }
+    } catch (error) {
+      console.error("Error fetching upcoming events:", error);
+      setUpcomingEvents([]);
+    } finally {
+      setEventsLoading(false);
+    }
+  };
+
   // ========== CONCERTS FUNCTIONS ==========
   const fetchMyConcerts = async () => {
     try {
@@ -232,6 +280,9 @@ const ArtistDashboard = () => {
         setConcertMessage("✅ Concert created successfully!");
         setMyConcerts([...myConcerts, data.concert || data]);
         resetConcertForm();
+        // Refresh activity and events after creating concert
+        fetchRecentActivity();
+        fetchUpcomingEvents();
         setTimeout(() => setConcertMessage(""), 3000);
       } else {
         const errorData = await response.json();
@@ -267,6 +318,7 @@ const ArtistDashboard = () => {
         setConcertMessage("✅ Concert updated successfully!");
         setMyConcerts(myConcerts.map(c => c.id === concertBeingEdited.id ? (data.concert || data) : c));
         resetConcertForm();
+        fetchUpcomingEvents();
         setTimeout(() => setConcertMessage(""), 3000);
       } else {
         const errorData = await response.json();
@@ -293,6 +345,7 @@ const ArtistDashboard = () => {
       if (res.ok) {
         setMyConcerts(myConcerts.filter(c => c.id !== concertId));
         setConcertMessage("✅ Concert deleted");
+        fetchUpcomingEvents();
         setTimeout(() => setConcertMessage(""), 3000);
       } else {
         setConcertMessage("❌ Failed to delete concert");
@@ -421,6 +474,7 @@ const ArtistDashboard = () => {
         setAudioFile(null);
         setExplicit(false);
         fetchArtistData();
+        fetchRecentActivity(); // Refresh activity after upload
         alert("Track uploaded successfully!");
       } else {
         setErrorMessage(data.error || "Upload failed.");
@@ -467,7 +521,7 @@ const ArtistDashboard = () => {
           </div>
           <div className="stat-info">
             <h3>Total Earnings</h3>
-            <p>${analytics.totalEarnings?.toFixed(2) || '0.00'}</p>
+            <p>${analytics.revenue_this_month?.toFixed(2) || '0.00'}</p>
             <span className="stat-change">+12% this month</span>
           </div>
         </div>
@@ -478,7 +532,7 @@ const ArtistDashboard = () => {
           </div>
           <div className="stat-info">
             <h3>Followers</h3>
-            <p>{analytics.followers || 0}</p>
+            <p>{analytics.total_followers || 0}</p>
             <span className="stat-change">+45 this week</span>
           </div>
         </div>
@@ -500,7 +554,7 @@ const ArtistDashboard = () => {
           </div>
           <div className="stat-info">
             <h3>Total Plays</h3>
-            <p>{analytics.totalPlays || '0'}</p>
+            <p>{analytics.total_plays || '0'}</p>
             <span className="stat-change">+234 today</span>
           </div>
         </div>
@@ -509,33 +563,104 @@ const ArtistDashboard = () => {
       {/* Recent Activity & Upcoming Events - IN THE MIDDLE */}
       <div className="dashboard-grid">
         <div className="activity-section">
-          <h3><FaChartLine /> Recent Activity</h3>
-          <div className="activity-list">
-            {recentActivity.map((activity, index) => (
-              <div key={index} className="activity-item">
-                <div className="activity-content">
-                  <p><strong>{activity.action}</strong></p>
-                  <p>{activity.track || activity.user || activity.album || activity.session}</p>
-                </div>
-                <span className="activity-time">{activity.time}</span>
-              </div>
-            ))}
+          <div className="section-header">
+            <h3><FaChartLine /> Recent Activity</h3>
+            <button 
+              className="refresh-btn" 
+              onClick={fetchRecentActivity}
+              title="Refresh Activity"
+            >
+              🔄
+            </button>
           </div>
+
+          {activityLoading ? (
+            <div className="activity-loading">
+              <div className="loading-spinner"></div>
+              <p>Loading activity...</p>
+            </div>
+          ) : recentActivity.length === 0 ? (
+            <div className="activity-empty">
+              <p>📭 No recent activity yet.</p>
+              <p>Upload a track or go live to see activity here!</p>
+            </div>
+          ) : (
+            <div className="activity-list">
+              {recentActivity.slice(0, 8).map((activity, index) => (
+                <div key={index} className="activity-item">
+                  <div className="activity-icon">{activity.icon}</div>
+                  <div className="activity-content">
+                    <p><strong>{activity.action}</strong></p>
+                    <p className="activity-title">{activity.title}</p>
+                  </div>
+                  <span className="activity-time">{activity.time_ago}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {recentActivity.length > 8 && (
+            <button 
+              className="view-all-btn" 
+              onClick={() => setActiveTab('analytics')}
+            >
+              View All Activity ({recentActivity.length})
+            </button>
+          )}
         </div>
 
         <div className="events-section">
-          <h3><FaCalendarAlt /> Upcoming Events</h3>
-          <div className="events-list">
-            {upcomingEvents.map((event, index) => (
-              <div key={index} className="event-item">
-                <div className="event-type">{event.type}</div>
-                <div className="event-details">
-                  <p><strong>{event.title}</strong></p>
-                  <p>{event.date} at {event.time}</p>
-                </div>
-              </div>
-            ))}
+          <div className="section-header">
+            <h3><FaCalendarAlt /> Upcoming Events</h3>
+            <button 
+              className="refresh-btn" 
+              onClick={fetchUpcomingEvents}
+              title="Refresh Events"
+            >
+              🔄
+            </button>
           </div>
+
+          {eventsLoading ? (
+            <div className="events-loading">
+              <div className="loading-spinner"></div>
+              <p>Loading events...</p>
+            </div>
+          ) : upcomingEvents.length === 0 ? (
+            <div className="events-empty">
+              <p>📅 No upcoming events scheduled.</p>
+              <button 
+                className="btn-link"
+                onClick={() => setActiveTab('concerts')}
+              >
+                Schedule a concert →
+              </button>
+            </div>
+          ) : (
+            <div className="events-list">
+              {upcomingEvents.slice(0, 5).map((event, index) => (
+                <div key={index} className="event-item">
+                  <div className="event-icon">{event.icon || '📅'}</div>
+                  <div className="event-type-badge">{event.type}</div>
+                  <div className="event-details">
+                    <p><strong>{event.title}</strong></p>
+                    <p className="event-datetime">
+                      {event.date} {event.time && `at ${event.time}`}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {upcomingEvents.length > 5 && (
+            <button 
+              className="view-all-btn" 
+              onClick={() => setActiveTab('concerts')}
+            >
+              View All Events ({upcomingEvents.length})
+            </button>
+          )}
         </div>
       </div>
 
@@ -989,7 +1114,7 @@ const ArtistDashboard = () => {
       <div className="analytics-grid">
         <div className="analytics-card">
           <h4>Monthly Listeners</h4>
-          <div className="metric-value">{analytics.monthlyListeners || 0}</div>
+          <div className="metric-value">{analytics.monthly_listeners || analytics.monthlyListeners || 0}</div>
           <div className="metric-change positive">+23% from last month</div>
         </div>
 
@@ -998,14 +1123,35 @@ const ArtistDashboard = () => {
           <div className="metric-value">
             {tracks.length > 0 ? tracks[0]?.title : 'No tracks yet'}
           </div>
-          <div className="metric-change">{tracks.length > 0 ? '1,234 plays' : ''}</div>
+          <div className="metric-change">{tracks.length > 0 ? `${tracks[0]?.plays || 0} plays` : ''}</div>
         </div>
 
         <div className="analytics-card">
           <h4>Revenue This Month</h4>
-          <div className="metric-value">${analytics.monthlyRevenue || '0.00'}</div>
+          <div className="metric-value">${analytics.revenue_this_month?.toFixed(2) || analytics.monthlyRevenue || '0.00'}</div>
           <div className="metric-change positive">+$12.45 from last month</div>
         </div>
+      </div>
+
+      {/* Full Activity Log */}
+      <div className="full-activity-section">
+        <h4>📋 Complete Activity Log</h4>
+        {recentActivity.length === 0 ? (
+          <p className="no-activity">No activity recorded yet.</p>
+        ) : (
+          <div className="full-activity-list">
+            {recentActivity.map((activity, index) => (
+              <div key={index} className="full-activity-item">
+                <div className="activity-icon-large">{activity.icon}</div>
+                <div className="activity-details">
+                  <p className="activity-action">{activity.action}</p>
+                  <p className="activity-title">{activity.title}</p>
+                </div>
+                <span className="activity-timestamp">{activity.time_ago}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="detailed-analytics">
