@@ -32,6 +32,8 @@ import VideoChannelProfile from "./pages/VideoChannelProfile";
 import MyVideoChannel from "./pages/MyVideoChannel";
 import RadioSchedule from "./pages/RadioSchedule";
 import DiscoverUsersPage from "./pages/DiscoverUsersPage";
+import GoLivePage from './pages/GoLivePage';
+import CreateClipPage from './pages/CreateClipPage';
 
 import VideoUpload from "./pages/VideoUpload";
 import VideoDetails from "./component/VideoDetails";
@@ -73,6 +75,7 @@ import StorefrontPage from "./pages/StorefrontPage";
 import LiveStreamPage from "./pages/LiveStreams";
 import LiveConcerts from "./pages/LiveConcerts";
 import LiveShowPage from "./pages/LiveShowPage";
+import LiveStreamViewer from './pages/LiveStreamViewer';
 import ReleaseList from "./pages/ReleaseList";
 
 import UserVideoChannelPage from "./pages/UserVideoChannelPage";
@@ -134,7 +137,8 @@ const Layout = () => {
               <Route path="/upload-video" element={<VideoUpload />} />
               {/* <Route path="/video-editor" element={<VideoEditor />} /> */}
               <Route path="/video-details/:id" element={<VideoDetails />} />
-              
+              <Route path="/live-streams/:id" element={<LiveStreamViewer />} />
+
               {/* 🔍 Discover Users - Main route + redirects from old routes */}
               <Route path="/discover-users" element={<DiscoverUsersPage />} />
               <Route path="/search-artists" element={<Navigate to="/discover-users" replace />} />
@@ -166,6 +170,8 @@ const Layout = () => {
 
               {/* 🎬 Videos */}
               <Route path="/videos" element={<BrowseVideosPage />} />
+              <Route path="/go-live" element={<GoLivePage />} />
+              <Route path="/create-clip" element={<CreateClipPage />} />
 
               {/* 💿 Releases */}
               <Route path="/create-release" element={<CreateReleasePage />} />
@@ -178,7 +184,7 @@ const Layout = () => {
               <Route path="/artist-dashboard" element={<ArtistDashboard />} />
               <Route path="/upload-music" element={<UploadMusic />} />
               <Route path="/music-distribution" element={<MusicDistribution />} />
-              
+
               {/* 👤 Public User Profile (for viewing other users) */}
               <Route path="/user/:userId" element={<UserSearchProfilePage />} />
               <Route path="/user/u/:username" element={<UserSearchProfilePage />} />

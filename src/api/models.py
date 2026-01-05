@@ -4615,6 +4615,40 @@ class TranscodeJob(db.Model):
         }
 
 
+class Concert(db.Model):
+    __tablename__ = 'concerts'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    date = db.Column(db.DateTime, nullable=False)
+    time = db.Column(db.String(20))
+    venue = db.Column(db.String(200))
+    price = db.Column(db.Float, default=0)
+    max_tickets = db.Column(db.Integer)
+    tickets_sold = db.Column(db.Integer, default=0)
+    category = db.Column(db.String(50), default='Music')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref='concerts')
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "title": self.title,
+            "description": self.description,
+            "date": self.date.isoformat() if self.date else None,
+            "time": self.time,
+            "venue": self.venue,
+            "price": self.price,
+            "max_tickets": self.max_tickets,
+            "tickets_sold": self.tickets_sold,
+            "category": self.category,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
 class VideoQuality(db.Model):
     '''Track available quality versions for each video'''
     __tablename__ = 'video_qualities'

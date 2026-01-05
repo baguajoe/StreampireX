@@ -309,7 +309,7 @@
 .metric-value {
   font-size: 2rem;
   font-weight: 700;
-  color: #e1e4e8;
+  color: #ffffff;
   margin-bottom: 5px;
 }
 
@@ -1181,4 +1181,42 @@
     min-height: 90px !important;
     padding: 15px 10px !important;
   }
+}
+
+/* ============================================= */
+/* FIX METRIC NUMBERS - FORCE WHITE             */
+/* MUST BE OUTSIDE ALL MEDIA QUERIES            */
+/* ============================================= */
+
+.metric-card .metric-value,
+.metric-card .metric-content .metric-value,
+.metrics-grid .metric-card .metric-value,
+.metric-value {
+  color: #ffffff !important;
+  font-size: 2.5rem !important;
+  font-weight: 700 !important;
+}
+
+/* If numbers use different class names */
+.metric-card h3,
+.metric-card p,
+.metric-card .value,
+.metric-card .number,
+.metric-content p {
+  color: #ffffff !important;
+}
+
+/* Keep labels muted gray */
+.metric-card .metric-label,
+.metric-label {
+  color: #8b949e !important;
+  font-size: 0.85rem !important;
+  text-transform: uppercase !important;
+}
+
+/* Change indicator stays teal */
+.metric-card .metric-change,
+.metric-change {
+  color: #00ffc8 !important;
+  font-size: 0.85rem !important;
 }

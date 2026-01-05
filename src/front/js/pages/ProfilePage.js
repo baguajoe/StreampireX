@@ -829,7 +829,7 @@ const ProfilePage = () => {
     const fetchUserVideos = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${BACKEND_URL}/api/user/videos`, {
+            const response = await fetch(`${BACKEND_URL}/api/video/user`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
