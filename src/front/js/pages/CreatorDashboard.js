@@ -25,55 +25,56 @@ const CreatorDashboard = () => {
     const fetchOverviewData = async () => {
       try {
         const token = localStorage.getItem("token");
+        const headers = { Authorization: `Bearer ${token}` };
 
-        // Fetch profile data
-        const profileRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/profile`, {
-          headers: { Authorization: `Bearer ${token}` }
+        // Fetch profile data - FIXED: removed /creator/ prefix
+        const profileRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/profile`, {
+          headers
         });
         if (profileRes.ok) {
           const profileData = await profileRes.json();
           setProfile(profileData);
         }
 
-        // Fetch social shares data
-        const sharesRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/social-shares`, {
-          headers: { Authorization: `Bearer ${token}` }
+        // Fetch social shares data - FIXED: removed /creator/ prefix
+        const sharesRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/social-shares`, {
+          headers
         });
         if (sharesRes.ok) {
           const sharesData = await sharesRes.json();
           setSocialShares(sharesData);
         }
 
-        // Fetch content breakdown
-        const contentRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/content-breakdown`, {
-          headers: { Authorization: `Bearer ${token}` }
+        // Fetch content breakdown - FIXED: removed /creator/ prefix
+        const contentRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/content-breakdown`, {
+          headers
         });
         if (contentRes.ok) {
           const contentData = await contentRes.json();
           setContentBreakdown(contentData);
         }
 
-        // Fetch earnings data
-        const earningsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/earnings`, {
-          headers: { Authorization: `Bearer ${token}` }
+        // Fetch earnings data - FIXED: removed /creator/ prefix
+        const earningsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/earnings`, {
+          headers
         });
         if (earningsRes.ok) {
           const earningsData = await earningsRes.json();
           setEarnings(earningsData);
         }
 
-        // Fetch my products
-        const productsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/my-products`, {
-          headers: { Authorization: `Bearer ${token}` }
+        // Fetch my products - FIXED: changed to /marketplace/my-products
+        const productsRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/my-products`, {
+          headers
         });
         if (productsRes.ok) {
           const productsData = await productsRes.json();
           setMyProducts(productsData.products || []);
         }
 
-        // Fetch recent activity
-        const activityRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/recent-activity`, {
-          headers: { Authorization: `Bearer ${token}` }
+        // Fetch recent activity - FIXED: removed /creator/ prefix
+        const activityRes = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/recent-activity`, {
+          headers
         });
         if (activityRes.ok) {
           const activityData = await activityRes.json();
@@ -142,7 +143,8 @@ const CreatorDashboard = () => {
 
   const handleProductUploaded = () => {
     const token = localStorage.getItem("token");
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/creator/my-products`, {
+    // FIXED: changed to /marketplace/my-products
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/my-products`, {
       headers: { Authorization: `Bearer ${token}` }
     })
     .then(res => res.json())

@@ -869,3 +869,28 @@
 .radio-dashboard-container .station-card {
   overflow: hidden !important;
 }
+
+/* Fix faded metric numbers */
+.stat-card h3,
+.stat-card p,
+.stat-card .stat-value,
+.stat-card .stat-number,
+.metric-card h3,
+.metric-card p,
+.metric-card .value {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+/* Or if using specific class names */
+.stat-info h3 {
+    color: #8b949e;  /* Label color - can stay muted */
+}
+
+.stat-info p,
+.stat-info .number,
+.stat-info .value {
+    color: #ffffff !important;  /* Number should be bright white */
+    font-size: 2rem;
+    font-weight: 700;
+}
