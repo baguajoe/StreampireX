@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Play, Pause, Heart, Share2, Download, Clock } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Play, Pause, Heart, Share2, Download, Clock, ArrowLeft } from "lucide-react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 
-const PodcastDetailPage = ({ podcastId = "101" }) => {
+const PodcastDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [podcast, setPodcast] = useState(null);
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,6 +12,7 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
   const [currentPlaying, setCurrentPlaying] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [audioRef, setAudioRef] = useState(null);
 
   useEffect(() => {
     const fetchPodcast = async () => {
@@ -18,98 +20,100 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
         setLoading(true);
         setError(null);
 
-        // Mock data for demo purposes
-        const mockPodcast = {
-          id: 101,
-          title: "Cold Cases Uncovered",
-          description: "Exploring the dark corners of justice. Dive deep into unsolved mysteries and cold cases that have baffled investigators for years.",
-          category: "True Crime & Investigative Journalism",
-          cover_art_url: "https://images.unsplash.com/photo-1590736969955-71cc94901144?w=300&h=300&fit=crop",
-          uploaded_at: "2024-01-15T10:30:00Z"
-        };
+        const backendUrl = process.env.REACT_APP_BACKEND_URL;
+        const token = localStorage.getItem("token");
 
-        const mockEpisodes = [
-          {
-            id: 1,
-            title: "The Vanishing of Sarah Chen",
-            description: "In 2019, a promising young software engineer disappeared without a trace from her downtown apartment. Tonight, we examine the evidence and interview those closest to the case.",
-            file_url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav",
-            duration: "45:32",
-            uploaded_at: "2024-01-15T10:30:00Z"
-          },
-          {
-            id: 2,
-            title: "The Missing Inheritance Papers",
-            description: "A wealthy businessman's will goes missing just days before his death. His family is left with nothing but questions and a legal battle that spans decades.",
-            file_url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav",
-            duration: "52:18",
-            uploaded_at: "2024-01-08T14:20:00Z"
-          },
-          {
-            id: 3,
-            title: "Secrets in the Archive",
-            description: "When a historian discovers a hidden room in the city library, she uncovers documents that could solve a 50-year-old mystery.",
-            file_url: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav",
-            duration: "38:45",
-            uploaded_at: "2024-01-01T09:15:00Z"
+        if (!backendUrl) {
+          throw new Error("Backend URL not configured");
+        }
+
+        // Fetch podcast details
+        const podcastRes = await fetch(`${backendUrl}/api/podcasts/${id}`, {
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+            "Content-Type": "application/json"
           }
-        ];
+        });
 
-        // Use mock data for demo
-        setPodcast(mockPodcast);
-        setEpisodes(mockEpisodes);
-        setLoading(false);
+        if (!podcastRes.ok) {
+          throw new Error("Podcast not found");
+        }
 
-
-        // Real API calls (commented out for demo)
-
-        const backendUrl =
-          process.env.REACT_APP_BACKEND_URL ||
-          process.env.REACT_APP_BACKEND_URL ||
-          "http://localhost:3001";
-
-        // Updated API endpoints based on project knowledge
-        const [podcastRes, episodesRes] = await Promise.all([
-          fetch(`${backendUrl}/api/podcasts/${id}`),
-          fetch(`${backendUrl}/api/podcast/${id}/episodes`)
-        ]);
-
-        if (!podcastRes.ok) throw new Error("Podcast not found");
         const podcastData = await podcastRes.json();
         setPodcast(podcastData);
 
+        // Fetch episodes
+        const episodesRes = await fetch(`${backendUrl}/api/podcast/${id}/episodes`, {
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+            "Content-Type": "application/json"
+          }
+        });
+
         if (episodesRes.ok) {
           const episodesData = await episodesRes.json();
-          setEpisodes(episodesData);
+          setEpisodes(Array.isArray(episodesData) ? episodesData : episodesData.episodes || []);
         }
 
       } catch (err) {
-        console.error("Error fetching podcast or episodes:", err);
+        console.error("Error fetching podcast:", err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPodcast();
+    if (id) {
+      fetchPodcast();
+    }
   }, [id]);
 
   const handleBack = () => {
-    console.log("Going back to previous page");
+    navigate(-1);
   };
 
-  const togglePlay = (episodeId) => {
+  const togglePlay = (episodeId, fileUrl) => {
     if (currentPlaying === episodeId && isPlaying) {
+      if (audioRef) {
+        audioRef.pause();
+      }
       setIsPlaying(false);
     } else {
+      if (audioRef) {
+        audioRef.pause();
+      }
+      const newAudio = new Audio(fileUrl);
+      newAudio.play();
+      setAudioRef(newAudio);
       setCurrentPlaying(episodeId);
       setIsPlaying(true);
+
+      newAudio.onended = () => {
+        setIsPlaying(false);
+        setCurrentPlaying(null);
+      };
     }
   };
 
   const handleLike = async () => {
-    // Implementation for liking podcast
-    setLiked(!liked);
+    try {
+      const token = localStorage.getItem("token");
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
+      if (token && backendUrl) {
+        await fetch(`${backendUrl}/api/podcast/${id}/like`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        });
+      }
+      setLiked(!liked);
+    } catch (err) {
+      console.error("Error liking podcast:", err);
+      setLiked(!liked); // Toggle anyway for UX
+    }
   };
 
   const handleShare = () => {
@@ -117,35 +121,89 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
       navigator.share({
         title: podcast?.title,
         text: podcast?.description,
-        url: window.location.href,
+        url: window.location.href
       });
     } else {
-      // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href);
       alert("Link copied to clipboard!");
     }
   };
 
+  const handleSubscribe = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      const response = await fetch(`${backendUrl}/api/podcast/${id}/subscribe`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (response.ok) {
+        alert("Subscribed successfully!");
+      }
+    } catch (err) {
+      console.error("Error subscribing:", err);
+    }
+  };
+
+  const formatDuration = (duration) => {
+    if (!duration) return "00:00";
+    if (typeof duration === "string" && duration.includes(":")) return duration;
+    const minutes = Math.floor(duration / 60);
+    const seconds = duration % 60;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-500 mx-auto"></div>
-          <p className="mt-4 text-lg">Loading podcast details...</p>
+          <div className="animate-spin text-4xl mb-4">🎧</div>
+          <p className="text-gray-400">Loading podcast...</p>
         </div>
       </div>
     );
   }
 
-  if (error || !podcast) {
+  // Error state
+  if (error) {
     return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-3xl font-bold mb-4">Podcast Not Found</h2>
-          <p className="text-gray-400 mb-6">{error || "Something went wrong."}</p>
+          <div className="text-4xl mb-4">😕</div>
+          <h2 className="text-xl font-bold mb-2">Podcast Not Found</h2>
+          <p className="text-gray-400 mb-4">{error}</p>
           <button
             onClick={handleBack}
-            className="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg transition-colors"
+            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg"
+          >
+            ← Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // No podcast found
+  if (!podcast) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4">🎧</div>
+          <p className="text-gray-400">Podcast not available</p>
+          <button
+            onClick={handleBack}
+            className="mt-4 px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg"
           >
             ← Go Back
           </button>
@@ -155,52 +213,56 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
-      {/* Header */}
-      <div className="p-6">
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Back Button */}
         <button
           onClick={handleBack}
-          className="flex items-center text-gray-300 hover:text-white transition-colors mb-6"
+          className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
         >
-          ← Back to Browse
+          <ArrowLeft className="w-5 h-5" />
+          Back
         </button>
 
         {/* Podcast Header */}
-        <div className="flex flex-col md:flex-row gap-8 mb-8">
+        <div className="flex flex-col md:flex-row gap-8 mb-12">
           <div className="flex-shrink-0">
             <img
-              src={podcast.cover_art_url || podcast.cover_image_url || "https://via.placeholder.com/300x300/6B46C1/FFFFFF?text=Podcast"}
+              src={podcast.cover_art_url || podcast.cover_image_url || "/default-podcast-cover.png"}
               alt={podcast.title}
-              className="w-72 h-72 object-cover rounded-2xl shadow-2xl"
+              className="w-64 h-64 object-cover rounded-2xl shadow-2xl"
+              onError={(e) => {
+                e.target.src = "/default-podcast-cover.png";
+              }}
             />
           </div>
 
           <div className="flex-grow">
-            <div className="mb-4">
-              <span className="inline-block bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-medium mb-4">
-                {podcast.category}
-              </span>
-            </div>
-
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white to-purple-300 bg-clip-text text-transparent">
-              {podcast.title}
-            </h1>
-
-            <p className="text-gray-300 text-lg leading-relaxed mb-6">
-              {podcast.description}
+            <span className="px-3 py-1 bg-purple-600/30 text-purple-400 rounded-full text-sm mb-4 inline-block">
+              {podcast.category || "Podcast"}
+            </span>
+            <h1 className="text-4xl font-bold mb-4">{podcast.title}</h1>
+            <p className="text-gray-300 text-lg mb-6 leading-relaxed">
+              {podcast.description || "No description available"}
             </p>
+
+            {/* Host info */}
+            {podcast.host_name && (
+              <p className="text-gray-400 mb-4">Hosted by {podcast.host_name}</p>
+            )}
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-4">
               <button
                 onClick={handleLike}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all ${liked
-                  ? 'bg-red-600 hover:bg-red-700'
-                  : 'bg-gray-700 hover:bg-gray-600'
-                  }`}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+                  liked
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-gray-700 hover:bg-gray-600"
+                }`}
               >
-                <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
-                {liked ? 'Liked' : 'Like'}
+                <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
+                {liked ? "Liked" : "Like"}
               </button>
 
               <button
@@ -211,7 +273,10 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
                 Share
               </button>
 
-              <button className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
+              <button
+                onClick={handleSubscribe}
+                className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+              >
                 <Download className="w-5 h-5" />
                 Subscribe
               </button>
@@ -223,10 +288,11 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
                 <Clock className="w-4 h-4" />
                 {episodes.length} Episodes
               </div>
-              {podcast.uploaded_at && (
-                <div>
-                  Created: {new Date(podcast.uploaded_at).toLocaleDateString()}
-                </div>
+              {podcast.created_at && (
+                <div>Created: {new Date(podcast.created_at).toLocaleDateString()}</div>
+              )}
+              {podcast.total_listens > 0 && (
+                <div>🎧 {podcast.total_listens.toLocaleString()} listens</div>
               )}
             </div>
           </div>
@@ -237,7 +303,7 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
           <h2 className="text-2xl font-bold mb-6">Episodes</h2>
 
           {episodes.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-12 bg-gray-800/30 rounded-xl">
               <div className="text-gray-400 text-lg mb-4">No episodes available yet</div>
               <p className="text-gray-500">Check back later for new content!</p>
             </div>
@@ -250,66 +316,48 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
                 >
                   <div className="flex items-start gap-4">
                     <button
-                      onClick={() => togglePlay(episode.id)}
+                      onClick={() => togglePlay(episode.id, episode.file_url || episode.audio_url)}
                       className="flex-shrink-0 w-12 h-12 bg-purple-600 hover:bg-purple-700 rounded-full flex items-center justify-center transition-colors"
                     >
                       {currentPlaying === episode.id && isPlaying ? (
-                        <Pause className="w-6 h-6" />
+                        <Pause className="w-5 h-5 text-white" />
                       ) : (
-                        <Play className="w-6 h-6 ml-1" />
+                        <Play className="w-5 h-5 text-white ml-1" />
                       )}
                     </button>
 
                     <div className="flex-grow">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-xl font-semibold text-white">
-                          {episode.title || `Episode ${index + 1}`}
-                        </h3>
-                        {episode.duration && (
-                          <span className="text-gray-400 text-sm">
-                            {episode.duration}
-                          </span>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-gray-500 text-sm">#{index + 1}</span>
+                        <h3 className="text-lg font-semibold">{episode.title}</h3>
+                      </div>
+                      <p className="text-gray-400 text-sm mb-3 line-clamp-2">
+                        {episode.description || "No description"}
+                      </p>
+                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {formatDuration(episode.duration)}
+                        </span>
+                        {episode.uploaded_at && (
+                          <span>{new Date(episode.uploaded_at).toLocaleDateString()}</span>
+                        )}
+                        {episode.listen_count > 0 && (
+                          <span>🎧 {episode.listen_count}</span>
                         )}
                       </div>
+                    </div>
 
-                      {episode.description && (
-                        <p className="text-gray-300 mb-4 leading-relaxed">
-                          {episode.description}
-                        </p>
-                      )}
-
+                    <div className="flex gap-2">
                       {episode.file_url && (
-                        <div className="mt-4">
-                          {episode.file_url.match(/\.(mp4|mov)$/i) ? (
-                            <video
-                              controls
-                              className="w-full"
-
-                            >
-                              <source src={episode.file_url} type="video/mp4" />
-                              <source src={episode.file_url} type="video/quicktime" />
-                              Your browser does not support the video element.
-                            </video>
-                          ) : (
-                            <audio
-                              controls
-                              className="w-full h-10"
-                              style={{
-                                filter: 'sepia(1) hue-rotate(240deg) saturate(2) brightness(0.8)',
-                              }}
-                            >
-                              <source src={episode.file_url} type="audio/mp3" />
-                              <source src={episode.file_url} type="audio/wav" />
-                              <source src={episode.file_url} type="audio/ogg" />
-                              Your browser does not support the audio element.
-                            </audio>
-                          )}
-                        </div>
-                      )}
-                      {episode.uploaded_at && (
-                        <div className="mt-3 text-sm text-gray-500">
-                          Published: {new Date(episode.uploaded_at).toLocaleDateString()}
-                        </div>
+                        <a
+                          href={episode.file_url}
+                          download
+                          className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                          title="Download"
+                        >
+                          <Download className="w-5 h-5 text-gray-400" />
+                        </a>
                       )}
                     </div>
                   </div>
@@ -317,19 +365,6 @@ const PodcastDetailPage = ({ podcastId = "101" }) => {
               ))}
             </div>
           )}
-        </div>
-
-        {/* Related Podcasts Section */}
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold mb-6">More in {podcast.category}</h2>
-          <div className="text-gray-400">
-            <Link
-              to={`/podcast-category/${encodeURIComponent(podcast.category)}`}
-              className="text-purple-400 hover:text-purple-300 transition-colors"
-            >
-              Browse more {podcast.category} podcasts →
-            </Link>
-          </div>
         </div>
       </div>
     </div>
