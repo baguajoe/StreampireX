@@ -15,35 +15,41 @@ const HomeFeed = () => {
   const [user, setUser] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [pagination, setPagination] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const token = localStorage.getItem("token");
         const backendUrl = process.env.REACT_APP_BACKEND_URL;
-        
-        // Debug: Log the backend URL
+
         console.log("Backend URL:", backendUrl);
-        
+
         if (!backendUrl) {
           throw new Error("BACKEND_URL is not defined in environment variables");
         }
 
-        // Fetch posts
+        // Fetch posts/feed
         try {
-          const postsRes = await fetch(`${backendUrl}/api/home-feed`, {
+          const postsRes = await fetch(`${backendUrl}/api/home-feed?type=${activeFilter}`, {
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
           });
-          
+
           if (postsRes.ok) {
             const postsData = await postsRes.json();
-            setPosts(postsData);
+            // Handle both old format (array) and new format (object with feed)
+            const feedItems = postsData.feed || postsData;
+            setPosts(Array.isArray(feedItems) ? feedItems : []);
+            if (postsData.pagination) {
+              setPagination(postsData.pagination);
+            }
           } else {
             console.error('Failed to fetch posts:', postsRes.status, postsRes.statusText);
           }
@@ -53,15 +59,16 @@ const HomeFeed = () => {
 
         // Fetch suggested users
         try {
-          const usersRes = await fetch(`${backendUrl}/api/users/suggested`, {
+          const usersRes = await fetch(`${backendUrl}/api/suggested-users`, {
             headers: {
+              Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
           });
-          
+
           if (usersRes.ok) {
             const usersData = await usersRes.json();
-            setSuggestedUsers(usersData);
+            setSuggestedUsers(usersData.suggestions || usersData || []);
           } else {
             console.error('Failed to fetch suggested users:', usersRes.status, usersRes.statusText);
           }
@@ -69,17 +76,18 @@ const HomeFeed = () => {
           console.error('Error fetching suggested users:', error);
         }
 
-        // Fetch trending content
+        // Fetch trending content (discover feed)
         try {
-          const trendingRes = await fetch(`${backendUrl}/api/trending`, {
+          const trendingRes = await fetch(`${backendUrl}/api/discover-feed?type=all&per_page=5`, {
             headers: {
+              Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
           });
-          
+
           if (trendingRes.ok) {
             const trendingData = await trendingRes.json();
-            setTrendingContent(trendingData);
+            setTrendingContent(trendingData.feed || trendingData || []);
           } else {
             console.error('Failed to fetch trending content:', trendingRes.status, trendingRes.statusText);
           }
@@ -89,13 +97,13 @@ const HomeFeed = () => {
 
         // Fetch user profile
         try {
-          const profileRes = await fetch(`${backendUrl}/user/profile`, {
+          const profileRes = await fetch(`${backendUrl}/api/user/profile`, {
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
           });
-          
+
           if (profileRes.ok) {
             const profileData = await profileRes.json();
             setUser(profileData);
@@ -115,7 +123,7 @@ const HomeFeed = () => {
     };
 
     fetchData();
-  }, []);
+  }, [activeFilter]);
 
   const handleCreatePost = async () => {
     if (!postContent.trim()) {
@@ -126,22 +134,19 @@ const HomeFeed = () => {
     try {
       const token = localStorage.getItem("token");
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
-      
-      // If backend is available, try to create post on server
+
       if (backendUrl && token) {
         try {
-          const formData = new FormData();
-          formData.append('content', postContent);
-          if (postImage) {
-            formData.append('image', postImage);
-          }
-
-          const response = await fetch(`${backendUrl}/api/posts`, {
+          const response = await fetch(`${backendUrl}/api/posts/create`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
             },
-            body: formData,
+            body: JSON.stringify({
+              content: postContent,
+              image_url: postImage ? URL.createObjectURL(postImage) : null,
+            }),
           });
 
           if (response.ok) {
@@ -159,50 +164,153 @@ const HomeFeed = () => {
       // Fallback: Create post locally
       const newPost = {
         id: Date.now(),
-        author: user.username || "Anonymous",
+        feed_type: "post",
+        author_name: user.display_name || user.username || "Anonymous",
+        author_username: user.username || "anonymous",
+        author_avatar: user.profile_picture || '/default-avatar.png',
         content: postContent,
-        image: postImage ? URL.createObjectURL(postImage) : null,
+        image_url: postImage ? URL.createObjectURL(postImage) : null,
         comments: [],
+        likes_count: 0,
+        comments_count: 0,
         created_at: new Date().toISOString(),
+        timestamp: "Just now",
       };
-      
+
       setPosts([newPost, ...posts]);
       setPostContent("");
       setPostImage(null);
-      
+
     } catch (error) {
       console.error('Error creating post:', error);
       alert("Failed to create post. Please try again.");
     }
   };
 
-  const handleAddComment = (postId) => {
+  const handleLikePost = async (postId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
+      const response = await fetch(`${backendUrl}/api/posts/${postId}/like`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPosts(posts.map(post =>
+          post.id === postId
+            ? { ...post, is_liked: data.liked, likes_count: data.likes_count }
+            : post
+        ));
+      }
+    } catch (error) {
+      console.error('Error liking post:', error);
+    }
+  };
+
+  const handleAddComment = async (postId) => {
     const comment = newCommentText[postId]?.trim();
     if (!comment) return;
 
-    setPostComments({
-      ...postComments,
-      [postId]: [...(postComments[postId] || []), comment],
-    });
+    try {
+      const token = localStorage.getItem("token");
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
+      const response = await fetch(`${backendUrl}/api/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: comment }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPostComments({
+          ...postComments,
+          [postId]: [...(postComments[postId] || []), data.comment],
+        });
+        // Update comment count
+        setPosts(posts.map(post =>
+          post.id === postId
+            ? { ...post, comments_count: (post.comments_count || 0) + 1 }
+            : post
+        ));
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      // Fallback: add locally
+      setPostComments({
+        ...postComments,
+        [postId]: [...(postComments[postId] || []), { text: comment, author: user.username || 'You', timestamp: 'Just now' }],
+      });
+    }
+
     setNewCommentText({ ...newCommentText, [postId]: "" });
+  };
+
+  const handleFollowUser = async (userId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
+      const response = await fetch(`${backendUrl}/api/follow/${userId}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        // Remove from suggested users
+        setSuggestedUsers(suggestedUsers.filter(u => u.id !== userId));
+      }
+    } catch (error) {
+      console.error('Error following user:', error);
+    }
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check file size (limit to 5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert("Image size should be less than 5MB");
         return;
       }
-      
-      // Check file type
+
       if (!file.type.startsWith('image/')) {
         alert("Please select a valid image file");
         return;
       }
-      
+
       setPostImage(file);
+    }
+  };
+
+  // Get feed type icon
+  const getFeedTypeIcon = (feedType) => {
+    switch (feedType) {
+      case 'track': return '🎵';
+      case 'video': return '🎬';
+      case 'podcast': return '🎙️';
+      default: return '📝';
+    }
+  };
+
+  // Get feed type label
+  const getFeedTypeLabel = (feedType) => {
+    switch (feedType) {
+      case 'track': return 'Track';
+      case 'video': return 'Video';
+      case 'podcast': return 'Podcast';
+      default: return 'Post';
     }
   };
 
@@ -231,18 +339,52 @@ const HomeFeed = () => {
           <p>Some features may not work properly. Check your backend connection.</p>
         </div>
       )}
-      
+
+      {/* Feed Filter Tabs */}
+      <div className="feed-filters">
+        <button
+          className={`filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
+          onClick={() => setActiveFilter('all')}
+        >
+          🌐 All
+        </button>
+        <button
+          className={`filter-btn ${activeFilter === 'posts' ? 'active' : ''}`}
+          onClick={() => setActiveFilter('posts')}
+        >
+          📝 Posts
+        </button>
+        <button
+          className={`filter-btn ${activeFilter === 'tracks' ? 'active' : ''}`}
+          onClick={() => setActiveFilter('tracks')}
+        >
+          🎵 Tracks
+        </button>
+        <button
+          className={`filter-btn ${activeFilter === 'videos' ? 'active' : ''}`}
+          onClick={() => setActiveFilter('videos')}
+        >
+          🎬 Videos
+        </button>
+        <button
+          className={`filter-btn ${activeFilter === 'podcasts' ? 'active' : ''}`}
+          onClick={() => setActiveFilter('podcasts')}
+        >
+          🎙️ Podcasts
+        </button>
+      </div>
+
       <div className="feed-layout">
         {/* LEFT COLUMN */}
         <div className="feed-sidebar left">
           <div className="sidebar-section">
             <h3>👥 Suggested to Follow</h3>
             {suggestedUsers.length > 0 ? (
-              suggestedUsers.map((suggestedUser, idx) => (
-                <div key={idx} className="suggested-user-card">
-                  <img 
-                    src={suggestedUser.profile_picture || '/default-avatar.png'} 
-                    alt="avatar" 
+              suggestedUsers.slice(0, 5).map((suggestedUser) => (
+                <div key={suggestedUser.id} className="suggested-user-card">
+                  <img
+                    src={suggestedUser.profile_picture || '/default-avatar.png'}
+                    alt="avatar"
                     className="suggested-avatar"
                     onError={(e) => {
                       e.target.src = '/default-avatar.png';
@@ -251,8 +393,16 @@ const HomeFeed = () => {
                   <div className="suggested-info">
                     <strong>@{suggestedUser.username}</strong>
                     <p>{suggestedUser.bio || "New creator on the rise!"}</p>
+                    {suggestedUser.follower_count > 0 && (
+                      <span className="follower-count">{suggestedUser.follower_count} followers</span>
+                    )}
                   </div>
-                  <button className="follow-btn">Follow</button>
+                  <button
+                    className="follow-btn"
+                    onClick={() => handleFollowUser(suggestedUser.id)}
+                  >
+                    Follow
+                  </button>
                 </div>
               ))
             ) : (
@@ -263,11 +413,11 @@ const HomeFeed = () => {
           <div className="sidebar-section">
             <h3>📈 Trending</h3>
             {trendingContent.length > 0 ? (
-              trendingContent.map((item, idx) => (
-                <div key={idx} className="trending-item">
-                  <img 
-                    src={item.image_url || '/default-trending.png'} 
-                    alt="trend" 
+              trendingContent.slice(0, 5).map((item) => (
+                <div key={item.id} className="trending-item">
+                  <img
+                    src={item.artwork_url || item.thumbnail_url || '/default-trending.png'}
+                    alt="trend"
                     className="trending-thumb"
                     onError={(e) => {
                       e.target.src = '/default-trending.png';
@@ -275,7 +425,8 @@ const HomeFeed = () => {
                   />
                   <div className="trending-info">
                     <strong>{item.title}</strong>
-                    <p>{item.description}</p>
+                    <p>{item.author_name || item.description}</p>
+                    <span className="trending-type">{getFeedTypeIcon(item.feed_type)} {getFeedTypeLabel(item.feed_type)}</span>
                   </div>
                 </div>
               ))
@@ -311,11 +462,11 @@ const HomeFeed = () => {
               </label>
               {postImage && (
                 <div className="image-preview">
-                  <img 
-                    src={URL.createObjectURL(postImage)} 
-                    alt="Preview" 
+                  <img
+                    src={URL.createObjectURL(postImage)}
+                    alt="Preview"
                   />
-                  <button 
+                  <button
                     onClick={() => setPostImage(null)}
                     className="remove-image-btn"
                   >
@@ -323,7 +474,7 @@ const HomeFeed = () => {
                   </button>
                 </div>
               )}
-              <button 
+              <button
                 onClick={handleCreatePost}
                 disabled={!postContent.trim()}
                 className="create-post-btn"
@@ -339,45 +490,101 @@ const HomeFeed = () => {
               posts.map((post) => (
                 <div key={post.id} className="feed-card">
                   <div className="feed-card-header">
-                    <img 
-                      src={post.author_avatar || '/default-avatar.png'} 
+                    <img
+                      src={post.author_avatar || post.avatar || '/default-avatar.png'}
                       alt="avatar"
                       className="feed-avatar"
+                      onError={(e) => {
+                        e.target.src = '/default-avatar.png';
+                      }}
                     />
                     <div className="feed-user-info">
                       <div className="feed-username">
-                        <Link to={`/profile/${post.author}`}>@{post.author}</Link>
+                        <Link to={`/user/${post.author_username || post.author_id}`}>
+                          @{post.author_username || post.author_name || post.author || 'unknown'}
+                        </Link>
                       </div>
-                      {post.created_at && (
+                      {(post.created_at || post.timestamp) && (
                         <div className="feed-timestamp">
-                          {new Date(post.created_at).toLocaleDateString()}
+                          {post.timestamp || new Date(post.created_at).toLocaleDateString()}
                         </div>
                       )}
                     </div>
-                    <span className="feed-content-type post">Post</span>
+                    <span className={`feed-content-type ${post.feed_type || 'post'}`}>
+                      {getFeedTypeIcon(post.feed_type)} {getFeedTypeLabel(post.feed_type)}
+                    </span>
                   </div>
 
                   <div className="feed-card-body">
-                    <p className="feed-description">{post.content}</p>
-                    {post.image && (
-                      <img 
-                        src={post.image} 
-                        alt="Post" 
+                    {/* Title for tracks/videos/podcasts */}
+                    {post.title && post.feed_type !== 'post' && (
+                      <h4 className="feed-title">{post.title}</h4>
+                    )}
+
+                    <p className="feed-description">{post.content || post.description}</p>
+
+                    {/* Image for posts */}
+                    {(post.image_url || post.image) && (
+                      <img
+                        src={post.image_url || post.image}
+                        alt="Post"
                         className="feed-media"
                         onError={(e) => {
                           e.target.style.display = 'none';
                         }}
                       />
                     )}
+
+                    {/* Thumbnail for videos */}
+                    {post.feed_type === 'video' && post.thumbnail_url && (
+                      <div className="video-thumbnail-container">
+                        <img
+                          src={post.thumbnail_url}
+                          alt="Video thumbnail"
+                          className="feed-media"
+                        />
+                        <div className="play-overlay">▶</div>
+                        {post.views > 0 && <span className="view-count">{post.views} views</span>}
+                      </div>
+                    )}
+
+                    {/* Audio player for tracks */}
+                    {post.feed_type === 'track' && post.audio_url && (
+                      <div className="track-player">
+                        {post.artwork_url && (
+                          <img src={post.artwork_url} alt="Track artwork" className="track-artwork" />
+                        )}
+                        <audio controls src={post.audio_url} className="audio-player">
+                          Your browser does not support the audio element.
+                        </audio>
+                        {post.plays > 0 && <span className="play-count">🎧 {post.plays} plays</span>}
+                      </div>
+                    )}
+
+                    {/* Podcast info */}
+                    {post.feed_type === 'podcast' && (
+                      <div className="podcast-info">
+                        {post.thumbnail_url && (
+                          <img src={post.thumbnail_url} alt="Podcast artwork" className="podcast-artwork" />
+                        )}
+                        <div className="podcast-details">
+                          <span className="podcast-name">{post.podcast_name}</span>
+                          {post.episode_number && <span className="episode-number">Ep. {post.episode_number}</span>}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="feed-card-footer">
                     <div className="feed-actions">
-                      <button className="feed-action-btn">
-                        🤍 <span className="action-count">{post.likes || 0}</span>
+                      <button
+                        className={`feed-action-btn ${post.is_liked ? 'liked' : ''}`}
+                        onClick={() => handleLikePost(post.id)}
+                      >
+                        {post.is_liked ? '❤️' : '🤍'} <span className="action-count">{post.likes_count || post.likes || 0}</span>
                       </button>
                       <button className="feed-action-btn">
-                        💬 <span className="action-count">{(postComments[post.id] || []).length}</span>
+                        💬 <span className="action-count">{post.comments_count || (postComments[post.id] || []).length}</span>
                       </button>
                       <button className="feed-action-btn">
                         🔄 <span className="action-count">{post.shares || 0}</span>
@@ -389,8 +596,17 @@ const HomeFeed = () => {
                   {/* Comments Section */}
                   <div className="comments-section">
                     <div className="comments-list">
+                      {/* Show existing comments from post */}
+                      {(post.comments || []).slice(0, 3).map((comment, idx) => (
+                        <div key={`existing-${idx}`} className="comment-item">
+                          <strong>@{comment.author || comment.author_name}</strong>: {comment.text || comment.content}
+                        </div>
+                      ))}
+                      {/* Show locally added comments */}
                       {(postComments[post.id] || []).map((comment, idx) => (
-                        <div key={idx} className="comment-item">{comment}</div>
+                        <div key={`new-${idx}`} className="comment-item">
+                          <strong>@{comment.author || 'You'}</strong>: {comment.text || comment}
+                        </div>
                       ))}
                     </div>
                     <div className="comment-input-row">
@@ -398,10 +614,10 @@ const HomeFeed = () => {
                         type="text"
                         placeholder="Write a comment..."
                         value={newCommentText[post.id] || ""}
-                        onChange={(e) => 
-                          setNewCommentText({ 
-                            ...newCommentText, 
-                            [post.id]: e.target.value 
+                        onChange={(e) =>
+                          setNewCommentText({
+                            ...newCommentText,
+                            [post.id]: e.target.value
                           })
                         }
                         onKeyPress={(e) => {
@@ -426,7 +642,17 @@ const HomeFeed = () => {
               <div className="feed-empty">
                 <div className="feed-empty-icon">📭</div>
                 <h3>No posts yet</h3>
-                <p>Be the first to share something!</p>
+                <p>Follow some creators or be the first to share something!</p>
+                <Link to="/discover-users" className="discover-btn">
+                  🔍 Discover Creators
+                </Link>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {pagination && pagination.has_next && (
+              <div className="load-more">
+                <button className="load-more-btn">Load More</button>
               </div>
             )}
           </div>
@@ -465,9 +691,9 @@ const HomeFeed = () => {
           <div className="sidebar-section">
             <h3>📹 Upload Video</h3>
             {user ? (
-              <UploadVideo 
-                currentUser={user} 
-                onUpload={() => alert("Video uploaded!")} 
+              <UploadVideo
+                currentUser={user}
+                onUpload={() => alert("Video uploaded!")}
               />
             ) : (
               <p className="empty-text">Please log in to upload videos.</p>
