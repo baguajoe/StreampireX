@@ -7807,7 +7807,6 @@ def discover_users():
         # Profile type filter - only apply if not 'all' and not empty
         if profile_type_filter and profile_type_filter != 'all':
             if profile_type_filter == 'artist':
-                # Artists = profile_type is 'artist' OR is_artist is True
                 query = query.filter(
                     or_(
                         User.profile_type == 'artist',
@@ -7815,7 +7814,6 @@ def discover_users():
                     )
                 )
             elif profile_type_filter == 'gamer':
-                # Gamers = profile_type is 'gamer' OR is_gamer is True
                 query = query.filter(
                     or_(
                         User.profile_type == 'gamer',
@@ -7823,7 +7821,6 @@ def discover_users():
                     )
                 )
             elif profile_type_filter == 'creator':
-                # Creators = podcasters, radio hosts, video creators, streamers
                 query = query.filter(
                     or_(
                         User.profile_type == 'creator',
@@ -7837,7 +7834,6 @@ def discover_users():
                     )
                 )
             elif profile_type_filter == 'regular':
-                # Members = regular users who are NOT artists, gamers, or creators
                 query = query.filter(
                     and_(
                         or_(
@@ -7861,10 +7857,10 @@ def discover_users():
         
         users_data = []
         for user in paginated.items:
-            # Count followers
+            # Count followers - FIXED: Use followed_id, not following_id
             followers_count = 0
             try:
-                followers_count = Follow.query.filter_by(following_id=user.id).count()
+                followers_count = Follow.query.filter_by(followed_id=user.id).count()
             except:
                 pass
             
@@ -7873,11 +7869,11 @@ def discover_users():
             
             # If profile_type is not set, check various flags and fields
             if not user_profile_type or user_profile_type == '' or user_profile_type == 'regular':
-                if user.is_artist:
+                if getattr(user, 'is_artist', False):
                     user_profile_type = 'artist'
-                elif user.is_gamer:
+                elif getattr(user, 'is_gamer', False):
                     user_profile_type = 'gamer'
-                elif user.is_streamer or user.podcast or user.radio_station or (user.videos and len(user.videos) > 0):
+                elif getattr(user, 'is_streamer', False) or getattr(user, 'podcast', None) or getattr(user, 'radio_station', None):
                     user_profile_type = 'creator'
                 else:
                     user_profile_type = 'regular'
@@ -7885,10 +7881,10 @@ def discover_users():
             users_data.append({
                 "id": user.id,
                 "username": user.username,
-                "display_name": user.display_name or user.artist_name or user.username,
+                "display_name": getattr(user, 'display_name', None) or getattr(user, 'artist_name', None) or user.username,
                 "profile_type": user_profile_type,
-                "bio": user.bio or user.artist_bio or user.gamer_bio,
-                "profile_picture": user.profile_picture or user.avatar_url,
+                "bio": getattr(user, 'bio', None) or getattr(user, 'artist_bio', None) or getattr(user, 'gamer_bio', None),
+                "profile_picture": getattr(user, 'profile_picture', None) or getattr(user, 'avatar_url', None),
                 "followers_count": followers_count,
                 "is_verified": getattr(user, 'is_verified', False) or getattr(user, 'is_verified_artist', False)
             })
