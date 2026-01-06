@@ -1,3 +1,4 @@
+// src/front/js/pages/VideoChannelDashboard.js
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { Context } from '../store/appContext';
@@ -34,6 +35,7 @@ const VideoChannelDashboard = () => {
   const [analytics, setAnalytics] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   // Channel stats state
   const [channelStats, setChannelStats] = useState({
@@ -42,7 +44,12 @@ const VideoChannelDashboard = () => {
     subscribers: 0,
     totalVideos: 0,
     totalComments: 0,
-    watchTime: 0
+    watchTime: 0,
+    // Change metrics
+    viewsChange: 0,
+    subscribersChange: 0,
+    likesChange: 0,
+    commentsChange: 0
   });
 
   // Recent activity state
@@ -50,12 +57,25 @@ const VideoChannelDashboard = () => {
 
   useEffect(() => {
     if (store.user?.id) {
-      fetchChannelData();
-      fetchChannelVideos();
-      fetchChannelAnalytics();
-      fetchRecentActivity();
+      fetchAllData();
     }
   }, [store.user]);
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([
+        fetchChannelData(),
+        fetchChannelVideos(),
+        fetchChannelAnalytics(),
+        fetchRecentActivity()
+      ]);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchChannelData = async () => {
     try {
@@ -73,10 +93,10 @@ const VideoChannelDashboard = () => {
         setChannelStats(prev => ({
           ...prev,
           subscribers: data.subscriber_count || 0,
-          totalVideos: data.total_videos || 0
+          totalVideos: data.total_videos || 0,
+          subscribersChange: data.subscribers_change || 0
         }));
       } else if (response.status === 404) {
-        // No channel exists yet
         setChannelData(null);
       } else {
         throw new Error('Failed to fetch channel data');
@@ -98,21 +118,21 @@ const VideoChannelDashboard = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setVideos(data.videos);
+        const videoList = data.videos || data || [];
+        setVideos(videoList);
 
         // Calculate stats from videos
-        const totalViews = data.videos.reduce((sum, video) => sum + (video.views || 0), 0);
-        const totalLikes = data.videos.reduce((sum, video) => sum + (video.likes || 0), 0);
-        const totalComments = data.videos.reduce((sum, video) => sum + (video.comments_count || 0), 0);
+        const totalViews = videoList.reduce((sum, video) => sum + (video.views || video.view_count || 0), 0);
+        const totalLikes = videoList.reduce((sum, video) => sum + (video.likes || video.like_count || 0), 0);
+        const totalComments = videoList.reduce((sum, video) => sum + (video.comments_count || video.comment_count || 0), 0);
 
         setChannelStats(prev => ({
           ...prev,
           totalViews,
           totalLikes,
           totalComments,
-          totalVideos: data.length
+          totalVideos: videoList.length
         }));
-        setLoading(false);
       }
     } catch (error) {
       console.error('Error fetching videos:', error);
@@ -131,9 +151,15 @@ const VideoChannelDashboard = () => {
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);
-        setChannelStats(prevStats => ({
-          ...prevStats,
-          ...data.stats
+        
+        // Update stats with analytics data including changes
+        setChannelStats(prev => ({
+          ...prev,
+          ...data.stats,
+          viewsChange: data.stats?.views_change || data.views_change || 0,
+          subscribersChange: data.stats?.subscribers_change || data.subscribers_change || 0,
+          likesChange: data.stats?.likes_change || data.likes_change || 0,
+          commentsChange: data.stats?.comments_change || data.comments_change || 0
         }));
       }
     } catch (error) {
@@ -142,38 +168,25 @@ const VideoChannelDashboard = () => {
   };
 
   const fetchRecentActivity = async () => {
-    // Mock recent activity - replace with actual API call
-    const mockActivity = [
-      {
-        type: 'video_upload',
-        title: 'New Gaming Tutorial',
-        action: 'uploaded',
-        time: '2 hours ago',
-        icon: '📹'
-      },
-      {
-        type: 'milestone',
-        title: '1000 subscribers',
-        action: 'reached',
-        time: '1 day ago',
-        icon: '🎉'
-      },
-      {
-        type: 'comment',
-        title: 'New comment on "How to Build PC"',
-        action: 'received',
-        time: '3 hours ago',
-        icon: '💬'
-      },
-      {
-        type: 'like',
-        title: '50 new likes',
-        action: 'received',
-        time: '5 hours ago',
-        icon: '👍'
+    setActivityLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/video/channel/recent-activity`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRecentActivity(data.activities || []);
       }
-    ];
-    setRecentActivity(mockActivity);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+      setRecentActivity([]);
+    } finally {
+      setActivityLoading(false);
+    }
   };
 
   const createChannel = async () => {
@@ -205,6 +218,7 @@ const VideoChannelDashboard = () => {
   };
 
   const formatCount = (count) => {
+    if (!count) return '0';
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
     if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
     return count.toString();
@@ -217,9 +231,48 @@ const VideoChannelDashboard = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Chart data
+  const formatChange = (change) => {
+    if (!change && change !== 0) return '';
+    const sign = change >= 0 ? '+' : '';
+    return `${sign}${change}%`;
+  };
+
+  const getChangeClass = (change) => {
+    if (!change && change !== 0) return '';
+    return change >= 0 ? 'positive' : 'negative';
+  };
+
+  const getActivityIcon = (type) => {
+    switch (type) {
+      case 'video_upload': return '📤';
+      case 'milestone': return '🎉';
+      case 'comment': return '💬';
+      case 'like': return '👍';
+      case 'subscriber': return '👤';
+      case 'view': return '👁️';
+      case 'share': return '🔗';
+      default: return '📹';
+    }
+  };
+
+  // Generate dynamic chart labels based on data or last 6 months
+  const getChartLabels = () => {
+    if (analytics.labels && analytics.labels.length > 0) {
+      return analytics.labels;
+    }
+    // Generate last 6 months dynamically
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(date.toLocaleString('default', { month: 'short' }));
+    }
+    return months;
+  };
+
+  // Chart data - using real data from analytics
   const viewsChartData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+    labels: getChartLabels(),
     datasets: [
       {
         label: 'Monthly Views',
@@ -233,7 +286,7 @@ const VideoChannelDashboard = () => {
   };
 
   const subscribersChartData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+    labels: getChartLabels(),
     datasets: [
       {
         label: 'Subscribers',
@@ -246,13 +299,16 @@ const VideoChannelDashboard = () => {
     ]
   };
 
+  // Category chart - only show if we have real data
+  const hasCategoeryData = analytics.viewsByCategory && Object.keys(analytics.viewsByCategory).length > 0;
+  
   const categoryChartData = {
-    labels: Object.keys(analytics.viewsByCategory || { 'Gaming': 30, 'Music': 25, 'Vlogs': 20, 'Tutorials': 15, 'Other': 10 }),
+    labels: hasCategoeryData ? Object.keys(analytics.viewsByCategory) : [],
     datasets: [
       {
-        data: Object.values(analytics.viewsByCategory || { 'Gaming': 30, 'Music': 25, 'Vlogs': 20, 'Tutorials': 15, 'Other': 10 }),
-        backgroundColor: ['#00ffc8', '#FF6600', '#6c5ce7', '#0984e3', '#fd79a8'],
-        hoverBackgroundColor: ['#00e6b3', '#ff8833', '#a29bfe', '#74b9ff', '#fab1a0'],
+        data: hasCategoeryData ? Object.values(analytics.viewsByCategory) : [],
+        backgroundColor: ['#00ffc8', '#FF6600', '#6c5ce7', '#0984e3', '#fd79a8', '#00b894', '#e17055'],
+        hoverBackgroundColor: ['#00e6b3', '#ff8833', '#a29bfe', '#74b9ff', '#fab1a0', '#55efc4', '#fab1a0'],
         borderColor: '#0d1117',
         borderWidth: 3
       }
@@ -290,6 +346,21 @@ const VideoChannelDashboard = () => {
       }
     }
   };
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { 
+      legend: { 
+        position: 'bottom',
+        labels: { color: '#8b949e' }
+      } 
+    }
+  };
+
+  // Check if we have chart data
+  const hasViewsData = analytics.monthlyViews && analytics.monthlyViews.length > 0 && analytics.monthlyViews.some(v => v > 0);
+  const hasSubscribersData = analytics.monthlySubscribers && analytics.monthlySubscribers.length > 0 && analytics.monthlySubscribers.some(v => v > 0);
 
   if (loading) {
     return (
@@ -355,6 +426,13 @@ const VideoChannelDashboard = () => {
             </div>
           </div>
           <div className="header-actions">
+            <button 
+              className="refresh-btn"
+              onClick={fetchAllData}
+              title="Refresh Data"
+            >
+              🔄
+            </button>
             <Link to="/upload-video" className="action-btn primary">
               📤 Upload Video
             </Link>
@@ -365,7 +443,7 @@ const VideoChannelDashboard = () => {
         </div>
       </div>
 
-      {/* Metrics Overview */}
+      {/* Metrics Overview - REAL DATA */}
       <section className="metrics-overview">
         <h2>📊 Channel Performance</h2>
         <div className="metrics-grid">
@@ -374,7 +452,11 @@ const VideoChannelDashboard = () => {
             <div className="metric-content">
               <div className="metric-value">{formatCount(channelStats.totalViews)}</div>
               <div className="metric-label">Total Views</div>
-              <div className="metric-change">+12% this month</div>
+              {channelStats.viewsChange !== 0 && (
+                <div className={`metric-change ${getChangeClass(channelStats.viewsChange)}`}>
+                  {formatChange(channelStats.viewsChange)} this month
+                </div>
+              )}
             </div>
           </div>
 
@@ -383,7 +465,11 @@ const VideoChannelDashboard = () => {
             <div className="metric-content">
               <div className="metric-value">{formatCount(channelStats.subscribers)}</div>
               <div className="metric-label">Subscribers</div>
-              <div className="metric-change">+15 this week</div>
+              {channelStats.subscribersChange !== 0 && (
+                <div className={`metric-change ${getChangeClass(channelStats.subscribersChange)}`}>
+                  {formatChange(channelStats.subscribersChange)} this month
+                </div>
+              )}
             </div>
           </div>
 
@@ -392,7 +478,11 @@ const VideoChannelDashboard = () => {
             <div className="metric-content">
               <div className="metric-value">{formatCount(channelStats.totalLikes)}</div>
               <div className="metric-label">Total Likes</div>
-              <div className="metric-change">+8% this month</div>
+              {channelStats.likesChange !== 0 && (
+                <div className={`metric-change ${getChangeClass(channelStats.likesChange)}`}>
+                  {formatChange(channelStats.likesChange)} this month
+                </div>
+              )}
             </div>
           </div>
 
@@ -401,13 +491,17 @@ const VideoChannelDashboard = () => {
             <div className="metric-content">
               <div className="metric-value">{formatCount(channelStats.totalComments)}</div>
               <div className="metric-label">Comments</div>
-              <div className="metric-change">+22% this month</div>
+              {channelStats.commentsChange !== 0 && (
+                <div className={`metric-change ${getChangeClass(channelStats.commentsChange)}`}>
+                  {formatChange(channelStats.commentsChange)} this month
+                </div>
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Quick Actions - Artist Dashboard Style with Colorful Gradients */}
+      {/* Quick Actions */}
       <section className="quick-actions">
         <h2>Quick Actions</h2>
         <div className="action-buttons">
@@ -430,34 +524,43 @@ const VideoChannelDashboard = () => {
         </div>
       </section>
 
-      {/* Analytics Charts */}
+      {/* Analytics Charts - REAL DATA */}
       <section className="analytics-section">
         <div className="charts-grid">
           <div className="chart-container">
             <h3>📈 Monthly Views</h3>
-            <Line data={viewsChartData} options={chartOptions} />
+            {hasViewsData ? (
+              <Line data={viewsChartData} options={chartOptions} />
+            ) : (
+              <div className="chart-empty">
+                <p>📊 No view data yet</p>
+                <small>Views will appear as your videos get watched</small>
+              </div>
+            )}
           </div>
 
           <div className="chart-container">
             <h3>👥 Subscriber Growth</h3>
-            <Line data={subscribersChartData} options={chartOptions} />
+            {hasSubscribersData ? (
+              <Line data={subscribersChartData} options={chartOptions} />
+            ) : (
+              <div className="chart-empty">
+                <p>👥 No subscriber data yet</p>
+                <small>Growth data will appear as you gain subscribers</small>
+              </div>
+            )}
           </div>
 
           <div className="chart-container">
             <h3>📊 Views by Category</h3>
-            <Doughnut
-              data={categoryChartData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { 
-                  legend: { 
-                    position: 'bottom',
-                    labels: { color: '#8b949e' }
-                  } 
-                }
-              }}
-            />
+            {hasCategoeryData ? (
+              <Doughnut data={categoryChartData} options={doughnutOptions} />
+            ) : (
+              <div className="chart-empty">
+                <p>📁 No category data yet</p>
+                <small>Upload videos with categories to see breakdown</small>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -477,22 +580,23 @@ const VideoChannelDashboard = () => {
                   <img
                     src={video.thumbnail_url || '/placeholder-thumbnail.jpg'}
                     alt={video.title}
+                    onError={(e) => e.target.src = '/placeholder-thumbnail.jpg'}
                   />
                   <div className="duration-badge">
                     {formatDuration(video.duration)}
                   </div>
                   <div className="video-actions">
-                    <button className="action-icon" title="Edit">✏️</button>
-                    <button className="action-icon" title="Analytics">📊</button>
+                    <Link to={`/video/${video.id}/edit`} className="action-icon" title="Edit">✏️</Link>
+                    <Link to={`/video/${video.id}/analytics`} className="action-icon" title="Analytics">📊</Link>
                     <button className="action-icon" title="Share">🔗</button>
                   </div>
                 </div>
                 <div className="video-info">
                   <h4 className="video-title">{video.title}</h4>
                   <div className="video-stats">
-                    <span>{formatCount(video.views || 0)} views</span>
+                    <span>{formatCount(video.views || video.view_count || 0)} views</span>
                     <span>•</span>
-                    <span>{formatCount(video.likes || 0)} likes</span>
+                    <span>{formatCount(video.likes || video.like_count || 0)} likes</span>
                   </div>
                   <div className="video-date">
                     {new Date(video.created_at).toLocaleDateString()}
@@ -514,19 +618,36 @@ const VideoChannelDashboard = () => {
         )}
       </section>
 
-      {/* Recent Activity */}
+      {/* Recent Activity - REAL DATA */}
       <section className="recent-activity">
-        <h2>🕒 Recent Activity</h2>
+        <div className="section-header">
+          <h2>🕒 Recent Activity</h2>
+          <button 
+            className="refresh-btn" 
+            onClick={fetchRecentActivity}
+            disabled={activityLoading}
+            title="Refresh Activity"
+          >
+            {activityLoading ? '⏳' : '🔄'}
+          </button>
+        </div>
         <div className="activity-list">
-          {recentActivity.map((activity, index) => (
-            <div key={index} className="activity-item">
-              <span className="activity-icon">{activity.icon}</span>
-              <div className="activity-content">
-                <p><strong>{activity.title}</strong> was {activity.action}</p>
-                <span className="activity-time">{activity.time}</span>
+          {recentActivity.length > 0 ? (
+            recentActivity.map((activity, index) => (
+              <div key={index} className="activity-item">
+                <span className="activity-icon">{getActivityIcon(activity.type)}</span>
+                <div className="activity-content">
+                  <p><strong>{activity.title}</strong> {activity.action}</p>
+                  <span className="activity-time">{activity.time}</span>
+                </div>
               </div>
+            ))
+          ) : (
+            <div className="no-activity">
+              <p>📭 No recent activity yet</p>
+              <small>Activity will appear as you upload videos and engage with viewers</small>
             </div>
-          ))}
+          )}
         </div>
       </section>
 

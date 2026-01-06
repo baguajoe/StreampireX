@@ -479,7 +479,22 @@ class PlaylistAudio(db.Model):
             "audios": [audio.id for audio in self.audios],  # List of associated audio files
         }
 
-
+class PlayHistory(db.Model):
+    __tablename__ = 'play_history'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
+    played_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "audio_id": self.audio_id,
+            "played_at": self.played_at.isoformat() if self.played_at else None
+        }
 
 
 class StreamingHistory(db.Model):
@@ -2242,27 +2257,34 @@ class AudioLike(db.Model):
         }
 
 
-class PlayHistory(db.Model):
+
+
+class PodcastPlayHistory(db.Model):
+    __tablename__ = 'podcast_play_history'
     __table_args__ = {'extend_existing': True}
-    __tablename__ = 'play_history'
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
+    podcast_id = db.Column(db.Integer, db.ForeignKey('podcast.id'), nullable=True)
+    episode_id = db.Column(db.Integer, db.ForeignKey('podcast_episode.id'), nullable=True)
     played_at = db.Column(db.DateTime, default=datetime.utcnow)
+    duration_listened = db.Column(db.Integer, default=0)  # seconds
+    completed = db.Column(db.Boolean, default=False)
     
     # Relationships
-    user = db.relationship('User', backref='play_history')
-    audio = db.relationship('Audio', backref='play_history')
-
+    user = db.relationship('User', backref='podcast_play_history')
+    podcast = db.relationship('Podcast', backref='play_history')
+    
     def serialize(self):
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "audio_id": self.audio_id,
-            "played_at": self.played_at.isoformat()
+            "podcast_id": self.podcast_id,
+            "episode_id": self.episode_id,
+            "played_at": self.played_at.isoformat() if self.played_at else None,
+            "duration_listened": self.duration_listened,
+            "completed": self.completed
         }
-
 
 class ArtistFollow(db.Model):
     __table_args__ = {'extend_existing': True}

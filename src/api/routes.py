@@ -4,7 +4,7 @@ eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app, session
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert
+from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert, PodcastPlayHistory, PlayHistory
 # ADD these imports
 from .steam_service import SteamService
 from datetime import datetime
@@ -4927,22 +4927,131 @@ class ArchivedShow(db.Model):
 
 
 @api.route('/podcast/dashboard', methods=['GET'])
-@jwt_required()  # ✅ ADD: Require JWT authentication
+@jwt_required()
 def get_podcast_dashboard():
-    # ✅ FIXED: Get user_id from JWT token instead of query params
+    """Get podcast dashboard data with stats and revenue"""
     user_id = get_jwt_identity()
     
     try:
-        # ✅ FIXED: Use creator_id to match your Podcast model
+        from datetime import datetime, timedelta
+        from sqlalchemy import func
+        
+        # Get user's podcasts
         podcasts = Podcast.query.filter_by(creator_id=user_id).all()
         
-        # ✅ ADD: Debug logging
         print(f"📊 Dashboard: Found {len(podcasts)} podcasts for user {user_id}")
         
-        return jsonify([podcast.serialize() for podcast in podcasts]), 200
+        # Calculate monthly revenue from multiple sources
+        now = datetime.utcnow()
+        thirty_days_ago = now - timedelta(days=30)
+        monthly_revenue = 0
+        
+        # Get podcast IDs for revenue queries
+        podcast_ids = [p.id for p in podcasts]
+        
+        if podcast_ids:
+            # 1. Ad revenue from podcasts (last 30 days)
+            try:
+                ad_revenue = db.session.query(func.coalesce(func.sum(AdRevenue.amount), 0))\
+                    .filter(AdRevenue.content_type == 'podcast')\
+                    .filter(AdRevenue.content_id.in_(podcast_ids))\
+                    .filter(AdRevenue.created_at >= thirty_days_ago).scalar() or 0
+                monthly_revenue += float(ad_revenue)
+            except Exception as e:
+                print(f"Ad revenue query error: {e}")
+            
+            # 2. Tips on podcast episodes (last 30 days)
+            try:
+                # Get all episode IDs for these podcasts
+                episode_ids = []
+                for podcast in podcasts:
+                    if hasattr(podcast, 'episodes') and podcast.episodes:
+                        episode_ids.extend([ep.id for ep in podcast.episodes])
+                
+                if episode_ids:
+                    tips_revenue = db.session.query(func.coalesce(func.sum(Tip.amount), 0))\
+                        .filter(Tip.content_type == 'podcast_episode')\
+                        .filter(Tip.content_id.in_(episode_ids))\
+                        .filter(Tip.created_at >= thirty_days_ago).scalar() or 0
+                    monthly_revenue += float(tips_revenue) * 0.85  # 85% after platform cut
+            except Exception as e:
+                print(f"Tips query error: {e}")
+            
+            # 3. Subscription revenue from premium podcasts
+            try:
+                subscription_revenue = db.session.query(func.coalesce(func.sum(PodcastSubscription.amount), 0))\
+                    .filter(PodcastSubscription.podcast_id.in_(podcast_ids))\
+                    .filter(PodcastSubscription.status == 'active')\
+                    .filter(PodcastSubscription.created_at >= thirty_days_ago).scalar() or 0
+                monthly_revenue += float(subscription_revenue) * 0.85
+            except Exception as e:
+                print(f"Subscription query error: {e}")
+            
+            # 4. Revenue table entries for podcasts
+            try:
+                revenue_entries = db.session.query(func.coalesce(func.sum(Revenue.creator_earnings), 0))\
+                    .filter(Revenue.content_type == 'podcast')\
+                    .filter(Revenue.content_id.in_(podcast_ids))\
+                    .filter(Revenue.timestamp >= thirty_days_ago).scalar() or 0
+                monthly_revenue += float(revenue_entries)
+            except Exception as e:
+                print(f"Revenue entries query error: {e}")
+        
+        # Serialize podcasts with additional stats
+        serialized_podcasts = []
+        for podcast in podcasts:
+            podcast_data = podcast.serialize()
+            
+            # Add episode count if not in serialize
+            if 'episode_count' not in podcast_data:
+                podcast_data['episode_count'] = len(podcast.episodes) if hasattr(podcast, 'episodes') and podcast.episodes else 0
+            
+            # Add total listens if not in serialize
+            if 'total_listens' not in podcast_data:
+                total_listens = 0
+                if hasattr(podcast, 'episodes') and podcast.episodes:
+                    for episode in podcast.episodes:
+                        total_listens += getattr(episode, 'listens', 0) or getattr(episode, 'play_count', 0) or 0
+                elif hasattr(podcast, 'total_listens'):
+                    total_listens = podcast.total_listens or 0
+                elif hasattr(podcast, 'listens'):
+                    total_listens = podcast.listens or 0
+                podcast_data['total_listens'] = total_listens
+            
+            # Add monthly listens for this podcast
+            try:
+                monthly_listens = db.session.query(func.count(PodcastPlayHistory.id))\
+                    .filter(PodcastPlayHistory.podcast_id == podcast.id)\
+                    .filter(PodcastPlayHistory.played_at >= thirty_days_ago).scalar() or 0
+                podcast_data['monthly_listens'] = monthly_listens
+            except:
+                podcast_data['monthly_listens'] = 0
+            
+            serialized_podcasts.append(podcast_data)
+        
+        # Calculate aggregate stats
+        total_episodes = sum(p.get('episode_count', 0) or len(p.get('episodes', [])) for p in serialized_podcasts)
+        total_listens = sum(p.get('total_listens', 0) for p in serialized_podcasts)
+        
+        print(f"📊 Stats: {len(podcasts)} podcasts, {total_episodes} episodes, {total_listens} listens, ${monthly_revenue:.2f} revenue")
+        
+        # Return enhanced response
+        return jsonify({
+            "podcasts": serialized_podcasts,
+            "stats": {
+                "total_podcasts": len(podcasts),
+                "total_episodes": total_episodes,
+                "total_listens": total_listens,
+                "monthly_revenue": round(monthly_revenue, 2),
+                "published_count": len([p for p in podcasts if getattr(p, 'status', '') == 'published']),
+                "draft_count": len([p for p in podcasts if getattr(p, 'status', 'draft') == 'draft'])
+            }
+        }), 200
         
     except Exception as e:
         print(f"❌ Dashboard error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": "Failed to fetch podcasts"}), 500
 
 @api.route('/artist/dashboard', methods=['GET'])
@@ -19338,4 +19447,136 @@ def get_content_breakdown():
             'error': str(e)
         }), 500
 
-
+@api.route('/video/channel/recent-activity', methods=['GET'])
+@jwt_required()
+def get_video_channel_recent_activity():
+    """Get recent activity for video channel dashboard"""
+    try:
+        from sqlalchemy import desc
+        from datetime import datetime, timedelta
+        
+        user_id = get_jwt_identity()
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        
+        activities = []
+        
+        # Recent video uploads
+        try:
+            recent_videos = Video.query.filter(
+                Video.user_id == user_id,
+                Video.created_at >= thirty_days_ago
+            ).order_by(desc(Video.created_at)).limit(5).all()
+            
+            for video in recent_videos:
+                activities.append({
+                    "type": "video_upload",
+                    "title": video.title,
+                    "action": "was uploaded",
+                    "time": get_time_ago(video.created_at),
+                    "timestamp": video.created_at.isoformat()
+                })
+        except Exception as e:
+            print(f"Video upload activity error: {e}")
+        
+        # Recent comments on your videos
+        try:
+            video_ids = [v.id for v in Video.query.filter_by(user_id=user_id).all()]
+            if video_ids:
+                recent_comments = db.session.query(Comment, User).join(
+                    User, Comment.user_id == User.id
+                ).filter(
+                    Comment.video_id.in_(video_ids),
+                    Comment.user_id != user_id,
+                    Comment.created_at >= thirty_days_ago
+                ).order_by(desc(Comment.created_at)).limit(5).all()
+                
+                for comment, commenter in recent_comments:
+                    video = Video.query.get(comment.video_id)
+                    activities.append({
+                        "type": "comment",
+                        "title": f"New comment on \"{video.title if video else 'video'}\"",
+                        "action": f"from {commenter.username}",
+                        "time": get_time_ago(comment.created_at),
+                        "timestamp": comment.created_at.isoformat()
+                    })
+        except Exception as e:
+            print(f"Comment activity error: {e}")
+        
+        # Recent likes on your videos
+        try:
+            if video_ids:
+                recent_likes = db.session.query(VideoLike, User).join(
+                    User, VideoLike.user_id == User.id
+                ).filter(
+                    VideoLike.video_id.in_(video_ids),
+                    VideoLike.user_id != user_id,
+                    VideoLike.created_at >= thirty_days_ago
+                ).order_by(desc(VideoLike.created_at)).limit(5).all()
+                
+                for like, liker in recent_likes:
+                    video = Video.query.get(like.video_id)
+                    activities.append({
+                        "type": "like",
+                        "title": f"\"{video.title if video else 'video'}\"",
+                        "action": f"was liked by {liker.username}",
+                        "time": get_time_ago(like.created_at),
+                        "timestamp": like.created_at.isoformat()
+                    })
+        except Exception as e:
+            print(f"Like activity error: {e}")
+        
+        # Recent subscribers
+        try:
+            channel = VideoChannel.query.filter_by(user_id=user_id).first()
+            if channel:
+                recent_subs = db.session.query(ChannelSubscription, User).join(
+                    User, ChannelSubscription.user_id == User.id
+                ).filter(
+                    ChannelSubscription.channel_id == channel.id,
+                    ChannelSubscription.created_at >= thirty_days_ago
+                ).order_by(desc(ChannelSubscription.created_at)).limit(5).all()
+                
+                for sub, subscriber in recent_subs:
+                    activities.append({
+                        "type": "subscriber",
+                        "title": f"{subscriber.username}",
+                        "action": "subscribed to your channel",
+                        "time": get_time_ago(sub.created_at),
+                        "timestamp": sub.created_at.isoformat()
+                    })
+        except Exception as e:
+            print(f"Subscriber activity error: {e}")
+        
+        # Check for milestones
+        try:
+            channel = VideoChannel.query.filter_by(user_id=user_id).first()
+            if channel:
+                sub_count = channel.subscriber_count or 0
+                milestones = [10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000]
+                for milestone in milestones:
+                    if sub_count >= milestone and sub_count < milestone * 1.1:
+                        activities.append({
+                            "type": "milestone",
+                            "title": f"{milestone} subscribers",
+                            "action": "milestone reached! 🎉",
+                            "time": "Recently",
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+                        break
+        except Exception as e:
+            print(f"Milestone check error: {e}")
+        
+        # Sort by timestamp (newest first)
+        activities.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        
+        return jsonify({
+            "activities": activities[:15],
+            "total_count": len(activities)
+        }), 200
+        
+    except Exception as e:
+        print(f"Recent activity error: {str(e)}")
+        return jsonify({
+            "activities": [],
+            "total_count": 0
+        }), 200
