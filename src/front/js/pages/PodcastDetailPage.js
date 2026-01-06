@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { Play, Pause, Heart, Share2, Download, Clock, ArrowLeft } from "lucide-react";
-import { Link, useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import "../../styles/PodcastDetailPage.css";
 
 const PodcastDetailPage = () => {
   const { id } = useParams();
@@ -13,6 +13,9 @@ const PodcastDetailPage = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [liked, setLiked] = useState(false);
   const [audioRef, setAudioRef] = useState(null);
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState(null);
+  const videoRef = useRef(null);
 
   useEffect(() => {
     const fetchPodcast = async () => {
@@ -66,13 +69,63 @@ const PodcastDetailPage = () => {
     if (id) {
       fetchPodcast();
     }
+
+    // Cleanup audio on unmount
+    return () => {
+      if (audioRef) {
+        audioRef.pause();
+        audioRef.src = "";
+      }
+    };
   }, [id]);
 
   const handleBack = () => {
     navigate(-1);
   };
 
-  const togglePlay = (episodeId, fileUrl) => {
+  const getEpisodeUrl = (episode) => {
+    return episode.file_url || episode.audio_url || episode.video_url || episode.stream_url || null;
+  };
+
+  const isVideoEpisode = (episode) => {
+    // Check if episode has video_url or if title/type indicates video
+    return episode.video_url || 
+           episode.type === 'video' || 
+           (episode.title && episode.title.toLowerCase().includes('video'));
+  };
+
+  const getVideoUrl = (episode) => {
+    return episode.video_url || episode.file_url || episode.stream_url || null;
+  };
+
+  const togglePlay = (episodeId, episode) => {
+    const fileUrl = getEpisodeUrl(episode);
+    
+    if (!fileUrl) {
+      console.error("No media URL available for this episode");
+      alert("No media file available for this episode");
+      return;
+    }
+
+    // Check if this is a video episode
+    if (isVideoEpisode(episode)) {
+      const videoUrl = getVideoUrl(episode);
+      if (videoUrl) {
+        // Stop any playing audio
+        if (audioRef) {
+          audioRef.pause();
+        }
+        setIsPlaying(false);
+        
+        // Show video player
+        setCurrentVideoUrl(videoUrl);
+        setShowVideoPlayer(true);
+        setCurrentPlaying(episodeId);
+        return;
+      }
+    }
+
+    // Audio playback
     if (currentPlaying === episodeId && isPlaying) {
       if (audioRef) {
         audioRef.pause();
@@ -82,8 +135,17 @@ const PodcastDetailPage = () => {
       if (audioRef) {
         audioRef.pause();
       }
+      // Close video player if open
+      setShowVideoPlayer(false);
+      setCurrentVideoUrl(null);
+      
       const newAudio = new Audio(fileUrl);
-      newAudio.play();
+      
+      newAudio.play().catch(err => {
+        console.error("Error playing audio:", err);
+        alert("Unable to play this episode. The audio file may be unavailable.");
+      });
+      
       setAudioRef(newAudio);
       setCurrentPlaying(episodeId);
       setIsPlaying(true);
@@ -92,6 +154,21 @@ const PodcastDetailPage = () => {
         setIsPlaying(false);
         setCurrentPlaying(null);
       };
+
+      newAudio.onerror = () => {
+        console.error("Audio error");
+        setIsPlaying(false);
+        setCurrentPlaying(null);
+      };
+    }
+  };
+
+  const closeVideoPlayer = () => {
+    setShowVideoPlayer(false);
+    setCurrentVideoUrl(null);
+    setCurrentPlaying(null);
+    if (videoRef.current) {
+      videoRef.current.pause();
     }
   };
 
@@ -112,7 +189,7 @@ const PodcastDetailPage = () => {
       setLiked(!liked);
     } catch (err) {
       console.error("Error liking podcast:", err);
-      setLiked(!liked); // Toggle anyway for UX
+      setLiked(!liked);
     }
   };
 
@@ -163,13 +240,18 @@ const PodcastDetailPage = () => {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleDateString();
+  };
+
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin text-4xl mb-4">🎧</div>
-          <p className="text-gray-400">Loading podcast...</p>
+      <div className="podcast-detail-container">
+        <div className="loading-state">
+          <div className="loading-icon">🎧</div>
+          <p>Loading podcast...</p>
         </div>
       </div>
     );
@@ -178,15 +260,12 @@ const PodcastDetailPage = () => {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">😕</div>
-          <h2 className="text-xl font-bold mb-2">Podcast Not Found</h2>
-          <p className="text-gray-400 mb-4">{error}</p>
-          <button
-            onClick={handleBack}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg"
-          >
+      <div className="podcast-detail-container">
+        <div className="error-state">
+          <div className="error-icon">😕</div>
+          <h2>Podcast Not Found</h2>
+          <p>{error}</p>
+          <button onClick={handleBack} className="back-button">
             ← Go Back
           </button>
         </div>
@@ -197,14 +276,11 @@ const PodcastDetailPage = () => {
   // No podcast found
   if (!podcast) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">🎧</div>
-          <p className="text-gray-400">Podcast not available</p>
-          <button
-            onClick={handleBack}
-            className="mt-4 px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg"
-          >
+      <div className="podcast-detail-container">
+        <div className="error-state">
+          <div className="error-icon">🎧</div>
+          <p>Podcast not available</p>
+          <button onClick={handleBack} className="back-button">
             ← Go Back
           </button>
         </div>
@@ -213,159 +289,166 @@ const PodcastDetailPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Back Button */}
-        <button
-          onClick={handleBack}
-          className="flex items-center gap-2 text-gray-400 hover:text-white mb-8 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          Back
+    <div className="podcast-detail-container">
+      {/* Header */}
+      <div className="podcast-detail-header">
+        <button onClick={handleBack} className="back-button">
+          ← Back
         </button>
+      </div>
 
-        {/* Podcast Header */}
-        <div className="flex flex-col md:flex-row gap-8 mb-12">
-          <div className="flex-shrink-0">
-            <img
-              src={podcast.cover_art_url || podcast.cover_image_url || "/default-podcast-cover.png"}
-              alt={podcast.title}
-              className="w-64 h-64 object-cover rounded-2xl shadow-2xl"
-              onError={(e) => {
-                e.target.src = "/default-podcast-cover.png";
-              }}
-            />
+      {/* Podcast Info */}
+      <div className="podcast-detail-content">
+        <div className="podcast-info">
+          <div className="podcast-image-wrapper">
+            {(podcast.cover_art_url || podcast.cover_image_url) ? (
+              <img
+                src={podcast.cover_art_url || podcast.cover_image_url}
+                alt={podcast.title}
+                className="podcast-detail-image"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <div 
+              className="podcast-image-placeholder" 
+              style={{ display: (podcast.cover_art_url || podcast.cover_image_url) ? 'none' : 'flex' }}
+            >
+              <span className="placeholder-icon">🎙️</span>
+              <span className="placeholder-text">{podcast.title?.substring(0, 2).toUpperCase() || 'PD'}</span>
+            </div>
           </div>
 
-          <div className="flex-grow">
-            <span className="px-3 py-1 bg-purple-600/30 text-purple-400 rounded-full text-sm mb-4 inline-block">
-              {podcast.category || "Podcast"}
-            </span>
-            <h1 className="text-4xl font-bold mb-4">{podcast.title}</h1>
-            <p className="text-gray-300 text-lg mb-6 leading-relaxed">
+          <div className="podcast-meta">
+            <span className="podcast-category">{podcast.category || "Podcast"}</span>
+            <h1 className="podcast-title">{podcast.title}</h1>
+            <p className="podcast-description">
               {podcast.description || "No description available"}
             </p>
 
-            {/* Host info */}
             {podcast.host_name && (
-              <p className="text-gray-400 mb-4">Hosted by {podcast.host_name}</p>
+              <p className="podcast-host">Hosted by {podcast.host_name}</p>
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-wrap gap-4">
+            <div className="podcast-actions">
               <button
                 onClick={handleLike}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
-                  liked
-                    ? "bg-red-600 hover:bg-red-700"
-                    : "bg-gray-700 hover:bg-gray-600"
-                }`}
+                className={`action-btn like-btn ${liked ? "liked" : ""}`}
               >
-                <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
-                {liked ? "Liked" : "Like"}
+                {liked ? "❤️ Liked" : "🤍 Like"}
               </button>
 
-              <button
-                onClick={handleShare}
-                className="flex items-center gap-2 px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-              >
-                <Share2 className="w-5 h-5" />
-                Share
+              <button onClick={handleShare} className="action-btn share-btn">
+                🔗 Share
               </button>
 
-              <button
-                onClick={handleSubscribe}
-                className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-              >
-                <Download className="w-5 h-5" />
-                Subscribe
+              <button onClick={handleSubscribe} className="action-btn subscribe-btn">
+                ➕ Subscribe
               </button>
             </div>
 
-            {/* Podcast Stats */}
-            <div className="mt-6 flex gap-6 text-sm text-gray-400">
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {episodes.length} Episodes
-              </div>
+            {/* Stats */}
+            <div className="podcast-stats">
+              <span>🎧 {episodes.length} Episodes</span>
               {podcast.created_at && (
-                <div>Created: {new Date(podcast.created_at).toLocaleDateString()}</div>
+                <span>📅 Created: {formatDate(podcast.created_at)}</span>
               )}
               {podcast.total_listens > 0 && (
-                <div>🎧 {podcast.total_listens.toLocaleString()} listens</div>
+                <span>👂 {podcast.total_listens.toLocaleString()} listens</span>
               )}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Episodes Section */}
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold mb-6">Episodes</h2>
-
-          {episodes.length === 0 ? (
-            <div className="text-center py-12 bg-gray-800/30 rounded-xl">
-              <div className="text-gray-400 text-lg mb-4">No episodes available yet</div>
-              <p className="text-gray-500">Check back later for new content!</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {episodes.map((episode, index) => (
-                <div
-                  key={episode.id}
-                  className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 hover:bg-gray-800/70 transition-all duration-300"
-                >
-                  <div className="flex items-start gap-4">
-                    <button
-                      onClick={() => togglePlay(episode.id, episode.file_url || episode.audio_url)}
-                      className="flex-shrink-0 w-12 h-12 bg-purple-600 hover:bg-purple-700 rounded-full flex items-center justify-center transition-colors"
-                    >
-                      {currentPlaying === episode.id && isPlaying ? (
-                        <Pause className="w-5 h-5 text-white" />
-                      ) : (
-                        <Play className="w-5 h-5 text-white ml-1" />
-                      )}
-                    </button>
-
-                    <div className="flex-grow">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-gray-500 text-sm">#{index + 1}</span>
-                        <h3 className="text-lg font-semibold">{episode.title}</h3>
-                      </div>
-                      <p className="text-gray-400 text-sm mb-3 line-clamp-2">
-                        {episode.description || "No description"}
-                      </p>
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          {formatDuration(episode.duration)}
-                        </span>
-                        {episode.uploaded_at && (
-                          <span>{new Date(episode.uploaded_at).toLocaleDateString()}</span>
-                        )}
-                        {episode.listen_count > 0 && (
-                          <span>🎧 {episode.listen_count}</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      {episode.file_url && (
-                        <a
-                          href={episode.file_url}
-                          download
-                          className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
-                          title="Download"
-                        >
-                          <Download className="w-5 h-5 text-gray-400" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+      {/* Video Player Modal */}
+      {showVideoPlayer && currentVideoUrl && (
+        <div className="video-player-overlay">
+          <div className="video-player-container">
+            <button className="close-video-btn" onClick={closeVideoPlayer}>
+              ✕ Close
+            </button>
+            <video
+              ref={videoRef}
+              src={currentVideoUrl}
+              controls
+              autoPlay
+              className="video-player"
+            >
+              Your browser does not support the video tag.
+            </video>
+          </div>
         </div>
+      )}
+
+      {/* Episodes Section */}
+      <div className="detail-section">
+        <h2>Episodes</h2>
+
+        {episodes.length === 0 ? (
+          <div className="empty-episodes">
+            <p>No episodes available yet</p>
+            <span>Check back later for new content!</span>
+          </div>
+        ) : (
+          <ul className="episode-list">
+            {episodes.map((episode, index) => {
+              const episodeUrl = getEpisodeUrl(episode);
+              const isVideo = isVideoEpisode(episode);
+              return (
+                <li key={episode.id} className="episode-item">
+                  <div className="episode-header">
+                    <span className="episode-number">#{index + 1}</span>
+                    <strong>{episode.title}</strong>
+                    {isVideo && <span className="video-badge">🎬 Video</span>}
+                  </div>
+                  
+                  <p>{episode.description || "No description"}</p>
+                  
+                  <div className="episode-meta">
+                    <span>⏱️ {formatDuration(episode.duration)}</span>
+                    {episode.uploaded_at && (
+                      <span>📅 {formatDate(episode.uploaded_at)}</span>
+                    )}
+                    {episode.listen_count > 0 && (
+                      <span>🎧 {episode.listen_count} plays</span>
+                    )}
+                  </div>
+
+                  <div className="episode-actions">
+                    {episodeUrl ? (
+                      <button
+                        onClick={() => togglePlay(episode.id, episode)}
+                        className="play-button"
+                      >
+                        {currentPlaying === episode.id && (isPlaying || showVideoPlayer) 
+                          ? "⏸️ Pause" 
+                          : isVideo ? "🎬 Watch" : "▶️ Play"}
+                      </button>
+                    ) : (
+                      <button className="play-button disabled" disabled>
+                        🔇 No Media
+                      </button>
+                    )}
+                    
+                    {episodeUrl && (
+                      <a
+                        href={episodeUrl}
+                        download
+                        className="play-button download"
+                      >
+                        ⬇️ Download
+                      </a>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </div>
   );
