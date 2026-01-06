@@ -4,7 +4,7 @@ eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app, session
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert, PodcastPlayHistory, PlayHistory
+from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert, PodcastPlayHistory, PlayHistory, PostLike, PostComment
 # ADD these imports
 from .steam_service import SteamService
 from datetime import datetime
@@ -8544,25 +8544,708 @@ def get_earnings_history():
 @api.route("/home-feed", methods=["GET"])
 @jwt_required()
 def home_feed():
-    user_id = get_jwt_identity()
+    """
+    Enhanced Home Feed - Returns posts, tracks, videos, and podcasts
+    from users the current user follows (and their own content).
+    
+    Query Parameters:
+    - type: 'all', 'posts', 'tracks', 'videos', 'podcasts' (default: 'all')
+    - page: Page number (default: 1)
+    - per_page: Items per page (default: 20, max: 50)
+    - days: Limit to recent days (optional, default: no limit)
+    """
+    try:
+        user_id = get_jwt_identity()
+        
+        # Query parameters
+        content_type = request.args.get('type', 'all')
+        page = request.args.get('page', 1, type=int)
+        per_page = min(request.args.get('per_page', 20, type=int), 50)
+        days_limit = request.args.get('days', None, type=int)
+        
+        # Get list of followed user IDs
+        followed_query = db.session.query(Follow.followed_id).filter_by(follower_id=user_id)
+        followed_ids = [f[0] for f in followed_query.all()]
+        
+        # Include the user's own content
+        all_user_ids = [user_id] + followed_ids
+        
+        # Date filter (optional)
+        date_filter = None
+        if days_limit:
+            date_filter = datetime.utcnow() - timedelta(days=days_limit)
+        
+        # Collect all feed items
+        feed_items = []
+        
+        # ===== POSTS =====
+        if content_type in ['all', 'posts']:
+            try:
+                post_query = Post.query.filter(Post.author_id.in_(all_user_ids))
+                
+                if date_filter:
+                    post_query = post_query.filter(Post.created_at >= date_filter)
+                
+                posts = post_query.order_by(Post.created_at.desc()).limit(per_page * 2).all()
+                
+                for post in posts:
+                    # Check if current user liked this post
+                    is_liked = False
+                    try:
+                        is_liked = PostLike.query.filter_by(
+                            post_id=post.id,
+                            user_id=user_id
+                        ).first() is not None
+                    except:
+                        pass
+                    
+                    # Get author info
+                    author = User.query.get(post.author_id) if hasattr(post, 'author_id') else None
+                    
+                    post_data = {
+                        "id": post.id,
+                        "feed_type": "post",
+                        "author_id": getattr(post, 'author_id', None),
+                        "author_name": author.display_name or author.username if author else "Unknown",
+                        "author_username": author.username if author else "unknown",
+                        "author_avatar": author.profile_picture if author else None,
+                        "title": getattr(post, 'title', None),
+                        "content": post.content,
+                        "image_url": getattr(post, 'image_url', None),
+                        "video_url": getattr(post, 'video_url', None),
+                        "created_at": post.created_at.isoformat() if post.created_at else None,
+                        "is_edited": getattr(post, 'is_edited', False),
+                        "likes_count": len(post.likes) if hasattr(post, 'likes') and post.likes else 0,
+                        "comments_count": len(post.comments) if hasattr(post, 'comments') and post.comments else 0,
+                        "is_liked": is_liked
+                    }
+                    feed_items.append(post_data)
+            except Exception as e:
+                print(f"Error fetching posts for feed: {e}")
+        
+        # ===== AUDIO TRACKS =====
+        if content_type in ['all', 'tracks']:
+            try:
+                track_query = Audio.query.filter(Audio.user_id.in_(all_user_ids))
+                
+                if date_filter and hasattr(Audio, 'created_at'):
+                    track_query = track_query.filter(Audio.created_at >= date_filter)
+                
+                # Order by created_at or id
+                if hasattr(Audio, 'created_at'):
+                    track_query = track_query.order_by(Audio.created_at.desc())
+                else:
+                    track_query = track_query.order_by(Audio.id.desc())
+                
+                tracks = track_query.limit(per_page).all()
+                
+                for track in tracks:
+                    # Check if current user liked this track
+                    is_liked = False
+                    try:
+                        is_liked = AudioLike.query.filter_by(
+                            audio_id=track.id,
+                            user_id=user_id
+                        ).first() is not None
+                    except:
+                        pass
+                    
+                    # Get artist/user info
+                    artist = User.query.get(track.user_id) if track.user_id else None
+                    
+                    track_data = {
+                        "id": track.id,
+                        "feed_type": "track",
+                        "author_id": track.user_id,
+                        "author_name": track.artist_name or (artist.display_name if artist else None) or (artist.username if artist else "Unknown Artist"),
+                        "author_username": artist.username if artist else "unknown",
+                        "author_avatar": artist.profile_picture if artist else None,
+                        "title": track.title,
+                        "content": f"Released a new track: {track.title}",
+                        "description": getattr(track, 'description', None),
+                        "audio_url": track.file_url,
+                        "artwork_url": getattr(track, 'artwork_url', None) or getattr(track, 'cover_image', None),
+                        "duration": getattr(track, 'duration', None),
+                        "genre": getattr(track, 'genre', None),
+                        "plays": getattr(track, 'plays', 0) or getattr(track, 'play_count', 0) or 0,
+                        "created_at": track.created_at.isoformat() if hasattr(track, 'created_at') and track.created_at else None,
+                        "likes_count": len(track.audio_likes) if hasattr(track, 'audio_likes') and track.audio_likes else 0,
+                        "is_liked": is_liked
+                    }
+                    feed_items.append(track_data)
+            except Exception as e:
+                print(f"Error fetching tracks for feed: {e}")
+        
+        # ===== VIDEOS =====
+        if content_type in ['all', 'videos']:
+            try:
+                video_query = Video.query.filter(
+                    Video.user_id.in_(all_user_ids),
+                    Video.is_public == True
+                )
+                
+                if date_filter and hasattr(Video, 'uploaded_at'):
+                    video_query = video_query.filter(Video.uploaded_at >= date_filter)
+                
+                videos = video_query.order_by(Video.uploaded_at.desc()).limit(per_page).all()
+                
+                for video in videos:
+                    # Check if current user liked this video
+                    is_liked = False
+                    try:
+                        is_liked = VideoLike.query.filter_by(
+                            video_id=video.id,
+                            user_id=user_id
+                        ).first() is not None
+                    except:
+                        pass
+                    
+                    # Get uploader info
+                    uploader = User.query.get(video.user_id) if video.user_id else None
+                    
+                    video_data = {
+                        "id": video.id,
+                        "feed_type": "video",
+                        "author_id": video.user_id,
+                        "author_name": uploader.display_name or uploader.username if uploader else "Unknown",
+                        "author_username": uploader.username if uploader else "unknown",
+                        "author_avatar": uploader.profile_picture if uploader else None,
+                        "title": video.title,
+                        "content": f"Uploaded a new video: {video.title}",
+                        "description": video.description,
+                        "video_url": video.file_url,
+                        "thumbnail_url": video.thumbnail_url,
+                        "duration": video.duration,
+                        "views": video.views or 0,
+                        "created_at": video.uploaded_at.isoformat() if video.uploaded_at else None,
+                        "likes_count": video.likes or 0,
+                        "comments_count": video.comments_count or 0,
+                        "is_liked": is_liked,
+                        "category": getattr(video, 'category', None)
+                    }
+                    feed_items.append(video_data)
+            except Exception as e:
+                print(f"Error fetching videos for feed: {e}")
+        
+        # ===== PODCAST EPISODES =====
+        if content_type in ['all', 'podcasts']:
+            try:
+                # Get podcasts from followed users
+                user_podcasts = Podcast.query.filter(Podcast.host_id.in_(all_user_ids)).all()
+                podcast_ids = [p.id for p in user_podcasts]
+                
+                if podcast_ids:
+                    episode_query = PodcastEpisode.query.filter(
+                        PodcastEpisode.podcast_id.in_(podcast_ids)
+                    )
+                    
+                    if date_filter and hasattr(PodcastEpisode, 'created_at'):
+                        episode_query = episode_query.filter(PodcastEpisode.created_at >= date_filter)
+                    
+                    episodes = episode_query.order_by(PodcastEpisode.created_at.desc()).limit(per_page).all()
+                    
+                    for episode in episodes:
+                        # Get podcast and host info
+                        podcast = Podcast.query.get(episode.podcast_id)
+                        host = User.query.get(podcast.host_id) if podcast else None
+                        
+                        episode_data = {
+                            "id": episode.id,
+                            "feed_type": "podcast",
+                            "author_id": podcast.host_id if podcast else None,
+                            "author_name": host.display_name or host.username if host else "Unknown Host",
+                            "author_username": host.username if host else "unknown",
+                            "author_avatar": host.profile_picture if host else None,
+                            "title": episode.title,
+                            "content": f"New episode: {episode.title}",
+                            "description": getattr(episode, 'description', None),
+                            "podcast_name": podcast.name if podcast else "Unknown Podcast",
+                            "podcast_id": episode.podcast_id,
+                            "audio_url": getattr(episode, 'audio_url', None),
+                            "thumbnail_url": getattr(episode, 'thumbnail', None) or (podcast.cover_art_url if podcast else None),
+                            "duration": getattr(episode, 'duration', None),
+                            "episode_number": getattr(episode, 'episode_number', None),
+                            "created_at": episode.created_at.isoformat() if hasattr(episode, 'created_at') and episode.created_at else None,
+                            "listens": getattr(episode, 'listen_count', 0) or 0,
+                            "is_liked": False  # Add podcast likes if you have that model
+                        }
+                        feed_items.append(episode_data)
+            except Exception as e:
+                print(f"Error fetching podcasts for feed: {e}")
+        
+        # ===== SORT ALL ITEMS BY DATE =====
+        def get_date(item):
+            date_str = item.get('created_at')
+            if date_str:
+                try:
+                    return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                except:
+                    return datetime.min
+            return datetime.min
+        
+        feed_items.sort(key=get_date, reverse=True)
+        
+        # ===== PAGINATE =====
+        total_items = len(feed_items)
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_items = feed_items[start_idx:end_idx]
+        
+        total_pages = (total_items + per_page - 1) // per_page
+        
+        return jsonify({
+            "success": True,
+            "feed": paginated_items,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total_items": total_items,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            },
+            "filters": {
+                "type": content_type,
+                "days": days_limit
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Home feed error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "Failed to load home feed",
+            "message": str(e)
+        }), 500
 
-    # Get followed user IDs
-    followed_ids = db.session.query(Follow.followed_id).filter_by(follower_id=user_id).subquery()
+@api.route("/posts/create", methods=["POST"])
+@jwt_required()
+def create_post():
+    """Create a new post"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        content = data.get('content', '').strip()
+        if not content:
+            return jsonify({"error": "Post content is required"}), 400
+        
+        new_post = Post(
+            author_id=user_id,
+            title=data.get('title'),
+            content=content,
+            image_url=data.get('image_url'),
+            video_url=data.get('video_url'),
+            visibility=data.get('visibility', 'public')
+        )
+        
+        db.session.add(new_post)
+        db.session.commit()
+        
+        # Get author info for response
+        author = User.query.get(user_id)
+        
+        return jsonify({
+            "id": new_post.id,
+            "feed_type": "post",
+            "author_id": user_id,
+            "author_name": author.display_name or author.username if author else "You",
+            "author_username": author.username if author else "you",
+            "author_avatar": author.profile_picture if author else None,
+            "title": new_post.title,
+            "content": new_post.content,
+            "image_url": new_post.image_url,
+            "video_url": new_post.video_url,
+            "created_at": new_post.created_at.isoformat(),
+            "likes_count": 0,
+            "comments_count": 0,
+            "is_liked": False,
+            "timestamp": "Just now"
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating post: {e}")
+        return jsonify({"error": "Failed to create post"}), 500
 
-    # Optionally include the user's own posts
-    all_ids = db.session.query(User.id).filter(
-        (User.id == user_id) | (User.id.in_(followed_ids))
-    ).subquery()
+@api.route("/posts/<int:post_id>", methods=["PUT"])
+@jwt_required()
+def update_post(post_id):
+    """Update a post"""
+    try:
+        user_id = get_jwt_identity()
+        post = Post.query.get(post_id)
+        
+        if not post:
+            return jsonify({"error": "Post not found"}), 404
+        
+        if post.author_id != user_id:
+            return jsonify({"error": "Not authorized to edit this post"}), 403
+        
+        data = request.get_json()
+        
+        if 'content' in data:
+            post.content = data['content'].strip()
+        if 'title' in data:
+            post.title = data['title']
+        if 'image_url' in data:
+            post.image_url = data['image_url']
+        if 'video_url' in data:
+            post.video_url = data['video_url']
+        
+        post.is_edited = True
+        post.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Post updated successfully",
+            "post": post.serialize(user_id) if hasattr(post, 'serialize') else {"id": post.id}
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating post: {e}")
+        return jsonify({"error": "Failed to update post"}), 500
 
-    # Fetch posts from followed users (and yourself), newest first
-    posts = (
-        Post.query.filter(Post.author_id.in_(all_ids))
-        .order_by(Post.created_at.desc())
-        .limit(50)
-        .all()
-    )
+@api.route("/posts/<int:post_id>", methods=["DELETE"])
+@jwt_required()
+def delete_post(post_id):
+    """Delete a post"""
+    try:
+        user_id = get_jwt_identity()
+        post = Post.query.get(post_id)
+        
+        if not post:
+            return jsonify({"error": "Post not found"}), 404
+        
+        if post.author_id != user_id:
+            return jsonify({"error": "Not authorized to delete this post"}), 403
+        
+        db.session.delete(post)
+        db.session.commit()
+        
+        return jsonify({"message": "Post deleted successfully"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting post: {e}")
+        return jsonify({"error": "Failed to delete post"}), 500
 
-    return jsonify([post.serialize() for post in posts]), 200
+
+@api.route("/posts/user/<int:target_user_id>", methods=["GET"])
+@jwt_required()
+def get_user_posts(target_user_id):
+    """Get all posts for a specific user"""
+    try:
+        user_id = get_jwt_identity()
+        page = request.args.get('page', 1, type=int)
+        per_page = min(request.args.get('per_page', 20, type=int), 50)
+        
+        query = Post.query.filter_by(author_id=target_user_id)
+        
+        # If viewing someone else's profile, only show public posts
+        if target_user_id != user_id:
+            query = query.filter(Post.visibility == 'public')
+        
+        posts = query.order_by(Post.created_at.desc())\
+            .paginate(page=page, per_page=per_page, error_out=False)
+        
+        author = User.query.get(target_user_id)
+        
+        posts_data = []
+        for post in posts.items:
+            is_liked = False
+            try:
+                is_liked = PostLike.query.filter_by(
+                    post_id=post.id,
+                    user_id=user_id
+                ).first() is not None
+            except:
+                pass
+            
+            posts_data.append({
+                "id": post.id,
+                "feed_type": "post",
+                "author_id": post.author_id,
+                "author_name": author.display_name or author.username if author else "Unknown",
+                "author_username": author.username if author else "unknown",
+                "author_avatar": author.profile_picture if author else None,
+                "title": getattr(post, 'title', None),
+                "content": post.content,
+                "image_url": getattr(post, 'image_url', None),
+                "created_at": post.created_at.isoformat() if post.created_at else None,
+                "is_edited": getattr(post, 'is_edited', False),
+                "likes_count": len(post.likes) if hasattr(post, 'likes') and post.likes else 0,
+                "comments_count": len(post.comments) if hasattr(post, 'comments') and post.comments else 0,
+                "is_liked": is_liked
+            })
+        
+        return jsonify({
+            "posts": posts_data,
+            "pagination": {
+                "page": posts.page,
+                "pages": posts.pages,
+                "total": posts.total,
+                "has_next": posts.has_next,
+                "has_prev": posts.has_prev
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching user posts: {e}")
+        return jsonify({"error": "Failed to fetch posts", "posts": []}), 500
+
+@api.route("/posts/<int:post_id>/like", methods=["POST"])
+@jwt_required()
+def like_post(post_id):
+    """Like or unlike a post"""
+    try:
+        user_id = get_jwt_identity()
+        
+        post = Post.query.get(post_id)
+        if not post:
+            return jsonify({"error": "Post not found"}), 404
+        
+        existing_like = PostLike.query.filter_by(
+            post_id=post_id,
+            user_id=user_id
+        ).first()
+        
+        if existing_like:
+            # Unlike
+            db.session.delete(existing_like)
+            db.session.commit()
+            return jsonify({
+                "message": "Post unliked",
+                "liked": False,
+                "likes_count": len(post.likes) if hasattr(post, 'likes') else 0
+            }), 200
+        else:
+            # Like
+            new_like = PostLike(post_id=post_id, user_id=user_id)
+            db.session.add(new_like)
+            db.session.commit()
+            return jsonify({
+                "message": "Post liked",
+                "liked": True,
+                "likes_count": len(post.likes) if hasattr(post, 'likes') else 1
+            }), 200
+            
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error liking post: {e}")
+        return jsonify({"error": "Failed to like post"}), 500
+
+
+@api.route("/posts/<int:post_id>/comments", methods=["GET"])
+def get_post_comments(post_id):
+    """Get all comments for a post"""
+    try:
+        comments = PostComment.query.filter_by(post_id=post_id)\
+            .order_by(PostComment.created_at.asc()).all()
+        
+        return jsonify({
+            "comments": [c.serialize() for c in comments]
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching comments: {e}")
+        return jsonify({"error": "Failed to fetch comments", "comments": []}), 500
+
+
+@api.route("/posts/<int:post_id>/comments", methods=["POST"])
+@jwt_required()
+def add_post_comment(post_id):
+    """Add a comment to a post"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        text = data.get('text', '').strip()
+        if not text:
+            return jsonify({"error": "Comment text is required"}), 400
+        
+        post = Post.query.get(post_id)
+        if not post:
+            return jsonify({"error": "Post not found"}), 404
+        
+        new_comment = PostComment(
+            post_id=post_id,
+            user_id=user_id,
+            content=text
+        )
+        
+        db.session.add(new_comment)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Comment added",
+            "comment": new_comment.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error adding comment: {e}")
+        return jsonify({"error": "Failed to add comment"}), 500
+
+
+# ============================================================
+# DISCOVER/EXPLORE FEED (For users with no follows)
+# ============================================================
+
+@api.route("/discover-feed", methods=["GET"])
+@jwt_required()
+def discover_feed():
+    """
+    Discover feed for users who don't follow anyone yet.
+    Shows popular/trending content from the platform.
+    """
+    try:
+        user_id = get_jwt_identity()
+        content_type = request.args.get('type', 'all')
+        page = request.args.get('page', 1, type=int)
+        per_page = min(request.args.get('per_page', 20, type=int), 50)
+        
+        feed_items = []
+        
+        # Get trending tracks (most played in last 7 days)
+        if content_type in ['all', 'tracks']:
+            try:
+                tracks = Audio.query.order_by(
+                    Audio.plays.desc() if hasattr(Audio, 'plays') else Audio.id.desc()
+                ).limit(per_page).all()
+                
+                for track in tracks:
+                    artist = User.query.get(track.user_id) if track.user_id else None
+                    track_data = {
+                        "id": track.id,
+                        "feed_type": "track",
+                        "author_id": track.user_id,
+                        "author_name": track.artist_name or (artist.display_name if artist else "Unknown"),
+                        "author_avatar": artist.profile_picture if artist else None,
+                        "title": track.title,
+                        "content": f"🔥 Trending: {track.title}",
+                        "audio_url": track.file_url,
+                        "artwork_url": getattr(track, 'artwork_url', None),
+                        "plays": getattr(track, 'plays', 0) or 0,
+                        "created_at": track.created_at.isoformat() if hasattr(track, 'created_at') and track.created_at else None,
+                        "is_trending": True
+                    }
+                    feed_items.append(track_data)
+            except Exception as e:
+                print(f"Error fetching discover tracks: {e}")
+        
+        # Get popular videos
+        if content_type in ['all', 'videos']:
+            try:
+                videos = Video.query.filter_by(is_public=True)\
+                    .order_by(Video.views.desc()).limit(per_page).all()
+                
+                for video in videos:
+                    uploader = User.query.get(video.user_id) if video.user_id else None
+                    video_data = {
+                        "id": video.id,
+                        "feed_type": "video",
+                        "author_id": video.user_id,
+                        "author_name": uploader.display_name or uploader.username if uploader else "Unknown",
+                        "author_avatar": uploader.profile_picture if uploader else None,
+                        "title": video.title,
+                        "content": f"🎬 Popular: {video.title}",
+                        "thumbnail_url": video.thumbnail_url,
+                        "views": video.views or 0,
+                        "created_at": video.uploaded_at.isoformat() if video.uploaded_at else None,
+                        "is_trending": True
+                    }
+                    feed_items.append(video_data)
+            except Exception as e:
+                print(f"Error fetching discover videos: {e}")
+        
+        # Sort by engagement (plays + views)
+        def get_engagement(item):
+            return (item.get('plays', 0) or 0) + (item.get('views', 0) or 0)
+        
+        feed_items.sort(key=get_engagement, reverse=True)
+        
+        # Paginate
+        total_items = len(feed_items)
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_items = feed_items[start_idx:end_idx]
+        
+        return jsonify({
+            "success": True,
+            "feed": paginated_items,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total_items": total_items,
+                "has_next": end_idx < total_items,
+                "has_prev": page > 1
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Discover feed error: {e}")
+        return jsonify({"error": "Failed to load discover feed"}), 500
+
+
+# ============================================================
+# SUGGESTED USERS TO FOLLOW
+# ============================================================
+
+@api.route("/suggested-users", methods=["GET"])
+@jwt_required()
+def suggested_users():
+    """Get suggested users to follow based on activity and popularity"""
+    try:
+        user_id = get_jwt_identity()
+        limit = request.args.get('limit', 10, type=int)
+        
+        # Get users current user is already following
+        following_ids = [f[0] for f in db.session.query(Follow.followed_id)\
+            .filter_by(follower_id=user_id).all()]
+        
+        # Exclude self and already followed users
+        exclude_ids = [user_id] + following_ids
+        
+        # Get users with most followers (popular creators)
+        suggested = User.query.filter(
+            ~User.id.in_(exclude_ids)
+        ).order_by(
+            User.follower_count.desc() if hasattr(User, 'follower_count') else User.id.desc()
+        ).limit(limit).all()
+        
+        suggestions = []
+        for user in suggested:
+            # Count their content
+            track_count = Audio.query.filter_by(user_id=user.id).count()
+            video_count = Video.query.filter_by(user_id=user.id).count()
+            
+            suggestions.append({
+                "id": user.id,
+                "username": user.username,
+                "display_name": user.display_name or user.username,
+                "profile_picture": user.profile_picture,
+                "bio": user.bio,
+                "follower_count": getattr(user, 'follower_count', 0) or 0,
+                "track_count": track_count,
+                "video_count": video_count,
+                "is_verified": getattr(user, 'is_verified', False)
+            })
+        
+        return jsonify({
+            "success": True,
+            "suggestions": suggestions
+        }), 200
+        
+    except Exception as e:
+        print(f"Suggested users error: {e}")
+        return jsonify({"error": "Failed to fetch suggestions", "suggestions": []}), 500
+
+
+
 
 @api.route("/label-dashboard", methods=["GET"])
 @jwt_required()

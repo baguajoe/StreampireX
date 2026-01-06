@@ -3457,17 +3457,144 @@ class AlbumTrack(db.Model):
 class Post(db.Model):
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # NEW
     title = db.Column(db.String(255))
     content = db.Column(db.Text)
+    image_url = db.Column(db.String(500), nullable=True)  # NEW
+    video_url = db.Column(db.String(500), nullable=True)  # NEW
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # NEW
+    is_edited = db.Column(db.Boolean, default=False)  # NEW
+    visibility = db.Column(db.String(20), default='public')  # NEW
+    
+    # Relationships - NEW
+    author = db.relationship('User', backref=db.backref('posts', lazy='dynamic'))
+    likes = db.relationship('PostLike', backref='post', lazy=True, cascade='all, delete-orphan')
+    comments = db.relationship('PostComment', backref='post', lazy=True, cascade='all, delete-orphan')
 
+    def serialize(self, current_user_id=None):
+        # Check if liked by current user
+        is_liked = False
+        if current_user_id:
+            is_liked = PostLike.query.filter_by(
+                post_id=self.id, 
+                user_id=current_user_id
+            ).first() is not None
+        
+        return {
+            "id": self.id,
+            "feed_type": "post",
+            "author_id": self.author_id,
+            "author_name": self.author.display_name or self.author.username if self.author else "Unknown",
+            "author_username": self.author.username if self.author else "unknown",
+            "author_avatar": self.author.profile_picture if self.author else None,
+            "username": self.author.username if self.author else "Unknown",  # Alias for frontend
+            "avatar": self.author.profile_picture if self.author else None,  # Alias for frontend
+            "title": self.title,
+            "content": self.content,
+            "image_url": self.image_url,
+            "image": self.image_url,  # Alias for frontend
+            "video_url": self.video_url,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "timestamp": self._get_relative_time(),
+            "is_edited": self.is_edited,
+            "edited": self.is_edited,  # Alias
+            "likes_count": len(self.likes) if self.likes else 0,
+            "likes": len(self.likes) if self.likes else 0,  # Alias
+            "comments_count": len(self.comments) if self.comments else 0,
+            "is_liked": is_liked,
+            "liked": is_liked,  # Alias
+            "comments": [c.serialize() for c in (self.comments[:5] if self.comments else [])]
+        }
+    
+    def _get_relative_time(self):
+        if not self.created_at:
+            return "Just now"
+        
+        from datetime import datetime
+        now = datetime.utcnow()
+        diff = now - self.created_at
+        seconds = diff.total_seconds()
+        
+        if seconds < 60:
+            return "Just now"
+        elif seconds < 3600:
+            mins = int(seconds / 60)
+            return f"{mins} minute{'s' if mins != 1 else ''} ago"
+        elif seconds < 86400:
+            hours = int(seconds / 3600)
+            return f"{hours} hour{'s' if hours != 1 else ''} ago"
+        elif seconds < 604800:
+            days = int(seconds / 86400)
+            return f"{days} day{'s' if days != 1 else ''} ago"
+        else:
+            return self.created_at.strftime("%b %d, %Y")
+        
+class PostLike(db.Model):
+    """Track likes on posts"""
+    __tablename__ = 'post_likes'
+    __table_args__ = (
+        db.UniqueConstraint('post_id', 'user_id', name='unique_post_like'),
+        {'extend_existing': True}
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('post_likes', lazy=True))
+    
     def serialize(self):
         return {
             "id": self.id,
-            "title": self.title,
-            "content": self.content,
-            "created_at": self.created_at.isoformat()
+            "post_id": self.post_id,
+            "user_id": self.user_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None
         }
+
+class PostComment(db.Model):
+    """Comments on posts"""
+    __tablename__ = 'post_comments'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('post_comments.id'), nullable=True)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    likes_count = db.Column(db.Integer, default=0)
+    
+    user = db.relationship('User', backref=db.backref('post_comments', lazy=True))
+    replies = db.relationship('PostComment', backref=db.backref('parent', remote_side=[id]), lazy=True)
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "post_id": self.post_id,
+            "user_id": self.user_id,
+            "author": self.user.display_name or self.user.username if self.user else "Unknown",
+            "avatar": self.user.profile_picture if self.user else None,
+            "text": self.content,
+            "content": self.content,
+            "timestamp": self._get_relative_time(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "likes": self.likes_count
+        }
+    
+    def _get_relative_time(self):
+        if not self.created_at:
+            return "Just now"
+        from datetime import datetime
+        diff = datetime.utcnow() - self.created_at
+        seconds = diff.total_seconds()
+        if seconds < 3600:
+            return f"{int(seconds/60)} minutes ago"
+        elif seconds < 86400:
+            return f"{int(seconds/3600)} hours ago"
+        else:
+            return f"{int(seconds/86400)} days ago"
 
 class Follow(db.Model):
     __table_args__ = {'extend_existing': True}
