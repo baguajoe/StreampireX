@@ -1,3 +1,4 @@
+// src/front/js/pages/PodcastDashboard.js
 import React, { useState, useEffect, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Context } from "../store/appContext";
@@ -12,11 +13,14 @@ const PodcastDashboard = () => {
 
   const [podcasts, setPodcasts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
     totalPodcasts: 0,
     totalEpisodes: 0,
     totalListeners: 0,
-    monthlyRevenue: 0
+    monthlyRevenue: 0,
+    publishedCount: 0,
+    draftCount: 0
   });
 
   useEffect(() => {
@@ -36,7 +40,7 @@ const PodcastDashboard = () => {
 
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
       
-      // Fetch user's podcasts
+      // Fetch user's podcasts with stats
       const podcastsResponse = await fetch(`${backendUrl}/api/podcast/dashboard`, {
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -46,18 +50,46 @@ const PodcastDashboard = () => {
 
       if (podcastsResponse.ok) {
         const data = await podcastsResponse.json();
-        setPodcasts(data);
         
-        // Calculate stats
-        const totalEpisodes = data.reduce((sum, podcast) => sum + (podcast.episodes?.length || 0), 0);
-        const totalListeners = data.reduce((sum, podcast) => sum + (podcast.total_listens || 0), 0);
-        
-        setStats({
-          totalPodcasts: data.length,
-          totalEpisodes: totalEpisodes,
-          totalListeners: totalListeners,
-          monthlyRevenue: 0
-        });
+        // Handle both old (array) and new (object with stats) response formats
+        if (Array.isArray(data)) {
+          // Old format - array of podcasts (backward compatibility)
+          setPodcasts(data);
+          
+          const totalEpisodes = data.reduce((sum, podcast) => 
+            sum + (podcast.episodes?.length || podcast.episode_count || 0), 0);
+          const totalListeners = data.reduce((sum, podcast) => 
+            sum + (podcast.total_listens || 0), 0);
+          const publishedCount = data.filter(p => p.status === 'published').length;
+          const draftCount = data.filter(p => p.status !== 'published').length;
+          
+          // Calculate monthly revenue from podcast data if available
+          const monthlyRevenue = data.reduce((sum, podcast) => {
+            if (podcast.monthly_revenue) return sum + podcast.monthly_revenue;
+            if (podcast.ad_revenue) return sum + podcast.ad_revenue;
+            return sum;
+          }, 0);
+          
+          setStats({
+            totalPodcasts: data.length,
+            totalEpisodes: totalEpisodes,
+            totalListeners: totalListeners,
+            monthlyRevenue: monthlyRevenue,
+            publishedCount: publishedCount,
+            draftCount: draftCount
+          });
+        } else {
+          // New format - object with podcasts and stats
+          setPodcasts(data.podcasts || []);
+          setStats({
+            totalPodcasts: data.stats?.total_podcasts || 0,
+            totalEpisodes: data.stats?.total_episodes || 0,
+            totalListeners: data.stats?.total_listens || 0,
+            monthlyRevenue: data.stats?.monthly_revenue || 0,
+            publishedCount: data.stats?.published_count || 0,
+            draftCount: data.stats?.draft_count || 0
+          });
+        }
       } else if (podcastsResponse.status === 401) {
         showToast.error("Session expired. Please log in again.");
         navigate("/login");
@@ -69,6 +101,60 @@ const PodcastDashboard = () => {
       showToast.error("Network error. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshData = async () => {
+    setRefreshing(true);
+    try {
+      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      
+      const podcastsResponse = await fetch(`${backendUrl}/api/podcast/dashboard`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (podcastsResponse.ok) {
+        const data = await podcastsResponse.json();
+        
+        if (Array.isArray(data)) {
+          setPodcasts(data);
+          const totalEpisodes = data.reduce((sum, podcast) => 
+            sum + (podcast.episodes?.length || podcast.episode_count || 0), 0);
+          const totalListeners = data.reduce((sum, podcast) => 
+            sum + (podcast.total_listens || 0), 0);
+          const monthlyRevenue = data.reduce((sum, podcast) => 
+            sum + (podcast.monthly_revenue || podcast.ad_revenue || 0), 0);
+          
+          setStats({
+            totalPodcasts: data.length,
+            totalEpisodes: totalEpisodes,
+            totalListeners: totalListeners,
+            monthlyRevenue: monthlyRevenue,
+            publishedCount: data.filter(p => p.status === 'published').length,
+            draftCount: data.filter(p => p.status !== 'published').length
+          });
+        } else {
+          setPodcasts(data.podcasts || []);
+          setStats({
+            totalPodcasts: data.stats?.total_podcasts || 0,
+            totalEpisodes: data.stats?.total_episodes || 0,
+            totalListeners: data.stats?.total_listens || 0,
+            monthlyRevenue: data.stats?.monthly_revenue || 0,
+            publishedCount: data.stats?.published_count || 0,
+            draftCount: data.stats?.draft_count || 0
+          });
+        }
+        showToast.success("Dashboard refreshed!");
+      }
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      showToast.error("Failed to refresh data");
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -93,10 +179,21 @@ const PodcastDashboard = () => {
 
       if (response.ok) {
         showToast.success("Podcast deleted successfully!", { id: toastId });
+        
+        // Find the deleted podcast to update stats correctly
+        const deletedPodcast = podcasts.find(p => p.id === podcastId);
+        const deletedEpisodes = deletedPodcast?.episodes?.length || deletedPodcast?.episode_count || 0;
+        const deletedListens = deletedPodcast?.total_listens || 0;
+        const wasPublished = deletedPodcast?.status === 'published';
+        
         setPodcasts(podcasts.filter(p => p.id !== podcastId));
         setStats(prev => ({
           ...prev,
-          totalPodcasts: prev.totalPodcasts - 1
+          totalPodcasts: prev.totalPodcasts - 1,
+          totalEpisodes: prev.totalEpisodes - deletedEpisodes,
+          totalListeners: prev.totalListeners - deletedListens,
+          publishedCount: wasPublished ? prev.publishedCount - 1 : prev.publishedCount,
+          draftCount: !wasPublished ? prev.draftCount - 1 : prev.draftCount
         }));
       } else {
         const data = await response.json();
@@ -130,6 +227,13 @@ const PodcastDashboard = () => {
         setPodcasts(podcasts.map(p => 
           p.id === podcastId ? { ...p, status: newStatus } : p
         ));
+        
+        // Update published/draft counts
+        setStats(prev => ({
+          ...prev,
+          publishedCount: newStatus === 'published' ? prev.publishedCount + 1 : prev.publishedCount - 1,
+          draftCount: newStatus === 'published' ? prev.draftCount - 1 : prev.draftCount + 1
+        }));
       } else {
         const data = await response.json();
         showToast.error(data.error || "Failed to update status", { id: toastId });
@@ -138,6 +242,16 @@ const PodcastDashboard = () => {
       console.error("Error updating podcast status:", error);
       showToast.error("Network error. Please try again.", { id: toastId });
     }
+  };
+
+  const formatNumber = (num) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toLocaleString();
   };
 
   if (loading) {
@@ -152,9 +266,19 @@ const PodcastDashboard = () => {
           <h1>🎙️ Podcast Dashboard</h1>
           <p>Manage your podcasts and track performance</p>
         </div>
-        <Link to="/podcast-create" className="create-podcast-btn">
-          ➕ Create New Podcast
-        </Link>
+        <div className="header-actions">
+          <button 
+            className="refresh-btn"
+            onClick={refreshData}
+            disabled={refreshing}
+            title="Refresh Data"
+          >
+            {refreshing ? '⏳' : '🔄'}
+          </button>
+          <Link to="/podcast-create" className="create-podcast-btn">
+            ➕ Create New Podcast
+          </Link>
+        </div>
       </div>
 
       {/* Stats Overview */}
@@ -164,6 +288,11 @@ const PodcastDashboard = () => {
           <div className="stat-content">
             <h3>{stats.totalPodcasts}</h3>
             <p>Total Podcasts</p>
+            {stats.publishedCount > 0 && (
+              <small className="stat-detail">
+                {stats.publishedCount} live, {stats.draftCount} drafts
+              </small>
+            )}
           </div>
         </div>
 
@@ -172,22 +301,37 @@ const PodcastDashboard = () => {
           <div className="stat-content">
             <h3>{stats.totalEpisodes}</h3>
             <p>Total Episodes</p>
+            {stats.totalPodcasts > 0 && (
+              <small className="stat-detail">
+                ~{Math.round(stats.totalEpisodes / stats.totalPodcasts)} per show
+              </small>
+            )}
           </div>
         </div>
 
         <div className="stat-card">
           <div className="stat-icon">👥</div>
           <div className="stat-content">
-            <h3>{stats.totalListeners.toLocaleString()}</h3>
+            <h3>{formatNumber(stats.totalListeners)}</h3>
             <p>Total Listeners</p>
+            {stats.totalEpisodes > 0 && (
+              <small className="stat-detail">
+                ~{formatNumber(Math.round(stats.totalListeners / stats.totalEpisodes))} per episode
+              </small>
+            )}
           </div>
         </div>
 
-        <div className="stat-card">
+        <div className="stat-card highlight">
           <div className="stat-icon">💰</div>
           <div className="stat-content">
             <h3>${stats.monthlyRevenue.toFixed(2)}</h3>
             <p>Monthly Revenue</p>
+            {stats.monthlyRevenue > 0 && (
+              <small className="stat-detail">
+                From ads, tips & subs
+              </small>
+            )}
           </div>
         </div>
       </div>
@@ -195,7 +339,10 @@ const PodcastDashboard = () => {
       {/* Podcasts List */}
       {podcasts.length > 0 ? (
         <div className="podcasts-section">
-          <h2>Your Podcasts</h2>
+          <div className="section-header">
+            <h2>Your Podcasts</h2>
+            <span className="podcast-count">{podcasts.length} show{podcasts.length !== 1 ? 's' : ''}</span>
+          </div>
           <div className="podcasts-grid">
             {podcasts.map(podcast => (
               <div key={podcast.id} className="podcast-card">
@@ -223,15 +370,26 @@ const PodcastDashboard = () => {
                   <div className="podcast-stats">
                     <div className="stat">
                       <span className="stat-label">Episodes:</span>
-                      <span className="stat-value">{podcast.episodes?.length || 0}</span>
+                      <span className="stat-value">
+                        {podcast.episodes?.length || podcast.episode_count || 0}
+                      </span>
                     </div>
                     <div className="stat">
                       <span className="stat-label">Listens:</span>
-                      <span className="stat-value">{podcast.total_listens?.toLocaleString() || '0'}</span>
+                      <span className="stat-value">
+                        {formatNumber(podcast.total_listens || 0)}
+                      </span>
                     </div>
+                    {podcast.monthly_listens > 0 && (
+                      <div className="stat">
+                        <span className="stat-label">This Month:</span>
+                        <span className="stat-value">
+                          {formatNumber(podcast.monthly_listens)}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* RENAMED: podcast-action-btn instead of action-btn */}
                   <div className="podcast-actions">
                     <Link 
                       to={`/podcast/${podcast.id}`} 
@@ -246,6 +404,13 @@ const PodcastDashboard = () => {
                       title="Edit Podcast"
                     >
                       ✏️ Edit
+                    </Link>
+                    <Link 
+                      to={`/podcast/${podcast.id}/episodes`} 
+                      className="podcast-action-btn episodes"
+                      title="Manage Episodes"
+                    >
+                      📋 Episodes
                     </Link>
                     <button
                       onClick={() => handlePublishToggle(podcast.id, podcast.status)}
@@ -306,6 +471,26 @@ const PodcastDashboard = () => {
               <div className="action-icon">⚙️</div>
               <h3>Settings</h3>
               <p>Manage your account</p>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Revenue Breakdown (if revenue exists) */}
+      {stats.monthlyRevenue > 0 && (
+        <div className="revenue-section">
+          <h2>💰 Revenue Overview</h2>
+          <div className="revenue-card">
+            <div className="revenue-main">
+              <span className="revenue-label">This Month's Earnings</span>
+              <span className="revenue-amount">${stats.monthlyRevenue.toFixed(2)}</span>
+            </div>
+            <p className="revenue-note">
+              Revenue from ad placements, listener tips, and premium subscriptions. 
+              You keep 85-90% of all earnings.
+            </p>
+            <Link to="/creator-dashboard" className="view-details-link">
+              View Full Breakdown →
             </Link>
           </div>
         </div>

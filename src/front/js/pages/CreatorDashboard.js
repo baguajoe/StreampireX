@@ -25,6 +25,7 @@ const CreatorDashboard = () => {
     engagement: []
   });
   const [loading, setLoading] = useState(true);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   useEffect(() => {
     fetchOverviewData();
@@ -71,13 +72,24 @@ const CreatorDashboard = () => {
       // Process social shares
       if (sharesRes.status === 'fulfilled' && sharesRes.value.ok) {
         const sharesData = await sharesRes.value.json();
-        setSocialShares(sharesData);
+        setSocialShares(sharesData.platform_breakdown || sharesData);
       }
 
       // Process content breakdown
       if (contentRes.status === 'fulfilled' && contentRes.value.ok) {
         const contentData = await contentRes.value.json();
-        setContentBreakdown(contentData);
+        // Handle both response formats
+        if (contentData.breakdown) {
+          setContentBreakdown({
+            podcasts: contentData.breakdown.podcasts?.count || 0,
+            radioStations: contentData.breakdown.radio_stations?.count || 0,
+            musicTracks: contentData.breakdown.tracks?.count || 0,
+            liveStreams: contentData.breakdown.videos?.count || 0,
+            products: contentData.breakdown.products?.count || 0
+          });
+        } else {
+          setContentBreakdown(contentData);
+        }
       }
 
       // Process earnings
@@ -98,12 +110,14 @@ const CreatorDashboard = () => {
         setRecentActivity(activityData.activities || []);
       }
 
-      // Process monthly growth
+      // Process monthly growth - THIS IS THE FIX!
       if (growthRes.status === 'fulfilled' && growthRes.value.ok) {
         const growthData = await growthRes.value.json();
         setMonthlyGrowth({
           labels: growthData.labels || [],
-          engagement: growthData.engagement || []
+          engagement: growthData.engagement || [],
+          plays: growthData.plays || [],
+          followers: growthData.followers || []
         });
       }
 
@@ -116,6 +130,7 @@ const CreatorDashboard = () => {
 
   const fetchRecentActivity = async () => {
     try {
+      setActivityLoading(true);
       const token = localStorage.getItem("token");
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/recent-activity`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -126,6 +141,8 @@ const CreatorDashboard = () => {
       }
     } catch (error) {
       console.error("Error refreshing activity:", error);
+    } finally {
+      setActivityLoading(false);
     }
   };
 
@@ -153,12 +170,12 @@ const CreatorDashboard = () => {
         contentBreakdown.liveStreams || 0,
         myProducts.length || 0
       ],
-      backgroundColor: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFB347'],
+      backgroundColor: ['#FF6B6B', '#00ffc8', '#45B7D1', '#96CEB4', '#FF6600'],
       borderWidth: 0
     }]
   };
 
-  // REAL DATA - No more hardcoded values!
+  // REAL DATA from /api/monthly-growth - No more hardcoded values!
   const monthlyGrowthData = {
     labels: monthlyGrowth.labels.length > 0 
       ? monthlyGrowth.labels 
@@ -184,6 +201,7 @@ const CreatorDashboard = () => {
       case 'product': return '🛍️';
       case 'tip': return '💰';
       case 'follower': return '👤';
+      case 'sale': return '💵';
       default: return '📄';
     }
   };
@@ -216,19 +234,23 @@ const CreatorDashboard = () => {
       tips: earnings.tips || 0,
       ads: earnings.ads || 0,
       subscriptions: earnings.subscriptions || 0,
+      donations: earnings.donations || 0,
       total: productEarnings + (earnings.content || 0)
     };
   };
 
   const totalEarnings = calculateTotalEarnings();
 
-  // Check if there's any data to show
+  // Check if there's any data to show in charts
   const hasShareData = (socialShares.facebook || 0) + (socialShares.twitter || 0) + 
                        (socialShares.instagram || 0) + (socialShares.tiktok || 0) > 0;
   
   const hasContentData = (contentBreakdown.podcasts || 0) + (contentBreakdown.radioStations || 0) + 
                          (contentBreakdown.musicTracks || 0) + (contentBreakdown.liveStreams || 0) + 
                          myProducts.length > 0;
+
+  const hasGrowthData = monthlyGrowth.engagement.length > 0 && 
+                        monthlyGrowth.engagement.some(val => val > 0);
 
   if (loading) {
     return (
@@ -381,29 +403,56 @@ const CreatorDashboard = () => {
 
               <div className="growth-chart">
                 <h3>Monthly Growth Trend</h3>
-                <div className="chart-wrapper">
-                  <Line 
-                    data={monthlyGrowthData} 
-                    options={{ 
-                      responsive: true, 
-                      maintainAspectRatio: false, 
-                      plugins: { 
-                        legend: { display: false } 
-                      }, 
-                      scales: { 
-                        y: { 
-                          beginAtZero: true,
-                          grid: { color: '#374151' },
-                          ticks: { color: '#8b949e' }
-                        },
-                        x: {
-                          grid: { color: '#374151' },
-                          ticks: { color: '#8b949e' }
-                        }
-                      } 
-                    }} 
-                  />
-                </div>
+                {hasGrowthData ? (
+                  <div className="chart-wrapper">
+                    <Line 
+                      data={monthlyGrowthData} 
+                      options={{ 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { 
+                          legend: { display: false } 
+                        }, 
+                        scales: { 
+                          y: { 
+                            beginAtZero: true,
+                            grid: { color: '#374151' },
+                            ticks: { color: '#8b949e' }
+                          },
+                          x: {
+                            grid: { color: '#374151' },
+                            ticks: { color: '#8b949e' }
+                          }
+                        } 
+                      }} 
+                    />
+                  </div>
+                ) : (
+                  <div className="chart-wrapper">
+                    <Line 
+                      data={monthlyGrowthData} 
+                      options={{ 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { 
+                          legend: { display: false } 
+                        }, 
+                        scales: { 
+                          y: { 
+                            beginAtZero: true,
+                            grid: { color: '#374151' },
+                            ticks: { color: '#8b949e' }
+                          },
+                          x: {
+                            grid: { color: '#374151' },
+                            ticks: { color: '#8b949e' }
+                          }
+                        } 
+                      }} 
+                    />
+                    <p className="chart-hint">Engagement data will appear as you grow</p>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -414,9 +463,10 @@ const CreatorDashboard = () => {
                 <button 
                   className="refresh-btn" 
                   onClick={fetchRecentActivity}
+                  disabled={activityLoading}
                   title="Refresh Activity"
                 >
-                  🔄
+                  {activityLoading ? '⏳' : '🔄'}
                 </button>
               </div>
               <div className="activity-list">
@@ -613,6 +663,10 @@ const CreatorDashboard = () => {
                     <span className="revenue-label">Subscriptions</span>
                     <span className="revenue-value">${(earnings.subscriptions || 0).toFixed(2)}</span>
                   </div>
+                  <div className="revenue-item">
+                    <span className="revenue-label">Donations</span>
+                    <span className="revenue-value">${(earnings.donations || 0).toFixed(2)}</span>
+                  </div>
                   <div className="revenue-item total">
                     <span className="revenue-label">Total Earnings</span>
                     <span className="revenue-value">${totalEarnings.total.toFixed(2)}</span>
@@ -668,9 +722,46 @@ const CreatorDashboard = () => {
               </div>
             </div>
 
+            {/* Monthly Growth Chart in Analytics */}
+            <div className="analytics-chart-section">
+              <h3>📈 Monthly Engagement</h3>
+              <div className="analytics-chart-wrapper">
+                <Line 
+                  data={monthlyGrowthData} 
+                  options={{ 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { 
+                      legend: { display: false } 
+                    }, 
+                    scales: { 
+                      y: { 
+                        beginAtZero: true,
+                        grid: { color: '#374151' },
+                        ticks: { color: '#8b949e' }
+                      },
+                      x: {
+                        grid: { color: '#374151' },
+                        ticks: { color: '#8b949e' }
+                      }
+                    } 
+                  }} 
+                />
+              </div>
+            </div>
+
             {/* Full Activity Log */}
             <div className="full-activity-section">
-              <h3>📋 Complete Activity Log</h3>
+              <div className="section-header">
+                <h3>📋 Complete Activity Log</h3>
+                <button 
+                  className="refresh-btn" 
+                  onClick={fetchRecentActivity}
+                  disabled={activityLoading}
+                >
+                  {activityLoading ? '⏳' : '🔄'}
+                </button>
+              </div>
               {recentActivity.length === 0 ? (
                 <p className="no-activity">No activity recorded yet.</p>
               ) : (
