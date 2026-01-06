@@ -14,12 +14,6 @@ import "../../styles/QuickActionModals.css";
 // Image imports
 import lady1 from "../../img/lady1.png";
 import campfire from "../../img/campfire.png";
-import lofiLounge from "../../img/lofi_lounge.png";
-import jazzHub from "../../img/jazzhub.png";
-import energyReset from "../../img/energy_reset.png";
-import chiCast from "../../img/chicast.png";
-import zenmaster from "../../img/zenmaster.png";
-import fitjay from "../../img/fit_jay.png";
 
 import { io } from "socket.io-client";
 
@@ -48,82 +42,6 @@ const SOCIAL_PLATFORMS = [
     { key: 'pinterest', icon: '📌', label: 'Pinterest' }
 ];
 
-const FAVORITE_PROFILES = [
-    { id: 1, name: "@zenmaster", description: "Grateful for the silence", avatar: zenmaster },
-    { id: 2, name: "@fitjay", description: "Fitness motivator", avatar: fitjay },
-    { id: 3, name: "@lofilounge", description: "Chill beats", avatar: lofiLounge },
-    { id: 4, name: "@jazzhub", description: "Smooth jazz vibes", avatar: jazzHub },
-    { id: 5, name: "@energyreset", description: "Energy healing", avatar: energyReset },
-    { id: 6, name: "@chicast", description: "Chicago vibes", avatar: chiCast }
-];
-
-const MOCK_POSTS = [
-    {
-        id: 1,
-        content: "Just dropped a new track! Check it out and let me know what you think.",
-        timestamp: "2 hours ago",
-        avatar: lady1,
-        username: "You",
-        image: null,
-        likes: 12,
-        comments: [
-            {
-                id: 1,
-                author: "Alex",
-                avatar: zenmaster,
-                text: "This is amazing! Love the beat drop at 1:30",
-                timestamp: "1 hour ago",
-                likes: 3
-            },
-            {
-                id: 2,
-                author: "Sarah",
-                avatar: fitjay,
-                text: "Can't stop listening to this! When's the next one coming?",
-                timestamp: "45 minutes ago",
-                likes: 1
-            }
-        ]
-    },
-    {
-        id: 2,
-        content: "Amazing studio session today. The energy was incredible!",
-        timestamp: "1 day ago",
-        avatar: lady1,
-        username: "You",
-        image: null,
-        likes: 8,
-        comments: [
-            {
-                id: 3,
-                author: "Mike",
-                avatar: lofiLounge,
-                text: "Looks like an epic session! Can't wait to hear what you created",
-                timestamp: "1 day ago",
-                likes: 2
-            }
-        ]
-    }
-];
-
-// Mock data for Photos and Videos
-const MOCK_PHOTOS = [
-    { id: 1, url: lady1, caption: "Profile photo", likes: 15, comments: 3 },
-    { id: 2, url: campfire, caption: "Studio vibes", likes: 8, comments: 1 },
-    { id: 3, url: lofiLounge, caption: "Recording session", likes: 12, comments: 2 }
-];
-
-const MOCK_VIDEOS = [
-    { id: 1, title: "Latest Track Preview", thumbnail_url: campfire, duration: "2:30", views: 150, likes: 20, comments: 5, created_at: "2025-01-10" },
-    { id: 2, title: "Behind the Scenes", thumbnail_url: lady1, duration: "1:45", views: 89, likes: 12, comments: 3, created_at: "2025-01-08" }
-];
-
-const MOCK_CIRCLE_MEMBERS = [
-    { id: 1, display_name: "Alex Rivera", username: "alexmusic", profile_picture: zenmaster, mutual_friends: 5, position: 1, friend_user_id: 1 },
-    { id: 2, display_name: "Sarah Chen", username: "sarahbeats", profile_picture: fitjay, mutual_friends: 3, position: 2, friend_user_id: 2 },
-    { id: 3, display_name: "Mike Johnson", username: "mikeprod", profile_picture: lofiLounge, mutual_friends: 8, position: 3, friend_user_id: 3 }
-];
-
 // Enhanced InnerCircle component with Top 10 Users
 const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
     const [innerCircleMembers, setInnerCircleMembers] = useState([]);
@@ -135,16 +53,13 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
 
-
-
     const fetchInnerCircle = useCallback(async () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
 
             if (!token) {
-                // Use mock data if no token
-                setInnerCircleMembers(MOCK_CIRCLE_MEMBERS);
+                setInnerCircleMembers([]);
                 return;
             }
 
@@ -159,12 +74,11 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                 const data = await response.json();
                 setInnerCircleMembers(data.inner_circle || []);
             } else {
-                // Fallback to mock data
-                setInnerCircleMembers(MOCK_CIRCLE_MEMBERS);
+                setInnerCircleMembers([]);
             }
         } catch (error) {
             console.error('Error fetching inner circle:', error);
-            setInnerCircleMembers(MOCK_CIRCLE_MEMBERS);
+            setInnerCircleMembers([]);
         } finally {
             setLoading(false);
         }
@@ -176,8 +90,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
             const token = localStorage.getItem('token');
 
             if (!token) {
-                // Use mock data
-                setTopUsers(MOCK_CIRCLE_MEMBERS.slice(0, 10));
+                setTopUsers([]);
                 return;
             }
 
@@ -192,11 +105,11 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                 const data = await response.json();
                 setTopUsers(data.users || []);
             } else {
-                setTopUsers(MOCK_CIRCLE_MEMBERS.slice(0, 10));
+                setTopUsers([]);
             }
         } catch (error) {
             console.error('Error fetching top users:', error);
-            setTopUsers(MOCK_CIRCLE_MEMBERS.slice(0, 10));
+            setTopUsers([]);
         } finally {
             setLoading(false);
         }
@@ -275,12 +188,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
             const token = localStorage.getItem('token');
 
             if (!token) {
-                // Mock search results
-                const mockResults = MOCK_CIRCLE_MEMBERS.filter(user =>
-                    user.display_name.toLowerCase().includes(query.toLowerCase()) ||
-                    user.username.toLowerCase().includes(query.toLowerCase())
-                );
-                setSearchResults(mockResults);
+                setSearchResults([]);
                 return;
             }
 
@@ -447,44 +355,50 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                     </div>
                 ) : (
                     <div className="top-users-list">
-                        {topUsers.map((user, index) => (
-                            <div key={user.id} className="circle-member-card">
-                                <div className="user-rank">
-                                    #{index + 1}
-                                    {index === 0 && '🥇'}
-                                    {index === 1 && '🥈'}
-                                    {index === 2 && '🥉'}
-                                </div>
-                                <img
-                                    src={user.profile_picture || user.avatar || lady1}
-                                    alt={user.display_name || user.username}
-                                    className="member-avatar"
-                                />
-                                <div className="member-info">
-                                    <h6>{user.display_name || user.username}</h6>
-                                    <p className="member-bio">{user.primary_achievement || "Top Creator"}</p>
-                                    <div className="member-stats">
-                                        <span>🎵 {user.total_streams || 0}</span>
-                                        <span>❤️ {user.total_likes || 0}</span>
-                                        <span>👥 {user.follower_count || 0}</span>
+                        {topUsers.length > 0 ? (
+                            topUsers.map((user, index) => (
+                                <div key={user.id} className="circle-member-card">
+                                    <div className="user-rank">
+                                        #{index + 1}
+                                        {index === 0 && '🥇'}
+                                        {index === 1 && '🥈'}
+                                        {index === 2 && '🥉'}
+                                    </div>
+                                    <img
+                                        src={user.profile_picture || user.avatar || lady1}
+                                        alt={user.display_name || user.username}
+                                        className="member-avatar"
+                                    />
+                                    <div className="member-info">
+                                        <h6>{user.display_name || user.username}</h6>
+                                        <p className="member-bio">{user.primary_achievement || "Top Creator"}</p>
+                                        <div className="member-stats">
+                                            <span>🎵 {user.total_streams || 0}</span>
+                                            <span>❤️ {user.total_likes || 0}</span>
+                                            <span>👥 {user.follower_count || 0}</span>
+                                        </div>
+                                    </div>
+                                    <div className="top-user-actions">
+                                        <Link to={`/profile/${user.id}`} className="view-profile-btn small">
+                                            View
+                                        </Link>
+                                        {isOwnProfile && (
+                                            <button
+                                                onClick={() => handleAddToCircle(user.id)}
+                                                className="add-to-circle-btn small"
+                                                disabled={innerCircleMembers.some(m => m.friend_user_id === user.id)}
+                                            >
+                                                {innerCircleMembers.some(m => m.friend_user_id === user.id) ? 'Added' : 'Add'}
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="top-user-actions">
-                                    <Link to={`/profile/${user.id}`} className="view-profile-btn small">
-                                        View
-                                    </Link>
-                                    {isOwnProfile && (
-                                        <button
-                                            onClick={() => handleAddToCircle(user.id)}
-                                            className="add-to-circle-btn small"
-                                            disabled={innerCircleMembers.some(m => m.friend_user_id === user.id)}
-                                        >
-                                            {innerCircleMembers.some(m => m.friend_user_id === user.id) ? 'Added' : 'Add'}
-                                        </button>
-                                    )}
-                                </div>
+                            ))
+                        ) : (
+                            <div className="empty-top-users">
+                                <p>No top users found</p>
                             </div>
-                        ))}
+                        )}
                     </div>
                 )}
             </div>
@@ -681,7 +595,7 @@ const ProfilePage = () => {
         activeTab: 'posts',
         videoContentTab: 'all',
         isInboxOpen: false,
-        unreadCount: 3,
+        unreadCount: 0,
         showSuccessMessage: false,
         showAllFavorites: false,
         showSocialManager: false,
@@ -694,26 +608,27 @@ const ProfilePage = () => {
     const [customMood, setCustomMood] = useState('');
     const [showCustomMoodInput, setShowCustomMoodInput] = useState(false);
 
-    // Media state - Enhanced for Photos/Videos tabs
+    // Media state
     const [media, setMedia] = useState({
         profilePicture: null,
         coverPhoto: null,
         videos: [],
         images: [],
-        userPhotos: MOCK_PHOTOS,
-        userVideos: MOCK_VIDEOS
+        userPhotos: [],
+        userVideos: []
     });
 
     // Posts state with comments
-    const [posts, setPosts] = useState(MOCK_POSTS);
+    const [posts, setPosts] = useState([]);
     const [newPost, setNewPost] = useState('');
     const [postImage, setPostImage] = useState(null);
     const [uploadingPost, setUploadingPost] = useState(false);
 
-    // Circle/Following state - Updated from friends to circle
-    const [circleMembers, setCircleMembers] = useState(MOCK_CIRCLE_MEMBERS);
+    // Circle/Following state
+    const [circleMembers, setCircleMembers] = useState([]);
     const [following, setFollowing] = useState([]);
     const [followers, setFollowers] = useState([]);
+    const [favoriteProfiles, setFavoriteProfiles] = useState([]);
 
     // Social Media State
     const [socialAccounts, setSocialAccounts] = useState([]);
@@ -753,9 +668,9 @@ const ProfilePage = () => {
         const storedUsername = localStorage.getItem('username');
 
         setAuthState({
-            token: storedToken || 'demo-token',
+            token: storedToken || null,
             userId: storedUserId || '1',
-            username: storedUsername || 'Demo User'
+            username: storedUsername || 'User'
         });
     }, []);
 
@@ -771,6 +686,8 @@ const ProfilePage = () => {
     const fetchSocialAccounts = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
+            if (!token) return;
+
             const response = await fetch(`${BACKEND_URL}/api/social/accounts`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -790,6 +707,8 @@ const ProfilePage = () => {
     const fetchSocialAnalytics = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
+            if (!token) return;
+
             const response = await fetch(`${BACKEND_URL}/api/social/analytics?days=30`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -809,6 +728,8 @@ const ProfilePage = () => {
     const fetchUserPhotos = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
+            if (!token) return;
+
             const response = await fetch(`${BACKEND_URL}/api/user/photos`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -818,17 +739,18 @@ const ProfilePage = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                setMedia(prev => ({ ...prev, userPhotos: data.photos || MOCK_PHOTOS }));
+                setMedia(prev => ({ ...prev, userPhotos: data.photos || [] }));
             }
         } catch (error) {
             console.error('Error fetching user photos:', error);
-            // Keep mock data on error
         }
     }, []);
 
     const fetchUserVideos = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
+            if (!token) return;
+
             const response = await fetch(`${BACKEND_URL}/api/video/user`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -838,17 +760,18 @@ const ProfilePage = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                setMedia(prev => ({ ...prev, userVideos: data.videos || MOCK_VIDEOS }));
+                setMedia(prev => ({ ...prev, userVideos: data.videos || [] }));
             }
         } catch (error) {
             console.error('Error fetching user videos:', error);
-            // Keep mock data on error
         }
     }, []);
 
     const fetchUserCircle = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
+            if (!token) return;
+
             const response = await fetch(`${BACKEND_URL}/api/profile/my-inner-circle`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -858,13 +781,76 @@ const ProfilePage = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                setCircleMembers(data.inner_circle || MOCK_CIRCLE_MEMBERS);
+                setCircleMembers(data.inner_circle || []);
                 setFollowing(data.following || []);
                 setFollowers(data.followers || []);
             }
         } catch (error) {
             console.error('Error fetching user circle:', error);
-            // Keep mock data on error
+        }
+    }, []);
+
+    const fetchUserPosts = useCallback(async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const targetUserId = profileUserId || authState.userId;
+            const response = await fetch(`${BACKEND_URL}/api/posts/user/${targetUserId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setPosts(data.posts || []);
+            }
+        } catch (error) {
+            console.error('Error fetching user posts:', error);
+        }
+    }, [profileUserId, authState.userId]);
+
+    const fetchFavoriteProfiles = useCallback(async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const response = await fetch(`${BACKEND_URL}/api/profile/favorites`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setFavoriteProfiles(data.favorites || []);
+            }
+        } catch (error) {
+            console.error('Error fetching favorite profiles:', error);
+        }
+    }, []);
+
+    const fetchUnreadCount = useCallback(async () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const response = await fetch(`${BACKEND_URL}/api/inbox/unread-count`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setUi(prev => ({ ...prev, unreadCount: data.count || 0 }));
+            }
+        } catch (error) {
+            console.error('Error fetching unread count:', error);
         }
     }, []);
 
@@ -893,7 +879,11 @@ const ProfilePage = () => {
                 return;
             }
 
-            const response = await fetch(`${BACKEND_URL}/api/user/profile`, {
+            const endpoint = profileUserId 
+                ? `${BACKEND_URL}/api/user/profile/${profileUserId}`
+                : `${BACKEND_URL}/api/user/profile`;
+
+            const response = await fetch(endpoint, {
                 method: "GET",
                 headers: {
                     "Authorization": `Bearer ${authState.token}`,
@@ -953,7 +943,7 @@ const ProfilePage = () => {
         } finally {
             setLoading(false);
         }
-    }, [authState]);
+    }, [authState, profileUserId]);
 
     // Form handlers
     const updateFormData = useCallback((field, value) => {
@@ -1127,6 +1117,8 @@ const ProfilePage = () => {
 
         try {
             const token = localStorage.getItem('token');
+            if (!token) return;
+
             const response = await fetch(`${BACKEND_URL}/api/profile/my-inner-circle`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1324,17 +1316,6 @@ const ProfilePage = () => {
         try {
             setUploadingPost(true);
 
-            const newPostObj = {
-                id: Date.now(),
-                content: newPost,
-                timestamp: 'Just now',
-                avatar: media.profilePicture || user.profile_picture || lady1,
-                username: user.display_name || user.username || 'You',
-                image: postImage,
-                likes: 0,
-                comments: []
-            };
-
             const token = localStorage.getItem('token');
             const response = await fetch(`${BACKEND_URL}/api/posts/create`, {
                 method: 'POST',
@@ -1352,6 +1333,17 @@ const ProfilePage = () => {
                 const savedPost = await response.json();
                 setPosts(prev => [savedPost, ...prev]);
             } else {
+                // Create local post if API fails
+                const newPostObj = {
+                    id: Date.now(),
+                    content: newPost,
+                    timestamp: 'Just now',
+                    avatar: media.profilePicture || user.profile_picture || lady1,
+                    username: user.display_name || user.username || 'You',
+                    image: postImage,
+                    likes: 0,
+                    comments: []
+                };
                 setPosts(prev => [newPostObj, ...prev]);
             }
 
@@ -1360,6 +1352,7 @@ const ProfilePage = () => {
 
         } catch (error) {
             console.error('Error creating post:', error);
+            // Create local post on error
             const newPostObj = {
                 id: Date.now(),
                 content: newPost,
@@ -1430,6 +1423,9 @@ const ProfilePage = () => {
             fetchUserPhotos();
             fetchUserVideos();
             fetchUserCircle();
+            fetchUserPosts();
+            fetchFavoriteProfiles();
+            fetchUnreadCount();
             checkIfInCircle();
         }
 
@@ -1439,7 +1435,7 @@ const ProfilePage = () => {
                 socket.current = null;
             }
         };
-    }, [authState.token, fetchProfile, initializeSocket, fetchSocialAccounts, fetchSocialAnalytics, fetchUserPhotos, fetchUserVideos, fetchUserCircle, checkIfInCircle]);
+    }, [authState.token, fetchProfile, initializeSocket, fetchSocialAccounts, fetchSocialAnalytics, fetchUserPhotos, fetchUserVideos, fetchUserCircle, fetchUserPosts, fetchFavoriteProfiles, fetchUnreadCount, checkIfInCircle]);
 
     useEffect(() => {
         if (media.profilePicture) {
@@ -1495,15 +1491,17 @@ const ProfilePage = () => {
                         alt="Cover"
                         className="cover-photo"
                     />
-                    <div className="cover-photo-overlay">
-                        <button
-                            onClick={() => coverPhotoInputRef.current?.click()}
-                            className="cover-upload-btn"
-                            disabled={loading}
-                        >
-                            {loading ? 'Uploading...' : 'Upload Cover Photo'}
-                        </button>
-                    </div>
+                    {isOwnProfile && (
+                        <div className="cover-photo-overlay">
+                            <button
+                                onClick={() => coverPhotoInputRef.current?.click()}
+                                className="cover-upload-btn"
+                                disabled={loading}
+                            >
+                                {loading ? 'Uploading...' : 'Upload Cover Photo'}
+                            </button>
+                        </div>
+                    )}
                     <input
                         ref={coverPhotoInputRef}
                         type="file"
@@ -1523,16 +1521,18 @@ const ProfilePage = () => {
                             }
                             alt="Profile"
                             className="profile-pic"
-                            onClick={() => profilePicInputRef.current.click()}
-                            style={{ cursor: 'pointer' }}
+                            onClick={() => isOwnProfile && profilePicInputRef.current.click()}
+                            style={{ cursor: isOwnProfile ? 'pointer' : 'default' }}
                         />
-                        <button
-                            className="avatar-toggle-btn"
-                            onClick={() => setUi(prev => ({ ...prev, useAvatar: !prev.useAvatar }))}
-                            title="Toggle Avatar"
-                        >
-                            🔄
-                        </button>
+                        {isOwnProfile && (
+                            <button
+                                className="avatar-toggle-btn"
+                                onClick={() => setUi(prev => ({ ...prev, useAvatar: !prev.useAvatar }))}
+                                title="Toggle Avatar"
+                            >
+                                🔄
+                            </button>
+                        )}
                         <input
                             ref={profilePicInputRef}
                             type="file"
@@ -1548,14 +1548,16 @@ const ProfilePage = () => {
                                 <h2 className="profile-name-label">
                                     {effectiveUserName}
                                 </h2>
-                                <div className="name-actions">
-                                    <button
-                                        onClick={() => toggleEditingState('displayName')}
-                                        className="small-btn"
-                                    >
-                                        Edit Name
-                                    </button>
-                                </div>
+                                {isOwnProfile && (
+                                    <div className="name-actions">
+                                        <button
+                                            onClick={() => toggleEditingState('displayName')}
+                                            className="small-btn"
+                                        >
+                                            Edit Name
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="edit-name-input">
@@ -1636,20 +1638,22 @@ const ProfilePage = () => {
                 <div className="social-links-section">
                     <div className="section-header">
                         <h4>Social Links</h4>
-                        <div className="section-actions">
-                            <button
-                                onClick={() => setUi(prev => ({ ...prev, showSocialManager: true }))}
-                                className="social-manager-btn"
-                            >
-                                Manage
-                            </button>
-                            <button
-                                onClick={() => toggleEditingState('socialLinks')}
-                                className="edit-social-btn"
-                            >
-                                {editingStates.socialLinks ? 'Cancel' : 'Edit'}
-                            </button>
-                        </div>
+                        {isOwnProfile && (
+                            <div className="section-actions">
+                                <button
+                                    onClick={() => setUi(prev => ({ ...prev, showSocialManager: true }))}
+                                    className="social-manager-btn"
+                                >
+                                    Manage
+                                </button>
+                                <button
+                                    onClick={() => toggleEditingState('socialLinks')}
+                                    className="edit-social-btn"
+                                >
+                                    {editingStates.socialLinks ? 'Cancel' : 'Edit'}
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {editingStates.socialLinks ? (
@@ -1704,7 +1708,7 @@ const ProfilePage = () => {
                                 </div>
                             ) : (
                                 <p className="no-social-links">
-                                    No social links added yet. Click "Edit" to add them!
+                                    {isOwnProfile ? 'No social links added yet. Click "Edit" to add them!' : 'No social links added yet.'}
                                 </p>
                             )}
                         </div>
@@ -1715,12 +1719,14 @@ const ProfilePage = () => {
                 <div className="business-section">
                     <div className="section-header">
                         <h4>Business Info</h4>
-                        <button
-                            onClick={() => toggleEditingState('business')}
-                            className="edit-business-btn"
-                        >
-                            {editingStates.business ? 'Cancel' : 'Edit'}
-                        </button>
+                        {isOwnProfile && (
+                            <button
+                                onClick={() => toggleEditingState('business')}
+                                className="edit-business-btn"
+                            >
+                                {editingStates.business ? 'Cancel' : 'Edit'}
+                            </button>
+                        )}
                     </div>
 
                     {editingStates.business ? (
@@ -1832,7 +1838,7 @@ const ProfilePage = () => {
                                 </div>
                             ) : (
                                 <p className="no-business-info">
-                                    No business information added yet. Click "Edit" to add details!
+                                    {isOwnProfile ? 'No business information added yet. Click "Edit" to add details!' : 'No business information added yet.'}
                                 </p>
                             )}
                         </div>
@@ -1882,56 +1888,59 @@ const ProfilePage = () => {
                                 {getCurrentMoodDisplay()}
                             </div>
 
-                            <div className="mood-selector-compact">
-                                {MOOD_OPTIONS.slice(0, 4).map((mood) => (
-                                    <button
-                                        key={mood.id}
-                                        className={`mood-btn-compact ${ui.currentMood === mood.id ? 'active' : ''}`}
-                                        onClick={() => handleMoodChange(mood.id)}
-                                    >
-                                        <span className="mood-emoji">{mood.emoji}</span>
-                                        <span className="mood-label">{mood.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Custom Mood Button - Always show, change text based on state */}
-                            <button
-                                className={`mood-btn-compact custom ${ui.currentMood === 'custom' ? 'active' : ''}`}
-                                onClick={() => setShowCustomMoodInput(true)}
-                                style={{ gridColumn: '1 / -1', marginTop: '8px' }}
-                            >
-                                <span className="mood-emoji">{ui.currentMood === 'custom' ? (ui.customMoodEmoji || '🎭') : '🎭'}</span>
-                                <span className="mood-label">
-                                    {ui.currentMood === 'custom' ? `${ui.customMoodLabel || 'Custom'} (Edit)` : 'Custom Mood'}
-                                </span>
-                            </button>
-
-                            {showCustomMoodInput && (
-                                <div className="custom-mood-input" style={{ marginTop: '10px' }}>
-                                    <input
-                                        type="text"
-                                        value={customMood}
-                                        onChange={(e) => setCustomMood(e.target.value)}
-                                        placeholder="Enter custom mood"
-                                        onKeyPress={(e) => e.key === 'Enter' && handleCreateCustomMood()}
-                                        style={{ fontSize: '12px', padding: '8px' }}
-                                    />
-                                    <div className="custom-mood-actions" style={{ marginTop: '8px' }}>
-                                        <button onClick={handleCreateCustomMood} className="save-custom-mood">
-                                            Set Mood
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setShowCustomMoodInput(false);
-                                                setCustomMood('');
-                                            }}
-                                            className="cancel-custom-mood"
-                                        >
-                                            Cancel
-                                        </button>
+                            {isOwnProfile && (
+                                <>
+                                    <div className="mood-selector-compact">
+                                        {MOOD_OPTIONS.slice(0, 4).map((mood) => (
+                                            <button
+                                                key={mood.id}
+                                                className={`mood-btn-compact ${ui.currentMood === mood.id ? 'active' : ''}`}
+                                                onClick={() => handleMoodChange(mood.id)}
+                                            >
+                                                <span className="mood-emoji">{mood.emoji}</span>
+                                                <span className="mood-label">{mood.label}</span>
+                                            </button>
+                                        ))}
                                     </div>
-                                </div>
+
+                                    <button
+                                        className={`mood-btn-compact custom ${ui.currentMood === 'custom' ? 'active' : ''}`}
+                                        onClick={() => setShowCustomMoodInput(true)}
+                                        style={{ gridColumn: '1 / -1', marginTop: '8px' }}
+                                    >
+                                        <span className="mood-emoji">{ui.currentMood === 'custom' ? (ui.customMoodEmoji || '🎭') : '🎭'}</span>
+                                        <span className="mood-label">
+                                            {ui.currentMood === 'custom' ? `${ui.customMoodLabel || 'Custom'} (Edit)` : 'Custom Mood'}
+                                        </span>
+                                    </button>
+
+                                    {showCustomMoodInput && (
+                                        <div className="custom-mood-input" style={{ marginTop: '10px' }}>
+                                            <input
+                                                type="text"
+                                                value={customMood}
+                                                onChange={(e) => setCustomMood(e.target.value)}
+                                                placeholder="Enter custom mood"
+                                                onKeyPress={(e) => e.key === 'Enter' && handleCreateCustomMood()}
+                                                style={{ fontSize: '12px', padding: '8px' }}
+                                            />
+                                            <div className="custom-mood-actions" style={{ marginTop: '8px' }}>
+                                                <button onClick={handleCreateCustomMood} className="save-custom-mood">
+                                                    Set Mood
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setShowCustomMoodInput(false);
+                                                        setCustomMood('');
+                                                    }}
+                                                    className="cancel-custom-mood"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
@@ -1943,15 +1952,17 @@ const ProfilePage = () => {
                             {!editingStates.bio ? (
                                 <>
                                     <p className="bio-text-compact">
-                                        {formData.bio || 'No bio yet. Click edit to add one!'}
+                                        {formData.bio || (isOwnProfile ? 'No bio yet. Click edit to add one!' : 'No bio yet.')}
                                     </p>
-                                    <button
-                                        onClick={() => toggleEditingState('bio')}
-                                        className="edit-bio-btn"
-                                        style={{ fontSize: '12px', padding: '6px 12px' }}
-                                    >
-                                        Edit Bio
-                                    </button>
+                                    {isOwnProfile && (
+                                        <button
+                                            onClick={() => toggleEditingState('bio')}
+                                            className="edit-bio-btn"
+                                            style={{ fontSize: '12px', padding: '6px 12px' }}
+                                        >
+                                            Edit Bio
+                                        </button>
+                                    )}
                                 </>
                             ) : (
                                 <div className="bio-edit">
@@ -1994,68 +2005,74 @@ const ProfilePage = () => {
                         </div>
                     </div>
 
-                    {/* Quick Actions */}
-                    <div className="sidebar-section">
-                        <h4>Quick Actions</h4>
-                        <div className="quick-actions-compact">
-                            <button
-                                onClick={() => setUi(prev => ({ ...prev, showSocialManager: true }))}
-                                className="quick-action-btn-compact"
-                            >
-                                Social Manager
-                            </button>
-                            <button
-                                onClick={() => setUi(prev => ({ ...prev, showVideoManager: true }))}
-                                className="quick-action-btn-compact"
-                            >
-                                Video Manager
-                            </button>
-                            <button
-                                onClick={() => setUi(prev => ({ ...prev, showClipCreator: true }))}
-                                className="quick-action-btn-compact"
-                            >
-                                Create Clip
-                            </button>
-                            <button
-                                onClick={() => setUi(prev => ({ ...prev, showShareModal: true }))}
-                                className="quick-action-btn-compact"
-                            >
-                                Share Profile
-                            </button>
+                    {/* Quick Actions - Only show for own profile */}
+                    {isOwnProfile && (
+                        <div className="sidebar-section">
+                            <h4>Quick Actions</h4>
+                            <div className="quick-actions-compact">
+                                <button
+                                    onClick={() => setUi(prev => ({ ...prev, showSocialManager: true }))}
+                                    className="quick-action-btn-compact"
+                                >
+                                    Social Manager
+                                </button>
+                                <button
+                                    onClick={() => setUi(prev => ({ ...prev, showVideoManager: true }))}
+                                    className="quick-action-btn-compact"
+                                >
+                                    Video Manager
+                                </button>
+                                <button
+                                    onClick={() => setUi(prev => ({ ...prev, showClipCreator: true }))}
+                                    className="quick-action-btn-compact"
+                                >
+                                    Create Clip
+                                </button>
+                                <button
+                                    onClick={() => setUi(prev => ({ ...prev, showShareModal: true }))}
+                                    className="quick-action-btn-compact"
+                                >
+                                    Share Profile
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Favorites - Compact */}
-                    <div className="sidebar-section">
-                        <h4>Favorite Profiles</h4>
-                        <div className="favorites-compact">
-                            {(ui.showAllFavorites ? FAVORITE_PROFILES : FAVORITE_PROFILES.slice(0, 3)).map((profile) => (
-                                <div key={profile.id} className="favorite-item-compact">
-                                    <img
-                                        src={profile.avatar}
-                                        alt={profile.name}
-                                        className="favorite-avatar-compact"
-                                    />
-                                    <div className="favorite-info-compact">
-                                        <h6 className="favorite-name-compact">{profile.name}</h6>
-                                        <p className="favorite-desc-compact">{profile.description}</p>
+                    {favoriteProfiles.length > 0 && (
+                        <div className="sidebar-section">
+                            <h4>Favorite Profiles</h4>
+                            <div className="favorites-compact">
+                                {(ui.showAllFavorites ? favoriteProfiles : favoriteProfiles.slice(0, 3)).map((profile) => (
+                                    <div key={profile.id} className="favorite-item-compact">
+                                        <img
+                                            src={profile.avatar || profile.profile_picture || lady1}
+                                            alt={profile.name || profile.username}
+                                            className="favorite-avatar-compact"
+                                        />
+                                        <div className="favorite-info-compact">
+                                            <h6 className="favorite-name-compact">{profile.name || profile.username}</h6>
+                                            <p className="favorite-desc-compact">{profile.description || profile.bio || 'StreampireX Creator'}</p>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
+                            {favoriteProfiles.length > 3 && (
+                                <button
+                                    onClick={toggleFavoritesView}
+                                    className="toggle-favorites-btn"
+                                    style={{
+                                        fontSize: '11px',
+                                        padding: '6px 12px',
+                                        marginTop: '10px',
+                                        width: '100%'
+                                    }}
+                                >
+                                    {ui.showAllFavorites ? 'Show Less' : 'Show All'}
+                                </button>
+                            )}
                         </div>
-                        <button
-                            onClick={toggleFavoritesView}
-                            className="toggle-favorites-btn"
-                            style={{
-                                fontSize: '11px',
-                                padding: '6px 12px',
-                                marginTop: '10px',
-                                width: '100%'
-                            }}
-                        >
-                            {ui.showAllFavorites ? 'Show Less' : 'Show All'}
-                        </button>
-                    </div>
+                    )}
                 </div>
 
                 {/* Right Content Area */}
@@ -2097,62 +2114,64 @@ const ProfilePage = () => {
                     {/* Tab Content */}
                     {ui.activeTab === 'posts' && (
                         <div className="posts-tab-content">
-                            {/* Create Post Section */}
-                            <div className="create-post-section">
-                                <div className="create-post-header">
-                                    <img
-                                        src={media.profilePicture || user.profile_picture || lady1}
-                                        alt="Your avatar"
-                                        className="post-avatar"
-                                    />
-                                    <textarea
-                                        value={newPost}
-                                        onChange={(e) => setNewPost(e.target.value)}
-                                        placeholder="What's on your mind?"
-                                        className="post-input"
-                                        maxLength="1000"
-                                    />
-                                </div>
-
-                                {postImage && (
-                                    <div className="post-image-preview">
-                                        <img src={postImage} alt="Post preview" className="preview-image" />
-                                        <button
-                                            onClick={() => setPostImage(null)}
-                                            className="remove-image-btn"
-                                        >
-                                            Remove
-                                        </button>
-                                    </div>
-                                )}
-
-                                <div className="post-actions">
-                                    <div className="post-options">
-                                        <button
-                                            onClick={() => postImageInputRef.current?.click()}
-                                            className="add-image-btn"
-                                            disabled={uploadingPost}
-                                        >
-                                            Add Image
-                                        </button>
-                                        <input
-                                            ref={postImageInputRef}
-                                            type="file"
-                                            style={{ display: 'none' }}
-                                            onChange={handlePostImageChange}
-                                            accept="image/*"
+                            {/* Create Post Section - Only for own profile */}
+                            {isOwnProfile && (
+                                <div className="create-post-section">
+                                    <div className="create-post-header">
+                                        <img
+                                            src={media.profilePicture || user.profile_picture || lady1}
+                                            alt="Your avatar"
+                                            className="post-avatar"
                                         />
-                                        <span className="char-count">{newPost.length}/1000</span>
+                                        <textarea
+                                            value={newPost}
+                                            onChange={(e) => setNewPost(e.target.value)}
+                                            placeholder="What's on your mind?"
+                                            className="post-input"
+                                            maxLength="1000"
+                                        />
                                     </div>
-                                    <button
-                                        onClick={handleCreatePost}
-                                        className="create-post-btn"
-                                        disabled={!newPost.trim() || uploadingPost}
-                                    >
-                                        {uploadingPost ? 'Posting...' : 'Post'}
-                                    </button>
+
+                                    {postImage && (
+                                        <div className="post-image-preview">
+                                            <img src={postImage} alt="Post preview" className="preview-image" />
+                                            <button
+                                                onClick={() => setPostImage(null)}
+                                                className="remove-image-btn"
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <div className="post-actions">
+                                        <div className="post-options">
+                                            <button
+                                                onClick={() => postImageInputRef.current?.click()}
+                                                className="add-image-btn"
+                                                disabled={uploadingPost}
+                                            >
+                                                Add Image
+                                            </button>
+                                            <input
+                                                ref={postImageInputRef}
+                                                type="file"
+                                                style={{ display: 'none' }}
+                                                onChange={handlePostImageChange}
+                                                accept="image/*"
+                                            />
+                                            <span className="char-count">{newPost.length}/1000</span>
+                                        </div>
+                                        <button
+                                            onClick={handleCreatePost}
+                                            className="create-post-btn"
+                                            disabled={!newPost.trim() || uploadingPost}
+                                        >
+                                            {uploadingPost ? 'Posting...' : 'Post'}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Posts Grid - Using PostCard Component */}
                             <div className="posts-grid">
@@ -2173,7 +2192,7 @@ const ProfilePage = () => {
 
                             {posts.length === 0 && (
                                 <div className="empty-posts">
-                                    <p>No posts yet. Create your first post above!</p>
+                                    <p>{isOwnProfile ? 'No posts yet. Create your first post above!' : 'No posts yet.'}</p>
                                 </div>
                             )}
                         </div>
@@ -2183,12 +2202,14 @@ const ProfilePage = () => {
                         <div className="photos-tab-content">
                             <div className="photos-header">
                                 <h3>Photos</h3>
-                                <button
-                                    onClick={() => postImageInputRef.current?.click()}
-                                    className="upload-photo-btn"
-                                >
-                                    Upload Photo
-                                </button>
+                                {isOwnProfile && (
+                                    <button
+                                        onClick={() => postImageInputRef.current?.click()}
+                                        className="upload-photo-btn"
+                                    >
+                                        Upload Photo
+                                    </button>
+                                )}
                             </div>
 
                             {media.userPhotos.length > 0 ? (
@@ -2216,13 +2237,15 @@ const ProfilePage = () => {
                                 <div className="empty-photos">
                                     <div className="empty-state">
                                         <h4>No Photos Yet</h4>
-                                        <p>Share your moments by uploading photos</p>
-                                        <button
-                                            onClick={() => postImageInputRef.current?.click()}
-                                            className="upload-first-photo-btn"
-                                        >
-                                            Upload Your First Photo
-                                        </button>
+                                        <p>{isOwnProfile ? 'Share your moments by uploading photos' : 'No photos to display.'}</p>
+                                        {isOwnProfile && (
+                                            <button
+                                                onClick={() => postImageInputRef.current?.click()}
+                                                className="upload-first-photo-btn"
+                                            >
+                                                Upload Your First Photo
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -2233,12 +2256,14 @@ const ProfilePage = () => {
                         <div className="videos-tab-content">
                             <div className="videos-header">
                                 <h3>Videos</h3>
-                                <button
-                                    onClick={() => setUi(prev => ({ ...prev, showVideoManager: true }))}
-                                    className="upload-video-btn"
-                                >
-                                    Upload Video
-                                </button>
+                                {isOwnProfile && (
+                                    <button
+                                        onClick={() => setUi(prev => ({ ...prev, showVideoManager: true }))}
+                                        className="upload-video-btn"
+                                    >
+                                        Upload Video
+                                    </button>
+                                )}
                             </div>
 
                             {media.userVideos.length > 0 ? (
@@ -2276,13 +2301,15 @@ const ProfilePage = () => {
                                 <div className="empty-videos">
                                     <div className="empty-state">
                                         <h4>No Videos Yet</h4>
-                                        <p>Share your stories and creativity through videos</p>
-                                        <button
-                                            onClick={() => setUi(prev => ({ ...prev, showVideoManager: true }))}
-                                            className="upload-first-video-btn"
-                                        >
-                                            Upload Your First Video
-                                        </button>
+                                        <p>{isOwnProfile ? 'Share your stories and creativity through videos' : 'No videos to display.'}</p>
+                                        {isOwnProfile && (
+                                            <button
+                                                onClick={() => setUi(prev => ({ ...prev, showVideoManager: true }))}
+                                                className="upload-first-video-btn"
+                                            >
+                                                Upload Your First Video
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -2292,7 +2319,7 @@ const ProfilePage = () => {
                     {ui.activeTab === 'circle' && (
                         <div className="circle-tab-content">
                             <div className="circle-header">
-                                <h3>My Circle</h3>
+                                <h3>{isOwnProfile ? 'My Circle' : `${effectiveUserName}'s Circle`}</h3>
                                 <div className="circle-stats">
                                     <span>{circleMembers.length} Circle Members</span>
                                     <span>{followers.length} Followers</span>
@@ -2342,10 +2369,12 @@ const ProfilePage = () => {
                                     <div className="empty-circle">
                                         <div className="empty-state">
                                             <h4>No Circle Members Yet</h4>
-                                            <p>Start building your inner circle by adding your closest connections</p>
-                                            <button className="find-members-btn">
-                                                Find Circle Members
-                                            </button>
+                                            <p>{isOwnProfile ? 'Start building your inner circle by adding your closest connections' : 'No circle members to display.'}</p>
+                                            {isOwnProfile && (
+                                                <button className="find-members-btn">
+                                                    Find Circle Members
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -2459,24 +2488,26 @@ const ProfilePage = () => {
                                 }}
                             />
                             
-                            <div className="existing-videos">
-                                <h4>Your Videos ({media.userVideos.length})</h4>
-                                <div className="video-list">
-                                    {media.userVideos.map((video, index) => (
-                                        <div key={video.id || index} className="video-manager-item">
-                                            <img 
-                                                src={video.thumbnail_url || campfire} 
-                                                alt={video.title}
-                                                className="video-thumb"
-                                            />
-                                            <div className="video-details">
-                                                <h5>{video.title || `Video ${index + 1}`}</h5>
-                                                <p>{video.views || 0} views • {video.likes || 0} likes</p>
+                            {media.userVideos.length > 0 && (
+                                <div className="existing-videos">
+                                    <h4>Your Videos ({media.userVideos.length})</h4>
+                                    <div className="video-list">
+                                        {media.userVideos.map((video, index) => (
+                                            <div key={video.id || index} className="video-manager-item">
+                                                <img 
+                                                    src={video.thumbnail_url || campfire} 
+                                                    alt={video.title}
+                                                    className="video-thumb"
+                                                />
+                                                <div className="video-details">
+                                                    <h5>{video.title || `Video ${index + 1}`}</h5>
+                                                    <p>{video.views || 0} views • {video.likes || 0} likes</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -2588,16 +2619,18 @@ const ProfilePage = () => {
                 </div>
             )}
 
-            {/* Save Profile Button */}
-            <div className="profile-actions-footer">
-                <button
-                    onClick={handleSaveProfile}
-                    className="save-profile-btn"
-                    disabled={loading}
-                >
-                    {loading ? 'Saving...' : 'Save Profile'}
-                </button>
-            </div>
+            {/* Save Profile Button - Only show for own profile */}
+            {isOwnProfile && (
+                <div className="profile-actions-footer">
+                    <button
+                        onClick={handleSaveProfile}
+                        className="save-profile-btn"
+                        disabled={loading}
+                    >
+                        {loading ? 'Saving...' : 'Save Profile'}
+                    </button>
+                </div>
+            )}
 
             {/* Error Display */}
             {error && (
