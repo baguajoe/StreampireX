@@ -90,7 +90,7 @@ const UserSearchProfilePage = () => {
         const identifier = userId || username;
         
         // Fetch user profile
-        const response = await fetch(`/api/user/profile/${identifier}`, {
+        const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/${identifier}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
 
