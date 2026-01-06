@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import "../../styles/DiscoverUsers.css";
 
 const DiscoverUsersPage = () => {
-  const navigate = useNavigate();
-
   // State
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +13,7 @@ const DiscoverUsersPage = () => {
   const [hasMore, setHasMore] = useState(true);
   const [totalUsers, setTotalUsers] = useState(0);
 
-  // Filter options - All categories included
+  // Filter options
   const filterOptions = [
     { id: "all", label: "All", icon: "👥" },
     { id: "artist", label: "Artists", icon: "🎵" },
@@ -24,111 +22,36 @@ const DiscoverUsersPage = () => {
     { id: "regular", label: "Members", icon: "👤" }
   ];
 
-  // Demo users for testing when API isn't ready
-  const getDemoUsers = () => [
-    {
-      id: 1,
-      username: "musicmaster",
-      display_name: "Music Master",
-      profile_type: "artist",
-      bio: "Producer & songwriter creating beats that move souls 🎵",
-      profile_picture: null,
-      followers_count: 1250,
-      is_verified: true
-    },
-    {
-      id: 2,
-      username: "progamer99",
-      display_name: "Pro Gamer 99",
-      profile_type: "gamer",
-      bio: "Competitive FPS player | Streaming daily 🎮",
-      profile_picture: null,
-      followers_count: 890,
-      is_verified: false
-    },
-    {
-      id: 3,
-      username: "podcastqueen",
-      display_name: "Podcast Queen",
-      profile_type: "creator",
-      bio: "Host of 'Real Talk' podcast | 100K+ listeners",
-      profile_picture: null,
-      followers_count: 5600,
-      is_verified: true
-    },
-    {
-      id: 4,
-      username: "beatmaker_joe",
-      display_name: "Beatmaker Joe",
-      profile_type: "artist",
-      bio: "Hip-hop producer | DM for collabs",
-      profile_picture: null,
-      followers_count: 340,
-      is_verified: false
-    },
-    {
-      id: 5,
-      username: "streamking",
-      display_name: "Stream King",
-      profile_type: "gamer",
-      bio: "Variety streamer | RPGs & Strategy games",
-      profile_picture: null,
-      followers_count: 2100,
-      is_verified: true
-    },
-    {
-      id: 6,
-      username: "sarah_creates",
-      display_name: "Sarah Creates",
-      profile_type: "creator",
-      bio: "Digital artist & content creator ✨",
-      profile_picture: null,
-      followers_count: 780,
-      is_verified: false
-    },
-    {
-      id: 7,
-      username: "dj_nova",
-      display_name: "DJ Nova",
-      profile_type: "artist",
-      bio: "Electronic music producer | Festival DJ",
-      profile_picture: null,
-      followers_count: 4500,
-      is_verified: true
-    },
-    {
-      id: 8,
-      username: "casual_mike",
-      display_name: "Casual Mike",
-      profile_type: "regular",
-      bio: "Music lover & podcast enthusiast",
-      profile_picture: null,
-      followers_count: 45,
-      is_verified: false
-    }
-  ];
-
-  // Fetch users
+  // Fetch users from API
   const fetchUsers = useCallback(async (resetPage = false) => {
     try {
       setLoading(true);
+      setError(null);
+      
       const currentPage = resetPage ? 1 : page;
+      const backendUrl = process.env.REACT_APP_BACKEND_URL;
+      
+      if (!backendUrl) {
+        throw new Error("Backend URL not configured");
+      }
 
       const params = new URLSearchParams({
-        page: currentPage,
-        per_page: 20,
+        page: currentPage.toString(),
+        per_page: "20",
         search: searchQuery,
         profile_type: activeFilter !== "all" ? activeFilter : ""
       });
 
       const token = localStorage.getItem("token");
-      const BACKEND_URL = "https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev";
-      const response = await fetch(`${BACKEND_URL}/api/users/discover?${params}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      const response = await fetch(`${backendUrl}/api/users/discover?${params}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        }
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch users");
+        throw new Error(`Failed to fetch users: ${response.status}`);
       }
 
       const data = await response.json();
@@ -137,27 +60,24 @@ const DiscoverUsersPage = () => {
         setUsers(data.users || []);
         setPage(1);
       } else {
-        setUsers(prev => currentPage === 1 ? data.users : [...prev, ...(data.users || [])]);
+        setUsers(prev => currentPage === 1 ? (data.users || []) : [...prev, ...(data.users || [])]);
       }
 
       setTotalUsers(data.total || data.users?.length || 0);
       setHasMore(data.has_more || (data.users?.length === 20));
-      setError(null);
 
     } catch (err) {
       console.error("Error fetching users:", err);
-      // Set demo data for testing when API isn't ready
-      const demoUsers = getDemoUsers();
-      setUsers(demoUsers);
-      setTotalUsers(demoUsers.length);
-      setHasMore(false);
-      setError(null); // Don't show error, show demo data
+      setError(err.message);
+      if (page === 1) {
+        setUsers([]);
+      }
     } finally {
       setLoading(false);
     }
   }, [page, searchQuery, activeFilter]);
 
-  // Initial fetch
+  // Initial fetch on filter change
   useEffect(() => {
     fetchUsers(true);
   }, [activeFilter]);
@@ -177,6 +97,11 @@ const DiscoverUsersPage = () => {
     fetchUsers(false);
   };
 
+  // Retry fetch
+  const handleRetry = () => {
+    fetchUsers(true);
+  };
+
   // Format numbers
   const formatNumber = (num) => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
@@ -194,15 +119,6 @@ const DiscoverUsersPage = () => {
       default: return { icon: "👤", label: "Member", color: "#00ffc8" };
     }
   };
-
-  // Filter users based on active filter
-  const filteredUsers = users.filter(user => {
-    if (activeFilter === "all") return true;
-    if (activeFilter === "creator") {
-      return user.profile_type === "creator" || user.profile_type === "multiple";
-    }
-    return user.profile_type === activeFilter;
-  });
 
   return (
     <div className="discover-users-container">
@@ -251,17 +167,28 @@ const DiscoverUsersPage = () => {
       </div>
 
       {/* Results Info */}
-      {searchQuery && (
+      {searchQuery && !loading && users.length > 0 && (
         <div className="results-info">
           <p>
-            Showing results for "<strong>{searchQuery}</strong>"
-            {filteredUsers.length > 0 && ` (${filteredUsers.length} found)`}
+            Showing results for "<strong>{searchQuery}</strong>" ({users.length} found)
           </p>
         </div>
       )}
 
+      {/* Error State */}
+      {error && (
+        <div className="error-container">
+          <div className="error-icon">⚠️</div>
+          <h3>Failed to load users</h3>
+          <p>{error}</p>
+          <button className="retry-btn" onClick={handleRetry}>
+            🔄 Try Again
+          </button>
+        </div>
+      )}
+
       {/* Loading State */}
-      {loading && users.length === 0 && (
+      {loading && users.length === 0 && !error && (
         <div className="loading-container">
           <div className="loading-spinner">👥</div>
           <p>Finding users...</p>
@@ -269,9 +196,9 @@ const DiscoverUsersPage = () => {
       )}
 
       {/* Users Grid */}
-      {filteredUsers.length > 0 && (
+      {!error && users.length > 0 && (
         <div className="users-grid">
-          {filteredUsers.map(user => {
+          {users.map(user => {
             const badge = getProfileBadge(user.profile_type);
             return (
               <Link
@@ -326,7 +253,7 @@ const DiscoverUsersPage = () => {
       )}
 
       {/* Empty State */}
-      {!loading && filteredUsers.length === 0 && (
+      {!loading && !error && users.length === 0 && (
         <div className="empty-state">
           <div className="empty-icon">🔍</div>
           <h3>No users found</h3>
@@ -344,7 +271,7 @@ const DiscoverUsersPage = () => {
       )}
 
       {/* Load More */}
-      {hasMore && filteredUsers.length >= 20 && !loading && (
+      {hasMore && users.length >= 20 && !loading && !error && (
         <div className="load-more-section">
           <button className="load-more-btn" onClick={handleLoadMore}>
             Load More Users
