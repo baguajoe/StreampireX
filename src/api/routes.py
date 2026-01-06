@@ -15740,23 +15740,34 @@ def get_artist_albums():
     try:
         user_id = get_jwt_identity()
         
-        # Mock albums data
-        albums_data = [
-            {
-                "id": 1,
-                "title": "Sample Album",
-                "artwork": None,
-                "year": 2024,
-                "track_count": 12
-            }
-        ]
+        # Fetch real albums from database
+        albums = Album.query.filter_by(user_id=user_id).order_by(Album.created_at.desc()).all()
+        
+        albums_data = []
+        for album in albums:
+            # Count tracks in album
+            track_count = 0
+            try:
+                track_count = Audio.query.filter_by(album_id=album.id).count()
+            except:
+                track_count = len(album.tracks) if hasattr(album, 'tracks') and album.tracks else 0
+            
+            albums_data.append({
+                "id": album.id,
+                "title": album.title,
+                "artwork": getattr(album, 'artwork_url', None) or getattr(album, 'cover_art_url', None),
+                "year": album.release_date.year if hasattr(album, 'release_date') and album.release_date else album.created_at.year if album.created_at else None,
+                "track_count": track_count,
+                "description": getattr(album, 'description', None),
+                "genre": getattr(album, 'genre', None),
+                "created_at": album.created_at.isoformat() if album.created_at else None
+            })
         
         return jsonify(albums_data), 200
         
     except Exception as e:
-        return jsonify({
-            "error": f"Failed to fetch albums: {str(e)}"
-        }), 500
+        print(f"Error fetching albums: {e}")
+        return jsonify([]), 200
 
 # 4. ARTIST PLAYLISTS ENDPOINT (Optional)
 @api.route('/artist/playlists', methods=['GET']) 
@@ -15766,23 +15777,50 @@ def get_artist_playlists():
     try:
         user_id = get_jwt_identity()
         
-        # Mock playlists data
-        playlists_data = [
-            {
-                "id": 1,
-                "name": "My Favorites",
-                "cover": None,
-                "track_count": 25,
-                "duration": "1:32:45"
-            }
-        ]
+        # Fetch real playlists from database
+        playlists = PlaylistAudio.query.filter_by(user_id=user_id).order_by(PlaylistAudio.created_at.desc()).all()
+        
+        playlists_data = []
+        for playlist in playlists:
+            # Calculate duration if tracks exist
+            total_duration = 0
+            track_count = 0
+            
+            try:
+                if hasattr(playlist, 'tracks') and playlist.tracks:
+                    track_count = len(playlist.tracks)
+                    for track in playlist.tracks:
+                        if hasattr(track, 'duration') and track.duration:
+                            total_duration += track.duration
+            except:
+                pass
+            
+            # Format duration
+            hours = total_duration // 3600
+            minutes = (total_duration % 3600) // 60
+            seconds = total_duration % 60
+            
+            if hours > 0:
+                duration_str = f"{hours}:{minutes:02d}:{seconds:02d}"
+            else:
+                duration_str = f"{minutes}:{seconds:02d}"
+            
+            playlists_data.append({
+                "id": playlist.id,
+                "name": playlist.name or playlist.title,
+                "cover": getattr(playlist, 'cover_url', None) or getattr(playlist, 'artwork_url', None),
+                "track_count": track_count,
+                "duration": duration_str,
+                "description": getattr(playlist, 'description', None),
+                "is_public": getattr(playlist, 'is_public', True),
+                "created_at": playlist.created_at.isoformat() if playlist.created_at else None
+            })
         
         return jsonify(playlists_data), 200
         
     except Exception as e:
-        return jsonify({
-            "error": f"Failed to fetch playlists: {str(e)}"
-        }), 500
+        print(f"Error fetching playlists: {e}")
+        return jsonify([]), 200
 
 # 5. ARTIST ACTIVITY ENDPOINT (Optional)
 @api.route('/artist/activity', methods=['GET'])
@@ -15791,36 +15829,125 @@ def get_artist_activity():
     """Get recent activity for the current artist"""
     try:
         user_id = get_jwt_identity()
+        activity_data = []
         
-        # Mock activity data
-        activity_data = [
-            {
-                "type": "track",
-                "message": "New track uploaded: 'Sample Track'",
-                "timestamp": "2 hours ago",
-                "icon": "🎵"
-            },
-            {
-                "type": "like",
-                "message": "50 new likes on 'Previous Track'",
-                "timestamp": "1 day ago", 
-                "icon": "❤️"
-            },
-            {
-                "type": "follower",
-                "message": "25 new followers",
-                "timestamp": "3 days ago",
-                "icon": "👥"
-            }
-        ]
+        # Get recent track uploads (last 30 days)
+        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
         
-        return jsonify(activity_data), 200
+        try:
+            recent_tracks = Audio.query.filter(
+                Audio.user_id == user_id,
+                Audio.created_at >= thirty_days_ago
+            ).order_by(Audio.created_at.desc()).limit(5).all()
+            
+            for track in recent_tracks:
+                activity_data.append({
+                    "type": "track",
+                    "message": f"Uploaded new track: '{track.title}'",
+                    "timestamp": _get_relative_time(track.created_at),
+                    "icon": "🎵",
+                    "created_at": track.created_at.isoformat() if track.created_at else None
+                })
+        except Exception as e:
+            print(f"Error fetching track activity: {e}")
+        
+        # Get recent likes received
+        try:
+            recent_likes = AudioLike.query.join(Audio).filter(
+                Audio.user_id == user_id,
+                AudioLike.created_at >= thirty_days_ago
+            ).order_by(AudioLike.created_at.desc()).limit(10).all()
+            
+            if recent_likes:
+                # Group by track
+                likes_by_track = {}
+                for like in recent_likes:
+                    track_id = like.audio_id
+                    if track_id not in likes_by_track:
+                        likes_by_track[track_id] = {"count": 0, "track": like.audio, "latest": like.created_at}
+                    likes_by_track[track_id]["count"] += 1
+                
+                for track_id, data in likes_by_track.items():
+                    track_title = data["track"].title if data["track"] else "your track"
+                    activity_data.append({
+                        "type": "like",
+                        "message": f"{data['count']} new likes on '{track_title}'",
+                        "timestamp": _get_relative_time(data["latest"]),
+                        "icon": "❤️",
+                        "created_at": data["latest"].isoformat() if data["latest"] else None
+                    })
+        except Exception as e:
+            print(f"Error fetching likes activity: {e}")
+        
+        # Get recent followers
+        try:
+            recent_followers = Follow.query.filter(
+                Follow.followed_id == user_id,
+                Follow.created_at >= thirty_days_ago
+            ).count()
+            
+            if recent_followers > 0:
+                activity_data.append({
+                    "type": "follower",
+                    "message": f"{recent_followers} new followers",
+                    "timestamp": "This month",
+                    "icon": "👥",
+                    "created_at": datetime.utcnow().isoformat()
+                })
+        except Exception as e:
+            print(f"Error fetching follower activity: {e}")
+        
+        # Get recent plays
+        try:
+            recent_plays = PlayHistory.query.join(Audio).filter(
+                Audio.user_id == user_id,
+                PlayHistory.played_at >= thirty_days_ago
+            ).count()
+            
+            if recent_plays > 0:
+                activity_data.append({
+                    "type": "play",
+                    "message": f"{recent_plays} plays this month",
+                    "timestamp": "This month",
+                    "icon": "▶️",
+                    "created_at": datetime.utcnow().isoformat()
+                })
+        except Exception as e:
+            print(f"Error fetching play activity: {e}")
+        
+        # Sort by created_at descending
+        activity_data.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        
+        # Return top 10 activities
+        return jsonify(activity_data[:10]), 200
         
     except Exception as e:
-        return jsonify({
-            "error": f"Failed to fetch activity: {str(e)}"
-        }), 500
+        print(f"Error fetching activity: {e}")
+        return jsonify([]), 200
 
+
+# Helper function for relative time
+def _get_relative_time(dt):
+    """Convert datetime to relative time string"""
+    if not dt:
+        return "Unknown"
+    
+    now = datetime.utcnow()
+    diff = now - dt
+    
+    if diff.days > 30:
+        return dt.strftime("%b %d, %Y")
+    elif diff.days > 0:
+        return f"{diff.days} day{'s' if diff.days > 1 else ''} ago"
+    elif diff.seconds > 3600:
+        hours = diff.seconds // 3600
+        return f"{hours} hour{'s' if hours > 1 else ''} ago"
+    elif diff.seconds > 60:
+        minutes = diff.seconds // 60
+        return f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+    else:
+        return "Just now"
+    
 # 6. UPDATE USER PROFILE ENDPOINT
 @api.route('/user/profile', methods=['PUT'])
 @jwt_required()

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import "../../styles/InboxDrawer.css";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 const InboxDrawer = ({ isOpen, onClose, currentUser, socket }) => {
   const [conversations, setConversations] = useState([]);
@@ -10,16 +10,10 @@ const InboxDrawer = ({ isOpen, onClose, currentUser, socket }) => {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
   const messagesEndRef = useRef(null);
-
-  // Sample conversations for fallback
-  const sampleConversations = [
-    { id: 1, username: "john_doe", last_message: "Hey there!", unread: 2 },
-    { id: 2, username: "jane_smith", last_message: "How's it going?", unread: 0 },
-    { id: 3, username: "musiclover", last_message: "Great track!", unread: 1 },
-    { id: 4, username: "zenmaster", last_message: "Peace and love!", unread: 0 },
-    { id: 5, username: "fitjay", last_message: "Ready for the workout?", unread: 1 }
-  ];
 
   // Initialize socket listeners
   useEffect(() => {
@@ -27,11 +21,11 @@ const InboxDrawer = ({ isOpen, onClose, currentUser, socket }) => {
 
     socket.on("chat_message", (message) => {
       console.log("Received message:", message);
-      setMessages(prev => [...prev, message]);
+      setMessages((prev) => [...prev, message]);
     });
 
     socket.on("new_conversation", (conversation) => {
-      setConversations(prev => [...prev, conversation]);
+      setConversations((prev) => [...prev, conversation]);
     });
 
     return () => {
@@ -45,79 +39,60 @@ const InboxDrawer = ({ isOpen, onClose, currentUser, socket }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Fetch conversations
+  // Fetch conversations when drawer opens
+  useEffect(() => {
+    if (isOpen && currentUser?.id) {
+      fetchConversations();
+    }
+  }, [isOpen, currentUser]);
+
+  // Fetch conversations from API
   const fetchConversations = async () => {
     if (!currentUser?.id) {
-      console.log("No current user, using sample conversations");
-      setConversations(sampleConversations);
+      setConversations([]);
       return;
     }
 
     try {
       setLoading(true);
+      setError(null);
       const token = localStorage.getItem("token");
-      
+
       if (!token) {
-        console.log("No token found, using sample conversations");
-        setConversations(sampleConversations);
+        setError("Please log in to view messages");
+        setConversations([]);
         return;
       }
 
       const response = await fetch(`${BACKEND_URL}/api/conversations`, {
         headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (response.ok) {
         const data = await response.json();
-        setConversations(data.length > 0 ? data : sampleConversations);
+        setConversations(Array.isArray(data) ? data : data.conversations || []);
       } else {
-        console.log("API failed, using sample conversations");
-        setConversations(sampleConversations);
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to load conversations");
+        setConversations([]);
       }
     } catch (error) {
       console.error("Error fetching conversations:", error);
-      setConversations(sampleConversations);
       setError("Failed to load conversations");
+      setConversations([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Open conversation
+  // Open conversation and fetch messages
   const openConversation = async (user) => {
     setSelectedUser(user);
     setMessages([]);
     setError(null);
-
-    // Sample messages for demo
-    const sampleMessages = [
-      { 
-        id: 1, 
-        from: user.id, 
-        to: currentUser?.id || 1, 
-        text: `Hey ${currentUser?.username || 'there'}! How are you doing?`, 
-        timestamp: new Date(Date.now() - 3600000).toISOString() 
-      },
-      { 
-        id: 2, 
-        from: currentUser?.id || 1, 
-        to: user.id, 
-        text: "Hi! I'm doing great, thanks for asking! 😊", 
-        timestamp: new Date(Date.now() - 1800000).toISOString() 
-      },
-      { 
-        id: 3, 
-        from: user.id, 
-        to: currentUser?.id || 1, 
-        text: "That's awesome! What have you been up to lately?", 
-        timestamp: new Date(Date.now() - 900000).toISOString() 
-      }
-    ];
-    
-    setMessages(sampleMessages);
 
     // Join socket room if available
     if (socket && currentUser) {
@@ -125,82 +100,146 @@ const InboxDrawer = ({ isOpen, onClose, currentUser, socket }) => {
       socket.emit("join_room", {
         roomId,
         userId: currentUser.id,
-        username: currentUser.username || currentUser.display_name
+        username: currentUser.username || currentUser.display_name,
       });
     }
 
-    // Try to fetch real message history
+    // Fetch message history
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
 
       const response = await fetch(`${BACKEND_URL}/api/messages/${user.id}`, {
         headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (response.ok) {
         const messageHistory = await response.json();
-        if (messageHistory.length > 0) {
-          setMessages(messageHistory);
-        }
+        setMessages(Array.isArray(messageHistory) ? messageHistory : messageHistory.messages || []);
       }
     } catch (error) {
-      console.log("Using sample messages, API error:", error);
+      console.error("Error fetching messages:", error);
+      setError("Failed to load messages");
     }
   };
 
   // Send message
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!newMessage.trim() || !selectedUser) return;
 
-    const message = {
-      id: Date.now(),
-      from: currentUser?.id || 1,
-      to: selectedUser.id,
-      text: newMessage.trim(),
-      timestamp: new Date().toISOString()
-    };
+    const messageText = newMessage.trim();
+    setNewMessage("");
 
-    // Add to local state immediately
-    setMessages(prev => [...prev, message]);
+    // Optimistically add message to UI
+    const tempMessage = {
+      id: Date.now(),
+      sender_id: currentUser?.id,
+      recipient_id: selectedUser.id,
+      message: messageText,
+      text: messageText,
+      created_at: new Date().toISOString(),
+      sending: true,
+    };
+    setMessages((prev) => [...prev, tempMessage]);
 
     // Send via socket if available
     if (socket && currentUser) {
       const roomId = [currentUser.id, selectedUser.id].sort().join("-");
       socket.emit("chat_message", {
-        room: roomId,
+        roomId,
         from: currentUser.id,
         to: selectedUser.id,
-        text: newMessage.trim(),
-        timestamp: message.timestamp
+        text: messageText,
+        timestamp: new Date().toISOString(),
       });
     }
 
-    // Clear input
-    setNewMessage("");
-
-    // Save to backend (optional, can fail silently)
+    // Send via API
     try {
       const token = localStorage.getItem("token");
-      if (token) {
-        fetch(`${BACKEND_URL}/api/messages`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(message)
-        }).catch(err => console.log("Message save failed:", err));
+      if (!token) return;
+
+      const response = await fetch(`${BACKEND_URL}/api/messages/send`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipient_id: selectedUser.id,
+          message: messageText,
+        }),
+      });
+
+      if (response.ok) {
+        const sentMessage = await response.json();
+        // Replace temp message with real one
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === tempMessage.id ? { ...sentMessage, sending: false } : msg))
+        );
       }
     } catch (error) {
-      console.log("Backend save failed:", error);
+      console.error("Error sending message:", error);
+      // Mark message as failed
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === tempMessage.id ? { ...msg, sending: false, failed: true } : msg))
+      );
     }
   };
 
-  // Handle key press
+  // Search users
+  const searchUsers = async (query) => {
+    if (query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      setSearching(true);
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(`${BACKEND_URL}/api/users/search?q=${encodeURIComponent(query)}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.users || []);
+      }
+    } catch (error) {
+      console.error("Error searching users:", error);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // Handle search input
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery) {
+        searchUsers(searchQuery);
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // Start new conversation
+  const startConversation = (user) => {
+    setSearchQuery("");
+    setSearchResults([]);
+    openConversation(user);
+  };
+
+  // Handle key press in message input
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -208,150 +247,195 @@ const InboxDrawer = ({ isOpen, onClose, currentUser, socket }) => {
     }
   };
 
-  // Load conversations when drawer opens
-  useEffect(() => {
-    if (isOpen) {
-      fetchConversations();
-    }
-  }, [isOpen]);
+  // Format timestamp
+  const formatTime = (timestamp) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
 
-  // Don't render anything if not open
   if (!isOpen) return null;
 
   return (
-    <div className="inbox-drawer">
-      <div className="drawer-header">
-        <h4>💬 Messages</h4>
-        <button 
-          className="close-btn" 
-          onClick={() => {
-            onClose();
-            setSelectedUser(null);
-            setMessages([]);
-          }}
-        >
-          ✕
-        </button>
-      </div>
+    <div className="inbox-drawer-overlay" onClick={onClose}>
+      <div className="inbox-drawer" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="inbox-header">
+          <h2>💬 Messages</h2>
+          <button className="close-btn" onClick={onClose}>
+            ✕
+          </button>
+        </div>
 
-      {!selectedUser ? (
-        // Conversation List View
-        <div className="conversation-list">
-          {loading && (
-            <div className="loading-state">
-              <div className="spinner"></div>
-              <p>Loading conversations...</p>
-            </div>
-          )}
-          
-          {error && (
-            <div className="error-state">
-              <p>⚠️ {error}</p>
-              <button onClick={fetchConversations}>Retry</button>
-            </div>
-          )}
-
-          {!loading && conversations.length === 0 && (
-            <div className="empty-state">
-              <p>No conversations yet</p>
-              <small>Start chatting with someone to see conversations here</small>
-            </div>
-          )}
-
-          {conversations.map((conversation) => (
-            <div
-              key={conversation.id || conversation.conversation_id}
-              className="conversation-item"
-              onClick={() => openConversation({
-                id: conversation.id || conversation.with_user_id,
-                username: conversation.username || conversation.with_username
-              })}
-            >
-              <div className="conversation-avatar">
-                {(conversation.username || conversation.with_username || 'U').charAt(0).toUpperCase()}
+        <div className="inbox-content">
+          {/* Conversations List */}
+          {!selectedUser ? (
+            <div className="conversations-panel">
+              {/* Search */}
+              <div className="search-box">
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-              <div className="conversation-info">
-                <div className="conversation-name">
-                  {conversation.username || conversation.with_username}
+
+              {/* Search Results */}
+              {searchQuery && (
+                <div className="search-results">
+                  {searching ? (
+                    <div className="loading-text">Searching...</div>
+                  ) : searchResults.length > 0 ? (
+                    searchResults.map((user) => (
+                      <div
+                        key={user.id}
+                        className="user-item"
+                        onClick={() => startConversation(user)}
+                      >
+                        <div className="user-avatar">
+                          {user.profile_picture ? (
+                            <img src={user.profile_picture} alt={user.username} />
+                          ) : (
+                            <span>👤</span>
+                          )}
+                        </div>
+                        <div className="user-info">
+                          <strong>@{user.username}</strong>
+                          <span>{user.display_name}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="no-results">No users found</div>
+                  )}
                 </div>
-                <div className="conversation-preview">
-                  {conversation.last_message || "No messages yet"}
-                </div>
-              </div>
-              {conversation.unread > 0 && (
-                <span className="unread-count">{conversation.unread}</span>
+              )}
+
+              {/* Conversations */}
+              {!searchQuery && (
+                <>
+                  {loading ? (
+                    <div className="loading-container">
+                      <div className="loading-spinner">💬</div>
+                      <p>Loading conversations...</p>
+                    </div>
+                  ) : error ? (
+                    <div className="error-container">
+                      <p>{error}</p>
+                      <button onClick={fetchConversations}>Retry</button>
+                    </div>
+                  ) : conversations.length === 0 ? (
+                    <div className="empty-conversations">
+                      <div className="empty-icon">💬</div>
+                      <h3>No conversations yet</h3>
+                      <p>Search for users to start a conversation</p>
+                    </div>
+                  ) : (
+                    <div className="conversations-list">
+                      {conversations.map((conv) => (
+                        <div
+                          key={conv.id}
+                          className="conversation-item"
+                          onClick={() => openConversation(conv)}
+                        >
+                          <div className="conversation-avatar">
+                            {conv.profile_picture || conv.avatar ? (
+                              <img src={conv.profile_picture || conv.avatar} alt={conv.username} />
+                            ) : (
+                              <span>👤</span>
+                            )}
+                          </div>
+                          <div className="conversation-info">
+                            <div className="conversation-name">
+                              @{conv.username}
+                              {conv.unread > 0 && (
+                                <span className="unread-badge">{conv.unread}</span>
+                              )}
+                            </div>
+                            <div className="conversation-preview">
+                              {conv.last_message || "No messages yet"}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
-          ))}
-        </div>
-      ) : (
-        // Chat View
-        <div className="chat-view">
-          <div className="chat-header">
-            <button 
-              className="back-btn"
-              onClick={() => setSelectedUser(null)}
-            >
-              ← Back
-            </button>
-            <div className="chat-user-info">
-              <div className="chat-avatar">
-                {selectedUser.username.charAt(0).toUpperCase()}
-              </div>
-              <span className="chat-username">{selectedUser.username}</span>
-            </div>
-          </div>
-
-          <div className="chat-messages">
-            {messages.length === 0 && (
-              <div className="empty-chat">
-                <p>No messages yet</p>
-                <small>Start the conversation!</small>
-              </div>
-            )}
-
-            {messages.map((message) => (
-              <div
-                key={message.id || `${message.from}-${message.timestamp}`}
-                className={`message ${
-                  message.from === (currentUser?.id || 1) ? "sent" : "received"
-                }`}
-              >
-                <div className="message-content">
-                  {message.text}
-                </div>
-                <div className="message-time">
-                  {new Date(message.timestamp).toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
+          ) : (
+            /* Chat View */
+            <div className="chat-panel">
+              {/* Chat Header */}
+              <div className="chat-header">
+                <button className="back-btn" onClick={() => setSelectedUser(null)}>
+                  ← Back
+                </button>
+                <div className="chat-user-info">
+                  <div className="chat-avatar">
+                    {selectedUser.profile_picture || selectedUser.avatar ? (
+                      <img
+                        src={selectedUser.profile_picture || selectedUser.avatar}
+                        alt={selectedUser.username}
+                      />
+                    ) : (
+                      <span>👤</span>
+                    )}
+                  </div>
+                  <span>@{selectedUser.username}</span>
                 </div>
               </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
 
-          <div className="chat-input-container">
-            <div className="chat-input">
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type a message..."
-                className="message-input"
-              />
-              <button 
-                onClick={sendMessage}
-                disabled={!newMessage.trim()}
-                className="send-btn"
-              >
-                Send
-              </button>
+              {/* Messages */}
+              <div className="messages-container">
+                {messages.length === 0 ? (
+                  <div className="no-messages">
+                    <p>No messages yet. Say hi! 👋</p>
+                  </div>
+                ) : (
+                  messages.map((msg, index) => (
+                    <div
+                      key={msg.id || index}
+                      className={`message ${
+                        msg.sender_id === currentUser?.id || msg.from === currentUser?.id
+                          ? "sent"
+                          : "received"
+                      } ${msg.sending ? "sending" : ""} ${msg.failed ? "failed" : ""}`}
+                    >
+                      <div className="message-content">
+                        {msg.message || msg.text}
+                      </div>
+                      <div className="message-time">
+                        {msg.sending ? "Sending..." : msg.failed ? "Failed" : formatTime(msg.created_at || msg.timestamp)}
+                      </div>
+                    </div>
+                  ))
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Message Input */}
+              <div className="message-input-container">
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={!newMessage.trim()}
+                  className="send-btn"
+                >
+                  📤
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
