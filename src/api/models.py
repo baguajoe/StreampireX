@@ -4904,5 +4904,114 @@ ALTER TABLE video ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0;
 --     FOR VALUES FROM ('2025-01-01') TO ('2025-02-01');
 """
 
-print("📊 Bandwidth Migration SQL:")
-print(MIGRATION_SQL)
+print("📊 Bandwidth Migration SQL:")# =====================================================
+# VIDEO EDITOR MODELS - Add to your src/api/models.py
+# =====================================================
+# Copy these classes into your models.py file
+
+# =====================================================
+# VIDEO EDITOR MODELS - CORRECTED
+# =====================================================
+
+class VideoProject(db.Model):
+    """Stores video editor project timelines"""
+    __tablename__ = 'video_projects'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)  # No FK constraint - simpler
+    title = db.Column(db.String(255), nullable=False, default='Untitled Project')
+    description = db.Column(db.Text)
+    resolution_width = db.Column(db.Integer, default=1920)
+    resolution_height = db.Column(db.Integer, default=1080)
+    frame_rate = db.Column(db.Integer, default=30)
+    duration = db.Column(db.Float, default=0)
+    timeline_data = db.Column(db.Text)
+    thumbnail_url = db.Column(db.String(500))
+    status = db.Column(db.String(50), default='draft')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'title': self.title,
+            'description': self.description,
+            'resolution': {'width': self.resolution_width, 'height': self.resolution_height},
+            'frame_rate': self.frame_rate,
+            'duration': self.duration,
+            'timeline_data': json.loads(self.timeline_data) if self.timeline_data else None,
+            'thumbnail_url': self.thumbnail_url,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class VideoClipAsset(db.Model):
+    """Stores uploaded video/audio/image assets"""
+    __tablename__ = 'video_clip_assets'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)
+    project_id = db.Column(db.Integer, nullable=True)
+    cloudinary_public_id = db.Column(db.String(255), nullable=False)
+    cloudinary_url = db.Column(db.String(500), nullable=False)
+    resource_type = db.Column(db.String(50), default='video')
+    title = db.Column(db.String(255))
+    duration = db.Column(db.Float)
+    width = db.Column(db.Integer)
+    height = db.Column(db.Integer)
+    file_size = db.Column(db.BigInteger)
+    format = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'cloudinary_public_id': self.cloudinary_public_id,
+            'cloudinary_url': self.cloudinary_url,
+            'resource_type': self.resource_type,
+            'title': self.title,
+            'duration': self.duration,
+            'width': self.width,
+            'height': self.height,
+            'file_size': self.file_size,
+            'format': self.format,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class VideoExport(db.Model):
+    """Tracks video exports"""
+    __tablename__ = 'video_exports'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)
+    project_id = db.Column(db.Integer, nullable=False)
+    resolution = db.Column(db.String(50))
+    format = db.Column(db.String(50), default='mp4')
+    quality = db.Column(db.String(50), default='auto')
+    export_url = db.Column(db.String(500))
+    transformation_url = db.Column(db.Text)
+    status = db.Column(db.String(50), default='pending')
+    error_message = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'project_id': self.project_id,
+            'resolution': self.resolution,
+            'format': self.format,
+            'quality': self.quality,
+            'export_url': self.export_url,
+            'status': self.status,
+            'error_message': self.error_message,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None
+        }
