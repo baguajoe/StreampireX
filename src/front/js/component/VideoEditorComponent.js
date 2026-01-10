@@ -17,13 +17,466 @@ import {
   Hexagon, Triangle, Square as SquareIcon, Diamond, Octagon, Pentagon,
   Activity, BarChart, PieChart, LineChart, AreaChart, Thermometer,
   Wifi, WifiOff, Bluetooth, Radio as RadioIcon, Mic, MicOff, Speaker, Headphones,
-  Volume1, Volume, VolumeX as Mute, Bell, BellOff, PlayCircle, PauseCircle
+  Volume1, Volume, VolumeX as Mute, Bell, BellOff, PlayCircle, PauseCircle,
+  Loader
 } from 'lucide-react';
 
 // Backend URL configuration
 const backendURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
-// Audio Effects API Integration Functions
+// =====================================================
+// VIDEO EDITOR API FUNCTIONS - Cloudinary Integration
+// =====================================================
+
+// Get authorization headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('jwt-token') || localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  };
+};
+
+/**
+ * Upload a video/audio/image asset for use in editor
+ * @param {File} file - The file to upload
+ * @returns {Promise<Object>} - Asset data with Cloudinary info
+ */
+const uploadEditorAsset = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = localStorage.getItem('jwt-token') || localStorage.getItem('token');
+
+    const response = await fetch(`${backendURL}/api/video-editor/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Upload failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.asset;
+  } catch (error) {
+    console.error('Error uploading editor asset:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all assets uploaded by user for video editor
+ * @returns {Promise<Array>} - Array of asset objects
+ */
+const getEditorAssets = async () => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/assets`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to get assets: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.assets || [];
+  } catch (error) {
+    console.error('Error fetching editor assets:', error);
+    throw error;
+  }
+};
+
+/**
+ * Apply transformations to a video clip
+ * @param {Object} clipData - Clip data with transformations
+ * @returns {Promise<string>} - Transformed video URL
+ */
+const transformVideo = async (clipData) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/transform`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(clipData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Transform failed');
+    }
+
+    const data = await response.json();
+    return data.transformed_url;
+  } catch (error) {
+    console.error('Error transforming video:', error);
+    throw error;
+  }
+};
+
+/**
+ * Trim a video to specified timestamps
+ * @param {string} publicId - Cloudinary public ID
+ * @param {number} startTime - Start time in seconds
+ * @param {number} endTime - End time in seconds
+ * @returns {Promise<string>} - Trimmed video URL
+ */
+const trimVideoClip = async (publicId, startTime, endTime) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/trim`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        public_id: publicId,
+        start_time: startTime,
+        end_time: endTime
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Trim failed');
+    }
+
+    const data = await response.json();
+    return data.trimmed_url;
+  } catch (error) {
+    console.error('Error trimming video:', error);
+    throw error;
+  }
+};
+
+/**
+ * Preview a single effect on a video
+ * @param {string} publicId - Cloudinary public ID
+ * @param {string} effectId - Effect identifier
+ * @param {number} intensity - Effect intensity (0-100)
+ * @returns {Promise<string>} - Preview video URL
+ */
+const previewVideoEffect = async (publicId, effectId, intensity = 50) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/effect-preview`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        public_id: publicId,
+        effect_id: effectId,
+        intensity: intensity
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Preview failed');
+    }
+
+    const data = await response.json();
+    return data.preview_url;
+  } catch (error) {
+    console.error('Error previewing effect:', error);
+    throw error;
+  }
+};
+
+/**
+ * Concatenate multiple video clips
+ * @param {Array} clips - Array of clip objects with public_id and optional trim
+ * @returns {Promise<string>} - Concatenated video URL
+ */
+const concatenateVideos = async (clips) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/concatenate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ clips })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Concatenation failed');
+    }
+
+    const data = await response.json();
+    return data.concatenated_url;
+  } catch (error) {
+    console.error('Error concatenating videos:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add video/image overlay (picture-in-picture)
+ * @param {string} basePublicId - Base video public ID
+ * @param {string} overlayPublicId - Overlay video/image public ID
+ * @param {Object} options - Position, scale, opacity, start time
+ * @returns {Promise<string>} - Video URL with overlay
+ */
+const addVideoOverlay = async (basePublicId, overlayPublicId, options = {}) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/add-overlay`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        base_public_id: basePublicId,
+        overlay_public_id: overlayPublicId,
+        position: options.position || 'bottom-right',
+        scale: options.scale || 30,
+        opacity: options.opacity || 100,
+        start_time: options.startTime || 0
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Overlay failed');
+    }
+
+    const data = await response.json();
+    return data.overlay_url;
+  } catch (error) {
+    console.error('Error adding overlay:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add text overlay to video
+ * @param {string} publicId - Video public ID
+ * @param {string} text - Text to overlay
+ * @param {Object} options - Font size, color, position
+ * @returns {Promise<string>} - Video URL with text
+ */
+const addTextOverlay = async (publicId, text, options = {}) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/add-text`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        public_id: publicId,
+        text: text,
+        font_size: options.fontSize || 40,
+        color: options.color || 'white',
+        position: options.position || 'bottom-left'
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Text overlay failed');
+    }
+
+    const data = await response.json();
+    return data.text_overlay_url;
+  } catch (error) {
+    console.error('Error adding text overlay:', error);
+    throw error;
+  }
+};
+
+/**
+ * Export the complete video project
+ * @param {Object} projectData - Timeline and settings data
+ * @returns {Promise<Object>} - Export result with URL
+ */
+const exportProject = async (projectData) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/export`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(projectData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Export failed');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error exporting project:', error);
+    throw error;
+  }
+};
+
+/**
+ * Generate thumbnail from video at specific timestamp
+ * @param {string} publicId - Video public ID
+ * @param {number} timestamp - Timestamp in seconds
+ * @returns {Promise<string>} - Thumbnail URL
+ */
+const generateThumbnail = async (publicId, timestamp = 0) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/thumbnail`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        public_id: publicId,
+        timestamp: timestamp
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Thumbnail generation failed');
+    }
+
+    const data = await response.json();
+    return data.thumbnail_url;
+  } catch (error) {
+    console.error('Error generating thumbnail:', error);
+    throw error;
+  }
+};
+
+/**
+ * Save project to database
+ * @param {Object} projectData - Project data to save
+ * @returns {Promise<Object>} - Saved project data
+ */
+const saveProjectToBackend = async (projectData) => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/save-project`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(projectData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Save failed');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error saving project:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get available effects list
+ * @returns {Promise<Object>} - Effects organized by category
+ */
+const getAvailableEffectsFromAPI = async () => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/effects`, {
+      method: 'GET'
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get effects');
+    }
+
+    const data = await response.json();
+    return data.effects;
+  } catch (error) {
+    console.error('Error fetching effects:', error);
+    return null;
+  }
+};
+
+/**
+ * Get available export resolutions
+ * @returns {Promise<Array>} - Array of resolution options
+ */
+const getAvailableResolutions = async () => {
+  try {
+    const response = await fetch(`${backendURL}/api/video-editor/resolutions`, {
+      method: 'GET'
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get resolutions');
+    }
+
+    const data = await response.json();
+    return data.resolutions;
+  } catch (error) {
+    console.error('Error fetching resolutions:', error);
+    return [];
+  }
+};
+
+/**
+ * Build clip data object for API calls
+ * @param {Object} clip - Timeline clip object
+ * @returns {Object} - Formatted clip data for API
+ */
+const buildClipData = (clip) => {
+  return {
+    public_id: clip.cloudinary_public_id || clip.public_id || clip.id,
+    trim: clip.inPoint !== undefined && clip.outPoint !== undefined ? {
+      start: clip.inPoint,
+      end: clip.outPoint
+    } : null,
+    effects: clip.effects?.filter(e => e.enabled !== false).map(e => ({
+      id: e.id,
+      value: e.value || 50,
+      enabled: true
+    })) || [],
+    transform: clip.compositing ? {
+      width: clip.compositing.scale?.x ? Math.round(1920 * clip.compositing.scale.x / 100) : null,
+      height: clip.compositing.scale?.y ? Math.round(1080 * clip.compositing.scale.y / 100) : null,
+      crop: 'scale'
+    } : null,
+    audio: {
+      volume: clip.volume ?? 100,
+      muted: clip.muted || false
+    }
+  };
+};
+
+/**
+ * Build timeline data for export
+ * @param {Array} tracks - Array of track objects
+ * @param {Object} settings - Export settings
+ * @returns {Object} - Formatted project data for export API
+ */
+const buildExportData = (tracks, settings = {}) => {
+  const formattedTracks = tracks.map(track => ({
+    id: track.id,
+    name: track.name,
+    type: track.type,
+    clips: track.clips.map(clip => buildClipData(clip)),
+    transitions: track.transitions || []
+  }));
+
+  return {
+    timeline: {
+      tracks: formattedTracks
+    },
+    settings: {
+      resolution: settings.resolution || '1080p',
+      quality: settings.quality || 'auto',
+      format: settings.format || 'mp4'
+    }
+  };
+};
+
+/**
+ * Download video from URL
+ * @param {string} url - Video URL
+ * @param {string} filename - Download filename
+ */
+const downloadVideo = (url, filename = 'exported-video.mp4') => {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.target = '_blank';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// =====================================================
+// AUDIO EFFECTS API FUNCTIONS (EXISTING)
+// =====================================================
+
 const applyAudioEffect = async (clipId, effectId, intensity) => {
   try {
     const token = localStorage.getItem('jwt-token');
@@ -138,25 +591,71 @@ const getAudioPresets = async () => {
   }
 };
 
-const MediaBrowser = ({ onFileSelect, onClose }) => {
+// =====================================================
+// MEDIA BROWSER COMPONENT (UPDATED WITH CLOUDINARY)
+// =====================================================
+
+const MediaBrowser = ({ onFileSelect, onClose, onUploadComplete }) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [viewMode, setViewMode] = useState('grid');
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({});
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
-    const processedFiles = files.map(file => ({
-      id: Date.now() + Math.random(),
-      name: file.name,
-      type: file.type.startsWith('video/') ? 'video'
-        : file.type.startsWith('audio/') ? 'audio'
-          : 'image',
-      size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-      duration: '0:30',
-      file: file,
-      url: URL.createObjectURL(file)
-    }));
+    setUploading(true);
 
-    setSelectedFiles(prev => [...prev, ...processedFiles]);
+    for (const file of files) {
+      const tempId = Date.now() + Math.random();
+      
+      // Add temp file with loading state
+      setSelectedFiles(prev => [...prev, {
+        id: tempId,
+        name: file.name,
+        type: file.type.startsWith('video/') ? 'video'
+          : file.type.startsWith('audio/') ? 'audio'
+            : 'image',
+        size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+        duration: '0:30',
+        file: file,
+        url: URL.createObjectURL(file),
+        uploading: true
+      }]);
+
+      try {
+        // Upload to Cloudinary via backend
+        const asset = await uploadEditorAsset(file);
+        
+        // Update with Cloudinary data
+        setSelectedFiles(prev => prev.map(f => 
+          f.id === tempId ? {
+            ...f,
+            id: asset.public_id || tempId,
+            cloudinary_public_id: asset.public_id,
+            url: asset.url,
+            duration: asset.duration ? `${Math.floor(asset.duration / 60)}:${Math.floor(asset.duration % 60).toString().padStart(2, '0')}` : '0:00',
+            width: asset.width,
+            height: asset.height,
+            thumbnail: asset.thumbnail,
+            uploading: false
+          } : f
+        ));
+
+        console.log(`✅ Uploaded ${file.name} to Cloudinary`);
+        
+        if (onUploadComplete) {
+          onUploadComplete(asset);
+        }
+      } catch (error) {
+        console.error(`❌ Failed to upload ${file.name}:`, error);
+        // Mark as failed but keep local URL
+        setSelectedFiles(prev => prev.map(f => 
+          f.id === tempId ? { ...f, uploading: false, uploadFailed: true } : f
+        ));
+      }
+    }
+
+    setUploading(false);
   };
 
   return (
@@ -173,15 +672,16 @@ const MediaBrowser = ({ onFileSelect, onClose }) => {
         </div>
 
         <div className="media-browser-toolbar">
-          <label className="import-files-btn">
-            <Upload size={14} />
-            Import Files
+          <label className="import-files-btn" style={{ opacity: uploading ? 0.5 : 1 }}>
+            {uploading ? <Loader size={14} className="spin" /> : <Upload size={14} />}
+            {uploading ? 'Uploading...' : 'Import Files'}
             <input
               type="file"
               multiple
               accept="video/*,audio/*,image/*"
               onChange={handleFileChange}
               style={{ display: 'none' }}
+              disabled={uploading}
             />
           </label>
         </div>
@@ -190,17 +690,29 @@ const MediaBrowser = ({ onFileSelect, onClose }) => {
           {selectedFiles.map(file => (
             <div
               key={file.id}
-              className="media-browser-item"
-              onClick={() => onFileSelect(file)}
+              className={`media-browser-item ${file.uploading ? 'uploading' : ''} ${file.uploadFailed ? 'failed' : ''}`}
+              onClick={() => !file.uploading && onFileSelect(file)}
+              style={{ cursor: file.uploading ? 'wait' : 'pointer' }}
             >
               <div className="media-thumbnail">
-                {file.type === 'video' && <Video size={32} />}
-                {file.type === 'audio' && <AudioWaveform size={32} />}
-                {file.type === 'image' && <Image size={32} />}
+                {file.uploading ? (
+                  <Loader size={32} className="spin" />
+                ) : file.thumbnail ? (
+                  <img src={file.thumbnail} alt={file.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <>
+                    {file.type === 'video' && <Video size={32} />}
+                    {file.type === 'audio' && <AudioWaveform size={32} />}
+                    {file.type === 'image' && <Image size={32} />}
+                  </>
+                )}
               </div>
               <div className="media-info">
                 <div className="media-name">{file.name}</div>
-                <div className="media-meta">{file.size}</div>
+                <div className="media-meta">
+                  {file.uploading ? 'Uploading...' : file.uploadFailed ? 'Upload failed' : file.size}
+                  {file.cloudinary_public_id && <span style={{ color: '#00ffc8', marginLeft: '5px' }}>☁️</span>}
+                </div>
               </div>
             </div>
           ))}
@@ -209,6 +721,10 @@ const MediaBrowser = ({ onFileSelect, onClose }) => {
     </div>
   );
 };
+
+// =====================================================
+// SOURCE MONITOR COMPONENT (EXISTING)
+// =====================================================
 
 const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
   const [inPoint, setInPoint] = useState(0);
@@ -255,6 +771,183 @@ const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
     </div>
   );
 };
+
+// =====================================================
+// EXPORT MODAL COMPONENT (NEW)
+// =====================================================
+
+const ExportModal = ({ project, tracks, onClose, onExportComplete }) => {
+  const [resolution, setResolution] = useState('1080p');
+  const [quality, setQuality] = useState('auto');
+  const [format, setFormat] = useState('mp4');
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [exportUrl, setExportUrl] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleExport = async () => {
+    setExporting(true);
+    setExportProgress(10);
+    setError(null);
+
+    try {
+      // Build export data from timeline
+      const exportData = buildExportData(tracks, {
+        resolution,
+        quality,
+        format
+      });
+
+      setExportProgress(30);
+
+      // Check if we have any clips with Cloudinary IDs
+      const hasCloudinaryClips = tracks.some(track => 
+        track.clips.some(clip => clip.cloudinary_public_id)
+      );
+
+      if (!hasCloudinaryClips) {
+        throw new Error('No clips with cloud storage found. Please upload media files first.');
+      }
+
+      setExportProgress(50);
+
+      // Call export API
+      const result = await exportProject(exportData);
+
+      setExportProgress(100);
+
+      if (result.success && result.export_url) {
+        setExportUrl(result.export_url);
+        if (onExportComplete) {
+          onExportComplete(result);
+        }
+      } else {
+        throw new Error(result.error || 'Export failed');
+      }
+
+    } catch (err) {
+      console.error('Export error:', err);
+      setError(err.message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (exportUrl) {
+      downloadVideo(exportUrl, `${project.title || 'video'}.${format}`);
+    }
+  };
+
+  return (
+    <div className="export-modal-overlay">
+      <div className="export-modal">
+        <div className="export-modal-header">
+          <h3>Export Video</h3>
+          <button onClick={onClose} className="close-btn"><X size={16} /></button>
+        </div>
+
+        <div className="export-modal-content">
+          {!exportUrl ? (
+            <>
+              <div className="export-setting">
+                <label>Resolution</label>
+                <select value={resolution} onChange={(e) => setResolution(e.target.value)}>
+                  <option value="4k">4K Ultra HD (3840x2160)</option>
+                  <option value="1080p">Full HD (1920x1080)</option>
+                  <option value="720p">HD (1280x720)</option>
+                  <option value="480p">SD (854x480)</option>
+                </select>
+              </div>
+
+              <div className="export-setting">
+                <label>Quality</label>
+                <select value={quality} onChange={(e) => setQuality(e.target.value)}>
+                  <option value="auto">Auto (Recommended)</option>
+                  <option value="best">Best Quality</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low (Smaller file)</option>
+                </select>
+              </div>
+
+              <div className="export-setting">
+                <label>Format</label>
+                <select value={format} onChange={(e) => setFormat(e.target.value)}>
+                  <option value="mp4">MP4 (Most Compatible)</option>
+                  <option value="webm">WebM</option>
+                  <option value="mov">MOV</option>
+                </select>
+              </div>
+
+              {error && (
+                <div className="export-error">
+                  <span>⚠️ {error}</span>
+                </div>
+              )}
+
+              {exporting && (
+                <div className="export-progress">
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{ width: `${exportProgress}%` }} />
+                  </div>
+                  <span>{exportProgress}% - Processing...</span>
+                </div>
+              )}
+
+              <div className="export-actions">
+                <button onClick={onClose} className="cancel-btn" disabled={exporting}>
+                  Cancel
+                </button>
+                <button onClick={handleExport} className="export-btn" disabled={exporting}>
+                  {exporting ? (
+                    <>
+                      <Loader size={14} className="spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <Download size={14} />
+                      Export
+                    </>
+                  )}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="export-complete">
+              <div className="success-icon">✅</div>
+              <h4>Export Complete!</h4>
+              <p>Your video is ready to download.</p>
+              
+              <div className="export-actions">
+                <button onClick={handleDownload} className="download-btn">
+                  <Download size={14} />
+                  Download Video
+                </button>
+                <button onClick={() => window.open(exportUrl, '_blank')} className="preview-btn">
+                  <Eye size={14} />
+                  Preview
+                </button>
+              </div>
+              
+              <div className="export-url">
+                <input type="text" value={exportUrl} readOnly />
+                <button onClick={() => navigator.clipboard.writeText(exportUrl)}>
+                  <Copy size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// =====================================================
+// MAIN VIDEO EDITOR COMPONENT
+// =====================================================
 
 const VideoEditorComponent = () => {
   // Core state
@@ -336,6 +1029,15 @@ const VideoEditorComponent = () => {
   const [showMediaBrowser, setShowMediaBrowser] = useState(false);
   const [showSourceMonitor, setShowSourceMonitor] = useState(false);
   const [sourceMonitorMedia, setSourceMonitorMedia] = useState(null);
+
+  // Export state (NEW)
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
+
+  // Upload state (NEW)
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Dropdown states for organized sections
   const [showVideoEffects, setShowVideoEffects] = useState(true);
@@ -715,6 +1417,21 @@ const VideoEditorComponent = () => {
       } catch (error) {
         console.error('Preview error:', error);
       }
+    } else if (clip.cloudinary_public_id) {
+      // Video effect preview using Cloudinary (NEW)
+      try {
+        const previewUrl = await previewVideoEffect(clip.cloudinary_public_id, effectId, intensity);
+        
+        // Update preview in program monitor
+        setSelectedClip({
+          ...clip,
+          previewUrl: previewUrl
+        });
+        
+        console.log(`Previewing ${effectId} on video clip ${clipId}`);
+      } catch (error) {
+        console.error('Video preview error:', error);
+      }
     } else {
       console.log(`Previewing ${effectId} on video clip ${clipId}`);
     }
@@ -1082,29 +1799,64 @@ const VideoEditorComponent = () => {
     setDragOffset(0);
   };
 
-  // Handle file import
-  const handleFileImport = (e) => {
+  // Handle file import - UPDATED WITH CLOUDINARY UPLOAD
+  const handleFileImport = async (e) => {
     const files = Array.from(e.target.files);
+    setUploading(true);
 
-    files.forEach(file => {
+    for (const file of files) {
       const fileType = file.type.startsWith('video/') ? 'video'
         : file.type.startsWith('audio/') ? 'audio'
           : 'image';
 
-      const estimatedDuration = fileType === 'image' ? '0:00' : '0:30';
+      const tempId = Date.now() + Math.random();
 
+      // Add to library with loading state
       const newMediaItem = {
-        id: Date.now() + Math.random(),
+        id: tempId,
         name: file.name,
         type: fileType,
-        duration: estimatedDuration,
+        duration: fileType === 'image' ? '0:05' : '0:30',
         file: file,
-        url: URL.createObjectURL(file)
+        url: URL.createObjectURL(file),
+        uploading: true
       };
 
       setMediaLibrary(prev => [...prev, newMediaItem]);
-    });
 
+      try {
+        // Upload to Cloudinary
+        const asset = await uploadEditorAsset(file);
+
+        // Update with Cloudinary data
+        setMediaLibrary(prev => prev.map(item =>
+          item.id === tempId ? {
+            ...item,
+            id: asset.public_id || tempId,
+            cloudinary_public_id: asset.public_id,
+            url: asset.url,
+            duration: asset.duration 
+              ? `${Math.floor(asset.duration / 60)}:${Math.floor(asset.duration % 60).toString().padStart(2, '0')}` 
+              : (fileType === 'image' ? '0:05' : '0:30'),
+            width: asset.width,
+            height: asset.height,
+            thumbnail: asset.thumbnail,
+            uploading: false
+          } : item
+        ));
+
+        console.log(`✅ Uploaded ${file.name} to Cloudinary: ${asset.public_id}`);
+
+      } catch (error) {
+        console.error(`❌ Failed to upload ${file.name}:`, error);
+        // Mark as failed but keep local URL for preview
+        setMediaLibrary(prev => prev.map(item =>
+          item.id === tempId ? { ...item, uploading: false, uploadFailed: true } : item
+        ));
+      }
+    }
+
+    setUploading(false);
     e.target.value = '';
   };
 
@@ -1114,7 +1866,7 @@ const VideoEditorComponent = () => {
     e.dataTransfer.effectAllowed = 'copy';
   };
 
-  // Handle media drop on timeline - FIXED VERSION
+  // Handle media drop on timeline - UPDATED WITH CLOUDINARY DATA
   const handleMediaDrop = (e, trackId) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1145,7 +1897,7 @@ const VideoEditorComponent = () => {
       durationSeconds = 5;
     }
 
-    // Create new clip
+    // Create new clip WITH CLOUDINARY DATA
     const newClip = {
       id: Date.now(),
       title: draggedMedia.name,
@@ -1153,6 +1905,8 @@ const VideoEditorComponent = () => {
       duration: durationSeconds,
       type: draggedMedia.type,
       mediaUrl: draggedMedia.url,
+      cloudinary_public_id: draggedMedia.cloudinary_public_id, // ← CRITICAL FOR EXPORT
+      thumbnail: draggedMedia.thumbnail,
       effects: [],
       keyframes: [],
       compositing: {
@@ -1178,6 +1932,9 @@ const VideoEditorComponent = () => {
     setSelectedClip(newClip);
 
     console.log(`✅ Added ${draggedMedia.name} to ${track.name} at ${newClip.startTime.toFixed(2)}s`);
+    if (draggedMedia.cloudinary_public_id) {
+      console.log(`   ☁️ Cloudinary ID: ${draggedMedia.cloudinary_public_id}`);
+    }
     setDraggedMedia(null);
   };
 
@@ -1197,6 +1954,61 @@ const VideoEditorComponent = () => {
     console.log(`🗑️ Deleted clip ${clipId}`);
   };
 
+  // EXPORT HANDLER (NEW)
+  const handleExport = () => {
+    // Check if we have any clips
+    const totalClips = tracks.reduce((sum, track) => sum + track.clips.length, 0);
+    
+    if (totalClips === 0) {
+      alert('Please add some media to the timeline before exporting.');
+      return;
+    }
+
+    // Check if we have Cloudinary clips
+    const hasCloudinaryClips = tracks.some(track => 
+      track.clips.some(clip => clip.cloudinary_public_id)
+    );
+
+    if (!hasCloudinaryClips) {
+      alert('Please upload media files first. Local files need to be uploaded to cloud storage before export.');
+      return;
+    }
+
+    setShowExportModal(true);
+  };
+
+  // SAVE PROJECT HANDLER (NEW)
+  const handleSaveProject = async () => {
+    try {
+      const projectData = {
+        title: project.title,
+        timeline: {
+          tracks: tracks.map(track => ({
+            id: track.id,
+            name: track.name,
+            type: track.type,
+            clips: track.clips,
+            transitions: track.transitions
+          }))
+        },
+        settings: {
+          resolution: `${project.resolution.width}x${project.resolution.height}`,
+          frameRate: project.frameRate
+        }
+      };
+
+      const result = await saveProjectToBackend(projectData);
+      
+      if (result.success) {
+        console.log('✅ Project saved successfully');
+        alert('Project saved!');
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      alert(`Failed to save: ${error.message}`);
+    }
+  };
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -1208,6 +2020,18 @@ const VideoEditorComponent = () => {
       if (e.key === 'Escape') {
         setSelectedClip(null);
         setSelectedTransition(null);
+      }
+
+      // Ctrl+S to save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveProject();
+      }
+
+      // Ctrl+E to export
+      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        handleExport();
       }
     };
 
@@ -1289,7 +2113,23 @@ const VideoEditorComponent = () => {
               Motion
             </button>
           </div>
-          <button className="export-btn-top">
+          
+          {/* Save Button (NEW) */}
+          <button 
+            className="save-btn-top" 
+            onClick={handleSaveProject}
+            title="Save Project (Ctrl+S)"
+          >
+            <Save size={14} />
+            Save
+          </button>
+          
+          {/* Export Button - UPDATED */}
+          <button 
+            className="export-btn-top" 
+            onClick={handleExport}
+            title="Export Video (Ctrl+E)"
+          >
             <Download size={14} />
             Export
           </button>
@@ -1664,12 +2504,17 @@ const VideoEditorComponent = () => {
               )}
             </div>
 
-            {/* Media Library */}
+            {/* Media Library - UPDATED */}
             <div className="toolbar-section">
               <h4>Media</h4>
-              <button className="import-btn" onClick={() => fileInputRef.current?.click()}>
-                <Upload size={14} />
-                Import Media
+              <button 
+                className="import-btn" 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                style={{ opacity: uploading ? 0.6 : 1 }}
+              >
+                {uploading ? <Loader size={14} className="spin" /> : <Upload size={14} />}
+                {uploading ? 'Uploading...' : 'Import Media'}
               </button>
               <input
                 ref={fileInputRef}
@@ -1686,19 +2531,30 @@ const VideoEditorComponent = () => {
                   return (
                     <div
                       key={media.id}
-                      className="media-item"
-                      draggable
-                      onDragStart={(e) => handleMediaDragStart(e, media)}
+                      className={`media-item ${media.uploading ? 'uploading' : ''} ${media.uploadFailed ? 'failed' : ''}`}
+                      draggable={!media.uploading}
+                      onDragStart={(e) => !media.uploading && handleMediaDragStart(e, media)}
                       onClick={() => {
-                        setSourceMonitorMedia(media);
-                        setShowSourceMonitor(true);
+                        if (!media.uploading) {
+                          setSourceMonitorMedia(media);
+                          setShowSourceMonitor(true);
+                        }
                       }}
-                      style={{ cursor: 'pointer' }}
+                      style={{ cursor: media.uploading ? 'wait' : 'pointer' }}
                     >
-                      <Icon size={14} />
+                      {media.uploading ? (
+                        <Loader size={14} className="spin" />
+                      ) : (
+                        <Icon size={14} />
+                      )}
                       <div>
                         <div style={{ fontSize: '11px', fontWeight: '500' }}>{media.name}</div>
-                        <div style={{ fontSize: '10px', opacity: 0.7 }}>{media.duration}</div>
+                        <div style={{ fontSize: '10px', opacity: 0.7 }}>
+                          {media.uploading ? 'Uploading...' : media.uploadFailed ? '⚠️ Failed' : media.duration}
+                          {media.cloudinary_public_id && !media.uploading && (
+                            <span style={{ color: '#00ffc8', marginLeft: '4px' }}>☁️</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -1787,13 +2643,13 @@ const VideoEditorComponent = () => {
                 </div>
                 <div className="preview-screen">
                   <div className="preview-content">
-                    {selectedClip && selectedClip.mediaUrl ? (
+                    {selectedClip && (selectedClip.mediaUrl || selectedClip.previewUrl) ? (
                       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                         {selectedClip.type === 'video' && (
-                          <video src={selectedClip.mediaUrl} controls style={{ maxWidth: '100%', maxHeight: '100%' }} />
+                          <video src={selectedClip.previewUrl || selectedClip.mediaUrl} controls style={{ maxWidth: '100%', maxHeight: '100%' }} />
                         )}
                         {selectedClip.type === 'image' && (
-                          <img src={selectedClip.mediaUrl} alt="preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                          <img src={selectedClip.previewUrl || selectedClip.mediaUrl} alt="preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
                         )}
                         {selectedClip.type === 'audio' && (
                           <div className="audio-preview">
@@ -1811,7 +2667,12 @@ const VideoEditorComponent = () => {
                           borderRadius: '4px',
                           fontSize: '11px'
                         }}>
-                          <div className="preview-clip-name" style={{ fontWeight: '600', marginBottom: '4px' }}>{selectedClip.title}</div>
+                          <div className="preview-clip-name" style={{ fontWeight: '600', marginBottom: '4px' }}>
+                            {selectedClip.title}
+                            {selectedClip.cloudinary_public_id && (
+                              <span style={{ color: '#00ffc8', marginLeft: '6px' }}>☁️</span>
+                            )}
+                          </div>
                           <div className="preview-compositing-info" style={{ fontSize: '10px', opacity: 0.8 }}>
                             Opacity: {selectedClip.compositing?.opacity || 100}% |
                             Blend: {selectedClip.compositing?.blendMode || 'normal'} |
@@ -1856,12 +2717,21 @@ const VideoEditorComponent = () => {
             {showMediaBrowser && (
               <MediaBrowser
                 onFileSelect={(file) => {
-                  setMediaLibrary(prev => [...prev, file]);
+                  setMediaLibrary(prev => {
+                    // Avoid duplicates
+                    if (prev.some(m => m.id === file.id || m.cloudinary_public_id === file.cloudinary_public_id)) {
+                      return prev;
+                    }
+                    return [...prev, file];
+                  });
                   setSourceMonitorMedia(file);
                   setShowSourceMonitor(true);
                   setShowMediaBrowser(false);
                 }}
                 onClose={() => setShowMediaBrowser(false)}
+                onUploadComplete={(asset) => {
+                  console.log('Upload complete:', asset);
+                }}
               />
             )}
 
@@ -1878,6 +2748,10 @@ const VideoEditorComponent = () => {
                       duration: 30,
                       type: media.type,
                       mediaUrl: media.url,
+                      cloudinary_public_id: media.cloudinary_public_id, // ← CRITICAL
+                      thumbnail: media.thumbnail,
+                      inPoint: parseFloat(inPoint) || 0,
+                      outPoint: parseFloat(outPoint) || 100,
                       effects: [],
                       keyframes: [],
                       compositing: {
@@ -2101,6 +2975,9 @@ const VideoEditorComponent = () => {
                                       <div className="clip-content-timeline">
                                         <div className="clip-title-timeline">
                                           {clip.title}
+                                          {clip.cloudinary_public_id && (
+                                            <span style={{ marginLeft: '4px', fontSize: '10px' }}>☁️</span>
+                                          )}
                                         </div>
                                         <div className="clip-compositing-info">
                                           {clip.compositing?.blendMode && clip.compositing.blendMode !== 'normal' && (
@@ -2789,6 +3666,18 @@ const VideoEditorComponent = () => {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Export Modal (NEW) */}
+      {showExportModal && (
+        <ExportModal
+          project={project}
+          tracks={tracks}
+          onClose={() => setShowExportModal(false)}
+          onExportComplete={(result) => {
+            console.log('Export completed:', result);
+          }}
+        />
       )}
     </div>
   );
