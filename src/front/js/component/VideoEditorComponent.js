@@ -2540,14 +2540,70 @@ const VideoEditorComponent = () => {
                           setShowSourceMonitor(true);
                         }
                       }}
-                      style={{ cursor: media.uploading ? 'wait' : 'pointer' }}
+                      onDoubleClick={() => {
+                        if (!media.uploading && !media.uploadFailed) {
+                          // Double-click to instantly add to timeline
+                          const videoTrack = tracks.find(t => t.type === 'video');
+                          const audioTrack = tracks.find(t => t.type === 'audio');
+                          const targetTrack = media.type === 'audio' ? audioTrack : videoTrack;
+                          
+                          if (targetTrack && !targetTrack.locked) {
+                            let durationSeconds = 30;
+                            if (media.duration) {
+                              const parts = media.duration.split(':');
+                              durationSeconds = parts.length === 2
+                                ? parseInt(parts[0]) * 60 + parseInt(parts[1])
+                                : 30;
+                            }
+                            if (media.type === 'image') {
+                              durationSeconds = 5;
+                            }
+                            
+                            const lastClipEnd = targetTrack.clips.reduce((max, clip) => 
+                              Math.max(max, clip.startTime + clip.duration), 0
+                            );
+                            
+                            const newClip = {
+                              id: Date.now(),
+                              title: media.name,
+                              startTime: lastClipEnd,
+                              duration: durationSeconds,
+                              type: media.type,
+                              mediaUrl: media.url,
+                              cloudinary_public_id: media.cloudinary_public_id,
+                              thumbnail: media.thumbnail,
+                              effects: [],
+                              keyframes: [],
+                              compositing: {
+                                opacity: 100,
+                                blendMode: 'normal',
+                                position: { x: 0, y: 0 },
+                                scale: { x: 100, y: 100 },
+                                rotation: 0,
+                                anchor: { x: 50, y: 50 }
+                              }
+                            };
+                            
+                            setTracks(prevTracks =>
+                              prevTracks.map(t =>
+                                t.id === targetTrack.id
+                                  ? { ...t, clips: [...t.clips, newClip] }
+                                  : t
+                              )
+                            );
+                            
+                            setSelectedClip(newClip);
+                          }
+                        }
+                      }}
+                      style={{ cursor: media.uploading ? 'wait' : 'pointer', position: 'relative' }}
                     >
                       {media.uploading ? (
                         <Loader size={14} className="spin" />
                       ) : (
                         <Icon size={14} />
                       )}
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '11px', fontWeight: '500' }}>{media.name}</div>
                         <div style={{ fontSize: '10px', opacity: 0.7 }}>
                           {media.uploading ? 'Uploading...' : media.uploadFailed ? '⚠️ Failed' : media.duration}
@@ -2556,6 +2612,84 @@ const VideoEditorComponent = () => {
                           )}
                         </div>
                       </div>
+                      
+                      {/* QUICK ADD BUTTON */}
+                      {!media.uploading && !media.uploadFailed && (
+                        <button
+                          className="quick-add-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const videoTrack = tracks.find(t => t.type === 'video');
+                            const audioTrack = tracks.find(t => t.type === 'audio');
+                            const targetTrack = media.type === 'audio' ? audioTrack : videoTrack;
+                            
+                            if (targetTrack && !targetTrack.locked) {
+                              let durationSeconds = 30;
+                              if (media.duration) {
+                                const parts = media.duration.split(':');
+                                durationSeconds = parts.length === 2
+                                  ? parseInt(parts[0]) * 60 + parseInt(parts[1])
+                                  : 30;
+                              }
+                              if (media.type === 'image') {
+                                durationSeconds = 5;
+                              }
+                              
+                              const lastClipEnd = targetTrack.clips.reduce((max, clip) => 
+                                Math.max(max, clip.startTime + clip.duration), 0
+                              );
+                              
+                              const newClip = {
+                                id: Date.now(),
+                                title: media.name,
+                                startTime: lastClipEnd,
+                                duration: durationSeconds,
+                                type: media.type,
+                                mediaUrl: media.url,
+                                cloudinary_public_id: media.cloudinary_public_id,
+                                thumbnail: media.thumbnail,
+                                effects: [],
+                                keyframes: [],
+                                compositing: {
+                                  opacity: 100,
+                                  blendMode: 'normal',
+                                  position: { x: 0, y: 0 },
+                                  scale: { x: 100, y: 100 },
+                                  rotation: 0,
+                                  anchor: { x: 50, y: 50 }
+                                }
+                              };
+                              
+                              setTracks(prevTracks =>
+                                prevTracks.map(t =>
+                                  t.id === targetTrack.id
+                                    ? { ...t, clips: [...t.clips, newClip] }
+                                    : t
+                                )
+                              );
+                              
+                              setSelectedClip(newClip);
+                            }
+                          }}
+                          title="Add to Timeline"
+                          style={{
+                            background: '#00ffc8',
+                            color: '#000',
+                            border: 'none',
+                            borderRadius: '3px',
+                            width: '20px',
+                            height: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            marginLeft: 'auto',
+                            flexShrink: 0
+                          }}
+                        >
+                          <Plus size={12} />
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -2620,6 +2754,85 @@ const VideoEditorComponent = () => {
                     <ZoomIn size={14} />
                   </button>
                   <div className="preview-spacer" />
+                  
+                  {/* ADD TO TIMELINE BUTTON */}
+                  {sourceMonitorMedia && (
+                    <button 
+                      className="add-to-timeline-btn"
+                      onClick={() => {
+                        const videoTrack = tracks.find(t => t.type === 'video');
+                        const audioTrack = tracks.find(t => t.type === 'audio');
+                        const targetTrack = sourceMonitorMedia.type === 'audio' ? audioTrack : videoTrack;
+                        
+                        if (targetTrack && !targetTrack.locked) {
+                          // Calculate duration from media
+                          let durationSeconds = 30;
+                          if (sourceMonitorMedia.duration) {
+                            const parts = sourceMonitorMedia.duration.split(':');
+                            durationSeconds = parts.length === 2
+                              ? parseInt(parts[0]) * 60 + parseInt(parts[1])
+                              : 30;
+                          }
+                          if (sourceMonitorMedia.type === 'image') {
+                            durationSeconds = 5;
+                          }
+                          
+                          // Find the end of existing clips to place new one
+                          const lastClipEnd = targetTrack.clips.reduce((max, clip) => 
+                            Math.max(max, clip.startTime + clip.duration), 0
+                          );
+                          
+                          const newClip = {
+                            id: Date.now(),
+                            title: sourceMonitorMedia.name,
+                            startTime: lastClipEnd,
+                            duration: durationSeconds,
+                            type: sourceMonitorMedia.type,
+                            mediaUrl: sourceMonitorMedia.url,
+                            cloudinary_public_id: sourceMonitorMedia.cloudinary_public_id,
+                            thumbnail: sourceMonitorMedia.thumbnail,
+                            effects: [],
+                            keyframes: [],
+                            compositing: {
+                              opacity: 100,
+                              blendMode: 'normal',
+                              position: { x: 0, y: 0 },
+                              scale: { x: 100, y: 100 },
+                              rotation: 0,
+                              anchor: { x: 50, y: 50 }
+                            }
+                          };
+                          
+                          setTracks(prevTracks =>
+                            prevTracks.map(t =>
+                              t.id === targetTrack.id
+                                ? { ...t, clips: [...t.clips, newClip] }
+                                : t
+                            )
+                          );
+                          
+                          setSelectedClip(newClip);
+                        }
+                      }}
+                      style={{
+                        background: 'linear-gradient(135deg, #00ffc8, #00b894)',
+                        color: '#000',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        marginLeft: '10px'
+                      }}
+                    >
+                      <Plus size={14} />
+                      Add to Timeline
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
