@@ -184,7 +184,7 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/sales-dashboard" className={isActive("/sales-dashboard") ? "active" : ""}>
         💰 Sales Dashboard
       </MenuItem>
-     
+
       <SectionHeader>🎤 Indie Artists</SectionHeader>
       <MenuItem to="/music-distribution" className={isActive("/music-distribution") ? "active" : ""}>
         🌍 Music Distribution
@@ -241,7 +241,10 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/upload-video" className={isActive("/upload-video") ? "active" : ""}>
         📤 Upload Video
       </MenuItem>
-      
+      <MenuItem to="/video-editor" className={isActive("/video-editor") ? "active" : ""}>
+        🎬 Video Editor
+      </MenuItem>
+
 
       <SectionHeader>📻 Radio Stations</SectionHeader>
       <MenuItem to="/browse-radio-stations" className={isActive("/browse-radio-stations") ? "active" : ""}>
@@ -255,12 +258,12 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
         📡 Live Streams
       </MenuItem>
-      
+
       <SectionHeader>🛍️ Store & Marketplace</SectionHeader>
       <MenuItem to="/marketplace" className={isActive("/marketplace") ? "active" : ""}>
         🛒 Browse Marketplace
       </MenuItem>
-    
+
       <MenuItem to="/storefront" className={isActive("/storefront") ? "active" : ""}>
         🏪 My Storefront
       </MenuItem>

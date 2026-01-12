@@ -62,9 +62,9 @@ const ArtistProfilePage = () => {
   });
 
   const [recentActivity, setRecentActivity] = useState([]);
-
+  const { id } = useParams()
   const profileModes = [
-    { id: "regular", label: "👤 Regular Profile", path: "/profile" },
+    { id: "regular", label: "👤 Regular Profile", path: "/user/" + id },
     { id: "gamer", label: "🎮 Gamer Profile", path: "/profile/gamer" },
     { id: "artist", label: "🎵 Artist Profile", path: "/profile/artist" }
   ];
@@ -105,7 +105,7 @@ const ArtistProfilePage = () => {
   useEffect(() => {
     fetchArtistData();
   }, []);
-  const {id}=useParams()
+
   const fetchArtistData = async () => {
     try {
       setLoading(true);
@@ -277,19 +277,19 @@ const ArtistProfilePage = () => {
     try {
       const token = localStorage.getItem("token");
       const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
-      
+
       await fetch(`${BACKEND_URL}/api/tracks/${trackId}/play`, {
         method: "POST",
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       // Update local state immediately
-      setTracks(prevTracks => 
-        prevTracks.map(track => 
-          track.id === trackId 
+      setTracks(prevTracks =>
+        prevTracks.map(track =>
+          track.id === trackId
             ? { ...track, plays: (track.plays || 0) + 1 }
             : track
         )
@@ -464,7 +464,7 @@ const ArtistProfilePage = () => {
   const handleFileChange = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    
+
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
@@ -472,7 +472,7 @@ const ArtistProfilePage = () => {
         setError("Please log in to upload audio");
         return;
       }
-      
+
       const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
       const formData = new FormData();
       formData.append("file", file);
@@ -543,7 +543,7 @@ const ArtistProfilePage = () => {
                       <div className="track-stats">
                         <span>🎧 {tracks[0].plays || 0} plays</span>
                         <span>
-                          <button 
+                          <button
                             onClick={() => handleLikeTrack(tracks[0].id)}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'inherit' }}
                           >
