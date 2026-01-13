@@ -17,6 +17,9 @@ const ArtistProfilePage = () => {
   const audioRef = useRef(new Audio());
   const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   // Tab state management
   const [activeTab, setActiveTab] = useState("overview");
@@ -111,32 +114,47 @@ const ArtistProfilePage = () => {
     fetchArtistData();
   }, [id]);
 
-  // Check if current user is following this artist
+  // Check if current user is following this artist and block status
   useEffect(() => {
-    const checkFollowStatus = async () => {
+    const checkFollowAndBlockStatus = async () => {
       if (!id || isOwnProfile) return;
       
       try {
         const token = localStorage.getItem("token");
         const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
         
-        const response = await fetch(`${BACKEND_URL}/api/follow/status/${id}`, {
+        // Check follow status
+        const followResponse = await fetch(`${BACKEND_URL}/api/follow/status/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
         
-        if (response.ok) {
-          const data = await response.json();
+        if (followResponse.ok) {
+          const data = await followResponse.json();
           setIsFollowing(data.is_following || false);
+          setIsBlocked(data.is_blocked || false);
+        }
+        
+        // Check block status separately for more detail
+        const blockResponse = await fetch(`${BACKEND_URL}/api/block/status/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (blockResponse.ok) {
+          const blockData = await blockResponse.json();
+          setIsBlocked(blockData.you_blocked_them || blockData.they_blocked_you || false);
         }
       } catch (err) {
-        console.log("Could not check follow status:", err);
+        console.log("Could not check follow/block status:", err);
       }
     };
     
-    checkFollowStatus();
+    checkFollowAndBlockStatus();
   }, [id, isOwnProfile]);
 
   const fetchArtistData = async () => {
@@ -457,6 +475,68 @@ const ArtistProfilePage = () => {
       } catch (err) {
         setError("Failed to copy link");
       }
+    }
+  };
+
+  // FUNCTIONAL: Handle block user
+  const handleBlock = async () => {
+    if (isOwnProfile || !id) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+
+      const response = await fetch(`${BACKEND_URL}/api/block/${id}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setIsBlocked(true);
+        setIsFollowing(false); // Blocking removes follow
+        setShowBlockModal(false);
+        setShowMoreMenu(false);
+        setSuccessMessage(`Blocked ${artistInfo.artistName}`);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to block user");
+      }
+    } catch (err) {
+      console.error("Block error:", err);
+      setError("Failed to block user");
+    }
+  };
+
+  // FUNCTIONAL: Handle unblock user
+  const handleUnblock = async () => {
+    if (isOwnProfile || !id) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+
+      const response = await fetch(`${BACKEND_URL}/api/unblock/${id}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setIsBlocked(false);
+        setShowMoreMenu(false);
+        setSuccessMessage(`Unblocked ${artistInfo.artistName}`);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to unblock user");
+      }
+    } catch (err) {
+      console.error("Unblock error:", err);
+      setError("Failed to unblock user");
     }
   };
 
@@ -981,6 +1061,36 @@ const ArtistProfilePage = () => {
         </div>
       )}
 
+      {/* Block Confirmation Modal */}
+      {showBlockModal && (
+        <div className="modal-overlay" onClick={() => setShowBlockModal(false)}>
+          <div className="block-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>🚫 Block {artistInfo.artistName}?</h3>
+            <p>Are you sure you want to block this user?</p>
+            <ul className="block-consequences">
+              <li>They won't be able to see your profile or content</li>
+              <li>You won't see their content in your feed</li>
+              <li>Any follow relationship will be removed</li>
+              <li>They won't be notified that you blocked them</li>
+            </ul>
+            <div className="modal-actions">
+              <button 
+                className="cancel-btn"
+                onClick={() => setShowBlockModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="block-confirm-btn"
+                onClick={handleBlock}
+              >
+                🚫 Block
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="profile-mode-toggle">
         {profileModes.map(mode => (
           <Link
@@ -1022,13 +1132,58 @@ const ArtistProfilePage = () => {
               </div>
             </div>
             <div className="artist-actions">
-              {!isOwnProfile && (
+              {!isOwnProfile && !isBlocked && (
                 <button onClick={handleFollow} className={`follow-btn ${isFollowing ? 'following' : ''}`}>
                   {isFollowing ? '✓ Following' : '➕ Follow'}
                 </button>
               )}
+              {isBlocked && !isOwnProfile && (
+                <button onClick={handleUnblock} className="unblock-btn">
+                  🚫 Unblock
+                </button>
+              )}
               <button onClick={handleShare} className="share-btn">🔗 Share</button>
-              <button className="more-btn">⋯</button>
+              {!isOwnProfile && (
+                <div className="more-menu-container">
+                  <button 
+                    className="more-btn" 
+                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                  >
+                    ⋯
+                  </button>
+                  {showMoreMenu && (
+                    <div className="more-menu-dropdown">
+                      {!isBlocked ? (
+                        <button 
+                          className="menu-item danger"
+                          onClick={() => {
+                            setShowBlockModal(true);
+                            setShowMoreMenu(false);
+                          }}
+                        >
+                          🚫 Block {artistInfo.artistName}
+                        </button>
+                      ) : (
+                        <button 
+                          className="menu-item"
+                          onClick={handleUnblock}
+                        >
+                          ✓ Unblock {artistInfo.artistName}
+                        </button>
+                      )}
+                      <button className="menu-item">
+                        🚩 Report
+                      </button>
+                      <button 
+                        className="menu-item"
+                        onClick={() => setShowMoreMenu(false)}
+                      >
+                        ✕ Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -96,7 +96,6 @@ class Squad(db.Model):
             "members": [{"id": m.id, "username": m.username, "gamertag": getattr(m, 'gamertag', None), "skill_level": getattr(m, 'skill_level', 'Unknown')} for m in (self.members or [])]
         }
 
-
 class User(db.Model):
     __table_args__ = {'extend_existing': True}
     __tablename__ = 'user'
@@ -191,12 +190,11 @@ class User(db.Model):
     # 📻 Followers (existing)
     radio_follows = db.relationship('RadioFollower', back_populates='user', lazy='dynamic')
 
-    #steam
-
-    steam_id = db.Column(db.String(100), unique=True, nullable=True)  # Steam 64-bit ID
-    steam_profile_data = db.Column(db.JSON, nullable=True)  # Store full Steam profile
-    steam_connected_at = db.Column(db.DateTime, nullable=True)  # When they connected
-    steam_last_synced = db.Column(db.DateTime, nullable=True)  # Last time data was refreshed
+    # Steam
+    steam_id = db.Column(db.String(100), unique=True, nullable=True)
+    steam_profile_data = db.Column(db.JSON, nullable=True)
+    steam_connected_at = db.Column(db.DateTime, nullable=True)
+    steam_last_synced = db.Column(db.DateTime, nullable=True)
 
     # 🎵 Artist Features
     is_artist = db.Column(db.Boolean, default=False)
@@ -209,27 +207,28 @@ class User(db.Model):
     monthly_listeners = db.Column(db.Integer, default=0)
     total_plays = db.Column(db.Integer, default=0)
     
-    # 🔄 Gaming Relationships - ✅ FIXED WITH OVERLAPS PARAMETERS
+    # 👥 NEW: Follow/Block Features
+    follower_count = db.Column(db.Integer, default=0)
+    following_count = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    is_verified = db.Column(db.Boolean, default=False)
+    
+    # 🔄 Gaming Relationships
     squad = db.relationship("Squad", back_populates="members", foreign_keys=[squad_id])
     
-    # ✅ FIXED: Main streams relationship (for GameStream)
     streams = db.relationship("GameStream", 
                              back_populates="user", 
                              foreign_keys="GameStream.creator_id", 
                              lazy=True)
     
-    # ✅ FIXED: Add overlaps parameter for any additional stream relationships
-    # If you have a regular Stream model as well, add this:
     live_streams = db.relationship("Stream", 
                                   foreign_keys="Stream.creator_id",
                                   overlaps="streams")
     
-    # ✅ FIXED: Game streams with overlaps parameter to avoid conflicts
     game_streams = db.relationship("GameStream", 
                                   foreign_keys="GameStream.creator_id",
                                   overlaps="streams,live_streams")
     
-    # ✅ Friend request relationships (these are fine)
     sent_friend_requests = db.relationship("FriendRequest", 
                                           foreign_keys="FriendRequest.sender_id", 
                                           back_populates="sender")
@@ -238,9 +237,7 @@ class User(db.Model):
                                               back_populates="receiver")
     
     def serialize_artist(self):
-
         return {
-                  # 🎵 ARTIST FIELDS
             "is_artist": self.is_artist,
             "artist_bio": self.artist_bio,
             "artist_genre": self.artist_genre,
@@ -252,8 +249,9 @@ class User(db.Model):
             "total_plays": self.total_plays,
             "id": self.id,
             "username": self.username,
-            "artist_name": self.artist_name
-
+            "artist_name": self.artist_name,
+            "follower_count": self.follower_count or 0,
+            "following_count": self.following_count or 0,
         }
 
     def serialize(self):
@@ -277,7 +275,13 @@ class User(db.Model):
             "trial_end_date": self.trial_end_date.strftime("%Y-%m-%d") if self.trial_end_date else None,
             "role": self.role.name if self.role else None,
             "avatar_url": self.avatar_url,
-            "profile_type": self.profile_type,  # ← ADD THIS
+            "profile_type": self.profile_type,
+            
+            # 👥 Follow/Block Fields
+            "follower_count": self.follower_count or 0,
+            "following_count": self.following_count or 0,
+            "is_active": self.is_active,
+            "is_verified": self.is_verified,
             
             # 🎮 GAMER FIELDS
             "is_gamer": self.is_gamer,
@@ -309,8 +313,7 @@ class User(db.Model):
             "last_seen": self.last_seen.strftime("%Y-%m-%d %H:%M:%S") if self.last_seen else None,
             "current_game_activity": self.current_game_activity,
             
-            #steam
-
+            # Steam
             "steam_id": self.steam_id,
             "steam_connected": bool(self.steam_id),
             "steam_profile": self.steam_profile_data,
@@ -3514,13 +3517,65 @@ class PostComment(db.Model):
             return f"{int(seconds/86400)} days ago"
 
 class Follow(db.Model):
-    __table_args__ = {'extend_existing': True}
+    """Tracks follow relationships between users"""
+    __tablename__ = 'follows'
+    
     id = db.Column(db.Integer, primary_key=True)
-    follower_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    followed_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    follower_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    following_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        db.UniqueConstraint('follower_id', 'following_id', name='unique_follow'),
+        db.Index('idx_follower', 'follower_id'),
+        db.Index('idx_following', 'following_id'),
+    )
+    
+    follower = db.relationship('User', foreign_keys=[follower_id], backref=db.backref('following_rel', lazy='dynamic'))
+    following = db.relationship('User', foreign_keys=[following_id], backref=db.backref('followers_rel', lazy='dynamic'))
+    
+    def __repr__(self):
+        return f'<Follow {self.follower_id} -> {self.following_id}>'
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'follower_id': self.follower_id,
+            'following_id': self.following_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
 
-    follower = db.relationship('User', foreign_keys=[follower_id])
-    followed = db.relationship('User', foreign_keys=[followed_id])
+
+class Block(db.Model):
+    """Tracks block relationships between users"""
+    __tablename__ = 'blocks'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    blocker_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    blocked_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    reason = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (
+        db.UniqueConstraint('blocker_id', 'blocked_id', name='unique_block'),
+        db.Index('idx_blocker', 'blocker_id'),
+        db.Index('idx_blocked', 'blocked_id'),
+    )
+    
+    blocker = db.relationship('User', foreign_keys=[blocker_id], backref=db.backref('blocked_users_rel', lazy='dynamic'))
+    blocked = db.relationship('User', foreign_keys=[blocked_id], backref=db.backref('blocked_by_rel', lazy='dynamic'))
+    
+    def __repr__(self):
+        return f'<Block {self.blocker_id} blocked {self.blocked_id}>'
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'blocker_id': self.blocker_id,
+            'blocked_id': self.blocked_id,
+            'reason': self.reason,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
 
 class Label(db.Model):
     __table_args__ = {'extend_existing': True}
