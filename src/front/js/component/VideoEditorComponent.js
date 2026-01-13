@@ -1390,7 +1390,8 @@ const VideoEditorComponent = () => {
   const [showSnapToGrid, setShowSnapToGrid] = useState(true);
   const [showAudioWaveforms, setShowAudioWaveforms] = useState(true);
   const [activeEffects, setActiveEffects] = useState({});
-  const [showEffectsPanel, setShowEffectsPanel] = useState(false);
+  const [showEffectsPanel, setShowEffectsPanel] = useState(true);
+  const [programMonitorMuted, setProgramMonitorMuted] = useState(false);
   const [showCompositingPanel, setShowCompositingPanel] = useState(false);
   const [showColorGrading, setShowColorGrading] = useState(false);
   const [showAudioMixing, setShowAudioMixing] = useState(false);
@@ -1417,6 +1418,7 @@ const VideoEditorComponent = () => {
 
   // Dropdown states for organized sections
   const [showVideoEffects, setShowVideoEffects] = useState(true);
+  const [showFadeEffects, setShowFadeEffects] = useState(true);
   const [showAudioEffects, setShowAudioEffects] = useState(true);
   const [showTransitions, setShowTransitions] = useState(true);
   const [showCompositing, setShowCompositing] = useState(true);
@@ -1471,6 +1473,13 @@ const VideoEditorComponent = () => {
 
   // Comprehensive Effects Library
   const videoEffects = [
+    // Fade Effects (NEW)
+    { id: 'fadeIn', name: 'Fade In (Black)', icon: Sun, category: 'fade', description: 'Fade in from black' },
+    { id: 'fadeOut', name: 'Fade Out (Black)', icon: Circle, category: 'fade', description: 'Fade out to black' },
+    { id: 'fadeInWhite', name: 'Fade In (White)', icon: Sun, category: 'fade', description: 'Fade in from white' },
+    { id: 'fadeOutWhite', name: 'Fade Out (White)', icon: Sun, category: 'fade', description: 'Fade out to white' },
+    { id: 'crossDissolve', name: 'Cross Dissolve', icon: Layers, category: 'fade', description: 'Dissolve effect at start and end' },
+
     // Basic Color Correction
     { id: 'brightness', name: 'Brightness', icon: Sun, category: 'color', description: 'Adjust overall brightness' },
     { id: 'contrast', name: 'Contrast', icon: Contrast, category: 'color', description: 'Enhance contrast ratio' },
@@ -1805,6 +1814,9 @@ const VideoEditorComponent = () => {
         return;
       }
     } else {
+      // Video effect
+      console.log(`🎬 Applying video effect "${effectId}" to clip ${clipId}`);
+      
       setActiveEffects(prev => ({
         ...prev,
         [clipId]: {
@@ -1813,22 +1825,42 @@ const VideoEditorComponent = () => {
         }
       }));
 
-      setTracks(prevTracks =>
-        prevTracks.map(track => ({
+      setTracks(prevTracks => {
+        const newTracks = prevTracks.map(track => ({
           ...track,
-          clips: track.clips.map(c =>
-            c.id === clipId
-              ? {
+          clips: track.clips.map(c => {
+            if (c.id === clipId) {
+              const currentEffects = c.effects || [];
+              const newEffects = [
+                ...currentEffects.filter(e => e.id !== effectId),
+                { id: effectId, value: parseFloat(value), enabled: true }
+              ];
+              console.log(`🎬 Clip "${c.title}" effects updated:`, newEffects);
+              return {
                 ...c,
-                effects: [
-                  ...c.effects.filter(e => e.id !== effectId),
-                  { id: effectId, value: parseFloat(value), enabled: true }
-                ]
-              }
-              : c
-          )
-        }))
-      );
+                effects: newEffects
+              };
+            }
+            return c;
+          })
+        }));
+        return newTracks;
+      });
+
+      // Update selected clip to show effect immediately
+      setSelectedClip(prev => {
+        if (prev && prev.id === clipId) {
+          const currentEffects = prev.effects || [];
+          return {
+            ...prev,
+            effects: [
+              ...currentEffects.filter(e => e.id !== effectId),
+              { id: effectId, value: parseFloat(value), enabled: true }
+            ]
+          };
+        }
+        return prev;
+      });
 
       console.log(`✅ Applied ${effectId} to video clip ${clipId} with intensity ${value}%`);
     }
@@ -1974,6 +2006,8 @@ const VideoEditorComponent = () => {
 
   // Remove effect
   const removeEffect = (clipId, effectId) => {
+    console.log(`🗑️ Removing effect "${effectId}" from clip ${clipId}`);
+    
     setTracks(prevTracks =>
       prevTracks.map(track => ({
         ...track,
@@ -1981,12 +2015,25 @@ const VideoEditorComponent = () => {
           clip.id === clipId
             ? {
               ...clip,
-              effects: clip.effects.filter(e => e.id !== effectId)
+              effects: (clip.effects || []).filter(e => e.id !== effectId)
             }
             : clip
         )
       }))
     );
+    
+    // Also update selectedClip to keep it in sync
+    setSelectedClip(prev => {
+      if (prev && prev.id === clipId) {
+        return {
+          ...prev,
+          effects: (prev.effects || []).filter(e => e.id !== effectId)
+        };
+      }
+      return prev;
+    });
+    
+    console.log(`✅ Effect "${effectId}" removed`);
   };
 
   // Compositing controls
@@ -2011,22 +2058,53 @@ const VideoEditorComponent = () => {
 
   // Effect drag and drop handlers
   const handleEffectDragStart = (e, effect) => {
+    console.log('🎨 Effect drag started:', effect.name);
     setDraggedEffect(effect);
     e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('application/json', JSON.stringify({ type: 'effect', effect: effect }));
+    // Visual feedback
+    e.target.style.opacity = '0.5';
+  };
+
+  const handleEffectDragEnd = (e) => {
+    console.log('🎨 Effect drag ended');
+    e.target.style.opacity = '1';
+    setDraggedEffect(null);
   };
 
   const handleEffectDrop = (e, clipId) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log('🎨 Effect drop on clip:', clipId);
 
-    if (!draggedEffect) return;
+    let effectToApply = draggedEffect;
+    
+    // Fallback: try to get effect from dataTransfer
+    if (!effectToApply) {
+      try {
+        const data = JSON.parse(e.dataTransfer.getData('application/json'));
+        if (data.type === 'effect' && data.effect) {
+          effectToApply = data.effect;
+          console.log('🎨 Got effect from dataTransfer:', effectToApply.name);
+        }
+      } catch (err) {
+        console.log('🎨 No effect data in dataTransfer');
+      }
+    }
+
+    if (!effectToApply) {
+      console.log('🎨 No effect to apply');
+      return;
+    }
 
     const targetClip = tracks.flatMap(track => track.clips).find(clip => clip.id === clipId);
     if (targetClip) {
-      applyEffect(clipId, draggedEffect.id, 50);
+      console.log(`🎨 Applying ${effectToApply.name} to ${targetClip.title}`);
+      applyEffect(clipId, effectToApply.id, 50);
       setSelectedClip(targetClip);
       setShowEffectsPanel(true);
-      console.log(`Applied ${draggedEffect.name} to ${targetClip.title}`);
+    } else {
+      console.log('🎨 Target clip not found');
     }
 
     setDraggedEffect(null);
@@ -2035,6 +2113,13 @@ const VideoEditorComponent = () => {
   const handleEffectDragOver = (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
+    // Add visual highlight
+    e.currentTarget.style.outline = '2px solid #00ffc8';
+    e.currentTarget.style.outlineOffset = '-2px';
+  };
+
+  const handleEffectDragLeave = (e) => {
+    e.currentTarget.style.outline = 'none';
   };
 
   // Transition functions
@@ -2053,6 +2138,60 @@ const VideoEditorComponent = () => {
         ? { ...track, transitions: [...(track.transitions || []), newTransition] }
         : track
     ));
+    
+    console.log(`✅ Added ${transitionType} transition at ${startTime.toFixed(2)}s on track ${trackId}`);
+  };
+
+  // Add transition between two specific clips
+  const addTransitionBetweenClips = (trackId, clip1, clip2, transitionType = 'crossDissolve') => {
+    // Find where clip1 ends and clip2 starts
+    const clip1End = clip1.startTime + clip1.duration;
+    const clip2Start = clip2.startTime;
+    
+    // Transition should start slightly before clip1 ends
+    const transitionDuration = 1; // 1 second transition
+    const transitionStart = clip1End - (transitionDuration / 2);
+    
+    const newTransition = {
+      id: Date.now(),
+      type: transitionType,
+      startTime: transitionStart,
+      duration: transitionDuration,
+      fromClip: clip1.id,
+      toClip: clip2.id
+    };
+
+    setTracks(tracks.map(track =>
+      track.id === trackId
+        ? { ...track, transitions: [...(track.transitions || []), newTransition] }
+        : track
+    ));
+    
+    console.log(`✅ Added ${transitionType} between "${clip1.title}" and "${clip2.title}"`);
+    alert(`✅ Added Cross Dissolve transition between "${clip1.title}" and "${clip2.title}"!`);
+  };
+
+  // Find adjacent clips that can have transitions
+  const getAdjacentClipPairs = (trackId) => {
+    const track = tracks.find(t => t.id === trackId);
+    if (!track || track.clips.length < 2) return [];
+    
+    // Sort clips by start time
+    const sortedClips = [...track.clips].sort((a, b) => a.startTime - b.startTime);
+    const pairs = [];
+    
+    for (let i = 0; i < sortedClips.length - 1; i++) {
+      const clip1 = sortedClips[i];
+      const clip2 = sortedClips[i + 1];
+      const clip1End = clip1.startTime + clip1.duration;
+      
+      // Check if clips are adjacent (within 0.5 seconds)
+      if (Math.abs(clip2.startTime - clip1End) < 0.5) {
+        pairs.push({ clip1, clip2, position: clip1End });
+      }
+    }
+    
+    return pairs;
   };
 
   const handleTransitionDragStart = (e, transition) => {
@@ -2204,7 +2343,7 @@ const VideoEditorComponent = () => {
     const clickX = e.clientX - rect.left;
     const clipStartPixel = clip.startTime * 2 * zoom;
 
-    setDraggedClip({ ...clip, trackId });
+    setDraggedClip({ ...clip, trackId, originalTrackId: trackId });
     setDragOffset(clickX - clipStartPixel);
     setSelectedClip(clip);
   };
@@ -2214,26 +2353,72 @@ const VideoEditorComponent = () => {
 
     const rect = timelineRef.current.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
     const timelineWidth = rect.width;
 
+    // Calculate new time position
     let newTime = ((mouseX - dragOffset) / timelineWidth) * duration;
     newTime = snapToGrid(newTime);
-    newTime = checkCollisions(draggedClip.trackId, draggedClip.id, newTime, draggedClip.duration);
+    
+    // Determine which track the mouse is over based on Y position
+    // Each track is approximately 52px high (6px padding + 40px clip + 6px padding)
+    const trackHeight = 52;
+    const trackIndex = Math.floor(mouseY / trackHeight);
+    const targetTrack = tracks[trackIndex];
+    
+    // Only move to compatible track types (video to video, audio to audio)
+    let targetTrackId = draggedClip.trackId;
+    if (targetTrack && !targetTrack.locked) {
+      const originalTrack = tracks.find(t => t.id === draggedClip.originalTrackId);
+      // Allow moving between same type tracks (video/overlay to video/overlay, audio to audio)
+      if (originalTrack && targetTrack.type === originalTrack.type) {
+        targetTrackId = targetTrack.id;
+      }
+    }
+    
+    // Check collisions on target track
+    newTime = checkCollisions(targetTrackId, draggedClip.id, newTime, draggedClip.duration);
 
-    setTracks(prevTracks =>
-      prevTracks.map(track =>
-        track.id === draggedClip.trackId
-          ? {
-            ...track,
-            clips: track.clips.map(clip =>
-              clip.id === draggedClip.id
-                ? { ...clip, startTime: Math.max(0, newTime) }
-                : clip
-            )
+    // Move clip (possibly to new track)
+    if (targetTrackId !== draggedClip.trackId) {
+      // Moving to a different track
+      setTracks(prevTracks =>
+        prevTracks.map(track => {
+          if (track.id === draggedClip.trackId) {
+            // Remove from original track
+            return {
+              ...track,
+              clips: track.clips.filter(c => c.id !== draggedClip.id)
+            };
+          } else if (track.id === targetTrackId) {
+            // Add to new track
+            return {
+              ...track,
+              clips: [...track.clips, { ...draggedClip, startTime: Math.max(0, newTime) }]
+            };
           }
-          : track
-      )
-    );
+          return track;
+        })
+      );
+      // Update draggedClip's trackId
+      setDraggedClip(prev => ({ ...prev, trackId: targetTrackId }));
+    } else {
+      // Moving within same track
+      setTracks(prevTracks =>
+        prevTracks.map(track =>
+          track.id === draggedClip.trackId
+            ? {
+              ...track,
+              clips: track.clips.map(clip =>
+                clip.id === draggedClip.id
+                  ? { ...clip, startTime: Math.max(0, newTime) }
+                  : clip
+              )
+            }
+            : track
+        )
+      );
+    }
   };
 
   const handleMouseUp = () => {
@@ -2861,6 +3046,51 @@ const VideoEditorComponent = () => {
               </div>
               {showVideoEffects && (
                 <div className="effects-organized">
+                  {/* Fade Effects - Most Common */}
+                  <div className="effect-category">
+                    <div
+                      className="category-header"
+                      onClick={() => setShowFadeEffects(!showFadeEffects)}
+                      style={{ background: 'rgba(0, 255, 200, 0.1)' }}
+                    >
+                      <span>⭐ Fade Effects</span>
+                      <button className="category-toggle">
+                        {showFadeEffects ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+                      </button>
+                    </div>
+                    {showFadeEffects && (
+                      <div className="effect-list-category">
+                        {getEffectsByCategory('fade', videoEffects).map(effect => {
+                          const Icon = effect.icon;
+                          return (
+                            <div
+                              key={effect.id}
+                              className={`effect-item ${selectedClip ? 'clickable' : ''}`}
+                              draggable
+                              onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
+                              onClick={() => {
+                                if (selectedClip) {
+                                  console.log(`🎨 Click apply ${effect.name} to ${selectedClip.title}`);
+                                  applyEffect(selectedClip.id, effect.id, 50);
+                                  alert(`✅ Applied "${effect.name}" to "${selectedClip.title}"!\n\nNote: The effect is saved to the clip. It will be applied during export.`);
+                                } else {
+                                  alert('Please select a clip on the timeline first!');
+                                }
+                              }}
+                              title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Select a clip first`}
+                              style={{ cursor: selectedClip ? 'pointer' : 'grab' }}
+                            >
+                              <Icon size={14} />
+                              <span>{effect.name}</span>
+                              {selectedClip && <div className="apply-hint" style={{ marginLeft: 'auto', fontSize: '10px', color: '#00ffc8' }}>+ Click</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Color Correction */}
                   <div className="effect-category">
                     <div
@@ -2879,13 +3109,24 @@ const VideoEditorComponent = () => {
                           return (
                             <div
                               key={effect.id}
-                              className="effect-item"
+                              className={`effect-item ${selectedClip ? 'clickable' : ''}`}
                               draggable
                               onDragStart={(e) => handleEffectDragStart(e, effect)}
-                              title={effect.description}
+                              onDragEnd={handleEffectDragEnd}
+                              onClick={() => {
+                                if (selectedClip) {
+                                  console.log(`🎨 Click apply ${effect.name} to ${selectedClip.title}`);
+                                  applyEffect(selectedClip.id, effect.id, 50);
+                                } else {
+                                  alert('Please select a clip on the timeline first!');
+                                }
+                              }}
+                              title={selectedClip ? `Click to apply ${effect.name} to "${selectedClip.title}"` : `Drag to a clip or select a clip first`}
+                              style={{ cursor: selectedClip ? 'pointer' : 'grab' }}
                             >
                               <Icon size={14} />
                               <span>{effect.name}</span>
+                              {selectedClip && <div className="apply-hint" style={{ marginLeft: 'auto', fontSize: '10px', color: '#00ffc8' }}>+ Click</div>}
                               <div className="drag-hint">📎</div>
                             </div>
                           );
@@ -2917,6 +3158,7 @@ const VideoEditorComponent = () => {
                               className="effect-item"
                               draggable
                               onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
                               title={effect.description}
                             >
                               <Icon size={14} />
@@ -2950,6 +3192,7 @@ const VideoEditorComponent = () => {
                               className="effect-item"
                               draggable
                               onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
                               title={effect.description}
                             >
                               <Icon size={14} />
@@ -2983,6 +3226,7 @@ const VideoEditorComponent = () => {
                               className="effect-item"
                               draggable
                               onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
                               title={effect.description}
                             >
                               <Icon size={14} />
@@ -3016,6 +3260,7 @@ const VideoEditorComponent = () => {
                               className="effect-item"
                               draggable
                               onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
                               title={effect.description}
                             >
                               <Icon size={14} />
@@ -3049,6 +3294,7 @@ const VideoEditorComponent = () => {
                               className="effect-item"
                               draggable
                               onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
                               title={effect.description}
                             >
                               <Icon size={14} />
@@ -3091,6 +3337,7 @@ const VideoEditorComponent = () => {
                               className="effect-item"
                               draggable
                               onDragStart={(e) => handleEffectDragStart(e, effect)}
+                              onDragEnd={handleEffectDragEnd}
                               title={effect.description}
                             >
                               <Icon size={14} />
@@ -3494,13 +3741,150 @@ const VideoEditorComponent = () => {
                   borderRadius: '6px 6px 0 0'
                 }}>
                   <span>PROGRAM MONITOR</span>
-                  <span style={{ fontSize: '10px', color: '#888' }}>
-                    {formatTime(currentTime)}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                      onClick={() => setProgramMonitorMuted(!programMonitorMuted)}
+                      title={programMonitorMuted ? 'Unmute Audio' : 'Mute Audio'}
+                      style={{
+                        background: programMonitorMuted ? '#ff6b6b' : '#00ffc8',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '4px 8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '10px',
+                        color: programMonitorMuted ? '#fff' : '#000'
+                      }}
+                    >
+                      {programMonitorMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+                      {programMonitorMuted ? 'Muted' : 'Sound On'}
+                    </button>
+                    <span style={{ fontSize: '10px', color: '#888' }}>
+                      {formatTime(currentTime)}
+                    </span>
+                  </div>
                 </div>
                 <div className="preview-screen">
                   <div className="preview-content">
                     {(() => {
+                      // Check for active transition first
+                      const activeTransition = tracks.flatMap(track => 
+                        (track.transitions || []).map(t => ({ ...t, trackId: track.id }))
+                      ).find(transition => 
+                        currentTime >= transition.startTime && 
+                        currentTime < (transition.startTime + transition.duration)
+                      );
+                      
+                      // If there's an active transition, render both clips
+                      if (activeTransition) {
+                        const track = tracks.find(t => t.id === activeTransition.trackId);
+                        const sortedClips = [...(track?.clips || [])].sort((a, b) => a.startTime - b.startTime);
+                        
+                        // Find the two clips involved in the transition
+                        let fromClip = null;
+                        let toClip = null;
+                        
+                        for (let i = 0; i < sortedClips.length - 1; i++) {
+                          const clip1End = sortedClips[i].startTime + sortedClips[i].duration;
+                          if (Math.abs(clip1End - (activeTransition.startTime + activeTransition.duration / 2)) < 1) {
+                            fromClip = sortedClips[i];
+                            toClip = sortedClips[i + 1];
+                            break;
+                          }
+                        }
+                        
+                        if (fromClip && toClip) {
+                          const transitionProgress = (currentTime - activeTransition.startTime) / activeTransition.duration;
+                          const fromOpacity = 1 - transitionProgress;
+                          const toOpacity = transitionProgress;
+                          
+                          return (
+                            <div style={{ width: '100%', height: '100%', position: 'relative', background: '#000' }}>
+                              {/* Outgoing clip */}
+                              {fromClip.type === 'video' && (
+                                <video 
+                                  src={fromClip.previewUrl || fromClip.mediaUrl}
+                                  style={{ 
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    maxWidth: '100%', 
+                                    maxHeight: '100%',
+                                    opacity: fromOpacity
+                                  }}
+                                  muted={programMonitorMuted}
+                                />
+                              )}
+                              {fromClip.type === 'image' && (
+                                <img 
+                                  src={fromClip.previewUrl || fromClip.mediaUrl}
+                                  style={{ 
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    maxWidth: '100%', 
+                                    maxHeight: '100%',
+                                    opacity: fromOpacity
+                                  }}
+                                  alt="from"
+                                />
+                              )}
+                              
+                              {/* Incoming clip */}
+                              {toClip.type === 'video' && (
+                                <video 
+                                  src={toClip.previewUrl || toClip.mediaUrl}
+                                  style={{ 
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    maxWidth: '100%', 
+                                    maxHeight: '100%',
+                                    opacity: toOpacity
+                                  }}
+                                  muted={programMonitorMuted}
+                                />
+                              )}
+                              {toClip.type === 'image' && (
+                                <img 
+                                  src={toClip.previewUrl || toClip.mediaUrl}
+                                  style={{ 
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    maxWidth: '100%', 
+                                    maxHeight: '100%',
+                                    opacity: toOpacity
+                                  }}
+                                  alt="to"
+                                />
+                              )}
+                              
+                              {/* Transition Info */}
+                              <div style={{
+                                position: 'absolute',
+                                top: '10px',
+                                left: '10px',
+                                background: 'rgba(255, 107, 107, 0.9)',
+                                padding: '6px 12px',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                color: '#fff',
+                                fontWeight: 600
+                              }}>
+                                🔄 Cross Dissolve: {Math.round(transitionProgress * 100)}%
+                              </div>
+                            </div>
+                          );
+                        }
+                      }
+                      
                       // Find the clip at current playhead position
                       const activeClip = tracks
                         .flatMap(track => track.clips.map(clip => ({ ...clip, trackType: track.type })))
@@ -3509,12 +3893,94 @@ const VideoEditorComponent = () => {
                           return currentTime >= clip.startTime && currentTime < clipEnd;
                         });
                       
-                      // Debug log
-                      // console.log('Current time:', currentTime, 'Active clip:', activeClip?.title, 'Start:', activeClip?.startTime, 'End:', activeClip?.startTime + activeClip?.duration);
-                      
                       if (activeClip && (activeClip.mediaUrl || activeClip.previewUrl)) {
                         // Calculate the time offset within the clip
                         const clipOffset = currentTime - activeClip.startTime;
+                        const clipProgress = clipOffset / activeClip.duration; // 0 to 1
+                        
+                        // Debug: Log clip effects
+                        if (activeClip.effects && activeClip.effects.length > 0) {
+                          console.log(`🎬 Active clip "${activeClip.title}" has effects:`, activeClip.effects, `Progress: ${(clipProgress * 100).toFixed(1)}%`);
+                        }
+                        
+                        // Build CSS filters from effects
+                        const buildCssFilters = (effects) => {
+                          if (!effects || effects.length === 0) return 'none';
+                          
+                          const filters = effects.map(effect => {
+                            const value = effect.value || 50;
+                            switch (effect.id) {
+                              case 'brightness': return `brightness(${0.5 + (value / 100)})`;
+                              case 'contrast': return `contrast(${0.5 + (value / 100)})`;
+                              case 'saturation': return `saturate(${value / 50})`;
+                              case 'hue': return `hue-rotate(${(value / 100) * 360}deg)`;
+                              case 'blur': return `blur(${value / 10}px)`;
+                              case 'grayscale': return `grayscale(${value}%)`;
+                              case 'sepia': return `sepia(${value}%)`;
+                              case 'invert': return `invert(${value}%)`;
+                              default: return '';
+                            }
+                          }).filter(f => f).join(' ');
+                          
+                          return filters || 'none';
+                        };
+                        
+                        // Calculate fade overlay opacity
+                        const getFadeOverlay = (effects, progress) => {
+                          if (!effects || effects.length === 0) return null;
+                          
+                          const fadeDuration = 0.3; // 30% of clip for fade (more visible)
+                          
+                          // Check for crossDissolve first (applies at both start AND end)
+                          const hasCrossDissolve = effects.some(e => e.id === 'crossDissolve');
+                          if (hasCrossDissolve) {
+                            if (progress < fadeDuration) {
+                              const opacity = 1 - (progress / fadeDuration);
+                              console.log(`🎬 Cross Dissolve (In): opacity ${opacity.toFixed(2)}`);
+                              return { color: 'black', opacity };
+                            }
+                            if (progress > (1 - fadeDuration)) {
+                              const opacity = (progress - (1 - fadeDuration)) / fadeDuration;
+                              console.log(`🎬 Cross Dissolve (Out): opacity ${opacity.toFixed(2)}`);
+                              return { color: 'black', opacity };
+                            }
+                          }
+                          
+                          for (const effect of effects) {
+                            if (effect.id === 'fadeIn') {
+                              if (progress < fadeDuration) {
+                                const opacity = 1 - (progress / fadeDuration);
+                                console.log(`🎬 Fade In: opacity ${opacity.toFixed(2)}`);
+                                return { color: 'black', opacity };
+                              }
+                            }
+                            if (effect.id === 'fadeOut') {
+                              if (progress > (1 - fadeDuration)) {
+                                const opacity = (progress - (1 - fadeDuration)) / fadeDuration;
+                                console.log(`🎬 Fade Out: opacity ${opacity.toFixed(2)}`);
+                                return { color: 'black', opacity };
+                              }
+                            }
+                            if (effect.id === 'fadeInWhite') {
+                              if (progress < fadeDuration) {
+                                const opacity = 1 - (progress / fadeDuration);
+                                console.log(`🎬 Fade In White: opacity ${opacity.toFixed(2)}`);
+                                return { color: 'white', opacity };
+                              }
+                            }
+                            if (effect.id === 'fadeOutWhite') {
+                              if (progress > (1 - fadeDuration)) {
+                                const opacity = (progress - (1 - fadeDuration)) / fadeDuration;
+                                console.log(`🎬 Fade Out White: opacity ${opacity.toFixed(2)}`);
+                                return { color: 'white', opacity };
+                              }
+                            }
+                          }
+                          return null;
+                        };
+                        
+                        const cssFilters = buildCssFilters(activeClip.effects);
+                        const fadeOverlay = getFadeOverlay(activeClip.effects, clipProgress);
                         
                         return (
                           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', background: '#000' }}>
@@ -3522,9 +3988,13 @@ const VideoEditorComponent = () => {
                               <video 
                                 key={activeClip.id}
                                 src={activeClip.previewUrl || activeClip.mediaUrl} 
-                                style={{ maxWidth: '100%', maxHeight: '100%' }}
+                                style={{ 
+                                  maxWidth: '100%', 
+                                  maxHeight: '100%',
+                                  filter: cssFilters
+                                }}
                                 autoPlay={isPlaying}
-                                muted
+                                muted={programMonitorMuted}
                                 loop={false}
                                 ref={(el) => {
                                   if (el) {
@@ -3544,7 +4014,16 @@ const VideoEditorComponent = () => {
                               />
                             )}
                             {activeClip.type === 'image' && (
-                              <img src={activeClip.previewUrl || activeClip.mediaUrl} alt="preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                              <img 
+                                src={activeClip.previewUrl || activeClip.mediaUrl} 
+                                alt="preview" 
+                                style={{ 
+                                  maxWidth: '100%', 
+                                  maxHeight: '100%', 
+                                  objectFit: 'contain',
+                                  filter: cssFilters
+                                }} 
+                              />
                             )}
                             {activeClip.type === 'audio' && (
                               <div className="audio-preview" style={{ textAlign: 'center' }}>
@@ -3552,6 +4031,23 @@ const VideoEditorComponent = () => {
                                 <p style={{ marginTop: '10px' }}>{activeClip.title}</p>
                               </div>
                             )}
+                            
+                            {/* Fade Overlay */}
+                            {fadeOverlay && (
+                              <div style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                backgroundColor: fadeOverlay.color,
+                                opacity: fadeOverlay.opacity,
+                                pointerEvents: 'none',
+                                transition: 'opacity 0.05s linear'
+                              }} />
+                            )}
+                            
+                            {/* Clip Info Overlay */}
                             <div style={{
                               position: 'absolute',
                               bottom: '10px',
@@ -3570,6 +4066,11 @@ const VideoEditorComponent = () => {
                               <div style={{ fontSize: '10px', opacity: 0.8 }}>
                                 Clip: {formatTime(clipOffset)} / {formatTime(activeClip.duration)}
                               </div>
+                              {activeClip.effects && activeClip.effects.length > 0 && (
+                                <div style={{ fontSize: '9px', color: '#00ffc8', marginTop: '4px' }}>
+                                  Effects: {activeClip.effects.map(e => e.id).join(', ')}
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
@@ -4572,8 +5073,9 @@ const VideoEditorComponent = () => {
                                         setSelectedTransition(null);
                                       }}
                                       onMouseDown={(e) => handleClipMouseDown(e, clip, track.id)}
-                                      onDrop={(e) => handleEffectDrop(e, clip.id)}
+                                      onDrop={(e) => { handleEffectDrop(e, clip.id); e.currentTarget.style.outline = 'none'; }}
                                       onDragOver={handleEffectDragOver}
+                                      onDragLeave={handleEffectDragLeave}
                                     >
                                       <div className="clip-content-timeline">
                                         <div className="clip-title-timeline">
@@ -4615,6 +5117,59 @@ const VideoEditorComponent = () => {
                                     </div>
                                   );
                                 })}
+
+                                {/* Add Transition Buttons between adjacent clips */}
+                                {(() => {
+                                  const pairs = getAdjacentClipPairs(track.id);
+                                  return pairs.map((pair, idx) => {
+                                    const leftPosition = pair.position * 2 * zoom - 12; // Center the button
+                                    // Check if there's already a transition at this position
+                                    const existingTransition = (track.transitions || []).find(t => 
+                                      Math.abs(t.startTime - (pair.position - 0.5)) < 1
+                                    );
+                                    if (existingTransition) return null;
+                                    
+                                    return (
+                                      <div
+                                        key={`trans-btn-${idx}`}
+                                        className="add-transition-btn"
+                                        style={{
+                                          position: 'absolute',
+                                          left: `${leftPosition}px`,
+                                          top: '50%',
+                                          transform: 'translateY(-50%)',
+                                          width: '24px',
+                                          height: '24px',
+                                          background: 'linear-gradient(135deg, #ff6b6b, #ee5a5a)',
+                                          borderRadius: '50%',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          cursor: 'pointer',
+                                          zIndex: 10,
+                                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                                          border: '2px solid #fff',
+                                          transition: 'all 0.2s ease'
+                                        }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          addTransitionBetweenClips(track.id, pair.clip1, pair.clip2, 'crossDissolve');
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.currentTarget.style.transform = 'translateY(-50%) scale(1.2)';
+                                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 107, 107, 0.5)';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+                                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+                                        }}
+                                        title={`Add Cross Dissolve between "${pair.clip1.title}" and "${pair.clip2.title}"`}
+                                      >
+                                        <Plus size={14} color="#fff" />
+                                      </div>
+                                    );
+                                  });
+                                })()}
 
                                 {/* Render Transitions */}
                                 {(track.transitions || []).map(transition => {
