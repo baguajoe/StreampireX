@@ -1654,8 +1654,34 @@ const VideoEditorComponent = () => {
   ];
 
   // Playback controls
-  const playPause = () => setIsPlaying(!isPlaying);
+  const isPlayingRef = useRef(isPlaying);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  const play = () => {
+    console.log('▶ Play clicked');
+    setIsPlaying(true);
+  };
+  
+  const pause = () => {
+    console.log('⏸ Pause clicked');
+    setIsPlaying(false);
+  };
+  
+  const playPause = () => {
+    console.log('⏯ PlayPause clicked, current state:', isPlaying);
+    if (isPlaying) {
+      pause();
+    } else {
+      play();
+    }
+  };
+  
   const stop = () => {
+    console.log('⏹ Stop clicked');
     setIsPlaying(false);
     setCurrentTime(0);
   };
@@ -1666,7 +1692,8 @@ const VideoEditorComponent = () => {
     let lastTime = performance.now();
 
     const animate = (now) => {
-      if (isPlaying) {
+      // Use ref to get current playing state
+      if (isPlayingRef.current) {
         const delta = (now - lastTime) / 1000; // Convert to seconds
         lastTime = now;
         
@@ -1685,8 +1712,11 @@ const VideoEditorComponent = () => {
     };
 
     if (isPlaying) {
+      console.log('▶ Starting animation loop');
       lastTime = performance.now();
       animationFrame = requestAnimationFrame(animate);
+    } else {
+      console.log('⏸ Animation loop stopped');
     }
 
     return () => {
@@ -2587,16 +2617,36 @@ const VideoEditorComponent = () => {
 
         {/* Playback Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '2px 4px', background: '#252525', borderRadius: '4px' }}>
-          <button onClick={stop} title="Stop & Reset" style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button 
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); stop(); }} 
+            title="Stop & Reset" 
+            style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
             <Square size={11} />
           </button>
-          <button onClick={() => setCurrentTime(Math.max(0, currentTime - 5))} title="Back 5s" style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button 
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentTime(Math.max(0, currentTime - 5)); }} 
+            title="Back 5s" 
+            style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
             <Rewind size={11} />
           </button>
-          <button onClick={playPause} title={isPlaying ? 'Pause' : 'Play'} style={{ width: '30px', height: '30px', border: 'none', borderRadius: '3px', background: isPlaying ? '#ff6b6b' : '#00ffc8', color: '#000', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button 
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); playPause(); }} 
+            title={isPlaying ? 'Pause' : 'Play'} 
+            style={{ width: '30px', height: '30px', border: 'none', borderRadius: '3px', background: isPlaying ? '#ff6b6b' : '#00ffc8', color: '#000', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
             {isPlaying ? <Pause size={13} /> : <Play size={13} />}
           </button>
-          <button onClick={() => setCurrentTime(Math.min(duration, currentTime + 5))} title="Forward 5s" style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button 
+            type="button"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentTime(Math.min(duration, currentTime + 5)); }} 
+            title="Forward 5s" 
+            style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
             <FastForward size={11} />
           </button>
         </div>
@@ -3436,60 +3486,106 @@ const VideoEditorComponent = () => {
                   borderBottom: '1px solid #3a3a3a',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'space-between',
                   padding: '0 10px',
                   fontSize: '11px',
                   fontWeight: 600,
                   color: 'white',
                   borderRadius: '6px 6px 0 0'
                 }}>
-                  PROGRAM MONITOR
+                  <span>PROGRAM MONITOR</span>
+                  <span style={{ fontSize: '10px', color: '#888' }}>
+                    {formatTime(currentTime)}
+                  </span>
                 </div>
                 <div className="preview-screen">
                   <div className="preview-content">
-                    {selectedClip && (selectedClip.mediaUrl || selectedClip.previewUrl) ? (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                        {selectedClip.type === 'video' && (
-                          <video src={selectedClip.previewUrl || selectedClip.mediaUrl} controls style={{ maxWidth: '100%', maxHeight: '100%' }} />
-                        )}
-                        {selectedClip.type === 'image' && (
-                          <img src={selectedClip.previewUrl || selectedClip.mediaUrl} alt="preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                        )}
-                        {selectedClip.type === 'audio' && (
-                          <div className="audio-preview">
-                            <AudioWaveform size={48} />
-                            <p>{selectedClip.title}</p>
-                            <audio src={selectedClip.mediaUrl} controls />
-                          </div>
-                        )}
-                        <div className="preview-overlay-info" style={{
-                          position: 'absolute',
-                          bottom: '10px',
-                          left: '10px',
-                          background: 'rgba(0,0,0,0.7)',
-                          padding: '8px 12px',
-                          borderRadius: '4px',
-                          fontSize: '11px'
-                        }}>
-                          <div className="preview-clip-name" style={{ fontWeight: '600', marginBottom: '4px' }}>
-                            {selectedClip.title}
-                            {selectedClip.cloudinary_public_id && (
-                              <span style={{ color: '#00ffc8', marginLeft: '6px' }}>☁️</span>
+                    {(() => {
+                      // Find the clip at current playhead position
+                      const activeClip = tracks
+                        .flatMap(track => track.clips.map(clip => ({ ...clip, trackType: track.type })))
+                        .find(clip => {
+                          const clipEnd = clip.startTime + clip.duration;
+                          return currentTime >= clip.startTime && currentTime < clipEnd;
+                        });
+                      
+                      // Debug log
+                      // console.log('Current time:', currentTime, 'Active clip:', activeClip?.title, 'Start:', activeClip?.startTime, 'End:', activeClip?.startTime + activeClip?.duration);
+                      
+                      if (activeClip && (activeClip.mediaUrl || activeClip.previewUrl)) {
+                        // Calculate the time offset within the clip
+                        const clipOffset = currentTime - activeClip.startTime;
+                        
+                        return (
+                          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', background: '#000' }}>
+                            {activeClip.type === 'video' && (
+                              <video 
+                                key={activeClip.id}
+                                src={activeClip.previewUrl || activeClip.mediaUrl} 
+                                style={{ maxWidth: '100%', maxHeight: '100%' }}
+                                autoPlay={isPlaying}
+                                muted
+                                loop={false}
+                                ref={(el) => {
+                                  if (el) {
+                                    // Sync video time with timeline
+                                    const targetTime = Math.min(clipOffset, el.duration || activeClip.duration);
+                                    if (Math.abs(el.currentTime - targetTime) > 0.5) {
+                                      el.currentTime = targetTime;
+                                    }
+                                    // Sync play/pause state
+                                    if (isPlaying && el.paused) {
+                                      el.play().catch(() => {});
+                                    } else if (!isPlaying && !el.paused) {
+                                      el.pause();
+                                    }
+                                  }
+                                }}
+                              />
                             )}
+                            {activeClip.type === 'image' && (
+                              <img src={activeClip.previewUrl || activeClip.mediaUrl} alt="preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                            )}
+                            {activeClip.type === 'audio' && (
+                              <div className="audio-preview" style={{ textAlign: 'center' }}>
+                                <AudioWaveform size={48} style={{ color: '#ff6b6b' }} />
+                                <p style={{ marginTop: '10px' }}>{activeClip.title}</p>
+                              </div>
+                            )}
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '10px',
+                              left: '10px',
+                              background: 'rgba(0,0,0,0.7)',
+                              padding: '8px 12px',
+                              borderRadius: '4px',
+                              fontSize: '11px'
+                            }}>
+                              <div style={{ fontWeight: '600', marginBottom: '4px' }}>
+                                {activeClip.title}
+                                {activeClip.cloudinary_public_id && (
+                                  <span style={{ color: '#00ffc8', marginLeft: '6px' }}>☁️</span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '10px', opacity: 0.8 }}>
+                                Clip: {formatTime(clipOffset)} / {formatTime(activeClip.duration)}
+                              </div>
+                            </div>
                           </div>
-                          <div className="preview-compositing-info" style={{ fontSize: '10px', opacity: 0.8 }}>
-                            Opacity: {selectedClip.compositing?.opacity || 100}% |
-                            Blend: {selectedClip.compositing?.blendMode || 'normal'} |
-                            Effects: {selectedClip.effects?.length || 0}
+                        );
+                      }
+                      
+                      return (
+                        <div className="preview-placeholder">
+                          <Monitor size={48} />
+                          <p>Program Monitor</p>
+                          <div className="preview-resolution">1920 x 1080 • 30fps</div>
+                          <div style={{ fontSize: '10px', marginTop: '10px', color: '#666' }}>
+                            No clip at playhead position
                           </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="preview-placeholder">
-                        <Monitor size={48} />
-                        <p>Program Monitor</p>
-                        <div className="preview-resolution">1920 x 1080 • 30fps</div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 </div>
                 <div className="preview-controls">
