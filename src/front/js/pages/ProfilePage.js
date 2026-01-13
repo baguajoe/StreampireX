@@ -567,6 +567,11 @@ const ProfilePage = () => {
     // Follow state - NEW
     const [isFollowing, setIsFollowing] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
+    
+    // Block state
+    const [isBlocked, setIsBlocked] = useState(false);
+    const [showBlockModal, setShowBlockModal] = useState(false);
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
 
     // Form and editing state
     const [formData, setFormData] = useState({
@@ -1150,6 +1155,7 @@ const ProfilePage = () => {
             const token = localStorage.getItem('token');
             if (!token) return;
 
+            // Check follow status
             const response = await fetch(`${BACKEND_URL}/api/follow/status/${profileUserId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1160,6 +1166,20 @@ const ProfilePage = () => {
             if (response.ok) {
                 const data = await response.json();
                 setIsFollowing(data.is_following || false);
+                setIsBlocked(data.is_blocked || false);
+            }
+            
+            // Also check block status for more detail
+            const blockResponse = await fetch(`${BACKEND_URL}/api/block/status/${profileUserId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (blockResponse.ok) {
+                const blockData = await blockResponse.json();
+                setIsBlocked(blockData.you_blocked_them || blockData.they_blocked_you || false);
             }
         } catch (error) {
             console.error('Error checking follow status:', error);
@@ -1211,6 +1231,75 @@ const ProfilePage = () => {
             setFollowLoading(false);
         }
     }, [profileUserId, isOwnProfile, isFollowing]);
+
+    // BLOCK FUNCTIONALITY
+    const handleBlock = useCallback(async () => {
+        if (!profileUserId || isOwnProfile) return;
+
+        try {
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                alert('Please log in to block users');
+                return;
+            }
+
+            const response = await fetch(`${BACKEND_URL}/api/block/${profileUserId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                setIsBlocked(true);
+                setIsFollowing(false); // Blocking removes follow
+                setShowBlockModal(false);
+                setShowMoreMenu(false);
+                alert(`Blocked ${user.display_name || user.username}`);
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Failed to block user');
+            }
+        } catch (error) {
+            console.error('Error blocking user:', error);
+            alert('Error blocking user');
+        }
+    }, [profileUserId, isOwnProfile, user]);
+
+    const handleUnblock = useCallback(async () => {
+        if (!profileUserId || isOwnProfile) return;
+
+        try {
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                alert('Please log in to unblock users');
+                return;
+            }
+
+            const response = await fetch(`${BACKEND_URL}/api/unblock/${profileUserId}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                setIsBlocked(false);
+                setShowMoreMenu(false);
+                alert(`Unblocked ${user.display_name || user.username}`);
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Failed to unblock user');
+            }
+        } catch (error) {
+            console.error('Error unblocking user:', error);
+            alert('Error unblocking user');
+        }
+    }, [profileUserId, isOwnProfile, user]);
 
     // Media upload handlers
     const handleProfilePicChange = useCallback(async (event) => {
@@ -1677,8 +1766,8 @@ const ProfilePage = () => {
                             Chat
                         </button>
 
-                        {/* Follow button - only show on other users' profiles */}
-                        {!isOwnProfile && (
+                        {/* Follow button - only show on other users' profiles and if not blocked */}
+                        {!isOwnProfile && !isBlocked && (
                             <button
                                 className={`quick-action-btn ${isFollowing ? 'following' : 'follow'}`}
                                 onClick={handleFollow}
@@ -1689,8 +1778,19 @@ const ProfilePage = () => {
                             </button>
                         )}
 
-                        {/* Add to Inner Circle button - only show on other users' profiles */}
-                        {!isOwnProfile && (
+                        {/* Unblock button - show if blocked */}
+                        {!isOwnProfile && isBlocked && (
+                            <button
+                                className="quick-action-btn unblock"
+                                onClick={handleUnblock}
+                                title="Unblock"
+                            >
+                                🚫 Unblock
+                            </button>
+                        )}
+
+                        {/* Add to Inner Circle button - only show on other users' profiles and if not blocked */}
+                        {!isOwnProfile && !isBlocked && (
                             <button
                                 className={`quick-action-btn ${isInCircle ? 'in-circle' : 'add-circle'}`}
                                 onClick={isInCircle ? handleRemoveFromCircle : handleAddToCircle}
@@ -1715,6 +1815,50 @@ const ProfilePage = () => {
                         >
                             Share
                         </button>
+
+                        {/* More menu with block option */}
+                        {!isOwnProfile && (
+                            <div className="more-menu-container">
+                                <button
+                                    className="quick-action-btn"
+                                    onClick={() => setShowMoreMenu(!showMoreMenu)}
+                                    title="More options"
+                                >
+                                    ⋯
+                                </button>
+                                {showMoreMenu && (
+                                    <div className="more-menu-dropdown">
+                                        {!isBlocked ? (
+                                            <button
+                                                className="menu-item danger"
+                                                onClick={() => {
+                                                    setShowBlockModal(true);
+                                                    setShowMoreMenu(false);
+                                                }}
+                                            >
+                                                🚫 Block {user.display_name || user.username}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="menu-item"
+                                                onClick={handleUnblock}
+                                            >
+                                                ✓ Unblock {user.display_name || user.username}
+                                            </button>
+                                        )}
+                                        <button className="menu-item">
+                                            🚩 Report
+                                        </button>
+                                        <button
+                                            className="menu-item"
+                                            onClick={() => setShowMoreMenu(false)}
+                                        >
+                                            ✕ Cancel
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -2701,6 +2845,37 @@ const ProfilePage = () => {
                                     Copy
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Block Confirmation Modal */}
+            {showBlockModal && (
+                <div className="modal-backdrop" onClick={() => setShowBlockModal(false)}>
+                    <div className="block-modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>🚫 Block {user.display_name || user.username}?</h3>
+                        <p>Are you sure you want to block this user?</p>
+                        <ul className="block-consequences">
+                            <li>They won't be able to see your profile or content</li>
+                            <li>You won't see their content in your feed</li>
+                            <li>Any follow relationship will be removed</li>
+                            <li>They will be removed from your inner circle</li>
+                            <li>They won't be notified that you blocked them</li>
+                        </ul>
+                        <div className="modal-actions">
+                            <button
+                                className="cancel-btn"
+                                onClick={() => setShowBlockModal(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="block-confirm-btn"
+                                onClick={handleBlock}
+                            >
+                                🚫 Block
+                            </button>
                         </div>
                     </div>
                 </div>
