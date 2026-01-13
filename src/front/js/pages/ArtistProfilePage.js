@@ -62,7 +62,12 @@ const ArtistProfilePage = () => {
   });
 
   const [recentActivity, setRecentActivity] = useState([]);
-  const { id } = useParams()
+  const { id } = useParams();
+  
+  // Check if this is the current user's own profile
+  const currentUserId = localStorage.getItem("userId");
+  const isOwnProfile = currentUserId === id;
+
   const profileModes = [
     { id: "regular", label: "👤 Regular Profile", path: "/user/" + id },
     { id: "gamer", label: "🎮 Gamer Profile", path: "/profile/gamer" },
@@ -104,7 +109,35 @@ const ArtistProfilePage = () => {
   // BACKEND INTEGRATION - Fetch all artist data
   useEffect(() => {
     fetchArtistData();
-  }, []);
+  }, [id]);
+
+  // Check if current user is following this artist
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      if (!id || isOwnProfile) return;
+      
+      try {
+        const token = localStorage.getItem("token");
+        const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+        
+        const response = await fetch(`${BACKEND_URL}/api/follow/status/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setIsFollowing(data.is_following || false);
+        }
+      } catch (err) {
+        console.log("Could not check follow status:", err);
+      }
+    };
+    
+    checkFollowStatus();
+  }, [id, isOwnProfile]);
 
   const fetchArtistData = async () => {
     try {
@@ -148,6 +181,10 @@ const ArtistProfilePage = () => {
           });
 
           setIsVerified(userData.is_verified || false);
+          setArtistStats(prev => ({
+            ...prev,
+            totalFollowers: userData.follower_count || userData.followers || 0
+          }));
         } else {
           console.warn("Profile fetch failed:", profileRes.status);
         }
@@ -199,7 +236,7 @@ const ArtistProfilePage = () => {
           setArtistStats(prev => ({
             ...prev,
             totalPlays: analyticsData.total_plays || 0,
-            totalFollowers: analyticsData.total_followers || 0
+            totalFollowers: analyticsData.total_followers || prev.totalFollowers
           }));
         } else {
           console.warn("Analytics fetch failed:", analyticsRes.status);
@@ -347,27 +384,46 @@ const ArtistProfilePage = () => {
     }
   };
 
-  // FUNCTIONAL: Handle follow button
+  // FUNCTIONAL: Handle follow button - FIXED to include artist ID
   const handleFollow = async () => {
+    if (isOwnProfile) {
+      setError("You cannot follow yourself");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
       const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
 
-      const response = await fetch(`${BACKEND_URL}/api/artist/follow`, {
+      if (!id) {
+        setError("Cannot follow: Artist ID not found");
+        return;
+      }
+
+      const endpoint = isFollowing 
+        ? `${BACKEND_URL}/api/unfollow/${id}`
+        : `${BACKEND_URL}/api/follow/${id}`;
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ user_id: id })
       });
 
       if (response.ok) {
+        const data = await response.json();
         setIsFollowing(!isFollowing);
         setArtistStats(prev => ({
           ...prev,
           totalFollowers: isFollowing ? prev.totalFollowers - 1 : prev.totalFollowers + 1
         }));
         setSuccessMessage(isFollowing ? "Unfollowed!" : "Followed successfully!");
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to update follow status");
       }
     } catch (err) {
       console.error("Follow error:", err);
@@ -565,9 +621,11 @@ const ArtistProfilePage = () => {
                       <h3>No tracks yet</h3>
                       <p>Upload your first track to get started</p>
                     </div>
-                    <button onClick={openUploader} className="upload-btn">
-                      ➕ Upload Now
-                    </button>
+                    {isOwnProfile && (
+                      <button onClick={openUploader} className="upload-btn">
+                        ➕ Upload Now
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -576,7 +634,7 @@ const ArtistProfilePage = () => {
             <section className="tracks-section">
               <div className="section-header">
                 <h2>🎵 Popular Tracks</h2>
-                {tracks.length > 0 && (
+                {isOwnProfile && tracks.length > 0 && (
                   <button onClick={openUploader} className="upload-btn">
                     ➕ Upload New Track
                   </button>
@@ -611,9 +669,11 @@ const ArtistProfilePage = () => {
                 )) : (
                   <div className="no-tracks">
                     <p>🎵 No tracks uploaded yet</p>
-                    <button onClick={openUploader} className="upload-first-btn">
-                      Upload Your First Track
-                    </button>
+                    {isOwnProfile && (
+                      <button onClick={openUploader} className="upload-first-btn">
+                        Upload Your First Track
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -637,9 +697,11 @@ const ArtistProfilePage = () => {
                 )) : (
                   <div className="no-content">
                     <p>💿 No albums created yet</p>
-                    <button onClick={handleCreateAlbum} className="create-btn">
-                      Create Your First Album
-                    </button>
+                    {isOwnProfile && (
+                      <button onClick={handleCreateAlbum} className="create-btn">
+                        Create Your First Album
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -653,9 +715,11 @@ const ArtistProfilePage = () => {
             <section className="tracks-section">
               <div className="section-header">
                 <h2>🎵 All Tracks</h2>
-                <button onClick={openUploader} className="upload-btn">
-                  ➕ Upload New Track
-                </button>
+                {isOwnProfile && (
+                  <button onClick={openUploader} className="upload-btn">
+                    ➕ Upload New Track
+                  </button>
+                )}
               </div>
 
               <div className="tracks-list">
@@ -686,9 +750,11 @@ const ArtistProfilePage = () => {
                 )) : (
                   <div className="no-tracks">
                     <p>🎵 {searchQuery ? `No tracks found for "${searchQuery}"` : "No tracks uploaded yet"}</p>
-                    <button onClick={openUploader} className="upload-first-btn">
-                      Upload Your First Track
-                    </button>
+                    {isOwnProfile && (
+                      <button onClick={openUploader} className="upload-first-btn">
+                        Upload Your First Track
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -717,9 +783,11 @@ const ArtistProfilePage = () => {
                 )) : (
                   <div className="no-content">
                     <p>💿 {searchQuery ? `No albums found for "${searchQuery}"` : "No albums created yet"}</p>
-                    <button onClick={handleCreateAlbum} className="create-btn">
-                      Create Your First Album
-                    </button>
+                    {isOwnProfile && (
+                      <button onClick={handleCreateAlbum} className="create-btn">
+                        Create Your First Album
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -748,9 +816,11 @@ const ArtistProfilePage = () => {
                 )) : (
                   <div className="no-content">
                     <p>📋 {searchQuery ? `No playlists found for "${searchQuery}"` : "No playlists created yet"}</p>
-                    <button onClick={handleCreatePlaylist} className="create-btn">
-                      Create Your First Playlist
-                    </button>
+                    {isOwnProfile && (
+                      <button onClick={handleCreatePlaylist} className="create-btn">
+                        Create Your First Playlist
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -952,9 +1022,11 @@ const ArtistProfilePage = () => {
               </div>
             </div>
             <div className="artist-actions">
-              <button onClick={handleFollow} className="follow-btn">
-                {isFollowing ? '✓ Following' : '🎵 Follow'}
-              </button>
+              {!isOwnProfile && (
+                <button onClick={handleFollow} className={`follow-btn ${isFollowing ? 'following' : ''}`}>
+                  {isFollowing ? '✓ Following' : '➕ Follow'}
+                </button>
+              )}
               <button onClick={handleShare} className="share-btn">🔗 Share</button>
               <button className="more-btn">⋯</button>
             </div>
@@ -994,12 +1066,14 @@ const ArtistProfilePage = () => {
         >
           ℹ️ About
         </button>
-        <button
-          className={`tab-btn ${activeTab === "analytics" ? "active" : ""}`}
-          onClick={() => setActiveTab("analytics")}
-        >
-          📊 Analytics
-        </button>
+        {isOwnProfile && (
+          <button
+            className={`tab-btn ${activeTab === "analytics" ? "active" : ""}`}
+            onClick={() => setActiveTab("analytics")}
+          >
+            📊 Analytics
+          </button>
+        )}
       </div>
 
       {/* Search Bar */}
@@ -1057,18 +1131,20 @@ const ArtistProfilePage = () => {
               </div>
             </section>
 
-            <section className="artist-tools-card">
-              <h3>🛠️ Artist Tools</h3>
-              <div className="tools-list">
-                {activeTab !== "overview" && (
-                  <button onClick={openUploader} className="tool-btn">⬆️ Upload Music</button>
-                )}
-                <Link to="/artist/analytics" className="tool-btn">📊 View Analytics</Link>
-                <Link to="/artist/promote" className="tool-btn">📢 Promote Track</Link>
-                <Link to="/artist/collaborate" className="tool-btn">🤝 Find Collaborators</Link>
-                <Link to="/artist/monetize" className="tool-btn">💰 Monetization</Link>
-              </div>
-            </section>
+            {isOwnProfile && (
+              <section className="artist-tools-card">
+                <h3>🛠️ Artist Tools</h3>
+                <div className="tools-list">
+                  {activeTab !== "overview" && (
+                    <button onClick={openUploader} className="tool-btn">⬆️ Upload Music</button>
+                  )}
+                  <Link to="/artist/analytics" className="tool-btn">📊 View Analytics</Link>
+                  <Link to="/artist/promote" className="tool-btn">📢 Promote Track</Link>
+                  <Link to="/artist/collaborate" className="tool-btn">🤝 Find Collaborators</Link>
+                  <Link to="/artist/monetize" className="tool-btn">💰 Monetization</Link>
+                </div>
+              </section>
+            )}
 
             <section className="recent-activity-card">
               <h3>📈 Recent Activity</h3>
@@ -1096,9 +1172,11 @@ const ArtistProfilePage = () => {
         )}
       </div>
 
-      <div className="edit-profile-section">
-        <Link to="/profile/artist/edit" className="edit-profile-btn">✏️ Edit Artist Profile</Link>
-      </div>
+      {isOwnProfile && (
+        <div className="edit-profile-section">
+          <Link to="/profile/artist/edit" className="edit-profile-btn">✏️ Edit Artist Profile</Link>
+        </div>
+      )}
     </div>
   );
 };

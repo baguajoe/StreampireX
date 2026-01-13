@@ -2,6 +2,7 @@
 # =====================================================
 # VIDEO EDITOR API ROUTES - Cloudinary Integration
 # =====================================================
+# UPDATED: Now supports frameRate parameter for export
 # Add to your Flask app with: app.register_blueprint(video_editor_bp)
 
 from flask import Blueprint, request, jsonify
@@ -21,142 +22,6 @@ from src.api.cloudinary_setup import uploadFile
 
 video_editor_bp = Blueprint('video_editor', __name__)
 
-# =====================================================
-# MODELS - Add these to your models.py
-# =====================================================
-"""
-Add this to your src/api/models.py:
-
-class VideoProject(db.Model):
-    __tablename__ = 'video_projects'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    title = db.Column(db.String(255), nullable=False, default='Untitled Project')
-    description = db.Column(db.Text)
-    
-    # Project settings
-    resolution_width = db.Column(db.Integer, default=1920)
-    resolution_height = db.Column(db.Integer, default=1080)
-    frame_rate = db.Column(db.Integer, default=30)
-    duration = db.Column(db.Float, default=0)  # Total duration in seconds
-    
-    # Timeline data stored as JSON
-    timeline_data = db.Column(db.Text)  # JSON string of tracks, clips, transitions
-    
-    # Thumbnail
-    thumbnail_url = db.Column(db.String(500))
-    
-    # Status
-    status = db.Column(db.String(50), default='draft')  # draft, rendering, completed
-    
-    # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    user = db.relationship('User', backref=db.backref('video_projects', lazy='dynamic'))
-    
-    def serialize(self):
-        return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'title': self.title,
-            'description': self.description,
-            'resolution': {
-                'width': self.resolution_width,
-                'height': self.resolution_height
-            },
-            'frame_rate': self.frame_rate,
-            'duration': self.duration,
-            'timeline_data': json.loads(self.timeline_data) if self.timeline_data else None,
-            'thumbnail_url': self.thumbnail_url,
-            'status': self.status,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
-        }
-
-
-class VideoClipAsset(db.Model):
-    __tablename__ = 'video_clip_assets'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    project_id = db.Column(db.Integer, db.ForeignKey('video_projects.id'), nullable=True)
-    
-    # Cloudinary info
-    cloudinary_public_id = db.Column(db.String(255), nullable=False)
-    cloudinary_url = db.Column(db.String(500), nullable=False)
-    resource_type = db.Column(db.String(50), default='video')  # video, image, audio
-    
-    # Asset metadata
-    title = db.Column(db.String(255))
-    duration = db.Column(db.Float)  # Duration in seconds
-    width = db.Column(db.Integer)
-    height = db.Column(db.Integer)
-    file_size = db.Column(db.BigInteger)
-    format = db.Column(db.String(50))
-    
-    # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    def serialize(self):
-        return {
-            'id': self.id,
-            'cloudinary_public_id': self.cloudinary_public_id,
-            'cloudinary_url': self.cloudinary_url,
-            'resource_type': self.resource_type,
-            'title': self.title,
-            'duration': self.duration,
-            'width': self.width,
-            'height': self.height,
-            'file_size': self.file_size,
-            'format': self.format,
-            'created_at': self.created_at.isoformat() if self.created_at else None
-        }
-
-
-class VideoExport(db.Model):
-    __tablename__ = 'video_exports'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    project_id = db.Column(db.Integer, db.ForeignKey('video_projects.id'), nullable=False)
-    
-    # Export settings
-    resolution = db.Column(db.String(50))  # 1080p, 720p, 480p
-    format = db.Column(db.String(50), default='mp4')
-    quality = db.Column(db.String(50), default='auto')
-    
-    # Export result
-    export_url = db.Column(db.String(500))
-    transformation_url = db.Column(db.Text)  # Full Cloudinary transformation URL
-    
-    # Status
-    status = db.Column(db.String(50), default='pending')  # pending, processing, completed, failed
-    error_message = db.Column(db.Text)
-    
-    # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    completed_at = db.Column(db.DateTime)
-    
-    def serialize(self):
-        return {
-            'id': self.id,
-            'project_id': self.project_id,
-            'resolution': self.resolution,
-            'format': self.format,
-            'quality': self.quality,
-            'export_url': self.export_url,
-            'status': self.status,
-            'error_message': self.error_message,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'completed_at': self.completed_at.isoformat() if self.completed_at else None
-        }
-"""
-
-# For now, we'll work without the model and store in existing tables
-# You can add the models above to models.py later
 
 # =====================================================
 # CLOUDINARY TRANSFORMATION BUILDER
@@ -188,11 +53,21 @@ class CloudinaryVideoTransformer:
             return f"c_{crop_mode},h_{height}"
         return None
     
+    # =====================================================
+    # NEW: Frame Rate Transformation
+    # =====================================================
+    def build_fps_transformation(self, frame_rate):
+        """Build frame rate transformation: fps_X"""
+        valid_frame_rates = [24, 25, 30, 48, 60]
+        if frame_rate and frame_rate in valid_frame_rates:
+            return f"fps_{frame_rate}"
+        return None
+    
     def build_effect_transformation(self, effect_id, intensity=50):
         """Build effect transformation based on effect ID"""
         effect_map = {
             # Color adjustments
-            'brightness': f"e_brightness:{intensity - 50}",  # -50 to 50
+            'brightness': f"e_brightness:{intensity - 50}",
             'contrast': f"e_contrast:{intensity - 50}",
             'saturation': f"e_saturation:{intensity - 50}",
             'hue': f"e_hue:{intensity}",
@@ -200,7 +75,7 @@ class CloudinaryVideoTransformer:
             'vibrance': f"e_vibrance:{intensity - 50}",
             
             # Blur effects
-            'blur': f"e_blur:{int(intensity * 20)}",  # 0-2000
+            'blur': f"e_blur:{int(intensity * 20)}",
             'gaussianBlur': f"e_blur:{int(intensity * 20)}",
             'motionBlur': f"e_blur:{int(intensity * 10)}",
             
@@ -214,7 +89,7 @@ class CloudinaryVideoTransformer:
             'oil_paint': f"e_oil_paint:{max(1, int(intensity / 10))}",
             
             # Video-specific
-            'accelerate': f"e_accelerate:{int((intensity - 50) * 2)}",  # -100 to 100
+            'accelerate': f"e_accelerate:{int((intensity - 50) * 2)}",
             'reverse': "e_reverse",
             'boomerang': "e_boomerang",
             'loop': f"e_loop:{max(1, int(intensity / 25))}",
@@ -226,7 +101,7 @@ class CloudinaryVideoTransformer:
             'noise': f"e_noise:{intensity}",
             'deshake': f"e_deshake:{min(64, int(intensity / 2))}",
             
-            # Color filters (LUT-style)
+            # Color filters
             'warmth': f"e_tint:{intensity}:orange",
             'cool': f"e_tint:{intensity}:blue",
             'vintage': "e_art:incognito",
@@ -278,9 +153,7 @@ class CloudinaryVideoTransformer:
         return f"l_text:Arial_{font_size}_bold:{encoded_text},co_rgb:{color.replace('#', '')},g_{gravity}/fl_layer_apply"
     
     def build_transition_transformation(self, transition_type, duration=1):
-        """Build transition transformation (limited support in Cloudinary)"""
-        # Cloudinary has limited transition support
-        # Most transitions need to be done via concatenation with luma mattes
+        """Build transition transformation"""
         transition_map = {
             'crossDissolve': f"e_fade:{int(duration * 1000)}",
             'fade': f"e_fade:{int(duration * 1000)}",
@@ -291,7 +164,7 @@ class CloudinaryVideoTransformer:
     def build_audio_transformation(self, effect_id, intensity=50):
         """Build audio transformation"""
         audio_map = {
-            'volume': f"e_volume:{int((intensity / 50) * 100)}",  # 0-200%
+            'volume': f"e_volume:{int((intensity / 50) * 100)}",
             'mute': "e_volume:mute",
             'fadeIn': f"e_fade:{int(intensity * 20)}",
             'fadeOut': f"e_fade:-{int(intensity * 20)}",
@@ -312,8 +185,11 @@ class CloudinaryVideoTransformer:
         q = quality_map.get(quality, 'q_auto')
         return f"{q}/f_{format}"
     
-    def build_resolution_transformation(self, resolution):
-        """Build resolution transformation from preset"""
+    # =====================================================
+    # UPDATED: Resolution Transformation with Frame Rate
+    # =====================================================
+    def build_resolution_transformation(self, resolution, frame_rate=None):
+        """Build resolution transformation from preset, optionally with frame rate"""
         resolution_map = {
             '4k': {'w': 3840, 'h': 2160},
             '1080p': {'w': 1920, 'h': 1080},
@@ -324,12 +200,17 @@ class CloudinaryVideoTransformer:
         
         res = resolution_map.get(resolution)
         if res:
-            return f"c_scale,w_{res['w']},h_{res['h']}"
+            base_transform = f"c_scale,w_{res['w']},h_{res['h']}"
+            # Add frame rate if specified
+            if frame_rate:
+                fps_transform = self.build_fps_transformation(frame_rate)
+                if fps_transform:
+                    return f"{base_transform},{fps_transform}"
+            return base_transform
         return None
     
     def build_full_transformation_url(self, public_id, transformations, format='mp4'):
         """Build complete transformation URL"""
-        # Filter out None values and join transformations
         valid_transforms = [t for t in transformations if t]
         transform_string = "/".join(valid_transforms)
         
@@ -397,10 +278,7 @@ transformer = CloudinaryVideoTransformer()
 @video_editor_bp.route('/api/video-editor/upload', methods=['POST'])
 @jwt_required()
 def upload_editor_asset():
-    """
-    Upload a video/audio/image asset for use in the video editor.
-    Returns Cloudinary public_id and URL for use in transformations.
-    """
+    """Upload a video/audio/image asset for use in the video editor."""
     try:
         user_id = get_jwt_identity()
         
@@ -416,7 +294,7 @@ def upload_editor_asset():
         if filename.endswith(('.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv')):
             resource_type = 'video'
         elif filename.endswith(('.mp3', '.wav', '.flac', '.m4a', '.aac', '.ogg')):
-            resource_type = 'raw'  # Audio as raw for better codec support
+            resource_type = 'raw'
         elif filename.endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
             resource_type = 'image'
         else:
@@ -427,23 +305,20 @@ def upload_editor_asset():
         hash_suffix = hashlib.md5(f"{user_id}_{timestamp}".encode()).hexdigest()[:8]
         public_id = f"editor/{user_id}/{timestamp}_{hash_suffix}"
         
-        # Upload to Cloudinary with metadata extraction
         upload_options = {
             'public_id': public_id,
             'resource_type': resource_type,
             'folder': f'video_editor/{user_id}',
         }
         
-        # For videos, get additional metadata
         if resource_type == 'video':
             upload_options['eager'] = [
-                {'width': 320, 'height': 180, 'crop': 'fill', 'format': 'jpg'}  # Thumbnail
+                {'width': 320, 'height': 180, 'crop': 'fill', 'format': 'jpg'}
             ]
             upload_options['eager_async'] = True
         
         result = cloudinary.uploader.upload(file, **upload_options)
         
-        # Build response with metadata
         response_data = {
             "success": True,
             "asset": {
@@ -459,7 +334,6 @@ def upload_editor_asset():
             }
         }
         
-        # Add thumbnail for videos
         if resource_type == 'video' and result.get('eager'):
             response_data['asset']['thumbnail'] = result['eager'][0].get('secure_url')
         
@@ -470,6 +344,92 @@ def upload_editor_asset():
         return jsonify({"error": f"Upload failed: {str(e)}"}), 500
 
 
+# =====================================================
+# NEW: Upload with specific frame rate (eager transformation)
+# =====================================================
+@video_editor_bp.route('/api/video-editor/upload-with-fps', methods=['POST'])
+@jwt_required()
+def upload_with_fps():
+    """
+    Upload video with eager transformation at specific frame rate.
+    Use this when you want to pre-process the video at upload time.
+    """
+    try:
+        user_id = get_jwt_identity()
+        
+        if 'file' not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+        
+        # Get frame rate from request (default 24)
+        frame_rate = request.form.get('frame_rate', 24, type=int)
+        
+        # Validate frame rate
+        valid_frame_rates = [24, 25, 30, 48, 60]
+        if frame_rate not in valid_frame_rates:
+            frame_rate = 24
+        
+        # Generate unique public_id
+        timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        hash_suffix = hashlib.md5(f"{user_id}_{timestamp}".encode()).hexdigest()[:8]
+        public_id = f"editor/{user_id}/{timestamp}_{hash_suffix}"
+        
+        # Upload with eager transformation including frame rate
+        result = cloudinary.uploader.upload(
+            file,
+            public_id=public_id,
+            resource_type="video",
+            folder=f'video_editor/{user_id}',
+            eager=[
+                {
+                    "width": 1920,
+                    "height": 1080,
+                    "crop": "limit",
+                    "fps": frame_rate,  # Set frame rate here
+                    "format": "mp4"
+                },
+                {
+                    "width": 320,
+                    "height": 180,
+                    "crop": "fill",
+                    "format": "jpg"  # Thumbnail
+                }
+            ],
+            eager_async=True
+        )
+        
+        response_data = {
+            "success": True,
+            "asset": {
+                "public_id": result['public_id'],
+                "url": result['secure_url'],
+                "resource_type": "video",
+                "format": result.get('format'),
+                "width": result.get('width'),
+                "height": result.get('height'),
+                "duration": result.get('duration'),
+                "file_size": result.get('bytes'),
+                "frame_rate": frame_rate,
+                "created_at": result.get('created_at')
+            },
+            "message": f"Video uploaded. Processing at {frame_rate}fps in background."
+        }
+        
+        if result.get('eager'):
+            response_data['asset']['processed_url'] = result['eager'][0].get('secure_url')
+            if len(result['eager']) > 1:
+                response_data['asset']['thumbnail'] = result['eager'][1].get('secure_url')
+        
+        return jsonify(response_data), 200
+        
+    except Exception as e:
+        print(f"❌ Upload with FPS error: {str(e)}")
+        return jsonify({"error": f"Upload failed: {str(e)}"}), 500
+
+
 @video_editor_bp.route('/api/video-editor/assets', methods=['GET'])
 @jwt_required()
 def get_editor_assets():
@@ -477,7 +437,6 @@ def get_editor_assets():
     try:
         user_id = get_jwt_identity()
         
-        # Get assets from Cloudinary
         result = cloudinary.api.resources(
             type='upload',
             prefix=f'video_editor/{user_id}',
@@ -485,7 +444,6 @@ def get_editor_assets():
             resource_type='video'
         )
         
-        # Also get images
         image_result = cloudinary.api.resources(
             type='upload',
             prefix=f'video_editor/{user_id}',
@@ -531,10 +489,7 @@ def get_editor_assets():
 @video_editor_bp.route('/api/video-editor/transform', methods=['POST'])
 @jwt_required()
 def transform_video():
-    """
-    Apply transformations to a video and return the transformed URL.
-    This is for preview purposes - transformations are applied on-the-fly.
-    """
+    """Apply transformations to a video and return the transformed URL."""
     try:
         user_id = get_jwt_identity()
         data = request.get_json()
@@ -546,15 +501,19 @@ def transform_video():
         if not public_id:
             return jsonify({"error": "No public_id provided"}), 400
         
-        # Build transformations from clip data
         transformations = transformer.process_timeline_clip(data)
         
-        # Add quality settings
+        # Add frame rate if specified
+        frame_rate = data.get('frame_rate') or data.get('frameRate')
+        if frame_rate:
+            fps_transform = transformer.build_fps_transformation(frame_rate)
+            if fps_transform:
+                transformations.append(fps_transform)
+        
         quality = data.get('quality', 'auto')
         format = data.get('format', 'mp4')
         transformations.append(transformer.build_quality_transformation(quality, format))
         
-        # Build final URL
         transformed_url = transformer.build_full_transformation_url(
             public_id, 
             transformations, 
@@ -588,15 +547,12 @@ def trim_video():
         
         transformations = []
         
-        # Add trim transformation
         trim = transformer.build_trim_transformation(start_time, end_time)
         if trim:
             transformations.append(trim)
         
-        # Add quality
         transformations.append('q_auto/f_mp4')
         
-        # Build URL
         trimmed_url = transformer.build_full_transformation_url(
             public_id,
             transformations,
@@ -628,15 +584,13 @@ def preview_effect():
         if not public_id or not effect_id:
             return jsonify({"error": "Missing public_id or effect_id"}), 400
         
-        # Build effect transformation
         effect_transform = transformer.build_effect_transformation(effect_id, intensity)
         
         if not effect_transform:
             return jsonify({"error": f"Unknown effect: {effect_id}"}), 400
         
-        # Build preview URL (short clip for faster preview)
         transformations = [
-            'so_0,eo_5',  # First 5 seconds only for preview
+            'so_0,eo_5',
             effect_transform,
             'q_auto/f_mp4'
         ]
@@ -661,10 +615,7 @@ def preview_effect():
 @video_editor_bp.route('/api/video-editor/concatenate', methods=['POST'])
 @jwt_required()
 def concatenate_videos():
-    """
-    Concatenate multiple video clips into one.
-    Uses Cloudinary's splice functionality.
-    """
+    """Concatenate multiple video clips into one."""
     try:
         data = request.get_json()
         
@@ -672,17 +623,14 @@ def concatenate_videos():
         if len(clips) < 2:
             return jsonify({"error": "Need at least 2 clips to concatenate"}), 400
         
-        # First clip is the base
         base_clip = clips[0]
         base_public_id = base_clip.get('public_id')
         
         if not base_public_id:
             return jsonify({"error": "Invalid clip data"}), 400
         
-        # Build concatenation transformations
         transformations = []
         
-        # Add transformations for base clip if any
         if base_clip.get('trim'):
             trim = transformer.build_trim_transformation(
                 base_clip['trim'].get('start'),
@@ -691,16 +639,13 @@ def concatenate_videos():
             if trim:
                 transformations.append(trim)
         
-        # Add subsequent clips with splice
         for clip in clips[1:]:
             clip_id = clip.get('public_id')
             if clip_id:
-                # Replace forward slashes with colons for layer syntax
                 safe_id = clip_id.replace('/', ':')
                 
                 splice_parts = [f"l_video:{safe_id}"]
                 
-                # Add trim for this clip if specified
                 if clip.get('trim'):
                     start = clip['trim'].get('start', 0)
                     end = clip['trim'].get('end')
@@ -714,10 +659,8 @@ def concatenate_videos():
                 
                 transformations.append("/".join(splice_parts))
         
-        # Add quality
         transformations.append('q_auto/f_mp4')
         
-        # Build final URL
         concat_url = transformer.build_full_transformation_url(
             base_public_id,
             transformations,
@@ -744,7 +687,7 @@ def add_video_overlay():
         base_public_id = data.get('base_public_id')
         overlay_public_id = data.get('overlay_public_id')
         position = data.get('position', 'bottom-right')
-        scale = data.get('scale', 30)  # Percentage of main video
+        scale = data.get('scale', 30)
         opacity = data.get('opacity', 100)
         start_time = data.get('start_time', 0)
         
@@ -753,11 +696,9 @@ def add_video_overlay():
         
         transformations = []
         
-        # Start time for overlay
         if start_time > 0:
             transformations.append(f"so_{start_time}")
         
-        # Build overlay transformation
         overlay = transformer.build_overlay_transformation(
             overlay_public_id,
             position,
@@ -766,10 +707,8 @@ def add_video_overlay():
         )
         transformations.append(overlay)
         
-        # Add quality
         transformations.append('q_auto/f_mp4')
         
-        # Build URL
         overlay_url = transformer.build_full_transformation_url(
             base_public_id,
             transformations,
@@ -803,14 +742,11 @@ def add_text_overlay():
         
         transformations = []
         
-        # Build text overlay
         text_overlay = transformer.build_text_overlay(text, font_size, color, position)
         transformations.append(text_overlay)
         
-        # Add quality
         transformations.append('q_auto/f_mp4')
         
-        # Build URL
         text_url = transformer.build_full_transformation_url(
             public_id,
             transformations,
@@ -826,12 +762,15 @@ def add_text_overlay():
         return jsonify({"error": f"Text overlay failed: {str(e)}"}), 500
 
 
+# =====================================================
+# UPDATED: Export with Frame Rate Support
+# =====================================================
 @video_editor_bp.route('/api/video-editor/export', methods=['POST'])
 @jwt_required()
 def export_project():
     """
     Export a complete video project with all transformations.
-    This is the main export function that processes the entire timeline.
+    NOW SUPPORTS: frameRate parameter for output video
     """
     try:
         user_id = get_jwt_identity()
@@ -852,6 +791,16 @@ def export_project():
         quality = settings.get('quality', 'auto')
         format = settings.get('format', 'mp4')
         
+        # NEW: Get frame rate from settings (default 24fps)
+        frame_rate = settings.get('frameRate', 24)
+        
+        # Validate frame rate
+        valid_frame_rates = [24, 25, 30, 48, 60]
+        if frame_rate not in valid_frame_rates:
+            frame_rate = 24
+        
+        print(f"📹 Export settings: {resolution}, {frame_rate}fps, {quality}, {format}")
+        
         # Find all video clips from tracks
         video_clips = []
         for track in tracks:
@@ -870,10 +819,15 @@ def export_project():
             
             transformations = transformer.process_timeline_clip(clip)
             
-            # Add resolution
-            res_transform = transformer.build_resolution_transformation(resolution)
+            # Add resolution WITH frame rate
+            res_transform = transformer.build_resolution_transformation(resolution, frame_rate)
             if res_transform:
                 transformations.append(res_transform)
+            else:
+                # If resolution transform failed, add fps separately
+                fps_transform = transformer.build_fps_transformation(frame_rate)
+                if fps_transform:
+                    transformations.append(fps_transform)
             
             # Add quality
             transformations.append(transformer.build_quality_transformation(quality, format))
@@ -888,31 +842,32 @@ def export_project():
                 "success": True,
                 "export_url": export_url,
                 "status": "completed",
-                "message": "Video exported successfully. Click the URL to download."
+                "settings": {
+                    "resolution": resolution,
+                    "frame_rate": frame_rate,
+                    "quality": quality,
+                    "format": format
+                },
+                "message": f"Video exported at {resolution}, {frame_rate}fps. Click the URL to download."
             }), 200
         
         # For multiple clips, concatenate
         else:
-            # Process first clip
             first_clip = video_clips[0]
             base_public_id = first_clip.get('cloudinary_public_id') or first_clip.get('public_id')
             
             transformations = []
             
-            # Add first clip transformations
             first_transforms = transformer.process_timeline_clip(first_clip)
             transformations.extend(first_transforms)
             
-            # Add subsequent clips with splice
             for clip in video_clips[1:]:
                 clip_id = clip.get('cloudinary_public_id') or clip.get('public_id')
                 if clip_id:
                     safe_id = clip_id.replace('/', ':')
                     
-                    # Build splice with clip transformations
                     splice_parts = [f"l_video:{safe_id}"]
                     
-                    # Add clip-specific transformations
                     clip_transforms = transformer.process_timeline_clip(clip)
                     if clip_transforms:
                         splice_parts.extend(clip_transforms)
@@ -922,10 +877,14 @@ def export_project():
                     
                     transformations.append("/".join(splice_parts))
             
-            # Add resolution
-            res_transform = transformer.build_resolution_transformation(resolution)
+            # Add resolution WITH frame rate
+            res_transform = transformer.build_resolution_transformation(resolution, frame_rate)
             if res_transform:
                 transformations.append(res_transform)
+            else:
+                fps_transform = transformer.build_fps_transformation(frame_rate)
+                if fps_transform:
+                    transformations.append(fps_transform)
             
             # Add quality
             transformations.append(transformer.build_quality_transformation(quality, format))
@@ -941,12 +900,69 @@ def export_project():
                 "export_url": export_url,
                 "status": "completed",
                 "clips_processed": len(video_clips),
-                "message": "Video exported successfully. Click the URL to download."
+                "settings": {
+                    "resolution": resolution,
+                    "frame_rate": frame_rate,
+                    "quality": quality,
+                    "format": format
+                },
+                "message": f"Video exported at {resolution}, {frame_rate}fps. Click the URL to download."
             }), 200
         
     except Exception as e:
         print(f"❌ Export error: {str(e)}")
         return jsonify({"error": f"Export failed: {str(e)}"}), 500
+
+
+# =====================================================
+# NEW: Build Video URL with Frame Rate (Helper Endpoint)
+# =====================================================
+@video_editor_bp.route('/api/video-editor/build-url', methods=['POST'])
+@jwt_required()
+def build_video_url():
+    """Build a Cloudinary video URL with specific transformations."""
+    try:
+        data = request.get_json()
+        
+        public_id = data.get('public_id')
+        if not public_id:
+            return jsonify({"error": "No public_id provided"}), 400
+        
+        # Get parameters
+        width = data.get('width', 1920)
+        height = data.get('height', 1080)
+        frame_rate = data.get('frame_rate', 24)
+        quality = data.get('quality', 'auto')
+        format = data.get('format', 'mp4')
+        
+        # Validate frame rate
+        valid_frame_rates = [24, 25, 30, 48, 60]
+        if frame_rate not in valid_frame_rates:
+            frame_rate = 24
+        
+        # Build URL manually
+        cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
+        base_url = f"https://res.cloudinary.com/{cloud_name}/video/upload"
+        
+        # Build transformation string
+        transformation = f"w_{width},h_{height},c_limit,fps_{frame_rate},q_{quality}"
+        
+        video_url = f"{base_url}/{transformation}/{public_id}.{format}"
+        
+        return jsonify({
+            "success": True,
+            "video_url": video_url,
+            "settings": {
+                "width": width,
+                "height": height,
+                "frame_rate": frame_rate,
+                "quality": quality,
+                "format": format
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"URL build failed: {str(e)}"}), 500
 
 
 @video_editor_bp.route('/api/video-editor/save-project', methods=['POST'])
@@ -962,15 +978,6 @@ def save_project():
         timeline_data = data.get('timeline')
         settings = data.get('settings', {})
         
-        # For now, store in a Video record (you can create VideoProject model later)
-        # This is a simplified approach
-        
-        if project_id:
-            # Update existing project
-            # You'll need to add VideoProject model for proper implementation
-            pass
-        
-        # Return success with project data
         return jsonify({
             "success": True,
             "message": "Project saved successfully",
@@ -1037,9 +1044,12 @@ def get_available_effects():
     }), 200
 
 
+# =====================================================
+# UPDATED: Resolutions now include frame rate options
+# =====================================================
 @video_editor_bp.route('/api/video-editor/resolutions', methods=['GET'])
 def get_available_resolutions():
-    """Get list of available export resolutions"""
+    """Get list of available export resolutions and frame rates"""
     resolutions = [
         {"id": "4k", "name": "4K Ultra HD", "width": 3840, "height": 2160, "tier_required": "professional"},
         {"id": "1080p", "name": "Full HD", "width": 1920, "height": 1080, "tier_required": "creator"},
@@ -1048,9 +1058,19 @@ def get_available_resolutions():
         {"id": "360p", "name": "Low", "width": 640, "height": 360, "tier_required": "free"},
     ]
     
+    # NEW: Include available frame rates
+    frame_rates = [
+        {"id": 24, "name": "24 fps", "description": "Film/Cinema standard"},
+        {"id": 25, "name": "25 fps", "description": "PAL (European TV)"},
+        {"id": 30, "name": "30 fps", "description": "NTSC (US TV/Web)"},
+        {"id": 48, "name": "48 fps", "description": "High Frame Rate (HFR)"},
+        {"id": 60, "name": "60 fps", "description": "Smooth video/Gaming"},
+    ]
+    
     return jsonify({
         "success": True,
-        "resolutions": resolutions
+        "resolutions": resolutions,
+        "frame_rates": frame_rates
     }), 200
 
 
@@ -1067,7 +1087,6 @@ def generate_thumbnail():
         if not public_id:
             return jsonify({"error": "No public_id provided"}), 400
         
-        # Build thumbnail URL
         cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
         thumbnail_url = f"https://res.cloudinary.com/{cloud_name}/video/upload/so_{timestamp},c_fill,w_320,h_180/f_jpg/{public_id}"
         
@@ -1080,10 +1099,6 @@ def generate_thumbnail():
         return jsonify({"error": f"Thumbnail generation failed: {str(e)}"}), 500
 
 
-# =====================================================
-# HELPER ROUTE FOR TESTING
-# =====================================================
-
 @video_editor_bp.route('/api/video-editor/health', methods=['GET'])
 def health_check():
     """Health check for video editor API"""
@@ -1093,5 +1108,6 @@ def health_check():
         "status": "healthy",
         "service": "video-editor",
         "cloudinary_configured": bool(cloud_name),
+        "supported_frame_rates": [24, 25, 30, 48, 60],
         "timestamp": datetime.utcnow().isoformat()
     }), 200
