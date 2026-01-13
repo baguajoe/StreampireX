@@ -1377,6 +1377,7 @@ const VideoEditorComponent = () => {
   const [selectedTool, setSelectedTool] = useState('select');
   const [selectedClip, setSelectedClip] = useState(null);
   const [selectedTransition, setSelectedTransition] = useState(null);
+  const [selectedTransitionType, setSelectedTransitionType] = useState('crossDissolve'); // Default transition to add
   const [zoom, setZoom] = useState(1);
 
   const [snapGridSize, setSnapGridSize] = useState(5);
@@ -2144,12 +2145,15 @@ const VideoEditorComponent = () => {
 
   // Add transition between two specific clips
   const addTransitionBetweenClips = (trackId, clip1, clip2, transitionType = 'crossDissolve') => {
+    // Get transition data for duration
+    const transitionData = transitions.find(t => t.id === transitionType);
+    const transitionDuration = transitionData?.duration || 1;
+    const transitionName = transitionData?.name || 'Cross Dissolve';
+    
     // Find where clip1 ends and clip2 starts
     const clip1End = clip1.startTime + clip1.duration;
-    const clip2Start = clip2.startTime;
     
     // Transition should start slightly before clip1 ends
-    const transitionDuration = 1; // 1 second transition
     const transitionStart = clip1End - (transitionDuration / 2);
     
     const newTransition = {
@@ -2167,8 +2171,8 @@ const VideoEditorComponent = () => {
         : track
     ));
     
-    console.log(`✅ Added ${transitionType} between "${clip1.title}" and "${clip2.title}"`);
-    alert(`✅ Added Cross Dissolve transition between "${clip1.title}" and "${clip2.title}"!`);
+    console.log(`✅ Added ${transitionName} between "${clip1.title}" and "${clip2.title}"`);
+    alert(`✅ Added "${transitionName}" transition between "${clip1.title}" and "${clip2.title}"!`);
   };
 
   // Find adjacent clips that can have transitions
@@ -3392,27 +3396,62 @@ const VideoEditorComponent = () => {
                       <div className="transition-list-category">
                         {transitions.filter(t => t.category === category).map(transition => {
                           const Icon = transition.icon;
+                          const isSelected = selectedTransitionType === transition.id;
                           return (
                             <div
                               key={transition.id}
-                              className="transition-item"
+                              className={`transition-item ${isSelected ? 'selected' : ''}`}
                               draggable
                               onDragStart={(e) => handleTransitionDragStart(e, transition)}
-                              title={`${transition.name} (${transition.duration}s)`}
+                              onClick={() => {
+                                setSelectedTransitionType(transition.id);
+                                console.log(`🎬 Selected transition: ${transition.name}`);
+                              }}
+                              title={`Click to select "${transition.name}" - then click + between clips to add`}
+                              style={{
+                                background: isSelected ? 'rgba(177, 128, 215, 0.3)' : undefined,
+                                border: isSelected ? '1px solid #b180d7' : '1px solid transparent',
+                                cursor: 'pointer'
+                              }}
                             >
-                              <div className="transition-icon">
+                              <div className="transition-icon" style={{ color: isSelected ? '#b180d7' : undefined }}>
                                 <Icon size={12} />
                               </div>
                               <div className="transition-info">
                                 <div className="transition-name">{transition.name}</div>
                                 <div className="transition-duration">{transition.duration}s</div>
                               </div>
+                              {isSelected && (
+                                <div style={{ 
+                                  marginLeft: 'auto', 
+                                  fontSize: '10px', 
+                                  color: '#b180d7',
+                                  fontWeight: 600
+                                }}>
+                                  ✓ Active
+                                </div>
+                              )}
                             </div>
                           );
                         })}
                       </div>
                     </div>
                   ))}
+                  
+                  {/* Show currently selected transition */}
+                  <div style={{
+                    padding: '8px 12px',
+                    background: 'rgba(177, 128, 215, 0.2)',
+                    borderRadius: '6px',
+                    marginTop: '8px',
+                    fontSize: '11px',
+                    color: '#b180d7'
+                  }}>
+                    <strong>Selected:</strong> {transitions.find(t => t.id === selectedTransitionType)?.name || 'Cross Dissolve'}
+                    <div style={{ fontSize: '10px', color: '#888', marginTop: '4px' }}>
+                      Click the <span style={{ color: '#ff6b6b' }}>red +</span> between clips to add
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -5129,6 +5168,8 @@ const VideoEditorComponent = () => {
                                     );
                                     if (existingTransition) return null;
                                     
+                                    const selectedTransData = transitions.find(t => t.id === selectedTransitionType);
+                                    
                                     return (
                                       <div
                                         key={`trans-btn-${idx}`}
@@ -5140,7 +5181,7 @@ const VideoEditorComponent = () => {
                                           transform: 'translateY(-50%)',
                                           width: '24px',
                                           height: '24px',
-                                          background: 'linear-gradient(135deg, #ff6b6b, #ee5a5a)',
+                                          background: 'linear-gradient(135deg, #b180d7, #9b59b6)',
                                           borderRadius: '50%',
                                           display: 'flex',
                                           alignItems: 'center',
@@ -5153,17 +5194,18 @@ const VideoEditorComponent = () => {
                                         }}
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          addTransitionBetweenClips(track.id, pair.clip1, pair.clip2, 'crossDissolve');
+                                          const transData = transitions.find(t => t.id === selectedTransitionType);
+                                          addTransitionBetweenClips(track.id, pair.clip1, pair.clip2, selectedTransitionType);
                                         }}
                                         onMouseEnter={(e) => {
                                           e.currentTarget.style.transform = 'translateY(-50%) scale(1.2)';
-                                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 107, 107, 0.5)';
+                                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(177, 128, 215, 0.5)';
                                         }}
                                         onMouseLeave={(e) => {
                                           e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
                                           e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
                                         }}
-                                        title={`Add Cross Dissolve between "${pair.clip1.title}" and "${pair.clip2.title}"`}
+                                        title={`Add "${selectedTransData?.name || 'Cross Dissolve'}" between "${pair.clip1.title}" and "${pair.clip2.title}"`}
                                       >
                                         <Plus size={14} color="#fff" />
                                       </div>
