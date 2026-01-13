@@ -44,7 +44,8 @@
    MAIN CONTAINER
    ================================================ */
 .video-editor-pro {
-  width: 100vw;
+  width: 100%;
+  max-width: 100%;
   height: 100vh;
   background: var(--editor-bg-dark);
   color: var(--editor-text-primary);
@@ -53,29 +54,45 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* ================================================
    TOP MENU BAR - FIXED FOR BUTTON VISIBILITY
    ================================================ */
 .editor-menu-bar {
-  height: 60px;
-  min-height: 60px;
+  min-height: 48px;
   background: #1a1a1a;
   border-bottom: 1px solid var(--editor-border);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
+  flex-wrap: wrap;
+  padding: 6px 12px;
   flex-shrink: 0;
-  gap: 16px;
-  overflow: visible;
+  gap: 6px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Header sections */
+.editor-menu-bar .menu-section:first-child {
+  flex-shrink: 0;
+}
+
+.editor-menu-bar .menu-section:nth-child(2) {
+  flex: 0 1 auto;
+}
+
+.editor-menu-bar .menu-section:last-child {
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .menu-section {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -254,6 +271,8 @@
   display: flex;
   flex: 1;
   min-height: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* ================================================
@@ -262,11 +281,13 @@
 .editor-left-panel {
   width: 280px;
   min-width: 280px;
+  max-width: 280px;
   background: var(--editor-bg-panel);
   border-right: 1px solid var(--editor-border);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .editor-toolbar {
@@ -387,6 +408,54 @@
 }
 
 /* ================================================
+   MEDIA BIN / PROJECT PANEL
+   ================================================ */
+.media-bin-panel {
+  background: #1e1e1e;
+  border-top: 1px solid var(--editor-border);
+  min-height: 180px;
+  max-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.media-bin-panel .media-grid-item {
+  background: #2a2a2a;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: grab;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.media-bin-panel .media-grid-item:hover {
+  border-color: var(--editor-accent-cyan);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.media-bin-panel .media-grid-item.selected {
+  border-color: var(--editor-accent-cyan);
+  background: #3a3d45;
+}
+
+.media-bin-panel .media-grid-item:active {
+  cursor: grabbing;
+}
+
+/* Quick Add button in Media Bin - show on hover */
+.media-bin-panel .media-grid-item:hover .media-bin-quick-add,
+.media-bin-quick-add:focus {
+  opacity: 1 !important;
+}
+
+.media-bin-quick-add:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 255, 200, 0.4);
+}
+
+/* ================================================
    IMPORT MEDIA BUTTON - STYLED
    ================================================ */
 .import-btn {
@@ -395,15 +464,14 @@
   justify-content: center;
   gap: 8px;
   width: 100%;
-  padding: 12px 16px;
+  padding: 14px 16px;
   background: linear-gradient(135deg, var(--editor-accent-cyan) 0%, #00b894 100%);
   color: #000;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 700;
   transition: var(--transition-smooth);
   box-shadow: 0 4px 12px rgba(0, 255, 200, 0.25);
 }
@@ -428,8 +496,8 @@
 }
 
 .import-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 }
 
 .hidden-file-input {
@@ -456,14 +524,28 @@
   background: #252525;
   border: 1px solid transparent;
   border-radius: 6px;
-  cursor: pointer;
+  cursor: grab;
   transition: var(--transition-fast);
   position: relative;
+  user-select: none;
 }
 
 .media-item:hover {
   background: #2d2d2d;
   border-color: var(--editor-accent-cyan);
+}
+
+.media-item:active {
+  cursor: grabbing;
+}
+
+.media-item[draggable="true"] {
+  cursor: grab;
+}
+
+.media-item[draggable="true"]:active {
+  cursor: grabbing;
+  opacity: 0.8;
 }
 
 .media-item.uploading {
@@ -477,6 +559,12 @@
 .media-item.failed {
   border-color: var(--editor-accent-red);
   background: rgba(255, 71, 87, 0.1);
+}
+
+.media-item.selected {
+  background: #3a3d45;
+  border-color: var(--editor-accent-cyan);
+  box-shadow: 0 0 0 1px rgba(0, 255, 200, 0.2);
 }
 
 /* Quick Add Button on Media Items */
@@ -1279,7 +1367,7 @@
 .track-headers-spacer {
   width: 280px;
   min-width: 280px;
-  background: var(--timeline-header);
+  background: #252830;
   border-right: 1px solid var(--editor-border);
 }
 
@@ -1350,7 +1438,7 @@
 .track-headers-column {
   width: 280px;
   min-width: 280px;
-  background: var(--timeline-header);
+  background: #252830;
   border-right: 1px solid var(--editor-border);
   overflow-y: auto;
 }
@@ -1363,16 +1451,146 @@
 .timeline-tracks-content {
   min-width: 100%;
   cursor: crosshair;
+  position: relative;
+  min-height: 100%;
 }
 
 /* Track Headers */
 .track-header-container {
   height: 52px;
-  border-bottom: 1px solid var(--editor-border);
+  border-bottom: 1px solid #3f3f46;
   display: flex;
   align-items: center;
   padding: 0 12px;
-  background: var(--timeline-header);
+  background: #252830 !important;
+  color: #e0e0e0;
+}
+
+.track-controls-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: transparent;
+}
+
+.track-label-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  background: transparent;
+}
+
+.track-type-icon-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+}
+
+.track-type-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #3a3d45;
+  border-radius: 4px;
+  color: #00ffc8;
+}
+
+.track-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: transparent;
+}
+
+.track-name-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.track-z-index {
+  font-size: 9px;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.track-lock-btn {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.track-lock-btn:hover {
+  background: #3a3d45;
+  color: #888;
+}
+
+.track-lock-btn.locked {
+  color: #ff6b6b;
+}
+
+.track-control-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  background: transparent;
+}
+
+.track-layer-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #3a3d45;
+  border: none;
+  border-radius: 3px;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.track-layer-btn:hover {
+  background: #4a4d55;
+  color: #00ffc8;
+}
+
+.track-toggle-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #3a3d45;
+  border: none;
+  border-radius: 4px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.track-toggle-btn:hover {
+  background: #4a4d55;
+  color: #888;
+}
+
+.track-toggle-btn.active {
+  background: rgba(0, 255, 200, 0.2);
+  color: #00ffc8;
 }
 
 .track-controls-left {
@@ -1418,39 +1636,43 @@
 
 .track-control-buttons {
   display: flex;
-  gap: 2px;
+  gap: 4px;
+  margin-left: auto;
+  background: transparent;
 }
 
 .track-layer-btn,
 .track-toggle-btn {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border: none;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--editor-text-secondary);
+  border-radius: 4px;
+  background: #3a3d45;
+  color: #888;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: var(--transition-fast);
+  transition: all 0.15s ease;
 }
 
 .track-layer-btn:hover,
 .track-toggle-btn:hover {
-  background: var(--editor-bg-hover);
+  background: #4a4d55;
+  color: #00ffc8;
 }
 
 .track-toggle-btn.active {
-  color: var(--editor-accent-blue);
+  background: rgba(0, 255, 200, 0.2);
+  color: #00ffc8;
 }
 
 .track-layer-btn {
-  color: var(--editor-text-muted);
+  color: #888;
 }
 
 .track-layer-btn:hover {
-  color: var(--editor-text-primary);
+  color: #00ffc8;
 }
 
 .track-lock-btn {
@@ -1481,12 +1703,19 @@
   height: 52px;
   border-bottom: 1px solid var(--editor-border);
   position: relative;
+  background: #1e2127;
 }
 
 .track-timeline-area {
   height: 100%;
   position: relative;
   cursor: crosshair;
+  transition: background 0.15s ease;
+}
+
+.track-timeline-area.drag-over,
+.track-timeline-area:hover {
+  background: rgba(0, 255, 200, 0.03);
 }
 
 .empty-track-message {
@@ -1502,12 +1731,21 @@
   border-radius: 4px;
   margin: 4px;
   transition: var(--transition-fast);
+  background: transparent;
 }
 
-.track-timeline-area:hover .empty-track-message {
+.track-timeline-area:hover .empty-track-message,
+.track-timeline-area.drag-over .empty-track-message {
   border-color: var(--editor-accent-cyan);
   color: var(--editor-accent-cyan);
-  background: rgba(0, 255, 200, 0.05);
+  background: rgba(0, 255, 200, 0.08);
+}
+
+/* Drag over state for entire track area */
+.track-timeline-area[style*="rgba(0, 255, 200"] .empty-track-message {
+  border-color: var(--editor-accent-cyan);
+  color: var(--editor-accent-cyan);
+  background: rgba(0, 255, 200, 0.08);
 }
 
 /* Timeline Clips */
@@ -3159,6 +3397,35 @@
 
 .clip-effects-indicator {
   animation: effectApplied 0.4s ease;
+}
+
+@keyframes dragPulse {
+  0%, 100% { 
+    border-color: var(--editor-accent-cyan);
+    box-shadow: 0 0 0 0 rgba(0, 255, 200, 0.4);
+  }
+  50% { 
+    border-color: var(--editor-accent-cyan);
+    box-shadow: 0 0 0 4px rgba(0, 255, 200, 0.2);
+  }
+}
+
+/* Drag feedback for timeline tracks */
+.track-timeline-area.drag-active {
+  background: rgba(0, 255, 200, 0.1) !important;
+}
+
+.track-timeline-area.drag-active .empty-track-message {
+  animation: dragPulse 1s ease infinite;
+  border-color: var(--editor-accent-cyan);
+  color: var(--editor-accent-cyan);
+  background: rgba(0, 255, 200, 0.1);
+}
+
+/* Dragging media item style */
+.media-item.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
 }
 
 /* ================================================

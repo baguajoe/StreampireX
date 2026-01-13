@@ -9,7 +9,7 @@ import {
   Circle, Pen, Eraser, Crop, RotateCw, FlipHorizontal,
   ZoomIn, ZoomOut, Grid, Minimize2, Maximize2, MoreVertical, X, Crown, Star, Bolt,
   Sliders, Image, Wand2, Sparkles, Sun, Droplets, Contrast,
-  RefreshCw, SkipForward, Rewind, FastForward, Monitor, Camera,
+  RefreshCw, SkipForward, SkipBack, Rewind, FastForward, Monitor, Camera,
   RotateCcw as Rotate, Maximize, ArrowUpDown, ArrowLeftRight,
   Disc, Radio, Gauge, Waves, Shuffle, TrendingUp, Target, Crosshair,
   Aperture, Focus, Flashlight, Rainbow, Paintbrush, Brush, Scissors as Cut,
@@ -729,47 +729,420 @@ const MediaBrowser = ({ onFileSelect, onClose, onUploadComplete }) => {
 const SourceMonitor = ({ selectedMedia, onAddToTimeline, onClose }) => {
   const [inPoint, setInPoint] = useState(0);
   const [outPoint, setOutPoint] = useState(100);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef(null);
+  const audioRef = useRef(null);
+
+  // Get the active media element
+  const getMediaElement = () => videoRef.current || audioRef.current;
+
+  // Handle time update
+  const handleTimeUpdate = () => {
+    const media = getMediaElement();
+    if (media) {
+      setCurrentTime(media.currentTime);
+    }
+  };
+
+  // Handle loaded metadata
+  const handleLoadedMetadata = () => {
+    const media = getMediaElement();
+    if (media) {
+      setDuration(media.duration);
+      setOutPoint(media.duration);
+    }
+  };
+
+  // Play/Pause
+  const togglePlayPause = () => {
+    const media = getMediaElement();
+    if (media) {
+      if (isPlaying) {
+        media.pause();
+      } else {
+        media.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  // Mark In Point
+  const markIn = () => {
+    setInPoint(currentTime);
+  };
+
+  // Mark Out Point
+  const markOut = () => {
+    setOutPoint(currentTime);
+  };
+
+  // Go to In Point
+  const goToIn = () => {
+    const media = getMediaElement();
+    if (media) {
+      media.currentTime = inPoint;
+      setCurrentTime(inPoint);
+    }
+  };
+
+  // Go to Out Point
+  const goToOut = () => {
+    const media = getMediaElement();
+    if (media) {
+      media.currentTime = outPoint;
+      setCurrentTime(outPoint);
+    }
+  };
+
+  // Format time
+  const formatTime = (seconds) => {
+    if (isNaN(seconds)) return '00:00:00';
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    const frames = Math.floor((seconds % 1) * 30);
+    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}:${String(frames).padStart(2, '0')}`;
+  };
+
+  // Calculate clip duration from in/out points
+  const clipDuration = Math.max(0, outPoint - inPoint);
 
   return (
-    <div className="source-monitor-panel">
-      <div className="source-monitor-header">
-        <h4>Source Monitor</h4>
-        <button onClick={onClose}><X size={14} /></button>
+    <div className="source-monitor-panel" style={{
+      position: 'fixed',
+      left: '50%',
+      top: '50%',
+      transform: 'translate(-50%, -50%)',
+      width: '700px',
+      maxWidth: '90vw',
+      background: '#1e1e1e',
+      border: '1px solid #3f3f46',
+      borderRadius: '8px',
+      zIndex: 1000,
+      boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '12px 16px',
+        background: '#252830',
+        borderRadius: '8px 8px 0 0',
+        borderBottom: '1px solid #3f3f46'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Monitor size={16} style={{ color: '#00ffc8' }} />
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#e0e0e0' }}>Source Monitor</span>
+          <span style={{ fontSize: '11px', color: '#888' }}>- {selectedMedia?.name}</span>
+        </div>
+        <button onClick={onClose} style={{
+          background: 'transparent',
+          border: 'none',
+          color: '#888',
+          cursor: 'pointer',
+          padding: '4px',
+          display: 'flex',
+          alignItems: 'center'
+        }}>
+          <X size={18} />
+        </button>
       </div>
 
-      <div className="source-preview">
+      {/* Preview Area */}
+      <div style={{
+        background: '#000',
+        minHeight: '300px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
         {selectedMedia?.type === 'video' ? (
-          <video ref={videoRef} src={selectedMedia.url} controls style={{ width: '100%', maxHeight: '300px' }} />
+          <video 
+            ref={videoRef} 
+            src={selectedMedia.url} 
+            style={{ width: '100%', maxHeight: '350px' }}
+            onTimeUpdate={handleTimeUpdate}
+            onLoadedMetadata={handleLoadedMetadata}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            onEnded={() => setIsPlaying(false)}
+          />
         ) : selectedMedia?.type === 'audio' ? (
-          <div className="audio-preview">
-            <AudioWaveform size={48} />
-            <audio src={selectedMedia.url} controls />
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <AudioWaveform size={64} style={{ color: '#ff6b6b', marginBottom: '16px' }} />
+            <p style={{ color: '#888', marginBottom: '16px' }}>{selectedMedia.name}</p>
+            <audio 
+              ref={audioRef}
+              src={selectedMedia.url}
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleLoadedMetadata}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+              onEnded={() => setIsPlaying(false)}
+            />
           </div>
         ) : selectedMedia?.type === 'image' ? (
-          <img src={selectedMedia.url} alt="preview" style={{ width: '100%', maxHeight: '300px', objectFit: 'contain' }} />
+          <img src={selectedMedia.url} alt="preview" style={{ maxWidth: '100%', maxHeight: '350px', objectFit: 'contain' }} />
         ) : null}
       </div>
 
-      <div className="trim-controls">
-        <div className="trim-points">
-          <label>
-            In: <input type="number" value={inPoint} onChange={(e) => setInPoint(e.target.value)} />
-          </label>
-          <label>
-            Out: <input type="number" value={outPoint} onChange={(e) => setOutPoint(e.target.value)} />
-          </label>
-        </div>
+      {/* Timeline Scrubber */}
+      {(selectedMedia?.type === 'video' || selectedMedia?.type === 'audio') && (
+        <div style={{ padding: '8px 16px', background: '#252830' }}>
+          {/* Progress Bar */}
+          <div style={{
+            position: 'relative',
+            height: '24px',
+            background: '#1a1a1a',
+            borderRadius: '4px',
+            overflow: 'hidden',
+            marginBottom: '8px'
+          }}>
+            {/* In/Out Range Highlight */}
+            <div style={{
+              position: 'absolute',
+              left: `${duration > 0 ? (inPoint / duration) * 100 : 0}%`,
+              width: `${duration > 0 ? ((outPoint - inPoint) / duration) * 100 : 100}%`,
+              height: '100%',
+              background: 'rgba(0, 255, 200, 0.2)'
+            }} />
+            {/* Current Position */}
+            <div style={{
+              position: 'absolute',
+              left: `${duration > 0 ? (currentTime / duration) * 100 : 0}%`,
+              width: '2px',
+              height: '100%',
+              background: '#00ffc8',
+              zIndex: 2
+            }} />
+            {/* In Point Marker */}
+            <div style={{
+              position: 'absolute',
+              left: `${duration > 0 ? (inPoint / duration) * 100 : 0}%`,
+              width: '4px',
+              height: '100%',
+              background: '#4a9eff',
+              cursor: 'pointer'
+            }} title={`In: ${formatTime(inPoint)}`} />
+            {/* Out Point Marker */}
+            <div style={{
+              position: 'absolute',
+              left: `${duration > 0 ? (outPoint / duration) * 100 : 0}%`,
+              width: '4px',
+              height: '100%',
+              background: '#ff6b6b',
+              cursor: 'pointer'
+            }} title={`Out: ${formatTime(outPoint)}`} />
+            {/* Clickable Scrubber */}
+            <input
+              type="range"
+              min="0"
+              max={duration || 100}
+              value={currentTime}
+              onChange={(e) => {
+                const time = parseFloat(e.target.value);
+                const media = getMediaElement();
+                if (media) {
+                  media.currentTime = time;
+                  setCurrentTime(time);
+                }
+              }}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                opacity: 0,
+                cursor: 'pointer'
+              }}
+            />
+          </div>
 
-        <button
-          className="add-to-timeline-btn"
-          onClick={() => onAddToTimeline(selectedMedia, inPoint, outPoint)}
-        >
-          Add to Timeline
-        </button>
+          {/* Playback Controls */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button onClick={goToIn} style={controlBtnStyle} title="Go to In Point">
+                <SkipBack size={14} />
+              </button>
+              <button onClick={togglePlayPause} style={{
+                ...controlBtnStyle,
+                background: '#00ffc8',
+                color: '#000',
+                width: '36px',
+                height: '36px'
+              }}>
+                {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+              </button>
+              <button onClick={goToOut} style={controlBtnStyle} title="Go to Out Point">
+                <SkipForward size={14} />
+              </button>
+            </div>
+
+            {/* Timecode Display */}
+            <div style={{
+              fontFamily: 'JetBrains Mono, monospace',
+              fontSize: '12px',
+              color: '#00ffc8',
+              background: '#1a1a1a',
+              padding: '6px 10px',
+              borderRadius: '4px'
+            }}>
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </div>
+
+            {/* Mark In/Out Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button onClick={markIn} style={controlBtnStyle} title="Mark In (I)">
+                <span style={{ fontSize: '11px', fontWeight: 700 }}>I</span>
+              </button>
+              <button onClick={markOut} style={controlBtnStyle} title="Mark Out (O)">
+                <span style={{ fontSize: '11px', fontWeight: 700 }}>O</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In/Out Points Info */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        padding: '12px 16px',
+        background: '#1a1a1a',
+        fontSize: '11px',
+        color: '#888'
+      }}>
+        <span>In: <span style={{ color: '#4a9eff' }}>{formatTime(inPoint)}</span></span>
+        <span>Duration: <span style={{ color: '#00ffc8' }}>{formatTime(clipDuration)}</span></span>
+        <span>Out: <span style={{ color: '#ff6b6b' }}>{formatTime(outPoint)}</span></span>
+      </div>
+
+      {/* Action Buttons - Like Premiere Pro */}
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        padding: '16px',
+        borderTop: '1px solid #3f3f46',
+        justifyContent: 'center'
+      }}>
+        {/* Insert Video Only */}
+        {selectedMedia?.type === 'video' && (
+          <button
+            onClick={() => onAddToTimeline(selectedMedia, inPoint, outPoint, 'video')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '10px 16px',
+              background: '#4a9eff',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+            title="Insert Video Only (V)"
+          >
+            <Video size={14} />
+            Insert Video
+          </button>
+        )}
+
+        {/* Insert Audio Only */}
+        {(selectedMedia?.type === 'video' || selectedMedia?.type === 'audio') && (
+          <button
+            onClick={() => onAddToTimeline(selectedMedia, inPoint, outPoint, 'audio')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '10px 16px',
+              background: '#ff6b6b',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+            title="Insert Audio Only (A)"
+          >
+            <AudioWaveform size={14} />
+            Insert Audio
+          </button>
+        )}
+
+        {/* Insert Both (Video + Audio) */}
+        {selectedMedia?.type === 'video' && (
+          <button
+            onClick={() => onAddToTimeline(selectedMedia, inPoint, outPoint, 'both')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '10px 16px',
+              background: 'linear-gradient(135deg, #00ffc8, #00b894)',
+              color: '#000',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+            title="Insert Video + Audio"
+          >
+            <Plus size={14} />
+            Insert Both
+          </button>
+        )}
+
+        {/* For images, just add to timeline */}
+        {selectedMedia?.type === 'image' && (
+          <button
+            onClick={() => onAddToTimeline(selectedMedia, 0, 5, 'video')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '10px 16px',
+              background: 'linear-gradient(135deg, #00ffc8, #00b894)',
+              color: '#000',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            <Image size={14} />
+            Add Image to Timeline
+          </button>
+        )}
       </div>
     </div>
   );
+};
+
+// Control button style helper
+const controlBtnStyle = {
+  width: '32px',
+  height: '32px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: '#3a3d45',
+  border: 'none',
+  borderRadius: '4px',
+  color: '#e0e0e0',
+  cursor: 'pointer'
 };
 
 // =====================================================
@@ -1028,6 +1401,9 @@ const VideoEditorComponent = () => {
 
   const [showMediaBrowser, setShowMediaBrowser] = useState(false);
   const [showSourceMonitor, setShowSourceMonitor] = useState(false);
+  const [showMediaBin, setShowMediaBin] = useState(true); // Media Bin visible by default
+  const [mediaBinView, setMediaBinView] = useState('grid'); // 'grid' or 'list'
+  const [mediaSearchTerm, setMediaSearchTerm] = useState('');
   const [sourceMonitorMedia, setSourceMonitorMedia] = useState(null);
 
   // Export state (NEW)
@@ -1283,6 +1659,42 @@ const VideoEditorComponent = () => {
     setIsPlaying(false);
     setCurrentTime(0);
   };
+
+  // Timeline playback - advance currentTime when playing
+  useEffect(() => {
+    let animationFrame;
+    let lastTime = performance.now();
+
+    const animate = (now) => {
+      if (isPlaying) {
+        const delta = (now - lastTime) / 1000; // Convert to seconds
+        lastTime = now;
+        
+        setCurrentTime(prev => {
+          const newTime = prev + delta;
+          // Stop at the end of the timeline
+          if (newTime >= duration) {
+            setIsPlaying(false);
+            return duration;
+          }
+          return newTime;
+        });
+        
+        animationFrame = requestAnimationFrame(animate);
+      }
+    };
+
+    if (isPlaying) {
+      lastTime = performance.now();
+      animationFrame = requestAnimationFrame(animate);
+    }
+
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [isPlaying, duration]);
 
   // Timeline interaction
   const handleTimelineClick = (e) => {
@@ -1864,6 +2276,15 @@ const VideoEditorComponent = () => {
   const handleMediaDragStart = (e, mediaItem) => {
     setDraggedMedia(mediaItem);
     e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'media', id: mediaItem.id }));
+    // Set drag image
+    if (e.target) {
+      e.dataTransfer.setDragImage(e.target, 50, 25);
+    }
+  };
+
+  const handleMediaDragEnd = () => {
+    setDraggedMedia(null);
   };
 
   // Handle media drop on timeline - UPDATED WITH CLOUDINARY DATA
@@ -1871,26 +2292,39 @@ const VideoEditorComponent = () => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!draggedMedia) return;
+    console.log('📍 Drop detected, draggedMedia:', draggedMedia);
+
+    if (!draggedMedia) {
+      console.log('❌ No draggedMedia found');
+      return;
+    }
 
     const track = tracks.find(t => t.id === trackId);
-    if (!track || track.locked) return;
+    if (!track) {
+      console.log('❌ Track not found:', trackId);
+      return;
+    }
+    if (track.locked) {
+      console.log('❌ Track is locked');
+      return;
+    }
 
-    // Calculate drop position
-    const rect = timelineRef.current.getBoundingClientRect();
+    // Calculate drop position using the drop target element
+    const dropTarget = e.currentTarget;
+    const rect = dropTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const scrollLeft = e.currentTarget.scrollLeft || 0;
-    const adjustedX = x + scrollLeft;
     const pixelsPerSecond = 2 * zoom;
-    const dropTime = adjustedX / pixelsPerSecond;
+    const dropTime = Math.max(0, x / pixelsPerSecond);
 
     // Determine duration
     let durationSeconds = 30;
     if (draggedMedia.duration) {
       const parts = draggedMedia.duration.split(':');
-      durationSeconds = parts.length === 2
-        ? parseInt(parts[0]) * 60 + parseInt(parts[1])
-        : 30;
+      if (parts.length === 2) {
+        durationSeconds = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      } else if (parts.length === 3) {
+        durationSeconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+      }
     }
 
     if (draggedMedia.type === 'image') {
@@ -1901,11 +2335,11 @@ const VideoEditorComponent = () => {
     const newClip = {
       id: Date.now(),
       title: draggedMedia.name,
-      startTime: snapToGrid(Math.max(0, dropTime)),
+      startTime: snapToGrid(dropTime),
       duration: durationSeconds,
       type: draggedMedia.type,
       mediaUrl: draggedMedia.url,
-      cloudinary_public_id: draggedMedia.cloudinary_public_id, // ← CRITICAL FOR EXPORT
+      cloudinary_public_id: draggedMedia.cloudinary_public_id,
       thumbnail: draggedMedia.thumbnail,
       effects: [],
       keyframes: [],
@@ -1919,14 +2353,18 @@ const VideoEditorComponent = () => {
       }
     };
 
+    console.log('✅ Creating clip:', newClip);
+
     // Add clip to track
-    setTracks(prevTracks =>
-      prevTracks.map(t =>
+    setTracks(prevTracks => {
+      const updatedTracks = prevTracks.map(t =>
         t.id === trackId
           ? { ...t, clips: [...t.clips, newClip] }
           : t
-      )
-    );
+      );
+      console.log('✅ Updated tracks:', updatedTracks);
+      return updatedTracks;
+    });
 
     // Set as selected clip to show in program monitor
     setSelectedClip(newClip);
@@ -1935,7 +2373,12 @@ const VideoEditorComponent = () => {
     if (draggedMedia.cloudinary_public_id) {
       console.log(`   ☁️ Cloudinary ID: ${draggedMedia.cloudinary_public_id}`);
     }
+    
+    // Clear drag state
     setDraggedMedia(null);
+    
+    // Reset visual feedback
+    e.currentTarget.style.background = 'transparent';
   };
 
   // Delete selected clip
@@ -2042,95 +2485,219 @@ const VideoEditorComponent = () => {
   return (
     <div className="video-editor-pro">
       {/* Top Menu Bar */}
-      <div className="editor-menu-bar">
-        <div className="menu-section">
-          <div className="project-info">
-            <h2>{project.title}</h2>
-            <div className="tier-badge-small">
-              {getTierIcon()}
-              {userTier}
-            </div>
+      <div className="editor-menu-bar" style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '6px 12px',
+        background: '#1a1a1a',
+        borderBottom: '1px solid #333',
+        minHeight: '48px',
+        gap: '6px',
+        flexWrap: 'wrap',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}>
+        {/* Left Section - Project Info */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px' }}>
+          <h2 style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>{project.title}</h2>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+            padding: '2px 6px',
+            background: 'linear-gradient(135deg, #ffd700, #ff9500)',
+            borderRadius: '8px',
+            fontSize: '8px',
+            fontWeight: 700,
+            color: '#000',
+            textTransform: 'uppercase'
+          }}>
+            {getTierIcon()}
+            {userTier}
           </div>
         </div>
 
-        <div className="menu-section">
+        {/* Workspace Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           <button
-            className="workspace-btn"
+            onClick={() => setShowMediaBin(!showMediaBin)}
+            title="Project Media"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              padding: '5px 8px',
+              background: showMediaBin ? 'rgba(0, 255, 200, 0.15)' : '#2a2a2a',
+              border: `1px solid ${showMediaBin ? '#00ffc8' : '#404040'}`,
+              borderRadius: '4px',
+              color: showMediaBin ? '#00ffc8' : '#a0a0a0',
+              fontSize: '9px',
+              fontWeight: 500,
+              cursor: 'pointer'
+            }}
+          >
+            <Folder size={11} />
+            Project
+          </button>
+          <button
             onClick={() => setShowMediaBrowser(true)}
+            title="Media Browser"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              padding: '5px 8px',
+              background: '#2a2a2a',
+              border: '1px solid #404040',
+              borderRadius: '4px',
+              color: '#a0a0a0',
+              fontSize: '9px',
+              fontWeight: 500,
+              cursor: 'pointer'
+            }}
           >
-            <Folder size={14} />
-            Media Browser
+            <Folder size={11} />
+            Browser
           </button>
-
           <button
-            className="workspace-btn"
-            onClick={() => setShowSourceMonitor(true)}
+            onClick={() => {
+              if (sourceMonitorMedia) {
+                setShowSourceMonitor(true);
+              }
+            }}
+            title="Source Monitor"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              padding: '5px 8px',
+              background: showSourceMonitor ? 'rgba(0, 255, 200, 0.15)' : '#2a2a2a',
+              border: `1px solid ${showSourceMonitor ? '#00ffc8' : '#404040'}`,
+              borderRadius: '4px',
+              color: showSourceMonitor ? '#00ffc8' : '#a0a0a0',
+              fontSize: '9px',
+              fontWeight: 500,
+              cursor: 'pointer'
+            }}
           >
-            <Monitor size={14} />
-            Source Monitor
+            <Monitor size={11} />
+            Source
           </button>
-
-          <div className="playback-controls-top">
-            <button onClick={stop} className="control-btn-small">
-              <Square size={14} />
-            </button>
-            <button onClick={() => setCurrentTime(Math.max(0, currentTime - 10))} className="control-btn-small">
-              <Rewind size={14} />
-            </button>
-            <button onClick={playPause} className="control-btn-play-small">
-              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-            </button>
-            <button onClick={() => setCurrentTime(Math.min(duration, currentTime + 10))} className="control-btn-small">
-              <FastForward size={14} />
-            </button>
-          </div>
-          <div className="timeline-display">
-            {formatTime(currentTime)} / {formatTime(duration)}
-          </div>
         </div>
 
-        <div className="menu-section">
-          <div className="workspace-buttons">
-            <button
-              className={`workspace-btn ${showColorGrading ? 'active' : ''}`}
-              onClick={() => setShowColorGrading(!showColorGrading)}
-            >
-              <Palette size={14} />
-              Color
-            </button>
-            <button
-              className={`workspace-btn ${showAudioMixing ? 'active' : ''}`}
-              onClick={() => setShowAudioMixing(!showAudioMixing)}
-            >
-              <Volume2 size={14} />
-              Audio
-            </button>
-            <button
-              className={`workspace-btn ${showKeyframes ? 'active' : ''}`}
-              onClick={() => setShowKeyframes(!showKeyframes)}
-            >
-              <Activity size={14} />
-              Motion
-            </button>
-          </div>
-          
-          {/* Save Button (NEW) */}
+        {/* Playback Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '2px 4px', background: '#252525', borderRadius: '4px' }}>
+          <button onClick={stop} title="Stop & Reset" style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Square size={11} />
+          </button>
+          <button onClick={() => setCurrentTime(Math.max(0, currentTime - 5))} title="Back 5s" style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Rewind size={11} />
+          </button>
+          <button onClick={playPause} title={isPlaying ? 'Pause' : 'Play'} style={{ width: '30px', height: '30px', border: 'none', borderRadius: '3px', background: isPlaying ? '#ff6b6b' : '#00ffc8', color: '#000', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {isPlaying ? <Pause size={13} /> : <Play size={13} />}
+          </button>
+          <button onClick={() => setCurrentTime(Math.min(duration, currentTime + 5))} title="Forward 5s" style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <FastForward size={11} />
+          </button>
+        </div>
+
+        {/* Timecode */}
+        <div style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: '10px',
+          fontWeight: 600,
+          color: '#00ffc8',
+          background: '#1a1a1a',
+          padding: '5px 8px',
+          borderRadius: '3px',
+          border: '1px solid #333'
+        }}>
+          {formatTime(currentTime)} / {formatTime(duration)}
+        </div>
+
+        {/* Spacer to push right section */}
+        <div style={{ flex: 1 }} />
+
+        {/* Right Section - Color, Audio, Save, Export */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            onClick={() => setShowColorGrading(!showColorGrading)}
+            title="Color Grading"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              padding: '5px 8px',
+              background: showColorGrading ? 'rgba(0, 255, 200, 0.15)' : '#2a2a2a',
+              border: `1px solid ${showColorGrading ? '#00ffc8' : '#404040'}`,
+              borderRadius: '4px',
+              color: showColorGrading ? '#00ffc8' : '#a0a0a0',
+              fontSize: '9px',
+              fontWeight: 500,
+              cursor: 'pointer'
+            }}
+          >
+            <Palette size={11} />
+            Color
+          </button>
+          <button
+            onClick={() => setShowAudioMixing(!showAudioMixing)}
+            title="Audio Mixing"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              padding: '5px 8px',
+              background: showAudioMixing ? 'rgba(0, 255, 200, 0.15)' : '#2a2a2a',
+              border: `1px solid ${showAudioMixing ? '#00ffc8' : '#404040'}`,
+              borderRadius: '4px',
+              color: showAudioMixing ? '#00ffc8' : '#a0a0a0',
+              fontSize: '9px',
+              fontWeight: 500,
+              cursor: 'pointer'
+            }}
+          >
+            <Volume2 size={11} />
+            Audio
+          </button>
           <button 
-            className="save-btn-top" 
             onClick={handleSaveProject}
             title="Save Project (Ctrl+S)"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              padding: '5px 10px',
+              background: '#007aff',
+              border: 'none',
+              borderRadius: '4px',
+              color: '#fff',
+              fontSize: '9px',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
           >
-            <Save size={14} />
+            <Save size={11} />
             Save
           </button>
-          
-          {/* Export Button - UPDATED */}
           <button 
-            className="export-btn-top" 
             onClick={handleExport}
             title="Export Video (Ctrl+E)"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              padding: '5px 10px',
+              background: 'linear-gradient(135deg, #00ffc8, #00b894)',
+              border: 'none',
+              borderRadius: '4px',
+              color: '#000',
+              fontSize: '9px',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
           >
-            <Download size={14} />
+            <Download size={11} />
             Export
           </button>
         </div>
@@ -2140,6 +2707,55 @@ const VideoEditorComponent = () => {
       <div className="editor-main-layout">
         {/* Left Panel - Tools & Effects */}
         <div className="editor-left-panel">
+          {/* STICKY IMPORT MEDIA - Always visible at top */}
+          <div style={{
+            padding: '16px',
+            background: '#2d2d30',
+            borderBottom: '1px solid #3f3f46',
+            position: 'sticky',
+            top: 0,
+            zIndex: 10
+          }}>
+            <button 
+              className="import-btn" 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              style={{ 
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                width: '100%',
+                padding: '14px 16px',
+                background: uploading ? '#333' : 'linear-gradient(135deg, #00ffc8 0%, #00b894 100%)',
+                border: 'none',
+                borderRadius: '8px',
+                color: uploading ? '#888' : '#000',
+                fontSize: '14px',
+                fontWeight: '700',
+                cursor: uploading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+                boxShadow: uploading ? 'none' : '0 4px 12px rgba(0, 255, 200, 0.25)'
+              }}
+            >
+              {uploading ? <Loader size={18} className="spin" /> : <Upload size={18} />}
+              {uploading ? 'Uploading...' : '📁 Import Media'}
+            </button>
+            
+            {/* Media count indicator */}
+            {mediaLibrary.length > 0 && (
+              <div style={{ 
+                marginTop: '8px', 
+                fontSize: '11px', 
+                color: '#888',
+                textAlign: 'center'
+              }}>
+                {mediaLibrary.length} file{mediaLibrary.length !== 1 ? 's' : ''} imported
+                {mediaLibrary.some(m => m.uploading) && ' • Uploading...'}
+              </div>
+            )}
+          </div>
+          
           <div className="editor-toolbar">
             {/* Tools Section */}
             <div className="toolbar-section">
@@ -2511,10 +3127,27 @@ const VideoEditorComponent = () => {
                 className="import-btn" 
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                style={{ opacity: uploading ? 0.6 : 1 }}
+                style={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  width: '100%',
+                  padding: '12px 16px',
+                  background: uploading ? '#333' : 'linear-gradient(135deg, #00ffc8 0%, #00b894 100%)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: uploading ? '#888' : '#000',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: uploading ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: uploading ? 'none' : '0 4px 12px rgba(0, 255, 200, 0.25)',
+                  marginBottom: '12px'
+                }}
               >
-                {uploading ? <Loader size={14} className="spin" /> : <Upload size={14} />}
-                {uploading ? 'Uploading...' : 'Import Media'}
+                {uploading ? <Loader size={16} className="spin" /> : <Upload size={16} />}
+                {uploading ? 'Uploading...' : '📁 Import Media'}
               </button>
               <input
                 ref={fileInputRef}
@@ -2531,69 +3164,26 @@ const VideoEditorComponent = () => {
                   return (
                     <div
                       key={media.id}
-                      className={`media-item ${media.uploading ? 'uploading' : ''} ${media.uploadFailed ? 'failed' : ''}`}
+                      className={`media-item ${media.uploading ? 'uploading' : ''} ${media.uploadFailed ? 'failed' : ''} ${sourceMonitorMedia?.id === media.id ? 'selected' : ''}`}
                       draggable={!media.uploading}
                       onDragStart={(e) => !media.uploading && handleMediaDragStart(e, media)}
-                      onClick={() => {
-                        if (!media.uploading) {
-                          setSourceMonitorMedia(media);
-                          setShowSourceMonitor(true);
+                      onDragEnd={handleMediaDragEnd}
+                      onClick={(e) => {
+                        // Single click = select media
+                        if (!media.uploading && e.detail === 1) {
+                          setTimeout(() => {
+                            if (e.detail === 1) {
+                              setSourceMonitorMedia(media);
+                            }
+                          }, 200);
                         }
                       }}
-                      onDoubleClick={() => {
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
                         if (!media.uploading && !media.uploadFailed) {
-                          // Double-click to instantly add to timeline
-                          const videoTrack = tracks.find(t => t.type === 'video');
-                          const audioTrack = tracks.find(t => t.type === 'audio');
-                          const targetTrack = media.type === 'audio' ? audioTrack : videoTrack;
-                          
-                          if (targetTrack && !targetTrack.locked) {
-                            let durationSeconds = 30;
-                            if (media.duration) {
-                              const parts = media.duration.split(':');
-                              durationSeconds = parts.length === 2
-                                ? parseInt(parts[0]) * 60 + parseInt(parts[1])
-                                : 30;
-                            }
-                            if (media.type === 'image') {
-                              durationSeconds = 5;
-                            }
-                            
-                            const lastClipEnd = targetTrack.clips.reduce((max, clip) => 
-                              Math.max(max, clip.startTime + clip.duration), 0
-                            );
-                            
-                            const newClip = {
-                              id: Date.now(),
-                              title: media.name,
-                              startTime: lastClipEnd,
-                              duration: durationSeconds,
-                              type: media.type,
-                              mediaUrl: media.url,
-                              cloudinary_public_id: media.cloudinary_public_id,
-                              thumbnail: media.thumbnail,
-                              effects: [],
-                              keyframes: [],
-                              compositing: {
-                                opacity: 100,
-                                blendMode: 'normal',
-                                position: { x: 0, y: 0 },
-                                scale: { x: 100, y: 100 },
-                                rotation: 0,
-                                anchor: { x: 50, y: 50 }
-                              }
-                            };
-                            
-                            setTracks(prevTracks =>
-                              prevTracks.map(t =>
-                                t.id === targetTrack.id
-                                  ? { ...t, clips: [...t.clips, newClip] }
-                                  : t
-                              )
-                            );
-                            
-                            setSelectedClip(newClip);
-                          }
+                          // Double-click to open Source Monitor
+                          setSourceMonitorMedia(media);
+                          setShowSourceMonitor(true);
                         }
                       }}
                       style={{ cursor: media.uploading ? 'wait' : 'pointer', position: 'relative' }}
@@ -2951,46 +3541,554 @@ const VideoEditorComponent = () => {
             {showSourceMonitor && sourceMonitorMedia && (
               <SourceMonitor
                 selectedMedia={sourceMonitorMedia}
-                onAddToTimeline={(media, inPoint, outPoint) => {
+                onAddToTimeline={(media, inPoint, outPoint, insertType = 'both') => {
                   const videoTrack = tracks.find(t => t.type === 'video');
-                  if (videoTrack && !videoTrack.locked) {
-                    const newClip = {
-                      id: Date.now(),
-                      title: media.name,
-                      startTime: 0,
-                      duration: 30,
-                      type: media.type,
-                      mediaUrl: media.url,
-                      cloudinary_public_id: media.cloudinary_public_id, // ← CRITICAL
-                      thumbnail: media.thumbnail,
-                      inPoint: parseFloat(inPoint) || 0,
-                      outPoint: parseFloat(outPoint) || 100,
-                      effects: [],
-                      keyframes: [],
-                      compositing: {
-                        opacity: 100,
-                        blendMode: 'normal',
-                        position: { x: 0, y: 0 },
-                        scale: { x: 100, y: 100 },
-                        rotation: 0,
-                        anchor: { x: 50, y: 50 }
-                      }
-                    };
+                  const audioTrack = tracks.find(t => t.type === 'audio');
+                  
+                  // Calculate duration from in/out points
+                  const clipDuration = Math.max(1, outPoint - inPoint);
+                  
+                  // Find where to insert (at end of existing clips)
+                  const getLastClipEnd = (track) => {
+                    if (!track || !track.clips || track.clips.length === 0) return 0;
+                    return Math.max(...track.clips.map(c => c.startTime + c.duration));
+                  };
 
-                    setTracks(prevTracks =>
-                      prevTracks.map(t =>
-                        t.id === videoTrack.id
-                          ? { ...t, clips: [...t.clips, newClip] }
-                          : t
-                      )
-                    );
+                  // Insert Video
+                  if ((insertType === 'video' || insertType === 'both') && media.type !== 'audio') {
+                    if (videoTrack && !videoTrack.locked) {
+                      const videoClip = {
+                        id: Date.now(),
+                        title: media.name,
+                        startTime: getLastClipEnd(videoTrack),
+                        duration: clipDuration || 30,
+                        type: 'video',
+                        mediaUrl: media.url,
+                        cloudinary_public_id: media.cloudinary_public_id,
+                        thumbnail: media.thumbnail,
+                        inPoint: parseFloat(inPoint) || 0,
+                        outPoint: parseFloat(outPoint) || clipDuration,
+                        effects: [],
+                        keyframes: [],
+                        compositing: {
+                          opacity: 100,
+                          blendMode: 'normal',
+                          position: { x: 0, y: 0 },
+                          scale: { x: 100, y: 100 },
+                          rotation: 0,
+                          anchor: { x: 50, y: 50 }
+                        }
+                      };
 
-                    setSelectedClip(newClip);
+                      setTracks(prevTracks =>
+                        prevTracks.map(t =>
+                          t.id === videoTrack.id
+                            ? { ...t, clips: [...t.clips, videoClip] }
+                            : t
+                        )
+                      );
+                      setSelectedClip(videoClip);
+                    }
                   }
+
+                  // Insert Audio (from video or audio file)
+                  if ((insertType === 'audio' || insertType === 'both') && 
+                      (media.type === 'video' || media.type === 'audio')) {
+                    if (audioTrack && !audioTrack.locked) {
+                      const audioClip = {
+                        id: Date.now() + 1,
+                        title: `${media.name} (Audio)`,
+                        startTime: getLastClipEnd(audioTrack),
+                        duration: clipDuration || 30,
+                        type: 'audio',
+                        mediaUrl: media.url,
+                        cloudinary_public_id: media.cloudinary_public_id,
+                        inPoint: parseFloat(inPoint) || 0,
+                        outPoint: parseFloat(outPoint) || clipDuration,
+                        effects: [],
+                        keyframes: [],
+                        compositing: {
+                          opacity: 100
+                        }
+                      };
+
+                      setTracks(prevTracks =>
+                        prevTracks.map(t =>
+                          t.id === audioTrack.id
+                            ? { ...t, clips: [...t.clips, audioClip] }
+                            : t
+                        )
+                      );
+                    }
+                  }
+
+                  console.log(`✅ Added ${media.name} to timeline (${insertType})`);
                   setShowSourceMonitor(false);
                 }}
                 onClose={() => setShowSourceMonitor(false)}
               />
+            )}
+
+            {/* ========================================
+                MEDIA BIN / PROJECT PANEL - Like Premiere Pro
+                ======================================== */}
+            {showMediaBin && (
+              <div className="media-bin-panel" style={{
+                background: '#1e1e1e',
+                borderTop: '1px solid #3f3f46',
+                minHeight: '180px',
+                maxHeight: '280px',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                {/* Media Bin Header */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 12px',
+                  background: '#252830',
+                  borderBottom: '1px solid #3f3f46'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Folder size={14} style={{ color: '#00ffc8' }} />
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#e0e0e0' }}>Project Media</span>
+                    <span style={{ fontSize: '10px', color: '#888' }}>({mediaLibrary.length} items)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {/* Search */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: '#2a2a2a',
+                      borderRadius: '4px',
+                      padding: '4px 8px',
+                      border: '1px solid #3f3f46'
+                    }}>
+                      <Filter size={12} style={{ color: '#888' }} />
+                      <input
+                        type="text"
+                        placeholder="Search media..."
+                        value={mediaSearchTerm}
+                        onChange={(e) => setMediaSearchTerm(e.target.value)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          outline: 'none',
+                          color: '#e0e0e0',
+                          fontSize: '11px',
+                          width: '120px'
+                        }}
+                      />
+                    </div>
+                    {/* View Toggle */}
+                    <div style={{ display: 'flex', gap: '2px' }}>
+                      <button
+                        onClick={() => setMediaBinView('grid')}
+                        style={{
+                          padding: '4px 8px',
+                          background: mediaBinView === 'grid' ? '#00ffc8' : '#2a2a2a',
+                          color: mediaBinView === 'grid' ? '#000' : '#888',
+                          border: 'none',
+                          borderRadius: '3px 0 0 3px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Grid size={12} />
+                      </button>
+                      <button
+                        onClick={() => setMediaBinView('list')}
+                        style={{
+                          padding: '4px 8px',
+                          background: mediaBinView === 'list' ? '#00ffc8' : '#2a2a2a',
+                          color: mediaBinView === 'list' ? '#000' : '#888',
+                          border: 'none',
+                          borderRadius: '0 3px 3px 0',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <List size={12} />
+                      </button>
+                    </div>
+                    {/* Import Button */}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '4px 10px',
+                        background: 'linear-gradient(135deg, #00ffc8, #00b894)',
+                        color: '#000',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <Upload size={12} />
+                      Import
+                    </button>
+                    {/* Close Button */}
+                    <button
+                      onClick={() => setShowMediaBin(false)}
+                      style={{
+                        padding: '4px',
+                        background: 'transparent',
+                        color: '#888',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Media Bin Content */}
+                <div style={{
+                  flex: 1,
+                  overflow: 'auto',
+                  padding: '12px'
+                }}>
+                  {mediaLibrary.length === 0 ? (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '100%',
+                      color: '#666',
+                      gap: '12px'
+                    }}>
+                      <Folder size={40} style={{ opacity: 0.5 }} />
+                      <p style={{ fontSize: '12px', margin: 0 }}>No media imported yet</p>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{
+                          padding: '8px 16px',
+                          background: 'linear-gradient(135deg, #00ffc8, #00b894)',
+                          color: '#000',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Import Media Files
+                      </button>
+                    </div>
+                  ) : mediaBinView === 'grid' ? (
+                    /* GRID VIEW */
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                      gap: '10px'
+                    }}>
+                      {mediaLibrary
+                        .filter(m => m.name.toLowerCase().includes(mediaSearchTerm.toLowerCase()))
+                        .map(media => {
+                          const Icon = media.type === 'video' ? Video : media.type === 'audio' ? AudioWaveform : Image;
+                          return (
+                            <div
+                              key={media.id}
+                              draggable={!media.uploading}
+                              onDragStart={(e) => !media.uploading && handleMediaDragStart(e, media)}
+                              onDragEnd={handleMediaDragEnd}
+                              onClick={(e) => {
+                                // Single click = select media (show in source preview area, not popup)
+                                if (e.detail === 1) {
+                                  // Use timeout to check if it's actually a single click
+                                  setTimeout(() => {
+                                    if (e.detail === 1) {
+                                      setSourceMonitorMedia(media);
+                                    }
+                                  }, 200);
+                                }
+                              }}
+                              onDoubleClick={(e) => {
+                                e.stopPropagation();
+                                if (!media.uploading) {
+                                  // Double click = open Source Monitor popup for editing
+                                  setSourceMonitorMedia(media);
+                                  setShowSourceMonitor(true);
+                                }
+                              }}
+                              className="media-grid-item"
+                              style={{
+                                background: sourceMonitorMedia?.id === media.id ? '#3a3d45' : '#2a2a2a',
+                                border: `1px solid ${sourceMonitorMedia?.id === media.id ? '#00ffc8' : '#3f3f46'}`,
+                                borderRadius: '6px',
+                                overflow: 'hidden',
+                                cursor: media.uploading ? 'wait' : 'grab',
+                                transition: 'all 0.15s ease',
+                                opacity: media.uploading ? 0.6 : 1,
+                                position: 'relative'
+                              }}
+                            >
+                              {/* Thumbnail */}
+                              <div style={{
+                                width: '100%',
+                                height: '60px',
+                                background: '#1a1a1a',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                position: 'relative'
+                              }}>
+                                {media.thumbnail ? (
+                                  <img src={media.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  <Icon size={24} style={{ color: media.type === 'video' ? '#4a9eff' : media.type === 'audio' ? '#ff6b6b' : '#00d4aa' }} />
+                                )}
+                                {/* Type Badge */}
+                                <div style={{
+                                  position: 'absolute',
+                                  top: '4px',
+                                  right: '4px',
+                                  background: media.type === 'video' ? '#4a9eff' : media.type === 'audio' ? '#ff6b6b' : '#00d4aa',
+                                  color: '#000',
+                                  fontSize: '8px',
+                                  fontWeight: 700,
+                                  padding: '2px 4px',
+                                  borderRadius: '2px',
+                                  textTransform: 'uppercase'
+                                }}>
+                                  {media.type}
+                                </div>
+                                {/* Duration Badge */}
+                                {media.duration && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    bottom: '4px',
+                                    right: '4px',
+                                    background: 'rgba(0,0,0,0.7)',
+                                    color: '#fff',
+                                    fontSize: '9px',
+                                    padding: '2px 4px',
+                                    borderRadius: '2px'
+                                  }}>
+                                    {media.duration}
+                                  </div>
+                                )}
+                                {/* Uploading Indicator */}
+                                {media.uploading && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    background: 'rgba(0,0,0,0.7)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}>
+                                    <Loader size={20} className="spin" style={{ color: '#00ffc8' }} />
+                                  </div>
+                                )}
+                                {/* Quick Add Button - appears on hover */}
+                                {!media.uploading && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const videoTrack = tracks.find(t => t.type === 'video');
+                                      const audioTrack = tracks.find(t => t.type === 'audio');
+                                      const targetTrack = media.type === 'audio' ? audioTrack : videoTrack;
+                                      
+                                      if (targetTrack && !targetTrack.locked) {
+                                        let durationSeconds = 30;
+                                        if (media.duration) {
+                                          const parts = media.duration.split(':');
+                                          durationSeconds = parts.length === 2
+                                            ? parseInt(parts[0]) * 60 + parseInt(parts[1])
+                                            : 30;
+                                        }
+                                        if (media.type === 'image') durationSeconds = 5;
+                                        
+                                        const lastClipEnd = targetTrack.clips.reduce((max, clip) => 
+                                          Math.max(max, clip.startTime + clip.duration), 0
+                                        );
+                                        
+                                        const newClip = {
+                                          id: Date.now(),
+                                          title: media.name,
+                                          startTime: lastClipEnd,
+                                          duration: durationSeconds,
+                                          type: media.type,
+                                          mediaUrl: media.url,
+                                          cloudinary_public_id: media.cloudinary_public_id,
+                                          thumbnail: media.thumbnail,
+                                          effects: [],
+                                          keyframes: [],
+                                          compositing: {
+                                            opacity: 100,
+                                            blendMode: 'normal',
+                                            position: { x: 0, y: 0 },
+                                            scale: { x: 100, y: 100 },
+                                            rotation: 0,
+                                            anchor: { x: 50, y: 50 }
+                                          }
+                                        };
+                                        
+                                        setTracks(prevTracks =>
+                                          prevTracks.map(t =>
+                                            t.id === targetTrack.id
+                                              ? { ...t, clips: [...t.clips, newClip] }
+                                              : t
+                                          )
+                                        );
+                                        setSelectedClip(newClip);
+                                      }
+                                    }}
+                                    title="Quick Add to Timeline"
+                                    style={{
+                                      position: 'absolute',
+                                      bottom: '4px',
+                                      left: '4px',
+                                      width: '22px',
+                                      height: '22px',
+                                      background: '#00ffc8',
+                                      color: '#000',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      opacity: 0,
+                                      transition: 'opacity 0.15s ease',
+                                      zIndex: 5
+                                    }}
+                                    className="media-bin-quick-add"
+                                  >
+                                    <Plus size={14} />
+                                  </button>
+                                )}
+                              </div>
+                              {/* File Name */}
+                              <div style={{
+                                padding: '6px 8px',
+                                fontSize: '10px',
+                                color: '#e0e0e0',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                {media.name}
+                                {media.cloudinary_public_id && (
+                                  <span style={{ color: '#00ffc8', marginLeft: '4px' }}>☁️</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    /* LIST VIEW */
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {/* List Header */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '40px 1fr 80px 80px 60px',
+                        gap: '8px',
+                        padding: '6px 8px',
+                        background: '#252830',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        color: '#888',
+                        textTransform: 'uppercase'
+                      }}>
+                        <span></span>
+                        <span>Name</span>
+                        <span>Type</span>
+                        <span>Duration</span>
+                        <span>Status</span>
+                      </div>
+                      {mediaLibrary
+                        .filter(m => m.name.toLowerCase().includes(mediaSearchTerm.toLowerCase()))
+                        .map(media => {
+                          const Icon = media.type === 'video' ? Video : media.type === 'audio' ? AudioWaveform : Image;
+                          return (
+                            <div
+                              key={media.id}
+                              draggable={!media.uploading}
+                              onDragStart={(e) => !media.uploading && handleMediaDragStart(e, media)}
+                              onDragEnd={handleMediaDragEnd}
+                              onClick={(e) => {
+                                if (e.detail === 1) {
+                                  setTimeout(() => {
+                                    if (e.detail === 1) {
+                                      setSourceMonitorMedia(media);
+                                    }
+                                  }, 200);
+                                }
+                              }}
+                              onDoubleClick={(e) => {
+                                e.stopPropagation();
+                                if (!media.uploading) {
+                                  setSourceMonitorMedia(media);
+                                  setShowSourceMonitor(true);
+                                }
+                              }}
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: '40px 1fr 80px 80px 60px',
+                                gap: '8px',
+                                padding: '6px 8px',
+                                background: sourceMonitorMedia?.id === media.id ? '#3a3d45' : '#2a2a2a',
+                                border: `1px solid ${sourceMonitorMedia?.id === media.id ? '#00ffc8' : 'transparent'}`,
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                color: '#e0e0e0',
+                                cursor: media.uploading ? 'wait' : 'grab',
+                                alignItems: 'center'
+                              }}
+                            >
+                              <div style={{
+                                width: '32px',
+                                height: '24px',
+                                background: '#1a1a1a',
+                                borderRadius: '3px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}>
+                                {media.thumbnail ? (
+                                  <img src={media.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '3px' }} />
+                                ) : (
+                                  <Icon size={14} style={{ color: media.type === 'video' ? '#4a9eff' : media.type === 'audio' ? '#ff6b6b' : '#00d4aa' }} />
+                                )}
+                              </div>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {media.name}
+                                {media.cloudinary_public_id && <span style={{ color: '#00ffc8', marginLeft: '4px' }}>☁️</span>}
+                              </span>
+                              <span style={{
+                                color: media.type === 'video' ? '#4a9eff' : media.type === 'audio' ? '#ff6b6b' : '#00d4aa',
+                                textTransform: 'capitalize'
+                              }}>
+                                {media.type}
+                              </span>
+                              <span>{media.duration || '—'}</span>
+                              <span style={{ color: media.uploading ? '#ff9500' : '#00ffc8' }}>
+                                {media.uploading ? 'Uploading...' : 'Ready'}
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
 
             <div className="editor-timeline-section">
@@ -3055,7 +4153,7 @@ const VideoEditorComponent = () => {
               <div className="timeline-main-container">
                 {/* Ruler */}
                 <div className="timeline-ruler-container">
-                  <div className="track-headers-spacer" />
+                  <div className="track-headers-spacer" style={{ background: '#252830', width: '280px', minWidth: '280px' }} />
                   <div className="timeline-ruler-scroll">
                     <div
                       className="timeline-ruler"
@@ -3068,13 +4166,44 @@ const VideoEditorComponent = () => {
 
                 {/* Tracks */}
                 <div className="timeline-tracks-container">
-                  <div className="track-headers-column">
+                  <div className="track-headers-column" style={{ background: '#252830' }}>
                     {tracks.sort((a, b) => b.zIndex - a.zIndex).map(track => (
-                      <div key={track.id} className="track-header-container">
-                        <div className="track-controls-left">
-                          <div className="track-label-container">
-                            <div className="track-type-icon-container">
-                              <div className="track-type-icon">
+                      <div key={track.id} className="track-header-container" style={{
+                        height: '52px',
+                        borderBottom: '1px solid #3f3f46',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '0 12px',
+                        background: '#252830'
+                      }}>
+                        <div className="track-controls-left" style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '10px', 
+                          width: '100%',
+                          background: 'transparent'
+                        }}>
+                          <div className="track-label-container" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            flex: 1
+                          }}>
+                            <div className="track-type-icon-container" style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}>
+                              <div className="track-type-icon" style={{
+                                width: '28px',
+                                height: '28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: '#3a3d45',
+                                borderRadius: '4px',
+                                color: '#00ffc8'
+                              }}>
                                 {track.type === 'video' ? <Video size={14} /> : <AudioWaveform size={14} />}
                               </div>
                               <button
@@ -3085,16 +4214,45 @@ const VideoEditorComponent = () => {
                                 {track.locked ? <Lock size={10} /> : <Unlock size={10} />}
                               </button>
                             </div>
-                            <div className="track-info">
-                              <div className="track-name-label">{track.name}</div>
-                              <div className="track-z-index">Layer {track.zIndex}</div>
+                            <div className="track-info" style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '2px'
+                            }}>
+                              <div className="track-name-label" style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                color: '#e0e0e0'
+                              }}>{track.name}</div>
+                              <div className="track-z-index" style={{
+                                fontSize: '9px',
+                                color: '#888',
+                                textTransform: 'uppercase'
+                              }}>Layer {track.zIndex}</div>
                             </div>
                           </div>
-                          <div className="track-control-buttons">
+                          <div className="track-control-buttons" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            marginLeft: 'auto'
+                          }}>
                             <button
                               className="track-layer-btn"
                               onClick={() => moveTrackUp(track.id)}
                               title="Move layer up"
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: '#3a3d45',
+                                border: 'none',
+                                borderRadius: '3px',
+                                color: '#888',
+                                cursor: 'pointer'
+                              }}
                             >
                               <ChevronUp size={10} />
                             </button>
@@ -3102,24 +4260,72 @@ const VideoEditorComponent = () => {
                               className="track-layer-btn"
                               onClick={() => moveTrackDown(track.id)}
                               title="Move layer down"
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: '#3a3d45',
+                                border: 'none',
+                                borderRadius: '3px',
+                                color: '#888',
+                                cursor: 'pointer'
+                              }}
                             >
                               <ChevronDown size={10} />
                             </button>
                             <button
                               className={`track-toggle-btn ${track.muted ? '' : 'active'}`}
                               onClick={() => setTracks(tracks.map(t => t.id === track.id ? { ...t, muted: !t.muted } : t))}
+                              style={{
+                                width: '26px',
+                                height: '26px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: track.muted ? '#3a3d45' : 'rgba(0, 255, 200, 0.2)',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: track.muted ? '#888' : '#00ffc8',
+                                cursor: 'pointer'
+                              }}
                             >
                               {track.muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
                             </button>
                             <button
                               className={`track-toggle-btn ${track.visible ? 'active' : ''}`}
                               onClick={() => setTracks(tracks.map(t => t.id === track.id ? { ...t, visible: !t.visible } : t))}
+                              style={{
+                                width: '26px',
+                                height: '26px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: track.visible ? 'rgba(0, 255, 200, 0.2)' : '#3a3d45',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: track.visible ? '#00ffc8' : '#888',
+                                cursor: 'pointer'
+                              }}
                             >
                               {track.visible ? <Eye size={12} /> : <EyeOff size={12} />}
                             </button>
                             <button
                               className={`track-toggle-btn ${track.locked ? 'active' : ''}`}
                               onClick={() => setTracks(tracks.map(t => t.id === track.id ? { ...t, locked: !t.locked } : t))}
+                              style={{
+                                width: '26px',
+                                height: '26px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: track.locked ? 'rgba(255, 107, 107, 0.2)' : '#3a3d45',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: track.locked ? '#ff6b6b' : '#888',
+                                cursor: 'pointer'
+                              }}
                             >
                               {track.locked ? <Lock size={12} /> : <Unlock size={12} />}
                             </button>
@@ -3144,17 +4350,105 @@ const VideoEditorComponent = () => {
 
                       {/* Track Rows */}
                       {tracks.sort((a, b) => b.zIndex - a.zIndex).map((track, index) => (
-                        <div key={track.id} className="timeline-track-row">
+                        <div key={track.id} className="timeline-track-row" style={{
+                          height: '52px',
+                          borderBottom: '1px solid #3f3f46',
+                          position: 'relative',
+                          background: '#1e2127'
+                        }}>
                           <div
                             className="track-timeline-area"
+                            style={{
+                              height: '100%',
+                              position: 'relative',
+                              cursor: 'crosshair'
+                            }}
                             onDrop={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              e.currentTarget.style.background = 'transparent';
+                              
+                              console.log('🎯 Drop event on track:', track.id, track.name);
+                              console.log('   draggedTransition:', draggedTransition);
+                              console.log('   draggedMedia:', draggedMedia);
+                              
                               if (draggedTransition) {
                                 handleTimelineDrop(e, track.id);
                               } else if (draggedMedia) {
                                 handleMediaDrop(e, track.id);
+                              } else {
+                                // Try to get from dataTransfer as backup
+                                try {
+                                  const data = e.dataTransfer.getData('text/plain');
+                                  console.log('   dataTransfer data:', data);
+                                  if (data) {
+                                    const parsed = JSON.parse(data);
+                                    if (parsed.type === 'media' && parsed.id) {
+                                      const media = mediaLibrary.find(m => m.id === parsed.id);
+                                      if (media) {
+                                        console.log('   Found media from dataTransfer:', media.name);
+                                        // Manually add the clip
+                                        const dropTarget = e.currentTarget;
+                                        const rect = dropTarget.getBoundingClientRect();
+                                        const x = e.clientX - rect.left;
+                                        const pixelsPerSecond = 2 * zoom;
+                                        const dropTime = Math.max(0, x / pixelsPerSecond);
+                                        
+                                        let durationSeconds = 30;
+                                        if (media.duration) {
+                                          const parts = media.duration.split(':');
+                                          if (parts.length === 2) {
+                                            durationSeconds = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+                                          }
+                                        }
+                                        if (media.type === 'image') durationSeconds = 5;
+                                        
+                                        const newClip = {
+                                          id: Date.now(),
+                                          title: media.name,
+                                          startTime: snapToGrid(dropTime),
+                                          duration: durationSeconds,
+                                          type: media.type,
+                                          mediaUrl: media.url,
+                                          cloudinary_public_id: media.cloudinary_public_id,
+                                          thumbnail: media.thumbnail,
+                                          effects: [],
+                                          keyframes: [],
+                                          compositing: {
+                                            opacity: 100,
+                                            blendMode: 'normal',
+                                            position: { x: 0, y: 0 },
+                                            scale: { x: 100, y: 100 },
+                                            rotation: 0,
+                                            anchor: { x: 50, y: 50 }
+                                          }
+                                        };
+                                        
+                                        setTracks(prevTracks =>
+                                          prevTracks.map(t =>
+                                            t.id === track.id
+                                              ? { ...t, clips: [...t.clips, newClip] }
+                                              : t
+                                          )
+                                        );
+                                        setSelectedClip(newClip);
+                                        console.log('✅ Added clip via dataTransfer backup');
+                                      }
+                                    }
+                                  }
+                                } catch (err) {
+                                  console.log('   Could not parse dataTransfer:', err);
+                                }
                               }
                             }}
                             onDragOver={handleTimelineDragOver}
+                            onDragEnter={(e) => {
+                              e.preventDefault();
+                              e.currentTarget.style.background = 'rgba(0, 255, 200, 0.1)';
+                            }}
+                            onDragLeave={(e) => {
+                              e.currentTarget.style.background = 'transparent';
+                            }}
                           >
                             {track.clips.length === 0 ? (
                               <div className="empty-track-message">
