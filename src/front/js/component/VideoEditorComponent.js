@@ -4,7 +4,7 @@ import {
   Play, Pause, Square, RotateCcw, Download, Upload, Volume2, VolumeX,
   Eye, EyeOff, Lock, Unlock, Plus, Trash2, Scissors, Copy, Move, Settings,
   Music, Video, AudioWaveform, Save, Youtube, Instagram, Facebook, Twitter,
-  ChevronDown, ChevronUp, Layers, Zap, Filter, Folder, List,
+  ChevronDown, ChevronUp, Layers, Zap, Filter, Folder, List, Film,
   Palette, Tv, Info, MousePointer, Hand, Type,
   Circle, Pen, Eraser, Crop, RotateCw, FlipHorizontal,
   ZoomIn, ZoomOut, Grid, Minimize2, Maximize2, MoreVertical, X, Crown, Star, Bolt,
@@ -453,7 +453,8 @@ const buildExportData = (tracks, settings = {}) => {
     settings: {
       resolution: settings.resolution || '1080p',
       quality: settings.quality || 'auto',
-      format: settings.format || 'mp4'
+      format: settings.format || 'mp4',
+      frameRate: settings.frameRate || 24
     }
   };
 };
@@ -1149,7 +1150,7 @@ const controlBtnStyle = {
 // EXPORT MODAL COMPONENT (NEW)
 // =====================================================
 
-const ExportModal = ({ project, tracks, onClose, onExportComplete }) => {
+const ExportModal = ({ project, tracks, onClose, onExportComplete, frameRate = 24 }) => {
   const [resolution, setResolution] = useState('1080p');
   const [quality, setQuality] = useState('auto');
   const [format, setFormat] = useState('mp4');
@@ -1168,7 +1169,8 @@ const ExportModal = ({ project, tracks, onClose, onExportComplete }) => {
       const exportData = buildExportData(tracks, {
         resolution,
         quality,
-        format
+        format,
+        frameRate
       });
 
       setExportProgress(30);
@@ -1379,6 +1381,7 @@ const VideoEditorComponent = () => {
   const [selectedTransition, setSelectedTransition] = useState(null);
   const [selectedTransitionType, setSelectedTransitionType] = useState('crossDissolve'); // Default transition to add
   const [zoom, setZoom] = useState(1);
+  const [frameRate, setFrameRate] = useState(24); // Default to 24fps (film standard)
 
   const [snapGridSize, setSnapGridSize] = useState(5);
   const [draggedClip, setDraggedClip] = useState(null);
@@ -2258,7 +2261,7 @@ const VideoEditorComponent = () => {
     const hours = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
-    const frames = Math.floor((seconds % 1) * 30);
+    const frames = Math.floor((seconds % 1) * frameRate); // Use selected frame rate
 
     if (hours > 0) {
       return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}:${String(frames).padStart(2, '0')}`;
@@ -2695,15 +2698,259 @@ const VideoEditorComponent = () => {
         e.preventDefault();
         handleExport();
       }
+      
+      // Space bar to play/pause
+      if (e.key === ' ' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        if (isPlayingRef.current) {
+          pause();
+        } else {
+          play();
+        }
+      }
+      
+      // Arrow keys for frame-by-frame navigation
+      const frameTime = 1 / frameRate; // Use selected frame rate
+      
+      // Left Arrow - Previous frame
+      if (e.key === 'ArrowLeft' && !e.shiftKey) {
+        e.preventDefault();
+        const newTime = Math.max(0, currentTime - frameTime);
+        setCurrentTime(newTime);
+        console.log(`⏪ Frame back (${frameRate}fps): ${newTime.toFixed(3)}s`);
+      }
+      
+      // Right Arrow - Next frame
+      if (e.key === 'ArrowRight' && !e.shiftKey) {
+        e.preventDefault();
+        const newTime = Math.min(duration, currentTime + frameTime);
+        setCurrentTime(newTime);
+        console.log(`⏩ Frame forward (${frameRate}fps): ${newTime.toFixed(3)}s`);
+      }
+      
+      // Shift + Left Arrow - Jump 1 second back
+      if (e.shiftKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const newTime = Math.max(0, currentTime - 1);
+        setCurrentTime(newTime);
+        console.log(`⏪ Jump back 1s: ${newTime.toFixed(3)}s`);
+      }
+      
+      // Shift + Right Arrow - Jump 1 second forward
+      if (e.shiftKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        const newTime = Math.min(duration, currentTime + 1);
+        setCurrentTime(newTime);
+        console.log(`⏩ Jump forward 1s: ${newTime.toFixed(3)}s`);
+      }
+      
+      // Home key - Go to beginning
+      if (e.key === 'Home') {
+        e.preventDefault();
+        setCurrentTime(0);
+        console.log(`⏮ Go to start`);
+      }
+      
+      // End key - Go to end
+      if (e.key === 'End') {
+        e.preventDefault();
+        setCurrentTime(duration);
+        console.log(`⏭ Go to end`);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedClip, selectedTransition]);
+  }, [selectedClip, selectedTransition, currentTime, duration, frameRate]);
+
+  // Menu bar state
+  const [activeMenu, setActiveMenu] = useState(null);
+  const menuBarRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuBarRef.current && !menuBarRef.current.contains(e.target)) {
+        setActiveMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Menu definitions
+  const menuItems = {
+    file: {
+      label: 'File',
+      items: [
+        { label: 'New Project', shortcut: 'Ctrl+N', action: () => alert('New Project - Coming Soon') },
+        { label: 'Open Project', shortcut: 'Ctrl+O', action: () => alert('Open Project - Coming Soon') },
+        { type: 'separator' },
+        { label: 'Save', shortcut: 'Ctrl+S', action: handleSaveProject },
+        { label: 'Save As...', shortcut: 'Ctrl+Shift+S', action: () => alert('Save As - Coming Soon') },
+        { type: 'separator' },
+        { label: 'Import Media', shortcut: 'Ctrl+I', action: () => fileInputRef.current?.click() },
+        { label: 'Export', shortcut: 'Ctrl+E', action: () => setShowExportModal(true) },
+        { type: 'separator' },
+        { label: 'Project Settings', action: () => alert('Project Settings - Coming Soon') },
+        { label: 'Close Project', action: () => window.history.back() }
+      ]
+    },
+    edit: {
+      label: 'Edit',
+      items: [
+        { label: 'Undo', shortcut: 'Ctrl+Z', action: () => alert('Undo - Coming Soon') },
+        { label: 'Redo', shortcut: 'Ctrl+Shift+Z', action: () => alert('Redo - Coming Soon') },
+        { type: 'separator' },
+        { label: 'Cut', shortcut: 'Ctrl+X', action: () => selectedClip && deleteClip(selectedClip.id) },
+        { label: 'Copy', shortcut: 'Ctrl+C', action: () => alert('Copy - Coming Soon') },
+        { label: 'Paste', shortcut: 'Ctrl+V', action: () => alert('Paste - Coming Soon') },
+        { label: 'Delete', shortcut: 'Del', action: () => selectedClip && deleteClip(selectedClip.id) },
+        { type: 'separator' },
+        { label: 'Select All', shortcut: 'Ctrl+A', action: () => alert('Select All - Coming Soon') },
+        { label: 'Deselect All', shortcut: 'Ctrl+Shift+A', action: () => { setSelectedClip(null); setSelectedTransition(null); } }
+      ]
+    },
+    clip: {
+      label: 'Clip',
+      items: [
+        { label: 'Split Clip', shortcut: 'Ctrl+K', action: () => alert('Split Clip at Playhead - Coming Soon') },
+        { label: 'Trim In Point', shortcut: 'Q', action: () => alert('Trim In Point - Coming Soon') },
+        { label: 'Trim Out Point', shortcut: 'W', action: () => alert('Trim Out Point - Coming Soon') },
+        { type: 'separator' },
+        { label: 'Speed/Duration...', action: () => alert('Speed/Duration - Coming Soon') },
+        { label: 'Reverse Clip', action: () => alert('Reverse - Coming Soon') },
+        { type: 'separator' },
+        { label: 'Nest Clip', action: () => alert('Nest - Coming Soon') },
+        { label: 'Unlink Audio/Video', action: () => alert('Unlink - Coming Soon') }
+      ]
+    },
+    sequence: {
+      label: 'Sequence',
+      items: [
+        { label: 'Add Tracks...', action: () => alert('Add Tracks - Coming Soon') },
+        { label: 'Delete Empty Tracks', action: () => alert('Delete Empty Tracks - Coming Soon') },
+        { type: 'separator' },
+        { label: 'Apply Default Transition', shortcut: 'Ctrl+D', action: () => alert('Apply Transition - Coming Soon') },
+        { label: 'Render In to Out', shortcut: 'Enter', action: () => alert('Render - Coming Soon') },
+        { type: 'separator' },
+        { label: 'Go to In Point', shortcut: 'Shift+I', action: () => setCurrentTime(0) },
+        { label: 'Go to Out Point', shortcut: 'Shift+O', action: () => setCurrentTime(duration) }
+      ]
+    },
+    markers: {
+      label: 'Markers',
+      items: [
+        { label: 'Add Marker', shortcut: 'M', action: () => alert('Add Marker - Coming Soon') },
+        { label: 'Go to Next Marker', shortcut: 'Shift+M', action: () => alert('Next Marker - Coming Soon') },
+        { label: 'Go to Previous Marker', shortcut: 'Ctrl+Shift+M', action: () => alert('Previous Marker - Coming Soon') },
+        { type: 'separator' },
+        { label: 'Clear Current Marker', action: () => alert('Clear Marker - Coming Soon') },
+        { label: 'Clear All Markers', action: () => alert('Clear All Markers - Coming Soon') }
+      ]
+    },
+    view: {
+      label: 'View',
+      items: [
+        { label: 'Zoom In', shortcut: '=', action: () => setZoom(Math.min(5, zoom + 0.2)) },
+        { label: 'Zoom Out', shortcut: '-', action: () => setZoom(Math.max(0.1, zoom - 0.2)) },
+        { label: 'Fit to Window', shortcut: '\\', action: () => setZoom(1) },
+        { type: 'separator' },
+        { label: 'Show Audio Waveforms', checked: showAudioWaveforms, action: () => setShowAudioWaveforms(!showAudioWaveforms) },
+        { label: 'Show Keyframes', checked: showKeyframes, action: () => setShowKeyframes(!showKeyframes) },
+        { label: 'Snap to Grid', checked: showSnapToGrid, action: () => setShowSnapToGrid(!showSnapToGrid) },
+        { type: 'separator' },
+        { label: 'Full Screen Preview', shortcut: '`', action: () => alert('Full Screen - Coming Soon') }
+      ]
+    },
+    window: {
+      label: 'Window',
+      items: [
+        { label: 'Effects Panel', checked: showEffectsPanel, action: () => setShowEffectsPanel(!showEffectsPanel) },
+        { label: 'Media Browser', checked: showMediaBrowser, action: () => setShowMediaBrowser(!showMediaBrowser) },
+        { label: 'Project Media', checked: showMediaBin, action: () => setShowMediaBin(!showMediaBin) },
+        { label: 'Source Monitor', checked: showSourceMonitor, action: () => setShowSourceMonitor(!showSourceMonitor) },
+        { type: 'separator' },
+        { label: 'Color Grading', checked: showColorGrading, action: () => setShowColorGrading(!showColorGrading) },
+        { label: 'Audio Mixer', checked: showAudioMixer, action: () => setShowAudioMixer(!showAudioMixer) }
+      ]
+    },
+    help: {
+      label: 'Help',
+      items: [
+        { label: 'Keyboard Shortcuts', shortcut: 'Ctrl+/', action: () => alert('Keyboard Shortcuts:\n\nSpace - Play/Pause\n← → - Frame step\nShift+← → - 1 second jump\nHome - Go to start\nEnd - Go to end\nDel - Delete selected\nCtrl+S - Save\nCtrl+E - Export\nCtrl+Z - Undo') },
+        { label: 'Documentation', action: () => window.open('https://docs.streampirex.com/video-editor', '_blank') },
+        { type: 'separator' },
+        { label: 'About StreamPireX Editor', action: () => alert('StreamPireX Video Editor\nVersion 1.0.0\n\nProfessional video editing for creators.') }
+      ]
+    }
+  };
 
   return (
     <div className="video-editor-pro">
-      {/* Top Menu Bar */}
+      {/* Premiere Pro Style Menu Bar */}
+      <div ref={menuBarRef} className="editor-navbar">
+        {/* Logo */}
+        <div className="nav-logo">
+          <Film size={14} />
+          <span>SPX</span>
+        </div>
+
+        {/* Menu Items */}
+        {Object.entries(menuItems).map(([key, menu]) => (
+          <div key={key} className="menu-container">
+            <button
+              className={`menu-button ${activeMenu === key ? 'active' : ''}`}
+              onClick={() => setActiveMenu(activeMenu === key ? null : key)}
+              onMouseEnter={() => activeMenu && setActiveMenu(key)}
+            >
+              {menu.label}
+            </button>
+            
+            {/* Dropdown Menu */}
+            {activeMenu === key && (
+              <div className="menu-dropdown">
+                {menu.items.map((item, idx) => (
+                  item.type === 'separator' ? (
+                    <div key={idx} className="menu-separator" />
+                  ) : (
+                    <button
+                      key={idx}
+                      className="menu-item"
+                      onClick={() => {
+                        item.action?.();
+                        setActiveMenu(null);
+                      }}
+                    >
+                      <span className="item-label">
+                        {item.checked !== undefined && (
+                          <span className="checkmark">
+                            {item.checked ? '✓' : ''}
+                          </span>
+                        )}
+                        {item.label}
+                      </span>
+                      {item.shortcut && (
+                        <span className="item-shortcut">{item.shortcut}</span>
+                      )}
+                    </button>
+                  )
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Spacer */}
+        <div className="nav-spacer" />
+
+        {/* Right side - Project name */}
+        <div className="project-title">
+          {project.title} - StreamPireX Editor
+        </div>
+      </div>
+
+      {/* Top Toolbar Bar */}
       <div className="editor-menu-bar" style={{
         display: 'flex',
         alignItems: 'center',
@@ -2809,7 +3056,7 @@ const VideoEditorComponent = () => {
           <button 
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); stop(); }} 
-            title="Stop & Reset" 
+            title="Stop & Reset (Home)" 
             style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <Square size={11} />
@@ -2817,23 +3064,53 @@ const VideoEditorComponent = () => {
           <button 
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentTime(Math.max(0, currentTime - 5)); }} 
-            title="Back 5s" 
+            title="Back 5s (Shift+←)" 
             style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <Rewind size={11} />
           </button>
+          {/* Frame Back Button */}
+          <button 
+            type="button"
+            onClick={(e) => { 
+              e.preventDefault(); 
+              e.stopPropagation(); 
+              const frameTime = 1 / frameRate;
+              setCurrentTime(Math.max(0, currentTime - frameTime));
+              console.log(`⏪ Frame back (${frameRate}fps)`);
+            }} 
+            title={`Previous Frame (←) - ${frameRate}fps`} 
+            style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <SkipBack size={11} />
+          </button>
           <button 
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); playPause(); }} 
-            title={isPlaying ? 'Pause' : 'Play'} 
+            title={isPlaying ? 'Pause (Space)' : 'Play (Space)'} 
             style={{ width: '30px', height: '30px', border: 'none', borderRadius: '3px', background: isPlaying ? '#ff6b6b' : '#00ffc8', color: '#000', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             {isPlaying ? <Pause size={13} /> : <Play size={13} />}
           </button>
+          {/* Frame Forward Button */}
+          <button 
+            type="button"
+            onClick={(e) => { 
+              e.preventDefault(); 
+              e.stopPropagation(); 
+              const frameTime = 1 / frameRate;
+              setCurrentTime(Math.min(duration, currentTime + frameTime));
+              console.log(`⏩ Frame forward (${frameRate}fps)`);
+            }} 
+            title={`Next Frame (→) - ${frameRate}fps`} 
+            style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <SkipForward size={11} />
+          </button>
           <button 
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentTime(Math.min(duration, currentTime + 5)); }} 
-            title="Forward 5s" 
+            title="Forward 5s (Shift+→)" 
             style={{ width: '26px', height: '26px', border: 'none', borderRadius: '3px', background: 'transparent', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <FastForward size={11} />
@@ -2852,6 +3129,32 @@ const VideoEditorComponent = () => {
           border: '1px solid #333'
         }}>
           {formatTime(currentTime)} / {formatTime(duration)}
+        </div>
+        
+        {/* Frame Rate Selector */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <select
+            value={frameRate}
+            onChange={(e) => setFrameRate(parseInt(e.target.value))}
+            title="Project Frame Rate"
+            style={{
+              background: '#1a1a1a',
+              border: '1px solid #333',
+              borderRadius: '3px',
+              color: '#00ffc8',
+              fontSize: '10px',
+              fontWeight: 600,
+              padding: '4px 6px',
+              cursor: 'pointer',
+              fontFamily: "'JetBrains Mono', monospace"
+            }}
+          >
+            <option value={24}>24 fps (Film)</option>
+            <option value={25}>25 fps (PAL)</option>
+            <option value={30}>30 fps (NTSC)</option>
+            <option value={48}>48 fps (HFR)</option>
+            <option value={60}>60 fps (Smooth)</option>
+          </select>
         </div>
 
         {/* Spacer to push right section */}
@@ -5873,6 +6176,7 @@ const VideoEditorComponent = () => {
         <ExportModal
           project={project}
           tracks={tracks}
+          frameRate={frameRate}
           onClose={() => setShowExportModal(false)}
           onExportComplete={(result) => {
             console.log('Export completed:', result);

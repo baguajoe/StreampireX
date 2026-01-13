@@ -16882,9 +16882,19 @@ def export_video_editor_project(project_id):
     data = request.get_json()
     
     try:
+        # Get settings from request
+        settings = data.get('settings', {})
+        requested_quality = settings.get('resolution', '720p')  # Changed from 'quality' to 'resolution'
+        format_type = settings.get('format', 'mp4')
+        frame_rate = settings.get('frameRate', 24)  # NEW: Get frame rate (default 24fps)
+        
+        # Validate frame rate
+        valid_frame_rates = [24, 25, 30, 48, 60]
+        if frame_rate not in valid_frame_rates:
+            frame_rate = 24  # Default to 24 if invalid
+        
         # Check export quality limits
         limits = get_user_limits(user_id)
-        requested_quality = data.get('quality', '720p')
         
         quality_hierarchy = {'720p': 1, '1080p': 2, '4k': 3, '8k': 4}
         max_quality_level = quality_hierarchy.get(limits['max_export_quality'], 1)
@@ -16900,16 +16910,121 @@ def export_video_editor_project(project_id):
         # Generate export ID for progress tracking
         export_id = str(uuid.uuid4())
         
-        # For now, return mock export response
-        # In production, this would start background export process
+        # Parse resolution to dimensions
+        resolution_map = {
+            '720p': {'width': 1280, 'height': 720},
+            '1080p': {'width': 1920, 'height': 1080},
+            '4k': {'width': 3840, 'height': 2160},
+            '8k': {'width': 7680, 'height': 4320}
+        }
+        dimensions = resolution_map.get(requested_quality, {'width': 1920, 'height': 1080})
+        
+        # Store export settings for the background job
+        export_config = {
+            'export_id': export_id,
+            'project_id': project_id,
+            'user_id': user_id,
+            'settings': {
+                'resolution': requested_quality,
+                'width': dimensions['width'],
+                'height': dimensions['height'],
+                'format': format_type,
+                'frame_rate': frame_rate,  # NEW: Include frame rate
+                'quality': settings.get('quality', 'auto')
+            },
+            'timeline': data.get('timeline', {})
+        }
+        
+        # Log export settings for debugging
+        print(f"Export started - ID: {export_id}")
+        print(f"  Resolution: {requested_quality} ({dimensions['width']}x{dimensions['height']})")
+        print(f"  Frame Rate: {frame_rate}fps")  # NEW: Log frame rate
+        print(f"  Format: {format_type}")
+        
+        # TODO: In production, start background export process here
+        # Example: start_export_job.delay(export_config)
+        # 
+        # When implementing with Cloudinary, use:
+        # transformation = [
+        #     {'width': dimensions['width'], 'height': dimensions['height'], 'crop': 'limit'},
+        #     {'fps': frame_rate},  # This sets the output frame rate
+        #     {'quality': 'auto'}
+        # ]
+        
         return jsonify({
             'message': 'Export started',
             'export_id': export_id,
+            'settings': {
+                'resolution': requested_quality,
+                'frame_rate': frame_rate,  # NEW: Return frame rate in response
+                'format': format_type
+            },
             'estimated_time': '120s'
         }), 202
         
     except Exception as e:
+        print(f"Export error: {str(e)}")
         return jsonify({'error': f'Export failed: {str(e)}'}), 500
+
+
+# ============ CLOUDINARY EXPORT IMPLEMENTATION (for future use) ============
+
+def build_cloudinary_export(timeline_data, settings):
+    """
+    Build Cloudinary transformation for video export
+    Call this when implementing actual export
+    """
+    import cloudinary
+    import cloudinary.api
+    
+    frame_rate = settings.get('frame_rate', 24)
+    width = settings.get('width', 1920)
+    height = settings.get('height', 1080)
+    quality = settings.get('quality', 'auto')
+    
+    # Build transformation chain
+    transformation = [
+        {
+            'width': width,
+            'height': height,
+            'crop': 'limit'
+        },
+        {
+            'fps': frame_rate  # KEY: This sets output frame rate
+        },
+        {
+            'quality': quality
+        }
+    ]
+    
+    return transformation
+
+
+def export_video_with_cloudinary(public_id, settings):
+    """
+    Export video using Cloudinary with specified frame rate
+    """
+    import cloudinary.uploader
+    
+    frame_rate = settings.get('frame_rate', 24)
+    width = settings.get('width', 1920)
+    height = settings.get('height', 1080)
+    
+    # Generate URL with transformations
+    url = cloudinary.CloudinaryVideo(public_id).build_url(
+        transformation=[
+            {'width': width, 'height': height, 'crop': 'limit'},
+            {'fps': frame_rate},
+            {'quality': 'auto'},
+            {'format': 'mp4'}
+        ]
+    )
+    
+    return url
+
+
+# Example Cloudinary URL that would be generated:
+# https://res.cloudinary.com/YOUR_CLOUD/video/upload/w_1920,h_1080,c_limit/fps_24/q_auto/f_mp4/video_id
 
 @api.route('/video-editor/export/<export_id>/progress', methods=['GET'])
 @jwt_required()

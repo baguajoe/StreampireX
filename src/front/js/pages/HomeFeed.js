@@ -17,6 +17,10 @@ const HomeFeed = () => {
   const [error, setError] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [pagination, setPagination] = useState(null);
+  
+  // Track follow loading states per user
+  const [followingUsers, setFollowingUsers] = useState({});
+  const [followSuccessMessage, setFollowSuccessMessage] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -124,6 +128,14 @@ const HomeFeed = () => {
 
     fetchData();
   }, [activeFilter]);
+
+  // Clear success message after 3 seconds
+  useEffect(() => {
+    if (followSuccessMessage) {
+      const timer = setTimeout(() => setFollowSuccessMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [followSuccessMessage]);
 
   const handleCreatePost = async () => {
     if (!postContent.trim()) {
@@ -255,10 +267,24 @@ const HomeFeed = () => {
     setNewCommentText({ ...newCommentText, [postId]: "" });
   };
 
-  const handleFollowUser = async (userId) => {
+  // IMPROVED: Follow user with proper error handling and loading state
+  const handleFollowUser = async (userId, username) => {
+    if (!userId) {
+      console.error('No user ID provided for follow action');
+      return;
+    }
+
     try {
+      // Set loading state for this specific user
+      setFollowingUsers(prev => ({ ...prev, [userId]: true }));
+      
       const token = localStorage.getItem("token");
       const backendUrl = process.env.REACT_APP_BACKEND_URL;
+
+      if (!token) {
+        alert('Please log in to follow users');
+        return;
+      }
 
       const response = await fetch(`${backendUrl}/api/follow/${userId}`, {
         method: 'POST',
@@ -266,14 +292,31 @@ const HomeFeed = () => {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ user_id: userId })
       });
 
       if (response.ok) {
-        // Remove from suggested users
-        setSuggestedUsers(suggestedUsers.filter(u => u.id !== userId));
+        // Remove from suggested users on success
+        setSuggestedUsers(prev => prev.filter(u => u.id !== userId));
+        setFollowSuccessMessage(`You are now following ${username || 'this user'}!`);
+      } else {
+        const errorData = await response.json();
+        const errorMessage = errorData.error || errorData.message || 'Failed to follow user';
+        
+        // Check if already following
+        if (errorMessage.toLowerCase().includes('already following')) {
+          setSuggestedUsers(prev => prev.filter(u => u.id !== userId));
+          setFollowSuccessMessage(`You were already following ${username || 'this user'}!`);
+        } else {
+          alert(errorMessage);
+        }
       }
     } catch (error) {
       console.error('Error following user:', error);
+      alert('Failed to follow user. Please try again.');
+    } finally {
+      // Clear loading state
+      setFollowingUsers(prev => ({ ...prev, [userId]: false }));
     }
   };
 
@@ -340,6 +383,35 @@ const HomeFeed = () => {
         </div>
       )}
 
+      {/* Follow Success Message */}
+      {followSuccessMessage && (
+        <div className="success-banner" style={{
+          background: 'linear-gradient(135deg, #10b981, #059669)',
+          color: 'white',
+          padding: '12px 20px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          animation: 'slideIn 0.3s ease'
+        }}>
+          <p style={{ margin: 0 }}>✓ {followSuccessMessage}</p>
+          <button 
+            onClick={() => setFollowSuccessMessage(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'white',
+              cursor: 'pointer',
+              fontSize: '16px'
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Feed Filter Tabs */}
       <div className="feed-filters">
         <button
@@ -382,26 +454,31 @@ const HomeFeed = () => {
             {suggestedUsers.length > 0 ? (
               suggestedUsers.slice(0, 5).map((suggestedUser) => (
                 <div key={suggestedUser.id} className="suggested-user-card">
-                  <img
-                    src={suggestedUser.profile_picture || '/default-avatar.png'}
-                    alt="avatar"
-                    className="suggested-avatar"
-                    onError={(e) => {
-                      e.target.src = '/default-avatar.png';
-                    }}
-                  />
+                  <Link to={`/profile/${suggestedUser.id}`}>
+                    <img
+                      src={suggestedUser.profile_picture || '/default-avatar.png'}
+                      alt="avatar"
+                      className="suggested-avatar"
+                      onError={(e) => {
+                        e.target.src = '/default-avatar.png';
+                      }}
+                    />
+                  </Link>
                   <div className="suggested-info">
-                    <strong>@{suggestedUser.username}</strong>
+                    <Link to={`/profile/${suggestedUser.id}`}>
+                      <strong>@{suggestedUser.username}</strong>
+                    </Link>
                     <p>{suggestedUser.bio || "New creator on the rise!"}</p>
                     {suggestedUser.follower_count > 0 && (
                       <span className="follower-count">{suggestedUser.follower_count} followers</span>
                     )}
                   </div>
                   <button
-                    className="follow-btn"
-                    onClick={() => handleFollowUser(suggestedUser.id)}
+                    className={`follow-btn ${followingUsers[suggestedUser.id] ? 'loading' : ''}`}
+                    onClick={() => handleFollowUser(suggestedUser.id, suggestedUser.username)}
+                    disabled={followingUsers[suggestedUser.id]}
                   >
-                    Follow
+                    {followingUsers[suggestedUser.id] ? '...' : '➕ Follow'}
                   </button>
                 </div>
               ))
@@ -490,17 +567,19 @@ const HomeFeed = () => {
               posts.map((post) => (
                 <div key={post.id} className="feed-card">
                   <div className="feed-card-header">
-                    <img
-                      src={post.author_avatar || post.avatar || '/default-avatar.png'}
-                      alt="avatar"
-                      className="feed-avatar"
-                      onError={(e) => {
-                        e.target.src = '/default-avatar.png';
-                      }}
-                    />
+                    <Link to={`/profile/${post.author_id || post.author_username}`}>
+                      <img
+                        src={post.author_avatar || post.avatar || '/default-avatar.png'}
+                        alt="avatar"
+                        className="feed-avatar"
+                        onError={(e) => {
+                          e.target.src = '/default-avatar.png';
+                        }}
+                      />
+                    </Link>
                     <div className="feed-user-info">
                       <div className="feed-username">
-                        <Link to={`/user/${post.author_username || post.author_id}`}>
+                        <Link to={`/profile/${post.author_id || post.author_username}`}>
                           @{post.author_username || post.author_name || post.author || 'unknown'}
                         </Link>
                       </div>

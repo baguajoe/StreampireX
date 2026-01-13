@@ -2032,62 +2032,6 @@ class TicketPurchase(db.Model):
             "amount_paid": self.amount_paid
         }
 
-# Add these models to your models.py file
-
-# Distribution Submission Model (to track submissions)
-class DistributionSubmission(db.Model):
-    __table_args__ = {'extend_existing': True}
-    __tablename__ = 'distribution_submission'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    track_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=True)
-    release_title = db.Column(db.String(255), nullable=False)
-    artist_name = db.Column(db.String(255), nullable=False)
-    genre = db.Column(db.String(100), nullable=False)
-    release_date = db.Column(db.Date, nullable=True)
-    label = db.Column(db.String(255), default='StreampireX Records')
-    explicit = db.Column(db.Boolean, default=False)
-    platforms = db.Column(db.JSON, default=[])  # Array of platform names
-    territories = db.Column(db.JSON, default=['worldwide'])
-    status = db.Column(db.String(50), default='pending')  # pending, processing, live, rejected
-    sonosuite_submission_id = db.Column(db.String(255), unique=True)
-    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
-    expected_live_date = db.Column(db.DateTime, nullable=True)
-    actual_live_date = db.Column(db.DateTime, nullable=True)
-    
-    # Revenue tracking
-    total_streams = db.Column(db.Integer, default=0)
-    total_revenue = db.Column(db.Float, default=0.0)
-    
-    # Relationships
-    user = db.relationship('User', backref='distribution_submissions')
-    track = db.relationship('Audio', backref='distribution_submissions')
-    
-    def serialize(self):
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "track_id": self.track_id,
-            "release_title": self.release_title,
-            "artist_name": self.artist_name,
-            "genre": self.genre,
-            "release_date": self.release_date.isoformat() if self.release_date else None,
-            "label": self.label,
-            "explicit": self.explicit,
-            "platforms": self.platforms or [],
-            "territories": self.territories or [],
-            "status": self.status,
-            "sonosuite_submission_id": self.sonosuite_submission_id,
-            "submitted_at": self.submitted_at.isoformat(),
-            "expected_live_date": self.expected_live_date.isoformat() if self.expected_live_date else None,
-            "actual_live_date": self.actual_live_date.isoformat() if self.actual_live_date else None,
-            "total_streams": self.total_streams,
-            "total_revenue": self.total_revenue
-        }
-
-# Distribution Analytics Model (to track performance)
-
 
 class PodcastSubscription(db.Model):
     __table_args__ = {'extend_existing': True}
@@ -2569,52 +2513,33 @@ class MusicDistribution(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
 
-
-
 class DistributionSubmission(db.Model):
-    """Tracks submission history and status updates for distributions"""
-    __tablename__ = 'distribution_submissions'
     __table_args__ = {'extend_existing': True}
+    __tablename__ = 'distribution_submission'
     
     id = db.Column(db.Integer, primary_key=True)
-    distribution_id = db.Column(db.Integer, db.ForeignKey('music_distribution.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    track_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=True)
+    release_title = db.Column(db.String(255), nullable=False)
+    artist_name = db.Column(db.String(255), nullable=False)
+    genre = db.Column(db.String(100), nullable=False)
+    release_date = db.Column(db.Date, nullable=True)
+    label = db.Column(db.String(255), default='StreampireX Records')
+    explicit = db.Column(db.Boolean, default=False)
+    platforms = db.Column(db.JSON, default=[])
+    territories = db.Column(db.JSON, default=['worldwide'])
+    status = db.Column(db.String(50), default='pending')
+    sonosuite_submission_id = db.Column(db.String(255), unique=True)
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expected_live_date = db.Column(db.DateTime, nullable=True)
+    actual_live_date = db.Column(db.DateTime, nullable=True)
+    total_streams = db.Column(db.Integer, default=0)
+    total_revenue = db.Column(db.Float, default=0.0)
     
-    # Submission audio
-    platform = db.Column(db.String(50), nullable=False)
-    status = db.Column(db.String(50), nullable=False)  # submitted, approved, rejected, live
-    submission_date = db.Column(db.DateTime, default=datetime.utcnow)
-    status_update_date = db.Column(db.DateTime, nullable=True)
+    user = db.relationship('User', backref='distribution_submissions')
+    track = db.relationship('Audio', backref='distribution_submissions')
     
-    # Response data
-    response_message = db.Column(db.Text, nullable=True)
-    platform_release_id = db.Column(db.String(200), nullable=True)
-    platform_url = db.Column(db.String(500), nullable=True)
-    
-    # Error handling
-    error_code = db.Column(db.String(50), nullable=True)
-    error_message = db.Column(db.Text, nullable=True)
-    
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationships
-    distribution = db.relationship('MusicDistribution', backref='submissions')
-    
-    def serialize(self):
-        return {
-            "id": self.id,
-            "distribution_id": self.distribution_id,
-            "platform": self.platform,
-            "status": self.status,
-            "submission_date": self.submission_date.isoformat() if self.submission_date else None,
-            "status_update_date": self.status_update_date.isoformat() if self.status_update_date else None,
-            "response_message": self.response_message,
-            "platform_release_id": self.platform_release_id,
-            "platform_url": self.platform_url,
-            "error_code": self.error_code,
-            "error_message": self.error_message,
-            "created_at": self.created_at.isoformat() if self.created_at else None
-        }
+    # ... serialize method
 
 class CreatorDonation(db.Model):
     __table_args__ = {'extend_existing': True}
@@ -3279,14 +3204,6 @@ class VRAccessTicket(db.Model):
     event_id = db.Column(db.Integer, db.ForeignKey('live_event.id'))
     is_verified = db.Column(db.Boolean, default=False)
 
-
-
-class Conversation(db.Model):
-    __table_args__ = {'extend_existing': True}
-    id = db.Column(db.Integer, primary_key=True)
-    user1_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    user2_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Message(db.Model):
     __table_args__ = {'extend_existing': True}
@@ -4830,6 +4747,119 @@ class VideoQuality(db.Model):
             'is_ready': self.is_ready
         }
 
+class VideoProject(db.Model):
+    __tablename__ = 'video_projects'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False, default='Untitled Project')
+    description = db.Column(db.Text)
+    resolution_width = db.Column(db.Integer, default=1920)
+    resolution_height = db.Column(db.Integer, default=1080)
+    frame_rate = db.Column(db.Integer, default=30)
+    duration = db.Column(db.Float, default=0)
+    timeline_data = db.Column(db.Text)  # JSON string
+    thumbnail_url = db.Column(db.String(500))
+    status = db.Column(db.String(50), default='draft')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('video_projects', lazy='dynamic'))
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'title': self.title,
+            'description': self.description,
+            'resolution': {'width': self.resolution_width, 'height': self.resolution_height},
+            'frame_rate': self.frame_rate,
+            'duration': self.duration,
+            'timeline_data': json.loads(self.timeline_data) if self.timeline_data else None,
+            'thumbnail_url': self.thumbnail_url,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class VideoClipAsset(db.Model):
+    __tablename__ = 'video_clip_assets'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('video_projects.id'), nullable=True)
+    cloudinary_public_id = db.Column(db.String(255), nullable=False)
+    cloudinary_url = db.Column(db.String(500), nullable=False)
+    resource_type = db.Column(db.String(50), default='video')
+    title = db.Column(db.String(255))
+    duration = db.Column(db.Float)
+    width = db.Column(db.Integer)
+    height = db.Column(db.Integer)
+    file_size = db.Column(db.BigInteger)
+    format = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('video_assets', lazy='dynamic'))
+    project = db.relationship('VideoProject', backref=db.backref('assets', lazy='dynamic'))
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'project_id': self.project_id,
+            'cloudinary_public_id': self.cloudinary_public_id,
+            'cloudinary_url': self.cloudinary_url,
+            'resource_type': self.resource_type,
+            'title': self.title,
+            'duration': self.duration,
+            'width': self.width,
+            'height': self.height,
+            'file_size': self.file_size,
+            'format': self.format,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class VideoExport(db.Model):
+    __tablename__ = 'video_exports'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('video_projects.id'), nullable=False)
+    resolution = db.Column(db.String(50))
+    frame_rate = db.Column(db.Integer, default=24)
+    format = db.Column(db.String(50), default='mp4')
+    quality = db.Column(db.String(50), default='auto')
+    export_url = db.Column(db.String(500))
+    transformation_url = db.Column(db.Text)
+    status = db.Column(db.String(50), default='pending')
+    error_message = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    
+    user = db.relationship('User', backref=db.backref('video_exports', lazy='dynamic'))
+    project = db.relationship('VideoProject', backref=db.backref('exports', lazy='dynamic'))
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'project_id': self.project_id,
+            'resolution': self.resolution,
+            'frame_rate': self.frame_rate,
+            'format': self.format,
+            'quality': self.quality,
+            'export_url': self.export_url,
+            'transformation_url': self.transformation_url,
+            'status': self.status,
+            'error_message': self.error_message,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None
+        }
 
 
 # =============================================================================
@@ -4904,114 +4934,3 @@ ALTER TABLE video ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0;
 --     FOR VALUES FROM ('2025-01-01') TO ('2025-02-01');
 """
 
-print("📊 Bandwidth Migration SQL:")# =====================================================
-# VIDEO EDITOR MODELS - Add to your src/api/models.py
-# =====================================================
-# Copy these classes into your models.py file
-
-# =====================================================
-# VIDEO EDITOR MODELS - CORRECTED
-# =====================================================
-
-class VideoProject(db.Model):
-    """Stores video editor project timelines"""
-    __tablename__ = 'video_projects'
-    __table_args__ = {'extend_existing': True}
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, nullable=False)  # No FK constraint - simpler
-    title = db.Column(db.String(255), nullable=False, default='Untitled Project')
-    description = db.Column(db.Text)
-    resolution_width = db.Column(db.Integer, default=1920)
-    resolution_height = db.Column(db.Integer, default=1080)
-    frame_rate = db.Column(db.Integer, default=30)
-    duration = db.Column(db.Float, default=0)
-    timeline_data = db.Column(db.Text)
-    thumbnail_url = db.Column(db.String(500))
-    status = db.Column(db.String(50), default='draft')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    def serialize(self):
-        return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'title': self.title,
-            'description': self.description,
-            'resolution': {'width': self.resolution_width, 'height': self.resolution_height},
-            'frame_rate': self.frame_rate,
-            'duration': self.duration,
-            'timeline_data': json.loads(self.timeline_data) if self.timeline_data else None,
-            'thumbnail_url': self.thumbnail_url,
-            'status': self.status,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
-        }
-
-
-class VideoClipAsset(db.Model):
-    """Stores uploaded video/audio/image assets"""
-    __tablename__ = 'video_clip_assets'
-    __table_args__ = {'extend_existing': True}
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, nullable=False)
-    project_id = db.Column(db.Integer, nullable=True)
-    cloudinary_public_id = db.Column(db.String(255), nullable=False)
-    cloudinary_url = db.Column(db.String(500), nullable=False)
-    resource_type = db.Column(db.String(50), default='video')
-    title = db.Column(db.String(255))
-    duration = db.Column(db.Float)
-    width = db.Column(db.Integer)
-    height = db.Column(db.Integer)
-    file_size = db.Column(db.BigInteger)
-    format = db.Column(db.String(50))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    def serialize(self):
-        return {
-            'id': self.id,
-            'cloudinary_public_id': self.cloudinary_public_id,
-            'cloudinary_url': self.cloudinary_url,
-            'resource_type': self.resource_type,
-            'title': self.title,
-            'duration': self.duration,
-            'width': self.width,
-            'height': self.height,
-            'file_size': self.file_size,
-            'format': self.format,
-            'created_at': self.created_at.isoformat() if self.created_at else None
-        }
-
-
-class VideoExport(db.Model):
-    """Tracks video exports"""
-    __tablename__ = 'video_exports'
-    __table_args__ = {'extend_existing': True}
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, nullable=False)
-    project_id = db.Column(db.Integer, nullable=False)
-    resolution = db.Column(db.String(50))
-    format = db.Column(db.String(50), default='mp4')
-    quality = db.Column(db.String(50), default='auto')
-    export_url = db.Column(db.String(500))
-    transformation_url = db.Column(db.Text)
-    status = db.Column(db.String(50), default='pending')
-    error_message = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    completed_at = db.Column(db.DateTime)
-    
-    def serialize(self):
-        return {
-            'id': self.id,
-            'project_id': self.project_id,
-            'resolution': self.resolution,
-            'format': self.format,
-            'quality': self.quality,
-            'export_url': self.export_url,
-            'status': self.status,
-            'error_message': self.error_message,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'completed_at': self.completed_at.isoformat() if self.completed_at else None
-        }

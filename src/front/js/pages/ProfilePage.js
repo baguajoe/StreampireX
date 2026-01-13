@@ -563,6 +563,10 @@ const ProfilePage = () => {
     const [error, setError] = useState(null);
     const [isInCircle, setIsInCircle] = useState(false);
     const [addingToCircle, setAddingToCircle] = useState(false);
+    
+    // Follow state - NEW
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followLoading, setFollowLoading] = useState(false);
 
     // Form and editing state
     const [formData, setFormData] = useState({
@@ -1138,6 +1142,76 @@ const ProfilePage = () => {
         }
     }, [profileUserId, isOwnProfile]);
 
+    // FOLLOW FUNCTIONALITY - NEW
+    const checkFollowStatus = useCallback(async () => {
+        if (isOwnProfile || !profileUserId) return;
+
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const response = await fetch(`${BACKEND_URL}/api/follow/status/${profileUserId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setIsFollowing(data.is_following || false);
+            }
+        } catch (error) {
+            console.error('Error checking follow status:', error);
+        }
+    }, [profileUserId, isOwnProfile]);
+
+    const handleFollow = useCallback(async () => {
+        if (!profileUserId || isOwnProfile) return;
+
+        try {
+            setFollowLoading(true);
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                alert('Please log in to follow users');
+                return;
+            }
+
+            const endpoint = isFollowing
+                ? `${BACKEND_URL}/api/unfollow/${profileUserId}`
+                : `${BACKEND_URL}/api/follow/${profileUserId}`;
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_id: profileUserId })
+            });
+
+            if (response.ok) {
+                setIsFollowing(!isFollowing);
+                // Update follower count in user state
+                setUser(prev => ({
+                    ...prev,
+                    follower_count: isFollowing 
+                        ? (prev.follower_count || 1) - 1 
+                        : (prev.follower_count || 0) + 1
+                }));
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Failed to update follow status');
+            }
+        } catch (error) {
+            console.error('Error updating follow status:', error);
+            alert('Error updating follow status');
+        } finally {
+            setFollowLoading(false);
+        }
+    }, [profileUserId, isOwnProfile, isFollowing]);
+
     // Media upload handlers
     const handleProfilePicChange = useCallback(async (event) => {
         const file = event.target.files[0];
@@ -1427,6 +1501,7 @@ const ProfilePage = () => {
             fetchFavoriteProfiles();
             fetchUnreadCount();
             checkIfInCircle();
+            checkFollowStatus();
         }
 
         return () => {
@@ -1435,7 +1510,7 @@ const ProfilePage = () => {
                 socket.current = null;
             }
         };
-    }, [authState.token, fetchProfile, initializeSocket, fetchSocialAccounts, fetchSocialAnalytics, fetchUserPhotos, fetchUserVideos, fetchUserCircle, fetchUserPosts, fetchFavoriteProfiles, fetchUnreadCount, checkIfInCircle]);
+    }, [authState.token, fetchProfile, initializeSocket, fetchSocialAccounts, fetchSocialAnalytics, fetchUserPhotos, fetchUserVideos, fetchUserCircle, fetchUserPosts, fetchFavoriteProfiles, fetchUnreadCount, checkIfInCircle, checkFollowStatus]);
 
     useEffect(() => {
         if (media.profilePicture) {
@@ -1602,6 +1677,18 @@ const ProfilePage = () => {
                             Chat
                         </button>
 
+                        {/* Follow button - only show on other users' profiles */}
+                        {!isOwnProfile && (
+                            <button
+                                className={`quick-action-btn ${isFollowing ? 'following' : 'follow'}`}
+                                onClick={handleFollow}
+                                disabled={followLoading}
+                                title={isFollowing ? 'Unfollow' : 'Follow'}
+                            >
+                                {followLoading ? '...' : isFollowing ? '✓ Following' : '➕ Follow'}
+                            </button>
+                        )}
+
                         {/* Add to Inner Circle button - only show on other users' profiles */}
                         {!isOwnProfile && (
                             <button
@@ -1610,7 +1697,7 @@ const ProfilePage = () => {
                                 disabled={addingToCircle}
                                 title={isInCircle ? 'Remove from Inner Circle' : 'Add to Inner Circle'}
                             >
-                                {addingToCircle ? '...' : isInCircle ? '⭐ In Circle' : '➕ Add to Circle'}
+                                {addingToCircle ? '...' : isInCircle ? '⭐ In Circle' : '⭐ Add to Circle'}
                             </button>
                         )}
 
