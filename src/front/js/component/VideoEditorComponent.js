@@ -21,6 +21,18 @@ import {
   Loader
 } from 'lucide-react';
 
+// Video Editor State Management Hooks
+import {
+  useUndoRedo,
+  useClipboard,
+  useMarkers,
+  useProjectManager,
+  useClipOperations,
+  useSelection,
+  useKeyboardShortcuts
+} from './hooks/useVideoEditorState';
+import { useTierAccess } from './hooks/useTierAccess';
+
 // Backend URL configuration
 const backendURL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
@@ -1333,7 +1345,7 @@ const VideoEditorComponent = () => {
     resolution: { width: 1920, height: 1080 }
   });
 
-  const [tracks, setTracks] = useState([
+  const initialTracks = [
     {
       id: 1,
       name: 'Video 1',
@@ -1370,7 +1382,531 @@ const VideoEditorComponent = () => {
       clips: [],
       transitions: []
     }
-  ]);
+  ];
+
+  // Use undo/redo for tracks
+  const {
+    state: tracks,
+    setState: setTracks,
+    undo: undoTracks,
+    redo: redoTracks,
+    canUndo,
+    canRedo
+  } = useUndoRedo(initialTracks, 50);
+
+  // Clipboard for cut/copy/paste
+  const clipboard = useClipboard();
+
+  // Project manager for save/load/new
+  const projectManager = useProjectManager();
+
+  // Markers for timeline markers
+  const markersHook = useMarkers(projectManager.currentProject?.id);
+
+  // Clip operations for split/trim/speed/reverse
+  const clipOps = useClipOperations();
+
+  // Selection for multi-select
+  const selection = useSelection();
+
+  const handleNewProject = async () => {
+    const title = prompt('Enter project name:', 'New Project');
+    if (title) {
+      try {
+        const newProject = await projectManager.createProject(title, {
+          width: project.resolution.width,
+          height: project.resolution.height,
+          frameRate: frameRate
+        });
+        // Reset timeline
+        setTracks(initialTracks);
+        setProject(prev => ({ ...prev, title }));
+        setCurrentTime(0);
+        console.log('✅ New project created:', title);
+      } catch (error) {
+        alert('Failed to create project: ' + error.message);
+      }
+    }
+  };
+
+  const handleOpenProject = async () => {
+    const projects = await projectManager.getAllProjects();
+    if (projects.length === 0) {
+      alert('No projects found. Create a new project first.');
+      return;
+    }
+
+    // Simple prompt for now - you can make this a modal later
+    const projectList = projects.map((p, i) => `${i + 1}. ${p.title}`).join('\n');
+    const choice = prompt(`Select a project (enter number):\n${projectList}`);
+
+    if (choice) {
+      const index = parseInt(choice) - 1;
+      if (projects[index]) {
+        try {
+          const loaded = await projectManager.loadProject(projects[index].id);
+          // Load timeline data
+          if (loaded.timeline_data) {
+            const timeline = typeof loaded.timeline_data === 'string'
+              ? JSON.parse(loaded.timeline_data)
+              : loaded.timeline_data;
+            if (timeline.tracks) {
+              setTracks(timeline.tracks);
+            }
+          }
+          setProject(prev => ({ ...prev, title: loaded.title }));
+          console.log('✅ Project loaded:', loaded.title);
+        } catch (error) {
+          alert('Failed to load project: ' + error.message);
+        }
+      }
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const timelineData = {
+        tracks: tracks,
+        settings: {
+          frameRate,
+          width: project.resolution.width,
+          height: project.resolution.height
+        },
+        markers: markersHook.markers
+      };
+
+      if (projectManager.currentProject?.id) {
+        await projectManager.saveProject(timelineData, project.title);
+        alert('✅ Project saved!');
+      } else {
+        // Create new project first
+        const title = prompt('Enter project name:', project.title);
+        if (title) {
+          await projectManager.createProject(title, {
+            width: project.resolution.width,
+            height: project.resolution.height,
+            frameRate
+          });
+          await projectManager.saveProject(timelineData, title);
+          setProject(prev => ({ ...prev, title }));
+          alert('✅ Project saved!');
+        }
+      }
+    } catch (error) {
+      alert('Failed to save: ' + error.message);
+    }
+  };
+
+  const handleSaveAs = async () => {
+    const newTitle = prompt('Save as:', project.title + ' (copy)');
+    if (newTitle) {
+      try {
+        const timelineData = {
+          tracks: tracks,
+          settings: { frameRate, width: project.resolution.width, height: project.resolution.height },
+          markers: markersHook.markers
+        };
+        await projectManager.saveProjectAs(newTitle);
+        setProject(prev => ({ ...prev, title: newTitle }));
+        alert('✅ Saved as: ' + newTitle);
+      } catch (error) {
+        alert('Failed to save: ' + error.message);
+      }
+    }
+  };
+
+  // --- EDIT MENU HANDLERS ---
+  const handleUndo = () => {
+    if (canUndo) {
+      undoTracks();
+      console.log('⏪ Undo');
+    }
+  };
+
+  const handleRedo = () => {
+    if (canRedo) {
+      redoTracks();
+      console.log('⏩ Redo');
+    }
+  };
+
+  const handleCut = () => {
+    if (selectedClip) {
+      clipboard.cut(selectedClip, 'clip');
+      deleteClip(selectedClip.id);
+      setSelectedClip(null);
+    } else if (selectedTransition) {
+      clipboard.cut(selectedTransition, 'transition');
+      // Delete transition
+      setTracks(prevTracks => prevTracks.map(track => ({
+        ...track,
+        transitions: (track.transitions || []).filter(t => t.id !== selectedTransition.id)
+      })));
+      setSelectedTransition(null);
+    }
+  };
+
+  const handleCopy = () => {
+    if (selectedClip) {
+      clipboard.copy(selectedClip, 'clip');
+      alert(`📋 Copied "${selectedClip.title}"`);
+    } else if (selectedTransition) {
+      clipboard.copy(selectedTransition, 'transition');
+      alert('📋 Copied transition');
+    }
+  };
+
+  const handlePaste = () => {
+    if (!clipboard.hasData) {
+      alert('Nothing to paste. Copy or cut something first.');
+      return;
+    }
+
+    const result = clipboard.paste(currentTime);
+    if (!result) return;
+
+    const { data, type, wasCut, originalId } = result;
+
+    if (type === 'clip') {
+      // Find appropriate track
+      const targetTrack = tracks.find(t =>
+        t.type === (data.type === 'audio' ? 'audio' : 'video') && !t.locked
+      );
+
+      if (targetTrack) {
+        data.startTime = currentTime; // Paste at playhead
+        setTracks(prevTracks => prevTracks.map(track =>
+          track.id === targetTrack.id
+            ? { ...track, clips: [...track.clips, data] }
+            : track
+        ));
+        setSelectedClip(data);
+        console.log(`📄 Pasted "${data.title}" at ${currentTime.toFixed(2)}s`);
+      }
+    } else if (type === 'transition') {
+      // TODO: Handle transition paste
+      console.log('Transition paste not yet implemented');
+    }
+  };
+
+  const handleDelete = () => {
+    if (selectedClip) {
+      deleteClip(selectedClip.id);
+      setSelectedClip(null);
+    } else if (selectedTransition) {
+      setTracks(prevTracks => prevTracks.map(track => ({
+        ...track,
+        transitions: (track.transitions || []).filter(t => t.id !== selectedTransition.id)
+      })));
+      setSelectedTransition(null);
+    }
+  };
+
+  const handleSelectAll = () => {
+    const allClips = tracks.flatMap(track => track.clips);
+    selection.selectAll(allClips);
+    console.log(`Selected ${allClips.length} clips`);
+  };
+
+  const handleDeselectAll = () => {
+    selection.deselectAll();
+    setSelectedClip(null);
+    setSelectedTransition(null);
+  };
+
+  // --- CLIP MENU HANDLERS ---
+  const handleSplitClip = () => {
+    if (!selectedClip) {
+      // Try to find clip at playhead
+      const clipAtPlayhead = tracks
+        .flatMap(track => track.clips.map(clip => ({ ...clip, trackId: track.id })))
+        .find(clip => currentTime >= clip.startTime && currentTime < clip.startTime + clip.duration);
+
+      if (clipAtPlayhead) {
+        const result = clipOps.splitClip(clipAtPlayhead, currentTime);
+        if (result) {
+          setTracks(prevTracks => prevTracks.map(track => {
+            if (track.id === clipAtPlayhead.trackId) {
+              return {
+                ...track,
+                clips: [
+                  ...track.clips.filter(c => c.id !== clipAtPlayhead.id),
+                  result.firstClip,
+                  result.secondClip
+                ]
+              };
+            }
+            return track;
+          }));
+          console.log(`✂️ Split clip at ${currentTime.toFixed(2)}s`);
+        }
+      } else {
+        alert('No clip at playhead position. Move playhead over a clip to split it.');
+      }
+    } else {
+      // Split selected clip at playhead
+      if (currentTime > selectedClip.startTime && currentTime < selectedClip.startTime + selectedClip.duration) {
+        const trackWithClip = tracks.find(t => t.clips.some(c => c.id === selectedClip.id));
+        if (trackWithClip) {
+          const result = clipOps.splitClip(selectedClip, currentTime);
+          if (result) {
+            setTracks(prevTracks => prevTracks.map(track => {
+              if (track.id === trackWithClip.id) {
+                return {
+                  ...track,
+                  clips: [
+                    ...track.clips.filter(c => c.id !== selectedClip.id),
+                    result.firstClip,
+                    result.secondClip
+                  ]
+                };
+              }
+              return track;
+            }));
+            setSelectedClip(result.firstClip);
+            console.log(`✂️ Split "${selectedClip.title}" at ${currentTime.toFixed(2)}s`);
+          }
+        }
+      } else {
+        alert('Playhead must be within the selected clip to split it.');
+      }
+    }
+  };
+
+  const handleTrimIn = () => {
+    if (selectedClip) {
+      const trimmed = clipOps.trimClip(selectedClip, currentTime - selectedClip.startTime, null);
+      if (trimmed) {
+        setTracks(prevTracks => prevTracks.map(track => ({
+          ...track,
+          clips: track.clips.map(c => c.id === selectedClip.id ? { ...trimmed, startTime: currentTime } : c)
+        })));
+        setSelectedClip({ ...trimmed, startTime: currentTime });
+        console.log(`🎬 Trimmed in point to ${currentTime.toFixed(2)}s`);
+      }
+    }
+  };
+
+  const handleTrimOut = () => {
+    if (selectedClip) {
+      const newDuration = currentTime - selectedClip.startTime;
+      if (newDuration > 0) {
+        const trimmed = clipOps.trimClip(selectedClip, null, (selectedClip.trimStart || 0) + newDuration);
+        if (trimmed) {
+          setTracks(prevTracks => prevTracks.map(track => ({
+            ...track,
+            clips: track.clips.map(c => c.id === selectedClip.id ? { ...c, duration: newDuration } : c)
+          })));
+          setSelectedClip({ ...selectedClip, duration: newDuration });
+          console.log(`🎬 Trimmed out point to ${currentTime.toFixed(2)}s`);
+        }
+      }
+    }
+  };
+
+  const handleSpeedDuration = () => {
+    if (!selectedClip) {
+      alert('Select a clip first');
+      return;
+    }
+    const speed = prompt('Enter speed multiplier (0.1 - 10):', selectedClip.speed || '1');
+    if (speed) {
+      const speedVal = parseFloat(speed);
+      if (speedVal >= 0.1 && speedVal <= 10) {
+        const modified = clipOps.changeSpeed(selectedClip, speedVal);
+        setTracks(prevTracks => prevTracks.map(track => ({
+          ...track,
+          clips: track.clips.map(c => c.id === selectedClip.id ? modified : c)
+        })));
+        setSelectedClip(modified);
+        console.log(`⏩ Speed set to ${speedVal}x`);
+      } else {
+        alert('Speed must be between 0.1 and 10');
+      }
+    }
+  };
+
+  const handleReverseClip = () => {
+    if (!selectedClip) {
+      alert('Select a clip first');
+      return;
+    }
+    const reversed = clipOps.reverseClip(selectedClip);
+    setTracks(prevTracks => prevTracks.map(track => ({
+      ...track,
+      clips: track.clips.map(c => c.id === selectedClip.id ? reversed : c)
+    })));
+    setSelectedClip(reversed);
+    console.log(`🔄 Clip ${reversed.reversed ? 'reversed' : 'un-reversed'}`);
+  };
+
+  // --- SEQUENCE MENU HANDLERS ---
+  const handleAddTracks = () => {
+    const type = prompt('Enter track type (video or audio):', 'video');
+    if (type === 'video' || type === 'audio') {
+      const trackCount = tracks.filter(t => t.type === type).length + 1;
+      const newTrack = {
+        id: Date.now(),
+        name: `${type === 'video' ? 'Video' : 'Audio'} ${trackCount}`,
+        type: type,
+        visible: true,
+        muted: false,
+        locked: false,
+        color: type === 'video' ? '#4a9eff' : '#00d4aa',
+        zIndex: type === 'video' ? tracks.length + 1 : 0,
+        clips: [],
+        transitions: []
+      };
+      setTracks(prev => [...prev, newTrack]);
+      console.log(`➕ Added ${type} track`);
+    }
+  };
+
+  const handleDeleteEmptyTracks = () => {
+    const emptyTracks = tracks.filter(t => t.clips.length === 0);
+    if (emptyTracks.length === 0) {
+      alert('No empty tracks to delete');
+      return;
+    }
+
+    // Keep at least 1 video and 1 audio track
+    const videoTracks = tracks.filter(t => t.type === 'video');
+    const audioTracks = tracks.filter(t => t.type === 'audio');
+
+    setTracks(prev => prev.filter(t => {
+      if (t.clips.length > 0) return true; // Keep non-empty
+      if (t.type === 'video' && videoTracks.filter(vt => vt.clips.length > 0 || vt.id === t.id).length <= 1) return true;
+      if (t.type === 'audio' && audioTracks.filter(at => at.clips.length > 0 || at.id === t.id).length <= 1) return true;
+      return false;
+    }));
+
+    console.log('🗑️ Deleted empty tracks');
+  };
+
+  const handleApplyDefaultTransition = () => {
+    // Find adjacent clips and add cross dissolve
+    const pairs = [];
+    tracks.forEach(track => {
+      if (track.type !== 'video') return;
+      const sortedClips = [...track.clips].sort((a, b) => a.startTime - b.startTime);
+      for (let i = 0; i < sortedClips.length - 1; i++) {
+        const clip1End = sortedClips[i].startTime + sortedClips[i].duration;
+        if (Math.abs(sortedClips[i + 1].startTime - clip1End) < 0.5) {
+          pairs.push({ trackId: track.id, clip1: sortedClips[i], clip2: sortedClips[i + 1] });
+        }
+      }
+    });
+
+    if (pairs.length === 0) {
+      alert('No adjacent clips found. Place clips next to each other to add transitions.');
+      return;
+    }
+
+    // Add transition to first pair found
+    const { trackId, clip1, clip2 } = pairs[0];
+    addTransitionBetweenClips(trackId, clip1, clip2, selectedTransitionType);
+  };
+
+  // --- MARKER MENU HANDLERS ---
+  const handleAddMarker = () => {
+    const label = prompt('Marker label (optional):');
+    markersHook.addMarker(currentTime, label || '', '#FF6600');
+  };
+
+  const handleNextMarker = () => {
+    const nextTime = markersHook.goToNextMarker(currentTime);
+    if (nextTime !== null) {
+      setCurrentTime(nextTime);
+      console.log(`⏩ Jumped to marker at ${nextTime.toFixed(2)}s`);
+    } else {
+      console.log('No next marker');
+    }
+  };
+
+  const handlePrevMarker = () => {
+    const prevTime = markersHook.goToPreviousMarker(currentTime);
+    if (prevTime !== null) {
+      setCurrentTime(prevTime);
+      console.log(`⏪ Jumped to marker at ${prevTime.toFixed(2)}s`);
+    } else {
+      console.log('No previous marker');
+    }
+  };
+
+  const handleClearCurrentMarker = () => {
+    // Find marker closest to playhead
+    const closest = markersHook.markers.reduce((prev, curr) =>
+      Math.abs(curr.time - currentTime) < Math.abs(prev.time - currentTime) ? curr : prev
+      , markersHook.markers[0]);
+
+    if (closest && Math.abs(closest.time - currentTime) < 1) {
+      markersHook.deleteMarker(closest.id);
+      console.log('🚩 Deleted marker');
+    } else {
+      alert('No marker near playhead');
+    }
+  };
+
+  const handleClearAllMarkers = () => {
+    if (confirm(`Delete all ${markersHook.markers.length} markers?`)) {
+      markersHook.clearAllMarkers();
+    }
+  };
+
+  // --- VIEW MENU HANDLERS ---
+  const handleZoomIn = () => setZoom(Math.min(5, zoom + 0.2));
+  const handleZoomOut = () => setZoom(Math.max(0.1, zoom - 0.2));
+  const handleFitToWindow = () => setZoom(1);
+  const handleFullScreen = () => alert('Full screen preview - Coming soon!');
+
+  // --- HELP MENU ---
+  const showKeyboardShortcuts = () => {
+    alert(`
+KEYBOARD SHORTCUTS
+==================
+FILE
+  Ctrl+N    New Project
+  Ctrl+O    Open Project
+  Ctrl+S    Save
+  Ctrl+Shift+S  Save As
+  Ctrl+I    Import Media
+  Ctrl+E    Export
+
+EDIT
+  Ctrl+Z    Undo
+  Ctrl+Shift+Z / Ctrl+Y  Redo
+  Ctrl+X    Cut
+  Ctrl+C    Copy
+  Ctrl+V    Paste
+  Delete    Delete Selected
+  Ctrl+A    Select All
+
+PLAYBACK
+  Space     Play/Pause
+  Home      Go to Start
+  End       Go to End
+  ← →       Frame Step
+  Shift+← →   Jump 1 Second
+
+MARKERS
+  M         Add Marker
+  Shift+M   Next Marker
+  Ctrl+Shift+M  Previous Marker
+
+TIMELINE
+  Ctrl+K    Split Clip at Playhead
+  Q         Trim In Point
+  W         Trim Out Point
+  Ctrl+D    Apply Default Transition
+  + / -     Zoom In/Out
+  `);
+  };
+
+  // =====================================================
+  // STEP 5: ADD KEYBOARD SHORTCUTS HOOK
+  // =====================================================
+
+
 
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -1438,12 +1974,54 @@ const VideoEditorComponent = () => {
   const timelineRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Load audio presets on component mount
-  useEffect(() => {
-    getAudioPresets().then(presets => {
-      setAudioPresets(presets);
-    });
-  }, []);
+  // Add this useKeyboardShortcuts call (after the handler functions):
+  useKeyboardShortcuts({
+    // File
+    onNewProject: handleNewProject,
+    onOpenProject: handleOpenProject,
+    onSave: handleSave,
+    onSaveAs: handleSaveAs,
+    onExport: handleExport,
+    onImport: () => fileInputRef.current?.click(),
+
+    // Edit
+    onUndo: handleUndo,
+    onRedo: handleRedo,
+    onCut: handleCut,
+    onCopy: handleCopy,
+    onPaste: handlePaste,
+    onDelete: handleDelete,
+    onSelectAll: handleSelectAll,
+    onDeselectAll: handleDeselectAll,
+
+    // Playback
+    onPlayPause: playPause,
+    onGoToStart: () => setCurrentTime(0),
+    onGoToEnd: () => setCurrentTime(duration),
+    onFrameBack: () => setCurrentTime(Math.max(0, currentTime - (1 / frameRate))),
+    onFrameForward: () => setCurrentTime(Math.min(duration, currentTime + (1 / frameRate))),
+    onJumpBack: () => setCurrentTime(Math.max(0, currentTime - 1)),
+    onJumpForward: () => setCurrentTime(Math.min(duration, currentTime + 1)),
+
+    // Markers
+    onAddMarker: handleAddMarker,
+    onNextMarker: handleNextMarker,
+    onPrevMarker: handlePrevMarker,
+
+    // Clips
+    onSplitClip: handleSplitClip,
+    onTrimIn: handleTrimIn,
+    onTrimOut: handleTrimOut,
+    onApplyTransition: handleApplyDefaultTransition,
+
+    // View
+    onZoomIn: handleZoomIn,
+    onZoomOut: handleZoomOut,
+    onFitToWindow: handleFitToWindow,
+
+    // Help
+    onShowShortcuts: showKeyboardShortcuts
+  });
 
   useEffect(() => {
     if (draggedClip) {
@@ -2778,16 +3356,29 @@ const VideoEditorComponent = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // After your hook instances
+  useEffect(() => {
+    if (projectManager.currentProject?.id) {
+      projectManager.enableAutoSave(() => ({
+        tracks,
+        markers: markersHook.markers,
+        settings: { frameRate, width: project.resolution.width, height: project.resolution.height }
+      }), 30000); // 30 seconds
+    }
+
+    return () => projectManager.disableAutoSave();
+  }, [projectManager.currentProject?.id]);
+
   // Menu definitions
   const menuItems = {
     file: {
       label: 'File',
       items: [
-        { label: 'New Project', shortcut: 'Ctrl+N', action: () => alert('New Project - Coming Soon') },
-        { label: 'Open Project', shortcut: 'Ctrl+O', action: () => alert('Open Project - Coming Soon') },
+        { label: 'New Project', shortcut: 'Ctrl+N', action: handleNewProject },
+        { label: 'Open Project', shortcut: 'Ctrl+O', action: handleOpenProject },
         { type: 'separator' },
-        { label: 'Save', shortcut: 'Ctrl+S', action: handleSaveProject },
-        { label: 'Save As...', shortcut: 'Ctrl+Shift+S', action: () => alert('Save As - Coming Soon') },
+        { label: 'Save', shortcut: 'Ctrl+S', action: handleSave },
+        { label: 'Save As...', shortcut: 'Ctrl+Shift+S', action: handleSaveAs },
         { type: 'separator' },
         { label: 'Import Media', shortcut: 'Ctrl+I', action: () => fileInputRef.current?.click() },
         { label: 'Export', shortcut: 'Ctrl+E', action: () => setShowExportModal(true) },
@@ -2799,39 +3390,39 @@ const VideoEditorComponent = () => {
     edit: {
       label: 'Edit',
       items: [
-        { label: 'Undo', shortcut: 'Ctrl+Z', action: () => alert('Undo - Coming Soon') },
-        { label: 'Redo', shortcut: 'Ctrl+Shift+Z', action: () => alert('Redo - Coming Soon') },
+        { label: 'Undo', shortcut: 'Ctrl+Z', action: handleUndo, disabled: !canUndo },
+        { label: 'Redo', shortcut: 'Ctrl+Shift+Z', action: handleRedo, disabled: !canRedo },
         { type: 'separator' },
-        { label: 'Cut', shortcut: 'Ctrl+X', action: () => selectedClip && deleteClip(selectedClip.id) },
-        { label: 'Copy', shortcut: 'Ctrl+C', action: () => alert('Copy - Coming Soon') },
-        { label: 'Paste', shortcut: 'Ctrl+V', action: () => alert('Paste - Coming Soon') },
-        { label: 'Delete', shortcut: 'Del', action: () => selectedClip && deleteClip(selectedClip.id) },
+        { label: 'Cut', shortcut: 'Ctrl+X', action: handleCut, disabled: !selectedClip && !selectedTransition },
+        { label: 'Copy', shortcut: 'Ctrl+C', action: handleCopy, disabled: !selectedClip && !selectedTransition },
+        { label: 'Paste', shortcut: 'Ctrl+V', action: handlePaste, disabled: !clipboard.hasData },
+        { label: 'Delete', shortcut: 'Del', action: handleDelete, disabled: !selectedClip && !selectedTransition },
         { type: 'separator' },
-        { label: 'Select All', shortcut: 'Ctrl+A', action: () => alert('Select All - Coming Soon') },
-        { label: 'Deselect All', shortcut: 'Ctrl+Shift+A', action: () => { setSelectedClip(null); setSelectedTransition(null); } }
+        { label: 'Select All', shortcut: 'Ctrl+A', action: handleSelectAll },
+        { label: 'Deselect All', shortcut: 'Ctrl+Shift+A', action: handleDeselectAll }
       ]
     },
     clip: {
       label: 'Clip',
       items: [
-        { label: 'Split Clip', shortcut: 'Ctrl+K', action: () => alert('Split Clip at Playhead - Coming Soon') },
-        { label: 'Trim In Point', shortcut: 'Q', action: () => alert('Trim In Point - Coming Soon') },
-        { label: 'Trim Out Point', shortcut: 'W', action: () => alert('Trim Out Point - Coming Soon') },
+        { label: 'Split Clip', shortcut: 'Ctrl+K', action: handleSplitClip },
+        { label: 'Trim In Point', shortcut: 'Q', action: handleTrimIn, disabled: !selectedClip },
+        { label: 'Trim Out Point', shortcut: 'W', action: handleTrimOut, disabled: !selectedClip },
         { type: 'separator' },
-        { label: 'Speed/Duration...', action: () => alert('Speed/Duration - Coming Soon') },
-        { label: 'Reverse Clip', action: () => alert('Reverse - Coming Soon') },
+        { label: 'Speed/Duration...', action: handleSpeedDuration, disabled: !selectedClip },
+        { label: 'Reverse Clip', action: handleReverseClip, disabled: !selectedClip },
         { type: 'separator' },
-        { label: 'Nest Clip', action: () => alert('Nest - Coming Soon') },
-        { label: 'Unlink Audio/Video', action: () => alert('Unlink - Coming Soon') }
+        { label: 'Nest Clip', action: () => alert('Nest - Coming Soon'), disabled: !selectedClip },
+        { label: 'Unlink Audio/Video', action: () => alert('Unlink - Coming Soon'), disabled: !selectedClip }
       ]
     },
     sequence: {
       label: 'Sequence',
       items: [
-        { label: 'Add Tracks...', action: () => alert('Add Tracks - Coming Soon') },
-        { label: 'Delete Empty Tracks', action: () => alert('Delete Empty Tracks - Coming Soon') },
+        { label: 'Add Tracks...', action: handleAddTracks },
+        { label: 'Delete Empty Tracks', action: handleDeleteEmptyTracks },
         { type: 'separator' },
-        { label: 'Apply Default Transition', shortcut: 'Ctrl+D', action: () => alert('Apply Transition - Coming Soon') },
+        { label: 'Apply Default Transition', shortcut: 'Ctrl+D', action: handleApplyDefaultTransition },
         { label: 'Render In to Out', shortcut: 'Enter', action: () => alert('Render - Coming Soon') },
         { type: 'separator' },
         { label: 'Go to In Point', shortcut: 'Shift+I', action: () => setCurrentTime(0) },
@@ -2841,26 +3432,26 @@ const VideoEditorComponent = () => {
     markers: {
       label: 'Markers',
       items: [
-        { label: 'Add Marker', shortcut: 'M', action: () => alert('Add Marker - Coming Soon') },
-        { label: 'Go to Next Marker', shortcut: 'Shift+M', action: () => alert('Next Marker - Coming Soon') },
-        { label: 'Go to Previous Marker', shortcut: 'Ctrl+Shift+M', action: () => alert('Previous Marker - Coming Soon') },
+        { label: 'Add Marker', shortcut: 'M', action: handleAddMarker },
+        { label: 'Go to Next Marker', shortcut: 'Shift+M', action: handleNextMarker },
+        { label: 'Go to Previous Marker', shortcut: 'Ctrl+Shift+M', action: handlePrevMarker },
         { type: 'separator' },
-        { label: 'Clear Current Marker', action: () => alert('Clear Marker - Coming Soon') },
-        { label: 'Clear All Markers', action: () => alert('Clear All Markers - Coming Soon') }
+        { label: 'Clear Current Marker', action: handleClearCurrentMarker },
+        { label: 'Clear All Markers', action: handleClearAllMarkers }
       ]
     },
     view: {
       label: 'View',
       items: [
-        { label: 'Zoom In', shortcut: '=', action: () => setZoom(Math.min(5, zoom + 0.2)) },
-        { label: 'Zoom Out', shortcut: '-', action: () => setZoom(Math.max(0.1, zoom - 0.2)) },
-        { label: 'Fit to Window', shortcut: '\\', action: () => setZoom(1) },
+        { label: 'Zoom In', shortcut: '=', action: handleZoomIn },
+        { label: 'Zoom Out', shortcut: '-', action: handleZoomOut },
+        { label: 'Fit to Window', shortcut: '\\', action: handleFitToWindow },
         { type: 'separator' },
         { label: 'Show Audio Waveforms', checked: showAudioWaveforms, action: () => setShowAudioWaveforms(!showAudioWaveforms) },
         { label: 'Show Keyframes', checked: showKeyframes, action: () => setShowKeyframes(!showKeyframes) },
         { label: 'Snap to Grid', checked: showSnapToGrid, action: () => setShowSnapToGrid(!showSnapToGrid) },
         { type: 'separator' },
-        { label: 'Full Screen Preview', shortcut: '`', action: () => alert('Full Screen - Coming Soon') }
+        { label: 'Full Screen Preview', shortcut: '`', action: handleFullScreen }
       ]
     },
     window: {
@@ -2878,7 +3469,7 @@ const VideoEditorComponent = () => {
     help: {
       label: 'Help',
       items: [
-        { label: 'Keyboard Shortcuts', shortcut: 'Ctrl+/', action: () => alert('Keyboard Shortcuts:\n\nSpace - Play/Pause\n← → - Frame step\nShift+← → - 1 second jump\nHome - Go to start\nEnd - Go to end\nDel - Delete selected\nCtrl+S - Save\nCtrl+E - Export\nCtrl+Z - Undo') },
+        { label: 'Keyboard Shortcuts', shortcut: 'Ctrl+/', action: showKeyboardShortcuts },
         { label: 'Documentation', action: () => window.open('https://docs.streampirex.com/video-editor', '_blank') },
         { type: 'separator' },
         { label: 'About StreamPireX Editor', action: () => alert('StreamPireX Video Editor\nVersion 1.0.0\n\nProfessional video editing for creators.') }
@@ -2908,6 +3499,7 @@ const VideoEditorComponent = () => {
             </button>
 
             {/* Dropdown Menu */}
+            {/* Inside your menu dropdown - around line ~2100+ */}
             {activeMenu === key && (
               <div className="menu-dropdown">
                 {menu.items.map((item, idx) => (
@@ -2916,11 +3508,15 @@ const VideoEditorComponent = () => {
                   ) : (
                     <button
                       key={idx}
-                      className="menu-item"
+                      className={`menu-item ${item.disabled ? 'disabled' : ''}`}
                       onClick={() => {
-                        item.action?.();
-                        setActiveMenu(null);
+                        if (!item.disabled) {
+                          item.action?.();
+                          setActiveMenu(null);
+                        }
                       }}
+                      disabled={item.disabled}
+                      style={{ opacity: item.disabled ? 0.5 : 1 }}
                     >
                       <span className="item-label">
                         {item.checked !== undefined && (
@@ -5096,9 +5692,48 @@ const VideoEditorComponent = () => {
                   <div className="timeline-ruler-scroll">
                     <div
                       className="timeline-ruler"
-                      style={{ width: `${duration * 2 * zoom}px` }}
+                      style={{ width: `${duration * 2 * zoom}px`, position: 'relative' }}
                     >
                       {generateTimeMarkers()}
+
+                      {/* Timeline Markers */}
+                      {markersHook.markers.map(marker => (
+                        <div
+                          key={marker.id}
+                          className="timeline-marker"
+                          style={{
+                            position: 'absolute',
+                            left: `${marker.time * 2 * zoom}px`,
+                            top: 0,
+                            width: '2px',
+                            height: '100%',
+                            background: marker.color || '#FF6600',
+                            cursor: 'pointer',
+                            zIndex: 10
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentTime(marker.time);
+                          }}
+                          title={marker.label || `Marker at ${marker.time.toFixed(2)}s`}
+                        >
+                          <div style={{
+                            position: 'absolute',
+                            top: '-20px',
+                            left: '-8px',
+                            width: '16px',
+                            height: '16px',
+                            background: marker.color || '#FF6600',
+                            borderRadius: '2px 2px 8px 8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            🚩
+                          </div>
+                        </div>
+                      ))}
+
                     </div>
                   </div>
                 </div>

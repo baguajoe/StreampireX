@@ -2,7 +2,8 @@
 # =====================================================
 # VIDEO EDITOR API ROUTES - Cloudinary Integration
 # =====================================================
-# UPDATED: Now supports frameRate parameter for export
+# UPDATED: Full navbar functionality with project management,
+# markers, clip operations, and track management
 # Add to your Flask app with: app.register_blueprint(video_editor_bp)
 
 from flask import Blueprint, request, jsonify
@@ -15,10 +16,10 @@ import cloudinary.api
 import os
 import json
 import hashlib
+import uuid
 
 # Import your models - adjust path if needed
 from src.api.models import db, User, Video, VideoProject, VideoClipAsset, VideoExport
-from src.api.cloudinary_setup import uploadFile
 
 video_editor_bp = Blueprint('video_editor', __name__)
 
@@ -53,9 +54,6 @@ class CloudinaryVideoTransformer:
             return f"c_{crop_mode},h_{height}"
         return None
     
-    # =====================================================
-    # NEW: Frame Rate Transformation
-    # =====================================================
     def build_fps_transformation(self, frame_rate):
         """Build frame rate transformation: fps_X"""
         valid_frame_rates = [24, 25, 30, 48, 60]
@@ -185,9 +183,6 @@ class CloudinaryVideoTransformer:
         q = quality_map.get(quality, 'q_auto')
         return f"{q}/f_{format}"
     
-    # =====================================================
-    # UPDATED: Resolution Transformation with Frame Rate
-    # =====================================================
     def build_resolution_transformation(self, resolution, frame_rate=None):
         """Build resolution transformation from preset, optionally with frame rate"""
         resolution_map = {
@@ -201,7 +196,6 @@ class CloudinaryVideoTransformer:
         res = resolution_map.get(resolution)
         if res:
             base_transform = f"c_scale,w_{res['w']},h_{res['h']}"
-            # Add frame rate if specified
             if frame_rate:
                 fps_transform = self.build_fps_transformation(frame_rate)
                 if fps_transform:
@@ -272,7 +266,1022 @@ transformer = CloudinaryVideoTransformer()
 
 
 # =====================================================
-# API ROUTES
+# HELPER FUNCTIONS
+# =====================================================
+
+def get_or_create_project(user_id, project_id=None):
+    """Get existing project or create new one"""
+    if project_id:
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        if project:
+            return project
+    return None
+
+
+def serialize_project(project):
+    """Serialize a VideoProject to dict"""
+    timeline_data = project.timeline_data if isinstance(project.timeline_data, dict) else {}
+    if isinstance(project.timeline_data, str):
+        try:
+            timeline_data = json.loads(project.timeline_data)
+        except:
+            timeline_data = {}
+    
+    return {
+        'id': project.id,
+        'title': project.title,
+        'description': project.description,
+        'timeline_data': timeline_data,
+        'settings': timeline_data.get('settings', {}),
+        'markers': timeline_data.get('markers', []),
+        'duration': project.duration,
+        'thumbnail_url': project.thumbnail_url,
+        'created_at': project.created_at.isoformat() if project.created_at else None,
+        'updated_at': project.updated_at.isoformat() if project.updated_at else None
+    }
+
+
+# =====================================================
+# PROJECT MANAGEMENT ROUTES
+# =====================================================
+
+@video_editor_bp.route('/api/video-editor/projects', methods=['GET'])
+@jwt_required()
+def get_projects():
+    """Get all video editor projects for current user"""
+    try:
+        user_id = get_jwt_identity()
+        
+        projects = VideoProject.query.filter_by(user_id=user_id)\
+            .order_by(desc(VideoProject.updated_at))\
+            .all()
+        
+        return jsonify({
+            'success': True,
+            'projects': [serialize_project(p) for p in projects]
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Get projects error: {str(e)}")
+        return jsonify({'error': f'Failed to get projects: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects', methods=['POST'])
+@jwt_required()
+def create_project():
+    """Create a new video editor project"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json() or {}
+        
+        title = data.get('title', 'Untitled Project')
+        description = data.get('description', '')
+        
+        # Default timeline structure
+        default_timeline = {
+            'tracks': [
+                {'id': 'video-1', 'name': 'Video 1', 'type': 'video', 'clips': []},
+                {'id': 'video-2', 'name': 'Video 2', 'type': 'video', 'clips': []},
+                {'id': 'audio-1', 'name': 'Audio 1', 'type': 'audio', 'clips': []},
+                {'id': 'audio-2', 'name': 'Audio 2', 'type': 'audio', 'clips': []}
+            ],
+            'markers': [],
+            'settings': {
+                'width': data.get('width', 1920),
+                'height': data.get('height', 1080),
+                'frameRate': data.get('frameRate', 30),
+                'duration': 0
+            }
+        }
+        
+        project = VideoProject(
+            user_id=user_id,
+            title=title,
+            description=description,
+            timeline_data=default_timeline,
+            duration=0,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        
+        db.session.add(project)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Project created successfully',
+            'project': serialize_project(project)
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Create project error: {str(e)}")
+        return jsonify({'error': f'Failed to create project: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>', methods=['GET'])
+@jwt_required()
+def get_project(project_id):
+    """Get a specific video editor project"""
+    try:
+        user_id = get_jwt_identity()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'project': serialize_project(project)
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Get project error: {str(e)}")
+        return jsonify({'error': f'Failed to get project: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>', methods=['PUT'])
+@jwt_required()
+def update_project(project_id):
+    """Update/save a video editor project"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        # Update fields
+        if 'title' in data:
+            project.title = data['title']
+        if 'description' in data:
+            project.description = data['description']
+        if 'timeline' in data or 'timeline_data' in data:
+            timeline = data.get('timeline') or data.get('timeline_data')
+            project.timeline_data = timeline
+        if 'duration' in data:
+            project.duration = data['duration']
+        if 'thumbnail_url' in data:
+            project.thumbnail_url = data['thumbnail_url']
+        
+        project.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Project saved successfully',
+            'project': serialize_project(project)
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Update project error: {str(e)}")
+        return jsonify({'error': f'Failed to save project: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>', methods=['DELETE'])
+@jwt_required()
+def delete_project(project_id):
+    """Delete a video editor project"""
+    try:
+        user_id = get_jwt_identity()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        db.session.delete(project)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Project deleted successfully'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Delete project error: {str(e)}")
+        return jsonify({'error': f'Failed to delete project: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>/duplicate', methods=['POST'])
+@jwt_required()
+def duplicate_project(project_id):
+    """Duplicate/Save As a video editor project"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json() or {}
+        
+        # Get original project
+        original = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not original:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        # Create duplicate
+        new_title = data.get('title', f"{original.title} (Copy)")
+        
+        # Deep copy timeline data
+        timeline_copy = json.loads(json.dumps(
+            original.timeline_data if isinstance(original.timeline_data, dict) 
+            else json.loads(original.timeline_data) if original.timeline_data else {}
+        ))
+        
+        duplicate = VideoProject(
+            user_id=user_id,
+            title=new_title,
+            description=original.description,
+            timeline_data=timeline_copy,
+            duration=original.duration,
+            thumbnail_url=original.thumbnail_url,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        
+        db.session.add(duplicate)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Project duplicated successfully',
+            'project': serialize_project(duplicate)
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Duplicate project error: {str(e)}")
+        return jsonify({'error': f'Failed to duplicate project: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/recent-projects', methods=['GET'])
+@jwt_required()
+def get_recent_projects():
+    """Get recent video editor projects"""
+    try:
+        user_id = get_jwt_identity()
+        limit = request.args.get('limit', 10, type=int)
+        
+        projects = VideoProject.query.filter_by(user_id=user_id)\
+            .order_by(desc(VideoProject.updated_at))\
+            .limit(limit)\
+            .all()
+        
+        return jsonify({
+            'success': True,
+            'projects': [serialize_project(p) for p in projects]
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Get recent projects error: {str(e)}")
+        return jsonify({'error': f'Failed to get recent projects: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>/autosave', methods=['POST'])
+@jwt_required()
+def autosave_project(project_id):
+    """Lightweight autosave endpoint - only updates timeline data"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        # Only update timeline and timestamp
+        if 'timeline' in data or 'timeline_data' in data:
+            timeline = data.get('timeline') or data.get('timeline_data')
+            project.timeline_data = timeline
+        
+        project.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Autosave successful',
+            'saved_at': project.updated_at.isoformat()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Autosave error: {str(e)}")
+        return jsonify({'error': f'Autosave failed: {str(e)}'}), 500
+
+
+# =====================================================
+# MARKERS ROUTES
+# =====================================================
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>/markers', methods=['GET'])
+@jwt_required()
+def get_markers(project_id):
+    """Get all markers for a project"""
+    try:
+        user_id = get_jwt_identity()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        timeline_data = project.timeline_data if isinstance(project.timeline_data, dict) else {}
+        if isinstance(project.timeline_data, str):
+            try:
+                timeline_data = json.loads(project.timeline_data)
+            except:
+                timeline_data = {}
+        
+        markers = timeline_data.get('markers', [])
+        
+        return jsonify({
+            'success': True,
+            'markers': markers
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Get markers error: {str(e)}")
+        return jsonify({'error': f'Failed to get markers: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>/markers', methods=['POST'])
+@jwt_required()
+def add_marker(project_id):
+    """Add a marker to a project"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        # Get current timeline data
+        timeline_data = project.timeline_data if isinstance(project.timeline_data, dict) else {}
+        if isinstance(project.timeline_data, str):
+            try:
+                timeline_data = json.loads(project.timeline_data)
+            except:
+                timeline_data = {}
+        
+        # Ensure markers array exists
+        if 'markers' not in timeline_data:
+            timeline_data['markers'] = []
+        
+        # Create new marker
+        new_marker = {
+            'id': str(uuid.uuid4()),
+            'time': data.get('time', 0),
+            'label': data.get('label', ''),
+            'color': data.get('color', '#FF6600'),
+            'created_at': datetime.utcnow().isoformat()
+        }
+        
+        timeline_data['markers'].append(new_marker)
+        
+        # Sort markers by time
+        timeline_data['markers'].sort(key=lambda m: m['time'])
+        
+        project.timeline_data = timeline_data
+        project.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'marker': new_marker,
+            'markers': timeline_data['markers']
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Add marker error: {str(e)}")
+        return jsonify({'error': f'Failed to add marker: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>/markers/<marker_id>', methods=['PUT'])
+@jwt_required()
+def update_marker(project_id, marker_id):
+    """Update a marker"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        timeline_data = project.timeline_data if isinstance(project.timeline_data, dict) else {}
+        if isinstance(project.timeline_data, str):
+            try:
+                timeline_data = json.loads(project.timeline_data)
+            except:
+                timeline_data = {}
+        
+        markers = timeline_data.get('markers', [])
+        marker_found = False
+        
+        for marker in markers:
+            if marker['id'] == marker_id:
+                if 'time' in data:
+                    marker['time'] = data['time']
+                if 'label' in data:
+                    marker['label'] = data['label']
+                if 'color' in data:
+                    marker['color'] = data['color']
+                marker_found = True
+                break
+        
+        if not marker_found:
+            return jsonify({'error': 'Marker not found'}), 404
+        
+        # Re-sort markers
+        timeline_data['markers'].sort(key=lambda m: m['time'])
+        
+        project.timeline_data = timeline_data
+        project.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'markers': timeline_data['markers']
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Update marker error: {str(e)}")
+        return jsonify({'error': f'Failed to update marker: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>/markers/<marker_id>', methods=['DELETE'])
+@jwt_required()
+def delete_marker(project_id, marker_id):
+    """Delete a marker from a project"""
+    try:
+        user_id = get_jwt_identity()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        timeline_data = project.timeline_data if isinstance(project.timeline_data, dict) else {}
+        if isinstance(project.timeline_data, str):
+            try:
+                timeline_data = json.loads(project.timeline_data)
+            except:
+                timeline_data = {}
+        
+        markers = timeline_data.get('markers', [])
+        original_count = len(markers)
+        
+        timeline_data['markers'] = [m for m in markers if m['id'] != marker_id]
+        
+        if len(timeline_data['markers']) == original_count:
+            return jsonify({'error': 'Marker not found'}), 404
+        
+        project.timeline_data = timeline_data
+        project.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Marker deleted',
+            'markers': timeline_data['markers']
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Delete marker error: {str(e)}")
+        return jsonify({'error': f'Failed to delete marker: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>/markers/clear', methods=['DELETE'])
+@jwt_required()
+def clear_all_markers(project_id):
+    """Clear all markers from a project"""
+    try:
+        user_id = get_jwt_identity()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        timeline_data = project.timeline_data if isinstance(project.timeline_data, dict) else {}
+        if isinstance(project.timeline_data, str):
+            try:
+                timeline_data = json.loads(project.timeline_data)
+            except:
+                timeline_data = {}
+        
+        cleared_count = len(timeline_data.get('markers', []))
+        timeline_data['markers'] = []
+        
+        project.timeline_data = timeline_data
+        project.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Cleared {cleared_count} markers',
+            'markers': []
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Clear markers error: {str(e)}")
+        return jsonify({'error': f'Failed to clear markers: {str(e)}'}), 500
+
+
+# =====================================================
+# CLIP OPERATIONS ROUTES
+# =====================================================
+
+@video_editor_bp.route('/api/video-editor/clips/split', methods=['POST'])
+@jwt_required()
+def split_clip():
+    """Split a clip at a specific time"""
+    try:
+        data = request.get_json()
+        
+        clip = data.get('clip')
+        split_time = data.get('split_time')
+        
+        if not clip or split_time is None:
+            return jsonify({'error': 'Missing clip or split_time'}), 400
+        
+        clip_start = clip.get('startTime', 0)
+        clip_end = clip.get('endTime', clip.get('duration', 0))
+        
+        if split_time <= clip_start or split_time >= clip_end:
+            return jsonify({'error': 'Split time must be within clip bounds'}), 400
+        
+        # Create first clip (before split)
+        first_clip = {
+            **clip,
+            'id': str(uuid.uuid4()),
+            'endTime': split_time,
+            'duration': split_time - clip_start,
+            'trimEnd': clip.get('trimStart', 0) + (split_time - clip_start)
+        }
+        
+        # Create second clip (after split)
+        second_clip = {
+            **clip,
+            'id': str(uuid.uuid4()),
+            'startTime': split_time,
+            'duration': clip_end - split_time,
+            'trimStart': clip.get('trimStart', 0) + (split_time - clip_start)
+        }
+        
+        return jsonify({
+            'success': True,
+            'first_clip': first_clip,
+            'second_clip': second_clip
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Split clip error: {str(e)}")
+        return jsonify({'error': f'Failed to split clip: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/clips/trim', methods=['POST'])
+@jwt_required()
+def trim_clip():
+    """Trim a clip with new in/out points"""
+    try:
+        data = request.get_json()
+        
+        clip = data.get('clip')
+        in_point = data.get('in_point')
+        out_point = data.get('out_point')
+        
+        if not clip:
+            return jsonify({'error': 'Missing clip data'}), 400
+        
+        original_duration = clip.get('originalDuration', clip.get('duration', 0))
+        
+        # Validate trim points
+        if in_point is not None and (in_point < 0 or in_point >= original_duration):
+            return jsonify({'error': 'Invalid in_point'}), 400
+        if out_point is not None and (out_point <= 0 or out_point > original_duration):
+            return jsonify({'error': 'Invalid out_point'}), 400
+        if in_point is not None and out_point is not None and in_point >= out_point:
+            return jsonify({'error': 'in_point must be less than out_point'}), 400
+        
+        trimmed_clip = {**clip}
+        
+        if in_point is not None:
+            trimmed_clip['trimStart'] = in_point
+        if out_point is not None:
+            trimmed_clip['trimEnd'] = out_point
+        
+        # Calculate new duration
+        trim_start = trimmed_clip.get('trimStart', 0)
+        trim_end = trimmed_clip.get('trimEnd', original_duration)
+        trimmed_clip['duration'] = trim_end - trim_start
+        
+        return jsonify({
+            'success': True,
+            'clip': trimmed_clip
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Trim clip error: {str(e)}")
+        return jsonify({'error': f'Failed to trim clip: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/clips/speed', methods=['POST'])
+@jwt_required()
+def change_clip_speed():
+    """Change playback speed of a clip"""
+    try:
+        data = request.get_json()
+        
+        clip = data.get('clip')
+        speed = data.get('speed', 1.0)
+        
+        if not clip:
+            return jsonify({'error': 'Missing clip data'}), 400
+        
+        # Validate speed (0.1x to 10x)
+        if speed < 0.1 or speed > 10:
+            return jsonify({'error': 'Speed must be between 0.1 and 10'}), 400
+        
+        original_duration = clip.get('originalDuration', clip.get('duration', 0))
+        
+        modified_clip = {
+            **clip,
+            'speed': speed,
+            'duration': original_duration / speed
+        }
+        
+        return jsonify({
+            'success': True,
+            'clip': modified_clip
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Change speed error: {str(e)}")
+        return jsonify({'error': f'Failed to change speed: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/clips/reverse', methods=['POST'])
+@jwt_required()
+def reverse_clip():
+    """Reverse a clip"""
+    try:
+        data = request.get_json()
+        
+        clip = data.get('clip')
+        
+        if not clip:
+            return jsonify({'error': 'Missing clip data'}), 400
+        
+        reversed_clip = {
+            **clip,
+            'reversed': not clip.get('reversed', False)
+        }
+        
+        return jsonify({
+            'success': True,
+            'clip': reversed_clip
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Reverse clip error: {str(e)}")
+        return jsonify({'error': f'Failed to reverse clip: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/clips/duplicate', methods=['POST'])
+@jwt_required()
+def duplicate_clip():
+    """Duplicate a clip"""
+    try:
+        data = request.get_json()
+        
+        clip = data.get('clip')
+        offset = data.get('offset', 0)
+        
+        if not clip:
+            return jsonify({'error': 'Missing clip data'}), 400
+        
+        duplicated_clip = {
+            **clip,
+            'id': str(uuid.uuid4()),
+            'startTime': clip.get('startTime', 0) + clip.get('duration', 0) + offset
+        }
+        
+        return jsonify({
+            'success': True,
+            'clip': duplicated_clip
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Duplicate clip error: {str(e)}")
+        return jsonify({'error': f'Failed to duplicate clip: {str(e)}'}), 500
+
+
+# =====================================================
+# TRACK MANAGEMENT ROUTES
+# =====================================================
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>/tracks', methods=['GET'])
+@jwt_required()
+def get_tracks(project_id):
+    """Get all tracks for a project"""
+    try:
+        user_id = get_jwt_identity()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        timeline_data = project.timeline_data if isinstance(project.timeline_data, dict) else {}
+        if isinstance(project.timeline_data, str):
+            try:
+                timeline_data = json.loads(project.timeline_data)
+            except:
+                timeline_data = {}
+        
+        tracks = timeline_data.get('tracks', [])
+        
+        return jsonify({
+            'success': True,
+            'tracks': tracks
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Get tracks error: {str(e)}")
+        return jsonify({'error': f'Failed to get tracks: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>/tracks', methods=['POST'])
+@jwt_required()
+def add_track(project_id):
+    """Add a new track to a project"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json() or {}
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        timeline_data = project.timeline_data if isinstance(project.timeline_data, dict) else {}
+        if isinstance(project.timeline_data, str):
+            try:
+                timeline_data = json.loads(project.timeline_data)
+            except:
+                timeline_data = {}
+        
+        if 'tracks' not in timeline_data:
+            timeline_data['tracks'] = []
+        
+        track_type = data.get('type', 'video')
+        
+        # Count existing tracks of this type
+        existing_count = sum(1 for t in timeline_data['tracks'] if t.get('type') == track_type)
+        
+        new_track = {
+            'id': str(uuid.uuid4()),
+            'name': data.get('name', f"{track_type.capitalize()} {existing_count + 1}"),
+            'type': track_type,
+            'clips': [],
+            'muted': False,
+            'locked': False,
+            'visible': True
+        }
+        
+        timeline_data['tracks'].append(new_track)
+        
+        project.timeline_data = timeline_data
+        project.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'track': new_track,
+            'tracks': timeline_data['tracks']
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Add track error: {str(e)}")
+        return jsonify({'error': f'Failed to add track: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>/tracks/<track_id>', methods=['DELETE'])
+@jwt_required()
+def delete_track(project_id, track_id):
+    """Delete a track from a project"""
+    try:
+        user_id = get_jwt_identity()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        timeline_data = project.timeline_data if isinstance(project.timeline_data, dict) else {}
+        if isinstance(project.timeline_data, str):
+            try:
+                timeline_data = json.loads(project.timeline_data)
+            except:
+                timeline_data = {}
+        
+        tracks = timeline_data.get('tracks', [])
+        original_count = len(tracks)
+        
+        timeline_data['tracks'] = [t for t in tracks if t['id'] != track_id]
+        
+        if len(timeline_data['tracks']) == original_count:
+            return jsonify({'error': 'Track not found'}), 404
+        
+        project.timeline_data = timeline_data
+        project.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Track deleted',
+            'tracks': timeline_data['tracks']
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Delete track error: {str(e)}")
+        return jsonify({'error': f'Failed to delete track: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>/tracks/delete-empty', methods=['DELETE'])
+@jwt_required()
+def delete_empty_tracks(project_id):
+    """Delete all empty tracks from a project"""
+    try:
+        user_id = get_jwt_identity()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        timeline_data = project.timeline_data if isinstance(project.timeline_data, dict) else {}
+        if isinstance(project.timeline_data, str):
+            try:
+                timeline_data = json.loads(project.timeline_data)
+            except:
+                timeline_data = {}
+        
+        tracks = timeline_data.get('tracks', [])
+        original_count = len(tracks)
+        
+        # Keep tracks that have clips
+        timeline_data['tracks'] = [t for t in tracks if len(t.get('clips', [])) > 0]
+        
+        # Ensure at least one video and one audio track remain
+        has_video = any(t.get('type') == 'video' for t in timeline_data['tracks'])
+        has_audio = any(t.get('type') == 'audio' for t in timeline_data['tracks'])
+        
+        if not has_video:
+            timeline_data['tracks'].insert(0, {
+                'id': str(uuid.uuid4()),
+                'name': 'Video 1',
+                'type': 'video',
+                'clips': []
+            })
+        
+        if not has_audio:
+            timeline_data['tracks'].append({
+                'id': str(uuid.uuid4()),
+                'name': 'Audio 1',
+                'type': 'audio',
+                'clips': []
+            })
+        
+        deleted_count = original_count - len(timeline_data['tracks'])
+        
+        project.timeline_data = timeline_data
+        project.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Deleted {deleted_count} empty tracks',
+            'deleted_count': deleted_count,
+            'tracks': timeline_data['tracks']
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Delete empty tracks error: {str(e)}")
+        return jsonify({'error': f'Failed to delete empty tracks: {str(e)}'}), 500
+
+
+# =====================================================
+# PROJECT SETTINGS ROUTES
+# =====================================================
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>/settings', methods=['GET'])
+@jwt_required()
+def get_project_settings(project_id):
+    """Get project settings"""
+    try:
+        user_id = get_jwt_identity()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        timeline_data = project.timeline_data if isinstance(project.timeline_data, dict) else {}
+        if isinstance(project.timeline_data, str):
+            try:
+                timeline_data = json.loads(project.timeline_data)
+            except:
+                timeline_data = {}
+        
+        settings = timeline_data.get('settings', {
+            'width': 1920,
+            'height': 1080,
+            'frameRate': 30,
+            'duration': 0
+        })
+        
+        return jsonify({
+            'success': True,
+            'settings': settings
+        }), 200
+        
+    except Exception as e:
+        print(f"❌ Get settings error: {str(e)}")
+        return jsonify({'error': f'Failed to get settings: {str(e)}'}), 500
+
+
+@video_editor_bp.route('/api/video-editor/projects/<int:project_id>/settings', methods=['PUT'])
+@jwt_required()
+def update_project_settings(project_id):
+    """Update project settings"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+        
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+        
+        timeline_data = project.timeline_data if isinstance(project.timeline_data, dict) else {}
+        if isinstance(project.timeline_data, str):
+            try:
+                timeline_data = json.loads(project.timeline_data)
+            except:
+                timeline_data = {}
+        
+        if 'settings' not in timeline_data:
+            timeline_data['settings'] = {}
+        
+        # Update settings
+        allowed_settings = ['width', 'height', 'frameRate', 'duration', 'aspectRatio', 'backgroundColor']
+        for key in allowed_settings:
+            if key in data:
+                timeline_data['settings'][key] = data[key]
+        
+        project.timeline_data = timeline_data
+        project.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'settings': timeline_data['settings']
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Update settings error: {str(e)}")
+        return jsonify({'error': f'Failed to update settings: {str(e)}'}), 500
+
+
+# =====================================================
+# ASSET UPLOAD & MANAGEMENT ROUTES
 # =====================================================
 
 @video_editor_bp.route('/api/video-editor/upload', methods=['POST'])
@@ -344,16 +1353,10 @@ def upload_editor_asset():
         return jsonify({"error": f"Upload failed: {str(e)}"}), 500
 
 
-# =====================================================
-# NEW: Upload with specific frame rate (eager transformation)
-# =====================================================
 @video_editor_bp.route('/api/video-editor/upload-with-fps', methods=['POST'])
 @jwt_required()
 def upload_with_fps():
-    """
-    Upload video with eager transformation at specific frame rate.
-    Use this when you want to pre-process the video at upload time.
-    """
+    """Upload video with eager transformation at specific frame rate."""
     try:
         user_id = get_jwt_identity()
         
@@ -364,20 +1367,16 @@ def upload_with_fps():
         if file.filename == '':
             return jsonify({"error": "No file selected"}), 400
         
-        # Get frame rate from request (default 24)
         frame_rate = request.form.get('frame_rate', 24, type=int)
         
-        # Validate frame rate
         valid_frame_rates = [24, 25, 30, 48, 60]
         if frame_rate not in valid_frame_rates:
             frame_rate = 24
         
-        # Generate unique public_id
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
         hash_suffix = hashlib.md5(f"{user_id}_{timestamp}".encode()).hexdigest()[:8]
         public_id = f"editor/{user_id}/{timestamp}_{hash_suffix}"
         
-        # Upload with eager transformation including frame rate
         result = cloudinary.uploader.upload(
             file,
             public_id=public_id,
@@ -388,14 +1387,14 @@ def upload_with_fps():
                     "width": 1920,
                     "height": 1080,
                     "crop": "limit",
-                    "fps": frame_rate,  # Set frame rate here
+                    "fps": frame_rate,
                     "format": "mp4"
                 },
                 {
                     "width": 320,
                     "height": 180,
                     "crop": "fill",
-                    "format": "jpg"  # Thumbnail
+                    "format": "jpg"
                 }
             ],
             eager_async=True
@@ -486,6 +1485,10 @@ def get_editor_assets():
         return jsonify({"error": f"Failed to get assets: {str(e)}"}), 500
 
 
+# =====================================================
+# VIDEO TRANSFORMATION ROUTES
+# =====================================================
+
 @video_editor_bp.route('/api/video-editor/transform', methods=['POST'])
 @jwt_required()
 def transform_video():
@@ -503,7 +1506,6 @@ def transform_video():
         
         transformations = transformer.process_timeline_clip(data)
         
-        # Add frame rate if specified
         frame_rate = data.get('frame_rate') or data.get('frameRate')
         if frame_rate:
             fps_transform = transformer.build_fps_transformation(frame_rate)
@@ -763,15 +1765,13 @@ def add_text_overlay():
 
 
 # =====================================================
-# UPDATED: Export with Frame Rate Support
+# EXPORT ROUTES
 # =====================================================
+
 @video_editor_bp.route('/api/video-editor/export', methods=['POST'])
 @jwt_required()
 def export_project():
-    """
-    Export a complete video project with all transformations.
-    NOW SUPPORTS: frameRate parameter for output video
-    """
+    """Export a complete video project with all transformations."""
     try:
         user_id = get_jwt_identity()
         data = request.get_json()
@@ -786,22 +1786,17 @@ def export_project():
         if not tracks:
             return jsonify({"error": "No tracks in timeline"}), 400
         
-        # Get export settings
         resolution = settings.get('resolution', '1080p')
         quality = settings.get('quality', 'auto')
         format = settings.get('format', 'mp4')
-        
-        # NEW: Get frame rate from settings (default 24fps)
         frame_rate = settings.get('frameRate', 24)
         
-        # Validate frame rate
         valid_frame_rates = [24, 25, 30, 48, 60]
         if frame_rate not in valid_frame_rates:
             frame_rate = 24
         
         print(f"📹 Export settings: {resolution}, {frame_rate}fps, {quality}, {format}")
         
-        # Find all video clips from tracks
         video_clips = []
         for track in tracks:
             if track.get('type') == 'video':
@@ -812,24 +1807,20 @@ def export_project():
         if not video_clips:
             return jsonify({"error": "No video clips found in timeline"}), 400
         
-        # For single clip, apply transformations directly
         if len(video_clips) == 1:
             clip = video_clips[0]
             public_id = clip.get('cloudinary_public_id') or clip.get('public_id')
             
             transformations = transformer.process_timeline_clip(clip)
             
-            # Add resolution WITH frame rate
             res_transform = transformer.build_resolution_transformation(resolution, frame_rate)
             if res_transform:
                 transformations.append(res_transform)
             else:
-                # If resolution transform failed, add fps separately
                 fps_transform = transformer.build_fps_transformation(frame_rate)
                 if fps_transform:
                     transformations.append(fps_transform)
             
-            # Add quality
             transformations.append(transformer.build_quality_transformation(quality, format))
             
             export_url = transformer.build_full_transformation_url(
@@ -851,7 +1842,6 @@ def export_project():
                 "message": f"Video exported at {resolution}, {frame_rate}fps. Click the URL to download."
             }), 200
         
-        # For multiple clips, concatenate
         else:
             first_clip = video_clips[0]
             base_public_id = first_clip.get('cloudinary_public_id') or first_clip.get('public_id')
@@ -877,7 +1867,6 @@ def export_project():
                     
                     transformations.append("/".join(splice_parts))
             
-            # Add resolution WITH frame rate
             res_transform = transformer.build_resolution_transformation(resolution, frame_rate)
             if res_transform:
                 transformations.append(res_transform)
@@ -886,7 +1875,6 @@ def export_project():
                 if fps_transform:
                     transformations.append(fps_transform)
             
-            # Add quality
             transformations.append(transformer.build_quality_transformation(quality, format))
             
             export_url = transformer.build_full_transformation_url(
@@ -914,9 +1902,6 @@ def export_project():
         return jsonify({"error": f"Export failed: {str(e)}"}), 500
 
 
-# =====================================================
-# NEW: Build Video URL with Frame Rate (Helper Endpoint)
-# =====================================================
 @video_editor_bp.route('/api/video-editor/build-url', methods=['POST'])
 @jwt_required()
 def build_video_url():
@@ -928,23 +1913,19 @@ def build_video_url():
         if not public_id:
             return jsonify({"error": "No public_id provided"}), 400
         
-        # Get parameters
         width = data.get('width', 1920)
         height = data.get('height', 1080)
         frame_rate = data.get('frame_rate', 24)
         quality = data.get('quality', 'auto')
         format = data.get('format', 'mp4')
         
-        # Validate frame rate
         valid_frame_rates = [24, 25, 30, 48, 60]
         if frame_rate not in valid_frame_rates:
             frame_rate = 24
         
-        # Build URL manually
         cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME")
         base_url = f"https://res.cloudinary.com/{cloud_name}/video/upload"
         
-        # Build transformation string
         transformation = f"w_{width},h_{height},c_limit,fps_{frame_rate},q_{quality}"
         
         video_url = f"{base_url}/{transformation}/{public_id}.{format}"
@@ -965,10 +1946,17 @@ def build_video_url():
         return jsonify({"error": f"URL build failed: {str(e)}"}), 500
 
 
+# =====================================================
+# LEGACY SAVE PROJECT (kept for backwards compatibility)
+# =====================================================
+
 @video_editor_bp.route('/api/video-editor/save-project', methods=['POST'])
 @jwt_required()
-def save_project():
-    """Save video project timeline to database"""
+def save_project_legacy():
+    """
+    Legacy save endpoint - redirects to proper project update.
+    Kept for backwards compatibility with existing frontend code.
+    """
     try:
         user_id = get_jwt_identity()
         data = request.get_json()
@@ -978,20 +1966,49 @@ def save_project():
         timeline_data = data.get('timeline')
         settings = data.get('settings', {})
         
+        # If project_id exists, update existing project
+        if project_id:
+            project = VideoProject.query.filter_by(id=project_id, user_id=user_id).first()
+            if project:
+                project.title = title
+                project.timeline_data = timeline_data if timeline_data else project.timeline_data
+                project.updated_at = datetime.utcnow()
+                db.session.commit()
+                
+                return jsonify({
+                    "success": True,
+                    "message": "Project saved successfully",
+                    "project": serialize_project(project)
+                }), 200
+        
+        # Otherwise create new project
+        new_project = VideoProject(
+            user_id=user_id,
+            title=title,
+            timeline_data=timeline_data or {'tracks': [], 'markers': [], 'settings': settings},
+            duration=0,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        
+        db.session.add(new_project)
+        db.session.commit()
+        
         return jsonify({
             "success": True,
-            "message": "Project saved successfully",
-            "project": {
-                "title": title,
-                "timeline": timeline_data,
-                "settings": settings,
-                "saved_at": datetime.utcnow().isoformat()
-            }
-        }), 200
+            "message": "Project created successfully",
+            "project": serialize_project(new_project)
+        }), 201
         
     except Exception as e:
+        db.session.rollback()
+        print(f"❌ Save project error: {str(e)}")
         return jsonify({"error": f"Save failed: {str(e)}"}), 500
 
+
+# =====================================================
+# UTILITY ROUTES
+# =====================================================
 
 @video_editor_bp.route('/api/video-editor/effects', methods=['GET'])
 def get_available_effects():
@@ -1044,9 +2061,6 @@ def get_available_effects():
     }), 200
 
 
-# =====================================================
-# UPDATED: Resolutions now include frame rate options
-# =====================================================
 @video_editor_bp.route('/api/video-editor/resolutions', methods=['GET'])
 def get_available_resolutions():
     """Get list of available export resolutions and frame rates"""
@@ -1058,7 +2072,6 @@ def get_available_resolutions():
         {"id": "360p", "name": "Low", "width": 640, "height": 360, "tier_required": "free"},
     ]
     
-    # NEW: Include available frame rates
     frame_rates = [
         {"id": 24, "name": "24 fps", "description": "Film/Cinema standard"},
         {"id": 25, "name": "25 fps", "description": "PAL (European TV)"},
@@ -1109,5 +2122,13 @@ def health_check():
         "service": "video-editor",
         "cloudinary_configured": bool(cloud_name),
         "supported_frame_rates": [24, 25, 30, 48, 60],
+        "features": [
+            "project_management",
+            "markers",
+            "clip_operations",
+            "track_management",
+            "cloudinary_transforms",
+            "export"
+        ],
         "timestamp": datetime.utcnow().isoformat()
     }), 200
