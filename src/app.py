@@ -47,7 +47,8 @@ from src.api.socketio import init_socketio
 from src.api.extensions import db
 from src.api.messages_routes import messages_bp  # Add src. prefix 
 from src.api.video_editor_routes import video_editor_bp
-
+from src.api.follow_routes import follow_bp  # ADD THIS
+from src.api.video_tier_routes import video_tier_bp  # ADD THIS
 
 
 # Rest of your code stays the same...
@@ -270,6 +271,8 @@ register_commands(app)
 app.register_blueprint(api, url_prefix='/api')
 app.register_blueprint(messages_bp)
 app.register_blueprint(video_editor_bp)
+app.register_blueprint(follow_bp) 
+app.register_blueprint(video_tier_bp, url_prefix='/api')  # ADD THIS
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)
