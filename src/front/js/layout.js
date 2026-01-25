@@ -186,7 +186,7 @@ const Layout = () => {
               <Route path="/music-distribution" element={<MusicDistribution />} />
 
               {/* 👤 Public User Profile (for viewing other users) */}
-              <Route path="/user/:userId" element={<UserSearchProfilePage />} />
+              <Route path="/user/:userId" element={<ProfilePage />} />
               <Route path="/user/u/:username" element={<UserSearchProfilePage />} />
               <Route path="/artist/:id" element={<ArtistProfilePage />} />
               <Route path="/artist-profile/:id" element={<ArtistProfilePage />} />

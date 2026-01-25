@@ -14,6 +14,7 @@ import "../../styles/QuickActionModals.css";
 // Image imports
 import lady1 from "../../img/lady1.png";
 import campfire from "../../img/campfire.png";
+import blueuser from "../../img/blueuser.jpg";
 
 import { io } from "socket.io-client";
 
@@ -147,7 +148,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
     }, [fetchInnerCircle]);
 
     const handleRemoveFromCircle = useCallback(async (targetUserId) => {
-        if (!confirm('Remove this person from your inner circle?')) return;
+        if (!window.confirm('Remove this person from your inner circle?')) return;
 
         try {
             const token = localStorage.getItem('token');
@@ -277,7 +278,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                             {searchResults.map(user => (
                                 <div key={user.id} className="search-result-item">
                                     <img
-                                        src={user.profile_picture || user.avatar || lady1}
+                                        src={user.profile_picture || user.avatar || blueuser}
                                         alt={user.display_name || user.username}
                                         className="search-avatar"
                                     />
@@ -312,7 +313,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                                 <div key={member.friend_user_id || member.id} className="circle-member-card">
                                     <div className="member-rank">#{member.position || member.id}</div>
                                     <img
-                                        src={member.profile_picture || member.avatar || lady1}
+                                        src={member.profile_picture || member.avatar || blueuser}
                                         alt={member.display_name || member.username}
                                         className="member-avatar"
                                     />
@@ -325,7 +326,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                                         </div>
                                     </div>
                                     <div className="member-actions">
-                                        <Link to={`/profile/${member.friend_user_id || member.id}`} className="view-profile-btn">
+                                        <Link to={`/user/${member.friend_user_id || member.id}`} className="view-profile-btn">
                                             View
                                         </Link>
                                         {isEditing && isOwnProfile && (
@@ -365,7 +366,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                                         {index === 2 && '🥉'}
                                     </div>
                                     <img
-                                        src={user.profile_picture || user.avatar || lady1}
+                                        src={user.profile_picture || user.avatar || blueuser}
                                         alt={user.display_name || user.username}
                                         className="member-avatar"
                                     />
@@ -379,7 +380,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                                         </div>
                                     </div>
                                     <div className="top-user-actions">
-                                        <Link to={`/profile/${user.id}`} className="view-profile-btn small">
+                                        <Link to={`/user/${user.id}`} className="view-profile-btn small">
                                             View
                                         </Link>
                                         {isOwnProfile && (
@@ -420,7 +421,7 @@ const CommentSection = ({ postId, comments = [], currentUser, onAddComment }) =>
             const comment = {
                 id: Date.now(),
                 author: currentUser.display_name || currentUser.username || 'You',
-                avatar: currentUser.profile_picture || lady1,
+                avatar: currentUser.profile_picture || blueuser,
                 text: newComment.trim(),
                 timestamp: 'Just now',
                 likes: 0
@@ -473,7 +474,7 @@ const CommentSection = ({ postId, comments = [], currentUser, onAddComment }) =>
 
                 <div className="comment-input-section">
                     <img
-                        src={currentUser.profile_picture || lady1}
+                        src={currentUser.profile_picture || blueuser}
                         alt="Your avatar"
                         className="comment-input-avatar"
                     />
@@ -546,16 +547,40 @@ const createSocket = (token) => {
 const ProfilePage = () => {
     // Get profile ID from URL (if viewing someone else's profile)
     const { userId: profileUserId } = useParams();
-    
+
+    // Get current user ID from localStorage immediately (not in state)
+    const getCurrentUserId = () => {
+        const possibleKeys = ["userId", "user_id", "id"];
+        for (const key of possibleKeys) {
+            const value = localStorage.getItem(key);
+            if (value) return String(value);
+        }
+        const userData = localStorage.getItem("user");
+        if (userData) {
+            try {
+                const parsed = JSON.parse(userData);
+                return String(parsed.id || parsed.user_id || parsed.userId || "");
+            } catch (e) {
+                return "";
+            }
+        }
+        return "";
+    };
+
+    const currentUserId = getCurrentUserId();
+
     // Authentication state
     const [authState, setAuthState] = useState({
-        token: null,
-        userId: '1',
-        username: 'User'
+        token: localStorage.getItem('token') || null,
+        userId: currentUserId || '1',
+        username: localStorage.getItem('username') || 'User'
     });
 
-    // Determine if viewing own profile
-    const isOwnProfile = !profileUserId || profileUserId === authState.userId;
+    // Determine if viewing own profile - FIXED: proper comparison
+    const isOwnProfile = !profileUserId || (currentUserId && String(currentUserId) === String(profileUserId));
+
+    // Debug log (remove in production)
+    console.log("Profile Debug:", { currentUserId, profileUserId, isOwnProfile });
 
     // Core user state
     const [user, setUser] = useState({});
@@ -563,11 +588,11 @@ const ProfilePage = () => {
     const [error, setError] = useState(null);
     const [isInCircle, setIsInCircle] = useState(false);
     const [addingToCircle, setAddingToCircle] = useState(false);
-    
-    // Follow state - NEW
+
+    // Follow state
     const [isFollowing, setIsFollowing] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
-    
+
     // Block state
     const [isBlocked, setIsBlocked] = useState(false);
     const [showBlockModal, setShowBlockModal] = useState(false);
@@ -691,7 +716,10 @@ const ProfilePage = () => {
         return socket.current;
     }, [authState.token]);
 
-    // Fetch functions
+    // ========================================
+    // FETCH FUNCTIONS - All use targetUserId parameter
+    // ========================================
+
     const fetchSocialAccounts = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
@@ -734,12 +762,16 @@ const ProfilePage = () => {
         }
     }, []);
 
-    const fetchUserPhotos = useCallback(async () => {
+    // FIXED: Fetch photos for the profile being viewed
+    const fetchUserPhotos = useCallback(async (targetId) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) return;
 
-            const response = await fetch(`${BACKEND_URL}/api/user/photos`, {
+            const userId = targetId || profileUserId || authState.userId;
+            console.log("Fetching photos for user:", userId);
+
+            const response = await fetch(`${BACKEND_URL}/api/user/${userId}/photos`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -753,14 +785,18 @@ const ProfilePage = () => {
         } catch (error) {
             console.error('Error fetching user photos:', error);
         }
-    }, []);
+    }, [profileUserId, authState.userId]);
 
-    const fetchUserVideos = useCallback(async () => {
+    // FIXED: Fetch videos for the profile being viewed
+    const fetchUserVideos = useCallback(async (targetId) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) return;
 
-            const response = await fetch(`${BACKEND_URL}/api/video/user`, {
+            const userId = targetId || profileUserId || authState.userId;
+            console.log("Fetching videos for user:", userId);
+
+            const response = await fetch(`${BACKEND_URL}/api/video/user/${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -774,14 +810,15 @@ const ProfilePage = () => {
         } catch (error) {
             console.error('Error fetching user videos:', error);
         }
-    }, []);
+    }, [profileUserId, authState.userId]);
 
-    const fetchUserCircle = useCallback(async () => {
+    const fetchUserCircle = useCallback(async (targetId) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) return;
 
-            const response = await fetch(`${BACKEND_URL}/api/profile/my-inner-circle`, {
+            const userId = targetId || profileUserId || authState.userId;
+            const response = await fetch(`${BACKEND_URL}/api/inner-circle/${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -797,15 +834,15 @@ const ProfilePage = () => {
         } catch (error) {
             console.error('Error fetching user circle:', error);
         }
-    }, []);
+    }, [profileUserId, authState.userId]);
 
-    const fetchUserPosts = useCallback(async () => {
+    const fetchUserPosts = useCallback(async (targetId) => {
         try {
             const token = localStorage.getItem('token');
             if (!token) return;
 
-            const targetUserId = profileUserId || authState.userId;
-            const response = await fetch(`${BACKEND_URL}/api/posts/user/${targetUserId}`, {
+            const userId = targetId || profileUserId || authState.userId;
+            const response = await fetch(`${BACKEND_URL}/api/posts/user/${userId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -863,7 +900,7 @@ const ProfilePage = () => {
         }
     }, []);
 
-    const fetchProfile = useCallback(async () => {
+    const fetchProfile = useCallback(async (targetId) => {
         try {
             setLoading(true);
             setError(null);
@@ -888,9 +925,12 @@ const ProfilePage = () => {
                 return;
             }
 
-            const endpoint = profileUserId 
-                ? `${BACKEND_URL}/api/user/profile/${profileUserId}`
+            const userId = targetId || profileUserId;
+            const endpoint = userId
+                ? `${BACKEND_URL}/api/user/${userId}`
                 : `${BACKEND_URL}/api/user/profile`;
+
+            console.log("Fetching profile from:", endpoint);
 
             const response = await fetch(endpoint, {
                 method: "GET",
@@ -1004,7 +1044,7 @@ const ProfilePage = () => {
         setUi(prev => ({ ...prev, activeTab: tab }));
     }, []);
 
-    // Post handlers - used by PostCard component
+    // Post handlers
     const handleEditPost = useCallback(async (postId, newContent) => {
         try {
             const token = localStorage.getItem('token');
@@ -1052,10 +1092,10 @@ const ProfilePage = () => {
         });
     }, []);
 
-    // Add to Inner Circle handler (for other users' profiles)
+    // Add to Inner Circle handler
     const handleAddToCircle = useCallback(async () => {
         if (!profileUserId || isOwnProfile) return;
-        
+
         try {
             setAddingToCircle(true);
             const token = localStorage.getItem('token');
@@ -1092,7 +1132,7 @@ const ProfilePage = () => {
     // Remove from Inner Circle handler
     const handleRemoveFromCircle = useCallback(async () => {
         if (!profileUserId || isOwnProfile) return;
-        
+
         if (!window.confirm('Remove this person from your inner circle?')) return;
 
         try {
@@ -1147,7 +1187,7 @@ const ProfilePage = () => {
         }
     }, [profileUserId, isOwnProfile]);
 
-    // FOLLOW FUNCTIONALITY - NEW
+    // Follow functionality
     const checkFollowStatus = useCallback(async () => {
         if (isOwnProfile || !profileUserId) return;
 
@@ -1155,7 +1195,6 @@ const ProfilePage = () => {
             const token = localStorage.getItem('token');
             if (!token) return;
 
-            // Check follow status
             const response = await fetch(`${BACKEND_URL}/api/follow/status/${profileUserId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1168,8 +1207,7 @@ const ProfilePage = () => {
                 setIsFollowing(data.is_following || false);
                 setIsBlocked(data.is_blocked || false);
             }
-            
-            // Also check block status for more detail
+
             const blockResponse = await fetch(`${BACKEND_URL}/api/block/status/${profileUserId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -1213,11 +1251,10 @@ const ProfilePage = () => {
 
             if (response.ok) {
                 setIsFollowing(!isFollowing);
-                // Update follower count in user state
                 setUser(prev => ({
                     ...prev,
-                    follower_count: isFollowing 
-                        ? (prev.follower_count || 1) - 1 
+                    follower_count: isFollowing
+                        ? (prev.follower_count || 1) - 1
                         : (prev.follower_count || 0) + 1
                 }));
             } else {
@@ -1232,7 +1269,7 @@ const ProfilePage = () => {
         }
     }, [profileUserId, isOwnProfile, isFollowing]);
 
-    // BLOCK FUNCTIONALITY
+    // Block functionality
     const handleBlock = useCallback(async () => {
         if (!profileUserId || isOwnProfile) return;
 
@@ -1254,7 +1291,7 @@ const ProfilePage = () => {
 
             if (response.ok) {
                 setIsBlocked(true);
-                setIsFollowing(false); // Blocking removes follow
+                setIsFollowing(false);
                 setShowBlockModal(false);
                 setShowMoreMenu(false);
                 alert(`Blocked ${user.display_name || user.username}`);
@@ -1358,7 +1395,6 @@ const ProfilePage = () => {
         }
     }, []);
 
-
     const handlePostImageChange = useCallback(async (event) => {
         const file = event.target.files[0];
         if (file) {
@@ -1435,7 +1471,7 @@ const ProfilePage = () => {
 
     // Social and communication handlers
     const handleShareProfile = useCallback(() => {
-        const profileUrl = `${window.location.origin}/profile/${user.id}`;
+        const profileUrl = `${window.location.origin}/user/${user.id}`;
 
         if (navigator.share) {
             navigator.share({
@@ -1496,12 +1532,11 @@ const ProfilePage = () => {
                 const savedPost = await response.json();
                 setPosts(prev => [savedPost, ...prev]);
             } else {
-                // Create local post if API fails
                 const newPostObj = {
                     id: Date.now(),
                     content: newPost,
                     timestamp: 'Just now',
-                    avatar: media.profilePicture || user.profile_picture || lady1,
+                    avatar: media.profilePicture || user.profile_picture || blueuser,
                     username: user.display_name || user.username || 'You',
                     image: postImage,
                     likes: 0,
@@ -1515,12 +1550,11 @@ const ProfilePage = () => {
 
         } catch (error) {
             console.error('Error creating post:', error);
-            // Create local post on error
             const newPostObj = {
                 id: Date.now(),
                 content: newPost,
                 timestamp: 'Just now',
-                avatar: media.profilePicture || user.profile_picture || lady1,
+                avatar: media.profilePicture || user.profile_picture || blueuser,
                 username: user.display_name || user.username || 'You',
                 image: postImage,
                 likes: 0,
@@ -1544,14 +1578,12 @@ const ProfilePage = () => {
 
     const handleAddComment = useCallback(async (postId, comment) => {
         try {
-            // Add comment to local state immediately
             setPosts(prev => prev.map(post =>
                 post.id === postId
                     ? { ...post, comments: [...(post.comments || []), comment] }
                     : post
             ));
 
-            // Try to save to backend
             const token = localStorage.getItem('token');
             const response = await fetch(`${BACKEND_URL}/api/posts/${postId}/comments`, {
                 method: 'POST',
@@ -1576,21 +1608,73 @@ const ProfilePage = () => {
         setUi(prev => ({ ...prev, showAllFavorites: !prev.showAllFavorites }));
     }, []);
 
-    // Initialize profile on mount
+    // ========================================
+    // MAIN EFFECT - THE KEY FIX
+    // Single useEffect that runs on mount AND when profileUserId changes
+    // This ensures data is cleared and refreshed when navigating between profiles
+    // ========================================
     useEffect(() => {
         if (authState.token) {
-            fetchProfile();
+            // Determine the target user ID
+            const targetUserId = profileUserId || authState.userId;
+
+            console.log("=== PROFILE LOADING ===");
+            console.log("profileUserId from URL:", profileUserId);
+            console.log("authState.userId:", authState.userId);
+            console.log("targetUserId:", targetUserId);
+            console.log("isOwnProfile:", !profileUserId || (currentUserId && String(currentUserId) === String(profileUserId)));
+
+            // CRITICAL: Clear ALL old data immediately when switching profiles
+            setMedia({
+                profilePicture: null,
+                coverPhoto: null,
+                videos: [],
+                images: [],
+                userPhotos: [],
+                userVideos: []
+            });
+            setPosts([]);
+            setCircleMembers([]);
+            setFollowing([]);
+            setFollowers([]);
+            setIsFollowing(false);
+            setIsInCircle(false);
+            setIsBlocked(false);
+            setUser({});
+            setFormData({
+                bio: '',
+                displayName: '',
+                storefrontLink: '',
+                socialLinks: {},
+                businessName: '',
+                businessType: '',
+                businessWebsite: '',
+                location: ''
+            });
+            setUi(prev => ({
+                ...prev,
+                currentMood: 'chill',
+                customMoodLabel: null,
+                customMoodEmoji: null
+            }));
+
+            // Then fetch fresh data for the target profile
+            fetchProfile(targetUserId);
             initializeSocket();
             fetchSocialAccounts();
             fetchSocialAnalytics();
-            fetchUserPhotos();
-            fetchUserVideos();
-            fetchUserCircle();
-            fetchUserPosts();
+            fetchUserPhotos(targetUserId);
+            fetchUserVideos(targetUserId);
+            fetchUserCircle(targetUserId);
+            fetchUserPosts(targetUserId);
             fetchFavoriteProfiles();
             fetchUnreadCount();
-            checkIfInCircle();
-            checkFollowStatus();
+
+            // Only check follow/circle status when viewing other profiles
+            if (profileUserId) {
+                checkIfInCircle();
+                checkFollowStatus();
+            }
         }
 
         return () => {
@@ -1599,7 +1683,7 @@ const ProfilePage = () => {
                 socket.current = null;
             }
         };
-    }, [authState.token, fetchProfile, initializeSocket, fetchSocialAccounts, fetchSocialAnalytics, fetchUserPhotos, fetchUserVideos, fetchUserCircle, fetchUserPosts, fetchFavoriteProfiles, fetchUnreadCount, checkIfInCircle, checkFollowStatus]);
+    }, [authState.token, profileUserId]); // KEY FIX: profileUserId in dependency array!
 
     useEffect(() => {
         if (media.profilePicture) {
@@ -1613,7 +1697,7 @@ const ProfilePage = () => {
             <div className="profile-container">
                 <div className="loading-state">
                     <div className="loading-spinner"></div>
-                    <p>Loading your profile...</p>
+                    <p>Loading profile...</p>
                 </div>
             </div>
         );
@@ -1626,7 +1710,7 @@ const ProfilePage = () => {
                 <div className="error-state">
                     <h3>Unable to load profile</h3>
                     <p>{error}</p>
-                    <button onClick={fetchProfile} className="retry-btn">
+                    <button onClick={() => fetchProfile()} className="retry-btn">
                         Retry
                     </button>
                 </div>
@@ -1680,8 +1764,8 @@ const ProfilePage = () => {
                     <div className="profile-avatar-section">
                         <img
                             src={ui.useAvatar ?
-                                (media.profilePicture || user.profile_picture || lady1) :
-                                lady1
+                                (media.profilePicture || user.profile_picture || blueuser) :
+                                blueuser
                             }
                             alt="Profile"
                             className="profile-pic"
@@ -2277,7 +2361,7 @@ const ProfilePage = () => {
                                 {(ui.showAllFavorites ? favoriteProfiles : favoriteProfiles.slice(0, 3)).map((profile) => (
                                     <div key={profile.id} className="favorite-item-compact">
                                         <img
-                                            src={profile.avatar || profile.profile_picture || lady1}
+                                            src={profile.avatar || profile.profile_picture || blueuser}
                                             alt={profile.name || profile.username}
                                             className="favorite-avatar-compact"
                                         />
@@ -2350,7 +2434,7 @@ const ProfilePage = () => {
                                 <div className="create-post-section">
                                     <div className="create-post-header">
                                         <img
-                                            src={media.profilePicture || user.profile_picture || lady1}
+                                            src={media.profilePicture || user.profile_picture || blueuser}
                                             alt="Your avatar"
                                             className="post-avatar"
                                         />
@@ -2404,7 +2488,7 @@ const ProfilePage = () => {
                                 </div>
                             )}
 
-                            {/* Posts Grid - Using PostCard Component */}
+                            {/* Posts Grid */}
                             <div className="posts-grid">
                                 {posts.map((post) => (
                                     <PostCard
@@ -2448,12 +2532,9 @@ const ProfilePage = () => {
                                     {media.userPhotos.map((photo, index) => (
                                         <div key={photo.id || index} className="photo-item">
                                             <img
-                                                src={photo.url || photo.image_url}
+                                                src={photo.url || photo.file_url || photo.image_url}
                                                 alt={photo.caption || `Photo ${index + 1}`}
                                                 className="photo-image"
-                                                onClick={() => {
-                                                    console.log('Open photo viewer for:', photo);
-                                                }}
                                             />
                                             <div className="photo-overlay">
                                                 <div className="photo-stats">
@@ -2567,7 +2648,7 @@ const ProfilePage = () => {
                                                 <div key={member.friend_user_id || member.id} className="circle-member-card">
                                                     <div className="member-rank">#{index + 1}</div>
                                                     <img
-                                                        src={member.profile_picture || member.avatar || lady1}
+                                                        src={member.profile_picture || member.avatar || blueuser}
                                                         alt={member.display_name || member.username}
                                                         className="member-avatar"
                                                     />
@@ -2583,7 +2664,7 @@ const ProfilePage = () => {
                                                         )}
                                                     </div>
                                                     <div className="member-actions">
-                                                        <Link to={`/profile/${member.friend_user_id || member.id}`} className="view-member-btn">
+                                                        <Link to={`/user/${member.friend_user_id || member.id}`} className="view-member-btn">
                                                             View Profile
                                                         </Link>
                                                         <button className="message-member-btn">
@@ -2701,7 +2782,7 @@ const ProfilePage = () => {
                     <div className="video-manager-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3>Video Manager</h3>
-                            <button 
+                            <button
                                 className="modal-close-btn"
                                 onClick={() => setUi(prev => ({ ...prev, showVideoManager: false }))}
                             >
@@ -2709,7 +2790,7 @@ const ProfilePage = () => {
                             </button>
                         </div>
                         <div className="modal-content">
-                            <UploadVideo 
+                            <UploadVideo
                                 onUploadComplete={(video) => {
                                     setMedia(prev => ({
                                         ...prev,
@@ -2718,15 +2799,15 @@ const ProfilePage = () => {
                                     setUi(prev => ({ ...prev, showVideoManager: false }));
                                 }}
                             />
-                            
+
                             {media.userVideos.length > 0 && (
                                 <div className="existing-videos">
                                     <h4>Your Videos ({media.userVideos.length})</h4>
                                     <div className="video-list">
                                         {media.userVideos.map((video, index) => (
                                             <div key={video.id || index} className="video-manager-item">
-                                                <img 
-                                                    src={video.thumbnail_url || campfire} 
+                                                <img
+                                                    src={video.thumbnail_url || campfire}
                                                     alt={video.title}
                                                     className="video-thumb"
                                                 />
@@ -2750,7 +2831,7 @@ const ProfilePage = () => {
                     <div className="clip-creator-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3>Create Clip</h3>
-                            <button 
+                            <button
                                 className="modal-close-btn"
                                 onClick={() => setUi(prev => ({ ...prev, showClipCreator: false }))}
                             >
@@ -2761,17 +2842,17 @@ const ProfilePage = () => {
                             <p className="clip-description">
                                 Select a video to create a short clip from:
                             </p>
-                            
+
                             {media.userVideos.length > 0 ? (
                                 <div className="clip-video-select">
                                     {media.userVideos.map((video, index) => (
-                                        <div 
-                                            key={video.id || index} 
+                                        <div
+                                            key={video.id || index}
                                             className={`clip-video-option ${ui.selectedVideoForClip === video.id ? 'selected' : ''}`}
                                             onClick={() => setUi(prev => ({ ...prev, selectedVideoForClip: video.id }))}
                                         >
-                                            <img 
-                                                src={video.thumbnail_url || campfire} 
+                                            <img
+                                                src={video.thumbnail_url || campfire}
                                                 alt={video.title}
                                                 className="clip-video-thumb"
                                             />
@@ -2785,13 +2866,13 @@ const ProfilePage = () => {
                             ) : (
                                 <div className="no-videos-message">
                                     <p>No videos yet. Upload a video first to create clips!</p>
-                                    <button 
+                                    <button
                                         className="upload-video-btn"
                                         onClick={() => {
-                                            setUi(prev => ({ 
-                                                ...prev, 
+                                            setUi(prev => ({
+                                                ...prev,
                                                 showClipCreator: false,
-                                                showVideoManager: true 
+                                                showVideoManager: true
                                             }));
                                         }}
                                     >
@@ -2832,13 +2913,13 @@ const ProfilePage = () => {
                             <div className="share-link-container">
                                 <input
                                     type="text"
-                                    value={`${window.location.origin}/profile/${effectiveUserId}`}
+                                    value={`${window.location.origin}/user/${effectiveUserId}`}
                                     readOnly
                                     className="share-link-input"
                                 />
                                 <button
                                     onClick={() => {
-                                        navigator.clipboard.writeText(`${window.location.origin}/profile/${effectiveUserId}`);
+                                        navigator.clipboard.writeText(`${window.location.origin}/user/${effectiveUserId}`);
                                         alert('Link copied to clipboard!');
                                     }}
                                 >

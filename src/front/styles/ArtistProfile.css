@@ -1,13 +1,21 @@
 /* Artist Profile Styles - Updated for Backend Integration */
 .artist-profile-container {
-  width: 90vw;
+  width: 100%;
   max-width: 100%;
-  margin: 0 auto;
+  margin: 0;
   padding: 20px;
   background: linear-gradient(135deg, #1a0033 0%, #330066 50%, #4d0099 100%);
   min-height: 100vh;
   color: white;
   font-family: 'Arial', sans-serif;
+  box-sizing: border-box;
+}
+
+/* Full width hero section */
+.artist-hero-section {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 30px;
 }
 
 /* Loading & Error States */
@@ -66,6 +74,70 @@
   transform: translateY(-2px);
 }
 
+/* Error Banner */
+.error-banner {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.error-banner p {
+  color: #f44336;
+  margin: 0;
+  font-weight: 500;
+}
+
+.error-banner button {
+  background: none;
+  border: none;
+  color: #f44336;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 10px;
+}
+
+/* Success Banner */
+.success-banner {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  animation: slideDown 0.3s ease;
+}
+
+.success-banner p {
+  margin: 0;
+}
+
+.success-banner button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 10px;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 /* Profile Mode Toggle */
 .profile-mode-toggle {
   display: flex;
@@ -104,11 +176,7 @@
   box-shadow: 0 4px 15px rgba(156, 39, 176, 0.4);
 }
 
-/* Artist Hero Section */
-.artist-hero-section {
-  margin-bottom: 30px;
-}
-
+/* Artist Cover Photo */
 .artist-cover-photo {
   background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
               linear-gradient(135deg, #9c27b0, #e91e63, #ff5722);
@@ -119,6 +187,7 @@
   box-shadow: 0 8px 32px rgba(156, 39, 176, 0.3);
   background-size: cover;
   background-position: center;
+  width: 100%;
 }
 
 .artist-overlay {
@@ -204,6 +273,7 @@
   flex-wrap: wrap;
 }
 
+/* Artist Actions (Follow, Share, More) */
 .artist-actions {
   display: flex;
   flex-direction: column;
@@ -213,7 +283,8 @@
 
 .follow-btn,
 .share-btn,
-.more-btn {
+.more-btn,
+.unblock-btn {
   padding: 12px 24px;
   border: none;
   border-radius: 25px;
@@ -224,13 +295,31 @@
 }
 
 .follow-btn {
-  background: #9c27b0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
 }
 
 .follow-btn:hover {
-  background: #7b1fa2;
   transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.follow-btn.following {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.follow-btn.following:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.unblock-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+.unblock-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
 }
 
 .share-btn {
@@ -249,6 +338,173 @@
   border: 1px solid rgba(255,255,255,0.3);
   min-width: auto;
   padding: 8px 12px;
+}
+
+/* More Menu */
+.more-menu-container {
+  position: relative;
+  display: inline-block;
+}
+
+.more-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  min-width: 200px;
+  z-index: 1000;
+  overflow: hidden;
+  animation: slideDownMenu 0.2s ease;
+}
+
+@keyframes slideDownMenu {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 18px;
+  background: transparent;
+  border: none;
+  color: #e0e0e0;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.menu-item.danger {
+  color: #ef4444;
+}
+
+.menu-item.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Block Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.block-modal {
+  background: linear-gradient(145deg, #1a1a2e, #16213e);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 30px;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: scaleIn 0.3s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.block-modal h3 {
+  color: #ef4444;
+  margin: 0 0 15px 0;
+  font-size: 1.4rem;
+}
+
+.block-modal p {
+  color: #b0b0b0;
+  margin-bottom: 20px;
+}
+
+.block-consequences {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  padding: 15px 15px 15px 35px;
+  margin: 0 0 25px 0;
+  color: #e0e0e0;
+}
+
+.block-consequences li {
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.block-consequences li:last-child {
+  margin-bottom: 0;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.cancel-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e0e0e0;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.block-confirm-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.block-confirm-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
 }
 
 /* Navigation Tabs */
@@ -306,6 +562,7 @@
   color: white;
   font-size: 16px;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .search-bar input::placeholder {
@@ -337,16 +594,16 @@
 }
 
 .tab-content {
-  animation: fadeIn 0.3s ease-in-out;
+  animation: fadeInContent 0.3s ease-in-out;
 }
 
-@keyframes fadeIn {
+@keyframes fadeInContent {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .original-layout {
-  animation: fadeIn 0.3s ease-in-out;
+  animation: fadeInContent 0.3s ease-in-out;
 }
 
 .latest-release {
@@ -977,7 +1234,6 @@
 @media (max-width: 768px) {
   .artist-profile-container {
     padding: 15px;
-    width: 95vw;
   }
   
   .artist-hero-section {
@@ -1075,37 +1331,9 @@
   }
 }
 
-@media (max-width: 640px) {
-  .artist-details-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  
-  .analytics-grid {
-    grid-template-columns: 1fr;
-    gap: 15px;
-  }
-  
-  .social-links-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-  }
-  
-  .albums-grid,
-  .playlists-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  }
-  
-  .mode-toggle-btn {
-    padding: 8px 15px;
-    font-size: 13px;
-  }
-}
-
 @media (max-width: 480px) {
   .artist-profile-container {
     padding: 10px;
-    width: 98vw;
   }
   
   .artist-cover-photo {
@@ -1183,22 +1411,6 @@
   }
 }
 
-/* Error Banner */
-.error-banner {
-  background: rgba(244, 67, 54, 0.1);
-  border: 1px solid rgba(244, 67, 54, 0.3);
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.error-banner p {
-  color: #f44336;
-  margin: 0;
-  font-weight: 500;
-}
-
 /* Custom Scrollbar */
 .artist-profile-container::-webkit-scrollbar {
   width: 8px;
@@ -1256,35 +1468,4 @@
     border-color: #fff;
     background: rgba(255, 255, 255, 0.1);
   }
-  .success-banner {
-  background: linear-gradient(135deg, #10b981, #059669);
-  color: white;
-  padding: 15px 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  animation: slideDown 0.3s ease;
-}
-
-.success-banner button {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 20px;
-  cursor: pointer;
-  padding: 0 10px;
-}
-
-@keyframes slideDown {
-  from {
-    transform: translateY(-100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
 }

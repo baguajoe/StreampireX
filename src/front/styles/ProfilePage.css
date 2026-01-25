@@ -2551,3 +2551,187 @@
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+/* ProfilePage CSS Fix - Add to your ProfilePage.css */
+
+/* Ensure profile container is always full width */
+.profile-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Ensure header section is full width */
+.profile-header-section {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Cover photo should be full width */
+.cover-photo-container {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Main content grid */
+.profile-main-content {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Top sections */
+.profile-top-sections {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* More menu styles for block feature */
+.more-menu-container {
+    position: relative;
+    display: inline-block;
+}
+
+.more-menu-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: #1a1a2e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    min-width: 200px;
+    z-index: 1000;
+    overflow: hidden;
+    animation: slideDownMenu 0.2s ease;
+}
+
+@keyframes slideDownMenu {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px 18px;
+    background: transparent;
+    border: none;
+    color: #e0e0e0;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.menu-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.menu-item.danger {
+    color: #ef4444;
+}
+
+.menu-item.danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* Follow button styles */
+.quick-action-btn.follow {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.quick-action-btn.following {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.quick-action-btn.following:hover {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.quick-action-btn.unblock {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+}
+
+/* Block modal styles */
+.block-modal {
+    background: linear-gradient(145deg, #1a1a2e, #16213e);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.block-modal h3 {
+    color: #ef4444;
+    margin: 0 0 15px 0;
+    font-size: 1.4rem;
+}
+
+.block-modal p {
+    color: #b0b0b0;
+    margin-bottom: 20px;
+}
+
+.block-consequences {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 10px;
+    padding: 15px 15px 15px 35px;
+    margin: 0 0 25px 0;
+    color: #e0e0e0;
+}
+
+.block-consequences li {
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.cancel-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.block-confirm-btn {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.block-confirm-btn:hover {
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}

@@ -3114,15 +3114,355 @@ class Tip(db.Model):
     recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    platform_cut = db.Column(db.Float, default=0.15)  # 15% by default
-    creator_earnings = db.Column(db.Float)            # 85% automatically calculated
-
-
+    
+    # Platform fees (10% to platform, 90% to creator for Stripe)
+    # External payments (CashApp, Venmo) = 0% platform cut
+    platform_cut = db.Column(db.Float, default=0.10)
+    creator_earnings = db.Column(db.Float)
+    
+    # Payment details
+    payment_method = db.Column(db.String(50), default='stripe')  # stripe, cashapp, venmo, paypal, crypto, external
+    status = db.Column(db.String(20), default='completed')  # pending, completed, failed, refunded
+    currency = db.Column(db.String(10), default='USD')
+    
+    # Tip details
+    message = db.Column(db.String(500), nullable=True)
+    is_anonymous = db.Column(db.Boolean, default=False)
+    
+    # Content-specific tips (optional)
+    content_type = db.Column(db.String(50), nullable=True)  # video, audio, stream, podcast, post
+    content_id = db.Column(db.Integer, nullable=True)
+    
+    # Stripe payment tracking
+    stripe_payment_intent_id = db.Column(db.String(255), nullable=True)
+    
+    # Relationships
     sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_tips')
     recipient = db.relationship('User', foreign_keys=[recipient_id], backref='received_tips')
 
+    def __init__(self, **kwargs):
+        super(Tip, self).__init__(**kwargs)
+        # Auto-calculate creator earnings if not provided
+        if self.creator_earnings is None and self.amount:
+            cut = self.platform_cut if self.platform_cut is not None else 0.10
+            self.creator_earnings = self.amount * (1 - cut)
+
     def __repr__(self):
-        return f"<Tip from {self.sender_id} to {self.recipient_id} of ${self.amount}>"
+        return f"<Tip ${self.amount} from {self.sender_id} to {self.recipient_id} via {self.payment_method}>"
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "sender_id": self.sender_id,
+            "recipient_id": self.recipient_id,
+            "amount": float(self.amount),
+            "creator_earnings": float(self.creator_earnings) if self.creator_earnings else float(self.amount) * 0.90,
+            "platform_cut": float(self.platform_cut) if self.platform_cut else 0.10,
+            "payment_method": self.payment_method or 'stripe',
+            "status": self.status or 'completed',
+            "currency": self.currency or 'USD',
+            "message": self.message,
+            "is_anonymous": self.is_anonymous or False,
+            "content_type": self.content_type,
+            "content_id": self.content_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "sender": {
+                "id": self.sender_id,
+                "username": self.sender.username if self.sender else 'Unknown'
+            } if not self.is_anonymous else {"id": None, "username": "Anonymous"},
+            "recipient": {
+                "id": self.recipient_id,
+                "username": self.recipient.username if self.recipient else 'Unknown'
+            }
+        }
+    
+
+class CreatorPaymentSettings(db.Model):
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # General settings
+    tips_enabled = db.Column(db.Boolean, default=True)
+    min_tip_amount = db.Column(db.Float, default=1.0)
+    default_amounts = db.Column(db.JSON, default=[5, 10, 20, 50])  # Quick-select amounts
+    tip_message = db.Column(db.String(500), nullable=True)  # Custom thank you message
+    
+    # Stripe (Card payments - 10% platform fee)
+    stripe_enabled = db.Column(db.Boolean, default=True)
+    stripe_account_id = db.Column(db.String(255), nullable=True)  # For Stripe Connect
+    
+    # CashApp (0% platform fee - external)
+    cashapp_enabled = db.Column(db.Boolean, default=False)
+    cashapp_username = db.Column(db.String(100), nullable=True)  # Without $
+    
+    # Venmo (0% platform fee - external)
+    venmo_enabled = db.Column(db.Boolean, default=False)
+    venmo_username = db.Column(db.String(100), nullable=True)  # Without @
+    
+    # PayPal (0% platform fee - external)
+    paypal_enabled = db.Column(db.Boolean, default=False)
+    paypal_email = db.Column(db.String(255), nullable=True)
+    
+    # Crypto (0% platform fee - external)
+    crypto_enabled = db.Column(db.Boolean, default=False)
+    crypto_address = db.Column(db.String(255), nullable=True)
+    crypto_network = db.Column(db.String(50), nullable=True)  # ETH, BTC, SOL, etc.
+    
+    # Relationship
+    user = db.relationship('User', backref=db.backref('payment_settings', uselist=False))
+
+    def __repr__(self):
+        return f"<CreatorPaymentSettings for user {self.user_id}>"
+
+    def get_enabled_methods(self):
+        """Returns list of enabled payment methods"""
+        methods = []
+        if self.stripe_enabled:
+            methods.append('stripe')
+        if self.cashapp_enabled and self.cashapp_username:
+            methods.append('cashapp')
+        if self.venmo_enabled and self.venmo_username:
+            methods.append('venmo')
+        if self.paypal_enabled and self.paypal_email:
+            methods.append('paypal')
+        if self.crypto_enabled and self.crypto_address:
+            methods.append('crypto')
+        return methods if methods else ['stripe']  # Default to Stripe
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "tips_enabled": self.tips_enabled,
+            "min_tip_amount": float(self.min_tip_amount) if self.min_tip_amount else 1.0,
+            "default_amounts": self.default_amounts or [5, 10, 20, 50],
+            "tip_message": self.tip_message,
+            "stripe_enabled": self.stripe_enabled,
+            "cashapp_enabled": self.cashapp_enabled,
+            "cashapp_username": self.cashapp_username,
+            "venmo_enabled": self.venmo_enabled,
+            "venmo_username": self.venmo_username,
+            "paypal_enabled": self.paypal_enabled,
+            "paypal_email": self.paypal_email,
+            "crypto_enabled": self.crypto_enabled,
+            "crypto_address": self.crypto_address,
+            "crypto_network": self.crypto_network,
+            "enabled_methods": self.get_enabled_methods()
+        }
+
+class ClipSave(db.Model):
+    """Track saved/bookmarked clips"""
+    __tablename__ = 'clip_saves'
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'clip_id', name='unique_clip_save'),
+        {'extend_existing': True}
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    clip_id = db.Column(db.Integer, db.ForeignKey('video_clips.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='saved_clips')
+    clip = db.relationship('VideoClip', backref='saves')
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'clip_id': self.clip_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class ClipComment(db.Model):
+    """Comments on clips with threading support"""
+    __tablename__ = 'clip_comments'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    clip_id = db.Column(db.Integer, db.ForeignKey('video_clips.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('clip_comments.id'), nullable=True)  # For replies
+    likes_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='clip_comments')
+    clip = db.relationship('VideoClip', backref='clip_comments')
+    replies = db.relationship('ClipComment', backref=db.backref('parent', remote_side=[id]), lazy='dynamic')
+    
+    def serialize(self, include_replies=False):
+        data = {
+            'id': self.id,
+            'clip_id': self.clip_id,
+            'user_id': self.user_id,
+            'user': {
+                'id': self.user.id,
+                'username': self.user.username,
+                'profile_picture': getattr(self.user, 'profile_picture', None)
+            } if self.user else None,
+            'content': self.content,
+            'parent_id': self.parent_id,
+            'likes_count': self.likes_count,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+        if include_replies and not self.parent_id:
+            data['replies'] = [reply.serialize() for reply in self.replies.limit(5).all()]
+        return data
+
+
+class ClipCommentLike(db.Model):
+    """Likes on clip comments"""
+    __tablename__ = 'clip_comment_likes'
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'comment_id', name='unique_clip_comment_like'),
+        {'extend_existing': True}
+    )
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    comment_id = db.Column(db.Integer, db.ForeignKey('clip_comments.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref='clip_comment_likes')
+    comment = db.relationship('ClipComment', backref='likes')
+
+
+# -----------------------------------------------------------------------------
+# WALLET & TIP JAR MODELS
+# -----------------------------------------------------------------------------
+
+class UserWallet(db.Model):
+    """User wallet for storing tip balance"""
+    __tablename__ = 'user_wallets'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    
+    # Balance tracking
+    balance = db.Column(db.Numeric(10, 2), default=0)
+    lifetime_earnings = db.Column(db.Numeric(10, 2), default=0)  # Total tips received
+    lifetime_tips_sent = db.Column(db.Numeric(10, 2), default=0)  # Total tips sent
+    
+    # Payout tracking
+    pending_payout = db.Column(db.Numeric(10, 2), default=0)
+    last_payout_at = db.Column(db.DateTime, nullable=True)
+    
+    # Timestamps
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    user = db.relationship('User', backref=db.backref('user_wallet', uselist=False))
+    
+    def serialize(self):
+        return {
+            'user_id': self.user_id,
+            'balance': float(self.balance) if self.balance else 0,
+            'lifetime_earnings': float(self.lifetime_earnings) if self.lifetime_earnings else 0,
+            'lifetime_tips_sent': float(self.lifetime_tips_sent) if self.lifetime_tips_sent else 0,
+            'pending_payout': float(self.pending_payout) if self.pending_payout else 0,
+            'last_payout_at': self.last_payout_at.isoformat() if self.last_payout_at else None
+        }
+
+
+class WalletTransaction(db.Model):
+    """Track all wallet transactions (deposits, withdrawals, tips)"""
+    __tablename__ = 'wallet_transactions'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Transaction details
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    type = db.Column(db.String(20), nullable=False)  # deposit, withdrawal, tip_received, tip_sent, payout
+    status = db.Column(db.String(20), default='completed')  # pending, completed, failed
+    description = db.Column(db.String(200), nullable=True)
+    
+    # Stripe reference
+    stripe_payment_intent_id = db.Column(db.String(100), nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    user = db.relationship('User', backref='wallet_transactions')
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'amount': float(self.amount),
+            'type': self.type,
+            'status': self.status,
+            'description': self.description,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class CreatorPaymentSettings(db.Model):
+    """Creator's external payment methods (CashApp, Venmo, PayPal, Zelle)"""
+    __tablename__ = 'creator_payment_settings'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    
+    # CashApp
+    cashapp_username = db.Column(db.String(50), nullable=True)
+    cashapp_enabled = db.Column(db.Boolean, default=False)
+    
+    # Venmo
+    venmo_username = db.Column(db.String(50), nullable=True)
+    venmo_enabled = db.Column(db.Boolean, default=False)
+    
+    # PayPal
+    paypal_username = db.Column(db.String(50), nullable=True)
+    paypal_enabled = db.Column(db.Boolean, default=False)
+    
+    # Zelle (email or phone)
+    zelle_identifier = db.Column(db.String(50), nullable=True)
+    zelle_enabled = db.Column(db.Boolean, default=False)
+    
+    # Platform settings
+    accepts_platform_tips = db.Column(db.Boolean, default=True)
+    tip_minimum = db.Column(db.Numeric(10, 2), default=1.00)
+    tip_message = db.Column(db.String(200), nullable=True)  # Custom thank you message
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    user = db.relationship('User', backref=db.backref('creator_payment_settings', uselist=False))
+    
+    def serialize(self):
+        return {
+            'user_id': self.user_id,
+            'cashapp_username': self.cashapp_username,
+            'cashapp_enabled': self.cashapp_enabled,
+            'venmo_username': self.venmo_username,
+            'venmo_enabled': self.venmo_enabled,
+            'paypal_username': self.paypal_username,
+            'paypal_enabled': self.paypal_enabled,
+            'zelle_identifier': self.zelle_identifier,
+            'zelle_enabled': self.zelle_enabled,
+            'accepts_platform_tips': self.accepts_platform_tips,
+            'tip_minimum': float(self.tip_minimum) if self.tip_minimum else 1.00,
+            'tip_message': self.tip_message
+        }
+
+
 
 # Ad Revenue Model
 class AdRevenue(db.Model):
@@ -4916,6 +5256,42 @@ class VideoExport(db.Model):
             'completed_at': self.completed_at.isoformat() if self.completed_at else None
         }
 
+class Photo(db.Model):
+    __tablename__ = 'photos'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    file_url = db.Column(db.String(500), nullable=False)
+    thumbnail_url = db.Column(db.String(500), nullable=True)
+    caption = db.Column(db.String(500), nullable=True)
+    is_public = db.Column(db.Boolean, default=True)
+    views = db.Column(db.Integer, default=0)
+    likes = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('photos', lazy=True))
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "file_url": self.file_url,
+            "thumbnail_url": self.thumbnail_url,
+            "caption": self.caption,
+            "is_public": self.is_public,
+            "views": self.views,
+            "likes": self.likes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "uploader_name": self.user.display_name or self.user.username if self.user else "Unknown",
+            "uploader_avatar": self.user.profile_picture or self.user.avatar_url if self.user else None
+        }
+    
+    def to_dict(self):
+        return self.serialize()
 
 # =============================================================================
 # DATABASE MIGRATION SQL

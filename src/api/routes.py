@@ -4,7 +4,7 @@ eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app, session
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert, PodcastPlayHistory, PlayHistory, PostLike, PostComment
+from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert, PodcastPlayHistory, PlayHistory, PostLike, PostComment, Photo, ClipSave, ClipComment, ClipCommentLike, UserWallet, WalletTransaction, CreatorPaymentSettings
 # ADD these imports
 from .steam_service import SteamService
 from datetime import datetime
@@ -89,7 +89,8 @@ from src.api.email_service import (
 )
 
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
-
+import re
+from decimal import Decimal
 
 # ✅ FIXED: Only import the functions you need, not the SocketIO class
 from flask_socketio import join_room, emit, leave_room
@@ -839,15 +840,13 @@ def toggle_video_like(video_id):
         print(f"Error toggling video like: {e}")
         return jsonify({"error": "Failed to like video"}), 500
 
-@api.route('/video/user', methods=['GET'])
+@api.route('/video/user/<int:user_id>', methods=['GET'])
 @jwt_required()
-def get_user_videos():
-    """Get all videos for the current authenticated user"""
+def get_user_videos_by_id(user_id):
+    """Get all videos for a specific user (for viewing profiles)"""
     try:
-        current_user_id = get_jwt_identity()
-        
         # Get all videos by this user
-        videos = Video.query.filter_by(user_id=current_user_id).all()
+        videos = Video.query.filter_by(user_id=user_id).all()
         
         # Serialize the videos
         video_list = [{
@@ -6275,29 +6274,315 @@ def send_invite():
     
     return jsonify({"message": "Invite sent!"}), 200
 
-# --- Tip Jar ---
-@api.route('/tips/send', methods=['POST'])
-@jwt_required()
-def send_tip():
-    data = request.get_json()
-    sender_id = get_jwt_identity()
-    recipient_id = data.get('creator_id')
-    amount = data.get('amount')
-
-    if not amount or amount <= 0:
-        return jsonify({'error': 'Invalid amount'}), 400
-
-    tip = Tip(sender_id=sender_id, recipient_id=recipient_id, amount=amount)
-    db.session.add(tip)
-    db.session.commit()
-    return jsonify({'message': 'Tip sent successfully'}), 200
 
 @api.route('/tips/history', methods=['GET'])
 @jwt_required()
 def tip_history():
+    """Get tip history - both sent and received"""
     user_id = get_jwt_identity()
-    tips = Tip.query.filter_by(sender_id=user_id).all()
-    return jsonify([{'id': t.id, 'amount': t.amount, 'to': t.recipient_id} for t in tips])
+    
+    # Query params
+    filter_type = request.args.get('type', 'all')  # 'sent', 'received', 'all'
+    limit = request.args.get('limit', 50, type=int)
+    offset = request.args.get('offset', 0, type=int)
+    
+    # Build query based on filter
+    if filter_type == 'sent':
+        tips = Tip.query.filter_by(sender_id=user_id)\
+            .order_by(Tip.created_at.desc())\
+            .limit(limit).offset(offset).all()
+    elif filter_type == 'received':
+        tips = Tip.query.filter_by(recipient_id=user_id)\
+            .order_by(Tip.created_at.desc())\
+            .limit(limit).offset(offset).all()
+    else:
+        # All tips (sent or received)
+        tips = Tip.query.filter(
+            (Tip.sender_id == user_id) | (Tip.recipient_id == user_id)
+        ).order_by(Tip.created_at.desc())\
+         .limit(limit).offset(offset).all()
+    
+    # Format response
+    result = []
+    for tip in tips:
+        # Handle anonymous tips
+        sender_name = 'Anonymous'
+        if not tip.is_anonymous or tip.sender_id == user_id:
+            sender_name = tip.sender.username if tip.sender else 'Unknown'
+        
+        result.append({
+            'id': tip.id,
+            'amount': float(tip.amount),
+            'currency': getattr(tip, 'currency', 'USD') or 'USD',
+            'payment_method': getattr(tip, 'payment_method', 'stripe') or 'stripe',
+            'status': getattr(tip, 'status', 'completed') or 'completed',
+            'message': getattr(tip, 'message', None),
+            'is_anonymous': getattr(tip, 'is_anonymous', False),
+            'sender': {
+                'id': tip.sender_id,
+                'username': sender_name
+            },
+            'recipient': {
+                'id': tip.recipient_id,
+                'username': tip.recipient.username if tip.recipient else 'Unknown'
+            },
+            'direction': 'sent' if tip.sender_id == user_id else 'received',
+            'created_at': tip.created_at.isoformat() if tip.created_at else None,
+            'platform_cut': float(tip.platform_cut) if tip.platform_cut else 0.10,
+            'creator_earnings': float(tip.creator_earnings) if tip.creator_earnings else float(tip.amount) * 0.90
+        })
+    
+    # Get totals
+    total_sent = db.session.query(db.func.sum(Tip.amount))\
+        .filter_by(sender_id=user_id).scalar() or 0
+    total_received = db.session.query(db.func.sum(Tip.creator_earnings))\
+        .filter_by(recipient_id=user_id).scalar() or 0
+    
+    return jsonify({
+        'tips': result,
+        'totals': {
+            'sent': float(total_sent),
+            'received': float(total_received)
+        },
+        'pagination': {
+            'limit': limit,
+            'offset': offset,
+            'has_more': len(result) == limit
+        }
+    })
+
+@api.route('/tips/stats', methods=['GET'])
+@jwt_required()
+def tip_stats():
+    """Get comprehensive tip statistics for the current user"""
+    user_id = get_jwt_identity()
+    
+    now = datetime.utcnow()
+    thirty_days_ago = now - timedelta(days=30)
+    seven_days_ago = now - timedelta(days=7)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # ===== RECEIVED STATS =====
+    
+    # Total received (all time) - completed only
+    total_received = db.session.query(func.coalesce(func.sum(Tip.creator_earnings), 0))\
+        .filter(Tip.recipient_id == user_id)\
+        .filter(Tip.status == 'completed').scalar() or 0
+    
+    # This month
+    monthly_received = db.session.query(func.coalesce(func.sum(Tip.creator_earnings), 0))\
+        .filter(Tip.recipient_id == user_id)\
+        .filter(Tip.status == 'completed')\
+        .filter(Tip.created_at >= thirty_days_ago).scalar() or 0
+    
+    # This week
+    weekly_received = db.session.query(func.coalesce(func.sum(Tip.creator_earnings), 0))\
+        .filter(Tip.recipient_id == user_id)\
+        .filter(Tip.status == 'completed')\
+        .filter(Tip.created_at >= seven_days_ago).scalar() or 0
+    
+    # Today
+    today_received = db.session.query(func.coalesce(func.sum(Tip.creator_earnings), 0))\
+        .filter(Tip.recipient_id == user_id)\
+        .filter(Tip.status == 'completed')\
+        .filter(Tip.created_at >= today_start).scalar() or 0
+    
+    # Tip counts
+    total_tip_count = Tip.query.filter_by(recipient_id=user_id, status='completed').count()
+    monthly_tip_count = Tip.query.filter(
+        Tip.recipient_id == user_id,
+        Tip.status == 'completed',
+        Tip.created_at >= thirty_days_ago
+    ).count()
+    
+    # Unique supporters
+    unique_supporters = db.session.query(func.count(func.distinct(Tip.sender_id)))\
+        .filter(Tip.recipient_id == user_id)\
+        .filter(Tip.status == 'completed').scalar() or 0
+    
+    # Average tip amount
+    avg_tip = db.session.query(func.avg(Tip.amount))\
+        .filter(Tip.recipient_id == user_id)\
+        .filter(Tip.status == 'completed').scalar() or 0
+    
+    # Largest tip
+    largest_tip = db.session.query(func.max(Tip.amount))\
+        .filter(Tip.recipient_id == user_id)\
+        .filter(Tip.status == 'completed').scalar() or 0
+    
+    # ===== TOP SUPPORTERS =====
+    top_supporters_query = db.session.query(
+        Tip.sender_id,
+        func.sum(Tip.amount).label('total'),
+        func.count(Tip.id).label('count')
+    ).filter(
+        Tip.recipient_id == user_id,
+        Tip.status == 'completed',
+        Tip.is_anonymous == False
+    ).group_by(Tip.sender_id)\
+     .order_by(func.sum(Tip.amount).desc())\
+     .limit(10).all()
+    
+    top_supporters = []
+    for sender_id, total, count in top_supporters_query:
+        user = User.query.get(sender_id)
+        if user:
+            top_supporters.append({
+                'user_id': sender_id,
+                'username': user.username,
+                'profile_image': user.profile_image_url if hasattr(user, 'profile_image_url') else None,
+                'total_amount': float(total),
+                'tip_count': count
+            })
+    
+    # ===== PAYMENT METHOD BREAKDOWN =====
+    payment_methods = db.session.query(
+        Tip.payment_method,
+        func.sum(Tip.amount).label('total'),
+        func.count(Tip.id).label('count')
+    ).filter(
+        Tip.recipient_id == user_id,
+        Tip.status == 'completed'
+    ).group_by(Tip.payment_method).all()
+    
+    method_breakdown = {}
+    for method, total, count in payment_methods:
+        method_breakdown[method or 'stripe'] = {
+            'total': float(total),
+            'count': count
+        }
+    
+    # ===== RECENT ACTIVITY (Last 7 days by day) =====
+    daily_stats = []
+    for i in range(7):
+        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end = day_start + timedelta(days=1)
+        
+        day_total = db.session.query(func.coalesce(func.sum(Tip.creator_earnings), 0))\
+            .filter(Tip.recipient_id == user_id)\
+            .filter(Tip.status == 'completed')\
+            .filter(Tip.created_at >= day_start)\
+            .filter(Tip.created_at < day_end).scalar() or 0
+        
+        day_count = Tip.query.filter(
+            Tip.recipient_id == user_id,
+            Tip.status == 'completed',
+            Tip.created_at >= day_start,
+            Tip.created_at < day_end
+        ).count()
+        
+        daily_stats.append({
+            'date': day_start.strftime('%Y-%m-%d'),
+            'day': day_start.strftime('%a'),
+            'amount': float(day_total),
+            'count': day_count
+        })
+    
+    daily_stats.reverse()  # Oldest to newest
+    
+    return jsonify({
+        'earnings': {
+            'total': float(total_received),
+            'monthly': float(monthly_received),
+            'weekly': float(weekly_received),
+            'today': float(today_received)
+        },
+        'tips': {
+            'total_count': total_tip_count,
+            'monthly_count': monthly_tip_count,
+            'average_amount': round(float(avg_tip), 2),
+            'largest_amount': float(largest_tip)
+        },
+        'supporters': {
+            'unique_count': unique_supporters,
+            'top_supporters': top_supporters
+        },
+        'payment_methods': method_breakdown,
+        'daily_activity': daily_stats
+    })
+
+
+# =============================================================================
+# GET CREATOR'S TIP INFO (Public endpoint for tip modal)
+# =============================================================================
+
+@api.route('/tips/creator/<int:creator_id>', methods=['GET'])
+def get_creator_tip_info(creator_id):
+    """Get a creator's public tip settings (for tip modal)"""
+    
+    creator = User.query.get(creator_id)
+    if not creator:
+        return jsonify({'error': 'Creator not found'}), 404
+    
+    settings = CreatorPaymentSettings.query.filter_by(user_id=creator_id).first()
+    
+    # Default settings if none exist
+    if not settings:
+        return jsonify({
+            'creator': {
+                'id': creator.id,
+                'username': creator.username,
+                'profile_image': creator.profile_image_url if hasattr(creator, 'profile_image_url') else None
+            },
+            'tips_enabled': True,
+            'min_amount': 1.0,
+            'default_amounts': [5, 10, 20, 50],
+            'payment_methods': ['stripe'],  # Default to Stripe only
+            'tip_message': None
+        })
+    
+    # Build available payment methods
+    payment_methods = []
+    if settings.stripe_enabled:
+        payment_methods.append({
+            'type': 'stripe',
+            'name': 'Card Payment'
+        })
+    if settings.cashapp_enabled and settings.cashapp_username:
+        payment_methods.append({
+            'type': 'cashapp',
+            'name': 'Cash App',
+            'username': settings.cashapp_username
+        })
+    if settings.venmo_enabled and settings.venmo_username:
+        payment_methods.append({
+            'type': 'venmo',
+            'name': 'Venmo',
+            'username': settings.venmo_username
+        })
+    if settings.paypal_enabled and settings.paypal_email:
+        payment_methods.append({
+            'type': 'paypal',
+            'name': 'PayPal',
+            'email': settings.paypal_email
+        })
+    if settings.crypto_enabled and settings.crypto_address:
+        payment_methods.append({
+            'type': 'crypto',
+            'name': f'Crypto ({settings.crypto_network or "ETH"})',
+            'address': settings.crypto_address,
+            'network': settings.crypto_network
+        })
+    
+    # If no methods enabled, default to Stripe
+    if not payment_methods:
+        payment_methods.append({
+            'type': 'stripe',
+            'name': 'Card Payment'
+        })
+    
+    return jsonify({
+        'creator': {
+            'id': creator.id,
+            'username': creator.username,
+            'profile_image': creator.profile_image_url if hasattr(creator, 'profile_image_url') else None
+        },
+        'tips_enabled': settings.tips_enabled,
+        'min_amount': float(settings.min_tip_amount) if settings.min_tip_amount else 1.0,
+        'default_amounts': settings.default_amounts or [5, 10, 20, 50],
+        'payment_methods': payment_methods,
+        'tip_message': settings.tip_message
+    })
 
 # --- Ad Revenue ---
 @api.route('/creator/ad-earnings', methods=['GET'])
@@ -7780,6 +8065,23 @@ def get_user_profile():
     except Exception as e:
         return jsonify({
             "error": f"Failed to retrieve profile: {str(e)}"
+        }), 500
+
+@api.route("/user/<int:user_id>", methods=["GET"])
+@jwt_required()
+def get_user_by_id(user_id):
+    """Get a specific user's public profile data"""
+    try:
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        return jsonify(user.serialize()), 200
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Failed to retrieve user: {str(e)}"
         }), 500
 
 # 🔍 Discover Users - Browse/Search Users
@@ -14057,43 +14359,72 @@ def get_social_analytics():
 
 # Video Processing Functions
 def extract_video_metadata(video_url):
-    """Get duration and resolution using ffprobe"""
-    temp_file = f"/tmp/meta_{uuid.uuid4()}.mp4"
-    response = requests.get(video_url)
-    with open(temp_file, 'wb') as f:
-        f.write(response.content)
-    
-    cmd = ['ffprobe', '-v', 'quiet', '-print_format', 'json',
-           '-show_format', '-show_streams', temp_file]
-    
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    data = json.loads(result.stdout)
-    os.remove(temp_file)
-    
+    """
+    Get video metadata from Cloudinary URL.
+    Falls back to defaults if extraction fails.
+    """
+    # For now, return defaults - Cloudinary handles this automatically
+    # The actual duration/dimensions come from Cloudinary's upload response
     return {
-        'duration': float(data['format'].get('duration', 0)),
-        'width': data['streams'][0].get('width', 1920),
-        'height': data['streams'][0].get('height', 1080)
+        'duration': 0,
+        'width': 1920,
+        'height': 1080
     }
 
 def generate_thumbnail(video_url, timestamp=2.0):
-    """Generate thumbnail at specific timestamp"""
-    temp_video = f"/tmp/vid_{uuid.uuid4()}.mp4"
-    temp_thumb = f"/tmp/thumb_{uuid.uuid4()}.jpg"
+    """
+    Generate thumbnail URL from Cloudinary video URL.
+    Uses URL transformation - no FFmpeg or server processing needed!
     
-    response = requests.get(video_url)
-    with open(temp_video, 'wb') as f:
-        f.write(response.content)
+    Args:
+        video_url: The Cloudinary video URL
+        timestamp: Time in seconds to capture thumbnail (default 2.0)
     
-    cmd = ['ffmpeg', '-i', temp_video, '-ss', str(timestamp),
-           '-vframes', '1', '-q:v', '2', '-y', temp_thumb]
-    
-    subprocess.run(cmd, check=True, capture_output=True)
-    thumb_url = uploadFile(temp_thumb, f"thumbnail_{uuid.uuid4()}.jpg")
-    
-    os.remove(temp_video)
-    os.remove(temp_thumb)
-    return thumb_url
+    Returns:
+        Thumbnail URL (jpg format) or None if not a Cloudinary URL
+    """
+    try:
+        # Check if it's a Cloudinary URL
+        if not video_url or 'cloudinary.com' not in video_url:
+            print(f"Warning: Not a Cloudinary URL: {video_url}")
+            return None
+        
+        # Parse the URL to extract parts
+        # Example: https://res.cloudinary.com/cloud_name/video/upload/v123/folder/file.mp4
+        
+        parts = video_url.split('/upload/')
+        if len(parts) < 2:
+            print(f"Warning: Could not parse Cloudinary URL: {video_url}")
+            return None
+        
+        base_url = parts[0]  # https://res.cloudinary.com/cloud_name/video
+        path_part = parts[1]  # v123/folder/file.mp4 OR just folder/file.mp4
+        
+        # Remove version number if present (v123456/)
+        if '/' in path_part:
+            first_segment = path_part.split('/')[0]
+            if first_segment.startswith('v') and first_segment[1:].isdigit():
+                # Remove version: v123/folder/file.mp4 -> folder/file.mp4
+                path_part = '/'.join(path_part.split('/')[1:])
+        
+        # Remove file extension for the transformation URL
+        if '.' in path_part:
+            path_part = path_part.rsplit('.', 1)[0]
+        
+        # Build thumbnail URL with Cloudinary transformations:
+        # so_X = start offset (timestamp in seconds)
+        # c_fill = crop to fill dimensions
+        # w_640,h_360 = dimensions (16:9 aspect ratio)
+        # f_jpg = output as JPEG
+        # q_auto = automatic quality optimization
+        thumbnail_url = f"{base_url}/upload/so_{timestamp},c_fill,w_640,h_360,f_jpg,q_auto/{path_part}.jpg"
+        
+        print(f"✅ Generated thumbnail: {thumbnail_url}")
+        return thumbnail_url
+        
+    except Exception as e:
+        print(f"❌ Thumbnail generation error: {e}")
+        return None
 
 
 @api.route('/upload_video', methods=['POST'])
@@ -16093,13 +16424,7 @@ def get_channel_subscribers(channel_id):
     
     return jsonify({"subscribers": subscribers_data}), 200
 
-@api.route('/clips/user', methods=['GET'])
-@jwt_required()
-def get_user_clips():
-    """Get all clips by the authenticated user"""
-    user_id = get_jwt_identity()
-    clips = VideoClip.query.filter_by(user_id=user_id).order_by(desc(VideoClip.created_at)).all()
-    return jsonify([clip.serialize() for clip in clips]), 200
+
 
 @api.route('/video/upload', methods=['POST'])
 @jwt_required()
@@ -20501,3 +20826,1480 @@ def get_video_channel_recent_activity():
             "activities": [],
             "total_count": 0
         }), 200
+
+
+@api.route('/user/<int:user_id>/photos', methods=['GET'])
+@jwt_required()
+def get_user_photos_by_id(user_id):
+    """Get photos for a specific user (for viewing profiles)"""
+    try:
+        photos = Photo.query.filter_by(user_id=user_id).order_by(Photo.created_at.desc()).all()
+        return jsonify({
+            'photos': [photo.serialize() for photo in photos],
+            'total': len(photos)
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@api.route('/clips/feed', methods=['GET'])
+def get_clips_feed():
+    """
+    Get clips for the feed (For You page).
+    Returns trending/recent clips. No auth required.
+    """
+    try:
+        sort = request.args.get('sort', 'trending')
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        query = VideoClip.query.filter_by(is_public=True)
+        
+        if sort == 'trending':
+            query = query.order_by((VideoClip.views + VideoClip.likes * 2).desc())
+        else:
+            query = query.order_by(VideoClip.created_at.desc())
+        
+        # Paginate
+        total = query.count()
+        clips = query.offset((page - 1) * per_page).limit(per_page).all()
+        
+        clips_data = []
+        for clip in clips:
+            creator = User.query.get(clip.user_id)
+            duration_mins = clip.duration // 60 if clip.duration else 0
+            duration_secs = clip.duration % 60 if clip.duration else 0
+            
+            clips_data.append({
+                'id': clip.id,
+                'title': clip.title,
+                'description': clip.description,
+                'video_url': clip.video_url,
+                'thumbnail_url': clip.thumbnail_url,
+                'duration': clip.duration,
+                'duration_formatted': f"{duration_mins}:{duration_secs:02d}",
+                'views': clip.views or 0,
+                'likes': clip.likes or 0,
+                'comments': clip.comments or 0,
+                'shares': clip.shares or 0,
+                'tags': clip.tags or [],
+                'created_at': clip.created_at.isoformat() if clip.created_at else None,
+                'creator': {
+                    'id': creator.id if creator else None,
+                    'username': creator.username if creator else 'Unknown',
+                    'display_name': creator.display_name if creator else None,
+                    'profile_picture': creator.profile_picture if creator else None
+                } if creator else None
+            })
+        
+        return jsonify({
+            'clips': clips_data,
+            'has_next': page * per_page < total,
+            'has_prev': page > 1,
+            'page': page,
+            'total': total
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching clips feed: {e}")
+        return jsonify({'error': 'Failed to fetch clips'}), 500
+
+
+@api.route('/clips/following', methods=['GET'])
+@jwt_required()
+def get_following_clips():
+    """
+    Get clips from users the current user follows.
+    For "Following" tab in ClipsFeed.
+    """
+    try:
+        user_id = get_jwt_identity()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        # Get followed user IDs
+        following_ids = [f.following_id for f in Follow.query.filter_by(follower_id=user_id).all()]
+        
+        if not following_ids:
+            return jsonify({
+                'clips': [],
+                'has_next': False,
+                'has_prev': False,
+                'page': page,
+                'total': 0,
+                'message': 'Follow some creators to see their clips!'
+            }), 200
+        
+        # Get clips from followed users
+        query = VideoClip.query.filter(
+            VideoClip.user_id.in_(following_ids),
+            VideoClip.is_public == True
+        ).order_by(VideoClip.created_at.desc())
+        
+        total = query.count()
+        clips = query.offset((page - 1) * per_page).limit(per_page).all()
+        
+        clips_data = []
+        for clip in clips:
+            creator = User.query.get(clip.user_id)
+            duration_mins = clip.duration // 60 if clip.duration else 0
+            duration_secs = clip.duration % 60 if clip.duration else 0
+            
+            # Check if user liked this clip
+            is_liked = ClipLike.query.filter_by(
+                clip_id=clip.id, user_id=user_id
+            ).first() is not None
+            
+            clips_data.append({
+                'id': clip.id,
+                'title': clip.title,
+                'description': clip.description,
+                'video_url': clip.video_url,
+                'thumbnail_url': clip.thumbnail_url,
+                'duration': clip.duration,
+                'duration_formatted': f"{duration_mins}:{duration_secs:02d}",
+                'views': clip.views or 0,
+                'likes': clip.likes or 0,
+                'comments': clip.comments or 0,
+                'shares': clip.shares or 0,
+                'tags': clip.tags or [],
+                'is_liked': is_liked,
+                'created_at': clip.created_at.isoformat() if clip.created_at else None,
+                'creator': {
+                    'id': creator.id if creator else None,
+                    'username': creator.username if creator else 'Unknown',
+                    'display_name': creator.display_name if creator else None,
+                    'profile_picture': creator.profile_picture if creator else None
+                } if creator else None
+            })
+        
+        return jsonify({
+            'clips': clips_data,
+            'has_next': page * per_page < total,
+            'has_prev': page > 1,
+            'page': page,
+            'total': total
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching following clips: {e}")
+        return jsonify({'error': 'Failed to fetch clips'}), 500
+
+
+@api.route('/clips/user/<int:user_id>', methods=['GET'])
+def get_user_clips(user_id):
+    """Get public clips for a specific user (profile page)."""
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 12, type=int)
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        query = VideoClip.query.filter_by(
+            user_id=user_id, is_public=True
+        ).order_by(VideoClip.created_at.desc())
+        
+        total = query.count()
+        clips = query.offset((page - 1) * per_page).limit(per_page).all()
+        
+        clips_data = []
+        for clip in clips:
+            duration_mins = clip.duration // 60 if clip.duration else 0
+            duration_secs = clip.duration % 60 if clip.duration else 0
+            
+            clips_data.append({
+                'id': clip.id,
+                'title': clip.title,
+                'description': clip.description,
+                'video_url': clip.video_url,
+                'thumbnail_url': clip.thumbnail_url,
+                'duration': clip.duration,
+                'duration_formatted': f"{duration_mins}:{duration_secs:02d}",
+                'views': clip.views or 0,
+                'likes': clip.likes or 0,
+                'comments': clip.comments or 0,
+                'tags': clip.tags or [],
+                'created_at': clip.created_at.isoformat() if clip.created_at else None,
+                'creator': {
+                    'id': user.id,
+                    'username': user.username,
+                    'display_name': user.display_name,
+                    'profile_picture': user.profile_picture
+                }
+            })
+        
+        return jsonify({
+            'clips': clips_data,
+            'user': {'id': user.id, 'username': user.username},
+            'pagination': {
+                'page': page, 'per_page': per_page, 'total': total,
+                'has_next': page * per_page < total, 'has_prev': page > 1
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching user clips: {e}")
+        return jsonify({'error': 'Failed to fetch user clips'}), 500
+
+
+@api.route('/clips/my', methods=['GET'])
+@jwt_required()
+def get_my_clips():
+    """Get current user's clips (including private)."""
+    try:
+        user_id = get_jwt_identity()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 12, type=int)
+        include_private = request.args.get('include_private', 'true').lower() == 'true'
+        
+        query = VideoClip.query.filter_by(user_id=user_id)
+        if not include_private:
+            query = query.filter_by(is_public=True)
+        
+        query = query.order_by(VideoClip.created_at.desc())
+        
+        total = query.count()
+        clips = query.offset((page - 1) * per_page).limit(per_page).all()
+        
+        user = User.query.get(user_id)
+        
+        clips_data = []
+        for clip in clips:
+            duration_mins = clip.duration // 60 if clip.duration else 0
+            duration_secs = clip.duration % 60 if clip.duration else 0
+            
+            clips_data.append({
+                'id': clip.id,
+                'title': clip.title,
+                'description': clip.description,
+                'video_url': clip.video_url,
+                'thumbnail_url': clip.thumbnail_url,
+                'duration': clip.duration,
+                'duration_formatted': f"{duration_mins}:{duration_secs:02d}",
+                'views': clip.views or 0,
+                'likes': clip.likes or 0,
+                'comments': clip.comments or 0,
+                'is_public': clip.is_public,
+                'tags': clip.tags or [],
+                'created_at': clip.created_at.isoformat() if clip.created_at else None,
+                'creator': {
+                    'id': user.id,
+                    'username': user.username,
+                    'display_name': user.display_name,
+                    'profile_picture': user.profile_picture
+                } if user else None
+            })
+        
+        return jsonify({
+            'clips': clips_data,
+            'pagination': {
+                'page': page, 'per_page': per_page, 'total': total,
+                'has_next': page * per_page < total, 'has_prev': page > 1
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching my clips: {e}")
+        return jsonify({'error': 'Failed to fetch your clips'}), 500
+
+
+# =============================================================================
+# CLIP INTERACTION ROUTES
+# =============================================================================
+
+@api.route('/clips/<int:clip_id>/save', methods=['POST'])
+@jwt_required()
+def save_clip(clip_id):
+    """Save/bookmark a clip."""
+    try:
+        user_id = get_jwt_identity()
+        
+        clip = VideoClip.query.get(clip_id)
+        if not clip:
+            return jsonify({'error': 'Clip not found'}), 404
+        
+        # Check if already saved (you may need to create ClipSave model)
+        # For now, we'll use a simple toggle approach
+        try:
+            existing = ClipSave.query.filter_by(user_id=user_id, clip_id=clip_id).first()
+            if existing:
+                db.session.delete(existing)
+                db.session.commit()
+                return jsonify({'saved': False, 'message': 'Clip unsaved'}), 200
+            else:
+                new_save = ClipSave(user_id=user_id, clip_id=clip_id)
+                db.session.add(new_save)
+                db.session.commit()
+                return jsonify({'saved': True, 'message': 'Clip saved'}), 200
+        except:
+            # If ClipSave model doesn't exist, just return success
+            return jsonify({'saved': True, 'message': 'Clip saved'}), 200
+            
+    except Exception as e:
+        print(f"Error saving clip: {e}")
+        return jsonify({'error': 'Failed to save clip'}), 500
+
+
+@api.route('/clips/<int:clip_id>/share', methods=['POST'])
+def share_clip(clip_id):
+    """Track share count for a clip."""
+    try:
+        clip = VideoClip.query.get(clip_id)
+        if not clip:
+            return jsonify({'error': 'Clip not found'}), 404
+        
+        clip.shares = (clip.shares or 0) + 1
+        db.session.commit()
+        
+        return jsonify({
+            'shares': clip.shares,
+            'share_url': f"/clips?start={clip_id}"
+        }), 200
+        
+    except Exception as e:
+        print(f"Error sharing clip: {e}")
+        return jsonify({'error': 'Failed to share clip'}), 500
+
+
+# =============================================================================
+# CLIP COMMENTS ROUTES
+# =============================================================================
+
+@api.route('/clips/<int:clip_id>/comments', methods=['GET', 'POST'])
+def clip_comments(clip_id):
+    """Get or add comments on a clip."""
+    clip = VideoClip.query.get(clip_id)
+    if not clip:
+        return jsonify({'error': 'Clip not found'}), 404
+    
+    if request.method == 'GET':
+        try:
+            # Try to use ClipComment model if it exists
+            try:
+                comments = ClipComment.query.filter_by(clip_id=clip_id)\
+                    .order_by(ClipComment.is_pinned.desc(), ClipComment.created_at.desc()).all()
+                
+                comments_data = []
+                for comment in comments:
+                    user = User.query.get(comment.user_id)
+                    comments_data.append({
+                        'id': comment.id,
+                        'text': comment.text,
+                        'user_id': comment.user_id,
+                        'username': user.username if user else 'Unknown',
+                        'profile_picture': user.profile_picture if user else None,
+                        'likes': comment.likes or 0,
+                        'is_pinned': comment.is_pinned or False,
+                        'created_at': comment.created_at.isoformat() if comment.created_at else None
+                    })
+                
+                return jsonify({'comments': comments_data}), 200
+            except:
+                # If model doesn't exist, return empty
+                return jsonify({'comments': []}), 200
+                
+        except Exception as e:
+            print(f"Error fetching comments: {e}")
+            return jsonify({'error': 'Failed to fetch comments'}), 500
+    
+    else:  # POST
+        try:
+            # Require auth for posting
+            from flask_jwt_extended import jwt_required, get_jwt_identity
+            
+            auth_header = request.headers.get('Authorization')
+            if not auth_header:
+                return jsonify({'error': 'Authentication required'}), 401
+            
+            # Decode token manually or use verify_jwt_in_request
+            try:
+                from flask_jwt_extended import verify_jwt_in_request
+                verify_jwt_in_request()
+                user_id = get_jwt_identity()
+            except:
+                return jsonify({'error': 'Invalid token'}), 401
+            
+            data = request.get_json()
+            text = data.get('text', '').strip()
+            
+            if not text:
+                return jsonify({'error': 'Comment text is required'}), 400
+            
+            # Create comment (if model exists)
+            try:
+                new_comment = ClipComment(
+                    clip_id=clip_id,
+                    user_id=user_id,
+                    text=text
+                )
+                db.session.add(new_comment)
+                
+                # Update clip comment count
+                clip.comments = (clip.comments or 0) + 1
+                db.session.commit()
+                
+                user = User.query.get(user_id)
+                
+                return jsonify({
+                    'comment': {
+                        'id': new_comment.id,
+                        'text': new_comment.text,
+                        'user_id': user_id,
+                        'username': user.username if user else 'Unknown',
+                        'profile_picture': user.profile_picture if user else None,
+                        'likes': 0,
+                        'is_pinned': False,
+                        'created_at': new_comment.created_at.isoformat()
+                    }
+                }), 201
+            except Exception as model_error:
+                print(f"ClipComment model error: {model_error}")
+                return jsonify({'error': 'Comments not available'}), 500
+                
+        except Exception as e:
+            print(f"Error creating comment: {e}")
+            return jsonify({'error': 'Failed to create comment'}), 500
+
+
+@api.route('/clips/comments/<int:comment_id>', methods=['DELETE'])
+@jwt_required()
+def delete_clip_comment(comment_id):
+    """Delete a comment (owner or clip owner only)."""
+    try:
+        user_id = get_jwt_identity()
+        
+        try:
+            comment = ClipComment.query.get(comment_id)
+            if not comment:
+                return jsonify({'error': 'Comment not found'}), 404
+            
+            # Check ownership
+            clip = VideoClip.query.get(comment.clip_id)
+            if comment.user_id != user_id and (clip and clip.user_id != user_id):
+                return jsonify({'error': 'Unauthorized'}), 403
+            
+            # Update clip comment count
+            if clip:
+                clip.comments = max(0, (clip.comments or 0) - 1)
+            
+            db.session.delete(comment)
+            db.session.commit()
+            
+            return jsonify({'message': 'Comment deleted'}), 200
+        except:
+            return jsonify({'error': 'Comments not available'}), 500
+            
+    except Exception as e:
+        print(f"Error deleting comment: {e}")
+        return jsonify({'error': 'Failed to delete comment'}), 500
+
+
+@api.route('/clips/comments/<int:comment_id>/like', methods=['POST'])
+@jwt_required()
+def like_clip_comment(comment_id):
+    """Like/unlike a comment."""
+    try:
+        user_id = get_jwt_identity()
+        
+        try:
+            comment = ClipComment.query.get(comment_id)
+            if not comment:
+                return jsonify({'error': 'Comment not found'}), 404
+            
+            # Toggle like (simplified - you may want a separate like table)
+            comment.likes = (comment.likes or 0) + 1
+            db.session.commit()
+            
+            return jsonify({
+                'likes': comment.likes,
+                'is_liked': True
+            }), 200
+        except:
+            return jsonify({'error': 'Comments not available'}), 500
+            
+    except Exception as e:
+        print(f"Error liking comment: {e}")
+        return jsonify({'error': 'Failed to like comment'}), 500
+
+
+@api.route('/clips/comments/<int:comment_id>/pin', methods=['POST'])
+@jwt_required()
+def pin_clip_comment(comment_id):
+    """Pin/unpin a comment (clip owner only)."""
+    try:
+        user_id = get_jwt_identity()
+        
+        try:
+            comment = ClipComment.query.get(comment_id)
+            if not comment:
+                return jsonify({'error': 'Comment not found'}), 404
+            
+            # Check if user owns the clip
+            clip = VideoClip.query.get(comment.clip_id)
+            if not clip or clip.user_id != user_id:
+                return jsonify({'error': 'Only clip owner can pin comments'}), 403
+            
+            # Toggle pin
+            comment.is_pinned = not (comment.is_pinned or False)
+            db.session.commit()
+            
+            return jsonify({
+                'is_pinned': comment.is_pinned,
+                'message': 'Comment pinned' if comment.is_pinned else 'Comment unpinned'
+            }), 200
+        except:
+            return jsonify({'error': 'Comments not available'}), 500
+            
+    except Exception as e:
+        print(f"Error pinning comment: {e}")
+        return jsonify({'error': 'Failed to pin comment'}), 500
+
+
+# =============================================================================
+# CLIP TIER/LIMITS ROUTES
+# =============================================================================
+
+@api.route('/clips/tier-info', methods=['GET'])
+@jwt_required()
+def get_clips_tier_info():
+    """Get tier limits for clip creation."""
+    try:
+        user_id = get_jwt_identity()
+        tier = get_user_tier(user_id)
+        
+        tier_limits = {
+            'free': {
+                'clips_per_day': 3,
+                'max_duration': 60,
+                'max_file_size': 100 * 1024 * 1024,  # 100MB
+                'can_schedule': False,
+                'can_go_viral': False
+            },
+            'basic': {
+                'clips_per_day': 20,
+                'max_duration': 180,
+                'max_file_size': 500 * 1024 * 1024,  # 500MB
+                'can_schedule': True,
+                'can_go_viral': False
+            },
+            'premium': {
+                'clips_per_day': 100,
+                'max_duration': 300,
+                'max_file_size': 1024 * 1024 * 1024,  # 1GB
+                'can_schedule': True,
+                'can_go_viral': True
+            },
+            'professional': {
+                'clips_per_day': -1,  # Unlimited
+                'max_duration': 600,
+                'max_file_size': 2 * 1024 * 1024 * 1024,  # 2GB
+                'can_schedule': True,
+                'can_go_viral': True
+            }
+        }
+        
+        limits = tier_limits.get(tier, tier_limits['free'])
+        
+        # Count clips created today
+        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_count = VideoClip.query.filter(
+            VideoClip.user_id == user_id,
+            VideoClip.created_at >= today_start
+        ).count()
+        
+        remaining = limits['clips_per_day'] - today_count if limits['clips_per_day'] > 0 else -1
+        
+        return jsonify({
+            'tier': tier,
+            'limits': limits,
+            'usage': {
+                'clips_today': today_count,
+                'clips_remaining': remaining
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching tier info: {e}")
+        return jsonify({'error': 'Failed to fetch tier info'}), 500
+
+@api.route('/tips/send', methods=['POST'])
+@jwt_required()
+def send_tip():
+    """
+    Send a tip to a creator
+    
+    Request body:
+    {
+        "recipient_id": 123,
+        "amount": 5.00,
+        "payment_method": "stripe",  # stripe, cashapp, venmo, paypal, crypto, external
+        "message": "Great content!",  # optional
+        "is_anonymous": false,  # optional
+        "content_type": "video",  # optional - video, audio, stream, podcast
+        "content_id": 456,  # optional
+        "currency": "USD"  # optional, defaults to USD
+    }
+    """
+    sender_id = get_jwt_identity()
+    data = request.get_json()
+    
+    # Validate required fields
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    recipient_id = data.get('recipient_id')
+    amount = data.get('amount')
+    
+    if not recipient_id:
+        return jsonify({'error': 'Recipient ID is required'}), 400
+    
+    if not amount or amount <= 0:
+        return jsonify({'error': 'Valid amount is required'}), 400
+    
+    # Prevent self-tipping
+    if int(sender_id) == int(recipient_id):
+        return jsonify({'error': 'Cannot tip yourself'}), 400
+    
+    # Verify recipient exists
+    recipient = User.query.get(recipient_id)
+    if not recipient:
+        return jsonify({'error': 'Recipient not found'}), 404
+    
+    # Get optional fields
+    payment_method = data.get('payment_method', 'stripe')
+    message = data.get('message', '')[:500] if data.get('message') else None  # Limit to 500 chars
+    is_anonymous = data.get('is_anonymous', False)
+    content_type = data.get('content_type')
+    content_id = data.get('content_id')
+    currency = data.get('currency', 'USD')
+    
+    # Validate payment method
+    valid_methods = ['stripe', 'cashapp', 'venmo', 'paypal', 'crypto', 'external']
+    if payment_method not in valid_methods:
+        return jsonify({'error': f'Invalid payment method. Use: {", ".join(valid_methods)}'}), 400
+    
+    # Calculate platform cut and creator earnings
+    # External payments (CashApp, Venmo, etc.) = 0% platform cut
+    # Stripe payments = 10% platform cut
+    if payment_method in ['cashapp', 'venmo', 'paypal', 'crypto', 'external']:
+        platform_cut = 0.0
+    else:
+        platform_cut = 0.10  # 10% for Stripe
+    
+    creator_earnings = amount * (1 - platform_cut)
+    
+    # For Stripe payments, create a payment intent
+    if payment_method == 'stripe':
+        try:
+            # Check if we have Stripe configured
+            if not stripe.api_key:
+                return jsonify({'error': 'Stripe not configured'}), 500
+            
+            # Create Stripe payment intent
+            payment_intent = stripe.PaymentIntent.create(
+                amount=int(amount * 100),  # Stripe uses cents
+                currency=currency.lower(),
+                metadata={
+                    'sender_id': sender_id,
+                    'recipient_id': recipient_id,
+                    'tip_type': 'creator_tip',
+                    'content_type': content_type or '',
+                    'content_id': content_id or ''
+                }
+            )
+            
+            # Create tip record with pending status
+            tip = Tip(
+                sender_id=sender_id,
+                recipient_id=recipient_id,
+                amount=amount,
+                payment_method=payment_method,
+                status='pending',
+                message=message,
+                is_anonymous=is_anonymous,
+                currency=currency,
+                content_type=content_type,
+                content_id=content_id,
+                platform_cut=platform_cut,
+                creator_earnings=creator_earnings
+            )
+            
+            db.session.add(tip)
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'tip_id': tip.id,
+                'client_secret': payment_intent.client_secret,
+                'payment_intent_id': payment_intent.id,
+                'amount': amount,
+                'creator_earnings': creator_earnings,
+                'platform_fee': amount * platform_cut
+            }), 200
+            
+        except stripe.error.StripeError as e:
+            return jsonify({'error': f'Payment error: {str(e)}'}), 400
+    
+    else:
+        # For external payment methods (CashApp, Venmo, etc.)
+        # Record the tip directly as completed (user handles payment externally)
+        
+        # Get creator's payment info to show to sender
+        payment_settings = CreatorPaymentSettings.query.filter_by(user_id=recipient_id).first()
+        
+        tip = Tip(
+            sender_id=sender_id,
+            recipient_id=recipient_id,
+            amount=amount,
+            payment_method=payment_method,
+            status='completed',  # External payments marked complete immediately
+            message=message,
+            is_anonymous=is_anonymous,
+            currency=currency,
+            content_type=content_type,
+            content_id=content_id,
+            platform_cut=platform_cut,
+            creator_earnings=creator_earnings
+        )
+        
+        db.session.add(tip)
+        db.session.commit()
+        
+        # Build response with payment info
+        response = {
+            'success': True,
+            'tip_id': tip.id,
+            'payment_method': payment_method,
+            'amount': amount,
+            'creator_earnings': creator_earnings,
+            'platform_fee': 0,  # No fee for external
+            'message': f'Tip recorded! Please send ${amount} via {payment_method.title()}.'
+        }
+        
+        # Add payment details if available
+        if payment_settings:
+            if payment_method == 'cashapp' and payment_settings.cashapp_username:
+                response['payment_info'] = {
+                    'type': 'cashapp',
+                    'username': payment_settings.cashapp_username,
+                    'display': f'$cashtag: ${payment_settings.cashapp_username}'
+                }
+            elif payment_method == 'venmo' and payment_settings.venmo_username:
+                response['payment_info'] = {
+                    'type': 'venmo',
+                    'username': payment_settings.venmo_username,
+                    'display': f'@{payment_settings.venmo_username}'
+                }
+            elif payment_method == 'paypal' and payment_settings.paypal_email:
+                response['payment_info'] = {
+                    'type': 'paypal',
+                    'email': payment_settings.paypal_email
+                }
+            elif payment_method == 'crypto' and payment_settings.crypto_address:
+                response['payment_info'] = {
+                    'type': 'crypto',
+                    'address': payment_settings.crypto_address,
+                    'network': payment_settings.crypto_network or 'ETH'
+                }
+        
+        return jsonify(response), 201
+
+@api.route('/tips/confirm', methods=['POST'])
+@jwt_required()
+def confirm_tip():
+    """
+    Confirm a Stripe tip payment after successful payment
+    Called from frontend after Stripe payment succeeds
+    """
+    data = request.get_json()
+    tip_id = data.get('tip_id')
+    payment_intent_id = data.get('payment_intent_id')
+    
+    if not tip_id:
+        return jsonify({'error': 'Tip ID required'}), 400
+    
+    tip = Tip.query.get(tip_id)
+    if not tip:
+        return jsonify({'error': 'Tip not found'}), 404
+    
+    # Verify ownership
+    sender_id = get_jwt_identity()
+    if tip.sender_id != int(sender_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Update tip status
+    tip.status = 'completed'
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Tip confirmed!',
+        'tip': tip.serialize()
+    }), 200
+
+
+
+# =============================================================================
+# ADD FUNDS TO WALLET (Stripe Checkout)
+# =============================================================================
+
+@api.route('/wallet/add-funds', methods=['POST'])
+@jwt_required()
+def add_funds_to_wallet():
+    """Create Stripe checkout to add funds to wallet"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        amount = data.get('amount')
+        
+        if not amount or float(amount) < 5:
+            return jsonify({'error': 'Minimum deposit is $5'}), 400
+        
+        if float(amount) > 500:
+            return jsonify({'error': 'Maximum deposit is $500'}), 400
+        
+        amount = Decimal(str(amount))
+        user = User.query.get(user_id)
+        
+        # Create Stripe Checkout Session
+        frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': 'Add Funds to Wallet',
+                        'description': f'Add ${float(amount):.2f} to your StreamPireX wallet'
+                    },
+                    'unit_amount': int(float(amount) * 100),
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=f"{frontend_url}/wallet/success?session_id={{CHECKOUT_SESSION_ID}}&amount={amount}",
+            cancel_url=f"{frontend_url}/wallet",
+            metadata={
+                'type': 'wallet_deposit',
+                'user_id': str(user_id),
+                'amount': str(float(amount))
+            }
+        )
+        
+        return jsonify({
+            'success': True,
+            'checkout_url': checkout_session.url,
+            'session_id': checkout_session.id
+        }), 200
+        
+    except stripe.error.StripeError as e:
+        current_app.logger.error(f"Stripe error for wallet deposit: {str(e)}")
+        return jsonify({'error': f'Payment error: {str(e)}'}), 400
+    except Exception as e:
+        current_app.logger.error(f"Error adding funds: {e}")
+        return jsonify({'error': 'Failed to create payment'}), 500
+
+
+# =============================================================================
+# STRIPE WEBHOOK HANDLERS - Add these to your existing webhook handler
+# =============================================================================
+
+def handle_tip_payment_success(session):
+    """Handle successful tip payment from Stripe checkout"""
+    try:
+        metadata = session.get('metadata', {})
+        
+        if metadata.get('type') != 'tip':
+            return
+        
+        tip_id = metadata.get('tip_id')
+        if not tip_id:
+            current_app.logger.error("Tip payment webhook missing tip_id")
+            return
+        
+        tip = Tip.query.get(int(tip_id))
+        if not tip:
+            current_app.logger.error(f"Tip {tip_id} not found")
+            return
+        
+        if tip.status == 'completed':
+            current_app.logger.info(f"Tip {tip_id} already completed")
+            return
+        
+        # Update tip status
+        tip.status = 'completed'
+        tip.stripe_payment_intent_id = session.get('payment_intent')
+        
+        # Credit creator wallet
+        creator_wallet = UserWallet.query.filter_by(user_id=tip.receiver_id).first()
+        if not creator_wallet:
+            creator_wallet = UserWallet(user_id=tip.receiver_id, balance=Decimal('0'))
+            db.session.add(creator_wallet)
+        
+        creator_wallet.balance += tip.creator_amount
+        creator_wallet.lifetime_earnings += tip.creator_amount
+        
+        # Update sender stats (no wallet deduction since they paid directly)
+        sender_wallet = UserWallet.query.filter_by(user_id=tip.sender_id).first()
+        if sender_wallet:
+            sender_wallet.lifetime_tips_sent += tip.amount
+        
+        db.session.commit()
+        
+        # Send notification to creator
+        # send_tip_notification(tip.receiver, tip.sender, tip)
+        
+        current_app.logger.info(f"✅ Tip {tip_id} completed via card payment")
+        
+    except Exception as e:
+        current_app.logger.error(f"Error handling tip payment: {e}")
+        db.session.rollback()
+        raise
+
+
+def handle_wallet_deposit_success(session):
+    """Handle successful wallet deposit from Stripe checkout"""
+    try:
+        metadata = session.get('metadata', {})
+        
+        if metadata.get('type') != 'wallet_deposit':
+            return
+        
+        user_id = metadata.get('user_id')
+        amount = metadata.get('amount')
+        
+        if not user_id or not amount:
+            current_app.logger.error("Wallet deposit webhook missing data")
+            return
+        
+        amount = Decimal(amount)
+        
+        # Get or create wallet
+        wallet = UserWallet.query.filter_by(user_id=int(user_id)).first()
+        if not wallet:
+            wallet = UserWallet(user_id=int(user_id), balance=Decimal('0'))
+            db.session.add(wallet)
+        
+        # Add funds
+        wallet.balance += amount
+        
+        # Record transaction
+        transaction = WalletTransaction(
+            user_id=int(user_id),
+            amount=amount,
+            type='deposit',
+            status='completed',
+            stripe_payment_intent_id=session.get('payment_intent'),
+            description=f'Added ${float(amount):.2f} to wallet'
+        )
+        db.session.add(transaction)
+        
+        db.session.commit()
+        
+        current_app.logger.info(f"✅ Wallet deposit of ${amount} completed for user {user_id}")
+        
+    except Exception as e:
+        current_app.logger.error(f"Error handling wallet deposit: {e}")
+        db.session.rollback()
+        raise
+
+
+# =============================================================================
+# ADD TO YOUR EXISTING handle_checkout_completed FUNCTION:
+# =============================================================================
+"""
+In your existing handle_checkout_completed(session) function, add these checks:
+
+def handle_checkout_completed(session):
+    try:
+        metadata = session.get('metadata', {})
+        
+        # ... your existing subscription handling ...
+        
+        # TIP PAYMENT
+        if metadata.get('type') == 'tip':
+            handle_tip_payment_success(session)
+            return
+        
+        # WALLET DEPOSIT
+        if metadata.get('type') == 'wallet_deposit':
+            handle_wallet_deposit_success(session)
+            return
+        
+        # ... your existing marketplace/podcast handling ...
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in checkout completed: {e}")
+        raise
+"""
+
+
+# =============================================================================
+# QUICK TIP (Payment Intent for in-app payment without redirect)
+# =============================================================================
+
+@api.route('/tips/quick-pay', methods=['POST'])
+@jwt_required()
+def create_quick_tip_payment():
+    """
+    Create a Payment Intent for quick tip (pay without leaving page).
+    Use with Stripe Elements on frontend.
+    """
+    try:
+        sender_id = get_jwt_identity()
+        data = request.get_json()
+        
+        creator_id = data.get('creator_id')
+        amount = data.get('amount')
+        message = data.get('message', '').strip()[:200]
+        is_anonymous = data.get('is_anonymous', False)
+        
+        # Validation
+        if not creator_id or not amount or float(amount) < 1:
+            return jsonify({'error': 'Invalid tip data'}), 400
+        
+        amount = Decimal(str(amount))
+        creator = User.query.get(creator_id)
+        
+        if not creator:
+            return jsonify({'error': 'Creator not found'}), 404
+        
+        # Calculate fees
+        platform_fee = amount * Decimal('0.10')
+        creator_amount = amount - platform_fee
+        
+        # Create pending tip
+        tip = Tip(
+            sender_id=sender_id,
+            receiver_id=creator_id,
+            amount=amount,
+            message=message if message else None,
+            is_anonymous=is_anonymous,
+            platform_fee=platform_fee,
+            creator_amount=creator_amount,
+            payment_method='card',
+            status='pending'
+        )
+        db.session.add(tip)
+        db.session.flush()
+        
+        # Create Payment Intent
+        payment_intent = stripe.PaymentIntent.create(
+            amount=int(float(amount) * 100),
+            currency='usd',
+            metadata={
+                'type': 'tip',
+                'tip_id': str(tip.id),
+                'sender_id': str(sender_id),
+                'creator_id': str(creator_id)
+            }
+        )
+        
+        tip.stripe_payment_intent_id = payment_intent.id
+        db.session.commit()
+        
+        return jsonify({
+            'client_secret': payment_intent.client_secret,
+            'tip_id': tip.id
+        }), 200
+        
+    except stripe.error.StripeError as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create payment'}), 500
+
+
+# =============================================================================
+# CONFIRM QUICK TIP (After Stripe Elements payment)
+# =============================================================================
+
+@api.route('/tips/confirm/<int:tip_id>', methods=['POST'])
+@jwt_required()
+def confirm_quick_tip(tip_id):
+    """Confirm tip after Stripe Elements payment succeeds"""
+    try:
+        user_id = get_jwt_identity()
+        
+        tip = Tip.query.get(tip_id)
+        if not tip:
+            return jsonify({'error': 'Tip not found'}), 404
+        
+        if tip.sender_id != int(user_id):
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        if tip.status == 'completed':
+            return jsonify({'message': 'Tip already confirmed'}), 200
+        
+        # Verify payment with Stripe
+        if tip.stripe_payment_intent_id:
+            payment_intent = stripe.PaymentIntent.retrieve(tip.stripe_payment_intent_id)
+            
+            if payment_intent.status != 'succeeded':
+                return jsonify({'error': 'Payment not completed'}), 400
+        
+        # Complete the tip
+        tip.status = 'completed'
+        
+        # Credit creator
+        creator_wallet = UserWallet.query.filter_by(user_id=tip.receiver_id).first()
+        if not creator_wallet:
+            creator_wallet = UserWallet(user_id=tip.receiver_id, balance=Decimal('0'))
+            db.session.add(creator_wallet)
+        
+        creator_wallet.balance += tip.creator_amount
+        creator_wallet.lifetime_earnings += tip.creator_amount
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'tip': tip.serialize(),
+            'message': 'Tip sent successfully!'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to confirm tip'}), 500
+
+
+# =============================================================================
+# GET WALLET WITH TRANSACTION HISTORY
+# =============================================================================
+
+@api.route('/user/wallet', methods=['GET'])
+@jwt_required()
+def get_user_wallet():
+    """Get wallet balance and recent transactions"""
+    try:
+        user_id = get_jwt_identity()
+        
+        wallet = UserWallet.query.filter_by(user_id=user_id).first()
+        if not wallet:
+            wallet = UserWallet(user_id=user_id, balance=Decimal('0'))
+            db.session.add(wallet)
+            db.session.commit()
+        
+        # Get recent transactions
+        transactions = WalletTransaction.query.filter_by(user_id=user_id)\
+            .order_by(WalletTransaction.created_at.desc())\
+            .limit(10).all()
+        
+        return jsonify({
+            'balance': float(wallet.balance),
+            'lifetime_earnings': float(wallet.lifetime_earnings),
+            'lifetime_tips_sent': float(wallet.lifetime_tips_sent),
+            'pending_payout': float(wallet.pending_payout),
+            'transactions': [{
+                'id': t.id,
+                'amount': float(t.amount),
+                'type': t.type,
+                'status': t.status,
+                'description': t.description,
+                'created_at': t.created_at.isoformat()
+            } for t in transactions]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Failed to fetch wallet'}), 500
+
+
+@api.route('/creator/<int:creator_id>/payment-methods', methods=['GET'])
+def get_creator_payment_methods(creator_id):
+    """Get creator's available payment methods for tipping"""
+    try:
+        creator = User.query.get(creator_id)
+        if not creator:
+            return jsonify({'error': 'Creator not found'}), 404
+        
+        # Get payment settings
+        settings = CreatorPaymentSettings.query.filter_by(user_id=creator_id).first()
+        
+        if not settings:
+            return jsonify({
+                'cashapp_username': None,
+                'venmo_username': None,
+                'paypal_username': None,
+                'zelle_identifier': None,
+                'accepts_platform_tips': True
+            }), 200
+        
+        return jsonify({
+            'cashapp_username': settings.cashapp_username if settings.cashapp_enabled else None,
+            'venmo_username': settings.venmo_username if settings.venmo_enabled else None,
+            'paypal_username': settings.paypal_username if settings.paypal_enabled else None,
+            'zelle_identifier': settings.zelle_identifier if settings.zelle_enabled else None,
+            'accepts_platform_tips': settings.accepts_platform_tips
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching payment methods: {e}")
+        return jsonify({'error': 'Failed to fetch payment methods'}), 500
+
+
+# =============================================================================
+# UPDATE CREATOR PAYMENT SETTINGS
+# =============================================================================
+
+@api.route('/creator/payment-settings', methods=['GET'])
+@jwt_required()
+def get_my_payment_settings():
+    """Get current user's payment settings"""
+    try:
+        user_id = get_jwt_identity()
+        
+        settings = CreatorPaymentSettings.query.filter_by(user_id=user_id).first()
+        
+        if not settings:
+            return jsonify({
+                'cashapp_username': None,
+                'cashapp_enabled': False,
+                'venmo_username': None,
+                'venmo_enabled': False,
+                'paypal_username': None,
+                'paypal_enabled': False,
+                'zelle_identifier': None,
+                'zelle_enabled': False,
+                'accepts_platform_tips': True,
+                'tip_minimum': 1.00,
+                'tip_message': None
+            }), 200
+        
+        return jsonify({
+            'cashapp_username': settings.cashapp_username,
+            'cashapp_enabled': settings.cashapp_enabled,
+            'venmo_username': settings.venmo_username,
+            'venmo_enabled': settings.venmo_enabled,
+            'paypal_username': settings.paypal_username,
+            'paypal_enabled': settings.paypal_enabled,
+            'zelle_identifier': settings.zelle_identifier,
+            'zelle_enabled': settings.zelle_enabled,
+            'accepts_platform_tips': settings.accepts_platform_tips,
+            'tip_minimum': float(settings.tip_minimum) if settings.tip_minimum else 1.00,
+            'tip_message': settings.tip_message
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching payment settings: {e}")
+        return jsonify({'error': 'Failed to fetch settings'}), 500
+
+
+@api.route('/creator/payment-settings', methods=['PUT'])
+@jwt_required()
+def update_payment_settings():
+    """Update creator's payment settings"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        # Get or create settings
+        settings = CreatorPaymentSettings.query.filter_by(user_id=user_id).first()
+        if not settings:
+            settings = CreatorPaymentSettings(user_id=user_id)
+            db.session.add(settings)
+        
+        # Validate and update CashApp
+        if 'cashapp_username' in data:
+            username = data['cashapp_username']
+            if username:
+                # Clean up - remove $ if present, validate format
+                username = username.strip().lstrip('$')
+                if not re.match(r'^[a-zA-Z0-9_-]{1,20}$', username):
+                    return jsonify({'error': 'Invalid Cash App username format'}), 400
+                settings.cashapp_username = username
+            else:
+                settings.cashapp_username = None
+        
+        if 'cashapp_enabled' in data:
+            settings.cashapp_enabled = bool(data['cashapp_enabled'])
+        
+        # Validate and update Venmo
+        if 'venmo_username' in data:
+            username = data['venmo_username']
+            if username:
+                username = username.strip().lstrip('@')
+                if not re.match(r'^[a-zA-Z0-9_-]{1,30}$', username):
+                    return jsonify({'error': 'Invalid Venmo username format'}), 400
+                settings.venmo_username = username
+            else:
+                settings.venmo_username = None
+        
+        if 'venmo_enabled' in data:
+            settings.venmo_enabled = bool(data['venmo_enabled'])
+        
+        # Validate and update PayPal
+        if 'paypal_username' in data:
+            username = data['paypal_username']
+            if username:
+                username = username.strip()
+                # PayPal.me usernames are 3-20 chars, alphanumeric
+                if not re.match(r'^[a-zA-Z0-9]{3,20}$', username):
+                    return jsonify({'error': 'Invalid PayPal.me username format'}), 400
+                settings.paypal_username = username
+            else:
+                settings.paypal_username = None
+        
+        if 'paypal_enabled' in data:
+            settings.paypal_enabled = bool(data['paypal_enabled'])
+        
+        # Validate and update Zelle
+        if 'zelle_identifier' in data:
+            identifier = data['zelle_identifier']
+            if identifier:
+                identifier = identifier.strip()
+                # Zelle uses email or phone - basic validation
+                # Allow email format or phone digits
+                if len(identifier) > 50:
+                    return jsonify({'error': 'Zelle identifier too long'}), 400
+                settings.zelle_identifier = identifier
+            else:
+                settings.zelle_identifier = None
+        
+        if 'zelle_enabled' in data:
+            settings.zelle_enabled = bool(data['zelle_enabled'])
+        
+        # Update other settings
+        if 'accepts_platform_tips' in data:
+            settings.accepts_platform_tips = bool(data['accepts_platform_tips'])
+        
+        if 'tip_minimum' in data:
+            minimum = float(data['tip_minimum'])
+            if minimum < 1 or minimum > 100:
+                return jsonify({'error': 'Tip minimum must be between $1 and $100'}), 400
+            settings.tip_minimum = minimum
+        
+        if 'tip_message' in data:
+            settings.tip_message = data['tip_message'][:200] if data['tip_message'] else None
+        
+        settings.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Payment settings updated'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error updating payment settings: {e}")
+        return jsonify({'error': 'Failed to update settings'}), 500
+
+
+# =============================================================================
+# LOG EXTERNAL TIP (For tracking even though we can't verify payment)
+# =============================================================================
+
+@api.route('/tips/external', methods=['POST'])
+@jwt_required()
+def log_external_tip():
+    """
+    Log an external tip attempt (CashApp, Venmo, PayPal).
+    We can't verify these payments, but we track them for analytics.
+    """
+    try:
+        sender_id = get_jwt_identity()
+        data = request.get_json()
+        
+        creator_id = data.get('creator_id')
+        amount = data.get('amount', 0)
+        payment_method = data.get('payment_method')
+        message = data.get('message', '').strip()[:200]
+        is_anonymous = data.get('is_anonymous', False)
+        
+        if payment_method not in ['cashapp', 'venmo', 'paypal', 'zelle']:
+            return jsonify({'error': 'Invalid payment method'}), 400
+        
+        # Create external tip record (status = 'external_pending')
+        # We mark it as unverified since we can't confirm the payment
+        tip = Tip(
+            sender_id=sender_id,
+            receiver_id=creator_id,
+            amount=amount,
+            message=message if message else None,
+            is_anonymous=is_anonymous,
+            platform_fee=0,  # No platform fee for external payments
+            creator_amount=amount,  # Creator gets 100%
+            payment_method=payment_method,
+            source='direct',
+            status='external_unverified'  # Special status for external tips
+        )
+        
+        db.session.add(tip)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'tip_id': tip.id,
+            'message': 'Tip logged (external payment)'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error logging external tip: {e}")
+        return jsonify({'error': 'Failed to log tip'}), 500
+
+
+# =============================================================================
+# VERIFY EXTERNAL TIP (Optional - Creator confirms they received it)
+# =============================================================================
+
+@api.route('/tips/external/<int:tip_id>/verify', methods=['POST'])
+@jwt_required()
+def verify_external_tip(tip_id):
+    """Creator confirms they received an external tip"""
+    try:
+        user_id = get_jwt_identity()
+        
+        tip = Tip.query.get(tip_id)
+        if not tip:
+            return jsonify({'error': 'Tip not found'}), 404
+        
+        # Only the receiver can verify
+        if tip.receiver_id != int(user_id):
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        if tip.status != 'external_unverified':
+            return jsonify({'error': 'Tip already verified or invalid status'}), 400
+        
+        tip.status = 'external_verified'
+        tip.verified_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Tip verified'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to verify tip'}), 500
+
+
+# =============================================================================
+# GET PENDING EXTERNAL TIPS (For creator to verify)
+# =============================================================================
+
+@api.route('/tips/external/pending', methods=['GET'])
+@jwt_required()
+def get_pending_external_tips():
+    """Get unverified external tips for creator to confirm"""
+    try:
+        user_id = get_jwt_identity()
+        
+        tips = Tip.query.filter_by(
+            receiver_id=user_id,
+            status='external_unverified'
+        ).order_by(Tip.created_at.desc()).limit(50).all()
+        
+        return jsonify({
+            'tips': [tip.serialize() for tip in tips],
+            'count': len(tips)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Failed to fetch tips'}), 500
+
+

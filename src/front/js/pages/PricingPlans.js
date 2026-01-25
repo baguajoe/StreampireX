@@ -1,756 +1,921 @@
-// Complete PricingPlans.js with all original features and improved styling
+// =============================================================================
+// PricingPage.jsx - Complete 3-Tier + Distribution Plans
+// =============================================================================
+// Includes: Gaming Features, Artist Distribution, Label Distribution
+// =============================================================================
 
-import React, { useEffect, useState } from "react";
-import { useContext } from "react";
-import { Context } from "../store/appContext";
-import "../../styles/PricingPlans.css";
+import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Context } from '../store/appContext';
+import './PricingPage.css';
 
-const PricingPlans = () => {
-    const { store } = useContext(Context);
-    const [plans, setPlans] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [currentPlan, setCurrentPlan] = useState(null);
-    const [error, setError] = useState(null);
-    const [selectedBilling, setSelectedBilling] = useState('monthly');
-    const [processingPayment, setProcessingPayment] = useState(null);
+const PricingPage = () => {
+  const { store } = useContext(Context);
+  const [billingCycle, setBillingCycle] = useState('monthly');
+  const [showComparison, setShowComparison] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState(null);
+  const [processing, setProcessing] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        fetchPlans();
-        if (store.user) {
-            fetchCurrentPlan();
-        }
-    }, [store.user]);
+  // Creator Plan Pricing
+  const pricing = {
+    free: { monthly: 0, yearly: 0 },
+    basic: { monthly: 12.99, yearly: 129.99 },
+    premium: { monthly: 29.99, yearly: 299.99 },
+  };
 
-    const fetchPlans = async () => {
-        try {
-            setLoading(true);
-            setError(null);
+  // Distribution Plan Pricing (yearly only)
+  const distributionPricing = {
+    artist: 21.99,
+    label: 74.99,
+  };
 
-            // Use consistent backend URL
-            const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
-            
-            console.log("🔍 Attempting to fetch from:", `${backendUrl}/api/pricing/plans`);
-            
-            const response = await fetch(`${backendUrl}/api/pricing/plans`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            console.log("📡 Response status:", response.status, response.statusText);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            console.log("✅ Pricing plans fetched successfully:", data);
-            
-            // Handle response format: backend returns {plans: [...]}
-            if (data.plans && Array.isArray(data.plans) && data.plans.length > 0) {
-                setPlans(data.plans);
-            } else if (Array.isArray(data) && data.length > 0) {
-                setPlans(data);
-            } else {
-                console.warn("⚠️ No pricing plans returned from API");
-                setError("No pricing plans available. Please contact support.");
-            }
-            
-        } catch (err) {
-            console.error("❌ Error fetching pricing plans:", err);
-            setError(`Failed to load pricing plans: ${err.message}`);
-            
-            // Set fallback plans with all 6 plans including distribution
-            setPlans([
-                {
-                    id: "fallback-free",
-                    name: "Free",
-                    price_monthly: 0,
-                    price_yearly: 0,
-                    includes_podcasts: true,
-                    includes_radio: true,
-                    includes_music_distribution: false,
-                    includes_gaming_features: true,
-                    trial_days: 0,
-                    description: "Perfect for getting started"
-                },
-                {
-                    id: "fallback-basic",
-                    name: "Basic",
-                    price_monthly: 12.99,
-                    price_yearly: 129.99,
-                    includes_podcasts: true,
-                    includes_radio: true,
-                    includes_live_events: true,
-                    includes_music_distribution: false,
-                    includes_gaming_features: true,
-                    trial_days: 7,
-                    description: "Enhanced features for growing creators"
-                },
-                {
-                    id: "fallback-pro",
-                    name: "Pro", 
-                    price_monthly: 21.99,
-                    price_yearly: 219.99,
-                    includes_podcasts: true,
-                    includes_radio: true,
-                    includes_live_events: true,
-                    includes_merch_sales: true,
-                    includes_ad_revenue: true,
-                    includes_music_distribution: false,
-                    includes_gaming_features: true,
-                    trial_days: 14,
-                    description: "Professional tools for serious creators"
-                },
-                {
-                    id: "fallback-premium",
-                    name: "Premium",
-                    price_monthly: 29.99,
-                    price_yearly: 299.99,
-                    includes_podcasts: true,
-                    includes_radio: true,
-                    includes_live_events: true,
-                    includes_music_distribution: false,
-                    includes_gaming_features: true,
-                    includes_brand_partnerships: true,
-                    includes_affiliate_marketing: true,
-                    includes_digital_sales: true,
-                    includes_merch_sales: true,
-                    includes_tip_jar: true,
-                    includes_ad_revenue: true,
-                    includes_team_rooms: true,
-                    includes_squad_finder: true,
-                    trial_days: 30,
-                    description: "Maximum monetization power"
-                },
-                {
-                    id: "fallback-artist-distribution",
-                    name: "Artist Distribution",
-                    price_monthly: 21.99,
-                    price_yearly: 21.99, // Same price yearly
-                    includes_podcasts: false,
-                    includes_radio: false,
-                    includes_live_events: false,
-                    includes_music_distribution: true,
-                    includes_gaming_features: false,
-                    trial_days: 0,
-                    description: "Music distribution for independent artists"
-                },
-                {
-                    id: "fallback-label-distribution",
-                    name: "Label Distribution",
-                    price_monthly: 74.99,
-                    price_yearly: 74.99, // Same price yearly
-                    includes_podcasts: false,
-                    includes_radio: false,
-                    includes_live_events: false,
-                    includes_music_distribution: true,
-                    includes_gaming_features: false,
-                    trial_days: 0,
-                    description: "Music distribution for record labels"
-                }
-            ]);
-        } finally {
-            setLoading(false);
-        }
-    };
-
+  // Fetch current plan on mount
+  useEffect(() => {
     const fetchCurrentPlan = async () => {
-        try {
-            const token = localStorage.getItem("token");
-            const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
-                              
-            console.log("🔍 Fetching current plan from:", `${backendUrl}/api/user/plan-status`);
-            
-            const response = await fetch(`${backendUrl}/api/user/plan-status`, {
-                headers: { 
-                    "Authorization": `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                setCurrentPlan(data.plan);
-                console.log("✅ Current plan fetched:", data.plan);
-            } else {
-                console.log("ℹ️ No current plan found (user may be on free plan)");
-            }
-        } catch (err) {
-            console.error("❌ Error fetching current plan:", err);
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setLoading(false);
+          return;
         }
+
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+        const response = await fetch(`${backendUrl}/api/user/subscription`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setCurrentPlan(data.tier || data.plan_name || 'free');
+        }
+      } catch (err) {
+        console.error('Error fetching plan:', err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const handleSubscribe = async (planId) => {
-        if (!store.user) {
-            alert("Please log in to subscribe to a plan");
-            return;
-        }
+    fetchCurrentPlan();
+  }, []);
 
-        try {
-            setProcessingPayment(planId);
+  const getPrice = (tier) => {
+    return pricing[tier][billingCycle];
+  };
 
-            // Handle standalone distribution plans
-            let actualPlanId = planId;
-            if (planId === "artist-distribution" || planId === "fallback-artist-distribution") {
-                actualPlanId = "standalone-artist";
-            } else if (planId === "label-distribution" || planId === "fallback-label-distribution") {
-                actualPlanId = "standalone-label";
-            }
+  const getMonthlyEquivalent = (tier) => {
+    if (tier === 'free') return 0;
+    if (billingCycle === 'monthly') return pricing[tier].monthly;
+    return (pricing[tier].yearly / 12).toFixed(2);
+  };
 
-            console.log("🔄 Subscribing to plan:", actualPlanId);
+  const getYearlySavings = (tier) => {
+    if (tier === 'free') return 0;
+    const monthlyTotal = pricing[tier].monthly * 12;
+    return (monthlyTotal - pricing[tier].yearly).toFixed(0);
+  };
 
-            const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+  const isCurrentPlan = (tier) => {
+    return currentPlan?.toLowerCase() === tier.toLowerCase();
+  };
 
-            const res = await fetch(`${backendUrl}/api/subscriptions/subscribe`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + localStorage.getItem("token")
-                },
-                body: JSON.stringify({ 
-                    plan_id: actualPlanId,
-                    billing_cycle: selectedBilling 
-                })
-            });
-
-            const data = await res.json();
-            console.log("📋 Subscription response:", data);
-
-            if (res.ok) {
-                if (data.checkout_url) {
-                    console.log("🔗 Redirecting to checkout:", data.checkout_url);
-                    window.location.href = data.checkout_url;
-                } else {
-                    // Handle direct subscription success (like free plans)
-                    alert("✅ " + data.message);
-                    window.location.reload(); // Refresh to show updated plan
-                }
-            } else {
-                console.error("❌ Subscription error:", data);
-                alert("❌ " + (data.error || "Subscription failed"));
-            }
-        } catch (error) {
-            console.error("❌ Subscription error:", error);
-            alert("❌ Failed to process subscription. Please try again.");
-        } finally {
-            setProcessingPayment(null);
-        }
-    };
-
-    // Test backend connection
-    const testConnection = async () => {
-        try {
-            const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
-                              
-            console.log("🧪 Testing connection to:", backendUrl);
-            
-            const response = await fetch(`${backendUrl}/api/health`, {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            
-            if (response.ok) {
-                console.log("✅ Backend connection successful");
-                alert("✅ Backend connection successful!");
-                // Retry fetching plans
-                fetchPlans();
-            } else {
-                console.error("❌ Backend responded with error:", response.status);
-                alert(`❌ Backend error: ${response.status}`);
-            }
-        } catch (error) {
-            console.error("❌ Connection test failed:", error);
-            alert(`❌ Connection failed: ${error.message}`);
-        }
-    };
-
-    const getFeatureList = (plan) => {
-        const features = [];
-        
-        // Distribution plans have different features
-        if (plan.name === "Artist Distribution") {
-            return [
-                "🎵 Global Music Distribution",
-                "📊 Streaming Analytics", 
-                "💰 100% Royalty Retention",
-                "📈 Performance Tracking",
-                "🎧 Major Streaming Platforms",
-                "⚡ 24-48 Hour Distribution"
-            ];
-        }
-        
-        if (plan.name === "Label Distribution") {
-            return [
-                "🎵 Unlimited Artist Distribution",
-                "🏷️ Label Management Tools",
-                "📊 Multi-Artist Analytics",
-                "💰 Revenue Split Management", 
-                "📈 Label Performance Dashboard",
-                "🎧 All Major Platforms",
-                "⚡ Priority Distribution",
-                "🎤 Artist Roster Management"
-            ];
-        }
-        
-        // Regular plans - Social Media Features (FREE FOR ALL PLANS)
-        if (plan.name !== "Artist Distribution" && plan.name !== "Label Distribution") {
-            features.push("📱 Multi-Platform Social Posting");
-            features.push("🐦 Social Network Integration");
-            features.push("📸 Photo & Story Sharing");
-            features.push("🎬 Short-Form Video Posting");
-            features.push("📺 Video Platform Integration");
-            features.push("📘 Professional Network Posting");
-            features.push("📅 Content Scheduling");
-            features.push("📊 Social Media Analytics");
-            features.push("🤖 AI Content Optimization");
-            features.push("📈 Cross-Platform Dashboard");
-        }
-        
-        // Core Content Creation
-        if (plan.includes_podcasts) features.push("🎙️ Create Podcasts");
-        if (plan.includes_radio) features.push("📻 Radio Stations");
-        if (plan.includes_live_events) features.push("🎥 Live Streaming");
-        
-        // Monetization
-        if (plan.includes_digital_sales) features.push("🛍️ Digital Sales");
-        if (plan.includes_merch_sales) features.push("👕 Merch Store");
-        if (plan.includes_tip_jar) features.push("💰 Fan Tipping");
-        if (plan.includes_ad_revenue) features.push("📺 Ad Revenue Sharing");
-        if (plan.includes_brand_partnerships || plan.name === "Premium") {
-            features.push("🤝 Brand Partnership Hub");
-        }
-        if (plan.includes_affiliate_marketing || plan.name === "Premium") {
-            features.push("💼 Affiliate Marketing Tools");
-        }
-        
-        // Gaming Features
-        if (plan.includes_gaming_features) features.push("🎮 Gaming Community");
-        if (plan.includes_team_rooms) features.push("🏠 Private Team Rooms");
-        if (plan.includes_squad_finder) features.push("🔍 Squad Finder");
-        if (plan.includes_gaming_analytics) features.push("🎮 Gaming Analytics");
-        if (plan.includes_game_streaming) features.push("📺 Game Streaming");
-        if (plan.includes_gaming_monetization) features.push("💰 Gaming Monetization");
-        
-        return features;
-    };
-
-    const getPlanDescription = (plan) => {
-        switch(plan.name) {
-            case "Free":
-                return "Full social media features + gaming community access for everyone";
-            case "Basic":
-                return "Enhanced features for growing creators";
-            case "Pro":
-                return "Professional tools for serious creators";
-            case "Premium":
-                return "Complete creator suite with advanced monetization features";
-            case "Artist Distribution":
-                return "Music distribution for independent artists";
-            case "Label Distribution":
-                return "Music distribution for record labels";
-            case "Creator":
-                return "Free social features + enhanced content creation tools";
-            default:
-                return plan.description || "";
-        }
-    };
-
-    const getYearlySavings = (plan) => {
-        if (plan.price_monthly === 0) return 0;
-        // Distribution plans don't have yearly savings (same price)
-        if (plan.name === "Artist Distribution" || plan.name === "Label Distribution") return 0;
-        const monthlyTotal = plan.price_monthly * 12;
-        return monthlyTotal - plan.price_yearly;
-    };
-
-    const getCurrentPrice = (plan) => {
-        // Distribution plans are yearly-only pricing
-        if (plan.name === "Artist Distribution" || plan.name === "Label Distribution") {
-            return selectedBilling === 'yearly' ? plan.price_yearly : plan.price_yearly;
-        }
-        return selectedBilling === 'yearly' ? plan.price_yearly / 12 : plan.price_monthly;
-    };
-
-    const getPricePeriod = (plan) => {
-        // Distribution plans are yearly-only
-        if (plan.name === "Artist Distribution" || plan.name === "Label Distribution") {
-            return "/year";
-        }
-        return selectedBilling === 'yearly' ? '/month' : '/month';
-    };
-
-    const isCurrentPlan = (plan) => {
-        return currentPlan && currentPlan.id === plan.id;
-    };
-
-    // Separate regular plans from distribution plans
-    const regularPlans = plans.filter(plan => 
-        plan.name !== "Artist Distribution" && plan.name !== "Label Distribution"
-    );
-    const distributionPlans = plans.filter(plan => 
-        plan.name === "Artist Distribution" || plan.name === "Label Distribution"
-    );
-
-    if (loading) {
-        return (
-            <div className="pricing-container loading">
-                <h1>💰 Loading Plans...</h1>
-                <div className="loading-spinner"></div>
-                <p>Connecting to backend...</p>
-            </div>
-        );
+  const handleSelectPlan = async (tier, isDistribution = false) => {
+    if (!store.user) {
+      navigate('/signup');
+      return;
     }
 
-    // Enhanced error handling with connection testing
-    if (error || plans.length === 0) {
-        return (
-            <div className="pricing-container">
-                <div className="pricing-header">
-                    <h1>💰 Pricing Plans</h1>
-                    {error && (
-                        <div className="error-message">
-                            ⚠️ {error}
-                        </div>
-                    )}
-                    
-                    <div className="connection-troubleshooting">
-                        <h3>🔧 Connection Troubleshooting</h3>
-                        <p>Backend URL: <code>{process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}</code></p>
-                        
-                        <div className="troubleshooting-steps">
-                            <h4>Debug Steps:</h4>
-                            <ol>
-                                <li>✅ Check if your backend is running on port 3001</li>
-                                <li>✅ Verify your environment variables are set</li>
-                                <li>✅ Test the API endpoint directly</li>
-                                <li>✅ Check browser console for detailed errors</li>
-                            </ol>
-                        </div>
-                        
-                        <div className="action-buttons">
-                            <button 
-                                className="retry-btn"
-                                onClick={() => {
-                                    setLoading(true);
-                                    setError(null);
-                                    fetchPlans();
-                                }}
-                            >
-                                🔄 Retry Loading Plans
-                            </button>
-                            
-                            <button 
-                                className="test-btn"
-                                onClick={testConnection}
-                            >
-                                🧪 Test Backend Connection
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
+    if (tier === 'free') {
+      navigate('/dashboard');
+      return;
     }
 
+    if (isCurrentPlan(tier)) {
+      return;
+    }
+
+    try {
+      setProcessing(tier);
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+      
+      // Map distribution plan IDs
+      let planId = tier;
+      if (tier === 'artist-distribution') {
+        planId = 'standalone-artist';
+      } else if (tier === 'label-distribution') {
+        planId = 'standalone-label';
+      }
+      
+      const response = await fetch(`${backendUrl}/api/subscriptions/subscribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          plan_id: planId,
+          billing_cycle: isDistribution ? 'yearly' : billingCycle
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.checkout_url) {
+        window.location.href = data.checkout_url;
+      } else if (response.ok) {
+        alert('✅ ' + (data.message || 'Subscription updated!'));
+        window.location.reload();
+      } else {
+        alert('❌ ' + (data.error || 'Subscription failed'));
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      alert('❌ Failed to process subscription');
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  if (loading) {
     return (
-        <div className="pricing-container">
-            {/* Header Section */}
-            <div className="pricing-header">
-                <h1>💰 Choose Your Plan</h1>
-                <p className="pricing-subtitle">
-                    Start with our free plan or unlock music distribution and creator features
-                </p>
-                
-                {/* Billing Toggle */}
-                <div className="billing-toggle">
-                    <button
-                        className={selectedBilling === 'monthly' ? 'active' : ''}
-                        onClick={() => setSelectedBilling('monthly')}
-                    >
-                        Monthly
-                    </button>
-                    <button
-                        className={selectedBilling === 'yearly' ? 'active' : ''}
-                        onClick={() => setSelectedBilling('yearly')}
-                    >
-                        Yearly
-                        <span className="savings-badge">Save up to 25%</span>
-                    </button>
-                </div>
-                
-                {currentPlan && (
-                    <div className="current-plan-badge">
-                        Currently on: <strong>{currentPlan.name} Plan</strong>
-                    </div>
-                )}
+      <div className="pricing-page">
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading plans...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pricing-page">
+      {/* Header */}
+      <div className="pricing-header">
+        <h1>Simple, Transparent Pricing</h1>
+        <p>Everything you need to create, stream, game, and grow. No hidden fees.</p>
+        
+        {/* Billing Toggle */}
+        <div className="billing-toggle">
+          <span className={billingCycle === 'monthly' ? 'active' : ''}>Monthly</span>
+          <label className="toggle-switch">
+            <input
+              type="checkbox"
+              checked={billingCycle === 'yearly'}
+              onChange={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
+            />
+            <span className="toggle-slider"></span>
+          </label>
+          <span className={billingCycle === 'yearly' ? 'active' : ''}>
+            Yearly <span className="savings-badge">Save 17%</span>
+          </span>
+        </div>
+
+        {currentPlan && currentPlan !== 'free' && (
+          <div className="current-plan-indicator">
+            ✅ Currently on: <strong>{currentPlan.charAt(0).toUpperCase() + currentPlan.slice(1)}</strong>
+          </div>
+        )}
+      </div>
+
+      {/* Value Proposition Banner */}
+      <div className="value-banner">
+        <h2>🎬 The All-in-One Creator Platform</h2>
+        <p>Replace 15+ tools with one platform. Video editing, streaming, gaming, music distribution, and more.</p>
+        <div className="value-stats">
+          <div className="stat">
+            <span className="stat-value">90%</span>
+            <span className="stat-label">Creator Earnings</span>
+          </div>
+          <div className="stat">
+            <span className="stat-value">50+</span>
+            <span className="stat-label">Distribution Platforms</span>
+          </div>
+          <div className="stat">
+            <span className="stat-value">$0</span>
+            <span className="stat-label">To Start Creating</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ==================== CREATOR PLANS ==================== */}
+      <div className="pricing-section">
+        <h2 className="section-title">🎨 Creator Plans</h2>
+        <p className="section-subtitle">Full access to video editing, streaming, gaming, and monetization</p>
+        
+        <div className="pricing-cards">
+          
+          {/* ==================== FREE TIER ==================== */}
+          <div className={`pricing-card free ${isCurrentPlan('free') ? 'current' : ''}`}>
+            {isCurrentPlan('free') && <div className="current-badge">Current Plan</div>}
+            
+            <div className="card-header">
+              <h2>Free</h2>
+              <p className="card-subtitle">For hobbyists & beginners</p>
             </div>
             
-            {/* Social Media Integration Section */}
-            <div className="social-media-integration">
-                <h2>📱 Complete Social Media Suite - FREE FOR EVERYONE</h2>
-                <p className="integration-subtitle">
-                    Unlike other platforms, StreampireX includes powerful social media tools with every plan
-                </p>
-                <div className="social-platforms-showcase">
-                    <div className="platform-row">
-                        <div className="platform-badge">🐦 Social Network A</div>
-                        <div className="platform-badge">📸 Photo Sharing</div>
-                        <div className="platform-badge">🎬 Short Video</div>
-                        <div className="platform-badge">📺 Video Platform</div>
-                    </div>
-                    <div className="platform-row">
-                        <div className="platform-badge">📘 Social Network B</div>
-                        <div className="platform-badge">💼 Professional Network</div>
-                        <div className="platform-badge">👻 Story Platform</div>
-                        <div className="platform-badge">📌 Visual Discovery</div>
-                    </div>
-                </div>
-                <div className="integration-features">
-                    <div className="integration-feature">
-                        <span className="feature-icon">🆓</span>
-                        <div>
-                            <h4>100% Free Social Features</h4>
-                            <p>Full social media management included with every plan - no hidden fees</p>
-                        </div>
-                    </div>
-                    <div className="integration-feature">
-                        <span className="feature-icon">📈</span>
-                        <div>
-                            <h4>Unified Analytics</h4>
-                            <p>Track performance across all platforms in one comprehensive dashboard</p>
-                        </div>
-                    </div>
-                    <div className="integration-feature">
-                        <span className="feature-icon">⏰</span>
-                        <div>
-                            <h4>Smart Automation</h4>
-                            <p>Schedule posts, optimize timing, and manage everything from one place</p>
-                        </div>
-                    </div>
-                </div>
+            <div className="card-price">
+              <span className="price">$0</span>
+              <span className="period">forever</span>
             </div>
 
-            {/* Main Creator Plans Grid */}
-            <div className="pricing-section">
-                <h2>🎨 Creator Plans</h2>
-                <div className="pricing-grid">
-                    {regularPlans.map((plan) => {
-                        const isCurrent = isCurrentPlan(plan);
-                        const currentPrice = getCurrentPrice(plan);
-                        const isProcessing = processingPayment === plan.id;
-                        
-                        return (
-                            <div key={plan.id} className={`pricing-card ${plan.name.toLowerCase().replace(/\s+/g, '-')} ${isCurrent ? 'current-plan' : ''}`}>
-                                {/* Popular Badge */}
-                                {(plan.name === "Pro" || plan.name === "Creator") && (
-                                    <div className="popular-badge">
-                                        ⭐ MOST POPULAR
-                                    </div>
-                                )}
+            <ul className="features-list">
+              {/* Video Editing */}
+              <li className="feature included highlight">
+                <span className="icon">🎬</span>
+                <span><strong>Full video editor</strong> - all tools!</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>1080p export, 5 projects, 4 tracks</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>5GB storage</span>
+              </li>
+              <li className="feature limited">
+                <span className="icon">~</span>
+                <span>Small watermark on exports</span>
+              </li>
+              
+              {/* Clips */}
+              <li className="feature included">
+                <span className="icon">📱</span>
+                <span>3 clips/day (60 sec max)</span>
+              </li>
+              
+              {/* Cross-posting */}
+              <li className="feature included">
+                <span className="icon">🔗</span>
+                <span>Cross-post to YouTube (1/day)</span>
+              </li>
+              
+              {/* Gaming - FREE FOR ALL */}
+              <li className="feature included highlight">
+                <span className="icon">🎮</span>
+                <span><strong>Gaming Community Access</strong></span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>Squad Finder</span>
+              </li>
+              
+              {/* Monetization */}
+              <li className="feature included">
+                <span className="icon">💰</span>
+                <span>Receive tips (keep 90%)</span>
+              </li>
+              
+              {/* Excluded */}
+              <li className="feature excluded">
+                <span className="icon">✗</span>
+                <span>Live streaming</span>
+              </li>
+              <li className="feature excluded">
+                <span className="icon">✗</span>
+                <span>Team Rooms</span>
+              </li>
+            </ul>
 
-                                {/* Current Plan Badge */}
-                                {isCurrent && (
-                                    <div className="current-badge">
-                                        ✅ CURRENT PLAN
-                                    </div>
-                                )}
+            <button 
+              className="select-plan-btn"
+              onClick={() => handleSelectPlan('free')}
+              disabled={isCurrentPlan('free')}
+            >
+              {isCurrentPlan('free') ? '✅ Current Plan' : 'Get Started Free'}
+            </button>
+          </div>
 
-                                <div className="plan-header">
-                                    <h2>{plan.name}</h2>
-                                    <p className="plan-description">{getPlanDescription(plan)}</p>
-                                </div>
-                                
-                                <div className="plan-pricing">
-                                    <div className="monthly-price">
-                                        <span className="price">${currentPrice.toFixed(2)}</span>
-                                        <span className="period">{getPricePeriod(plan)}</span>
-                                    </div>
-                                    {selectedBilling === 'yearly' && plan.price_yearly > 0 && getYearlySavings(plan) > 0 && (
-                                        <div className="yearly-price">
-                                            <span className="yearly-label">Billed ${plan.price_yearly} yearly</span>
-                                            <span className="savings">Save ${getYearlySavings(plan).toFixed(2)}</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Social Media Features Highlight - FREE FOR ALL */}
-                                <div className="social-media-highlight">
-                                    <h4>📱 Social Media Features (FREE)</h4>
-                                    <div className="social-features">
-                                        <div>🚀 Post to all platforms at once</div>
-                                        <div>📅 Smart scheduling & automation</div>
-                                        <div>📊 Analytics across all networks</div>
-                                        <div>🤖 AI content optimization</div>
-                                    </div>
-                                </div>
-
-                                <div className="plan-features">
-                                    {plan.features ? plan.features.map((feature, index) => (
-                                        <div key={index} className="feature-item">
-                                            ✅ {feature}
-                                        </div>
-                                    )) : getFeatureList(plan).map((feature, index) => (
-                                        <div key={index} className="feature-item">
-                                            ✅ {feature}
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {plan.trial_days > 0 && (
-                                    <div className="trial-info">
-                                        🆓 {plan.trial_days} day free trial
-                                    </div>
-                                )}
-
-                                <button 
-                                    className={`subscribe-btn ${plan.name.toLowerCase().replace(/\s+/g, '-')} ${isCurrent ? 'current' : ''}`}
-                                    onClick={() => handleSubscribe(plan.id)}
-                                    disabled={isCurrent || isProcessing}
-                                >
-                                    {isProcessing ? (
-                                        <span className="processing">
-                                            <div className="btn-spinner"></div>
-                                            Processing...
-                                        </span>
-                                    ) : isCurrent 
-                                        ? "✅ Current Plan" 
-                                        : plan.name === "Free" 
-                                            ? "🚀 Get Started Free" 
-                                            : `Subscribe to ${plan.name}`
-                                    }
-                                </button>
-                            </div>
-                        );
-                    })}
-                </div>
+          {/* ==================== BASIC TIER ==================== */}
+          <div className={`pricing-card basic ${isCurrentPlan('basic') ? 'current' : ''}`}>
+            {isCurrentPlan('basic') && <div className="current-badge">Current Plan</div>}
+            
+            <div className="card-header">
+              <h2>Basic</h2>
+              <p className="card-subtitle">For growing creators</p>
+            </div>
+            
+            <div className="card-price">
+              <span className="price">${getMonthlyEquivalent('basic')}</span>
+              <span className="period">/month</span>
+              {billingCycle === 'yearly' && (
+                <>
+                  <span className="billed-yearly">Billed ${getPrice('basic')}/year</span>
+                  <span className="yearly-savings">Save ${getYearlySavings('basic')}</span>
+                </>
+              )}
             </div>
 
-            {/* Music Distribution Plans */}
-            {distributionPlans.length > 0 && (
-                <div className="pricing-section distribution-section">
-                    <h2>🎵 Music Distribution Plans</h2>
-                    <p className="section-subtitle">Distribute your music globally to 150+ platforms</p>
-                    <div className="pricing-grid distribution-grid">
-                        {distributionPlans.map((plan) => {
-                            const isCurrent = isCurrentPlan(plan);
-                            const currentPrice = getCurrentPrice(plan);
-                            const isProcessing = processingPayment === plan.id;
-                            
-                            return (
-                                <div key={plan.id} className={`pricing-card distribution-card ${plan.name.toLowerCase().replace(/\s+/g, '-')} ${isCurrent ? 'current-plan' : ''}`}>
-                                    {/* Current Plan Badge */}
-                                    {isCurrent && (
-                                        <div className="current-badge">
-                                            ✅ CURRENT PLAN
-                                        </div>
-                                    )}
+            <ul className="features-list">
+              <li className="feature included highlight">
+                <span className="icon">⬆️</span>
+                <span><strong>Everything in Free, plus:</strong></span>
+              </li>
+              
+              {/* Video Editing */}
+              <li className="feature included">
+                <span className="icon">🎬</span>
+                <span><strong>4K export, no watermark!</strong></span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>25 projects, 8 tracks, 60 min exports</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>25GB storage</span>
+              </li>
+              
+              {/* Clips */}
+              <li className="feature included">
+                <span className="icon">📱</span>
+                <span>20 clips/day (3 min max)</span>
+              </li>
+              
+              {/* Streaming */}
+              <li className="feature included highlight">
+                <span className="icon">📺</span>
+                <span><strong>Live Streaming</strong> (4 hrs, 1080p)</span>
+              </li>
+              
+              {/* Cross-posting */}
+              <li className="feature included">
+                <span className="icon">🔗</span>
+                <span>Cross-post to 3 platforms (5/day)</span>
+              </li>
+              
+              {/* Gaming */}
+              <li className="feature included highlight">
+                <span className="icon">🎮</span>
+                <span><strong>Team Rooms</strong></span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>Gaming Analytics</span>
+              </li>
+              
+              {/* Music */}
+              <li className="feature included">
+                <span className="icon">🎵</span>
+                <span>Premium music library</span>
+              </li>
+            </ul>
 
-                                    <div className="plan-header">
-                                        <h2>{plan.name}</h2>
-                                        <p className="plan-description">{getPlanDescription(plan)}</p>
-                                    </div>
-                                    
-                                    <div className="plan-pricing">
-                                        <div className="monthly-price">
-                                            <span className="price">${currentPrice.toFixed(2)}</span>
-                                            <span className="period">/year</span>
-                                        </div>
-                                        <div className="yearly-price">
-                                            <span className="yearly-label">Annual billing only</span>
-                                        </div>
-                                    </div>
+            <button 
+              className="select-plan-btn"
+              onClick={() => handleSelectPlan('basic')}
+              disabled={processing === 'basic' || isCurrentPlan('basic')}
+            >
+              {processing === 'basic' ? (
+                <span className="btn-loading">
+                  <span className="spinner"></span> Processing...
+                </span>
+              ) : isCurrentPlan('basic') ? '✅ Current Plan' : 'Start Basic'}
+            </button>
+          </div>
 
-                                    <div className="plan-features">
-                                        {plan.features ? plan.features.map((feature, index) => (
-                                            <div key={index} className="feature-item">
-                                                ✅ {feature}
-                                            </div>
-                                        )) : getFeatureList(plan).map((feature, index) => (
-                                            <div key={index} className="feature-item">
-                                                ✅ {feature}
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <button 
-                                        className={`subscribe-btn distribution-btn ${plan.name.toLowerCase().replace(/\s+/g, '-')} ${isCurrent ? 'current' : ''}`}
-                                        onClick={() => handleSubscribe(plan.id)}
-                                        disabled={isCurrent || isProcessing}
-                                    >
-                                        {isProcessing ? (
-                                            <span className="processing">
-                                                <div className="btn-spinner"></div>
-                                                Processing...
-                                            </span>
-                                        ) : isCurrent 
-                                            ? "✅ Current Plan" 
-                                            : `Subscribe to ${plan.name}`
-                                        }
-                                    </button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {/* Social Media Success Stats */}
-            <div className="social-success-stats">
-                <h2>📈 Why Creators Choose StreampireX Social Features</h2>
-                <div className="stats-grid">
-                    <div className="stat-card">
-                        <div className="stat-number">FREE</div>
-                        <div className="stat-label">Social media tools</div>
-                        <div className="stat-detail">included with every plan</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-number">15+</div>
-                        <div className="stat-label">Platforms connected</div>
-                        <div className="stat-detail">post everywhere at once</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-number">85%</div>
-                        <div className="stat-label">Time saved</div>
-                        <div className="stat-detail">on social media management</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-number">24/7</div>
-                        <div className="stat-label">Automation</div>
-                        <div className="stat-detail">schedule weeks in advance</div>
-                    </div>
-                </div>
-                <div className="social-cta">
-                    <h3>🎯 The Only Platform That Includes Social Media Management for FREE</h3>
-                    <p>While others charge $50-200/month for social media tools, we include everything free!</p>
-                </div>
+          {/* ==================== PREMIUM TIER ==================== */}
+          <div className={`pricing-card premium popular ${isCurrentPlan('premium') ? 'current' : ''}`}>
+            <div className="popular-badge">🔥 Most Popular</div>
+            {isCurrentPlan('premium') && <div className="current-badge">Current Plan</div>}
+            
+            <div className="card-header">
+              <h2>Premium</h2>
+              <p className="card-subtitle">For serious creators</p>
+            </div>
+            
+            <div className="card-price">
+              <span className="price">${getMonthlyEquivalent('premium')}</span>
+              <span className="period">/month</span>
+              {billingCycle === 'yearly' && (
+                <>
+                  <span className="billed-yearly">Billed ${getPrice('premium')}/year</span>
+                  <span className="yearly-savings">Save ${getYearlySavings('premium')}</span>
+                </>
+              )}
             </div>
 
-            {/* FAQ Section */}
-            <div className="pricing-faq">
-                <h2>❓ Frequently Asked Questions</h2>
-                <div className="faq-grid">
-                    <div className="faq-item">
-                        <h4>Can I change plans anytime?</h4>
-                        <p>Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately and we'll prorate any billing differences.</p>
-                    </div>
-                    <div className="faq-item">
-                        <h4>What happens to my content if I downgrade?</h4>
-                        <p>Your existing content remains accessible. However, some advanced features may become unavailable based on your new plan limits.</p>
-                    </div>
-                    <div className="faq-item">
-                        <h4>Do you offer refunds?</h4>
-                        <p>We offer a 30-day money-back guarantee for all paid plans. Contact support if you're not satisfied with your subscription.</p>
-                    </div>
-                    <div className="faq-item">
-                        <h4>Are distribution plans monthly or yearly?</h4>
-                        <p>Music distribution plans are billed annually only. Creator plans can be billed monthly or yearly with savings.</p>
-                    </div>
-                </div>
-            </div>
+            <ul className="features-list">
+              <li className="feature included highlight">
+                <span className="icon">⬆️</span>
+                <span><strong>Everything in Basic, plus:</strong></span>
+              </li>
+              
+              {/* Video Editing */}
+              <li className="feature included">
+                <span className="icon">🎬</span>
+                <span><strong>Unlimited</strong> projects & exports</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>24 tracks, 150GB storage</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>Collaborate with 5 people</span>
+              </li>
+              
+              {/* Clips */}
+              <li className="feature included">
+                <span className="icon">📱</span>
+                <span><strong>Unlimited clips</strong> (10 min max)</span>
+              </li>
+              
+              {/* Streaming */}
+              <li className="feature included highlight">
+                <span className="icon">📺</span>
+                <span><strong>4K Streaming</strong> (12 hours max)</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>Simulcast to 5 destinations</span>
+              </li>
+              
+              {/* Cross-posting */}
+              <li className="feature included">
+                <span className="icon">🔗</span>
+                <span>Cross-post to <strong>ALL 7 platforms</strong></span>
+              </li>
+              
+              {/* Gaming */}
+              <li className="feature included highlight">
+                <span className="icon">🎮</span>
+                <span><strong>Game Streaming & Monetization</strong></span>
+              </li>
+              
+              {/* Music Distribution */}
+              <li className="feature included special">
+                <span className="icon">🎵</span>
+                <span><strong>Music Distribution</strong> (90% royalties)</span>
+              </li>
+              
+              {/* Support */}
+              <li className="feature included">
+                <span className="icon">⚡</span>
+                <span>Priority export queue & support</span>
+              </li>
+            </ul>
+
+            <button 
+              className="select-plan-btn primary"
+              onClick={() => handleSelectPlan('premium')}
+              disabled={processing === 'premium' || isCurrentPlan('premium')}
+            >
+              {processing === 'premium' ? (
+                <span className="btn-loading">
+                  <span className="spinner"></span> Processing...
+                </span>
+              ) : isCurrentPlan('premium') ? '✅ Current Plan' : 'Go Premium'}
+            </button>
+          </div>
         </div>
-    );
+      </div>
+
+      {/* ==================== MUSIC DISTRIBUTION PLANS ==================== */}
+      <div className="pricing-section distribution-section">
+        <h2 className="section-title">🎵 Music Distribution Plans</h2>
+        <p className="section-subtitle">Distribute your music globally to 150+ platforms. Annual billing only.</p>
+        
+        <div className="distribution-cards">
+          
+          {/* Artist Distribution */}
+          <div className={`pricing-card distribution artist ${isCurrentPlan('artist-distribution') ? 'current' : ''}`}>
+            {isCurrentPlan('artist-distribution') && <div className="current-badge">Current Plan</div>}
+            
+            <div className="card-header">
+              <div className="distribution-icon">🎤</div>
+              <h2>Artist Distribution</h2>
+              <p className="card-subtitle">For independent artists</p>
+            </div>
+            
+            <div className="card-price">
+              <span className="price">${distributionPricing.artist}</span>
+              <span className="period">/year</span>
+              <span className="billed-yearly">One-time annual fee</span>
+            </div>
+
+            <ul className="features-list">
+              <li className="feature included highlight">
+                <span className="icon">🌍</span>
+                <span><strong>Global Music Distribution</strong></span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>Spotify, Apple Music, Amazon, etc.</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>150+ streaming platforms</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">📊</span>
+                <span>Streaming analytics dashboard</span>
+              </li>
+              <li className="feature included special">
+                <span className="icon">💰</span>
+                <span><strong>100% royalty retention</strong></span>
+              </li>
+              <li className="feature included">
+                <span className="icon">⚡</span>
+                <span>24-48 hour distribution</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">📈</span>
+                <span>Performance tracking</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">🎧</span>
+                <span>Unlimited releases</span>
+              </li>
+            </ul>
+
+            <button 
+              className="select-plan-btn distribution-btn"
+              onClick={() => handleSelectPlan('artist-distribution', true)}
+              disabled={processing === 'artist-distribution' || isCurrentPlan('artist-distribution')}
+            >
+              {processing === 'artist-distribution' ? (
+                <span className="btn-loading">
+                  <span className="spinner"></span> Processing...
+                </span>
+              ) : isCurrentPlan('artist-distribution') ? '✅ Current Plan' : 'Start Distributing'}
+            </button>
+          </div>
+
+          {/* Label Distribution */}
+          <div className={`pricing-card distribution label ${isCurrentPlan('label-distribution') ? 'current' : ''}`}>
+            <div className="label-badge">🏆 For Labels</div>
+            {isCurrentPlan('label-distribution') && <div className="current-badge">Current Plan</div>}
+            
+            <div className="card-header">
+              <div className="distribution-icon">🏷️</div>
+              <h2>Label Distribution</h2>
+              <p className="card-subtitle">For record labels & managers</p>
+            </div>
+            
+            <div className="card-price">
+              <span className="price">${distributionPricing.label}</span>
+              <span className="period">/year</span>
+              <span className="billed-yearly">One-time annual fee</span>
+            </div>
+
+            <ul className="features-list">
+              <li className="feature included highlight">
+                <span className="icon">🌍</span>
+                <span><strong>Unlimited Artist Distribution</strong></span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>All 150+ streaming platforms</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">🏷️</span>
+                <span>Label management tools</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">👥</span>
+                <span>Artist roster management</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">📊</span>
+                <span>Multi-artist analytics</span>
+              </li>
+              <li className="feature included special">
+                <span className="icon">💰</span>
+                <span><strong>Revenue split management</strong></span>
+              </li>
+              <li className="feature included">
+                <span className="icon">📈</span>
+                <span>Label performance dashboard</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">⚡</span>
+                <span>Priority distribution</span>
+              </li>
+            </ul>
+
+            <button 
+              className="select-plan-btn distribution-btn label-btn"
+              onClick={() => handleSelectPlan('label-distribution', true)}
+              disabled={processing === 'label-distribution' || isCurrentPlan('label-distribution')}
+            >
+              {processing === 'label-distribution' ? (
+                <span className="btn-loading">
+                  <span className="spinner"></span> Processing...
+                </span>
+              ) : isCurrentPlan('label-distribution') ? '✅ Current Plan' : 'Start Label Plan'}
+            </button>
+          </div>
+        </div>
+        
+        <div className="distribution-note">
+          <p>💡 <strong>Premium creators</strong> already have music distribution included! These standalone plans are for users who only need distribution.</p>
+        </div>
+      </div>
+
+      {/* Creator Earnings Highlight */}
+      <div className="earnings-highlight">
+        <h3>💰 Keep 90% of Your Earnings</h3>
+        <p>Unlike other platforms that take 30-50%, StreamPireX lets you keep 90% of tips, subscriptions, and music royalties.</p>
+        <div className="earnings-comparison">
+          <div className="platform-compare">
+            <span className="platform-name">YouTube</span>
+            <div className="earnings-bar youtube"><span>45%</span></div>
+          </div>
+          <div className="platform-compare">
+            <span className="platform-name">Twitch</span>
+            <div className="earnings-bar twitch"><span>50%</span></div>
+          </div>
+          <div className="platform-compare">
+            <span className="platform-name">StreamPireX</span>
+            <div className="earnings-bar streampirex"><span>90%</span></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Comparison Toggle */}
+      <div className="comparison-toggle">
+        <button onClick={() => setShowComparison(!showComparison)}>
+          {showComparison ? 'Hide' : 'Show'} Full Feature Comparison
+          <span className={`arrow ${showComparison ? 'up' : 'down'}`}>▼</span>
+        </button>
+      </div>
+
+      {/* Feature Comparison Table */}
+      {showComparison && (
+        <div className="comparison-table-wrapper">
+          <table className="comparison-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>Free</th>
+                <th>Basic</th>
+                <th className="highlight">Premium</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Pricing */}
+              <tr className="category-header">
+                <td colSpan="4">💳 Pricing</td>
+              </tr>
+              <tr>
+                <td>Monthly Price</td>
+                <td>$0</td>
+                <td>$12.99</td>
+                <td className="highlight">$29.99</td>
+              </tr>
+              <tr>
+                <td>Yearly Price</td>
+                <td>$0</td>
+                <td>$129.99</td>
+                <td className="highlight">$299.99</td>
+              </tr>
+
+              {/* Video Editing */}
+              <tr className="category-header">
+                <td colSpan="4">🎬 Video Editing</td>
+              </tr>
+              <tr>
+                <td>All Tools & Effects</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+              </tr>
+              <tr>
+                <td>Max Export Quality</td>
+                <td>1080p</td>
+                <td>4K</td>
+                <td className="highlight">4K</td>
+              </tr>
+              <tr>
+                <td>Watermark</td>
+                <td>Yes</td>
+                <td>No</td>
+                <td className="highlight">No</td>
+              </tr>
+              <tr>
+                <td>Projects / Tracks</td>
+                <td>5 / 4</td>
+                <td>25 / 8</td>
+                <td className="highlight">∞ / 24</td>
+              </tr>
+              <tr>
+                <td>Storage</td>
+                <td>5GB</td>
+                <td>25GB</td>
+                <td className="highlight">150GB</td>
+              </tr>
+              <tr>
+                <td>Max Export Length</td>
+                <td>10 min</td>
+                <td>60 min</td>
+                <td className="highlight">Unlimited</td>
+              </tr>
+              <tr>
+                <td>Collaboration</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td className="highlight">5 people</td>
+              </tr>
+
+              {/* Clips */}
+              <tr className="category-header">
+                <td colSpan="4">📱 Clips</td>
+              </tr>
+              <tr>
+                <td>Clips Per Day</td>
+                <td>3</td>
+                <td>20</td>
+                <td className="highlight">Unlimited</td>
+              </tr>
+              <tr>
+                <td>Max Clip Duration</td>
+                <td>60 sec</td>
+                <td>3 min</td>
+                <td className="highlight">10 min</td>
+              </tr>
+              <tr>
+                <td>Premium Music</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+              </tr>
+
+              {/* Streaming */}
+              <tr className="category-header">
+                <td colSpan="4">📺 Live Streaming</td>
+              </tr>
+              <tr>
+                <td>Live Streaming</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+              </tr>
+              <tr>
+                <td>Max Quality</td>
+                <td>—</td>
+                <td>1080p</td>
+                <td className="highlight">4K</td>
+              </tr>
+              <tr>
+                <td>Max Duration</td>
+                <td>—</td>
+                <td>4 hours</td>
+                <td className="highlight">12 hours</td>
+              </tr>
+              <tr>
+                <td>Simulcast</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td className="highlight">5 destinations</td>
+              </tr>
+
+              {/* Gaming */}
+              <tr className="category-header">
+                <td colSpan="4">🎮 Gaming Features</td>
+              </tr>
+              <tr>
+                <td>Gaming Community</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+              </tr>
+              <tr>
+                <td>Squad Finder</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+              </tr>
+              <tr>
+                <td>Team Rooms</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+              </tr>
+              <tr>
+                <td>Gaming Analytics</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+              </tr>
+              <tr>
+                <td>Game Streaming</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td className="highlight">✓</td>
+              </tr>
+              <tr>
+                <td>Gaming Monetization</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td className="highlight">✓</td>
+              </tr>
+
+              {/* Cross-Posting */}
+              <tr className="category-header">
+                <td colSpan="4">🔗 Cross-Posting</td>
+              </tr>
+              <tr>
+                <td>Platforms</td>
+                <td>YouTube</td>
+                <td>3 platforms</td>
+                <td className="highlight">All 7</td>
+              </tr>
+              <tr>
+                <td>Posts Per Day</td>
+                <td>1</td>
+                <td>5</td>
+                <td className="highlight">Unlimited</td>
+              </tr>
+
+              {/* Music Distribution */}
+              <tr className="category-header">
+                <td colSpan="4">🎵 Music Distribution</td>
+              </tr>
+              <tr>
+                <td>Distribute to Spotify, Apple, etc.</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td className="highlight">✓ (Included!)</td>
+              </tr>
+              <tr>
+                <td>Royalty Rate</td>
+                <td>—</td>
+                <td>—</td>
+                <td className="highlight">90%</td>
+              </tr>
+
+              {/* Monetization */}
+              <tr className="category-header">
+                <td colSpan="4">💰 Monetization</td>
+              </tr>
+              <tr>
+                <td>Receive Tips</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+              </tr>
+              <tr>
+                <td>Earnings Rate</td>
+                <td>90%</td>
+                <td>90%</td>
+                <td className="highlight">90%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* FAQ Section */}
+      <div className="pricing-faq">
+        <h2>❓ Frequently Asked Questions</h2>
+        
+        <div className="faq-grid">
+          <div className="faq-item">
+            <h3>Can I upgrade or downgrade anytime?</h3>
+            <p>Yes! Change your plan anytime. Upgrades take effect immediately, downgrades at the end of your billing cycle.</p>
+          </div>
+          
+          <div className="faq-item">
+            <h3>What payment methods do you accept?</h3>
+            <p>All major credit cards, debit cards, and PayPal through our secure Stripe payment processor.</p>
+          </div>
+          
+          <div className="faq-item">
+            <h3>Do I need a distribution plan if I'm Premium?</h3>
+            <p>No! Premium already includes full music distribution. The Artist/Label plans are for users who only need distribution without other creator features.</p>
+          </div>
+          
+          <div className="faq-item">
+            <h3>What's included in gaming features?</h3>
+            <p>Squad Finder, Team Rooms, gaming analytics, game streaming integration, and monetization tools for gaming content.</p>
+          </div>
+          
+          <div className="faq-item">
+            <h3>How does 90% creator earnings work?</h3>
+            <p>You keep 90% of tips and subscriptions. We only take 10% for processing. External payments (CashApp, Venmo) go 100% to you!</p>
+          </div>
+          
+          <div className="faq-item">
+            <h3>Can I cancel anytime?</h3>
+            <p>Yes, cancel anytime with no fees. Keep access until the end of your billing period.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="pricing-cta">
+        <h2>Ready to create?</h2>
+        <p>Join thousands of creators building their audience on StreamPireX</p>
+        <button 
+          className="cta-button"
+          onClick={() => navigate('/signup')}
+        >
+          🚀 Start Creating for Free
+        </button>
+      </div>
+    </div>
+  );
 };
 
-export default PricingPlans;
+export default PricingPage;

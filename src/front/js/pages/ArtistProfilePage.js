@@ -68,8 +68,32 @@ const ArtistProfilePage = () => {
   const { id } = useParams();
   
   // Check if this is the current user's own profile
-  const currentUserId = localStorage.getItem("userId");
-  const isOwnProfile = currentUserId === id;
+  // Try multiple possible localStorage keys and ensure string comparison
+  const getCurrentUserId = () => {
+    // Try different possible keys
+    const possibleKeys = ["userId", "user_id", "id"];
+    for (const key of possibleKeys) {
+      const value = localStorage.getItem(key);
+      if (value) return String(value);
+    }
+    // Also check if user data is stored as JSON
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        const parsed = JSON.parse(userData);
+        return String(parsed.id || parsed.user_id || parsed.userId || "");
+      } catch (e) {
+        return "";
+      }
+    }
+    return "";
+  };
+  
+  const currentUserId = getCurrentUserId();
+  const isOwnProfile = currentUserId && id && String(currentUserId) === String(id);
+  
+  // Debug log (remove in production)
+  console.log("Profile Debug:", { currentUserId, id, isOwnProfile });
 
   const profileModes = [
     { id: "regular", label: "👤 Regular Profile", path: "/user/" + id },
