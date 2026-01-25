@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Context } from '../store/appContext';
-import './PricingPage.css';
+import '../../styles/PricingPlans.css';
 
 const PricingPage = () => {
   const { store } = useContext(Context);
