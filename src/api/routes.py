@@ -2922,57 +2922,188 @@ TRACKS_FOLDER = os.path.join(UPLOAD_FOLDER, "sample_tracks")
 os.makedirs(PROFILE_PIC_FOLDER, exist_ok=True)
 os.makedirs(TRACKS_FOLDER, exist_ok=True)
 
+# ===========================================
+# REPLACE YOUR EXISTING /signup ROUTE WITH THIS
+# ===========================================
+
 @api.route("/signup", methods=["POST"])
 def create_signup():
-    # Handle both JSON and form data
-    if request.is_json:
-        data = request.get_json()
+    """
+    Create a new user account with support for:
+    - Regular users
+    - Artists (is_artist)
+    - Gamers (is_gamer)
+    - Video Creators (is_video_creator)
+    - Or any combination
+    """
+    try:
+        # Handle both JSON and form data
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+        
+        # ========== REQUIRED FIELDS ==========
         email = data.get("email")
         password = data.get("password")
-        first_name = data.get("first_name")
-        last_name = data.get("last_name")
         username = data.get("username")
-        role = data.get("role", "Listener")
-    else:
-        # Existing form data handling
-        email = request.form.get("email")
-        password = request.form.get("password")
-        username = request.form.get("username")
-        role = request.form.get("role", "Listener")
-    
-    # Add validation
-    if not email or not password:
-        return jsonify({"error": "Email and password are required"}), 400
-    
-    # Check if user exists
-    if User.query.filter_by(email=email).first():
-        return jsonify({"error": "User already exists"}), 400
-    
-    # Hash password
-    hashed_password = generate_password_hash(password)
-    
-    # Handle role
-    role_exist = Role.query.filter_by(name=role).first()
-    if not role_exist:
-        new_role = Role(name=role)
-        db.session.add(new_role)
+        first_name = data.get("firstName")
+        last_name = data.get("lastName")
+        date_of_birth = data.get("dateOfBirth")
+        
+        # Validation
+        if not email or not password:
+            return jsonify({"error": "Email and password are required"}), 400
+        
+        if not username:
+            username = email.split('@')[0]
+        
+        # Check if user exists
+        if User.query.filter_by(email=email).first():
+            return jsonify({"error": "Email already registered"}), 400
+        
+        if User.query.filter_by(username=username).first():
+            return jsonify({"error": "Username already taken"}), 400
+        
+        # ========== CREATOR TYPE FLAGS ==========
+        # Convert string "true"/"false" to boolean
+        def str_to_bool(val):
+            if isinstance(val, bool):
+                return val
+            if isinstance(val, str):
+                return val.lower() in ('true', '1', 'yes')
+            return False
+        
+        is_artist = str_to_bool(data.get("is_artist", False))
+        is_gamer = str_to_bool(data.get("is_gamer", False))
+        is_video_creator = str_to_bool(data.get("is_video_creator", False))
+        
+        # Compute profile_type for backward compatibility
+        profile_type = data.get("profile_type", "regular")
+        if profile_type == "regular":
+            # Auto-compute from booleans
+            types = []
+            if is_artist: types.append("artist")
+            if is_gamer: types.append("gamer")
+            if is_video_creator: types.append("video")
+            
+            if len(types) == 0:
+                profile_type = "regular"
+            elif len(types) == 1:
+                profile_type = types[0]
+            else:
+                profile_type = "multiple"
+        
+        # ========== ARTIST FIELDS ==========
+        artist_name = data.get("artistName") or data.get("stageName")
+        industry = data.get("industry")
+        bio = data.get("bio")
+        
+        # ========== VIDEO CREATOR FIELDS ==========
+        channel_name = data.get("channelName")
+        content_category = data.get("contentCategory")
+        
+        # ========== GAMER FIELDS ==========
+        gamertag = data.get("gamerTag") or data.get("gamertag")
+        platforms = data.get("platforms")
+        if isinstance(platforms, str):
+            try:
+                platforms = json.loads(platforms)
+            except:
+                platforms = []
+        
+        # ========== OPTIONAL FIELDS ==========
+        phone_number = data.get("phoneNumber")
+        country = data.get("country")
+        city = data.get("city")
+        website = data.get("website")
+        timezone = data.get("timezone")
+        
+        # Social media links
+        social_links = data.get("socialMedia")
+        if isinstance(social_links, str):
+            try:
+                social_links = json.loads(social_links)
+            except:
+                social_links = {}
+        
+        # ========== HASH PASSWORD ==========
+        hashed_password = generate_password_hash(password)
+        
+        # ========== HANDLE ROLE ==========
+        role_name = data.get("role", "Listener")
+        role = Role.query.filter_by(name=role_name).first()
+        if not role:
+            role = Role(name=role_name)
+            db.session.add(role)
+            db.session.commit()
+        
+        # ========== CREATE USER ==========
+        new_user = User(
+            # Basic
+            email=email,
+            username=username,
+            password_hash=hashed_password,
+            role_id=role.id,
+            
+            # Profile Type Flags
+            profile_type=profile_type,
+            is_artist=is_artist,
+            is_gamer=is_gamer,
+            is_video_creator=is_video_creator,
+            
+            # Artist Fields
+            artist_name=artist_name if is_artist else None,
+            industry=industry if is_artist else None,
+            bio=bio,
+            
+            # Video Creator Fields
+            channel_name=channel_name if is_video_creator else None,
+            content_category=content_category if is_video_creator else None,
+            
+            # Gamer Fields
+            gamertag=gamertag if is_gamer else None,
+            gaming_platforms={"platforms": platforms} if is_gamer and platforms else {},
+            
+            # Optional
+            country=country,
+            timezone=timezone,
+            social_links=social_links,
+            
+            # Display name
+            display_name=f"{first_name} {last_name}".strip() if first_name else username,
+        )
+        
+        db.session.add(new_user)
         db.session.commit()
-        role_id = new_role.id
-    else:
-        role_id = role_exist.id
-    
-    # Create new user
-    new_user = User(
-        email=email,
-        username=username or email.split('@')[0],  # Use email prefix if no username
-        password_hash=hashed_password,
-        role_id=role_id,
-    )
-    
-    db.session.add(new_user)
-    db.session.commit()
-    
-    return jsonify({"message": "Account created successfully"}), 201
+        
+        # Log what was created
+        creator_types = []
+        if is_artist: creator_types.append("Artist")
+        if is_gamer: creator_types.append("Gamer")
+        if is_video_creator: creator_types.append("Video Creator")
+        
+        print(f"✅ New user created: {username} ({email})")
+        print(f"   Profile type: {profile_type}")
+        print(f"   Creator types: {', '.join(creator_types) if creator_types else 'Regular User'}")
+        
+        return jsonify({
+            "message": "Account created successfully",
+            "user": {
+                "id": new_user.id,
+                "username": new_user.username,
+                "email": new_user.email,
+                "profile_type": new_user.profile_type,
+                "is_artist": new_user.is_artist,
+                "is_gamer": new_user.is_gamer,
+                "is_video_creator": new_user.is_video_creator,
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Signup error: {str(e)}")
+        return jsonify({"error": f"Signup failed: {str(e)}"}), 500
 
 @api.route('/login', methods=['POST'])
 def login():
