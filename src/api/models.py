@@ -109,7 +109,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     is_premium = db.Column(db.Boolean, default=False, server_default="False")
     avatar_url = db.Column(db.String(500))
-    profile_type = db.Column(db.String(20), default="regular")  # regular, artist, gamer, or multiple
+    profile_type = db.Column(db.String(20), default="regular")  # regular, artist, gamer, video, or multiple
     
     # ✅ Basic Gamer Features (existing)
     is_gamer = db.Column(db.Boolean, default=False)
@@ -207,6 +207,16 @@ class User(db.Model):
     monthly_listeners = db.Column(db.Integer, default=0)
     total_plays = db.Column(db.Integer, default=0)
     
+    # 📹 Video Creator Features (NEW)
+    is_video_creator = db.Column(db.Boolean, default=False)
+    channel_name = db.Column(db.String(100), nullable=True)
+    content_category = db.Column(db.String(50), nullable=True)
+    channel_description = db.Column(db.Text, nullable=True)
+    channel_banner = db.Column(db.String(500), nullable=True)
+    subscriber_count = db.Column(db.Integer, default=0)
+    total_video_views = db.Column(db.Integer, default=0)
+    channel_created_at = db.Column(db.DateTime, nullable=True)
+    
     # 👥 NEW: Follow/Block Features
     follower_count = db.Column(db.Integer, default=0)
     following_count = db.Column(db.Integer, default=0)
@@ -254,6 +264,66 @@ class User(db.Model):
             "following_count": self.following_count or 0,
         }
 
+    def serialize_video_creator(self):
+        """Serialize video creator/channel specific data"""
+        return {
+            "id": self.id,
+            "username": self.username,
+            "is_video_creator": self.is_video_creator,
+            "channel_name": self.channel_name,
+            "content_category": self.content_category,
+            "channel_description": self.channel_description,
+            "channel_banner": self.channel_banner,
+            "subscriber_count": self.subscriber_count or 0,
+            "total_video_views": self.total_video_views or 0,
+            "channel_created_at": self.channel_created_at.strftime("%Y-%m-%d") if self.channel_created_at else None,
+            "avatar_url": self.avatar_url,
+            "cover_photo": self.cover_photo,
+            "is_verified": self.is_verified,
+            "follower_count": self.follower_count or 0,
+        }
+
+    def serialize_gamer(self):
+        """Serialize gamer profile specific data"""
+        return {
+            "id": self.id,
+            "username": self.username,
+            "is_gamer": self.is_gamer,
+            "gamertag": self.gamertag,
+            "gamer_tags": self.gamer_tags or {},
+            "favorite_games": self.favorite_games or [],
+            "current_games": self.current_games or [],
+            "gamer_rank": self.gamer_rank or "Casual",
+            "skill_level": self.skill_level,
+            "gaming_platforms": self.gaming_platforms or {},
+            "gaming_schedule": self.gaming_schedule,
+            "looking_for": self.looking_for or [],
+            "communication_prefs": self.communication_prefs or [],
+            "age_range": self.age_range,
+            "timezone": self.timezone,
+            "region": self.region,
+            "favorite_genres": self.favorite_genres or [],
+            "playstyle": self.playstyle,
+            "game_modes": self.game_modes or [],
+            "gaming_setup": self.gaming_setup or {},
+            "is_streamer": self.is_streamer,
+            "streaming_platforms": self.streaming_platforms or [],
+            "streaming_schedule": self.streaming_schedule,
+            "languages_spoken": self.languages_spoken or [],
+            "gaming_stats": self.gaming_stats or {},
+            "gamer_bio": self.gamer_bio,
+            "online_status": self.online_status,
+            "last_seen": self.last_seen.strftime("%Y-%m-%d %H:%M:%S") if self.last_seen else None,
+            "current_game_activity": self.current_game_activity,
+            "squad_id": self.squad_id,
+            "avatar_url": self.avatar_url,
+            "cover_photo": self.cover_photo,
+            # Steam
+            "steam_id": self.steam_id,
+            "steam_connected": bool(self.steam_id),
+            "steam_profile": self.steam_profile_data,
+        }
+
     def serialize(self):
         return {
             "id": self.id,
@@ -282,6 +352,27 @@ class User(db.Model):
             "following_count": self.following_count or 0,
             "is_active": self.is_active,
             "is_verified": self.is_verified,
+            
+            # 🎵 ARTIST FIELDS
+            "is_artist": self.is_artist,
+            "artist_bio": self.artist_bio,
+            "artist_genre": self.artist_genre,
+            "artist_location": self.artist_location,
+            "artist_website": self.artist_website,
+            "artist_social_links": self.artist_social_links or {},
+            "is_verified_artist": self.is_verified_artist,
+            "monthly_listeners": self.monthly_listeners,
+            "total_plays": self.total_plays,
+            
+            # 📹 VIDEO CREATOR FIELDS
+            "is_video_creator": self.is_video_creator,
+            "channel_name": self.channel_name,
+            "content_category": self.content_category,
+            "channel_description": self.channel_description,
+            "channel_banner": self.channel_banner,
+            "subscriber_count": self.subscriber_count or 0,
+            "total_video_views": self.total_video_views or 0,
+            "channel_created_at": self.channel_created_at.strftime("%Y-%m-%d") if self.channel_created_at else None,
             
             # 🎮 GAMER FIELDS
             "is_gamer": self.is_gamer,
@@ -312,6 +403,7 @@ class User(db.Model):
             "online_status": self.online_status,
             "last_seen": self.last_seen.strftime("%Y-%m-%d %H:%M:%S") if self.last_seen else None,
             "current_game_activity": self.current_game_activity,
+            "country": self.country,
             
             # Steam
             "steam_id": self.steam_id,

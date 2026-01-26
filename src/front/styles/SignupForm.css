@@ -113,7 +113,9 @@ label {
 }
 
 /* Inputs */
-input, select, textarea {
+input,
+select,
+textarea {
     width: 100%;
     padding: 0.75rem;
     border: 1px solid #d1d5db;
@@ -123,13 +125,16 @@ input, select, textarea {
     box-sizing: border-box;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
     outline: none;
     border-color: #3b82f6;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-input.error, select.error {
+input.error,
+select.error {
     border-color: #ef4444;
 }
 
@@ -142,13 +147,15 @@ input.error, select.error {
 }
 
 /* Checkbox and Radio Groups */
-.checkbox-group, .radio-group {
+.checkbox-group,
+.radio-group {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
-.checkbox-label, .radio-label {
+.checkbox-label,
+.radio-label {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -157,7 +164,8 @@ input.error, select.error {
     cursor: pointer;
 }
 
-.checkbox-label input, .radio-label input {
+.checkbox-label input,
+.radio-label input {
     width: auto;
     margin: 0;
 }
@@ -207,7 +215,8 @@ input.error, select.error {
 }
 
 /* Buttons */
-.btn-primary, .btn-secondary {
+.btn-primary,
+.btn-secondary {
     padding: 0.75rem 2rem;
     border-radius: 8px;
     font-weight: 600;
@@ -302,7 +311,8 @@ input.error, select.error {
         gap: 1rem;
     }
 
-    .btn-primary, .btn-secondary {
+    .btn-primary,
+    .btn-secondary {
         width: 100%;
     }
 }
@@ -325,8 +335,245 @@ input.error, select.error {
         font-size: 1.25rem;
     }
 
-    input, select, textarea {
+    input,
+    select,
+    textarea {
         padding: 0.625rem;
         font-size: 0.9rem;
+    }
+
+    /* ===========================================
+   SIGNUP FORM - CREATOR TYPE CARDS
+   Add these styles to SignupForm.css
+   =========================================== */
+
+    /* Step Description */
+    .step-description {
+        color: rgba(255, 255, 255, 0.6);
+        margin-bottom: 24px;
+        font-size: 0.95rem;
+    }
+
+    /* Creator Type Selection Grid */
+    .creator-type-selection {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    /* Creator Type Card */
+    .creator-type-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+
+    .creator-type-card:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .creator-type-card.selected {
+        background: rgba(0, 255, 200, 0.08);
+        border-color: #00ffc8;
+    }
+
+    .creator-type-card input[type="checkbox"] {
+        display: none;
+    }
+
+    .creator-type-card .card-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .creator-type-card .card-icon {
+        font-size: 2rem;
+        width: 50px;
+        text-align: center;
+    }
+
+    .creator-type-card .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    .creator-type-card .card-description {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .creator-type-card .checkmark {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: transparent;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .creator-type-card.selected .checkmark {
+        background: #00ffc8;
+        color: #0a1628;
+    }
+
+    /* Skip Note */
+    .skip-note {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.9rem;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    /* Conditional Fields Sections */
+    .conditional-fields {
+        margin-top: 24px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 12px;
+        border-left: 3px solid #00ffc8;
+    }
+
+    .conditional-fields h4 {
+        margin: 0 0 16px;
+        font-size: 1rem;
+        color: #00ffc8;
+    }
+
+    /* Horizontal Checkbox Group */
+    .checkbox-group.horizontal {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .checkbox-group.horizontal .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 8px 14px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .checkbox-group.horizontal .checkbox-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .checkbox-group.horizontal .checkbox-item input {
+        accent-color: #00ffc8;
+    }
+
+    /* Social Media Inputs */
+    .social-inputs {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .social-input {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .social-input .social-icon {
+        width: 36px;
+        text-align: center;
+        font-size: 1.1rem;
+    }
+
+    .social-input input {
+        flex: 1;
+    }
+
+    /* Signup Summary (Step 4) */
+    .signup-summary {
+        background: rgba(0, 255, 200, 0.05);
+        border: 1px solid rgba(0, 255, 200, 0.2);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+
+    .signup-summary h4 {
+        margin: 0 0 16px;
+        font-size: 1rem;
+        color: #00ffc8;
+    }
+
+    .signup-summary .summary-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .signup-summary .summary-item:last-child {
+        border-bottom: none;
+    }
+
+    .signup-summary .summary-item span:first-child {
+        font-size: 1.2rem;
+        width: 30px;
+    }
+
+    .signup-summary .summary-item span:nth-child(2) {
+        flex: 1;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .signup-summary .summary-item .included {
+        color: #00ffc8;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    /* Help Text */
+    .help-text {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 8px;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+        .creator-type-card {
+            padding: 16px;
+        }
+
+        .creator-type-card .card-icon {
+            font-size: 1.5rem;
+            width: 40px;
+        }
+
+        .creator-type-card .card-title {
+            font-size: 1rem;
+        }
+
+        .checkbox-group.horizontal {
+            flex-direction: column;
+        }
     }
 }

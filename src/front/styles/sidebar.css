@@ -1,101 +1,634 @@
-/* EXACT FIX FOR YOUR SIDEBAR ISSUE */
+/* ===========================================
+   SIDEBAR.CSS - StreamPireX Theme
+   Colors: Teal #00ffc8, Orange #FF6600
+   Dark: #0a1628, #001220, #002b5c
+   =========================================== */
 
-/* Main Sidebar Container */
+/* ===========================================
+   MAIN SIDEBAR CONTAINER
+   =========================================== */
 .sidebar {
     width: 250px;
     height: 100vh;
-    background-color: #004080;
+    background: linear-gradient(180deg, #0a1628 0%, #001220 100%);
     position: fixed;
-    top: 0; /* Start from very top */
+    top: 0;
     left: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     z-index: 1000;
-    padding-top: 100px; /* Space for navbar */
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    padding: 20px 12px;
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.4);
+    border-right: 1px solid rgba(0, 255, 200, 0.1);
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease, transform 0.3s ease;
 }
 
-/* Main Content - THE KEY FIX */
+/* Custom Scrollbar */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 200, 0.3);
+    border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 200, 0.5);
+}
+
+/* Firefox scrollbar */
+.sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 255, 200, 0.3) transparent;
+}
+
+/* ===========================================
+   BRAND SECTION
+   =========================================== */
+.sidebar-brand {
+    padding: 10px 15px 20px;
+    border-bottom: 1px solid rgba(0, 255, 200, 0.1);
+    margin-bottom: 15px;
+}
+
+.sidebar-brand-text {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #00ffc8;
+    letter-spacing: 1px;
+}
+
+.sidebar-brand-tagline {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 4px;
+}
+
+/* ===========================================
+   SECTION HEADERS
+   =========================================== */
+.sidebar h4,
+.sidebar-section-header {
+    color: #ffa726;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 20px 15px 8px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sidebar h4::after,
+.sidebar-section-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 167, 38, 0.3);
+}
+
+/* Collapsible Section Header */
+.sidebar-section-toggle {
+    color: #00ffc8;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 20px 15px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+}
+
+.sidebar-section-toggle:hover {
+    color: #fff;
+}
+
+.sidebar-section-toggle::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(0, 255, 200, 0.2);
+}
+
+.sidebar-section-toggle .toggle-icon {
+    font-size: 0.6rem;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-section-toggle .toggle-icon.open {
+    transform: rotate(180deg);
+}
+
+/* ===========================================
+   MENU ITEMS
+   =========================================== */
+.sidebar a,
+.sidebar-menu-item {
+    padding: 10px 15px;
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    margin: 2px 0;
+    transition: all 0.2s ease;
+    position: relative;
+    border-left: 3px solid transparent;
+}
+
+.sidebar a:hover,
+.sidebar-menu-item:hover {
+    background: rgba(0, 255, 200, 0.1);
+    color: #00ffc8;
+    transform: translateX(4px);
+    text-decoration: none;
+}
+
+.sidebar a.active,
+.sidebar-menu-item.active {
+    background: rgba(0, 255, 200, 0.15);
+    color: #00ffc8;
+    border-left-color: #00ffc8;
+}
+
+/* Menu Icon */
+.sidebar-menu-icon {
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Menu Hint (subtitle) */
+.sidebar-menu-hint {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.4);
+    margin-left: auto;
+    font-weight: normal;
+}
+
+/* ===========================================
+   PROFILE MENU ITEMS
+   =========================================== */
+.sidebar-profile-item {
+    background: rgba(255, 255, 255, 0.02);
+    margin: 2px 0;
+    border-radius: 6px;
+}
+
+.sidebar-profile-item:hover {
+    background: rgba(255, 167, 38, 0.1);
+    border-left-color: #ffa726;
+    transform: translateX(3px);
+}
+
+.sidebar-profile-item.active {
+    background: rgba(255, 167, 38, 0.15);
+    border-left-color: #ffa726;
+    box-shadow: inset 0 0 10px rgba(255, 167, 38, 0.2);
+}
+
+/* ===========================================
+   GAMING SECTION (Special Styling)
+   =========================================== */
+.sidebar-gaming-header {
+    color: #4a9eff;
+    background: rgba(74, 158, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px 15px;
+    margin: 10px 0;
+    border: 1px solid rgba(74, 158, 255, 0.3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.2s ease;
+}
+
+.sidebar-gaming-header:hover {
+    background: rgba(74, 158, 255, 0.15);
+    border-color: rgba(74, 158, 255, 0.5);
+}
+
+.sidebar-gaming-item {
+    padding: 10px 15px;
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    margin: 2px 0;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-gaming-item:hover {
+    background: rgba(74, 158, 255, 0.1);
+    border-left-color: #4a9eff;
+}
+
+.sidebar-gaming-item.active {
+    background: rgba(74, 158, 255, 0.15);
+    border-left-color: #4a9eff;
+    box-shadow: inset 0 0 10px rgba(74, 158, 255, 0.2);
+}
+
+/* ===========================================
+   NOTIFICATION BADGE
+   =========================================== */
+.sidebar-badge {
+    background: #ff4757;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: auto;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-badge.new {
+    background: linear-gradient(135deg, #00ffc8, #00b894);
+    color: #001220;
+}
+
+.sidebar-badge.live {
+    background: #ff4757;
+    animation: pulse-live 2s infinite;
+}
+
+@keyframes pulse-live {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* ===========================================
+   PLATFORM HINT (for distribution section)
+   =========================================== */
+.sidebar-platform-hint {
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.35);
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+/* ===========================================
+   CREATE PROFILE LINK
+   =========================================== */
+.sidebar-create-link {
+    padding: 8px 15px;
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    margin-top: 4px;
+    transition: all 0.2s ease;
+}
+
+.sidebar-create-link:hover {
+    color: #00ffc8;
+    text-decoration: none;
+}
+
+/* ===========================================
+   DIVIDER
+   =========================================== */
+.sidebar-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+    margin: 10px 15px;
+}
+
+/* ===========================================
+   COLLAPSIBLE SECTION CONTENT
+   =========================================== */
+.sidebar-collapsible {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s ease;
+}
+
+.sidebar-collapsible.open {
+    max-height: 500px;
+}
+
+/* ===========================================
+   USAGE STATUS SECTION (Bottom)
+   =========================================== */
+.sidebar-usage-section {
+    margin-top: auto;
+    padding: 15px;
+    border-top: 1px solid rgba(0, 255, 200, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ===========================================
+   MAIN CONTENT AREA
+   =========================================== */
 .main-content {
-    margin-left: 250px; /* EXACTLY match sidebar width */
+    margin-left: 250px;
     padding: 20px;
     min-height: 100vh;
-    transition: margin-left 0.3s;
-    /* Add top padding to account for fixed navbar */
-    padding-top: 100px; /* Adjust this to match your navbar height */
-    width: calc(100% - 250px); /* Ensure it doesn't overflow */
+    transition: margin-left 0.3s ease;
+    padding-top: 90px;
+    width: calc(100% - 250px);
     box-sizing: border-box;
+    background: #0a1628;
+    color: #fff;
 }
 
-/* Alternative: If you're using a wrapper container */
+/* ===========================================
+   PAGE CONTAINER (Flex Layout Alternative)
+   =========================================== */
 .page-container {
     display: flex;
     min-height: 100vh;
 }
 
 .page-container .sidebar {
-    flex-shrink: 0; /* Prevent sidebar from shrinking */
+    flex-shrink: 0;
     width: 250px;
 }
 
 .page-container .main-content {
     flex: 1;
-    margin-left: 0; /* Reset margin if using flex */
+    margin-left: 0;
     padding: 20px;
-    padding-top: 100px;
+    padding-top: 90px;
+    width: auto;
 }
 
-/* Navbar adjustments to work with sidebar */
-.navbar {
+/* ===========================================
+   NAVBAR ADJUSTMENTS
+   =========================================== */
+.navbar,
+.horizontal-navbar {
+    position: fixed;
+    top: 0;
+    left: 250px;
+    right: 0;
+    z-index: 1001;
+    height: 70px;
+    width: calc(100% - 250px);
+    background: #ffffff;
+    border-bottom: 1px solid #e0e0e0;
+    box-shadow: 0 2px 10px rgba(0, 43, 92, 0.1);
+    transition: all 0.3s ease;
+}
+
+/* ===========================================
+   MOBILE RESPONSIVE
+   =========================================== */
+@media (max-width: 992px) {
+    .sidebar {
+        width: 220px;
+    }
+    
+    .main-content {
+        margin-left: 220px;
+        width: calc(100% - 220px);
+    }
+    
+    .navbar,
+    .horizontal-navbar {
+        left: 220px;
+        width: calc(100% - 220px);
+    }
+}
+
+@media (max-width: 768px) {
+    /* Hide sidebar by default on mobile */
+    .sidebar {
+        width: 250px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        box-shadow: none;
+    }
+    
+    /* Show sidebar when expanded */
+    .sidebar.expanded,
+    .sidebar.mobile-open {
+        transform: translateX(0);
+        box-shadow: 5px 0 25px rgba(0, 0, 0, 0.5);
+    }
+    
+    /* Full width content on mobile */
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+        padding: 15px;
+        padding-top: 80px;
+    }
+    
+    /* Full width navbar on mobile */
+    .navbar,
+    .horizontal-navbar {
+        left: 0;
+        width: 100%;
+    }
+    
+    /* Page container adjustments */
+    .page-container .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+}
+
+/* Mobile Overlay (when sidebar is open) */
+.sidebar-overlay {
+    display: none;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    z-index: 1001; /* Above sidebar */
-    height: 80px; /* Adjust to your actual navbar height */
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
-/* If your navbar should not cover the sidebar */
-.navbar.with-sidebar {
-    left: 250px; /* Start after sidebar */
-    width: calc(100% - 250px);
-}
-
-/* Responsive fixes */
 @media (max-width: 768px) {
-    .sidebar {
-        width: 0;
-        transition: width 0.3s;
-        overflow: hidden;
+    .sidebar-overlay.active {
+        display: block;
+        opacity: 1;
     }
-    
-    .sidebar.expanded {
-        width: 250px;
-        overflow-y: auto;
+}
+
+/* ===========================================
+   MOBILE MENU TOGGLE BUTTON
+   =========================================== */
+.sidebar-toggle-btn {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00ffc8, #00b894);
+    color: #0a1628;
+    border: none;
+    cursor: pointer;
+    z-index: 1002;
+    box-shadow: 0 4px 15px rgba(0, 255, 200, 0.4);
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.sidebar-toggle-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 255, 200, 0.5);
+}
+
+@media (min-width: 769px) {
+    .sidebar-toggle-btn {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar-toggle-btn {
+        display: flex;
+    }
+}
+
+/* ===========================================
+   SIDEBAR FOOTER / USER INFO
+   =========================================== */
+.sidebar-user-info {
+    padding: 15px;
+    border-top: 1px solid rgba(0, 255, 200, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: auto;
+}
+
+.sidebar-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(0, 255, 200, 0.3);
+}
+
+.sidebar-user-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar-user-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-user-plan {
+    font-size: 0.7rem;
+    color: #00ffc8;
+    text-transform: uppercase;
+}
+
+/* ===========================================
+   ANIMATIONS
+   =========================================== */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.sidebar a,
+.sidebar-menu-item {
+    animation: slideIn 0.2s ease forwards;
+}
+
+/* Stagger animation for menu items */
+.sidebar a:nth-child(1) { animation-delay: 0.02s; }
+.sidebar a:nth-child(2) { animation-delay: 0.04s; }
+.sidebar a:nth-child(3) { animation-delay: 0.06s; }
+.sidebar a:nth-child(4) { animation-delay: 0.08s; }
+.sidebar a:nth-child(5) { animation-delay: 0.10s; }
+
+/* ===========================================
+   DARK/LIGHT THEME TOGGLE (Optional)
+   =========================================== */
+.sidebar.light-theme {
+    background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+    border-right-color: rgba(0, 0, 0, 0.1);
+}
+
+.sidebar.light-theme a,
+.sidebar.light-theme .sidebar-menu-item {
+    color: #333;
+}
+
+.sidebar.light-theme a:hover,
+.sidebar.light-theme .sidebar-menu-item:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #002b5c;
+}
+
+.sidebar.light-theme h4,
+.sidebar.light-theme .sidebar-section-header {
+    color: #FF6600;
+}
+
+/* ===========================================
+   PRINT STYLES (Hide sidebar when printing)
+   =========================================== */
+@media print {
+    .sidebar {
+        display: none !important;
     }
     
     .main-content {
-        margin-left: 0;
-        width: 100%;
-        padding-left: 20px;
-        padding-right: 20px;
-    }
-    
-    .navbar.with-sidebar {
-        left: 0;
-        width: 100%;
+        margin-left: 0 !important;
+        width: 100% !important;
     }
 }
-
-/* DEBUGGING - Add these temporarily to see the layout */
-/* Remove these after fixing */
-/*
-.sidebar {
-    border: 3px solid red !important;
-}
-
-.main-content {
-    border: 3px solid green !important;
-    background: rgba(255, 255, 0, 0.1) !important;
-}
-    
-*/

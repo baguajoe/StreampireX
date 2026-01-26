@@ -19,10 +19,10 @@ const SignupForm = () => {
         phoneNumber: "",
         dateOfBirth: "",
         
-        // Profile Type (maps to backend User.profile_type)
-        profile_type: "regular",       // "regular" | "artist" | "gamer" | "multiple"
+        // Creator Types (checkboxes - can select multiple)
         is_artist: false,
         is_gamer: false,
+        is_video_creator: false,
 
         // Profile Info
         role: "Explorer",
@@ -38,7 +38,7 @@ const SignupForm = () => {
             soundcloud: ""
         },
         
-        // Professional Info
+        // Professional Info (Artist)
         industry: "",
         experienceLevel: "",
         genres: [],
@@ -46,6 +46,15 @@ const SignupForm = () => {
         recordLabel: "",
         manager: "",
         ownRights: "yes",
+        
+        // Video Creator Info
+        channelName: "",
+        contentCategory: "",
+        
+        // Gamer Info
+        gamerTag: "",
+        platforms: [],
+        favoriteGames: [],
         
         // Location
         country: "",
@@ -102,14 +111,12 @@ const SignupForm = () => {
         }
     };
 
-    // Handle profile type change (keeps booleans in sync)
-    const handleProfileTypeChange = (e) => {
-        const val = e.target.value; // "regular" | "artist" | "gamer" | "multiple"
+    // Handle creator type checkbox changes
+    const handleCreatorTypeChange = (e) => {
+        const { name, checked } = e.target;
         setFormData(prev => ({
             ...prev,
-            profile_type: val,
-            is_artist: val === "artist" || val === "multiple",
-            is_gamer:  val === "gamer"  || val === "multiple"
+            [name]: checked
         }));
     };
 
@@ -119,7 +126,7 @@ const SignupForm = () => {
         setFormData(prev => ({ ...prev, [name]: files[0] }));
     };
 
-    // Handle array fields (genres, instruments)
+    // Handle array fields (genres, instruments, platforms, games)
     const handleArrayChange = (field, value) => {
         setFormData(prev => ({
             ...prev,
@@ -129,11 +136,26 @@ const SignupForm = () => {
         }));
     };
 
-    // ✅ FIXED VALIDATION - Based on profile_type not role
+    // Compute profile_type for backend compatibility
+    const getProfileType = () => {
+        const { is_artist, is_gamer, is_video_creator } = formData;
+        
+        // Count how many creator types selected
+        const types = [];
+        if (is_artist) types.push('artist');
+        if (is_gamer) types.push('gamer');
+        if (is_video_creator) types.push('video');
+        
+        if (types.length === 0) return 'regular';
+        if (types.length === 1) return types[0];
+        return 'multiple'; // More than one selected
+    };
+
+    // Validation
     const validateForm = () => {
         const newErrors = {};
 
-        // Basic validation (ALWAYS required for all profile types)
+        // Basic validation (ALWAYS required)
         if (!formData.email) {
             newErrors.email = "Email is required";
         } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -180,22 +202,24 @@ const SignupForm = () => {
             newErrors.ageVerification = "Age verification is required";
         }
 
-        // ✅ FIXED: Profile-specific validation based on profile_type
-        if (formData.profile_type === "artist" || formData.profile_type === "multiple") {
-            // Artist fields required
+        // Artist-specific validation
+        if (formData.is_artist) {
             if (!formData.artistName && !formData.stageName) {
-                newErrors.artistName = "Artist name or stage name is required for artist profiles";
+                newErrors.artistName = "Artist name or stage name is required";
             }
             if (!formData.industry) {
-                newErrors.industry = "Industry is required for artist profiles";
+                newErrors.industry = "Industry is required for artists";
             }
         }
 
-        if (formData.profile_type === "gamer" || formData.profile_type === "multiple") {
-            // Gamer fields validation (optional, currently no required fields)
+        // Video Creator-specific validation
+        if (formData.is_video_creator) {
+            if (!formData.channelName) {
+                newErrors.channelName = "Channel name is required";
+            }
         }
 
-        // Regular profile has no additional required fields
+        // Gamer-specific validation (optional fields, no required)
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -214,17 +238,17 @@ const SignupForm = () => {
         try {
             const submitData = new FormData();
 
-            // Add all form data (ensure booleans always included)
+            // Add all form data
             Object.keys(formData).forEach((key) => {
                 const val = formData[key];
 
-                // Always include booleans (even if false)
+                // Always include booleans
                 if (typeof val === "boolean") {
                     submitData.append(key, String(val));
                     return;
                 }
 
-                // JSON for objects that aren't Files
+                // JSON for objects
                 if (key === "socialMedia" || key === "notifications") {
                     submitData.append(key, JSON.stringify(val));
                     return;
@@ -242,16 +266,14 @@ const SignupForm = () => {
                     return;
                 }
 
-                // Primitives (strings, numbers) that are set
+                // Primitives that are set
                 if (val !== null && val !== undefined && val !== "") {
                     submitData.append(key, val);
                 }
             });
 
-            // Explicitly set canonical fields used by backend
-            submitData.append("profile_type", formData.profile_type);
-            submitData.append("is_artist", String(formData.is_artist));
-            submitData.append("is_gamer", String(formData.is_gamer));
+            // Add computed profile_type for backend compatibility
+            submitData.append("profile_type", getProfileType());
 
             const data = await actions.signup(submitData);
 
@@ -282,10 +304,13 @@ const SignupForm = () => {
         }
     };
 
+    // Check if any creator type is selected
+    const hasAnyCreatorType = formData.is_artist || formData.is_gamer || formData.is_video_creator;
+
     return (
         <div className="signup-container">
             <div className="signup-header">
-                <h2>Create Your StreampireX Account</h2>
+                <h2>Create Your StreamPireX Account</h2>
                 <div className="step-indicator">
                     <span className={currentStep >= 1 ? 'active' : ''}>1</span>
                     <span className={currentStep >= 2 ? 'active' : ''}>2</span>
@@ -399,67 +424,85 @@ const SignupForm = () => {
                     </div>
                 )}
 
-                {/* Step 2: Profile Type & Professional Info */}
+                {/* Step 2: Creator Type Selection */}
                 {currentStep === 2 && (
                     <div className="form-step">
-                        <h3>Choose Your Profile Type</h3>
+                        <h3>What Kind of Creator Are You?</h3>
+                        <p className="step-description">
+                            Select all that apply. You can always add more later.
+                        </p>
 
-                        <div className="form-group">
-                            <label>Profile Type *</label>
-                            <div className="radio-group">
-                                <label className="radio-label">
-                                    <input
-                                        type="radio"
-                                        name="profile_type"
-                                        value="regular"
-                                        checked={formData.profile_type === "regular"}
-                                        onChange={handleProfileTypeChange}
-                                    />
-                                    Regular User (Listener/Fan)
-                                </label>
-                                <label className="radio-label">
-                                    <input
-                                        type="radio"
-                                        name="profile_type"
-                                        value="artist"
-                                        checked={formData.profile_type === "artist"}
-                                        onChange={handleProfileTypeChange}
-                                    />
-                                    Artist / Creator
-                                </label>
-                                <label className="radio-label">
-                                    <input
-                                        type="radio"
-                                        name="profile_type"
-                                        value="gamer"
-                                        checked={formData.profile_type === "gamer"}
-                                        onChange={handleProfileTypeChange}
-                                    />
-                                    Gamer
-                                </label>
-                                <label className="radio-label">
-                                    <input
-                                        type="radio"
-                                        name="profile_type"
-                                        value="multiple"
-                                        checked={formData.profile_type === "multiple"}
-                                        onChange={handleProfileTypeChange}
-                                    />
-                                    Both (Artist + Gamer)
-                                </label>
-                            </div>
-                            <small className="help-text">
-                                Don't worry - you can upgrade your profile type later!
-                            </small>
+                        {/* Creator Type Checkboxes */}
+                        <div className="creator-type-selection">
+                            
+                            {/* Musician / Artist */}
+                            <label className={`creator-type-card ${formData.is_artist ? 'selected' : ''}`}>
+                                <input
+                                    type="checkbox"
+                                    name="is_artist"
+                                    checked={formData.is_artist}
+                                    onChange={handleCreatorTypeChange}
+                                />
+                                <div className="card-content">
+                                    <span className="card-icon">🎵</span>
+                                    <span className="card-title">Musician / Artist</span>
+                                    <span className="card-description">
+                                        Distribute music, build your artist page, earn royalties
+                                    </span>
+                                </div>
+                                <span className="checkmark">✓</span>
+                            </label>
+
+                            {/* Video Creator */}
+                            <label className={`creator-type-card ${formData.is_video_creator ? 'selected' : ''}`}>
+                                <input
+                                    type="checkbox"
+                                    name="is_video_creator"
+                                    checked={formData.is_video_creator}
+                                    onChange={handleCreatorTypeChange}
+                                />
+                                <div className="card-content">
+                                    <span className="card-icon">📹</span>
+                                    <span className="card-title">Video Creator</span>
+                                    <span className="card-description">
+                                        Upload videos, build a channel, grow subscribers
+                                    </span>
+                                </div>
+                                <span className="checkmark">✓</span>
+                            </label>
+
+                            {/* Gamer */}
+                            <label className={`creator-type-card ${formData.is_gamer ? 'selected' : ''}`}>
+                                <input
+                                    type="checkbox"
+                                    name="is_gamer"
+                                    checked={formData.is_gamer}
+                                    onChange={handleCreatorTypeChange}
+                                />
+                                <div className="card-content">
+                                    <span className="card-icon">🎮</span>
+                                    <span className="card-title">Gamer</span>
+                                    <span className="card-description">
+                                        Create gamer profile, find squads, join team rooms
+                                    </span>
+                                </div>
+                                <span className="checkmark">✓</span>
+                            </label>
                         </div>
 
+                        {!hasAnyCreatorType && (
+                            <p className="skip-note">
+                                👤 No selection? No problem! You'll get a regular profile as a listener/fan.
+                            </p>
+                        )}
+
                         {/* Conditional Artist Fields */}
-                        {(formData.profile_type === "artist" || formData.profile_type === "multiple") && (
+                        {formData.is_artist && (
                             <div className="conditional-fields">
-                                <h4>Artist Information</h4>
+                                <h4>🎵 Artist Information</h4>
                                 
                                 <div className="form-group">
-                                    <label>Artist Name / Stage Name *</label>
+                                    <label>Artist / Stage Name *</label>
                                     <input
                                         type="text"
                                         name="artistName"
@@ -496,17 +539,87 @@ const SignupForm = () => {
                                         value={formData.bio}
                                         onChange={handleChange}
                                         placeholder="Tell us about yourself..."
-                                        rows="4"
+                                        rows="3"
                                     />
                                 </div>
                             </div>
                         )}
 
-                        {/* Conditional Gamer Fields */}
-                        {(formData.profile_type === "gamer" || formData.profile_type === "multiple") && (
+                        {/* Conditional Video Creator Fields */}
+                        {formData.is_video_creator && (
                             <div className="conditional-fields">
-                                <h4>Gamer Information</h4>
-                                <p className="help-text">These fields are optional - complete your gamer profile later!</p>
+                                <h4>📹 Video Channel Information</h4>
+                                
+                                <div className="form-group">
+                                    <label>Channel Name *</label>
+                                    <input
+                                        type="text"
+                                        name="channelName"
+                                        value={formData.channelName}
+                                        onChange={handleChange}
+                                        className={errors.channelName ? 'error' : ''}
+                                        placeholder="Your channel name"
+                                    />
+                                    {errors.channelName && <span className="error-text">{errors.channelName}</span>}
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Content Category</label>
+                                    <select
+                                        name="contentCategory"
+                                        value={formData.contentCategory}
+                                        onChange={handleChange}
+                                    >
+                                        <option value="">Select category</option>
+                                        <option value="gaming">Gaming</option>
+                                        <option value="music">Music</option>
+                                        <option value="education">Education</option>
+                                        <option value="entertainment">Entertainment</option>
+                                        <option value="vlogs">Vlogs</option>
+                                        <option value="tech">Tech</option>
+                                        <option value="fitness">Fitness</option>
+                                        <option value="cooking">Cooking</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Conditional Gamer Fields */}
+                        {formData.is_gamer && (
+                            <div className="conditional-fields">
+                                <h4>🎮 Gamer Information</h4>
+                                
+                                <div className="form-group">
+                                    <label>Gamer Tag</label>
+                                    <input
+                                        type="text"
+                                        name="gamerTag"
+                                        value={formData.gamerTag}
+                                        onChange={handleChange}
+                                        placeholder="Your gamer tag (optional)"
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Platforms</label>
+                                    <div className="checkbox-group horizontal">
+                                        {['PC', 'PlayStation', 'Xbox', 'Nintendo Switch', 'Mobile'].map(platform => (
+                                            <label key={platform} className="checkbox-item">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.platforms.includes(platform)}
+                                                    onChange={() => handleArrayChange('platforms', platform)}
+                                                />
+                                                <span>{platform}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <p className="help-text">
+                                    You can complete your full gamer profile later!
+                                </p>
                             </div>
                         )}
                     </div>
@@ -559,6 +672,43 @@ const SignupForm = () => {
                                 placeholder="https://yourwebsite.com"
                             />
                         </div>
+
+                        {/* Social Media Links */}
+                        <div className="form-group">
+                            <label>Social Media (Optional)</label>
+                            <div className="social-inputs">
+                                <div className="social-input">
+                                    <span className="social-icon">📸</span>
+                                    <input
+                                        type="text"
+                                        name="socialMedia.instagram"
+                                        value={formData.socialMedia.instagram}
+                                        onChange={handleChange}
+                                        placeholder="Instagram username"
+                                    />
+                                </div>
+                                <div className="social-input">
+                                    <span className="social-icon">🐦</span>
+                                    <input
+                                        type="text"
+                                        name="socialMedia.twitter"
+                                        value={formData.socialMedia.twitter}
+                                        onChange={handleChange}
+                                        placeholder="Twitter/X username"
+                                    />
+                                </div>
+                                <div className="social-input">
+                                    <span className="social-icon">▶️</span>
+                                    <input
+                                        type="text"
+                                        name="socialMedia.youtube"
+                                        value={formData.socialMedia.youtube}
+                                        onChange={handleChange}
+                                        placeholder="YouTube channel URL"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -566,6 +716,37 @@ const SignupForm = () => {
                 {currentStep === 4 && (
                     <div className="form-step">
                         <h3>Terms & Agreements</h3>
+
+                        {/* Summary of what they're signing up for */}
+                        <div className="signup-summary">
+                            <h4>Your Account Summary</h4>
+                            <div className="summary-item">
+                                <span>👤</span>
+                                <span>Social Profile</span>
+                                <span className="included">✓ Included</span>
+                            </div>
+                            {formData.is_artist && (
+                                <div className="summary-item">
+                                    <span>🎵</span>
+                                    <span>Artist Page ({formData.artistName || 'Not named'})</span>
+                                    <span className="included">✓ Included</span>
+                                </div>
+                            )}
+                            {formData.is_video_creator && (
+                                <div className="summary-item">
+                                    <span>📹</span>
+                                    <span>Video Channel ({formData.channelName || 'Not named'})</span>
+                                    <span className="included">✓ Included</span>
+                                </div>
+                            )}
+                            {formData.is_gamer && (
+                                <div className="summary-item">
+                                    <span>🎮</span>
+                                    <span>Gamer Profile</span>
+                                    <span className="included">✓ Included</span>
+                                </div>
+                            )}
+                        </div>
                         
                         <div className="legal-section">
                             <div className="form-group">
