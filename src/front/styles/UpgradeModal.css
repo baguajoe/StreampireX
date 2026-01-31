@@ -1,0 +1,429 @@
+/* ===========================================
+   UPGRADE MODAL CSS - StreamPireX Theme
+   =========================================== */
+
+/* ===========================================
+   MODAL OVERLAY
+   =========================================== */
+.upgrade-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===========================================
+   MODAL CONTAINER
+   =========================================== */
+.upgrade-modal {
+  background: linear-gradient(180deg, #0a1628 0%, #001220 100%);
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+              0 0 40px rgba(0, 255, 200, 0.1);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===========================================
+   CLOSE BUTTON
+   =========================================== */
+.upgrade-modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.upgrade-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* ===========================================
+   ICON
+   =========================================== */
+.upgrade-modal-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  animation: bounce 0.5s ease;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ===========================================
+   TITLE
+   =========================================== */
+.upgrade-modal-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 10px;
+}
+
+/* ===========================================
+   CURRENT TIER BADGE
+   =========================================== */
+.upgrade-modal-current-tier {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 20px;
+}
+
+.upgrade-modal-current-tier .tier-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 20px;
+  color: #fff;
+  font-weight: 600;
+  text-transform: capitalize;
+  margin-left: 5px;
+}
+
+/* ===========================================
+   DESCRIPTION
+   =========================================== */
+.upgrade-modal-description {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  margin: 0 0 25px;
+}
+
+/* ===========================================
+   BENEFITS LIST
+   =========================================== */
+.upgrade-modal-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 30px;
+  text-align: left;
+}
+
+.benefit-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 15px;
+  background: rgba(0, 255, 200, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 255, 200, 0.1);
+}
+
+.benefit-check {
+  color: #00ffc8;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.benefit-item span:last-child {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+}
+
+/* ===========================================
+   CTA SECTION
+   =========================================== */
+.upgrade-modal-cta {
+  background: rgba(0, 255, 200, 0.08);
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  border-radius: 16px;
+  padding: 25px;
+  margin-bottom: 20px;
+}
+
+.upgrade-tier-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.upgrade-to {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+.tier-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.tier-name.basic {
+  color: #4a9eff;
+}
+
+.tier-name.premium {
+  color: #00ffc8;
+}
+
+.upgrade-pricing {
+  margin-bottom: 20px;
+}
+
+.upgrade-pricing .price {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.upgrade-pricing .period {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.upgrade-btn {
+  width: 100%;
+  padding: 16px 32px;
+  background: linear-gradient(135deg, #00ffc8, #00b894);
+  color: #0a1628;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(0, 255, 200, 0.3);
+}
+
+.upgrade-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 255, 200, 0.4);
+}
+
+.upgrade-note {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 15px 0 0;
+}
+
+/* ===========================================
+   MAYBE LATER BUTTON
+   =========================================== */
+.maybe-later-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 10px;
+  transition: color 0.2s ease;
+}
+
+.maybe-later-btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ===========================================
+   INLINE UPGRADE PROMPT (Non-modal)
+   =========================================== */
+.upgrade-prompt {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(0, 255, 200, 0.1), rgba(0, 255, 200, 0.05));
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.upgrade-prompt .prompt-icon {
+  font-size: 2.5rem;
+}
+
+.upgrade-prompt .prompt-content {
+  flex: 1;
+}
+
+.upgrade-prompt .prompt-content h4 {
+  margin: 0 0 5px;
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.upgrade-prompt .prompt-content p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.prompt-upgrade-btn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #00ffc8, #00b894);
+  color: #0a1628;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  text-transform: capitalize;
+}
+
+.prompt-upgrade-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 255, 200, 0.3);
+}
+
+/* ===========================================
+   COMPACT UPGRADE PROMPT
+   =========================================== */
+.upgrade-prompt-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 15px;
+  background: rgba(255, 102, 0, 0.1);
+  border: 1px solid rgba(255, 102, 0, 0.3);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.upgrade-prompt-compact .prompt-icon {
+  font-size: 1rem;
+}
+
+.upgrade-prompt-compact .prompt-text {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.upgrade-prompt-compact .prompt-btn {
+  padding: 6px 12px;
+  background: #FF6600;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.upgrade-prompt-compact .prompt-btn:hover {
+  background: #e55a00;
+}
+
+/* ===========================================
+   FEATURE LOCKED OVERLAY
+   =========================================== */
+.feature-locked-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 22, 40, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  z-index: 10;
+}
+
+.feature-locked-overlay .lock-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.feature-locked-overlay .lock-message {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1rem;
+  margin-bottom: 15px;
+  text-align: center;
+  max-width: 80%;
+}
+
+.feature-locked-overlay .unlock-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #00ffc8, #00b894);
+  color: #0a1628;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.feature-locked-overlay .unlock-btn:hover {
+  transform: scale(1.05);
+}
+
+/* ===========================================
+   RESPONSIVE
+   =========================================== */
+@media (max-width: 480px) {
+  .upgrade-modal {
+    padding: 30px 20px;
+    margin: 10px;
+  }
+  
+  .upgrade-modal-icon {
+    font-size: 3rem;
+  }
+  
+  .upgrade-modal-title {
+    font-size: 1.5rem;
+  }
+  
+  .upgrade-pricing .price {
+    font-size: 2rem;
+  }
+  
+  .upgrade-prompt {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .prompt-upgrade-btn {
+    width: 100%;
+  }
+}

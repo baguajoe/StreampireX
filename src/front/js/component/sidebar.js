@@ -170,28 +170,7 @@ const ProfileMenuItem = styled(MenuItem)`
     border-left: 4px solid #ffa726;
     box-shadow: inset 0 0 10px rgba(255, 167, 38, 0.2);
   }
-`;
 
-const MenuHint = styled.span`
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin-left: auto;
-  font-weight: normal;
-`;
-
-const CreateProfileLink = styled(Link)`
-  padding: 8px 15px;
-  color: rgba(255, 255, 255, 0.5);
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  font-size: 0.85rem;
-  margin-top: 4px;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    color: #00ffc8;
-  }
 `;
 
 const GamingMenuItem = styled(MenuItem)`

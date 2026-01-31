@@ -166,7 +166,7 @@ const Layout = () => {
               <Route path="/radio-stations" element={<RadioStationPage />} />
               <Route path="/create-radio" element={<CreateRadioStation />} />
               <Route path="/browse-radio-stations" element={<BrowseRadioStations />} />
-              <Route path="/radio/station/:id/:type" element={<RadioStationDetailPage />} />
+              <Route path="/radio/station/:id" element={<RadioStationDetailPage />} />
 
               {/* 🎬 Videos */}
               <Route path="/videos" element={<BrowseVideosPage />} />
