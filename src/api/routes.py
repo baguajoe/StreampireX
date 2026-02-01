@@ -9018,7 +9018,7 @@ def home_feed():
         days_limit = request.args.get('days', None, type=int)
         
         # Get list of followed user IDs
-        followed_query = db.session.query(Follow.followed_id).filter_by(follower_id=user_id)
+        followed_query = db.session.query(Follow.following_id).filter_by(follower_id=user_id)
         followed_ids = [f[0] for f in followed_query.all()]
         
         # Include the user's own content
@@ -12468,7 +12468,7 @@ def get_creator_overview_stats():
         prev_start_date = start_date - timedelta(days=days)
         
         recent_followers = Follow.query.filter(
-            Follow.followed_id == user_id,
+            Follow.following_id == user_id,
             Follow.created_at >= start_date
         ).count()
         
