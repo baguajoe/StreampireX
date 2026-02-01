@@ -22449,6 +22449,7 @@ def update_profile_picture():
         return jsonify({"error": "No profile_picture URL provided"}), 400
     
     user.profile_picture = data['profile_picture']
+    user.avatar_url = data['profile_picture']
     db.session.commit()
     
     return jsonify({
