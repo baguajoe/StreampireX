@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import LiveVideoPlayer from "../component/LiveVideoPlayer";
 import ChatModal from "../component/ChatModal";
 import PollComponent from "../component/PollComponent";
-// import TipJar from "../component/TipJar";
+import TipJar from "../component/TipJar";
 import "../../styles/LiveShowPage.css";
 
 const LiveShowPage = () => {
@@ -11,7 +11,7 @@ const LiveShowPage = () => {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode'); // Check if mode=radio in URL
   const isRadioMode = mode === 'radio';
-  
+
   const [streamData, setStreamData] = useState(null);
   const [radioStation, setRadioStation] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(true);
@@ -50,7 +50,7 @@ const LiveShowPage = () => {
       const data = await response.json();
       setRadioStation(data);
       setIsLive(data.is_live || false);
-      
+
       // Fetch current playing track
       fetchNowPlaying();
     } catch (err) {
@@ -89,7 +89,7 @@ const LiveShowPage = () => {
     try {
       // Get microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
+
       // Notify backend that broadcast is starting
       const token = localStorage.getItem("token");
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/start-broadcast`, {
@@ -106,7 +106,7 @@ const LiveShowPage = () => {
       if (response.ok) {
         setIsLive(true);
         alert("🎙️ You're now live on air!");
-        
+
         // TODO: Connect stream to WebRTC or streaming server
         // This is where you'd integrate with your streaming infrastructure
       } else {
@@ -184,14 +184,14 @@ const LiveShowPage = () => {
               <div className="broadcast-controls">
                 <h3>🎙️ DJ Controls</h3>
                 {!isLive ? (
-                  <button 
+                  <button
                     className="btn btn-danger btn-lg"
                     onClick={startBroadcast}
                   >
                     🎙️ Go Live
                   </button>
                 ) : (
-                  <button 
+                  <button
                     className="btn btn-secondary btn-lg"
                     onClick={stopBroadcast}
                   >
@@ -231,8 +231,8 @@ const LiveShowPage = () => {
 
             {/* Radio Audio Player */}
             <div className="radio-player">
-              <LiveVideoPlayer 
-                streamUrl={radioStation.stream_url} 
+              <LiveVideoPlayer
+                streamUrl={radioStation.stream_url}
                 isAudioOnly={true}
                 autoplay={true}
               />
@@ -242,8 +242,8 @@ const LiveShowPage = () => {
             <div className="schedule-preview">
               <h4>📅 Upcoming Shows</h4>
               <p className="text-muted">Check the full schedule to see what's coming up!</p>
-              <a 
-                href={`/radio/${id}/schedule`} 
+              <a
+                href={`/radio/${id}/schedule`}
                 className="btn btn-outline-primary btn-sm"
               >
                 View Full Schedule
@@ -339,7 +339,12 @@ const LiveShowPage = () => {
       </div>
 
       <PollComponent streamId={id} />
-      {/* <TipJar streamId={id} /> */}
+      <TipJar
+        creatorId={streamData.creator_id}
+        creatorName={streamData.creator_name}
+        contentType="stream"
+        contentId={id}
+      />
 
       <div className="audience-stats">
         👥 Viewers: {streamData.viewer_count || 0}

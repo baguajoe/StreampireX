@@ -8372,6 +8372,31 @@ def get_public_user_profile(user_id):
 
 # 2. Get videos for a specific user (for video channels)
 
+@api.route('/users/username/<string:username>', methods=['GET'])
+def get_user_by_username(username):
+    """Look up a user by username - used for /support/:username tip pages"""
+    try:
+        user = User.query.filter_by(username=username).first()
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        return jsonify({
+            "id": user.id,
+            "username": user.username,
+            "display_name": getattr(user, 'display_name', None),
+            "artist_name": getattr(user, 'artist_name', None),
+            "bio": getattr(user, 'bio', None),
+            "profile_picture": getattr(user, 'profile_picture', None),
+            "avatar_url": getattr(user, 'avatar_url', None),
+            "cover_photo": getattr(user, 'cover_photo', None),
+            "is_artist": getattr(user, 'is_artist', False),
+            "is_gamer": getattr(user, 'is_gamer', False),
+            "is_verified": getattr(user, 'is_verified', False)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Failed to retrieve user: {str(e)}"}), 500
 
 # Keep your video upload endpoint as is
 @api.route('/user/profile/videos/upload', methods=['POST'])

@@ -1,0 +1,953 @@
+/* ===== TIP JAR PAGE - STREAMPIREX DARK THEME ===== */
+/* Route: /support/:username or /tip/:username */
+/* Signature Colors: Teal #00ffc8, Orange #FF6600 */
+
+.tipjar-page {
+  min-height: 100vh;
+  background: radial-gradient(circle at top, #071735 0%, #020617 40%, #02041b 100%);
+  color: #e1e4e8;
+  padding: 40px 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.tipjar-page-container {
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+
+/* =====================================================
+   LOADING & ERROR STATES
+   ===================================================== */
+
+.tipjar-page-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 16px;
+}
+
+.tipjar-page-spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 4px solid rgba(0, 255, 200, 0.2);
+  border-top-color: #00ffc8;
+  animation: tipjarPageSpin 1s linear infinite;
+}
+
+@keyframes tipjarPageSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.tipjar-page-loading p {
+  color: #8b949e;
+  font-size: 16px;
+}
+
+.tipjar-page-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 16px;
+  text-align: center;
+}
+
+.tipjar-page-error .error-icon {
+  font-size: 48px;
+}
+
+.tipjar-page-error h2 {
+  color: #ff6b6b;
+  font-size: 24px;
+  margin: 0;
+}
+
+.tipjar-page-error p {
+  color: #8b949e;
+  margin: 0;
+}
+
+.tipjar-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: rgba(0, 255, 200, 0.1);
+  border: 1px solid rgba(0, 255, 200, 0.3);
+  border-radius: 12px;
+  color: #00ffc8;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  margin-top: 12px;
+}
+
+.tipjar-home-link:hover {
+  background: rgba(0, 255, 200, 0.2);
+  transform: translateY(-2px);
+}
+
+
+/* =====================================================
+   PROFILE CARD
+   ===================================================== */
+
+.tipjar-page-profile-card {
+  background: linear-gradient(145deg, #1f2937, #111827);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+.tipjar-page-cover {
+  height: 140px;
+  position: relative;
+  background: linear-gradient(135deg, #FF6600 0%, #ff8833 30%, #00ffc8 100%);
+}
+
+.tipjar-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tipjar-cover-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 0%, rgba(17, 24, 39, 0.8) 100%);
+}
+
+.tipjar-page-creator-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px 24px;
+  margin-top: -44px;
+  position: relative;
+  z-index: 1;
+}
+
+.tipjar-page-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid #111827;
+  box-shadow: 0 0 20px rgba(0, 255, 200, 0.3);
+  margin-bottom: 12px;
+}
+
+.tipjar-page-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tipjar-page-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #FF6600, #00ffc8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.tipjar-page-name {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 4px;
+  text-align: center;
+}
+
+.tipjar-page-username {
+  font-size: 14px;
+  color: #8b949e;
+  margin: 0 0 12px;
+}
+
+.tipjar-page-bio {
+  font-size: 14px;
+  color: #8b949e;
+  text-align: center;
+  margin: 0 0 12px;
+  line-height: 1.5;
+  max-width: 400px;
+}
+
+.tipjar-page-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.tipjar-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  background: rgba(0, 255, 200, 0.08);
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  border-radius: 20px;
+  color: #00ffc8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tipjar-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  color: #e1e4e8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tipjar-share-btn:hover {
+  background: rgba(0, 255, 200, 0.1);
+  border-color: rgba(0, 255, 200, 0.3);
+  color: #00ffc8;
+}
+
+
+/* =====================================================
+   TIP FORM CARD
+   ===================================================== */
+
+.tipjar-page-form-card {
+  background: linear-gradient(145deg, #1f2937, #111827);
+  border-radius: 20px;
+  padding: 28px;
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+}
+
+.tipjar-page-form-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 24px;
+  text-align: center;
+}
+
+
+/* ===== Amount Grid ===== */
+
+.tipjar-page-amount-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.tipjar-page-amount-btn {
+  padding: 16px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #e1e4e8;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tipjar-page-amount-btn:hover {
+  background: rgba(0, 255, 200, 0.1);
+  border-color: rgba(0, 255, 200, 0.3);
+}
+
+.tipjar-page-amount-btn.selected {
+  background: linear-gradient(135deg, rgba(0, 255, 200, 0.2), rgba(0, 255, 200, 0.1));
+  border-color: #00ffc8;
+  color: #00ffc8;
+  box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
+}
+
+
+/* ===== Custom Amount ===== */
+
+.tipjar-page-custom-amount {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.tipjar-page-custom-amount .currency-symbol {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8b949e;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.tipjar-page-custom-amount input {
+  width: 100%;
+  padding: 14px 16px 14px 36px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.tipjar-page-custom-amount input:focus {
+  outline: none;
+  border-color: #00ffc8;
+  box-shadow: 0 0 20px rgba(0, 255, 200, 0.15);
+}
+
+.tipjar-page-custom-amount input::placeholder {
+  color: #6b7280;
+  font-weight: 400;
+}
+
+
+/* ===== Message ===== */
+
+.tipjar-page-message {
+  margin-bottom: 16px;
+}
+
+.tipjar-page-message label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 8px;
+}
+
+.tipjar-page-message textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  min-height: 80px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.tipjar-page-message textarea:focus {
+  outline: none;
+  border-color: rgba(0, 255, 200, 0.5);
+}
+
+.tipjar-page-message textarea::placeholder {
+  color: #6b7280;
+}
+
+.tipjar-page-message .char-count {
+  display: block;
+  text-align: right;
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+
+/* ===== Anonymous Toggle ===== */
+
+.tipjar-page-anonymous {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  margin-bottom: 20px;
+  transition: background 0.2s ease;
+}
+
+.tipjar-page-anonymous:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tipjar-page-anonymous input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #00ffc8;
+  flex-shrink: 0;
+}
+
+
+/* ===== Error ===== */
+
+.tipjar-page-error-msg {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.4);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #ff6b6b;
+  font-size: 13px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+
+/* ===== Buttons ===== */
+
+.tipjar-page-continue-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 255, 200, 0.3);
+}
+
+.tipjar-page-continue-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(0, 255, 200, 0.5);
+}
+
+.tipjar-page-continue-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.tipjar-page-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 12px;
+  text-align: center;
+}
+
+.tipjar-page-back-btn {
+  background: none;
+  border: none;
+  color: #8b949e;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 16px;
+  transition: color 0.2s ease;
+}
+
+.tipjar-page-back-btn:hover {
+  color: #00ffc8;
+}
+
+
+/* ===== Summary Bar ===== */
+
+.tipjar-page-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(0, 255, 200, 0.08);
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #8b949e;
+}
+
+.summary-amount {
+  font-size: 20px;
+  font-weight: 800;
+  color: #00ffc8;
+  text-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
+}
+
+
+/* ===== Payment Methods ===== */
+
+.tipjar-page-payment-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.tipjar-page-method-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #e1e4e8;
+  text-align: left;
+  width: 100%;
+}
+
+.tipjar-page-method-btn:hover {
+  background: rgba(0, 255, 200, 0.06);
+  border-color: rgba(0, 255, 200, 0.2);
+}
+
+.tipjar-page-method-btn.selected {
+  background: rgba(0, 255, 200, 0.1);
+  border-color: #00ffc8;
+  box-shadow: 0 0 15px rgba(0, 255, 200, 0.15);
+}
+
+.method-icon {
+  font-size: 22px;
+  width: 36px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.method-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.method-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e1e4e8;
+}
+
+.method-fee {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.method-check {
+  color: #00ffc8;
+  flex-shrink: 0;
+}
+
+
+/* ===== Fee Breakdown ===== */
+
+.tipjar-page-fee-breakdown {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.tipjar-page-fee-breakdown .fee-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+  color: #8b949e;
+}
+
+.tipjar-page-fee-breakdown .fee-row.deduction {
+  color: #ff6b6b;
+  font-size: 12px;
+}
+
+.tipjar-page-fee-breakdown .fee-row.total {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 8px;
+  padding-top: 12px;
+  font-weight: 700;
+  color: #e1e4e8;
+}
+
+.receives-amount {
+  color: #00ffc8;
+  font-size: 16px;
+  font-weight: 800;
+  text-shadow: 0 0 8px rgba(0, 255, 200, 0.3);
+}
+
+
+/* ===== Send Button ===== */
+
+.tipjar-page-send-btn {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #FF6600, #ff8533);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 20px rgba(255, 102, 0, 0.3);
+}
+
+.tipjar-page-send-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(255, 102, 0, 0.5);
+}
+
+.tipjar-page-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spin {
+  animation: tipjarPageSpin 1s linear infinite;
+}
+
+
+/* =====================================================
+   SUCCESS STATE
+   ===================================================== */
+
+.tipjar-page-success {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.success-animation {
+  display: inline-block;
+  margin-bottom: 20px;
+}
+
+.tipjar-page-success .success-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0, 255, 200, 0.2), rgba(0, 255, 200, 0.1));
+  border: 3px solid #00ffc8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00ffc8;
+  animation: tipjarPagePop 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  box-shadow: 0 0 30px rgba(0, 255, 200, 0.3);
+}
+
+@keyframes tipjarPagePop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.tipjar-page-success h2 {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.success-amount {
+  font-size: 36px;
+  font-weight: 800;
+  color: #00ffc8;
+  margin: 0 0 8px;
+  text-shadow: 0 0 15px rgba(0, 255, 200, 0.4);
+}
+
+.success-text {
+  font-size: 14px;
+  color: #8b949e;
+  margin: 0 0 16px;
+}
+
+.success-message {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  color: #8b949e;
+  font-size: 13px;
+  font-style: italic;
+  margin-bottom: 20px;
+}
+
+.tipjar-page-done-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 255, 200, 0.3);
+  margin-bottom: 12px;
+}
+
+.tipjar-page-done-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(0, 255, 200, 0.5);
+}
+
+.tipjar-page-profile-link {
+  display: inline-block;
+  color: #8b949e;
+  font-size: 13px;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.tipjar-page-profile-link:hover {
+  color: #00ffc8;
+}
+
+
+/* =====================================================
+   EXTERNAL PAYMENT STATE
+   ===================================================== */
+
+.tipjar-page-external {
+  text-align: center;
+}
+
+.external-icon-large {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.tipjar-page-external h2 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.external-instruction {
+  font-size: 14px;
+  color: #8b949e;
+  margin: 0 0 16px;
+}
+
+.external-value-box {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.ext-label {
+  display: block;
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.ext-value-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ext-value {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 700;
+  color: #00ffc8;
+  background: none;
+  padding: 0;
+  word-break: break-all;
+  font-family: 'Monaco', 'JetBrains Mono', monospace;
+}
+
+.ext-copy-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(0, 255, 200, 0.1);
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  color: #00ffc8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.ext-copy-btn:hover {
+  background: rgba(0, 255, 200, 0.2);
+  border-color: #00ffc8;
+}
+
+.ext-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: #00ffc8;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ext-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.external-note {
+  background: rgba(0, 255, 200, 0.05);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.external-note p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #8b949e;
+}
+
+
+/* =====================================================
+   RECENT SUPPORTERS
+   ===================================================== */
+
+.tipjar-page-recent-tips {
+  background: linear-gradient(145deg, #1f2937, #111827);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tipjar-page-recent-tips h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 16px;
+}
+
+.recent-tips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recent-tip-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.recent-tip-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0, 255, 200, 0.2), rgba(255, 102, 0, 0.2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #00ffc8;
+  flex-shrink: 0;
+}
+
+.recent-tip-info {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.recent-tip-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e1e4e8;
+}
+
+.recent-tip-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: #00ffc8;
+}
+
+.recent-tip-message {
+  width: 100%;
+  margin: 4px 0 0 48px;
+  font-size: 12px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 480px) {
+  .tipjar-page {
+    padding: 16px 12px;
+  }
+
+  .tipjar-page-form-card {
+    padding: 20px;
+  }
+
+  .tipjar-page-amount-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .tipjar-page-name {
+    font-size: 20px;
+  }
+
+  .success-amount {
+    font-size: 28px;
+  }
+}
