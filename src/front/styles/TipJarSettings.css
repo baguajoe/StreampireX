@@ -1,0 +1,618 @@
+/* ===== TIP JAR SETTINGS - STREAMPIREX DARK THEME ===== */
+/* Component: TipJarSettings.js */
+/* Signature Colors: Teal #00ffc8, Orange #FF6600 */
+
+.tipjar-settings {
+  width: 100%;
+  color: #e1e4e8;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.tipjar-settings-container {
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+
+/* =====================================================
+   LOADING STATE
+   ===================================================== */
+
+.tipjar-settings-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  gap: 16px;
+}
+
+.tipjar-settings-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 255, 200, 0.2);
+  border-top-color: #00ffc8;
+  animation: tipjarSettingsSpin 0.8s linear infinite;
+}
+
+@keyframes tipjarSettingsSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.tipjar-settings-loading p {
+  color: #8b949e;
+  font-size: 14px;
+}
+
+
+/* =====================================================
+   HEADER
+   ===================================================== */
+
+.tipjar-settings-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tipjar-settings-header h2 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 6px;
+}
+
+.tipjar-settings-subtitle {
+  font-size: 14px;
+  color: #8b949e;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.tipjar-settings-methods-count {
+  display: inline-block;
+  padding: 6px 14px;
+  background: rgba(0, 255, 200, 0.1);
+  border: 1px solid rgba(0, 255, 200, 0.25);
+  border-radius: 20px;
+  color: #00ffc8;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+
+/* =====================================================
+   MESSAGES
+   ===================================================== */
+
+.tipjar-settings-msg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  animation: tipjarMsgSlide 0.3s ease;
+}
+
+@keyframes tipjarMsgSlide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tipjar-settings-msg.error {
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.tipjar-settings-msg.success {
+  background: rgba(0, 255, 200, 0.1);
+  border: 1px solid rgba(0, 255, 200, 0.3);
+  color: #00ffc8;
+}
+
+.tipjar-settings-msg button {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.tipjar-settings-msg button:hover {
+  opacity: 1;
+}
+
+
+/* =====================================================
+   SHARE LINK
+   ===================================================== */
+
+.tipjar-settings-share {
+  background: linear-gradient(145deg, #1f2937, #111827);
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.tipjar-settings-share-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #00ffc8;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 10px;
+}
+
+.tipjar-settings-share-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tipjar-settings-share-url {
+  flex: 1;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #e1e4e8;
+  font-size: 13px;
+  font-family: 'Monaco', 'JetBrains Mono', 'Courier New', monospace;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.tipjar-settings-copy-btn {
+  padding: 10px 18px;
+  background: rgba(0, 255, 200, 0.12);
+  border: 1px solid rgba(0, 255, 200, 0.3);
+  border-radius: 10px;
+  color: #00ffc8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tipjar-settings-copy-btn:hover {
+  background: rgba(0, 255, 200, 0.2);
+  transform: translateY(-1px);
+}
+
+.tipjar-settings-share-hint {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 10px 0 0;
+}
+
+
+/* =====================================================
+   PAYMENT METHOD CARDS
+   ===================================================== */
+
+.tipjar-settings-method {
+  background: linear-gradient(145deg, #1a2332, #111827);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.tipjar-settings-method.enabled {
+  border-color: rgba(0, 255, 200, 0.25);
+  box-shadow: 0 0 20px rgba(0, 255, 200, 0.06);
+}
+
+.tipjar-settings-method.always-on {
+  border-color: rgba(0, 255, 200, 0.15);
+  background: linear-gradient(145deg, #1a2838, #111827);
+}
+
+.tipjar-settings-method-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+}
+
+.tipjar-settings-method-icon {
+  font-size: 28px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.tipjar-settings-method-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tipjar-settings-method-info h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 3px;
+}
+
+.tipjar-settings-method-info p {
+  font-size: 12px;
+  color: #8b949e;
+  margin: 0;
+}
+
+.tipjar-settings-method-badge {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.tipjar-settings-method-badge.active {
+  background: rgba(0, 255, 200, 0.12);
+  color: #00ffc8;
+  border: 1px solid rgba(0, 255, 200, 0.25);
+}
+
+
+/* Toggle Switch */
+.tipjar-settings-toggle {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.tipjar-settings-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.tipjar-settings-toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 26px;
+  transition: all 0.3s ease;
+}
+
+.tipjar-settings-toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 3px;
+  bottom: 3px;
+  background: #6b7280;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.tipjar-settings-toggle input:checked + .tipjar-settings-toggle-slider {
+  background: rgba(0, 255, 200, 0.25);
+}
+
+.tipjar-settings-toggle input:checked + .tipjar-settings-toggle-slider::before {
+  transform: translateX(22px);
+  background: #00ffc8;
+  box-shadow: 0 0 8px rgba(0, 255, 200, 0.5);
+}
+
+
+/* Method Body (expanded input area) */
+.tipjar-settings-method-body {
+  padding: 0 20px 18px;
+  animation: tipjarBodySlide 0.25s ease;
+}
+
+@keyframes tipjarBodySlide {
+  from { opacity: 0; max-height: 0; padding-bottom: 0; }
+  to { opacity: 1; max-height: 120px; padding-bottom: 18px; }
+}
+
+
+/* =====================================================
+   INPUTS
+   ===================================================== */
+
+.tipjar-settings-input-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 8px;
+}
+
+.tipjar-settings-char-count {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #6b7280;
+  font-size: 11px;
+}
+
+.tipjar-settings-input-row {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.tipjar-settings-input-row:focus-within {
+  border-color: rgba(0, 255, 200, 0.4);
+  box-shadow: 0 0 0 3px rgba(0, 255, 200, 0.08);
+}
+
+.tipjar-settings-input-prefix {
+  padding: 10px 0 10px 14px;
+  color: #00ffc8;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Monaco', 'JetBrains Mono', monospace;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.tipjar-settings-input {
+  flex: 1;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  color: #e1e4e8;
+  font-size: 14px;
+  outline: none;
+  min-width: 0;
+}
+
+.tipjar-settings-input::placeholder {
+  color: #4b5563;
+}
+
+.tipjar-settings-input.full {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  transition: border-color 0.2s;
+}
+
+.tipjar-settings-input.full:focus {
+  border-color: rgba(0, 255, 200, 0.4);
+  box-shadow: 0 0 0 3px rgba(0, 255, 200, 0.08);
+}
+
+.tipjar-settings-input.short {
+  max-width: 120px;
+}
+
+.tipjar-settings-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #e1e4e8;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 70px;
+  outline: none;
+  transition: border-color 0.2s;
+  line-height: 1.5;
+}
+
+.tipjar-settings-textarea::placeholder {
+  color: #4b5563;
+}
+
+.tipjar-settings-textarea:focus {
+  border-color: rgba(0, 255, 200, 0.4);
+  box-shadow: 0 0 0 3px rgba(0, 255, 200, 0.08);
+}
+
+
+/* =====================================================
+   GENERAL SETTINGS
+   ===================================================== */
+
+.tipjar-settings-general {
+  background: linear-gradient(145deg, #1a2332, #111827);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 22px 20px;
+}
+
+.tipjar-settings-general h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 18px;
+}
+
+.tipjar-settings-field {
+  margin-bottom: 18px;
+}
+
+.tipjar-settings-field-hint {
+  font-size: 11px;
+  color: #6b7280;
+  margin: 6px 0 0;
+}
+
+.tipjar-settings-platform-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tipjar-settings-platform-info h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e1e4e8;
+  margin: 0 0 4px;
+}
+
+.tipjar-settings-platform-info p {
+  font-size: 12px;
+  color: #8b949e;
+  margin: 0;
+}
+
+
+/* =====================================================
+   SAVE BUTTON
+   ===================================================== */
+
+.tipjar-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tipjar-settings-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 255, 200, 0.25);
+}
+
+.tipjar-settings-save-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(0, 255, 200, 0.4);
+}
+
+.tipjar-settings-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.tipjar-settings-btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(13, 17, 23, 0.3);
+  border-top-color: #0d1117;
+  border-radius: 50%;
+  animation: tipjarSettingsSpin 0.6s linear infinite;
+}
+
+
+/* =====================================================
+   FOOTER INFO
+   ===================================================== */
+
+.tipjar-settings-footer {
+  padding: 16px 20px;
+  background: rgba(0, 255, 200, 0.04);
+  border: 1px solid rgba(0, 255, 200, 0.1);
+  border-radius: 12px;
+}
+
+.tipjar-settings-footer p {
+  font-size: 13px;
+  color: #8b949e;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.tipjar-settings-footer strong {
+  color: #00ffc8;
+}
+
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 640px) {
+  .tipjar-settings-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .tipjar-settings-header h2 {
+    font-size: 20px;
+  }
+
+  .tipjar-settings-share-row {
+    flex-direction: column;
+  }
+
+  .tipjar-settings-copy-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .tipjar-settings-method-header {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .tipjar-settings-method-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 22px;
+  }
+
+  .tipjar-settings-method-body {
+    padding: 0 16px 14px;
+  }
+
+  .tipjar-settings-actions {
+    justify-content: stretch;
+  }
+
+  .tipjar-settings-save-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tipjar-settings-platform-toggle {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
