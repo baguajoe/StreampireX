@@ -1,0 +1,159 @@
+/* ==============================================
+   GAMER GATE — Enable prompt for non-gamers
+   Gaming blue: #4a9eff  |  Teal: #00ffc8
+   ============================================== */
+
+.gamer-gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 40px 20px;
+}
+
+.gamer-gate-card {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  max-width: 560px;
+  width: 100%;
+  padding: 56px 40px;
+  background: rgba(15, 15, 35, 0.85);
+  border: 1px solid rgba(74, 158, 255, 0.3);
+  border-radius: 20px;
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.5),
+    0 0 60px rgba(74, 158, 255, 0.08);
+}
+
+.gamer-gate-glow {
+  position: absolute;
+  top: -60%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(
+    circle,
+    rgba(74, 158, 255, 0.15) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* Icon */
+.gamer-gate-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 0 12px rgba(74, 158, 255, 0.5));
+}
+
+/* Title */
+.gamer-gate-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #4a9eff;
+  margin: 0 0 12px 0;
+  letter-spacing: 0.02em;
+}
+
+/* Description */
+.gamer-gate-description {
+  color: #999;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  max-width: 440px;
+  margin: 0 auto 28px auto;
+}
+
+/* Feature preview row */
+.gamer-gate-features {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.gamer-gate-feature {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(74, 158, 255, 0.06);
+  border: 1px solid rgba(74, 158, 255, 0.15);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: #ccc;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.gamer-gate-feature:hover {
+  background: rgba(74, 158, 255, 0.12);
+  border-color: rgba(74, 158, 255, 0.35);
+}
+
+.gf-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* Action buttons */
+.gamer-gate-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.gamer-gate-enable-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 36px;
+  background: linear-gradient(135deg, #4a9eff, #357abd);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(74, 158, 255, 0.3);
+}
+
+.gamer-gate-enable-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(74, 158, 255, 0.45);
+  background: linear-gradient(135deg, #5aafff, #4a9eff);
+  color: white;
+  text-decoration: none;
+}
+
+.gamer-gate-learn-btn {
+  color: #888;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.gamer-gate-learn-btn:hover {
+  color: #4a9eff;
+  text-decoration: none;
+}
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 600px) {
+  .gamer-gate-card {
+    padding: 40px 24px;
+  }
+
+  .gamer-gate-features {
+    grid-template-columns: 1fr;
+  }
+
+  .gamer-gate-title {
+    font-size: 1.3rem;
+  }
+}

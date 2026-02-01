@@ -1,5 +1,5 @@
 // src/front/js/component/sidebar.js
-// UPDATED: Single unified dashboard link instead of 6 separate dashboards
+// UPDATED: Gaming section always visible, dark theme background fix
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import styled from "styled-components";
@@ -7,105 +7,165 @@ import StorageStatus from "./StorageStatus";
 import BandwidthStatus from "./BandwidthStatus";
 import "../../styles/sidebar.css";
 
+// ============================================================
+// STYLED COMPONENTS — Dark theme: #0a1628 → #001220
+// Teal: #00ffc8  |  Orange: #FF6600 / #ffa726  |  Gaming: #4a9eff
+// ============================================================
+
 const SidebarContainer = styled.div`
   width: 250px;
-  padding: 20px;
+  padding: 20px 12px;
   display: flex;
   flex-direction: column;
-  background-color: #002b5c;
+  background: linear-gradient(180deg, #0a1628 0%, #001220 100%);
+  border-right: 1px solid rgba(0, 255, 200, 0.1);
+  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.4);
 `;
 
 const SectionHeader = styled.h4`
   color: #ffa726;
-  margin-top: 20px;
-  margin-bottom: 10px;
-  padding-left: 15px;
-  font-weight: bold;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
-  cursor: pointer;
+  letter-spacing: 1.5px;
+  padding: 20px 15px 8px;
+  margin: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
+  cursor: default;
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 167, 38, 0.3);
+  }
 `;
 
 const MenuItem = styled(Link)`
-  padding: 12px 15px;
-  color: #ffffff;
+  padding: 10px 15px;
+  color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
   display: flex;
   align-items: center;
-  font-size: 15px;
-  border-left: 4px solid transparent;
-  transition: background 0.3s, border-color 0.3s;
+  gap: 10px;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  margin: 2px 0;
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+
   &:hover {
-    background: #1a3c70;
+    background: rgba(0, 255, 200, 0.1);
+    color: #00ffc8;
+    transform: translateX(4px);
+    text-decoration: none;
   }
+
   &.active {
-    background: #1a3c70;
-    border-left: 4px solid #00b8d4;
+    background: rgba(0, 255, 200, 0.15);
+    color: #00ffc8;
+    border-left-color: #00ffc8;
   }
 `;
 
 const ProfileMenuItem = styled(MenuItem)`
   background: rgba(255, 255, 255, 0.02);
-  margin: 2px 0;
-  border-radius: 6px;
-  
+
   &:hover {
-    background: #1a3c70;
-    border-left: 4px solid #ffa726;
-    transform: translateX(3px);
+    background: rgba(255, 167, 38, 0.1);
+    border-left-color: #ffa726;
+    color: #ffa726;
   }
-  
+
   &.active {
-    background: #1a3c70;
-    border-left: 4px solid #ffa726;
-    box-shadow: inset 0 0 10px rgba(255, 167, 38, 0.2);
+    background: rgba(255, 167, 38, 0.15);
+    border-left-color: #ffa726;
+    color: #ffa726;
+    box-shadow: inset 0 0 10px rgba(255, 167, 38, 0.15);
   }
 `;
 
 const MenuHint = styled.span`
   font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.35);
   margin-left: auto;
   font-weight: normal;
 `;
 
 const CreateProfileLink = styled(Link)`
   padding: 8px 15px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.45);
   text-decoration: none;
   display: flex;
   align-items: center;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   margin-top: 4px;
   transition: all 0.2s ease;
-  
+
   &:hover {
     color: #00ffc8;
+    text-decoration: none;
+  }
+`;
+
+// Dashboard link — teal highlight
+const DashboardLink = styled(MenuItem)`
+  background: linear-gradient(135deg, rgba(0, 255, 200, 0.08), transparent);
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  border-radius: 8px;
+  margin: 4px 0;
+
+  &:hover {
+    background: linear-gradient(135deg, rgba(0, 255, 200, 0.18), transparent);
+    border-color: #00ffc8;
+  }
+
+  &.active {
+    background: linear-gradient(135deg, rgba(0, 255, 200, 0.22), transparent);
+    border-color: #00ffc8;
+    border-left: 3px solid #00ffc8;
+  }
+`;
+
+// Gaming styled components — blue accent #4a9eff
+const GamingSectionHeader = styled.div`
+  color: #4a9eff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  background: rgba(74, 158, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px 15px;
+  margin: 10px 0 4px 0;
+  border: 1px solid rgba(74, 158, 255, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(74, 158, 255, 0.14);
+    border-color: rgba(74, 158, 255, 0.4);
   }
 `;
 
 const GamingMenuItem = styled(MenuItem)`
   &:hover {
-    background: #1a4c80;
-    border-left: 4px solid #4a9eff;
+    background: rgba(74, 158, 255, 0.1);
+    border-left-color: #4a9eff;
+    color: #4a9eff;
   }
-  
-  &.active {
-    background: #1a4c80;
-    border-left: 4px solid #4a9eff;
-    box-shadow: inset 0 0 10px rgba(74, 158, 255, 0.2);
-  }
-`;
 
-const GamingSectionHeader = styled(SectionHeader)`
-  color: #4a9eff;
-  background: rgba(74, 158, 255, 0.1);
-  border-radius: 8px;
-  padding: 12px 15px;
-  margin: 10px 0;
-  border: 1px solid rgba(74, 158, 255, 0.3);
+  &.active {
+    background: rgba(74, 158, 255, 0.15);
+    border-left-color: #4a9eff;
+    color: #4a9eff;
+    box-shadow: inset 0 0 10px rgba(74, 158, 255, 0.15);
+  }
 `;
 
 const NotificationBadge = styled.span`
@@ -115,7 +175,7 @@ const NotificationBadge = styled.span`
   font-weight: bold;
   padding: 2px 6px;
   border-radius: 50%;
-  margin-left: 8px;
+  margin-left: auto;
   min-width: 16px;
   height: 16px;
   display: flex;
@@ -126,30 +186,15 @@ const NotificationBadge = styled.span`
 const UsageSection = styled.div`
   margin-top: auto;
   padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(0, 255, 200, 0.1);
   display: flex;
   flex-direction: column;
   gap: 12px;
 `;
 
-// Dashboard link with special styling
-const DashboardLink = styled(MenuItem)`
-  background: linear-gradient(135deg, rgba(0, 255, 200, 0.1), transparent);
-  border: 1px solid rgba(0, 255, 200, 0.2);
-  border-radius: 8px;
-  margin: 4px 0;
-  
-  &:hover {
-    background: linear-gradient(135deg, rgba(0, 255, 200, 0.2), transparent);
-    border-color: #00ffc8;
-  }
-  
-  &.active {
-    background: linear-gradient(135deg, rgba(0, 255, 200, 0.25), transparent);
-    border-color: #00ffc8;
-    border-left: 4px solid #00ffc8;
-  }
-`;
+// ============================================================
+// SIDEBAR COMPONENT
+// ============================================================
 
 const Sidebar = ({ user }) => {
   const location = useLocation();
@@ -158,19 +203,26 @@ const Sidebar = ({ user }) => {
 
   const [showGamerSection, setShowGamerSection] = useState(true);
   const [gamingNotifications, setGamingNotifications] = useState({
-    chatrooms: 3,
-    teamRoom: 1,
+    chatrooms: 0,
+    teamRoom: 0,
     squads: 0
   });
 
   // Determine what profiles the user has (based on signup booleans + fallbacks)
-  const hasArtistProfile = user?.is_artist === true || user?.profile_type === 'artist' || user?.profile_type === 'multiple';
-  const hasGamerProfile = user?.is_gamer === true || user?.profile_type === 'gamer' || user?.profile_type === 'multiple';
+  const hasArtistProfile =
+    user?.is_artist === true ||
+    user?.profile_type === 'artist' ||
+    user?.profile_type === 'multiple';
 
+  const hasGamerProfile =
+    user?.is_gamer === true ||
+    user?.profile_type === 'gamer' ||
+    user?.profile_type === 'multiple';
+
+  // Persist gaming section expand/collapse
   useEffect(() => {
     const saved = localStorage.getItem("sidebar_gamer_expanded");
-    if (saved) setShowGamerSection(saved === "true");
-    else setShowGamerSection(true);
+    if (saved !== null) setShowGamerSection(saved === "true");
   }, []);
 
   useEffect(() => {
@@ -185,16 +237,23 @@ const Sidebar = ({ user }) => {
       {/* ============================== */}
       <SectionHeader>👤 Profiles & Pages</SectionHeader>
 
-      {/* Social Profile - Everyone has this */}
+      {/* Social Profile — Everyone has this */}
       <ProfileMenuItem
         to="/profile"
-        className={isActive("/profile") && !isActive("/profile/gamer") && !isActive("/profile/artist") && !isActive("/profile/video") ? "active" : ""}
+        className={
+          isActive("/profile") &&
+          !isActive("/profile/gamer") &&
+          !isActive("/profile/artist") &&
+          !isActive("/profile/video")
+            ? "active"
+            : ""
+        }
       >
         👤 Social Profile
         <MenuHint>main identity</MenuHint>
       </ProfileMenuItem>
 
-      {/* Artist Profile - Only if they have one */}
+      {/* Artist Profile — Only if they have one */}
       {hasArtistProfile && (
         <ProfileMenuItem
           to="/profile/artist"
@@ -205,7 +264,7 @@ const Sidebar = ({ user }) => {
         </ProfileMenuItem>
       )}
 
-      {/* Gamer Profile - Only if they have one */}
+      {/* Gamer Profile — Only if they have one */}
       {hasGamerProfile && (
         <ProfileMenuItem
           to="/profile/gamer"
@@ -216,7 +275,7 @@ const Sidebar = ({ user }) => {
         </ProfileMenuItem>
       )}
 
-      {/* Create Profile Link - Show if missing any profile type */}
+      {/* Create Profile Link — Show if missing any profile type */}
       {(!hasArtistProfile || !hasGamerProfile) && (
         <CreateProfileLink to="/settings/profiles">
           ➕ Add Profile Type...
@@ -250,16 +309,13 @@ const Sidebar = ({ user }) => {
       </DashboardLink>
 
       {/* ============================== */}
-      {/* 🎤 MUSIC - Only for artists    */}
+      {/* 🎤 MUSIC — Only for artists    */}
       {/* ============================== */}
       {hasArtistProfile && (
         <>
           <SectionHeader>🎤 Music</SectionHeader>
           <MenuItem to="/music-distribution" className={isActive("/music-distribution") ? "active" : ""}>
             🌍 Music Distribution
-          </MenuItem>
-          <MenuItem to="/discover-users" className={isActive("/discover-users") ? "active" : ""}>
-            🔍 Search Artists
           </MenuItem>
           <MenuItem to="/collaborator-splits" className={isActive("/collaborator-splits") ? "active" : ""}>
             👥 Collaborator Splits
@@ -268,33 +324,35 @@ const Sidebar = ({ user }) => {
       )}
 
       {/* ============================== */}
-      {/* 🎮 GAMING - Only for gamers    */}
+      {/* 🎮 GAMING — Always visible     */}
+      {/* Community features accessible  */}
+      {/* to everyone, not gated         */}
       {/* ============================== */}
-      {hasGamerProfile && (
+      <GamingSectionHeader onClick={() => setShowGamerSection(!showGamerSection)}>
+        <span>🎮 Gaming</span>
+        <span style={{ fontSize: '0.7rem' }}>{showGamerSection ? "▼" : "▶"}</span>
+      </GamingSectionHeader>
+
+      {showGamerSection && (
         <>
-          <GamingSectionHeader onClick={() => setShowGamerSection(!showGamerSection)}>
-            <span>🎮 Gaming</span>
-            <span>{showGamerSection ? "🔽" : "▶️"}</span>
-          </GamingSectionHeader>
-          {showGamerSection && (
-            <>
-              <GamingMenuItem to="/gamers/chat" className={isActive("/gamers/chat") ? "active" : ""}>
-                💬 Gamer Chatrooms
-                {gamingNotifications.chatrooms > 0 && (
-                  <NotificationBadge>{gamingNotifications.chatrooms}</NotificationBadge>
-                )}
-              </GamingMenuItem>
-              <GamingMenuItem to="/team-room" className={isActive("/team-room") ? "active" : ""}>
-                🧑‍🤝‍🧑 Team Room
-                {gamingNotifications.teamRoom > 0 && (
-                  <NotificationBadge>{gamingNotifications.teamRoom}</NotificationBadge>
-                )}
-              </GamingMenuItem>
-              <GamingMenuItem to="/squad-finder" className={isActive("/squad-finder") ? "active" : ""}>
-                🔍 Find Squads
-              </GamingMenuItem>
-            </>
-          )}
+          <GamingMenuItem to="/gamers/chat" className={isActive("/gamers/chat") ? "active" : ""}>
+            💬 Gamer Chatrooms
+            {gamingNotifications.chatrooms > 0 && (
+              <NotificationBadge>{gamingNotifications.chatrooms}</NotificationBadge>
+            )}
+          </GamingMenuItem>
+          <GamingMenuItem to="/team-room" className={isActive("/team-room") ? "active" : ""}>
+            🧑‍🤝‍🧑 Team Room
+            {gamingNotifications.teamRoom > 0 && (
+              <NotificationBadge>{gamingNotifications.teamRoom}</NotificationBadge>
+            )}
+          </GamingMenuItem>
+          <GamingMenuItem to="/squad-finder" className={isActive("/squad-finder") ? "active" : ""}>
+            🔍 Find Squads
+            {gamingNotifications.squads > 0 && (
+              <NotificationBadge>{gamingNotifications.squads}</NotificationBadge>
+            )}
+          </GamingMenuItem>
         </>
       )}
 
@@ -310,7 +368,7 @@ const Sidebar = ({ user }) => {
       </MenuItem>
 
       {/* ============================== */}
-      {/* 🎬 VIDEOS - Always visible     */}
+      {/* 🎬 VIDEOS                      */}
       {/* ============================== */}
       <SectionHeader>🎬 Videos</SectionHeader>
       <MenuItem to="/videos" className={isActive("/videos") ? "active" : ""}>

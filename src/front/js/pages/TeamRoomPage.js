@@ -3,6 +3,7 @@ import { getLiveSquadStreams } from "../utils/gamerAPI";
 import { Context } from "../store/appContext";
 import MultiStreamSection from "../component/MultiStreamSection";
 import WebRTCChat from "../component/WebRTCChat";
+import GamerGate from "../component/GamerGate";
 import "../../styles/TeamRoom.css";
 
 const TeamRoomPage = () => {
@@ -350,6 +351,7 @@ const TeamRoomPage = () => {
   };
 
   return (
+    <GamerGate featureName="Team Rooms">
     <div className="team-room-container">
       <div className="team-room-header">
         <h1>🧑‍🤝‍🧑 Team Room</h1>
@@ -665,6 +667,7 @@ const TeamRoomPage = () => {
         </div>
       )}
     </div>
+    </GamerGate>
   );
 };
 
