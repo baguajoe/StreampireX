@@ -188,7 +188,7 @@ const PricingPage = () => {
             <span className="stat-label">Creator Earnings</span>
           </div>
           <div className="stat">
-            <span className="stat-value">50+</span>
+            <span className="stat-value">150+</span>
             <span className="stat-label">Distribution Platforms</span>
           </div>
           <div className="stat">

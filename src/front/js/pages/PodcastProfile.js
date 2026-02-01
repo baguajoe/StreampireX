@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import "../../styles/ProfilePage.css"
+import TipJar from "../component/TipJar";
+import "../../styles/ProfilePage.css";
 
 const PodcastProfile = () => {
-    const { username, podcastId } = useParams();  // Extract user & podcast ID from URL
+    const { username, podcastId } = useParams();
     const [podcast, setPodcast] = useState(null);
     const [episodes, setEpisodes] = useState([]);
 
     useEffect(() => {
-        // Fetch podcast data from backend
         fetch(`${process.env.REACT_APP_BACKEND_URL}/api/podcast/${username}/${podcastId}`)
             .then(res => res.json())
             .then(data => {
@@ -29,7 +29,12 @@ const PodcastProfile = () => {
                     <h3>Hosted by {podcast.host}</h3>
                     <p>{podcast.description}</p>
                     <button>Follow</button>
-                    <button>Donate</button>
+                    <TipJar
+                        creatorId={podcast.host_id}
+                        creatorName={podcast.host}
+                        buttonText="Donate"
+                        buttonStyle="inline"
+                    />
                 </div>
             </div>
 

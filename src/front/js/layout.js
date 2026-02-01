@@ -46,6 +46,7 @@ import CreatorDashboard from "./pages/CreatorDashboard";
 import FavoritesPage from "./pages/FavoritesPage";
 import TeamRoomPage from "./pages/TeamRoomPage";
 import PricingPlans from "./pages/PricingPlans";
+import TipJarPage from "./pages/TipJarPage";
 
 import ArtistDashboard from "./pages/ArtistDashboard";
 import UploadMusic from "./pages/UploadMusic";
@@ -132,10 +133,12 @@ const Layout = () => {
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/orders" element={<OrderHistoryPage />} />
               <Route path="/cart" element={<ShoppingCart />} />
+              <Route path="/support/:username" element={<TipJarPage />} />
+              <Route path="/tip/:username" element={<TipJarPage />} />
 
               {/* ✨ NEW: Unified Dashboard with nested routes */}
               <Route path="/dashboard/*" element={<Dashboard />} />
-              
+
               {/* 🔄 Redirects from old dashboard routes to new unified dashboard */}
               <Route path="/creator-dashboard" element={<Navigate to="/dashboard" replace />} />
               <Route path="/artist-dashboard" element={<Navigate to="/dashboard/music" replace />} />
