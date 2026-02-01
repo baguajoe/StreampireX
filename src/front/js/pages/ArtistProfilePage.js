@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useRef } from "react";
 import { Context } from "../store/appContext";
 import { Link, useParams } from "react-router-dom";
 import UploadTrackModal from "../component/UploadTrackModal";
+import TipJar from "../component/TipJar";
 import "../../styles/ArtistProfile.css";
 
 const ArtistProfilePage = () => {
@@ -1167,6 +1168,15 @@ const ArtistProfilePage = () => {
                 </button>
               )}
               <button onClick={handleShare} className="share-btn">🔗 Share</button>
+              {!isOwnProfile && !isBlocked && (
+                <TipJar
+                  creatorId={id}
+                  creatorName={artistInfo.artistName}
+                  contentType="artist"
+                  contentId={id}
+                  buttonStyle="inline"
+                />
+              )}
               {!isOwnProfile && (
                 <div className="more-menu-container">
                   <button 

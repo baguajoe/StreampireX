@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import TipJar from "../component/TipJar";
 import "../../styles/PodcastDetailPage.css";
 
 const PodcastDetailPage = () => {
@@ -348,6 +349,14 @@ const PodcastDetailPage = () => {
               <button onClick={handleSubscribe} className="action-btn subscribe-btn">
                 ➕ Subscribe
               </button>
+
+              <TipJar
+                creatorId={podcast.user_id || podcast.creator_id}
+                creatorName={podcast.host_name || podcast.creator_name || podcast.title}
+                contentType="podcast"
+                contentId={id}
+                buttonStyle="inline"
+              />
             </div>
 
             {/* Stats */}
