@@ -410,9 +410,6 @@ class User(db.Model):
             "steam_connected": bool(self.steam_id),
             "steam_profile": self.steam_profile_data,
 
-            "is_artist": getattr(self, 'is_artist', False),
-            "is_video_creator": getattr(self, 'is_video_creator', False),
-            "is_gamer": getattr(self, 'is_gamer', False),
         }
     
 class UserSettings(db.Model):
