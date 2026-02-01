@@ -20,10 +20,9 @@ const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Determine what profiles the user has
-  const hasArtistProfile = user?.is_artist === true;
-  const hasGamerProfile = user?.is_gamer === true;
-  const hasVideoChannel = user?.is_video_creator === true;
+  // Determine what profiles the user has (with profile_type fallbacks)
+  const hasArtistProfile = user?.is_artist === true || user?.profile_type === 'artist' || user?.profile_type === 'multiple';
+  const hasGamerProfile = user?.is_gamer === true || user?.profile_type === 'gamer' || user?.profile_type === 'multiple';
 
   // Check if user has any podcasts (we'll fetch this)
   const [hasPodcasts, setHasPodcasts] = useState(true); // Default true, hide if none
@@ -94,7 +93,7 @@ const Dashboard = () => {
       path: '/dashboard/videos', 
       label: 'Videos', 
       icon: '📹',
-      show: hasVideoChannel 
+      show: true // Always show - videos available to all
     },
     { 
       id: 'store', 
@@ -138,9 +137,8 @@ const Dashboard = () => {
             <h1>Welcome back, {user?.display_name || user?.username || 'Creator'}!</h1>
             <p className="header-subtitle">
               {hasArtistProfile && '🎵 Artist'} 
-              {hasVideoChannel && ' • 📹 Video Creator'} 
               {hasGamerProfile && ' • 🎮 Gamer'}
-              {!hasArtistProfile && !hasVideoChannel && !hasGamerProfile && '🚀 Creator'}
+              {!hasArtistProfile && !hasGamerProfile && '🚀 Creator'}
             </p>
           </div>
         </div>
