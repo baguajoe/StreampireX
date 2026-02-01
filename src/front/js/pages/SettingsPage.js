@@ -1,12 +1,14 @@
-// src/front/js/pages/SettingsPage.js - Enhanced with Storage & Bandwidth Status
+// src/front/js/pages/SettingsPage.js - Enhanced with Storage & Bandwidth Status + TipJar Settings
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ErrorHandler, AuthErrorHandler } from "../utils/errorUtils";
 import PayoutRequest from "../component/PayoutRequest";
 import StorageStatus from "../component/StorageStatus";
 import BandwidthStatus from "../component/BandwidthStatus";
+import TipJarSettings from "../component/TipJarSettings";
 import "../../styles/StorageStatus.css";
 import "../../styles/BandwidthStatus.css";
+import "../../styles/TipJarSettings.css";
 import "../../styles/SettingsPage.css";
 
 const SettingsPage = () => {
@@ -496,6 +498,11 @@ const SettingsPage = () => {
               loadUserData();
             }}
           />
+        </div>
+
+        {/* ========== TIP JAR SETTINGS ========== */}
+        <div className="settings-section">
+          <TipJarSettings />
         </div>
 
         {/* Data & Privacy */}
