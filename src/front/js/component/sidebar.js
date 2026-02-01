@@ -163,10 +163,9 @@ const Sidebar = ({ user }) => {
     squads: 0
   });
 
-  // Determine what profiles the user has (based on signup booleans)
-  const hasArtistProfile = user?.is_artist === true;
-  const hasGamerProfile = user?.is_gamer === true;
-  const hasVideoChannel = user?.is_video_creator === true;
+  // Determine what profiles the user has (based on signup booleans + fallbacks)
+  const hasArtistProfile = user?.is_artist === true || user?.profile_type === 'artist' || user?.profile_type === 'multiple';
+  const hasGamerProfile = user?.is_gamer === true || user?.profile_type === 'gamer' || user?.profile_type === 'multiple';
 
   useEffect(() => {
     const saved = localStorage.getItem("sidebar_gamer_expanded");
@@ -180,60 +179,53 @@ const Sidebar = ({ user }) => {
 
   return (
     <SidebarContainer className="sidebar">
-      
-      {/* 👤 PROFILES & PAGES - Conditional based on what user has */}
+
+      {/* ============================== */}
+      {/* 👤 PROFILES & PAGES            */}
+      {/* ============================== */}
       <SectionHeader>👤 Profiles & Pages</SectionHeader>
-      
+
       {/* Social Profile - Everyone has this */}
-      <ProfileMenuItem 
-        to="/profile" 
+      <ProfileMenuItem
+        to="/profile"
         className={isActive("/profile") && !isActive("/profile/gamer") && !isActive("/profile/artist") && !isActive("/profile/video") ? "active" : ""}
       >
         👤 Social Profile
         <MenuHint>main identity</MenuHint>
       </ProfileMenuItem>
-      
+
       {/* Artist Profile - Only if they have one */}
       {hasArtistProfile && (
-        <ProfileMenuItem 
-          to="/profile/artist" 
+        <ProfileMenuItem
+          to="/profile/artist"
           className={isActive("/profile/artist") ? "active" : ""}
         >
           🎵 Artist Page
           <MenuHint>your music</MenuHint>
         </ProfileMenuItem>
       )}
-      
+
       {/* Gamer Profile - Only if they have one */}
       {hasGamerProfile && (
-        <ProfileMenuItem 
-          to="/profile/gamer" 
+        <ProfileMenuItem
+          to="/profile/gamer"
           className={isActive("/profile/gamer") ? "active" : ""}
         >
           🎮 Gamer Profile
           <MenuHint>gaming/squads</MenuHint>
         </ProfileMenuItem>
       )}
-      
-      {/* Video Channel - Only if they have one */}
-      {hasVideoChannel && (
-        <ProfileMenuItem 
-          to="/profile/video" 
-          className={isActive("/profile/video") ? "active" : ""}
-        >
-          📹 Video Channel
-          <MenuHint>your videos</MenuHint>
-        </ProfileMenuItem>
-      )}
-      
+
       {/* Create Profile Link - Show if missing any profile type */}
-      {(!hasArtistProfile || !hasGamerProfile || !hasVideoChannel) && (
+      {(!hasArtistProfile || !hasGamerProfile) && (
         <CreateProfileLink to="/settings/profiles">
           ➕ Add Profile Type...
         </CreateProfileLink>
       )}
 
-      {/* Feed & Discovery */}
+      {/* ============================== */}
+      {/* 🏠 FEED & DISCOVERY            */}
+      {/* ============================== */}
       <SectionHeader>🏠 Feed</SectionHeader>
       <MenuItem to="/home-feed" className={isActive("/home-feed") ? "active" : ""}>
         🏠 Home Feed
@@ -245,17 +237,21 @@ const Sidebar = ({ user }) => {
         🔍 Discover Users
       </MenuItem>
 
-      {/* 📊 UNIFIED DASHBOARD - Single link instead of 6 */}
+      {/* ============================== */}
+      {/* 📊 UNIFIED DASHBOARD           */}
+      {/* ============================== */}
       <SectionHeader>📊 Dashboard</SectionHeader>
-      <DashboardLink 
-        to="/dashboard" 
+      <DashboardLink
+        to="/dashboard"
         className={isActive("/dashboard") ? "active" : ""}
       >
         🚀 Creator Dashboard
         <MenuHint>all in one</MenuHint>
       </DashboardLink>
 
-      {/* 🎤 Music Distribution - Only for artists */}
+      {/* ============================== */}
+      {/* 🎤 MUSIC - Only for artists    */}
+      {/* ============================== */}
       {hasArtistProfile && (
         <>
           <SectionHeader>🎤 Music</SectionHeader>
@@ -271,7 +267,9 @@ const Sidebar = ({ user }) => {
         </>
       )}
 
-      {/* 🎮 GAMERS SECTION - Only for gamers */}
+      {/* ============================== */}
+      {/* 🎮 GAMING - Only for gamers    */}
+      {/* ============================== */}
       {hasGamerProfile && (
         <>
           <GamingSectionHeader onClick={() => setShowGamerSection(!showGamerSection)}>
@@ -300,7 +298,9 @@ const Sidebar = ({ user }) => {
         </>
       )}
 
-      {/* 🎧 Podcasts */}
+      {/* ============================== */}
+      {/* 🎧 PODCASTS                    */}
+      {/* ============================== */}
       <SectionHeader>🎧 Podcasts</SectionHeader>
       <MenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>
         🎙️ Create Podcast
@@ -309,26 +309,26 @@ const Sidebar = ({ user }) => {
         🎧 Browse Categories
       </MenuItem>
 
-      {/* 🎬 Videos */}
+      {/* ============================== */}
+      {/* 🎬 VIDEOS - Always visible     */}
+      {/* ============================== */}
       <SectionHeader>🎬 Videos</SectionHeader>
       <MenuItem to="/videos" className={isActive("/videos") ? "active" : ""}>
         🎞️ Browse Videos
       </MenuItem>
-      {hasVideoChannel && (
-        <>
-          <MenuItem to="/my-channel" className={isActive("/my-channel") ? "active" : ""}>
-            📹 My Channel
-          </MenuItem>
-          <MenuItem to="/upload-video" className={isActive("/upload-video") ? "active" : ""}>
-            📤 Upload Video
-          </MenuItem>
-        </>
-      )}
+      <MenuItem to="/profile/video" className={isActive("/profile/video") ? "active" : ""}>
+        📹 My Channel
+      </MenuItem>
+      <MenuItem to="/upload-video" className={isActive("/upload-video") ? "active" : ""}>
+        📤 Upload Video
+      </MenuItem>
       <MenuItem to="/video-editor" className={isActive("/video-editor") ? "active" : ""}>
         🎬 Video Editor
       </MenuItem>
 
-      {/* 📻 Radio Stations */}
+      {/* ============================== */}
+      {/* 📻 RADIO STATIONS              */}
+      {/* ============================== */}
       <SectionHeader>📻 Radio</SectionHeader>
       <MenuItem to="/browse-radio-stations" className={isActive("/browse-radio-stations") ? "active" : ""}>
         📻 Browse Stations
@@ -337,13 +337,17 @@ const Sidebar = ({ user }) => {
         ➕ Create Station
       </MenuItem>
 
-      {/* 🎥 Live Streaming */}
+      {/* ============================== */}
+      {/* 🎥 LIVE STREAMING              */}
+      {/* ============================== */}
       <SectionHeader>🎥 Live</SectionHeader>
       <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
         📡 Live Streams
       </MenuItem>
 
-      {/* 🛍️ Store & Marketplace */}
+      {/* ============================== */}
+      {/* 🛍️ STORE & MARKETPLACE         */}
+      {/* ============================== */}
       <SectionHeader>🛍️ Store</SectionHeader>
       <MenuItem to="/marketplace" className={isActive("/marketplace") ? "active" : ""}>
         🛒 Marketplace
@@ -355,13 +359,17 @@ const Sidebar = ({ user }) => {
         📦 Orders
       </MenuItem>
 
-      {/* ⚙️ Account */}
+      {/* ============================== */}
+      {/* ⚙️ ACCOUNT                     */}
+      {/* ============================== */}
       <SectionHeader>⚙️ Account</SectionHeader>
       <MenuItem to="/settings" className={isActive("/settings") ? "active" : ""}>
         ⚙️ Settings
       </MenuItem>
 
-      {/* Usage Status */}
+      {/* ============================== */}
+      {/* 📊 USAGE STATUS                */}
+      {/* ============================== */}
       <UsageSection>
         <StorageStatus compact={true} />
         <BandwidthStatus compact={true} />
