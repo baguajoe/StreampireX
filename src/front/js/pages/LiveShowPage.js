@@ -271,6 +271,14 @@ const LiveShowPage = () => {
           )}
         </div>
 
+        {/* Tip the Station */}
+        <TipJar
+          creatorId={radioStation.user_id}
+          creatorName={radioStation.name}
+          contentType="radio"
+          contentId={id}
+        />
+
         {/* Station Stats */}
         <div className="radio-stats">
           <div className="stat-card">

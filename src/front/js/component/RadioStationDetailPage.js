@@ -23,6 +23,7 @@ import DJNovaImg from "../../img/DJNova.png";
 import TheGrooveMechanicsImg from "../../img/TheGrooveMechanics.png";
 import IndigoRainImg from "../../img/IndigoRain.png";
 import ZaraMoonlightImg from "../../img/ZaraMoonlight.png";
+import TipJar from "./TipJar";
 
 const RadioStationDetailPage = () => {
   const { id, type } = useParams();
@@ -1134,7 +1135,13 @@ const RadioStationDetailPage = () => {
               <button className="favorite-button">
                 ❤️ Add to Favorites
               </button>
-
+              <TipJar
+                creatorId={station.user_id}
+                creatorName={station.creator_name || station.name}
+                contentType="radio"
+                contentId={station.id}
+                buttonStyle="inline"
+              />
               {/* Development debug info */}
               {renderDebugInfo()}
             </div>
