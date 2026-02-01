@@ -16446,9 +16446,11 @@ def update_user_profile():
         # Handle file uploads
         if "profile_picture" in request.files:
             pic = request.files["profile_picture"]
+            print(pic)
             if pic.filename != "":
                 filename = secure_filename(pic.filename)
                 pic_url = uploadFile(pic, filename)
+                print(pic_url)
                 user.profile_picture = pic_url
         
         if "cover_photo" in request.files:
@@ -22433,4 +22435,45 @@ def get_pending_external_tips():
     except Exception as e:
         return jsonify({'error': 'Failed to fetch tips'}), 500
 
+@api.route('/user/profile-picture', methods=['PUT'])
+@jwt_required()
+def update_profile_picture():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    data = request.get_json()
+    if not data or 'profile_picture' not in data:
+        return jsonify({"error": "No profile_picture URL provided"}), 400
+    
+    user.profile_picture = data['profile_picture']
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Profile picture updated",
+        "profile_picture": user.profile_picture
+    }), 200
 
+
+@api.route('/user/cover-photo', methods=['PUT'])
+@jwt_required()
+def update_cover_photo():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    data = request.get_json()
+    if not data or 'cover_photo' not in data:
+        return jsonify({"error": "No cover_photo URL provided"}), 400
+    
+    user.cover_photo = data['cover_photo']
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Cover photo updated",
+        "cover_photo": user.cover_photo
+    }), 200

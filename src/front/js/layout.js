@@ -87,6 +87,9 @@ import EditGamerProfilePage from "./pages/EditGamerProfilePage";
 import CreateTeamRoomPage from "./pages/CreateTeamRoomPage";
 import ContentLibrary from "./pages/ContentLibrary";
 
+// ✨ NEW: Unified Dashboard
+import { Dashboard } from "./pages/Dashboard";
+
 const Layout = () => {
   const basename = process.env.BASENAME || "";
 
@@ -128,10 +131,20 @@ const Layout = () => {
               <Route path="/product/:id" element={<ProductDetailPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/orders" element={<OrderHistoryPage />} />
-              <Route path="/sales-dashboard" element={<SalesDashboard />} />
               <Route path="/cart" element={<ShoppingCart />} />
+
+              {/* ✨ NEW: Unified Dashboard with nested routes */}
+              <Route path="/dashboard/*" element={<Dashboard />} />
+              
+              {/* 🔄 Redirects from old dashboard routes to new unified dashboard */}
+              <Route path="/creator-dashboard" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/artist-dashboard" element={<Navigate to="/dashboard/music" replace />} />
+              <Route path="/podcast-dashboard" element={<Navigate to="/dashboard/podcasts" replace />} />
+              <Route path="/radio-dashboard" element={<Navigate to="/dashboard/radio" replace />} />
+              <Route path="/video-dashboard" element={<Navigate to="/dashboard/videos" replace />} />
+              <Route path="/sales-dashboard" element={<Navigate to="/dashboard/store" replace />} />
+
               {/* Video Channel Routes */}
-              <Route path="/video-dashboard" element={<VideoChannelDashboard />} />
               <Route path="/profile/video" element={<VideoChannelProfile />} />
               <Route path="/my-channel" element={<MyVideoChannel />} />
               <Route path="/upload-video" element={<VideoUpload />} />
@@ -145,12 +158,10 @@ const Layout = () => {
               <Route path="/search" element={<Navigate to="/discover-users" replace />} />
               <Route path="/browse-users" element={<Navigate to="/discover-users" replace />} />
 
-              {/* 📊 Dashboards */}
-              <Route path="/creator-dashboard" element={<CreatorDashboard />} />
+              {/* 📊 Radio Schedule */}
               <Route path="/radio/:id/schedule" element={<RadioSchedule />} />
 
               {/* 🎧 Podcasts */}
-              <Route path="/podcast-dashboard" element={<PodcastDashboard />} />
               <Route path="/podcast-create" element={<PodcastCreate />} />
               <Route path="/podcasts" element={<PodcastPage />} />
               <Route path="/browse-podcast-categories" element={<BrowsePodcastCategories />} />
@@ -162,11 +173,10 @@ const Layout = () => {
 
 
               {/* 📻 Radio Stations */}
-              <Route path="/radio-dashboard" element={<RadioStationDashboard />} />
               <Route path="/radio-stations" element={<RadioStationPage />} />
               <Route path="/create-radio" element={<CreateRadioStation />} />
               <Route path="/browse-radio-stations" element={<BrowseRadioStations />} />
-              <Route path="/radio/station/:id" element={<RadioStationDetailPage />} />
+              <Route path="/radio/station/:id/:type" element={<RadioStationDetailPage />} />
 
               {/* 🎬 Videos */}
               <Route path="/videos" element={<BrowseVideosPage />} />
@@ -181,7 +191,6 @@ const Layout = () => {
               <Route path="/collaborator-splits" element={<CollaboratorSplitPage />} />
 
               {/* 🎤 Indie Artists */}
-              <Route path="/artist-dashboard" element={<ArtistDashboard />} />
               <Route path="/upload-music" element={<UploadMusic />} />
               <Route path="/music-distribution" element={<MusicDistribution />} />
 
@@ -215,7 +224,7 @@ const Layout = () => {
 
               {/* 🎵 Additional Artist Routes (Optional) */}
               <Route path="/artist/upload" element={<UploadMusic />} />
-              <Route path="/artist/analytics" element={<ArtistDashboard />} />
+              <Route path="/artist/analytics" element={<Navigate to="/dashboard/music" replace />} />
 
               <Route path="/seller-dashboard" element={<SellerDashboard />} />
 
