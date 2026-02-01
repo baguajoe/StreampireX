@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
+import TipJar from "../component/TipJar";
 
 const PodcastEpisodePage = () => {
   const { podcastId, episodeId } = useParams();
   const [episode, setEpisode] = useState(null);
+  const [podcast, setPodcast] = useState(null);
   const [hasAccess, setHasAccess] = useState(false);
   const [loading, setLoading] = useState(true);
   const [checkoutUrl, setCheckoutUrl] = useState("");
@@ -21,6 +23,15 @@ const PodcastEpisodePage = () => {
       }
     };
 
+    const fetchPodcast = async () => {
+      try {
+        const res = await axios.get(`/api/podcasts/${podcastId}`);
+        setPodcast(res.data);
+      } catch (err) {
+        console.error("Podcast fetch error:", err);
+      }
+    };
+
     const checkAccess = async () => {
       try {
         const res = await axios.get(`/api/episodes/${episodeId}/access`);
@@ -31,8 +42,9 @@ const PodcastEpisodePage = () => {
     };
 
     fetchEpisode();
+    fetchPodcast();
     checkAccess();
-  }, [episodeId]);
+  }, [podcastId, episodeId]);
 
   const handlePurchase = async () => {
     try {
@@ -63,6 +75,16 @@ const PodcastEpisodePage = () => {
           <source src={episode.stream_url} type="audio/mpeg" />
           Your browser does not support the audio element.
         </audio>
+      )}
+
+      {podcast && (
+        <TipJar
+          creatorId={podcast.user_id || podcast.creator_id}
+          creatorName={podcast.creator_name || podcast.title}
+          contentType="podcast"
+          contentId={episodeId}
+          buttonStyle="inline"
+        />
       )}
     </div>
   );
