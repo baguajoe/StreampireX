@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "../../styles/UploadMusic.css";
 
 const UploadMusic = () => {
@@ -19,7 +19,14 @@ const UploadMusic = () => {
   const [socialLinks, setSocialLinks] = useState("");
   const [notes, setNotes] = useState("");
   const [audioFile, setAudioFile] = useState(null);
+  const [coverImage, setCoverImage] = useState(null);
+  const [coverPreview, setCoverPreview] = useState(null);
   const [message, setMessage] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  // Refs
+  const coverInputRef = useRef(null);
+  const audioInputRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -48,6 +55,15 @@ const UploadMusic = () => {
           .catch(() => setMessage("Error loading radio stations"));
       });
   }, []);
+
+  // Clean up cover preview URL on unmount or change
+  useEffect(() => {
+    return () => {
+      if (coverPreview) {
+        URL.revokeObjectURL(coverPreview);
+      }
+    };
+  }, [coverPreview]);
 
   // Get filtered and sorted stations
   const getFilteredStations = () => {
@@ -91,11 +107,69 @@ const UploadMusic = () => {
     setStationDetails(station);
   };
 
+  // Handle cover image selection with preview
+  const handleCoverImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setMessage("❌ Please upload a valid image (JPEG, PNG, WebP, or GIF).");
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setMessage("❌ Cover image must be under 10MB.");
+      return;
+    }
+
+    // Revoke old preview URL
+    if (coverPreview) {
+      URL.revokeObjectURL(coverPreview);
+    }
+
+    setCoverImage(file);
+    setCoverPreview(URL.createObjectURL(file));
+    setMessage("");
+  };
+
+  // Remove cover image
+  const handleRemoveCover = () => {
+    if (coverPreview) {
+      URL.revokeObjectURL(coverPreview);
+    }
+    setCoverImage(null);
+    setCoverPreview(null);
+    if (coverInputRef.current) {
+      coverInputRef.current.value = "";
+    }
+  };
+
+  // Handle audio file selection
+  const handleAudioFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+      setMessage("❌ Audio file must be under 50MB.");
+      return;
+    }
+
+    setAudioFile(file);
+    setMessage("");
+  };
+
   const handleUpload = async () => {
     if (!selectedStation || !audioFile || !trackTitle || !artistName) {
       setMessage("Please fill in all required fields and select a station.");
       return;
     }
+
+    setUploading(true);
+    setMessage("");
 
     const formData = new FormData();
     formData.append("station_id", selectedStation);
@@ -107,6 +181,11 @@ const UploadMusic = () => {
     formData.append("social_links", socialLinks);
     formData.append("notes", notes);
     formData.append("audio", audioFile);
+
+    // Append cover image if provided
+    if (coverImage) {
+      formData.append("cover_image", coverImage);
+    }
 
     try {
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/radio/upload_music`, {
@@ -129,11 +208,17 @@ const UploadMusic = () => {
         setSocialLinks("");
         setNotes("");
         setAudioFile(null);
+        handleRemoveCover();
+        if (audioInputRef.current) {
+          audioInputRef.current.value = "";
+        }
       } else {
         setMessage(`❌ Error: ${data.error}`);
       }
     } catch (error) {
       setMessage("❌ Network error. Please try again.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -144,7 +229,7 @@ const UploadMusic = () => {
     <div className="upload-music-page">
       <div className="upload-music-card">
         <h2><i className="fas fa-music"></i> Submit Music to a Radio Station</h2>
-        {message && <p className="upload-message">{message}</p>}
+        {message && <p className={`upload-message ${message.startsWith('🎵') ? 'success' : message.startsWith('❌') ? 'error' : ''}`}>{message}</p>}
 
         {/* Artist Details Section */}
         <div className="form-section">
@@ -198,12 +283,141 @@ const UploadMusic = () => {
             placeholder="Spotify, YouTube, SoundCloud..."
           />
 
+          {/* Cover Art / Track Image Upload */}
+          <label>🖼️ Cover Art / Track Image</label>
+          <div className="cover-upload-section">
+            {coverPreview ? (
+              <div className="cover-preview-container">
+                <img
+                  src={coverPreview}
+                  alt="Cover art preview"
+                  className="cover-preview-image"
+                />
+                <div className="cover-preview-overlay">
+                  <button
+                    type="button"
+                    className="change-cover-btn"
+                    onClick={() => coverInputRef.current?.click()}
+                  >
+                    Change
+                  </button>
+                  <button
+                    type="button"
+                    className="remove-cover-btn"
+                    onClick={handleRemoveCover}
+                  >
+                    Remove
+                  </button>
+                </div>
+                <div className="cover-file-info">
+                  <span className="cover-file-name">{coverImage?.name}</span>
+                  <span className="cover-file-size">
+                    {coverImage ? `${(coverImage.size / (1024 * 1024)).toFixed(2)} MB` : ''}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div
+                className="cover-dropzone"
+                onClick={() => coverInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.add('dragover');
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('dragover');
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('dragover');
+                  const file = e.dataTransfer.files[0];
+                  if (file && file.type.startsWith('image/')) {
+                    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+                    if (validTypes.includes(file.type) && file.size <= 10 * 1024 * 1024) {
+                      if (coverPreview) URL.revokeObjectURL(coverPreview);
+                      setCoverImage(file);
+                      setCoverPreview(URL.createObjectURL(file));
+                    } else {
+                      setMessage("❌ Please use JPEG, PNG, WebP, or GIF under 10MB.");
+                    }
+                  }
+                }}
+              >
+                <div className="dropzone-icon">🖼️</div>
+                <p className="dropzone-text">Click or drag & drop cover art here</p>
+                <p className="dropzone-hint">JPEG, PNG, WebP, or GIF • Max 10MB • Recommended 1400×1400px</p>
+              </div>
+            )}
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onChange={handleCoverImageChange}
+              style={{ display: 'none' }}
+            />
+          </div>
+
+          {/* Audio File Upload */}
           <label>📁 Upload Audio File *</label>
-          <input
-            type="file"
-            accept="audio/*"
-            onChange={(e) => setAudioFile(e.target.files[0])}
-          />
+          <div className="audio-upload-section">
+            {audioFile ? (
+              <div className="audio-file-selected">
+                <div className="audio-file-info">
+                  <span className="audio-icon">🎵</span>
+                  <div className="audio-file-details">
+                    <span className="audio-file-name">{audioFile.name}</span>
+                    <span className="audio-file-size">
+                      {(audioFile.size / (1024 * 1024)).toFixed(2)} MB
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="change-audio-btn"
+                  onClick={() => audioInputRef.current?.click()}
+                >
+                  Change File
+                </button>
+              </div>
+            ) : (
+              <div
+                className="audio-dropzone"
+                onClick={() => audioInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.add('dragover');
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('dragover');
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('dragover');
+                  const file = e.dataTransfer.files[0];
+                  if (file && file.type.startsWith('audio/')) {
+                    if (file.size <= 50 * 1024 * 1024) {
+                      setAudioFile(file);
+                    } else {
+                      setMessage("❌ Audio file must be under 50MB.");
+                    }
+                  }
+                }}
+              >
+                <div className="dropzone-icon">🎶</div>
+                <p className="dropzone-text">Click or drag & drop audio file here</p>
+                <p className="dropzone-hint">MP3, WAV, FLAC, AAC, OGG • Max 50MB</p>
+              </div>
+            )}
+            <input
+              ref={audioInputRef}
+              type="file"
+              accept="audio/*"
+              onChange={handleAudioFileChange}
+              style={{ display: 'none' }}
+            />
+          </div>
         </div>
 
         {/* Enhanced Station Selection Section */}
@@ -389,9 +603,16 @@ const UploadMusic = () => {
         <button
           className="upload-btn"
           onClick={handleUpload}
-          disabled={!selectedStation || !audioFile || !trackTitle || !artistName}
+          disabled={!selectedStation || !audioFile || !trackTitle || !artistName || uploading}
         >
-          Submit Track to {stationDetails?.name || "Station"}
+          {uploading ? (
+            <>
+              <span className="upload-spinner"></span>
+              Submitting...
+            </>
+          ) : (
+            <>Submit Track to {stationDetails?.name || "Station"}</>
+          )}
         </button>
       </div>
     </div>

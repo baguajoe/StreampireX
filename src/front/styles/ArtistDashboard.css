@@ -1679,3 +1679,317 @@ html {
 .artist-dashboard::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to bottom, #00e6b3, #00ffc8);
 }
+
+/* ===== COVER ART UPLOAD - DASHBOARD MUSIC ===== */
+/* Append to ArtistDashboard.css */
+
+/* Cover Art Upload Container */
+.cover-art-upload {
+  margin-top: 8px;
+}
+
+/* Dropzone - Shared Styles */
+.cover-art-dropzone,
+.audio-file-dropzone {
+  border: 2px dashed rgba(0, 255, 200, 0.3);
+  border-radius: 12px;
+  padding: 32px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: rgba(0, 255, 200, 0.03);
+}
+
+.cover-art-dropzone:hover,
+.audio-file-dropzone:hover,
+.cover-art-dropzone.dragover,
+.audio-file-dropzone.dragover {
+  border-color: #00ffc8;
+  background: rgba(0, 255, 200, 0.08);
+  box-shadow: 0 0 20px rgba(0, 255, 200, 0.15);
+}
+
+.dropzone-icon-wrapper {
+  margin-bottom: 12px;
+}
+
+.dropzone-fa-icon {
+  font-size: 36px;
+  color: rgba(0, 255, 200, 0.5);
+  transition: color 0.3s ease;
+}
+
+.cover-art-dropzone:hover .dropzone-fa-icon,
+.audio-file-dropzone:hover .dropzone-fa-icon {
+  color: #00ffc8;
+}
+
+.dropzone-main-text {
+  font-size: 14px;
+  color: #e1e4e8;
+  font-weight: 600;
+  margin: 0 0 6px 0;
+}
+
+.dropzone-sub-text {
+  font-size: 12px;
+  color: #8b949e;
+  margin: 0;
+}
+
+/* Cover Art Preview */
+.cover-art-preview {
+  position: relative;
+  display: inline-block;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid rgba(0, 255, 200, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.cover-art-preview:hover {
+  border-color: #00ffc8;
+  box-shadow: 0 6px 24px rgba(0, 255, 200, 0.2);
+}
+
+.cover-art-img {
+  display: block;
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.cover-art-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(13, 17, 23, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 10px;
+}
+
+.cover-art-preview:hover .cover-art-overlay {
+  opacity: 1;
+}
+
+.cover-art-change-btn,
+.cover-art-remove-btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cover-art-change-btn {
+  background: linear-gradient(135deg, #00ffc8, #00e6b3);
+  color: #0d1117;
+}
+
+.cover-art-change-btn:hover {
+  box-shadow: 0 4px 12px rgba(0, 255, 200, 0.4);
+  transform: translateY(-1px);
+}
+
+.cover-art-remove-btn {
+  background: rgba(220, 38, 38, 0.85);
+  color: white;
+}
+
+.cover-art-remove-btn:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+  transform: translateY(-1px);
+}
+
+.cover-art-file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 10px;
+}
+
+.cover-art-filename {
+  font-size: 13px;
+  color: #e1e4e8;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.cover-art-filesize {
+  font-size: 11px;
+  color: #8b949e;
+}
+
+/* Audio File Upload Enhanced */
+.audio-file-upload {
+  margin-top: 8px;
+}
+
+.audio-file-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(0, 255, 200, 0.05);
+  border: 1px solid rgba(0, 255, 200, 0.3);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.audio-file-selected:hover {
+  border-color: #00ffc8;
+  background: rgba(0, 255, 200, 0.08);
+}
+
+.audio-file-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.audio-file-icon {
+  font-size: 24px;
+  color: #00ffc8;
+  flex-shrink: 0;
+}
+
+.audio-file-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.audio-file-name {
+  font-size: 14px;
+  color: #e1e4e8;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audio-file-size {
+  font-size: 12px;
+  color: #8b949e;
+}
+
+.audio-change-btn {
+  padding: 8px 16px;
+  background: rgba(0, 255, 200, 0.1);
+  color: #00ffc8;
+  border: 1px solid rgba(0, 255, 200, 0.3);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.audio-change-btn:hover {
+  background: rgba(0, 255, 200, 0.2);
+  border-color: #00ffc8;
+}
+
+/* Upload Track Button Enhanced */
+.upload-track-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 300px;
+  margin-top: 8px;
+}
+
+.upload-track-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Button Spinner */
+.btn-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: btnSpin 0.8s linear infinite;
+  margin-right: 4px;
+}
+
+@keyframes btnSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Success Message Banner */
+.success-message-banner {
+  background: rgba(0, 255, 200, 0.1);
+  border: 1px solid rgba(0, 255, 200, 0.3);
+  color: #00ffc8;
+  padding: 12px 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  animation: fadeInBanner 0.3s ease;
+}
+
+@keyframes fadeInBanner {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .cover-art-img {
+    width: 150px;
+    height: 150px;
+  }
+
+  .cover-art-dropzone,
+  .audio-file-dropzone {
+    padding: 24px 16px;
+  }
+
+  .dropzone-fa-icon {
+    font-size: 28px;
+  }
+
+  .audio-file-selected {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .audio-change-btn {
+    margin-left: 0;
+    width: 100%;
+    text-align: center;
+  }
+
+  .upload-track-btn {
+    max-width: 100%;
+  }
+}
