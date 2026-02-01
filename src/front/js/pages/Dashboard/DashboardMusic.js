@@ -16,7 +16,9 @@ import {
   FaEye,
   FaPause,
   FaPlay,
-  FaTicketAlt
+  FaTicketAlt,
+  FaImage,
+  FaTimes
 } from 'react-icons/fa';
 
 // Component imports from actual codebase
@@ -40,20 +42,28 @@ const DashboardMusic = ({ user }) => {
   const [trackTitle, setTrackTitle] = useState('');
   const [genre, setGenre] = useState('');
   const [audioFile, setAudioFile] = useState(null);
+  const [coverImage, setCoverImage] = useState(null);
+  const [coverPreview, setCoverPreview] = useState(null);
   const [explicit, setExplicit] = useState(false);
   const [genres, setGenres] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
   // UI state
   const [activeSubTab, setActiveSubTab] = useState('overview');
   const [studioOpen, setStudioOpen] = useState(false);
   const [trackBeingEdited, setTrackBeingEdited] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(true);
 
   // Audio playback state
   const audioRef = useRef(new Audio());
   const [currentlyPlaying, setCurrentlyPlaying] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // File input refs
+  const coverInputRef = useRef(null);
+  const audioInputRef = useRef(null);
 
   // Concerts state
   const [myConcerts, setMyConcerts] = useState([]);
@@ -98,6 +108,15 @@ const DashboardMusic = ({ user }) => {
       audio.src = '';
     };
   }, []);
+
+  // Clean up cover preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (coverPreview) {
+        URL.revokeObjectURL(coverPreview);
+      }
+    };
+  }, [coverPreview]);
 
   const fetchMusicData = async () => {
     try {
@@ -232,18 +251,91 @@ const DashboardMusic = ({ user }) => {
     }
   };
 
+  // Cover image handlers
+  const handleCoverImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setErrorMessage("Please upload a valid image (JPEG, PNG, WebP, or GIF).");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorMessage("Cover image must be under 10MB.");
+      return;
+    }
+
+    if (coverPreview) {
+      URL.revokeObjectURL(coverPreview);
+    }
+
+    setCoverImage(file);
+    setCoverPreview(URL.createObjectURL(file));
+    setErrorMessage('');
+  };
+
+  const handleRemoveCover = () => {
+    if (coverPreview) {
+      URL.revokeObjectURL(coverPreview);
+    }
+    setCoverImage(null);
+    setCoverPreview(null);
+    if (coverInputRef.current) {
+      coverInputRef.current.value = "";
+    }
+  };
+
+  const handleCoverDrop = (e) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (validTypes.includes(file.type) && file.size <= 10 * 1024 * 1024) {
+        if (coverPreview) URL.revokeObjectURL(coverPreview);
+        setCoverImage(file);
+        setCoverPreview(URL.createObjectURL(file));
+        setErrorMessage('');
+      } else {
+        setErrorMessage("Please use JPEG, PNG, WebP, or GIF under 10MB.");
+      }
+    }
+  };
+
+  const handleAudioFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 50 * 1024 * 1024) {
+      setErrorMessage("Audio file must be under 50MB.");
+      return;
+    }
+
+    setAudioFile(file);
+    setErrorMessage('');
+  };
+
   const handleAudioUpload = async () => {
     if (!trackTitle || !genre || !audioFile) {
-      setErrorMessage("Please fill in all fields before uploading.");
+      setErrorMessage("Please fill in all required fields before uploading.");
       return;
     }
     setErrorMessage('');
+    setSuccessMessage('');
+    setUploading(true);
 
     const formData = new FormData();
     formData.append("title", trackTitle);
     formData.append("genre", genre);
     formData.append("audio", audioFile);
     formData.append("explicit", explicit);
+
+    // Append cover image if provided
+    if (coverImage) {
+      formData.append("cover_image", coverImage);
+    }
 
     try {
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/upload-track`, {
@@ -257,14 +349,21 @@ const DashboardMusic = ({ user }) => {
         setGenre('');
         setAudioFile(null);
         setExplicit(false);
+        handleRemoveCover();
+        if (audioInputRef.current) {
+          audioInputRef.current.value = "";
+        }
         fetchMusicData();
-        alert("Track uploaded successfully!");
+        setSuccessMessage("🎵 Track uploaded successfully!");
+        setTimeout(() => setSuccessMessage(''), 5000);
       } else {
         const data = await res.json();
         setErrorMessage(data.error || "Upload failed.");
       }
     } catch (err) {
       setErrorMessage("Server error during upload.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -453,7 +552,7 @@ const DashboardMusic = ({ user }) => {
               {tracks.map((track) => (
                 <div key={track.id} className="track-card">
                   <div className="track-artwork">
-                    <img src={track.artwork || '/default-track-artwork.png'} alt={track.title} />
+                    <img src={track.artwork || track.cover_image || '/default-track-artwork.png'} alt={track.title} />
                     <button className="play-btn" onClick={() => handlePlayTrack(track)}>
                       {currentlyPlaying?.id === track.id && isPlaying ? <FaPause /> : <FaPlay />}
                     </button>
@@ -549,39 +648,190 @@ const DashboardMusic = ({ user }) => {
         </div>
       )}
 
-      {/* Upload Sub-tab */}
+      {/* Upload Sub-tab - ENHANCED WITH COVER ART */}
       {activeSubTab === 'upload' && (
         <div className="upload-content">
           <h3><FaUpload /> Upload New Track</h3>
+
           {errorMessage && <div className="error-message">{errorMessage}</div>}
+          {successMessage && <div className="success-message-banner">{successMessage}</div>}
           
           <div className="upload-form">
+            {/* Track Title */}
             <div className="form-group">
-              <label>Track Title *</label>
-              <input type="text" placeholder="Enter track title" value={trackTitle}
-                onChange={(e) => setTrackTitle(e.target.value)} />
+              <label>TRACK TITLE *</label>
+              <input
+                type="text"
+                placeholder="Enter track title"
+                value={trackTitle}
+                onChange={(e) => setTrackTitle(e.target.value)}
+              />
             </div>
+
+            {/* Genre */}
             <div className="form-group">
-              <label>Genre *</label>
+              <label>GENRE *</label>
               <select value={genre} onChange={(e) => setGenre(e.target.value)}>
                 <option value="">Select Genre</option>
                 {genres.map((g) => <option key={g.id} value={g.name}>{g.name}</option>)}
               </select>
             </div>
+
+            {/* Cover Art / Track Image - NEW */}
             <div className="form-group">
-              <label>Audio File *</label>
-              <input type="file" accept="audio/*" onChange={(e) => setAudioFile(e.target.files[0])} />
-              {audioFile && <small>Selected: {audioFile.name}</small>}
+              <label><FaImage style={{ marginRight: '6px' }} />COVER ART / TRACK IMAGE</label>
+              <div className="cover-art-upload">
+                {coverPreview ? (
+                  <div className="cover-art-preview">
+                    <img
+                      src={coverPreview}
+                      alt="Cover art preview"
+                      className="cover-art-img"
+                    />
+                    <div className="cover-art-overlay">
+                      <button
+                        type="button"
+                        className="cover-art-change-btn"
+                        onClick={() => coverInputRef.current?.click()}
+                      >
+                        <FaEdit /> Change
+                      </button>
+                      <button
+                        type="button"
+                        className="cover-art-remove-btn"
+                        onClick={handleRemoveCover}
+                      >
+                        <FaTimes /> Remove
+                      </button>
+                    </div>
+                    <div className="cover-art-file-info">
+                      <span className="cover-art-filename">{coverImage?.name}</span>
+                      <span className="cover-art-filesize">
+                        {coverImage ? `${(coverImage.size / (1024 * 1024)).toFixed(2)} MB` : ''}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="cover-art-dropzone"
+                    onClick={() => coverInputRef.current?.click()}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.add('dragover');
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('dragover');
+                    }}
+                    onDrop={handleCoverDrop}
+                  >
+                    <div className="dropzone-icon-wrapper">
+                      <FaImage className="dropzone-fa-icon" />
+                    </div>
+                    <p className="dropzone-main-text">Click or drag & drop cover art here</p>
+                    <p className="dropzone-sub-text">JPEG, PNG, WebP or GIF • Max 10MB • Recommended 1400×1400px</p>
+                  </div>
+                )}
+                <input
+                  ref={coverInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={handleCoverImageChange}
+                  style={{ display: 'none' }}
+                />
+              </div>
             </div>
+
+            {/* Audio File */}
+            <div className="form-group">
+              <label>AUDIO FILE *</label>
+              <div className="audio-file-upload">
+                {audioFile ? (
+                  <div className="audio-file-selected">
+                    <div className="audio-file-info">
+                      <FaMusic className="audio-file-icon" />
+                      <div className="audio-file-details">
+                        <span className="audio-file-name">{audioFile.name}</span>
+                        <span className="audio-file-size">
+                          {(audioFile.size / (1024 * 1024)).toFixed(2)} MB
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="audio-change-btn"
+                      onClick={() => audioInputRef.current?.click()}
+                    >
+                      Change File
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="audio-file-dropzone"
+                    onClick={() => audioInputRef.current?.click()}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.add('dragover');
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('dragover');
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('dragover');
+                      const file = e.dataTransfer.files[0];
+                      if (file && file.type.startsWith('audio/')) {
+                        if (file.size <= 50 * 1024 * 1024) {
+                          setAudioFile(file);
+                          setErrorMessage('');
+                        } else {
+                          setErrorMessage("Audio file must be under 50MB.");
+                        }
+                      }
+                    }}
+                  >
+                    <div className="dropzone-icon-wrapper">
+                      <FaHeadphones className="dropzone-fa-icon" />
+                    </div>
+                    <p className="dropzone-main-text">Click or drag & drop audio file here</p>
+                    <p className="dropzone-sub-text">MP3, WAV, FLAC, AAC, OGG • Max 50MB</p>
+                  </div>
+                )}
+                <input
+                  ref={audioInputRef}
+                  type="file"
+                  accept="audio/*"
+                  onChange={handleAudioFileChange}
+                  style={{ display: 'none' }}
+                />
+              </div>
+            </div>
+
+            {/* Explicit checkbox */}
             <div className="form-group">
               <label className="checkbox-label">
                 <input type="checkbox" checked={explicit} onChange={() => setExplicit(!explicit)} />
-                Contains explicit lyrics
+                CONTAINS EXPLICIT LYRICS
               </label>
             </div>
-            <button className="btn-primary" onClick={handleAudioUpload} 
-              disabled={!trackTitle || !genre || !audioFile}>
-              <FaUpload /> Upload Track
+
+            {/* Upload Button */}
+            <button
+              className="btn-primary upload-track-btn"
+              onClick={handleAudioUpload}
+              disabled={!trackTitle || !genre || !audioFile || uploading}
+            >
+              {uploading ? (
+                <>
+                  <span className="btn-spinner"></span>
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <FaUpload /> Upload Track
+                </>
+              )}
             </button>
           </div>
         </div>
