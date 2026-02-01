@@ -1,6 +1,9 @@
+// src/front/js/pages/GamersChatroomPage.js
+// UPDATED: Wrapped with GamerGate for non-gamer users
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { Context } from "../store/appContext";
 import ChatBubble from "../component/ChatBubble";
+import GamerGate from "../component/GamerGate";
 import io from "socket.io-client";
 import "../../styles/GamersChatroom.css";
 
@@ -186,168 +189,170 @@ const GamersChatroomPage = () => {
   const currentRoom = chatRooms.find(room => room.id === selectedRoom);
 
   return (
-    <div className="gamers-chatroom-container">
-      <div className="chatroom-header">
-        <h1>💬 Gamers Global Chatroom</h1>
-        <div className="user-status">
-          <span className="online-indicator">🟢</span>
-          <span>{store.user?.gamertag || store.user?.username}</span>
-          {gameStatus && <span className="game-status">🎮 {gameStatus}</span>}
-          <button onClick={updateGameStatus} className="status-btn">
-            {gameStatus ? "🎮 Change Game" : "🎮 Set Game Status"}
-          </button>
+    <GamerGate featureName="Gamer Chatrooms">
+      <div className="gamers-chatroom-container">
+        <div className="chatroom-header">
+          <h1>💬 Gamers Global Chatroom</h1>
+          <div className="user-status">
+            <span className="online-indicator">🟢</span>
+            <span>{store.user?.gamertag || store.user?.username}</span>
+            {gameStatus && <span className="game-status">🎮 {gameStatus}</span>}
+            <button onClick={updateGameStatus} className="status-btn">
+              {gameStatus ? "🎮 Change Game" : "🎮 Set Game Status"}
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="chatroom-layout">
-        {/* Sidebar */}
-        <div className="chatroom-sidebar">
-          {/* Room Selection */}
-          <div className="rooms-section">
-            <h3>🏠 Chat Rooms</h3>
-            <div className="rooms-list">
-              {chatRooms.map(room => (
-                <button
-                  key={room.id}
-                  className={`room-btn ${selectedRoom === room.id ? 'active' : ''}`}
-                  onClick={() => switchRoom(room.id)}
-                >
-                  <span className="room-icon">{room.icon}</span>
-                  <span className="room-name">{room.name}</span>
-                </button>
-              ))}
+        <div className="chatroom-layout">
+          {/* Sidebar */}
+          <div className="chatroom-sidebar">
+            {/* Room Selection */}
+            <div className="rooms-section">
+              <h3>🏠 Chat Rooms</h3>
+              <div className="rooms-list">
+                {chatRooms.map(room => (
+                  <button
+                    key={room.id}
+                    className={`room-btn ${selectedRoom === room.id ? 'active' : ''}`}
+                    onClick={() => switchRoom(room.id)}
+                  >
+                    <span className="room-icon">{room.icon}</span>
+                    <span className="room-name">{room.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Online Users */}
-          <div className="online-section">
-            <h3>👥 Online ({onlineUsers.length})</h3>
-            <div className="users-list">
-              {onlineUsers.map((user, index) => (
-                <div key={index} className="user-item">
-                  <span className="user-status">🟢</span>
-                  <span className="user-name">{user.gamertag || user.username}</span>
-                  {user.current_game && (
-                    <span className="user-game">🎮 {user.current_game}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Active Games */}
-          {activeGames.length > 0 && (
-            <div className="games-section">
-              <h3>🎮 Active Games</h3>
-              <div className="games-list">
-                {activeGames.map((game, index) => (
-                  <div key={index} className="game-item">
-                    <span className="game-name">{game.name}</span>
-                    <span className="game-count">{game.players} players</span>
+            {/* Online Users */}
+            <div className="online-section">
+              <h3>👥 Online ({onlineUsers.length})</h3>
+              <div className="users-list">
+                {onlineUsers.map((user, index) => (
+                  <div key={index} className="user-item">
+                    <span className="user-status">🟢</span>
+                    <span className="user-name">{user.gamertag || user.username}</span>
+                    {user.current_game && (
+                      <span className="user-game">🎮 {user.current_game}</span>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Main Chat Area */}
-        <div className="chat-main">
-          {/* Current Room Header */}
-          <div className="room-header">
-            <h2>{currentRoom?.icon} {currentRoom?.name}</h2>
-            <div className="room-actions">
-              <button className="action-btn" title="Voice Chat">🎤</button>
-              <button className="action-btn" title="Screen Share">🖥️</button>
-              <button className="action-btn" title="Game Invite">🎯</button>
+            {/* Active Games */}
+            {activeGames.length > 0 && (
+              <div className="games-section">
+                <h3>🎮 Active Games</h3>
+                <div className="games-list">
+                  {activeGames.map((game, index) => (
+                    <div key={index} className="game-item">
+                      <span className="game-name">{game.name}</span>
+                      <span className="game-count">{game.players} players</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Main Chat Area */}
+          <div className="chat-main">
+            {/* Current Room Header */}
+            <div className="room-header">
+              <h2>{currentRoom?.icon} {currentRoom?.name}</h2>
+              <div className="room-actions">
+                <button className="action-btn" title="Voice Chat">🎤</button>
+                <button className="action-btn" title="Screen Share">🖥️</button>
+                <button className="action-btn" title="Game Invite">🎯</button>
+              </div>
             </div>
-          </div>
 
-          {/* Messages Area */}
-          <div className="chat-messages">
-            {messages.map((msg, index) => (
-              <ChatBubble
-                key={index}
-                username={msg.username || msg.gamertag || "Anonymous"}
-                content={msg.message}
-                timestamp={msg.timestamp || ""}
-                isCurrentUser={msg.user_id === store.user?.id}
-                gameInfo={msg.user_info?.current_game}
-                gamerRank={msg.user_info?.gamer_rank}
-              />
-            ))}
+            {/* Messages Area */}
+            <div className="chat-messages">
+              {messages.map((msg, index) => (
+                <ChatBubble
+                  key={index}
+                  username={msg.username || msg.gamertag || "Anonymous"}
+                  content={msg.message}
+                  timestamp={msg.timestamp || ""}
+                  isCurrentUser={msg.user_id === store.user?.id}
+                  gameInfo={msg.user_info?.current_game}
+                  gamerRank={msg.user_info?.gamer_rank}
+                />
+              ))}
 
-            {/* Typing Indicators */}
-            {userTyping.length > 0 && (
-              <div className="typing-indicator">
-                <span>{userTyping.join(", ")} {userTyping.length === 1 ? 'is' : 'are'} typing...</span>
-              </div>
-            )}
+              {/* Typing Indicators */}
+              {userTyping.length > 0 && (
+                <div className="typing-indicator">
+                  <span>{userTyping.join(", ")} {userTyping.length === 1 ? 'is' : 'are'} typing...</span>
+                </div>
+              )}
 
-            <div ref={chatRef} />
-          </div>
+              <div ref={chatRef} />
+            </div>
 
-          {/* Quick Actions */}
-          <div className="quick-actions">
-            <button onClick={() => sendQuickMessage("LFG! 🎮")} className="quick-btn">
-              👥 Looking for Group
-            </button>
-            <button onClick={() => sendQuickMessage("GG! 🏆")} className="quick-btn">
-              🏆 Good Game
-            </button>
-            <button onClick={() => sendQuickMessage("Need help! 🆘")} className="quick-btn">
-              🆘 Need Help
-            </button>
-            <button onClick={() => sendQuickMessage("Anyone up for a match? ⚔️")} className="quick-btn">
-              ⚔️ Match Request
-            </button>
-          </div>
-
-          {/* Message Input */}
-          <div className="message-input-area">
-            {showEmojis && (
-              <div className="emoji-picker">
-                {gamingEmojis.map(emoji => (
-                  <button key={emoji} onClick={() => addEmoji(emoji)} className="emoji-btn">
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="input-group">
-              <button
-                className="emoji-toggle-btn"
-                onClick={() => setShowEmojis(!showEmojis)}
-              >
-                😎
+            {/* Quick Actions */}
+            <div className="quick-actions">
+              <button onClick={() => sendQuickMessage("LFG! 🎮")} className="quick-btn">
+                👥 Looking for Group
               </button>
-
-              <input
-                type="text"
-                className="message-input"
-                placeholder={`Message ${currentRoom?.name}...`}
-                value={newMessage}
-                onChange={(e) => {
-                  setNewMessage(e.target.value);
-                  handleTyping();
-                }}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                maxLength={500}
-              />
-
-              <button className="send-btn" onClick={handleSend}>
-                🚀 Send
+              <button onClick={() => sendQuickMessage("GG! 🏆")} className="quick-btn">
+                🏆 Good Game
+              </button>
+              <button onClick={() => sendQuickMessage("Need help! 🆘")} className="quick-btn">
+                🆘 Need Help
+              </button>
+              <button onClick={() => sendQuickMessage("Anyone up for a match? ⚔️")} className="quick-btn">
+                ⚔️ Match Request
               </button>
             </div>
 
-            <div className="input-footer">
-              <span className="char-count">{newMessage.length}/500</span>
+            {/* Message Input */}
+            <div className="message-input-area">
+              {showEmojis && (
+                <div className="emoji-picker">
+                  {gamingEmojis.map(emoji => (
+                    <button key={emoji} onClick={() => addEmoji(emoji)} className="emoji-btn">
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="input-group">
+                <button
+                  className="emoji-toggle-btn"
+                  onClick={() => setShowEmojis(!showEmojis)}
+                >
+                  😎
+                </button>
+
+                <input
+                  type="text"
+                  className="message-input"
+                  placeholder={`Message ${currentRoom?.name}...`}
+                  value={newMessage}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    handleTyping();
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  maxLength={500}
+                />
+
+                <button className="send-btn" onClick={handleSend}>
+                  🚀 Send
+                </button>
+              </div>
+
+              <div className="input-footer">
+                <span className="char-count">{newMessage.length}/500</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </GamerGate>
   );
 };
 

@@ -11,6 +11,7 @@ import DashboardPodcasts from "./DashboardPodcasts";
 import DashboardRadio from "./DashboardRadio";
 import DashboardVideos from "./DashboardVideos";
 import DashboardStore from "./DashboardStore";
+import DashboardGaming from "./DashboardGaming";
 
 import "../../../styles/Dashboard.css";
 
@@ -59,6 +60,7 @@ const Dashboard = () => {
   };
 
   // Define available tabs based on user profile
+  // All tabs visible — components handle empty/enable states internally
   const tabs = [
     { 
       id: 'overview', 
@@ -72,35 +74,42 @@ const Dashboard = () => {
       path: '/dashboard/music', 
       label: 'Music', 
       icon: '🎵',
-      show: hasArtistProfile 
+      show: true  // Always show — component shows enable prompt for non-artists
     },
     { 
       id: 'podcasts', 
       path: '/dashboard/podcasts', 
       label: 'Podcasts', 
       icon: '🎙️',
-      show: true // Always show - podcasts available to all
+      show: true
     },
     { 
       id: 'radio', 
       path: '/dashboard/radio', 
       label: 'Radio', 
       icon: '📻',
-      show: true // Always show - radio available to all
+      show: true
     },
     { 
       id: 'videos', 
       path: '/dashboard/videos', 
       label: 'Videos', 
       icon: '📹',
-      show: true // Always show - videos available to all
+      show: true
+    },
+    { 
+      id: 'gaming', 
+      path: '/dashboard/gaming', 
+      label: 'Gaming', 
+      icon: '🎮',
+      show: true  // Always show — component shows enable prompt for non-gamers
     },
     { 
       id: 'store', 
       path: '/dashboard/store', 
       label: 'Store', 
       icon: '🛍️',
-      show: true // Always show - store available to all
+      show: true
     },
   ].filter(tab => tab.show);
 
@@ -175,6 +184,7 @@ const Dashboard = () => {
           <Route path="podcasts" element={<DashboardPodcasts user={user} />} />
           <Route path="radio" element={<DashboardRadio user={user} />} />
           <Route path="videos" element={<DashboardVideos user={user} />} />
+          <Route path="gaming" element={<DashboardGaming user={user} />} />
           <Route path="store" element={<DashboardStore user={user} />} />
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
