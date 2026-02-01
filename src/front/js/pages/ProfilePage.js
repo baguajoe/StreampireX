@@ -1346,15 +1346,16 @@ const ProfilePage = () => {
                 setLoading(true);
                 const cloudinaryUrl = await uploadToCloudinary(file, 'image');
                 setMedia(prev => ({ ...prev, profilePicture: cloudinaryUrl }));
-
+        const formData = new FormData()
+        formData.append("profile_picture",file)
                 const token = localStorage.getItem('token');
-                await fetch(`${BACKEND_URL}/api/user/profile-picture`, {
+                await fetch(`${BACKEND_URL}/api/user/profile`, {
                     method: 'PUT',
                     headers: {
                         'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'multipart/form-data'
                     },
-                    body: JSON.stringify({ profile_picture: cloudinaryUrl })
+                    body: formData
                 });
 
                 setUser(prev => ({ ...prev, profile_picture: cloudinaryUrl }));
@@ -1735,7 +1736,7 @@ const ProfilePage = () => {
                 {/* Cover Photo Section */}
                 <div className="cover-photo-container">
                     <img
-                        src={media.coverPhoto || user.cover_photo || campfire}
+                        src={media.coverPhoto || user.cover_photo }
                         alt="Cover"
                         className="cover-photo"
                     />

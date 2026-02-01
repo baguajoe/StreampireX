@@ -1,113 +1,5 @@
-// ===========================================
-// SIDEBAR PROFILES SECTION - CONDITIONAL
-// Only shows profiles the user has created
-// ===========================================
-
-// Add this to your Sidebar component, replacing the current profiles section
-
-// First, you need the user prop to have profile info:
-// The `user` prop should include:
-// - user.profile_type: 'regular', 'artist', 'gamer', 'multiple', etc.
-// - user.has_artist_profile: boolean
-// - user.has_gamer_profile: boolean  
-// - user.has_video_channel: boolean
-
-// OPTION 1: Check based on profile_type field
-const ProfilesSection = ({ user, isActive }) => {
-  // Determine what profiles exist
-  const hasArtistProfile = user?.profile_type === 'artist' || 
-                           user?.profile_type === 'multiple' || 
-                           user?.has_artist_profile;
-  
-  const hasGamerProfile = user?.profile_type === 'gamer' || 
-                          user?.profile_type === 'multiple' || 
-                          user?.has_gamer_profile;
-  
-  const hasVideoChannel = user?.has_video_channel || user?.channel_name;
-
-  return (
-    <>
-      <SectionHeader>👤 Profiles & Pages</SectionHeader>
-      
-      {/* Social Profile - Everyone has this */}
-      <MenuItem 
-        to="/profile" 
-        className={isActive("/profile") && !isActive("/profile/gamer") && !isActive("/profile/artist") && !isActive("/profile/video") ? "active" : ""}
-      >
-        👤 Social Profile
-        <MenuHint>your main identity</MenuHint>
-      </MenuItem>
-      
-      {/* Artist Profile - Only if they have one */}
-      {hasArtistProfile && (
-        <MenuItem 
-          to="/profile/artist" 
-          className={isActive("/profile/artist") ? "active" : ""}
-        >
-          🎵 Artist Page
-          <MenuHint>for your music</MenuHint>
-        </MenuItem>
-      )}
-      
-      {/* Gamer Profile - Only if they have one */}
-      {hasGamerProfile && (
-        <MenuItem 
-          to="/profile/gamer" 
-          className={isActive("/profile/gamer") ? "active" : ""}
-        >
-          🎮 Gamer Profile
-          <MenuHint>for gaming/squads</MenuHint>
-        </MenuItem>
-      )}
-      
-      {/* Video Channel - Only if they have one */}
-      {hasVideoChannel && (
-        <MenuItem 
-          to="/profile/video" 
-          className={isActive("/profile/video") ? "active" : ""}
-        >
-          📹 Video Channel
-          <MenuHint>your YouTube-style channel</MenuHint>
-        </MenuItem>
-      )}
-      
-      {/* Create Profile Link - Show options they DON'T have yet */}
-      {(!hasArtistProfile || !hasGamerProfile || !hasVideoChannel) && (
-        <CreateProfileLink to="/settings/profiles">
-          ➕ Create Profile...
-        </CreateProfileLink>
-      )}
-    </>
-  );
-};
-
-// Styled components for this section
-const MenuHint = styled.span`
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin-left: auto;
-  font-weight: normal;
-`;
-
-const CreateProfileLink = styled(Link)`
-  padding: 8px 15px;
-  color: rgba(255, 255, 255, 0.5);
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  font-size: 0.85rem;
-  margin-top: 4px;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    color: #00ffc8;
-  }
-`;
-
-// ===========================================
-// FULL UPDATED SIDEBAR.JS
-// ===========================================
-
+// src/front/js/component/sidebar.js
+// UPDATED: Single unified dashboard link instead of 6 separate dashboards
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import styled from "styled-components";
@@ -170,7 +62,28 @@ const ProfileMenuItem = styled(MenuItem)`
     border-left: 4px solid #ffa726;
     box-shadow: inset 0 0 10px rgba(255, 167, 38, 0.2);
   }
+`;
 
+const MenuHint = styled.span`
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-left: auto;
+  font-weight: normal;
+`;
+
+const CreateProfileLink = styled(Link)`
+  padding: 8px 15px;
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  font-size: 0.85rem;
+  margin-top: 4px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    color: #00ffc8;
+  }
 `;
 
 const GamingMenuItem = styled(MenuItem)`
@@ -217,6 +130,25 @@ const UsageSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
+`;
+
+// Dashboard link with special styling
+const DashboardLink = styled(MenuItem)`
+  background: linear-gradient(135deg, rgba(0, 255, 200, 0.1), transparent);
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  border-radius: 8px;
+  margin: 4px 0;
+  
+  &:hover {
+    background: linear-gradient(135deg, rgba(0, 255, 200, 0.2), transparent);
+    border-color: #00ffc8;
+  }
+  
+  &.active {
+    background: linear-gradient(135deg, rgba(0, 255, 200, 0.25), transparent);
+    border-color: #00ffc8;
+    border-left: 4px solid #00ffc8;
+  }
 `;
 
 const Sidebar = ({ user }) => {
@@ -313,30 +245,15 @@ const Sidebar = ({ user }) => {
         🔍 Discover Users
       </MenuItem>
 
-      {/* 📊 Dashboards - Only show relevant ones */}
-      <SectionHeader>📊 Dashboards</SectionHeader>
-      <MenuItem to="/creator-dashboard" className={isActive("/creator-dashboard") ? "active" : ""}>
+      {/* 📊 UNIFIED DASHBOARD - Single link instead of 6 */}
+      <SectionHeader>📊 Dashboard</SectionHeader>
+      <DashboardLink 
+        to="/dashboard" 
+        className={isActive("/dashboard") ? "active" : ""}
+      >
         🚀 Creator Dashboard
-      </MenuItem>
-      {hasArtistProfile && (
-        <MenuItem to="/artist-dashboard" className={isActive("/artist-dashboard") ? "active" : ""}>
-          🎤 Artist Dashboard
-        </MenuItem>
-      )}
-      <MenuItem to="/podcast-dashboard" className={isActive("/podcast-dashboard") ? "active" : ""}>
-        🎧 Podcast Dashboard
-      </MenuItem>
-      <MenuItem to="/radio-dashboard" className={isActive("/radio-dashboard") ? "active" : ""}>
-        📻 Radio Dashboard
-      </MenuItem>
-      {hasVideoChannel && (
-        <MenuItem to="/video-dashboard" className={isActive("/video-dashboard") ? "active" : ""}>
-          📹 Video Dashboard
-        </MenuItem>
-      )}
-      <MenuItem to="/sales-dashboard" className={isActive("/sales-dashboard") ? "active" : ""}>
-        💰 Sales Dashboard
-      </MenuItem>
+        <MenuHint>all in one</MenuHint>
+      </DashboardLink>
 
       {/* 🎤 Music Distribution - Only for artists */}
       {hasArtistProfile && (
@@ -345,7 +262,7 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/music-distribution" className={isActive("/music-distribution") ? "active" : ""}>
             🌍 Music Distribution
           </MenuItem>
-          <MenuItem to="/search" className={isActive("/search") ? "active" : ""}>
+          <MenuItem to="/discover-users" className={isActive("/discover-users") ? "active" : ""}>
             🔍 Search Artists
           </MenuItem>
           <MenuItem to="/collaborator-splits" className={isActive("/collaborator-splits") ? "active" : ""}>
