@@ -6073,7 +6073,7 @@ def save_avatar():
 
 
 
-@api.route("get-avatar", methods=["GET"])
+@api.route("/get-avatar", methods=["GET"])
 @jwt_required()
 def get_avatar():
     user_id = get_jwt_identity()
@@ -8125,41 +8125,30 @@ def process_image_and_create_avatar(image_path):
 
 
 @api.route('/delete-avatar', methods=['DELETE'])
+@jwt_required()
 def delete_avatar():
-    user_id = get_jwt_identity()  # Assuming the user is authenticated via JWT
+    user_id = get_jwt_identity()
 
-    # Retrieve the user's avatar URL or file path from the database
-    avatar_url = get_user_avatar(user_id)
-
-    if not avatar_url:
+    user = User.query.get(user_id)
+    if not user or not user.avatar_url:
         return jsonify({"error": "Avatar not found"}), 404
 
-    # Remove the avatar from the database
-    delete_avatar_from_user_profile(user_id)
-
     # Optionally delete the avatar file if it's stored locally
-    avatar_filename = os.path.basename(avatar_url)
-    avatar_file_path = os.path.join('uploads', avatar_filename)
+    if user.avatar_url and not user.avatar_url.startswith("http"):
+        avatar_filename = os.path.basename(user.avatar_url)
+        avatar_file_path = os.path.join('uploads', avatar_filename)
+        if os.path.exists(avatar_file_path):
+            os.remove(avatar_file_path)
 
-    if os.path.exists(avatar_file_path):
-        os.remove(avatar_file_path)
+    # Remove from database
+    user.avatar_url = None
+    db.session.commit()
 
     return jsonify({"message": "Avatar deleted successfully"}), 200
 
-def get_user_avatar(user_id):
-    # Retrieve the avatar URL from the database based on user_id
-    # Example return value: '/uploads/avatars/user_avatar.png'
-    pass
-
-def delete_avatar_from_user_profile(user_id):
-    # Remove the avatar reference from the user's profile in the database
-    pass
-
-
-
-
 
 @api.route('/upload-avatar', methods=['POST'])
+@jwt_required()
 def upload_avatar():
     if 'image' not in request.files:
         return jsonify({"error": "No image provided"}), 400
@@ -8176,7 +8165,6 @@ def upload_avatar():
     avatar_url = process_image_and_create_avatar(file_path)
 
     return jsonify({"avatar_url": avatar_url}), 201
-
 
 
 @api.route("/user/profile", methods=["GET"])
@@ -8199,7 +8187,6 @@ def get_user_profile():
         }), 500
 
 @api.route("/user/<int:user_id>", methods=["GET"])
-@jwt_required()
 def get_user_by_id(user_id):
     """Get a specific user's public profile data"""
     try:
@@ -8293,7 +8280,7 @@ def discover_users():
             # Count followers - FIXED: Use followed_id, not following_id
             followers_count = 0
             try:
-                followers_count = Follow.query.filter_by(followed_id=user.id).count()
+                followers_count = Follow.query.filter_by(following_id=user.id).count()
             except:
                 pass
             
@@ -19343,7 +19330,7 @@ def get_suggested_users():
     user_id = get_jwt_identity()
     
     # Get users the current user is NOT following
-    following_ids = [f.followed_id for f in Follow.query.filter_by(follower_id=user_id).all()]
+    following_ids = [f.following_id for f in Follow.query.filter_by(follower_id=user_id).all()]
     following_ids.append(user_id)  # Exclude self
     
     suggested = User.query.filter(~User.id.in_(following_ids)).limit(10).all()
@@ -19424,7 +19411,7 @@ def get_followed_artists():
     
     artists = []
     for follow in following:
-        user = User.query.get(follow.followed_id)
+        user = User.query.get(follow.following_id)
         if user and (user.is_artist or user.role == 'Artist'):
             artists.append({
                 "id": user.id,
