@@ -1,14 +1,15 @@
 // src/front/js/component/GamerGate.js
 // Reusable wrapper — shows "Enable Gamer Profile" prompt for non-gamers
 // Usage: wrap any gaming page content in <GamerGate> ... </GamerGate>
-import React, { useContext } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useContext, useState } from 'react';
 import { Context } from '../store/appContext';
 import '../../styles/GamerGate.css';
 
 const GamerGate = ({ children, featureName }) => {
-  const { store } = useContext(Context);
+  const { store, actions } = useContext(Context);
   const user = store.user;
+  const [enabling, setEnabling] = useState(false);
+  const [error, setError] = useState(null);
 
   const hasGamerProfile =
     user?.is_gamer === true ||
@@ -19,6 +20,53 @@ const GamerGate = ({ children, featureName }) => {
   if (hasGamerProfile) {
     return <>{children}</>;
   }
+
+  // Enable gamer profile via API
+  const handleEnable = async () => {
+    setEnabling(true);
+    setError(null);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/gamer-profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ is_gamer: true })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to enable gamer profile");
+      }
+
+      const data = await response.json();
+
+      // Update local user data so the gate opens immediately
+      const updatedUser = { ...user, is_gamer: true };
+      // Update profile_type to 'multiple' if they already have another type
+      if (user.is_artist || user.is_video_creator) {
+        updatedUser.profile_type = "multiple";
+      } else {
+        updatedUser.profile_type = "gamer";
+      }
+
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+
+      // Refresh profile from store if action exists
+      if (actions.fetchUserProfile) {
+        await actions.fetchUserProfile();
+      } else {
+        // Fallback: force reload to pick up changes
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error("Enable gamer profile error:", err);
+      setError("Something went wrong. Please try again.");
+      setEnabling(false);
+    }
+  };
 
   // If user is NOT a gamer → show enable prompt
   return (
@@ -58,12 +106,14 @@ const GamerGate = ({ children, featureName }) => {
         </div>
 
         <div className="gamer-gate-actions">
-          <Link to="/add-profile-type" className="gamer-gate-enable-btn">
-            🎮 Enable Gamer Profile
-          </Link>
-          <Link to="/dashboard/gaming" className="gamer-gate-learn-btn">
-            Learn More
-          </Link>
+          <button
+            className="gamer-gate-enable-btn"
+            onClick={handleEnable}
+            disabled={enabling}
+          >
+            {enabling ? '⏳ Enabling...' : '🎮 Enable Gamer Profile'}
+          </button>
+          {error && <p className="gamer-gate-error">{error}</p>}
         </div>
       </div>
     </div>

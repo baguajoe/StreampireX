@@ -131,16 +131,17 @@
   text-decoration: none;
 }
 
-.gamer-gate-learn-btn {
-  color: #888;
-  font-size: 0.85rem;
-  text-decoration: none;
-  transition: color 0.2s ease;
+.gamer-gate-enable-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 16px rgba(74, 158, 255, 0.15);
 }
 
-.gamer-gate-learn-btn:hover {
-  color: #4a9eff;
-  text-decoration: none;
+.gamer-gate-error {
+  color: #ff4757;
+  font-size: 0.85rem;
+  margin: 4px 0 0 0;
 }
 
 /* ====== RESPONSIVE ====== */
