@@ -113,6 +113,7 @@ const getState = ({ getStore, getActions, setStore }) => {
                 }
             },
 
+            // ✅ FIX: Changed /profile to /api/user/profile to match backend route
             fetchUserProfile: async () => {
                 console.log("starting fetchUserProfile action");
                 const store = getStore();
@@ -123,7 +124,7 @@ const getState = ({ getStore, getActions, setStore }) => {
                 }
 
                 try {
-                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/profile`, {
+                    const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
                         method: "GET",
                         headers: {
                             "Content-Type": "application/json",

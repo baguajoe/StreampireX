@@ -1,13 +1,15 @@
-
 # ✅ music_upload.py – Upload + Filter + Save Logic
+# FIX #6: Corrected import path and renamed blueprint to avoid collision with main routes.py
+
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.utils import secure_filename
 import os
-from models import db, TrackRelease
+from src.api.models import db, TrackRelease  # ✅ FIX: was "from models import db, TrackRelease"
 from api.utils.audio_filters import validate_uploaded_audio, get_file_hash
 
-api = Blueprint('api', __name__)
+# ✅ FIX: Renamed from 'api' to 'music_upload_bp' to avoid blueprint name collision
+music_upload_bp = Blueprint('music_upload', __name__)
 
 UPLOAD_FOLDER = "static/uploads/music"
 ALLOWED_EXTENSIONS = {"mp3", "wav", "flac"}
@@ -17,7 +19,7 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@api.route("/api/upload-track", methods=["POST"])
+@music_upload_bp.route("/api/upload-track", methods=["POST"])
 @jwt_required()
 def upload_track():
     user_id = get_jwt_identity()

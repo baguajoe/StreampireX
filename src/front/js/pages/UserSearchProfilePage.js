@@ -151,9 +151,10 @@ const UserSearchProfilePage = () => {
     fetchUserProfile();
   }, [userId, username, navigate]);
 
+  // ✅ FIX: Added BACKEND_URL prefix (was hitting frontend dev server)
   const fetchUserPlaylists = async (id) => {
     try {
-      const response = await fetch(`/api/user/${id}/playlists/public`);
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/${id}/playlists/public`);
       if (response.ok) {
         const data = await response.json();
         setPlaylists(data.playlists || data || []);
@@ -163,9 +164,10 @@ const UserSearchProfilePage = () => {
     }
   };
 
+  // ✅ FIX: Added BACKEND_URL prefix
   const fetchUserActivity = async (id) => {
     try {
-      const response = await fetch(`/api/user/${id}/activity/public`);
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/${id}/activity/public`);
       if (response.ok) {
         const data = await response.json();
         setRecentActivity(data.activity || data || []);
@@ -175,9 +177,10 @@ const UserSearchProfilePage = () => {
     }
   };
 
+  // ✅ FIX: Added BACKEND_URL prefix
   const fetchInnerCircle = async (id) => {
     try {
-      const response = await fetch(`/api/user/${id}/inner-circle/public`);
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/${id}/inner-circle/public`);
       if (response.ok) {
         const data = await response.json();
         setInnerCircle(data.members || data || []);
@@ -187,7 +190,9 @@ const UserSearchProfilePage = () => {
     }
   };
 
-  // Follow/unfollow
+  // ✅ FIX: Added BACKEND_URL prefix + corrected endpoint to match follow_routes.py
+  // Was: /api/user/${id}/follow → Now: /api/follow/${id}
+  // Was: /api/user/${id}/unfollow → Now: /api/unfollow/${id}
   const handleFollow = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -198,8 +203,8 @@ const UserSearchProfilePage = () => {
     setFollowLoading(true);
     try {
       const endpoint = isFollowing 
-        ? `/api/user/${userInfo.id}/unfollow`
-        : `/api/user/${userInfo.id}/follow`;
+        ? `${process.env.REACT_APP_BACKEND_URL}/api/unfollow/${userInfo.id}`
+        : `${process.env.REACT_APP_BACKEND_URL}/api/follow/${userInfo.id}`;
 
       const response = await fetch(endpoint, {
         method: "POST",

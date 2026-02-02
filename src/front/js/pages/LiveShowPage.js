@@ -70,9 +70,9 @@ const LiveShowPage = () => {
   };
 
   // Fetch user profile
-  const fetchUserProfile = async () => {
+  const fetchUserProfile_FIXED = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/profile`, {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/user/profile`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
