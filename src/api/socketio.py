@@ -210,6 +210,93 @@ def handle_screen_share_ice(data):
             'from': request.sid
         }, room=room_id, skip_sid=request.sid)
 
+# =====================================================
+# VOICE CHAT HANDLERS — add to socketio.py
+# =====================================================
+
+@socketio.on('voice-user-joined')
+def handle_voice_user_joined(data):
+    """User joined voice chat in a room"""
+    room_id = data.get('roomId')
+    user_id = data.get('userId')
+    user_name = data.get('userName')
+    
+    if room_id:
+        # Broadcast to room that user joined voice
+        emit('voice-user-joined', {
+            'userId': user_id,
+            'userName': user_name,
+            'sid': request.sid
+        }, room=room_id, include_self=False)
+        print(f"🎤 Voice user joined: {user_name} in {room_id}")
+
+
+@socketio.on('voice-user-left')
+def handle_voice_user_left(data):
+    """User left voice chat"""
+    room_id = data.get('roomId')
+    user_id = data.get('userId')
+    
+    if room_id:
+        emit('voice-user-left', {
+            'userId': user_id,
+            'sid': request.sid
+        }, room=room_id, include_self=False)
+        print(f"🎤 Voice user left: {user_id} from {room_id}")
+
+
+@socketio.on('voice-offer')
+def handle_voice_offer(data):
+    """Relay WebRTC voice offer"""
+    room_id = data.get('roomId')
+    offer = data.get('offer')
+    
+    if room_id and offer:
+        emit('voice-offer', {
+            'offer': offer,
+            'from': request.sid
+        }, room=room_id, include_self=False)
+
+
+@socketio.on('voice-answer')
+def handle_voice_answer(data):
+    """Relay WebRTC voice answer"""
+    room_id = data.get('roomId')
+    answer = data.get('answer')
+    target_sid = data.get('targetSid')
+    
+    if answer:
+        if target_sid:
+            emit('voice-answer', {
+                'answer': answer,
+                'from': request.sid
+            }, room=target_sid)
+        elif room_id:
+            emit('voice-answer', {
+                'answer': answer,
+                'from': request.sid
+            }, room=room_id, include_self=False)
+
+
+@socketio.on('voice-ice')
+def handle_voice_ice(data):
+    """Relay ICE candidates for voice"""
+    room_id = data.get('roomId')
+    candidate = data.get('candidate')
+    target_sid = data.get('targetSid')
+    
+    if candidate:
+        if target_sid:
+            emit('voice-ice', {
+                'candidate': candidate,
+                'from': request.sid
+            }, room=target_sid)
+        elif room_id:
+            emit('voice-ice', {
+                'candidate': candidate,
+                'from': request.sid
+            }, room=room_id, include_self=False)
+
 # Admin endpoint for debugging
 @socketio.on('get_room_stats')
 def handle_get_room_stats():

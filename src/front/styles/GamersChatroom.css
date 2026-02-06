@@ -397,11 +397,11 @@
   .chatroom-layout {
     grid-template-columns: 250px 1fr;
   }
-  
+
   .quick-actions {
     flex-direction: column;
   }
-  
+
   .quick-btn {
     width: 100%;
     text-align: center;
@@ -413,48 +413,48 @@
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
   }
-  
+
   .chatroom-sidebar {
     order: 2;
     height: 200px;
   }
-  
+
   .chat-main {
     order: 1;
     height: 500px;
   }
-  
+
   .chatroom-header {
     flex-direction: column;
     gap: 15px;
     text-align: center;
   }
-  
+
   .user-status {
     flex-wrap: wrap;
     justify-content: center;
   }
-  
+
   .rooms-list {
     flex-direction: row;
     overflow-x: auto;
     gap: 5px;
   }
-  
+
   .room-btn {
     min-width: 150px;
     flex-shrink: 0;
   }
-  
+
   .input-group {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .message-input {
     order: 1;
   }
-  
+
   .emoji-toggle-btn,
   .send-btn {
     order: 2;
@@ -486,7 +486,7 @@
 }
 
 /* =====================================================
-   SCREEN SHARE STYLES — append to GamersChatroom.css
+   SCREEN SHARE STYLES
    ===================================================== */
 
 /* Active share button glow */
@@ -499,8 +499,15 @@
 }
 
 @keyframes share-pulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(74, 158, 255, 0.3); }
-  50% { box-shadow: 0 0 18px rgba(74, 158, 255, 0.6); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(74, 158, 255, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 18px rgba(74, 158, 255, 0.6);
+  }
 }
 
 /* Error banner */
@@ -664,7 +671,9 @@
 }
 
 @keyframes share-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Shrink chat messages when screen share is active */
@@ -684,7 +693,112 @@
   height: 100%;
 }
 
-/* ====== RESPONSIVE ====== */
+/* =====================================================
+   SCREEN RECORDING STYLES
+   ===================================================== */
+
+/* Recording indicator in header */
+.recording-indicator {
+  margin-left: 12px;
+  padding: 3px 10px;
+  background: rgba(255, 0, 0, 0.2);
+  border: 1px solid rgba(255, 0, 0, 0.5);
+  border-radius: 12px;
+  font-size: 11px;
+  color: #ff4444;
+  animation: rec-blink 1s ease-in-out infinite;
+}
+
+@keyframes rec-blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Record button */
+.share-control-btn.record {
+  background: rgba(255, 68, 68, 0.15);
+  color: #ff4444;
+  border-color: rgba(255, 68, 68, 0.4);
+}
+
+.share-control-btn.record:hover {
+  background: rgba(255, 68, 68, 0.3);
+}
+
+/* Stop recording button */
+.share-control-btn.stop-record {
+  background: rgba(255, 68, 68, 0.3);
+  color: #ff4444;
+  border-color: rgba(255, 68, 68, 0.6);
+  animation: rec-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes rec-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 68, 68, 0);
+  }
+}
+
+.share-control-btn.stop-record:hover {
+  background: rgba(255, 68, 68, 0.45);
+}
+
+/* Recording overlay on video */
+.recording-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ff4444;
+  z-index: 10;
+}
+
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  background: #ff4444;
+  border-radius: 50%;
+  animation: rec-dot-blink 1s ease-in-out infinite;
+}
+
+@keyframes rec-dot-blink {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
+/* =====================================================
+   RESPONSIVE — SCREEN SHARE & RECORDING
+   ===================================================== */
+
 @media (max-width: 768px) {
   .screen-share-display {
     max-height: 220px;
@@ -710,5 +824,331 @@
 
   .chat-messages.with-screen-share {
     max-height: calc(100% - 340px);
+  }
+
+  .recording-indicator {
+    display: block;
+    margin-left: 0;
+    margin-top: 6px;
+  }
+
+  .share-controls {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .share-control-btn.record,
+  .share-control-btn.stop-record {
+    font-size: 11px;
+    padding: 4px 10px;
+  }
+
+  .recording-overlay {
+    top: 8px;
+    left: 8px;
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .rec-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  /* =====================================================
+   VOICE CHAT STYLES
+   ===================================================== */
+
+  /* Voice section in sidebar */
+  .voice-section {
+    margin-bottom: 25px;
+  }
+
+  .voice-section h3 {
+    color: #00ffc8;
+    margin-bottom: 15px;
+    margin-top: 0;
+    font-size: 16px;
+    border-bottom: 2px solid #00ffc8;
+    padding-bottom: 8px;
+  }
+
+  .voice-user {
+    background: rgba(0, 255, 200, 0.1) !important;
+    border: 1px solid rgba(0, 255, 200, 0.3);
+  }
+
+  .voice-indicator {
+    font-size: 12px;
+  }
+
+  /* Voice controls in header */
+  .voice-controls {
+    display: flex;
+    gap: 4px;
+  }
+
+  .action-btn.active-voice {
+    background: rgba(0, 255, 200, 0.3) !important;
+    border-color: #00ffc8 !important;
+    color: #00ffc8 !important;
+    box-shadow: 0 0 12px rgba(0, 255, 200, 0.4);
+    animation: voice-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes voice-pulse {
+
+    0%,
+    100% {
+      box-shadow: 0 0 8px rgba(0, 255, 200, 0.3);
+    }
+
+    50% {
+      box-shadow: 0 0 18px rgba(0, 255, 200, 0.6);
+    }
+  }
+
+  .mute-btn.muted {
+    background: rgba(255, 71, 87, 0.2) !important;
+    border-color: rgba(255, 71, 87, 0.4) !important;
+    color: #ff4757 !important;
+  }
+
+  .mute-btn.unmuted {
+    background: rgba(0, 255, 200, 0.2) !important;
+    border-color: rgba(0, 255, 200, 0.4) !important;
+    color: #00ffc8 !important;
+  }
+
+  /* Voice active banner */
+  .voice-active-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: rgba(0, 255, 200, 0.1);
+    border: 1px solid rgba(0, 255, 200, 0.3);
+    border-radius: 8px;
+    margin: 8px 12px 0;
+    color: #00ffc8;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .mic-status {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+  }
+
+  .mic-status.muted {
+    background: rgba(255, 71, 87, 0.2);
+    color: #ff4757;
+  }
+
+  .mic-status.live {
+    background: rgba(0, 255, 200, 0.2);
+    color: #00ffc8;
+    animation: live-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes live-pulse {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.6;
+    }
+  }
+
+  /* =====================================================
+   GAME INVITE MODAL STYLES
+   ===================================================== */
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+
+  .game-invite-modal {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid #4a9eff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 40px rgba(74, 158, 255, 0.1);
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(74, 158, 255, 0.3);
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    color: #4a9eff;
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+
+  .modal-close:hover {
+    color: #ff4757;
+  }
+
+  .modal-body {
+    padding: 24px;
+  }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    display: block;
+    color: #ccc;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(74, 158, 255, 0.3);
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  .form-group input::placeholder {
+    color: #666;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus {
+    border-color: #4a9eff;
+    box-shadow: 0 0 10px rgba(74, 158, 255, 0.2);
+  }
+
+  .form-group select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234a9eff' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+  }
+
+  .form-group select option {
+    background: #1a1a2e;
+    color: white;
+  }
+
+  .modal-footer {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px 24px;
+    justify-content: flex-end;
+  }
+
+  .cancel-btn {
+    padding: 12px 24px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid #666;
+    border-radius: 8px;
+    color: #ccc;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: #999;
+  }
+
+  .send-invite-btn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #4a9eff, #357abd);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.3);
+  }
+
+  .send-invite-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(74, 158, 255, 0.4);
+  }
+
+  /* ====== RESPONSIVE ====== */
+  @media (max-width: 768px) {
+    .game-invite-modal {
+      max-width: 100%;
+      margin: 10px;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .modal-footer {
+      flex-direction: column;
+      padding: 16px 20px 20px;
+    }
+
+    .cancel-btn,
+    .send-invite-btn {
+      width: 100%;
+    }
+
+    .voice-active-banner {
+      flex-direction: column;
+      gap: 8px;
+      text-align: center;
+    }
+
+    .voice-controls {
+      flex-wrap: wrap;
+    }
   }
 }
