@@ -4,7 +4,7 @@ eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app, session
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert, PodcastPlayHistory, PlayHistory, PostLike, PostComment, Photo, ClipSave, ClipComment, ClipCommentLike, UserWallet, WalletTransaction, CreatorPaymentSettings
+from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert, PodcastPlayHistory, PlayHistory, PostLike, PostComment, Photo, ClipSave, ClipComment, ClipCommentLike, UserWallet, WalletTransaction, CreatorPaymentSettings, StoryComment, Story
 # ADD these imports
 from .steam_service import SteamService
 from datetime import datetime
@@ -22490,3 +22490,113 @@ def update_cover_photo():
         "message": "Cover photo updated",
         "cover_photo": user.cover_photo
     }), 200
+
+# =====================================================
+# STORY PUBLIC COMMENTS ROUTES — add to routes.py
+# =====================================================
+
+# ==================== GET PUBLIC COMMENTS ====================
+@api.route('/stories/<int:story_id>/comments', methods=['GET'])
+@jwt_required(optional=True)
+def get_story_comments(story_id):
+    """Get public comments on a story"""
+    try:
+        story = Story.query.get(story_id)
+        if not story:
+            return jsonify({"error": "Story not found"}), 404
+        
+        if story.comment_mode not in ['public', 'both']:
+            return jsonify({"error": "Comments not enabled for this story"}), 403
+        
+        # Get top-level comments (no parent)
+        comments = StoryComment.query.filter_by(
+            story_id=story_id,
+            parent_id=None
+        ).order_by(StoryComment.created_at.desc()).limit(100).all()
+        
+        return jsonify({
+            "comments": [c.serialize() for c in comments],
+            "total": story.comment_count
+        }), 200
+        
+    except Exception as e:
+        print(f"Error fetching story comments: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ==================== POST PUBLIC COMMENT ====================
+@api.route('/stories/<int:story_id>/comments', methods=['POST'])
+@jwt_required()
+def post_story_comment(story_id):
+    """Post a public comment on a story"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        story = Story.query.get(story_id)
+        if not story:
+            return jsonify({"error": "Story not found"}), 404
+        
+        if story.comment_mode not in ['public', 'both']:
+            return jsonify({"error": "Public comments not enabled for this story"}), 403
+        
+        if not data.get('content'):
+            return jsonify({"error": "Comment content required"}), 400
+        
+        comment = StoryComment(
+            story_id=story_id,
+            user_id=user_id,
+            content=data['content'][:300],
+            parent_id=data.get('parent_id')  # For replies to comments
+        )
+        
+        story.comment_count += 1
+        db.session.add(comment)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Comment posted",
+            "comment": comment.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error posting story comment: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ==================== DELETE COMMENT ====================
+@api.route('/stories/comments/<int:comment_id>', methods=['DELETE'])
+@jwt_required()
+def delete_story_comment(comment_id):
+    """Delete a comment (owner or story owner can delete)"""
+    try:
+        user_id = get_jwt_identity()
+        comment = StoryComment.query.get(comment_id)
+        
+        if not comment:
+            return jsonify({"error": "Comment not found"}), 404
+        
+        story = Story.query.get(comment.story_id)
+        
+        # Allow deletion by comment author or story owner
+        if comment.user_id != user_id and story.user_id != user_id:
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        story.comment_count = max(0, story.comment_count - 1)
+        db.session.delete(comment)
+        db.session.commit()
+        
+        return jsonify({"message": "Comment deleted"}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error deleting story comment: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ==================== UPDATE: MODIFY CREATE STORY ====================
+# Update the create_story route to include comment_mode:
+
+# In the create_story route, add this line when creating the Story:
+#     comment_mode=data.get('comment_mode', 'both'),

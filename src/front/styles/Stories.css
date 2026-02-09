@@ -1,0 +1,1206 @@
+/* =====================================================
+   STORIES STYLES — src/front/styles/Stories.css
+   StreamPireX vertical stories feature
+   ===================================================== */
+
+/* ==================== STORIES BAR (Top Row) ==================== */
+.stories-bar {
+    width: 100%;
+    padding: 16px 0;
+    background: rgba(15, 15, 35, 0.8);
+    border-bottom: 1px solid rgba(0, 255, 200, 0.1);
+    overflow: hidden;
+}
+
+.stories-bar-inner {
+    display: flex;
+    gap: 16px;
+    padding: 0 20px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.stories-bar-inner::-webkit-scrollbar {
+    display: none;
+}
+
+.story-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.story-circle {
+    position: relative;
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    padding: 3px;
+    background: linear-gradient(135deg, #666, #444);
+}
+
+.story-circle.unviewed {
+    background: linear-gradient(135deg, #00ffc8, #4a9eff, #ff6b35);
+    animation: story-ring-pulse 2s ease-in-out infinite;
+}
+
+.story-circle.viewed {
+    background: linear-gradient(135deg, #444, #333);
+}
+
+.story-circle.has-story {
+    background: linear-gradient(135deg, #00ffc8, #4a9eff);
+}
+
+@keyframes story-ring-pulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 255, 200, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 0 4px rgba(0, 255, 200, 0);
+    }
+}
+
+.story-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #0f0f23;
+}
+
+.story-avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border: 3px solid #0f0f23;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+    color: #00ffc8;
+}
+
+/* Add Story Button */
+.story-item.add-story .story-circle {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border: 2px dashed rgba(0, 255, 200, 0.4);
+}
+
+.add-story-icon {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 24px;
+    height: 24px;
+    background: #00ffc8;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f0f23;
+    border: 2px solid #0f0f23;
+}
+
+.story-username {
+    font-size: 11px;
+    color: #999;
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.story-item:hover .story-username {
+    color: #00ffc8;
+}
+
+/* Skeleton Loading */
+.story-circle-skeleton {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, #1a1a2e 25%, #2a2a4e 50%, #1a1a2e 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+    flex-shrink: 0;
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.no-stories-message {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    color: #666;
+    font-size: 13px;
+}
+
+/* ==================== STORY VIEWER (Fullscreen) ==================== */
+.story-viewer-container {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Progress Bars */
+.story-progress-bars {
+    display: flex;
+    gap: 4px;
+    padding: 12px 12px 8px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+}
+
+.progress-bar-container {
+    flex: 1;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: #fff;
+    border-radius: 2px;
+    transition: width 0.05s linear;
+}
+
+/* Story Header */
+.story-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    position: absolute;
+    top: 24px;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent);
+}
+
+.story-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.story-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #00ffc8;
+}
+
+.story-user-avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border: 2px solid #00ffc8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #00ffc8;
+}
+
+.story-user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.story-user-details .story-username {
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    max-width: none;
+}
+
+.story-timestamp {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+}
+
+.story-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.paused-indicator {
+    color: #fff;
+    font-size: 18px;
+}
+
+.story-action-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.story-action-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.story-close-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+}
+
+/* Story Content */
+.story-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.story-media {
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.story-caption {
+    position: absolute;
+    bottom: 100px;
+    left: 0;
+    right: 0;
+    padding: 16px 24px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+}
+
+.story-caption p {
+    color: #fff;
+    font-size: 16px;
+    line-height: 1.4;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    margin: 0;
+    text-align: center;
+}
+
+.story-music {
+    position: absolute;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    padding: 8px 16px;
+    border-radius: 20px;
+    color: #fff;
+    font-size: 13px;
+}
+
+/* Bottom Actions */
+.story-bottom-actions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 16px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+    display: flex;
+    justify-content: center;
+}
+
+.reply-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    padding: 12px 32px;
+    border-radius: 24px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.reply-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.story-reply-input {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.story-reply-input input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+}
+
+.story-reply-input input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.story-reply-input button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 24px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.story-reply-input button:first-of-type {
+    background: #00ffc8;
+    color: #0f0f23;
+}
+
+.story-reply-input button:last-of-type {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+/* Owner Actions */
+.owner-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.owner-actions button {
+    padding: 10px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.owner-actions button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.owner-actions .delete-btn {
+    border-color: rgba(255, 71, 87, 0.5);
+    color: #ff4757;
+}
+
+.owner-actions .delete-btn:hover {
+    background: rgba(255, 71, 87, 0.2);
+}
+
+/* Navigation Hints */
+.story-nav-hint {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 30%;
+    z-index: 5;
+}
+
+.story-nav-hint.left {
+    left: 0;
+    cursor: w-resize;
+}
+
+.story-nav-hint.right {
+    right: 0;
+    cursor: e-resize;
+}
+
+/* Viewers Modal */
+.viewers-modal {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 20;
+}
+
+.viewers-modal-content {
+    width: 100%;
+    max-width: 500px;
+    max-height: 70vh;
+    background: #1a1a2e;
+    border-radius: 20px 20px 0 0;
+    overflow: hidden;
+}
+
+.viewers-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.viewers-header h3 {
+    color: #fff;
+    margin: 0;
+    font-size: 18px;
+}
+
+.viewers-header button {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.viewers-list {
+    padding: 12px 20px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.viewer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.viewer-item img {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.viewer-avatar-placeholder {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #2a2a4e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #00ffc8;
+    font-weight: 600;
+}
+
+.viewer-item span {
+    color: #fff;
+    font-size: 14px;
+}
+
+.viewer-item .view-time {
+    margin-left: auto;
+    color: #666;
+    font-size: 12px;
+}
+
+/* Loading & Empty States */
+.story-loading,
+.story-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #fff;
+    gap: 16px;
+}
+
+.story-spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(0, 255, 200, 0.2);
+    border-top-color: #00ffc8;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.story-empty button {
+    padding: 12px 24px;
+    background: #00ffc8;
+    border: none;
+    border-radius: 8px;
+    color: #0f0f23;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* ==================== STORY UPLOAD ==================== */
+.story-upload-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+    color: #fff;
+}
+
+.story-upload-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(0, 255, 200, 0.1);
+}
+
+.story-upload-header .back-btn {
+    background: none;
+    border: none;
+    color: #00ffc8;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.story-upload-header h2 {
+    margin: 0;
+    font-size: 18px;
+    color: #00ffc8;
+}
+
+.header-spacer {
+    width: 60px;
+}
+
+/* Select Media View */
+.story-select-media {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    min-height: 60vh;
+}
+
+.upload-options {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 300px;
+}
+
+.upload-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 32px 24px;
+    background: rgba(0, 255, 200, 0.05);
+    border: 2px dashed rgba(0, 255, 200, 0.3);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.upload-option:hover {
+    background: rgba(0, 255, 200, 0.1);
+    border-color: #00ffc8;
+}
+
+.option-icon {
+    font-size: 48px;
+}
+
+.option-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #00ffc8;
+}
+
+.upload-hint {
+    margin-top: 24px;
+    color: #666;
+    font-size: 13px;
+    text-align: center;
+}
+
+/* Camera View */
+.camera-view {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+}
+
+.camera-preview {
+    flex: 1;
+    width: 100%;
+    object-fit: cover;
+}
+
+.camera-controls {
+    position: absolute;
+    bottom: 40px;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+}
+
+.camera-btn {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.camera-btn.capture {
+    background: #fff;
+    width: 80px;
+    height: 80px;
+}
+
+.camera-btn.record {
+    background: #ff4444;
+}
+
+.camera-btn.stop-record {
+    background: #ff4444;
+    width: 80px;
+    height: 80px;
+    border-radius: 16px;
+    font-size: 14px;
+    color: #fff;
+}
+
+.camera-btn.cancel {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+}
+
+.recording-indicator {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 0, 0, 0.8);
+    padding: 8px 16px;
+    border-radius: 20px;
+    color: #fff;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.recording-indicator .rec-dot {
+    width: 10px;
+    height: 10px;
+    background: #fff;
+    border-radius: 50%;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
+/* Preview View */
+.story-preview-view {
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.preview-container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    aspect-ratio: 9/16;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #000;
+}
+
+.preview-media {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.clear-preview-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+/* Story Options */
+.story-options {
+    padding: 20px 0;
+}
+
+.caption-input {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.caption-input input {
+    width: 100%;
+    padding: 14px 16px;
+    padding-right: 60px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(0, 255, 200, 0.2);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+}
+
+.caption-input input:focus {
+    border-color: #00ffc8;
+}
+
+.caption-input input::placeholder {
+    color: #666;
+}
+
+.caption-input .char-count {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    font-size: 12px;
+}
+
+.toggle-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #ccc;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.toggle-option input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: #00ffc8;
+}
+
+/* Upload Progress & Error */
+.upload-error {
+    padding: 12px 16px;
+    background: rgba(255, 71, 87, 0.15);
+    border: 1px solid rgba(255, 71, 87, 0.3);
+    border-radius: 8px;
+    color: #ff4757;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
+.upload-progress {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.upload-progress .progress-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.upload-progress .progress-fill {
+    height: 100%;
+    background: #00ffc8;
+    transition: width 0.3s;
+}
+
+.upload-progress span {
+    color: #00ffc8;
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 40px;
+}
+
+/* Action Buttons */
+.story-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.story-actions .secondary-btn {
+    flex: 1;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    color: #ccc;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.story-actions .secondary-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.story-actions .primary-btn {
+    flex: 2;
+    padding: 14px;
+    background: linear-gradient(135deg, #00ffc8, #00cc9f);
+    border: none;
+    border-radius: 12px;
+    color: #0f0f23;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.story-actions .primary-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 255, 200, 0.3);
+}
+
+.story-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+    .stories-bar-inner {
+        gap: 12px;
+        padding: 0 12px;
+    }
+
+    .story-circle {
+        width: 60px;
+        height: 60px;
+    }
+
+    .story-username {
+        font-size: 10px;
+        max-width: 60px;
+    }
+
+    .story-user-avatar,
+    .story-user-avatar-placeholder {
+        width: 36px;
+        height: 36px;
+    }
+
+    .preview-container {
+        max-width: 100%;
+    }
+
+    .camera-controls {
+        bottom: 30px;
+        gap: 24px;
+    }
+
+    .camera-btn {
+        width: 56px;
+        height: 56px;
+    }
+
+    .camera-btn.capture,
+    .camera-btn.stop-record {
+        width: 72px;
+        height: 72px;
+    }
+
+    /* =====================================================
+   COMMENT MODE SELECTOR — add to Stories.css
+   ===================================================== */
+
+    .comment-mode-selector {
+        margin-top: 20px;
+    }
+
+    .comment-mode-selector .option-label {
+        display: block;
+        color: #00ffc8;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 12px;
+    }
+
+    .comment-mode-options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .comment-mode-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 14px 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .comment-mode-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(0, 255, 200, 0.3);
+    }
+
+    .comment-mode-btn.active {
+        background: rgba(0, 255, 200, 0.1);
+        border-color: #00ffc8;
+    }
+
+    .comment-mode-btn .mode-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    .comment-mode-btn .mode-desc {
+        font-size: 11px;
+        color: #888;
+        text-align: center;
+    }
+
+    .comment-mode-btn.active .mode-label {
+        color: #00ffc8;
+    }
+
+    /* =====================================================
+   PUBLIC COMMENTS SECTION IN VIEWER
+   ===================================================== */
+
+    .story-comments-section {
+        position: absolute;
+        bottom: 80px;
+        left: 0;
+        right: 0;
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 0 16px;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 60%, transparent);
+    }
+
+    .story-comments-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .story-comment-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 8px 0;
+    }
+
+    .story-comment-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+
+    .story-comment-avatar-placeholder {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #2a2a4e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: #00ffc8;
+        flex-shrink: 0;
+    }
+
+    .story-comment-content {
+        flex: 1;
+    }
+
+    .story-comment-username {
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+        margin-right: 8px;
+    }
+
+    .story-comment-text {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.9);
+        line-height: 1.3;
+    }
+
+    .story-comment-time {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 2px;
+    }
+
+    /* Comment input at bottom */
+    .story-comment-input-area {
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px;
+        background: rgba(0, 0, 0, 0.6);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .story-comment-input-area input {
+        flex: 1;
+        padding: 10px 14px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        color: #fff;
+        font-size: 14px;
+        outline: none;
+    }
+
+    .story-comment-input-area input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .story-comment-input-area button {
+        padding: 10px 18px;
+        background: #00ffc8;
+        border: none;
+        border-radius: 20px;
+        color: #0f0f23;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .story-comment-input-area button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Toggle between reply types */
+    .response-toggle {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        padding: 8px 16px;
+    }
+
+    .response-toggle button {
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 16px;
+        color: #fff;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .response-toggle button.active {
+        background: rgba(0, 255, 200, 0.2);
+        border-color: #00ffc8;
+        color: #00ffc8;
+    }
+
+    .response-toggle button:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Comments count badge */
+    .comments-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        font-size: 12px;
+        color: #fff;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .comment-mode-options {
+            grid-template-columns: 1fr;
+        }
+
+        .story-comments-section {
+            max-height: 150px;
+        }
+    }
+}
