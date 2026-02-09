@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import UploadVideo from "../component/UploadVideo";
 import WebRTCChat from "../component/WebRTCChat";
+import StoriesBar from "../component/StoriesBar";
 import "../../styles/HomeFeed.css";
 
 const HomeFeed = () => {
@@ -375,6 +376,9 @@ const HomeFeed = () => {
         <h1>🏠 Home Feed</h1>
         <p>Discover the latest from creators you follow</p>
       </div>
+
+      {/* Stories Bar - Shows stories from people you follow */}
+      <StoriesBar />
 
       {error && (
         <div className="error-banner">

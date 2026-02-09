@@ -87,6 +87,8 @@ import VideoEditor from "./pages/VideoEditor";
 import EditGamerProfilePage from "./pages/EditGamerProfilePage";
 import CreateTeamRoomPage from "./pages/CreateTeamRoomPage";
 import ContentLibrary from "./pages/ContentLibrary";
+import StoryViewer from "./pages/StoryViewer";
+import StoryUpload from "./pages/StoryUpload";
 
 // ✨ NEW: Unified Dashboard
 import { Dashboard } from "./pages/Dashboard";
@@ -185,6 +187,9 @@ const Layout = () => {
               <Route path="/videos" element={<BrowseVideosPage />} />
               <Route path="/go-live" element={<GoLivePage />} />
               <Route path="/create-clip" element={<CreateClipPage />} />
+              <Route path="/stories/create" element={<StoryUpload />} />
+              <Route path="/stories/:userId" element={<StoryViewer />} />
+
 
               {/* 💿 Releases */}
               <Route path="/create-release" element={<CreateReleasePage />} />

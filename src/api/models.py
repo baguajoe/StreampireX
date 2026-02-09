@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import JSON
 from src.api.extensions import db
+from datetime import datetime, timedelta
 
 import json
 
@@ -5386,6 +5387,188 @@ class Photo(db.Model):
     def to_dict(self):
         return self.serialize()
 
+
+# =====================================================
+# UPDATED STORIES MODEL — replace in models.py
+# Now includes comment_mode choice
+# =====================================================
+
+# ============================================
+# STORIES MODELS - Add to models.py
+# ============================================
+# Make sure you have: from datetime import datetime, timedelta
+
+# ============================================
+# STORIES MODELS - Add to models.py
+# ============================================
+# Make sure you have: from datetime import datetime, timedelta
+
+class Story(db.Model):
+    __tablename__ = 'stories'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    media_url = db.Column(db.String(500), nullable=False)
+    media_type = db.Column(db.String(20), nullable=False)  # 'image' or 'video'
+    caption = db.Column(db.String(200), nullable=True)
+    music_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=True)  # References audio table
+    
+    # Comment settings: 'private', 'public', 'both', 'disabled'
+    comment_mode = db.Column(db.String(20), default='both')
+    
+    # Highlights (saved stories that don't expire)
+    is_highlight = db.Column(db.Boolean, default=False)
+    highlight_name = db.Column(db.String(50), nullable=True)
+    
+    # Metrics
+    view_count = db.Column(db.Integer, default=0)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=True)  # null for highlights
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('stories', lazy='dynamic'))
+    music = db.relationship('Audio', backref=db.backref('stories', lazy='dynamic'))
+    views = db.relationship('StoryView', backref='story', lazy='dynamic', cascade='all, delete-orphan')
+    replies = db.relationship('StoryReply', backref='story', lazy='dynamic', cascade='all, delete-orphan')
+    comments = db.relationship('StoryComment', backref='story', lazy='dynamic', cascade='all, delete-orphan')
+    
+    def __init__(self, **kwargs):
+        super(Story, self).__init__(**kwargs)
+        if not kwargs.get('is_highlight'):
+            self.expires_at = datetime.utcnow() + timedelta(hours=24)
+    
+    @property
+    def is_expired(self):
+        if self.is_highlight:
+            return False
+        return self.expires_at and datetime.utcnow() > self.expires_at
+    
+    @property
+    def time_remaining(self):
+        if self.is_highlight or not self.expires_at:
+            return None
+        remaining = self.expires_at - datetime.utcnow()
+        if remaining.total_seconds() <= 0:
+            return 0
+        return int(remaining.total_seconds())
+    
+    def serialize(self, viewer_id=None):
+        viewed = False
+        if viewer_id:
+            viewed = StoryView.query.filter_by(story_id=self.id, viewer_id=viewer_id).first() is not None
+        
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'media_url': self.media_url,
+            'media_type': self.media_type,
+            'caption': self.caption,
+            'music_id': self.music_id,
+            'comment_mode': self.comment_mode,
+            'is_highlight': self.is_highlight,
+            'highlight_name': self.highlight_name,
+            'view_count': self.view_count,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
+            'time_remaining': self.time_remaining,
+            'is_expired': self.is_expired,
+            'viewed': viewed,
+            'user': {
+                'id': self.user.id,
+                'username': self.user.username,
+                'profile_picture': self.user.profile_picture
+            } if self.user else None,
+            'music': self.music.serialize_for_player() if self.music else None
+        }
+
+
+class StoryView(db.Model):
+    __tablename__ = 'story_views'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
+    viewer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Unique constraint - one view per user per story
+    __table_args__ = (db.UniqueConstraint('story_id', 'viewer_id', name='unique_story_view'),)
+    
+    viewer = db.relationship('User', backref=db.backref('story_views', lazy='dynamic'))
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'story_id': self.story_id,
+            'viewer_id': self.viewer_id,
+            'viewed_at': self.viewed_at.isoformat() if self.viewed_at else None,
+            'viewer': {
+                'id': self.viewer.id,
+                'username': self.viewer.username,
+                'profile_picture': self.viewer.profile_picture
+            } if self.viewer else None
+        }
+
+
+class StoryReply(db.Model):
+    """Private replies to stories - only visible to story owner"""
+    __tablename__ = 'story_replies'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.String(500), nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    sender = db.relationship('User', backref=db.backref('story_replies_sent', lazy='dynamic'))
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'story_id': self.story_id,
+            'sender_id': self.sender_id,
+            'message': self.message,
+            'is_read': self.is_read,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'sender': {
+                'id': self.sender.id,
+                'username': self.sender.username,
+                'profile_picture': self.sender.profile_picture
+            } if self.sender else None
+        }
+
+
+class StoryComment(db.Model):
+    """Public comments on stories - visible to everyone"""
+    __tablename__ = 'story_comments'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    text = db.Column(db.String(300), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('story_comments.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('story_comments', lazy='dynamic'))
+    replies = db.relationship('StoryComment', backref=db.backref('parent', remote_side=[id]), lazy='dynamic')
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'story_id': self.story_id,
+            'user_id': self.user_id,
+            'text': self.text,
+            'parent_id': self.parent_id,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'user': {
+                'id': self.user.id,
+                'username': self.user.username,
+                'profile_picture': self.user.profile_picture
+            } if self.user else None,
+            'reply_count': self.replies.count() if self.replies else 0
+        }
 # =============================================================================
 # DATABASE MIGRATION SQL
 # =============================================================================
