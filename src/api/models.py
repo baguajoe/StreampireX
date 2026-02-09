@@ -1608,15 +1608,33 @@ class PodcastHost(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
 
+# =============================================================================
+# PricingPlan Model - Complete Merged Version (Both Models Combined)
+# =============================================================================
+# Tiers: Free → Starter ($9.99) → Creator ($19.99) → Pro ($29.99)
+# =============================================================================
+
+from datetime import datetime
+from sqlalchemy.dialects.postgresql import JSON
+
 class PricingPlan(db.Model):
+    __tablename__ = 'pricing_plans'
     __table_args__ = {'extend_existing': True}
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), unique=True, nullable=False)  # "Free", "Basic", "Pro", "Premium"
-    price_monthly = db.Column(db.Float, nullable=False)
-    price_yearly = db.Column(db.Float, nullable=False)
-    trial_days = db.Column(db.Integer, default=14)  # Free Trial Support
     
-    # Core Platform Features
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)  # Free, Starter, Creator, Pro
+    
+    # ==========================================================================
+    # PRICING
+    # ==========================================================================
+    price_monthly = db.Column(db.Float, nullable=False, default=0.00)
+    price_yearly = db.Column(db.Float, nullable=False, default=0.00)
+    trial_days = db.Column(db.Integer, default=14)
+    sort_order = db.Column(db.Integer, default=0)
+    
+    # ==========================================================================
+    # CORE PLATFORM FEATURES
+    # ==========================================================================
     includes_podcasts = db.Column(db.Boolean, default=False)
     includes_radio = db.Column(db.Boolean, default=False)
     includes_digital_sales = db.Column(db.Boolean, default=False)
@@ -1625,52 +1643,124 @@ class PricingPlan(db.Model):
     includes_tip_jar = db.Column(db.Boolean, default=False)
     includes_ad_revenue = db.Column(db.Boolean, default=False)
     
-    # Music Distribution Features
-    includes_music_distribution = db.Column(db.Boolean, default=False)
-    sonosuite_access = db.Column(db.Boolean, default=False)
-    distribution_uploads_limit = db.Column(db.Integer, default=0)  # Number of tracks per month
+    # ==========================================================================
+    # VIDEO EDITING - QUALITY & LIMITS
+    # ==========================================================================
+    export_quality = db.Column(db.String(10), default="1080p")  # 1080p, 4K, 8K
+    max_export_quality = db.Column(db.String(10), default='1080p')  # Alias
+    max_projects = db.Column(db.Integer, default=3)  # -1 = unlimited
+    max_tracks = db.Column(db.Integer, default=4)
+    max_tracks_per_project = db.Column(db.Integer, default=5)
+    max_clips_per_track = db.Column(db.Integer, default=10)
+    storage_gb = db.Column(db.Integer, default=5)  # -1 = unlimited
+    watermark = db.Column(db.Boolean, default=True)
+    max_export_duration = db.Column(db.Integer, default=3600)  # seconds
     
-    # Gaming Features
+    # ==========================================================================
+    # VIDEO EDITING - FILE SIZE LIMITS
+    # ==========================================================================
+    video_clip_max_size = db.Column(db.BigInteger, default=500*1024*1024)  # 500MB
+    audio_clip_max_size = db.Column(db.BigInteger, default=100*1024*1024)  # 100MB
+    image_max_size = db.Column(db.BigInteger, default=10*1024*1024)  # 10MB
+    project_total_max_size = db.Column(db.BigInteger, default=2*1024*1024*1024)  # 2GB
+    
+    # ==========================================================================
+    # VIDEO EDITING - EXPORT OPTIONS
+    # ==========================================================================
+    export_formats = db.Column(JSON, default=['mp4'])  # mp4, mov, webm, etc.
+    
+    # ==========================================================================
+    # VIDEO EDITING - COLLABORATION
+    # ==========================================================================
+    collaboration_enabled = db.Column(db.Boolean, default=False)
+    collaboration_seats = db.Column(db.Integer, default=0)  # -1 = unlimited/teams
+    
+    # ==========================================================================
+    # VIDEO EDITING - ADVANCED FEATURES
+    # ==========================================================================
+    audio_separation_enabled = db.Column(db.Boolean, default=False)
+    advanced_effects_enabled = db.Column(db.Boolean, default=False)
+    priority_export_enabled = db.Column(db.Boolean, default=False)
+    
+    # ==========================================================================
+    # STREAMING FEATURES
+    # ==========================================================================
+    includes_streaming = db.Column(db.Boolean, default=False)
+    max_stream_quality = db.Column(db.String(10), nullable=True)  # 720p, 1080p, 4K
+    max_viewers = db.Column(db.Integer, default=0)  # -1 = unlimited
+    includes_stream_recording = db.Column(db.Boolean, default=False)
+    includes_simulcast = db.Column(db.Boolean, default=False)
+    simulcast_destinations = db.Column(db.Integer, default=0)
+    
+    # ==========================================================================
+    # PODCAST FEATURES
+    # ==========================================================================
+    max_podcast_episodes = db.Column(db.Integer, default=0)  # -1 = unlimited
+    
+    # ==========================================================================
+    # RADIO FEATURES
+    # ==========================================================================
+    max_radio_stations = db.Column(db.Integer, default=0)  # -1 = unlimited
+    includes_auto_dj = db.Column(db.Boolean, default=False)
+    
+    # ==========================================================================
+    # GAMING FEATURES
+    # ==========================================================================
     includes_gaming_features = db.Column(db.Boolean, default=False)
+    includes_gaming_community = db.Column(db.Boolean, default=True)
+    includes_squad_finder = db.Column(db.Boolean, default=True)
     includes_team_rooms = db.Column(db.Boolean, default=False)
-    includes_squad_finder = db.Column(db.Boolean, default=False)
+    max_team_rooms = db.Column(db.Integer, default=1)  # -1 = unlimited
     includes_gaming_analytics = db.Column(db.Boolean, default=False)
     includes_game_streaming = db.Column(db.Boolean, default=False)
     includes_gaming_monetization = db.Column(db.Boolean, default=False)
+    includes_cloud_gaming = db.Column(db.Boolean, default=False)
     
-    # Video Distribution Features
-    includes_video_distribution = db.Column(db.Boolean, default=False)
-    video_uploads_limit = db.Column(db.Integer, default=0)  # Videos per month
-    
-    # NEW: Video Editor Limits
-    video_clip_max_size = db.Column(db.BigInteger, default=500*1024*1024)  # 500MB default
-    audio_clip_max_size = db.Column(db.BigInteger, default=100*1024*1024)  # 100MB default
-    image_max_size = db.Column(db.BigInteger, default=10*1024*1024)        # 10MB default
-    project_total_max_size = db.Column(db.BigInteger, default=2*1024*1024*1024)  # 2GB default
-    
-    max_clips_per_track = db.Column(db.Integer, default=10)
-    max_tracks_per_project = db.Column(db.Integer, default=5)
-    max_projects = db.Column(db.Integer, default=3)
-    
-    # Export Features
-    export_formats = db.Column(JSON, default=['mp4'])  # Allowed export formats
-    max_export_quality = db.Column(db.String(10), default='720p')  # 720p, 1080p, 4k, 8k
-    max_export_duration = db.Column(db.Integer, default=3600)  # seconds
-    
-    # Platform Export Features
+    # ==========================================================================
+    # CROSS-POSTING / PLATFORM EXPORT
+    # ==========================================================================
     platform_export_enabled = db.Column(db.Boolean, default=False)
-    allowed_platforms = db.Column(JSON, default=['youtube'])  # youtube, instagram, tiktok, etc.
+    cross_post_platforms = db.Column(db.Integer, default=0)  # -1 = all
+    cross_posts_per_day = db.Column(db.Integer, default=0)  # -1 = unlimited
+    allowed_platforms = db.Column(JSON, default=['youtube'])
     
-    # Advanced Features
-    audio_separation_enabled = db.Column(db.Boolean, default=False)
-    advanced_effects_enabled = db.Column(db.Boolean, default=False)
-    collaboration_enabled = db.Column(db.Boolean, default=False)
-    priority_export_enabled = db.Column(db.Boolean, default=False)
+    # ==========================================================================
+    # MUSIC DISTRIBUTION
+    # ==========================================================================
+    includes_music_distribution = db.Column(db.Boolean, default=False)
+    sonosuite_access = db.Column(db.Boolean, default=False)
+    distribution_uploads_limit = db.Column(db.Integer, default=0)  # -1 = unlimited
+    distribution_royalty_rate = db.Column(db.Integer, default=0)  # 90 = 90%
+    includes_performance_royalties = db.Column(db.Boolean, default=False)
     
-    # Additional metadata
-    sort_order = db.Column(db.Integer, default=0)
+    # ==========================================================================
+    # VIDEO DISTRIBUTION
+    # ==========================================================================
+    includes_video_distribution = db.Column(db.Boolean, default=False)
+    video_uploads_limit = db.Column(db.Integer, default=0)  # -1 = unlimited
+    
+    # ==========================================================================
+    # SUPPORT & EXTRAS
+    # ==========================================================================
+    support_level = db.Column(db.String(50), default="community")
+    includes_early_access = db.Column(db.Boolean, default=False)
+    
+    # ==========================================================================
+    # TIMESTAMPS
+    # ==========================================================================
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # ==========================================================================
+    # RELATIONSHIPS
+    # ==========================================================================
+    
+    
+    # ==========================================================================
+    # METHODS
+    # ==========================================================================
+    def __repr__(self):
+        return f'<PricingPlan {self.name}>'
     
     def get_file_size_limit(self, file_type):
         """Get file size limit for specific file type"""
@@ -1685,7 +1775,6 @@ class PricingPlan(db.Model):
         """Check if plan allows export to specific platform"""
         if not self.platform_export_enabled:
             return False
-        
         return platform in (self.allowed_platforms or [])
     
     def can_use_quality(self, quality):
@@ -1695,13 +1784,30 @@ class PricingPlan(db.Model):
             '720p': 2, 
             '1080p': 3,
             '4k': 4,
-            '8k': 5
+            '4K': 4,
+            '8k': 5,
+            '8K': 5
         }
-        
-        max_level = quality_hierarchy.get(self.max_export_quality, 2)
-        requested_level = quality_hierarchy.get(quality, 2)
-        
+        max_level = quality_hierarchy.get(self.max_export_quality or self.export_quality, 3)
+        requested_level = quality_hierarchy.get(quality, 3)
         return requested_level <= max_level
+    
+    def has_feature(self, feature_name):
+        """Check if plan includes a specific feature"""
+        return getattr(self, feature_name, False)
+    
+    def get_limit(self, limit_name):
+        """Get a limit value, returns -1 for unlimited"""
+        return getattr(self, limit_name, 0)
+    
+    def is_unlimited(self, feature_name):
+        """Check if a feature is unlimited (-1)"""
+        value = getattr(self, feature_name, 0)
+        return value == -1
+    
+    def to_dict(self):
+        """Alias for serialize"""
+        return self.serialize()
     
     def serialize(self):
         return {
@@ -1710,6 +1816,7 @@ class PricingPlan(db.Model):
             "price_monthly": self.price_monthly,
             "price_yearly": self.price_yearly,
             "trial_days": self.trial_days,
+            "sort_order": self.sort_order,
             
             # Core Features
             "includes_podcasts": self.includes_podcasts,
@@ -1720,24 +1827,20 @@ class PricingPlan(db.Model):
             "includes_tip_jar": self.includes_tip_jar,
             "includes_ad_revenue": self.includes_ad_revenue,
             
-            # Music Distribution
-            "includes_music_distribution": self.includes_music_distribution,
-            "sonosuite_access": self.sonosuite_access,
-            "distribution_uploads_limit": self.distribution_uploads_limit,
+            # Video Editing
+            "export_quality": self.export_quality,
+            "max_export_quality": self.max_export_quality,
+            "max_projects": self.max_projects,
+            "max_tracks": self.max_tracks,
+            "max_tracks_per_project": self.max_tracks_per_project,
+            "max_clips_per_track": self.max_clips_per_track,
+            "storage_gb": self.storage_gb,
+            "watermark": self.watermark,
+            "max_export_duration": self.max_export_duration,
+            "collaboration_enabled": self.collaboration_enabled,
+            "collaboration_seats": self.collaboration_seats,
             
-            # Gaming Features
-            "includes_gaming_features": self.includes_gaming_features,
-            "includes_team_rooms": self.includes_team_rooms,
-            "includes_squad_finder": self.includes_squad_finder,
-            "includes_gaming_analytics": self.includes_gaming_analytics,
-            "includes_game_streaming": self.includes_game_streaming,
-            "includes_gaming_monetization": self.includes_gaming_monetization,
-            
-            # Video Distribution
-            "includes_video_distribution": self.includes_video_distribution,
-            "video_uploads_limit": self.video_uploads_limit,
-            
-            # Video Editor Limits
+            # Video Editor Limits (nested for compatibility)
             "video_editor_limits": {
                 "video_clip_max_size": self.video_clip_max_size,
                 "audio_clip_max_size": self.audio_clip_max_size,
@@ -1751,7 +1854,7 @@ class PricingPlan(db.Model):
                 "max_export_duration": self.max_export_duration
             },
             
-            # Video Editor Features
+            # Video Editor Features (nested for compatibility)
             "video_editor_features": {
                 "platform_export_enabled": self.platform_export_enabled,
                 "allowed_platforms": self.allowed_platforms,
@@ -1761,7 +1864,53 @@ class PricingPlan(db.Model):
                 "priority_export_enabled": self.priority_export_enabled
             },
             
-            "created_at": self.created_at.isoformat(),
+            # Streaming
+            "includes_streaming": self.includes_streaming,
+            "max_stream_quality": self.max_stream_quality,
+            "max_viewers": self.max_viewers,
+            "includes_stream_recording": self.includes_stream_recording,
+            "includes_simulcast": self.includes_simulcast,
+            "simulcast_destinations": self.simulcast_destinations,
+            
+            # Podcasts & Radio
+            "max_podcast_episodes": self.max_podcast_episodes,
+            "max_radio_stations": self.max_radio_stations,
+            "includes_auto_dj": self.includes_auto_dj,
+            
+            # Gaming
+            "includes_gaming_features": self.includes_gaming_features,
+            "includes_gaming_community": self.includes_gaming_community,
+            "includes_squad_finder": self.includes_squad_finder,
+            "includes_team_rooms": self.includes_team_rooms,
+            "max_team_rooms": self.max_team_rooms,
+            "includes_gaming_analytics": self.includes_gaming_analytics,
+            "includes_game_streaming": self.includes_game_streaming,
+            "includes_gaming_monetization": self.includes_gaming_monetization,
+            "includes_cloud_gaming": self.includes_cloud_gaming,
+            
+            # Cross-Posting
+            "platform_export_enabled": self.platform_export_enabled,
+            "cross_post_platforms": self.cross_post_platforms,
+            "cross_posts_per_day": self.cross_posts_per_day,
+            "allowed_platforms": self.allowed_platforms,
+            
+            # Music Distribution
+            "includes_music_distribution": self.includes_music_distribution,
+            "sonosuite_access": self.sonosuite_access,
+            "distribution_uploads_limit": self.distribution_uploads_limit,
+            "distribution_royalty_rate": self.distribution_royalty_rate,
+            "includes_performance_royalties": self.includes_performance_royalties,
+            
+            # Video Distribution
+            "includes_video_distribution": self.includes_video_distribution,
+            "video_uploads_limit": self.video_uploads_limit,
+            
+            # Support
+            "support_level": self.support_level,
+            "includes_early_access": self.includes_early_access,
+            
+            # Timestamps
+            "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
 
@@ -2032,7 +2181,7 @@ class Subscription(db.Model):
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    plan_id = db.Column(db.Integer, db.ForeignKey('pricing_plan.id'), nullable=False)  # Links to PricingPlan
+    plan_id = db.Column(db.Integer, db.ForeignKey('pricing_plans.id'), nullable=False)  # Links to PricingPlan
     stripe_subscription_id = db.Column(db.String(255), unique=True, nullable=True)
     stripe_checkout_session_id = db.Column(db.String(255), unique=True, nullable=True)
     start_date = db.Column(db.DateTime, default=datetime.utcnow)

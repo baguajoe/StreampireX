@@ -1,6 +1,7 @@
 // =============================================================================
-// PricingPage.jsx - Complete 3-Tier + Distribution Plans
+// PricingPlans.js - Complete 4-Tier + Distribution Plans
 // =============================================================================
+// Tiers: Free → Starter ($9.99) → Creator ($19.99) → Pro ($29.99)
 // Includes: Gaming Features, Artist Distribution, Label Distribution
 // =============================================================================
 
@@ -9,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { Context } from '../store/appContext';
 import '../../styles/PricingPlans.css';
 
-const PricingPage = () => {
+const PricingPlans = () => {
   const { store } = useContext(Context);
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [showComparison, setShowComparison] = useState(false);
@@ -18,11 +19,14 @@ const PricingPage = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Creator Plan Pricing
+  // ==========================================================================
+  // PRICING CONFIGURATION - 4 TIERS
+  // ==========================================================================
   const pricing = {
     free: { monthly: 0, yearly: 0 },
-    basic: { monthly: 12.99, yearly: 129.99 },
-    premium: { monthly: 29.99, yearly: 299.99 },
+    starter: { monthly: 9.99, yearly: 99.99 },
+    creator: { monthly: 19.99, yearly: 199.99 },
+    pro: { monthly: 29.99, yearly: 299.99 },
   };
 
   // Distribution Plan Pricing (yearly only)
@@ -31,7 +35,9 @@ const PricingPage = () => {
     label: 74.99,
   };
 
-  // Fetch current plan on mount
+  // ==========================================================================
+  // FETCH CURRENT PLAN
+  // ==========================================================================
   useEffect(() => {
     const fetchCurrentPlan = async () => {
       try {
@@ -60,6 +66,9 @@ const PricingPage = () => {
     fetchCurrentPlan();
   }, []);
 
+  // ==========================================================================
+  // HELPER FUNCTIONS
+  // ==========================================================================
   const getPrice = (tier) => {
     return pricing[tier][billingCycle];
   };
@@ -80,6 +89,9 @@ const PricingPage = () => {
     return currentPlan?.toLowerCase() === tier.toLowerCase();
   };
 
+  // ==========================================================================
+  // SUBSCRIPTION HANDLER
+  // ==========================================================================
   const handleSelectPlan = async (tier, isDistribution = false) => {
     if (!store.user) {
       navigate('/signup');
@@ -99,13 +111,17 @@ const PricingPage = () => {
       setProcessing(tier);
       const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
       
-      // Map distribution plan IDs
-      let planId = tier;
-      if (tier === 'artist-distribution') {
-        planId = 'standalone-artist';
-      } else if (tier === 'label-distribution') {
-        planId = 'standalone-label';
-      }
+      // Map tier names to database plan names (capitalized)
+      const planNameMap = {
+        'free': 'Free',
+        'starter': 'Starter',
+        'creator': 'Creator',
+        'pro': 'Pro',
+        'artist-distribution': 'standalone-artist',
+        'label-distribution': 'standalone-label'
+      };
+      
+      let planId = planNameMap[tier] || tier;
       
       const response = await fetch(`${backendUrl}/api/subscriptions/subscribe`, {
         method: 'POST',
@@ -137,6 +153,9 @@ const PricingPage = () => {
     }
   };
 
+  // ==========================================================================
+  // LOADING STATE
+  // ==========================================================================
   if (loading) {
     return (
       <div className="pricing-page">
@@ -148,9 +167,15 @@ const PricingPage = () => {
     );
   }
 
+  // ==========================================================================
+  // RENDER
+  // ==========================================================================
   return (
     <div className="pricing-page">
-      {/* Header */}
+      
+      {/* ================================================================== */}
+      {/* HEADER SECTION */}
+      {/* ================================================================== */}
       <div className="pricing-header">
         <h1>Simple, Transparent Pricing</h1>
         <p>Everything you need to create, stream, game, and grow. No hidden fees.</p>
@@ -178,7 +203,9 @@ const PricingPage = () => {
         )}
       </div>
 
-      {/* Value Proposition Banner */}
+      {/* ================================================================== */}
+      {/* VALUE PROPOSITION BANNER */}
+      {/* ================================================================== */}
       <div className="value-banner">
         <h2>🎬 The All-in-One Creator Platform</h2>
         <p>Replace 15+ tools with one platform. Video editing, streaming, gaming, music distribution, and more.</p>
@@ -198,14 +225,18 @@ const PricingPage = () => {
         </div>
       </div>
 
-      {/* ==================== CREATOR PLANS ==================== */}
+      {/* ================================================================== */}
+      {/* CREATOR PLANS - 4 TIERS */}
+      {/* ================================================================== */}
       <div className="pricing-section">
         <h2 className="section-title">🎨 Creator Plans</h2>
         <p className="section-subtitle">Full access to video editing, streaming, gaming, and monetization</p>
         
-        <div className="pricing-cards">
+        <div className="pricing-cards four-tier">
           
-          {/* ==================== FREE TIER ==================== */}
+          {/* ============================================================ */}
+          {/* FREE TIER - $0 */}
+          {/* ============================================================ */}
           <div className={`pricing-card free ${isCurrentPlan('free') ? 'current' : ''}`}>
             {isCurrentPlan('free') && <div className="current-badge">Current Plan</div>}
             
@@ -216,7 +247,7 @@ const PricingPage = () => {
             
             <div className="card-price">
               <span className="price">$0</span>
-              <span className="period">forever</span>
+              <span className="period">/forever</span>
             </div>
 
             <ul className="features-list">
@@ -286,22 +317,24 @@ const PricingPage = () => {
             </button>
           </div>
 
-          {/* ==================== BASIC TIER ==================== */}
-          <div className={`pricing-card basic ${isCurrentPlan('basic') ? 'current' : ''}`}>
-            {isCurrentPlan('basic') && <div className="current-badge">Current Plan</div>}
+          {/* ============================================================ */}
+          {/* STARTER TIER - $9.99 */}
+          {/* ============================================================ */}
+          <div className={`pricing-card starter ${isCurrentPlan('starter') ? 'current' : ''}`}>
+            {isCurrentPlan('starter') && <div className="current-badge">Current Plan</div>}
             
             <div className="card-header">
-              <h2>Basic</h2>
+              <h2>Starter</h2>
               <p className="card-subtitle">For growing creators</p>
             </div>
             
             <div className="card-price">
-              <span className="price">${getMonthlyEquivalent('basic')}</span>
+              <span className="price">${getMonthlyEquivalent('starter')}</span>
               <span className="period">/month</span>
               {billingCycle === 'yearly' && (
                 <>
-                  <span className="billed-yearly">Billed ${getPrice('basic')}/year</span>
-                  <span className="yearly-savings">Save ${getYearlySavings('basic')}</span>
+                  <span className="billed-yearly">Billed ${getPrice('starter')}/year</span>
+                  <span className="yearly-savings">Save ${getYearlySavings('starter')}</span>
                 </>
               )}
             </div>
@@ -315,11 +348,11 @@ const PricingPage = () => {
               {/* Video Editing */}
               <li className="feature included">
                 <span className="icon">🎬</span>
-                <span><strong>4K export, no watermark!</strong></span>
+                <span><strong>1080p export, no watermark!</strong></span>
               </li>
               <li className="feature included">
                 <span className="icon">✓</span>
-                <span>25 projects, 8 tracks, 60 min exports</span>
+                <span>15 projects, 8 tracks, 60 min exports</span>
               </li>
               <li className="feature included">
                 <span className="icon">✓</span>
@@ -335,7 +368,7 @@ const PricingPage = () => {
               {/* Streaming */}
               <li className="feature included highlight">
                 <span className="icon">📺</span>
-                <span><strong>Live Streaming</strong> (4 hrs, 1080p)</span>
+                <span><strong>Live Streaming</strong> (4 hrs, 720p)</span>
               </li>
               
               {/* Cross-posting */}
@@ -344,10 +377,20 @@ const PricingPage = () => {
                 <span>Cross-post to 3 platforms (5/day)</span>
               </li>
               
+              {/* Podcasts & Radio */}
+              <li className="feature included">
+                <span className="icon">🎙️</span>
+                <span>Podcast hosting (5 episodes)</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">📻</span>
+                <span>1 Radio station</span>
+              </li>
+              
               {/* Gaming */}
               <li className="feature included highlight">
                 <span className="icon">🎮</span>
-                <span><strong>Team Rooms</strong></span>
+                <span><strong>Team Rooms</strong> (3 rooms)</span>
               </li>
               <li className="feature included">
                 <span className="icon">✓</span>
@@ -362,35 +405,37 @@ const PricingPage = () => {
             </ul>
 
             <button 
-              className="select-plan-btn"
-              onClick={() => handleSelectPlan('basic')}
-              disabled={processing === 'basic' || isCurrentPlan('basic')}
+              className="select-plan-btn starter-btn"
+              onClick={() => handleSelectPlan('starter')}
+              disabled={processing === 'starter' || isCurrentPlan('starter')}
             >
-              {processing === 'basic' ? (
+              {processing === 'starter' ? (
                 <span className="btn-loading">
                   <span className="spinner"></span> Processing...
                 </span>
-              ) : isCurrentPlan('basic') ? '✅ Current Plan' : 'Start Basic'}
+              ) : isCurrentPlan('starter') ? '✅ Current Plan' : 'Start Creating'}
             </button>
           </div>
 
-          {/* ==================== PREMIUM TIER ==================== */}
-          <div className={`pricing-card premium popular ${isCurrentPlan('premium') ? 'current' : ''}`}>
+          {/* ============================================================ */}
+          {/* CREATOR TIER - $19.99 (MOST POPULAR) */}
+          {/* ============================================================ */}
+          <div className={`pricing-card creator popular ${isCurrentPlan('creator') ? 'current' : ''}`}>
             <div className="popular-badge">🔥 Most Popular</div>
-            {isCurrentPlan('premium') && <div className="current-badge">Current Plan</div>}
+            {isCurrentPlan('creator') && <div className="current-badge">Current Plan</div>}
             
             <div className="card-header">
-              <h2>Premium</h2>
+              <h2>Creator</h2>
               <p className="card-subtitle">For serious creators</p>
             </div>
             
             <div className="card-price">
-              <span className="price">${getMonthlyEquivalent('premium')}</span>
+              <span className="price">${getMonthlyEquivalent('creator')}</span>
               <span className="period">/month</span>
               {billingCycle === 'yearly' && (
                 <>
-                  <span className="billed-yearly">Billed ${getPrice('premium')}/year</span>
-                  <span className="yearly-savings">Save ${getYearlySavings('premium')}</span>
+                  <span className="billed-yearly">Billed ${getPrice('creator')}/year</span>
+                  <span className="yearly-savings">Save ${getYearlySavings('creator')}</span>
                 </>
               )}
             </div>
@@ -398,21 +443,21 @@ const PricingPage = () => {
             <ul className="features-list">
               <li className="feature included highlight">
                 <span className="icon">⬆️</span>
-                <span><strong>Everything in Basic, plus:</strong></span>
+                <span><strong>Everything in Starter, plus:</strong></span>
               </li>
               
               {/* Video Editing */}
               <li className="feature included">
                 <span className="icon">🎬</span>
-                <span><strong>Unlimited</strong> projects & exports</span>
+                <span><strong>4K export</strong>, unlimited projects</span>
               </li>
               <li className="feature included">
                 <span className="icon">✓</span>
-                <span>24 tracks, 150GB storage</span>
+                <span>24 tracks, 100GB storage</span>
               </li>
               <li className="feature included">
                 <span className="icon">✓</span>
-                <span>Collaborate with 5 people</span>
+                <span>Collaborate with 8 people</span>
               </li>
               
               {/* Clips */}
@@ -428,13 +473,23 @@ const PricingPage = () => {
               </li>
               <li className="feature included">
                 <span className="icon">✓</span>
-                <span>Simulcast to 5 destinations</span>
+                <span>1,000 concurrent viewers</span>
               </li>
               
               {/* Cross-posting */}
               <li className="feature included">
                 <span className="icon">🔗</span>
-                <span>Cross-post to <strong>ALL 7 platforms</strong></span>
+                <span>Cross-post to <strong>8 platforms</strong> (10/day)</span>
+              </li>
+              
+              {/* Podcasts & Radio */}
+              <li className="feature included">
+                <span className="icon">🎙️</span>
+                <span><strong>Unlimited</strong> podcast episodes</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">📻</span>
+                <span>3 Radio stations + Auto-DJ</span>
               </li>
               
               {/* Gaming */}
@@ -442,43 +497,149 @@ const PricingPage = () => {
                 <span className="icon">🎮</span>
                 <span><strong>Game Streaming & Monetization</strong></span>
               </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>10 Team Rooms</span>
+              </li>
               
-              {/* Music Distribution */}
+              {/* Analytics */}
+              <li className="feature included">
+                <span className="icon">📊</span>
+                <span>Advanced Analytics Dashboard</span>
+              </li>
+            </ul>
+
+            <button 
+              className="select-plan-btn creator-btn"
+              onClick={() => handleSelectPlan('creator')}
+              disabled={processing === 'creator' || isCurrentPlan('creator')}
+            >
+              {processing === 'creator' ? (
+                <span className="btn-loading">
+                  <span className="spinner"></span> Processing...
+                </span>
+              ) : isCurrentPlan('creator') ? '✅ Current Plan' : 'Go Creator'}
+            </button>
+          </div>
+
+          {/* ============================================================ */}
+          {/* PRO TIER - $29.99 */}
+          {/* ============================================================ */}
+          <div className={`pricing-card pro ${isCurrentPlan('pro') ? 'current' : ''}`}>
+            {isCurrentPlan('pro') && <div className="current-badge">Current Plan</div>}
+            
+            <div className="card-header">
+              <h2>Pro</h2>
+              <p className="card-subtitle">The ultimate creator suite</p>
+            </div>
+            
+            <div className="card-price">
+              <span className="price">${getMonthlyEquivalent('pro')}</span>
+              <span className="period">/month</span>
+              {billingCycle === 'yearly' && (
+                <>
+                  <span className="billed-yearly">Billed ${getPrice('pro')}/year</span>
+                  <span className="yearly-savings">Save ${getYearlySavings('pro')}</span>
+                </>
+              )}
+            </div>
+
+            <ul className="features-list">
+              <li className="feature included highlight">
+                <span className="icon">⬆️</span>
+                <span><strong>Everything in Creator, plus:</strong></span>
+              </li>
+              
+              {/* Video Editing */}
+              <li className="feature included">
+                <span className="icon">🎬</span>
+                <span><strong>8K export</strong>, 50 tracks</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span><strong>Unlimited</strong> storage</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>Team collaboration (unlimited)</span>
+              </li>
+              
+              {/* Streaming */}
+              <li className="feature included highlight">
+                <span className="icon">📺</span>
+                <span><strong>Unlimited</strong> viewers & duration</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>Simulcast to 5 destinations</span>
+              </li>
+              
+              {/* Cross-posting */}
+              <li className="feature included">
+                <span className="icon">🔗</span>
+                <span>Cross-post to <strong>ALL platforms</strong> (unlimited)</span>
+              </li>
+              
+              {/* Radio */}
+              <li className="feature included">
+                <span className="icon">📻</span>
+                <span><strong>Unlimited</strong> Radio stations</span>
+              </li>
+              
+              {/* Gaming */}
+              <li className="feature included highlight">
+                <span className="icon">🎮</span>
+                <span><strong>Cloud Gaming</strong> + Unlimited Team Rooms</span>
+              </li>
+              
+              {/* Music Distribution - PRO EXCLUSIVE */}
               <li className="feature included special">
                 <span className="icon">🎵</span>
                 <span><strong>Music Distribution</strong> (90% royalties)</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">💰</span>
+                <span>Performance royalty collection</span>
               </li>
               
               {/* Support */}
               <li className="feature included">
                 <span className="icon">⚡</span>
-                <span>Priority export queue & support</span>
+                <span>Priority export queue & 24/7 support</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">🌟</span>
+                <span>Early access to new features</span>
               </li>
             </ul>
 
             <button 
-              className="select-plan-btn primary"
-              onClick={() => handleSelectPlan('premium')}
-              disabled={processing === 'premium' || isCurrentPlan('premium')}
+              className="select-plan-btn pro-btn"
+              onClick={() => handleSelectPlan('pro')}
+              disabled={processing === 'pro' || isCurrentPlan('pro')}
             >
-              {processing === 'premium' ? (
+              {processing === 'pro' ? (
                 <span className="btn-loading">
                   <span className="spinner"></span> Processing...
                 </span>
-              ) : isCurrentPlan('premium') ? '✅ Current Plan' : 'Go Premium'}
+              ) : isCurrentPlan('pro') ? '✅ Current Plan' : 'Go Pro'}
             </button>
           </div>
         </div>
       </div>
 
-      {/* ==================== MUSIC DISTRIBUTION PLANS ==================== */}
+      {/* ================================================================== */}
+      {/* MUSIC DISTRIBUTION PLANS */}
+      {/* ================================================================== */}
       <div className="pricing-section distribution-section">
         <h2 className="section-title">🎵 Music Distribution Plans</h2>
         <p className="section-subtitle">Distribute your music globally to 150+ platforms. Annual billing only.</p>
         
         <div className="distribution-cards">
           
-          {/* Artist Distribution */}
+          {/* ============================================================ */}
+          {/* ARTIST DISTRIBUTION */}
+          {/* ============================================================ */}
           <div className={`pricing-card distribution artist ${isCurrentPlan('artist-distribution') ? 'current' : ''}`}>
             {isCurrentPlan('artist-distribution') && <div className="current-badge">Current Plan</div>}
             
@@ -542,7 +703,9 @@ const PricingPage = () => {
             </button>
           </div>
 
-          {/* Label Distribution */}
+          {/* ============================================================ */}
+          {/* LABEL DISTRIBUTION */}
+          {/* ============================================================ */}
           <div className={`pricing-card distribution label ${isCurrentPlan('label-distribution') ? 'current' : ''}`}>
             <div className="label-badge">🏆 For Labels</div>
             {isCurrentPlan('label-distribution') && <div className="current-badge">Current Plan</div>}
@@ -609,11 +772,13 @@ const PricingPage = () => {
         </div>
         
         <div className="distribution-note">
-          <p>💡 <strong>Premium creators</strong> already have music distribution included! These standalone plans are for users who only need distribution.</p>
+          <p>💡 <strong>Pro creators</strong> already have music distribution included! These standalone plans are for users who only need distribution.</p>
         </div>
       </div>
 
-      {/* Creator Earnings Highlight */}
+      {/* ================================================================== */}
+      {/* CREATOR EARNINGS HIGHLIGHT */}
+      {/* ================================================================== */}
       <div className="earnings-highlight">
         <h3>💰 Keep 90% of Your Earnings</h3>
         <p>Unlike other platforms that take 30-50%, StreamPireX lets you keep 90% of tips, subscriptions, and music royalties.</p>
@@ -633,7 +798,9 @@ const PricingPage = () => {
         </div>
       </div>
 
-      {/* Comparison Toggle */}
+      {/* ================================================================== */}
+      {/* COMPARISON TABLE TOGGLE */}
+      {/* ================================================================== */}
       <div className="comparison-toggle">
         <button onClick={() => setShowComparison(!showComparison)}>
           {showComparison ? 'Hide' : 'Show'} Full Feature Comparison
@@ -641,7 +808,9 @@ const PricingPage = () => {
         </button>
       </div>
 
-      {/* Feature Comparison Table */}
+      {/* ================================================================== */}
+      {/* FEATURE COMPARISON TABLE - 4 TIERS */}
+      {/* ================================================================== */}
       {showComparison && (
         <div className="comparison-table-wrapper">
           <table className="comparison-table">
@@ -649,224 +818,307 @@ const PricingPage = () => {
               <tr>
                 <th>Feature</th>
                 <th>Free</th>
-                <th>Basic</th>
-                <th className="highlight">Premium</th>
+                <th>Starter</th>
+                <th className="highlight">Creator</th>
+                <th>Pro</th>
               </tr>
             </thead>
             <tbody>
               {/* Pricing */}
               <tr className="category-header">
-                <td colSpan="4">💳 Pricing</td>
+                <td colSpan="5">💳 Pricing</td>
               </tr>
               <tr>
                 <td>Monthly Price</td>
                 <td>$0</td>
-                <td>$12.99</td>
-                <td className="highlight">$29.99</td>
+                <td>$9.99</td>
+                <td className="highlight">$19.99</td>
+                <td>$29.99</td>
               </tr>
               <tr>
                 <td>Yearly Price</td>
                 <td>$0</td>
-                <td>$129.99</td>
-                <td className="highlight">$299.99</td>
+                <td>$99.99</td>
+                <td className="highlight">$199.99</td>
+                <td>$299.99</td>
               </tr>
 
               {/* Video Editing */}
               <tr className="category-header">
-                <td colSpan="4">🎬 Video Editing</td>
+                <td colSpan="5">🎬 Video Editing</td>
               </tr>
               <tr>
                 <td>All Tools & Effects</td>
                 <td>✓</td>
                 <td>✓</td>
                 <td className="highlight">✓</td>
+                <td>✓</td>
               </tr>
               <tr>
                 <td>Max Export Quality</td>
                 <td>1080p</td>
-                <td>4K</td>
+                <td>1080p</td>
                 <td className="highlight">4K</td>
+                <td>8K</td>
               </tr>
               <tr>
                 <td>Watermark</td>
                 <td>Yes</td>
                 <td>No</td>
                 <td className="highlight">No</td>
+                <td>No</td>
               </tr>
               <tr>
                 <td>Projects / Tracks</td>
                 <td>5 / 4</td>
-                <td>25 / 8</td>
+                <td>15 / 8</td>
                 <td className="highlight">∞ / 24</td>
+                <td>∞ / 50</td>
               </tr>
               <tr>
                 <td>Storage</td>
                 <td>5GB</td>
                 <td>25GB</td>
-                <td className="highlight">150GB</td>
+                <td className="highlight">100GB</td>
+                <td>Unlimited</td>
               </tr>
               <tr>
                 <td>Max Export Length</td>
                 <td>10 min</td>
                 <td>60 min</td>
                 <td className="highlight">Unlimited</td>
+                <td>Unlimited</td>
               </tr>
               <tr>
                 <td>Collaboration</td>
                 <td>✗</td>
                 <td>✗</td>
-                <td className="highlight">5 people</td>
+                <td className="highlight">8 people</td>
+                <td>Unlimited</td>
               </tr>
 
               {/* Clips */}
               <tr className="category-header">
-                <td colSpan="4">📱 Clips</td>
+                <td colSpan="5">📱 Clips</td>
               </tr>
               <tr>
                 <td>Clips Per Day</td>
                 <td>3</td>
                 <td>20</td>
                 <td className="highlight">Unlimited</td>
+                <td>Unlimited</td>
               </tr>
               <tr>
                 <td>Max Clip Duration</td>
                 <td>60 sec</td>
                 <td>3 min</td>
                 <td className="highlight">10 min</td>
+                <td>Unlimited</td>
               </tr>
               <tr>
                 <td>Premium Music</td>
                 <td>✗</td>
                 <td>✓</td>
                 <td className="highlight">✓</td>
+                <td>✓</td>
               </tr>
 
               {/* Streaming */}
               <tr className="category-header">
-                <td colSpan="4">📺 Live Streaming</td>
+                <td colSpan="5">📺 Live Streaming</td>
               </tr>
               <tr>
                 <td>Live Streaming</td>
                 <td>✗</td>
-                <td>✓</td>
-                <td className="highlight">✓</td>
-              </tr>
-              <tr>
-                <td>Max Quality</td>
-                <td>—</td>
-                <td>1080p</td>
+                <td>720p</td>
                 <td className="highlight">4K</td>
+                <td>4K</td>
               </tr>
               <tr>
                 <td>Max Duration</td>
                 <td>—</td>
                 <td>4 hours</td>
                 <td className="highlight">12 hours</td>
+                <td>Unlimited</td>
+              </tr>
+              <tr>
+                <td>Max Viewers</td>
+                <td>—</td>
+                <td>100</td>
+                <td className="highlight">1,000</td>
+                <td>Unlimited</td>
               </tr>
               <tr>
                 <td>Simulcast</td>
                 <td>✗</td>
                 <td>✗</td>
-                <td className="highlight">5 destinations</td>
+                <td className="highlight">✗</td>
+                <td>5 destinations</td>
+              </tr>
+
+              {/* Podcasts & Radio */}
+              <tr className="category-header">
+                <td colSpan="5">🎙️ Podcasts & Radio</td>
+              </tr>
+              <tr>
+                <td>Podcast Episodes</td>
+                <td>✗</td>
+                <td>5</td>
+                <td className="highlight">Unlimited</td>
+                <td>Unlimited</td>
+              </tr>
+              <tr>
+                <td>Radio Stations</td>
+                <td>✗</td>
+                <td>1</td>
+                <td className="highlight">3</td>
+                <td>Unlimited</td>
+              </tr>
+              <tr>
+                <td>Auto-DJ</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td className="highlight">✓</td>
+                <td>✓</td>
               </tr>
 
               {/* Gaming */}
               <tr className="category-header">
-                <td colSpan="4">🎮 Gaming Features</td>
+                <td colSpan="5">🎮 Gaming Features</td>
               </tr>
               <tr>
                 <td>Gaming Community</td>
                 <td>✓</td>
                 <td>✓</td>
                 <td className="highlight">✓</td>
+                <td>✓</td>
               </tr>
               <tr>
                 <td>Squad Finder</td>
                 <td>✓</td>
                 <td>✓</td>
                 <td className="highlight">✓</td>
+                <td>✓</td>
               </tr>
               <tr>
                 <td>Team Rooms</td>
-                <td>✗</td>
-                <td>✓</td>
-                <td className="highlight">✓</td>
+                <td>1</td>
+                <td>3</td>
+                <td className="highlight">10</td>
+                <td>Unlimited</td>
               </tr>
               <tr>
                 <td>Gaming Analytics</td>
                 <td>✗</td>
                 <td>✓</td>
                 <td className="highlight">✓</td>
+                <td>✓</td>
               </tr>
               <tr>
                 <td>Game Streaming</td>
                 <td>✗</td>
                 <td>✗</td>
                 <td className="highlight">✓</td>
+                <td>✓ + Cloud</td>
               </tr>
               <tr>
                 <td>Gaming Monetization</td>
                 <td>✗</td>
                 <td>✗</td>
                 <td className="highlight">✓</td>
+                <td>✓</td>
               </tr>
 
               {/* Cross-Posting */}
               <tr className="category-header">
-                <td colSpan="4">🔗 Cross-Posting</td>
+                <td colSpan="5">🔗 Cross-Posting</td>
               </tr>
               <tr>
                 <td>Platforms</td>
                 <td>YouTube</td>
                 <td>3 platforms</td>
-                <td className="highlight">All 7</td>
+                <td className="highlight">8 platforms</td>
+                <td>All platforms</td>
               </tr>
               <tr>
                 <td>Posts Per Day</td>
                 <td>1</td>
                 <td>5</td>
-                <td className="highlight">Unlimited</td>
+                <td className="highlight">10</td>
+                <td>Unlimited</td>
               </tr>
 
               {/* Music Distribution */}
               <tr className="category-header">
-                <td colSpan="4">🎵 Music Distribution</td>
+                <td colSpan="5">🎵 Music Distribution</td>
               </tr>
               <tr>
                 <td>Distribute to Spotify, Apple, etc.</td>
                 <td>✗</td>
                 <td>✗</td>
-                <td className="highlight">✓ (Included!)</td>
+                <td className="highlight">✗</td>
+                <td>✓ (Included!)</td>
               </tr>
               <tr>
                 <td>Royalty Rate</td>
                 <td>—</td>
                 <td>—</td>
-                <td className="highlight">90%</td>
+                <td className="highlight">—</td>
+                <td>90%</td>
               </tr>
 
               {/* Monetization */}
               <tr className="category-header">
-                <td colSpan="4">💰 Monetization</td>
+                <td colSpan="5">💰 Monetization</td>
               </tr>
               <tr>
                 <td>Receive Tips</td>
                 <td>✓</td>
                 <td>✓</td>
                 <td className="highlight">✓</td>
+                <td>✓</td>
               </tr>
               <tr>
                 <td>Earnings Rate</td>
                 <td>90%</td>
                 <td>90%</td>
                 <td className="highlight">90%</td>
+                <td>90%</td>
+              </tr>
+
+              {/* Support */}
+              <tr className="category-header">
+                <td colSpan="5">⚡ Support & Extras</td>
+              </tr>
+              <tr>
+                <td>Support Level</td>
+                <td>Community</td>
+                <td>Email</td>
+                <td className="highlight">Priority</td>
+                <td>24/7 Priority</td>
+              </tr>
+              <tr>
+                <td>Export Priority</td>
+                <td>Standard</td>
+                <td>Standard</td>
+                <td className="highlight">Fast</td>
+                <td>Priority Queue</td>
+              </tr>
+              <tr>
+                <td>Early Access</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td className="highlight">✗</td>
+                <td>✓</td>
               </tr>
             </tbody>
           </table>
         </div>
       )}
 
-      {/* FAQ Section */}
+      {/* ================================================================== */}
+      {/* FAQ SECTION */}
+      {/* ================================================================== */}
       <div className="pricing-faq">
         <h2>❓ Frequently Asked Questions</h2>
         
@@ -882,8 +1134,8 @@ const PricingPage = () => {
           </div>
           
           <div className="faq-item">
-            <h3>Do I need a distribution plan if I'm Premium?</h3>
-            <p>No! Premium already includes full music distribution. The Artist/Label plans are for users who only need distribution without other creator features.</p>
+            <h3>Do I need a distribution plan if I'm Pro?</h3>
+            <p>No! Pro already includes full music distribution. The Artist/Label plans are for users who only need distribution without other creator features.</p>
           </div>
           
           <div className="faq-item">
@@ -900,10 +1152,22 @@ const PricingPage = () => {
             <h3>Can I cancel anytime?</h3>
             <p>Yes, cancel anytime with no fees. Keep access until the end of your billing period.</p>
           </div>
+          
+          <div className="faq-item">
+            <h3>What happens to my content if I downgrade?</h3>
+            <p>Your content stays safe! You just won't be able to upload more until you're within your new plan's limits.</p>
+          </div>
+          
+          <div className="faq-item">
+            <h3>Is there a free trial?</h3>
+            <p>Starter has a 7-day trial, Creator has 14 days, and Pro has a full 30-day trial. Cancel anytime during the trial.</p>
+          </div>
         </div>
       </div>
 
-      {/* CTA Section */}
+      {/* ================================================================== */}
+      {/* CTA SECTION */}
+      {/* ================================================================== */}
       <div className="pricing-cta">
         <h2>Ready to create?</h2>
         <p>Join thousands of creators building their audience on StreamPireX</p>
@@ -918,4 +1182,4 @@ const PricingPage = () => {
   );
 };
 
-export default PricingPage;
+export default PricingPlans;

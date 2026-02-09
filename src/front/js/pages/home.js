@@ -1,102 +1,209 @@
 import React, { useContext } from "react";
 import { Context } from "../store/appContext";
 import { Link } from 'react-router-dom';
+import "../../styles/home.css";
 
 const Home = () => {
-	// Use actual context instead of mock
 	const { store } = useContext(Context);
-	const user = store.user; // Get user from context
+	const user = store.user;
 
 	return (
 		<div className="streampirex-home">
+			{/* Hero Section */}
 			<header className="hero">
 				<div className="hero-content">
-					<h1>🔥 Welcome to StreampireX</h1>
-					<p>The ultimate creator platform for music distribution, streaming, podcasts, radio, gaming communities, and social monetization.</p>
+					<h1>🔥 Welcome to StreamPireX</h1>
+					<p>The all-in-one creator platform replacing 15+ tools. Music distribution, video editing, live streaming, podcasts, gaming communities, and monetization — all in one place.</p>
 
-					{/* Conditional rendering for CTA buttons */}
 					{!user ? (
-						// Show signup/login buttons when NOT logged in
 						<div className="cta-buttons">
-							<button onClick={() => window.location.href = '/signup'} className="btn btn-primary">Get Started</button>
-							<button onClick={() => window.location.href = '/login'} className="btn btn-outline-light">Log In</button>
+							<Link to="/signup" className="btn btn-primary">Get Started Free</Link>
+							<Link to="/login" className="btn btn-outline-light">Log In</Link>
 						</div>
 					) : (
-						// Show welcome message and dashboard link when logged in
 						<div className="cta-buttons">
-							<h3 style={{ color: '#00ffc8', marginBottom: '1rem' }}>
+							<h3 className="welcome-text">
 								Welcome back, {user.username || user.display_name}! 🎉
 							</h3>
-							<Link to="/creator-dashboard" className="btn btn-success">
-								Go to Dashboard
-							</Link>
-							<Link to="/profile" className="btn btn-outline-light">
-								My Profile
-							</Link>
+							<Link to="/creator-dashboard" className="btn btn-primary">Go to Dashboard</Link>
+							<Link to="/home-feed" className="btn btn-outline-light">View Feed</Link>
 						</div>
 					)}
 				</div>
+
+				<div className="hero-stats">
+					<div className="stat-item">
+						<span className="stat-number">150+</span>
+						<span className="stat-label">Distribution Platforms</span>
+					</div>
+					<div className="stat-item">
+						<span className="stat-number">90%</span>
+						<span className="stat-label">Creator Revenue Share</span>
+					</div>
+					<div className="stat-item">
+						<span className="stat-number">24/7</span>
+						<span className="stat-label">Radio Streaming</span>
+					</div>
+				</div>
+
 				<div className="hero-image-placeholder">🎸</div>
 			</header>
 
+			{/* Problem/Solution Section */}
+			<section className="problem-solution">
+				<div className="problem">
+					<h3>😫 The Creator Problem</h3>
+					<p>Juggling 15+ apps for distribution, editing, streaming, analytics, and payments. Losing 30-50% of earnings to platform fees. No ownership of your audience.</p>
+				</div>
+				<div className="solution">
+					<h3>✨ The StreamPireX Solution</h3>
+					<p>One platform for everything. Keep 90% of your earnings. Own your audience data. Professional tools without the professional price tag.</p>
+				</div>
+			</section>
+
+			{/* Core Features Grid - 20 Features in 5 Rows */}
 			<section className="features">
-				<h2>What You Can Do 🎯</h2>
+				<h2>🎯 Everything You Need to Create & Earn</h2>
+				<p className="section-subtitle">Professional creator tools, simplified</p>
+				
 				<div className="feature-grid">
-					<div className="feature-card">
-						<h4>🌍 Global Music Distribution</h4>
-						<p>Distribute your music to 150+ platforms including Spotify, Apple Music, Amazon Music, YouTube Music, and more worldwide.</p>
+					{/* Row 1: Content Creation */}
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎬</div>
+						<h4>Video Editor</h4>
+						<p>Professional video editing right in your browser. Trim, cut, merge, add effects, transitions, text overlays, and export in multiple formats.</p>
+						<span className="feature-tag">Built-in</span>
 					</div>
-					<div className="feature-card">
-						<h4>🎧 Stream Music</h4>
-						<p>Upload tracks, share albums, and build your fanbase with our built-in streaming platform.</p>
+					
+					<div className="feature-card highlight">
+						<div className="feature-icon">📱</div>
+						<h4>Vertical Stories</h4>
+						<p>Share 24-hour stories with your followers. Add music, captions, and choose comment modes. Instagram-style engagement, StreamPireX control.</p>
+						<span className="feature-tag new">NEW</span>
 					</div>
+					
 					<div className="feature-card">
-						<h4>🎙️ Launch Podcasts</h4>
-						<p>Host episodes, monetize content, and reach new audiences across podcast directories.</p>
+						<div className="feature-icon">🎥</div>
+						<h4>StreamClips</h4>
+						<p>Create permanent highlight clips from your content. Build a portfolio that attracts new followers and showcases your best work.</p>
 					</div>
+					
 					<div className="feature-card">
-						<h4>📻 24/7 Plamix Radio Streams</h4>
-						<p>Create your own radio station with continuous streaming, accept song submissions, and build a loyal listener base around the clock.</p>
+						<div className="feature-icon">🎧</div>
+						<h4>Music Studio</h4>
+						<p>Upload tracks, create albums, manage releases. Built-in audio processing and waveform visualization.</p>
 					</div>
-					<div className="feature-card">
-						<h4>🎮 Gaming Community Hub</h4>
-						<p>Connect with gamers, join squads, find teammates, stream gameplay, and discover crossplay-compatible games across all platforms.</p>
+
+					{/* Row 2: Distribution & Delivery */}
+					<div className="feature-card highlight">
+						<div className="feature-icon">🌍</div>
+						<h4>Global Distribution</h4>
+						<p>Get your music on Spotify, Apple Music, Amazon, YouTube Music, Tidal, and 150+ platforms worldwide.</p>
+						<span className="feature-tag">150+ Platforms</span>
 					</div>
-					<div className="feature-card">
-						<h4>📹 Live Video Chat</h4>
-						<p>Connect face-to-face with fans through built-in video chat on profiles. Real-time collaboration and direct fan interaction.</p>
+					
+					<div className="feature-card highlight">
+						<div className="feature-icon">⚡</div>
+						<h4>Fast Release Process</h4>
+						<p>Get your music live on major platforms in 24-48 hours with our streamlined upload system. No waiting weeks for approval.</p>
+						<span className="feature-tag">24-48 Hours</span>
 					</div>
+					
 					<div className="feature-card">
-						<h4>💰 Performance Rights & Royalties</h4>
-						<p>Collect performance royalties from radio, streaming, and live venues through registered performance rights organizations and digital collection services.</p>
+						<div className="feature-icon">🔴</div>
+						<h4>Live Streaming</h4>
+						<p>Go live with OBS integration, screen sharing, and real-time chat. Stream gameplay, performances, or connect with fans.</p>
 					</div>
+					
 					<div className="feature-card">
-						<h4>🛍️ Sell Products & Merch</h4>
-						<p>Create merchandise, sell digital goods, and get paid instantly with Stripe integration.</p>
+						<div className="feature-icon">📻</div>
+						<h4>24/7 Radio Stations</h4>
+						<p>Create always-on radio stations. Accept song submissions, build listener communities, and monetize your broadcasts.</p>
 					</div>
+
+					{/* Row 3: Audio & Gaming */}
 					<div className="feature-card">
-						<h4>📊 Advanced Analytics</h4>
-						<p>Monitor streams, revenue, demographics, gamer stats, and audience behavior across all platforms.</p>
+						<div className="feature-icon">🎙️</div>
+						<h4>Podcast Hosting</h4>
+						<p>Host episodes, distribute to directories, track analytics. Built-in recording tools and RSS feed generation.</p>
 					</div>
+					
 					<div className="feature-card">
-						<h4>⚡ Fast Release Process</h4>
-						<p>Get your music live on major platforms in 24-48 hours with our streamlined upload system.</p>
+						<div className="feature-icon">🎮</div>
+						<h4>Gaming Hub</h4>
+						<p>Squad finder, team rooms, voice chat, and screen sharing. Find teammates by game, skill level, and region.</p>
 					</div>
+					
 					<div className="feature-card">
-						<h4>🎥 Live Streaming & Gaming</h4>
-						<p>Stream your gameplay, host live shows, and share your screen with squad members in real-time.</p>
+						<div className="feature-icon">🖥️</div>
+						<h4>Screen Share & Recording</h4>
+						<p>Share your screen in real-time with squad members. Record sessions and save highlights automatically.</p>
 					</div>
+					
 					<div className="feature-card">
-						<h4>🤝 Squad Finder & Team Rooms</h4>
-						<p>Find gaming teammates by skill level, create private squad rooms, and coordinate with your gaming community.</p>
+						<div className="feature-icon">🎤</div>
+						<h4>Voice Chat Rooms</h4>
+						<p>Crystal-clear voice communication with your team. Push-to-talk, noise suppression, and private channels.</p>
+					</div>
+
+					{/* Row 4: Social & Community */}
+					<div className="feature-card">
+						<div className="feature-icon">📨</div>
+						<h4>Game Invites</h4>
+						<p>Send and receive game invites directly in the platform. Coordinate matches without leaving StreamPireX.</p>
+					</div>
+					
+					<div className="feature-card">
+						<div className="feature-icon">👥</div>
+						<h4>Social Network</h4>
+						<p>Follow creators, like content, comment, and share. Build your audience with familiar social features.</p>
+					</div>
+					
+					<div className="feature-card">
+						<div className="feature-icon">💬</div>
+						<h4>Direct Messaging</h4>
+						<p>Real-time chat with fans and collaborators. Group chats, media sharing, and message requests.</p>
+					</div>
+					
+					<div className="feature-card">
+						<div className="feature-icon">🔗</div>
+						<h4>Cross-Platform Sharing</h4>
+						<p>Share your StreamPireX content across all social networks. One-click posting to Instagram, Twitter, TikTok, and more.</p>
+					</div>
+
+					{/* Row 5: Monetization & Analytics */}
+					<div className="feature-card highlight">
+						<div className="feature-icon">💰</div>
+						<h4>Creator Marketplace</h4>
+						<p>Sell merch, digital products, beats, presets, and services. Integrated payments with 90% revenue share.</p>
+						<span className="feature-tag">90% Earnings</span>
+					</div>
+					
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎵</div>
+						<h4>Performance Royalties</h4>
+						<p>Collect royalties when your music is played on radio, streaming, TV, and live venues through registered PROs and digital collection services.</p>
+						<span className="feature-tag">PRO Collection</span>
+					</div>
+					
+					<div className="feature-card">
+						<div className="feature-icon">🛍️</div>
+						<h4>Sell Products & Merch</h4>
+						<p>Create merchandise, sell digital goods, and get paid instantly with Stripe integration. No inventory needed with print-on-demand.</p>
+					</div>
+					
+					<div className="feature-card">
+						<div className="feature-icon">📊</div>
+						<h4>Analytics Dashboard</h4>
+						<p>Track streams, revenue, demographics, and engagement across all your content in one unified dashboard.</p>
 					</div>
 				</div>
 			</section>
 
-			{/* Music Distribution Section - REDESIGNED */}
+			{/* Music Distribution Showcase */}
 			<section className="music-distribution">
 				<h2>🎵 Worldwide Music Distribution</h2>
-				<p>Get your music on 150+ major streaming platforms and digital stores worldwide</p>
+				<p>Get your music on 150+ platforms in 24-48 hours</p>
 
 				<div className="platforms-showcase">
 					<div className="platform-row streaming">
@@ -133,7 +240,6 @@ const Home = () => {
 							<span className="platform-badge">iHeartRadio</span>
 							<span className="platform-badge">SiriusXM</span>
 							<span className="platform-badge">Shazam</span>
-							<span className="platform-badge">Radio.com</span>
 							<span className="platform-badge">TuneIn</span>
 							<span className="platform-badge">Last.fm</span>
 							<span className="platform-badge">Musixmatch</span>
@@ -161,16 +267,58 @@ const Home = () => {
 						Start earning royalties from day one with our fast 24-48 hour distribution process
 					</p>
 					{!user && (
-						<button onClick={() => window.location.href = '/signup'} className="btn btn-primary btn-lg">
+						<Link to="/signup" className="btn btn-primary btn-lg">
 							Start Distributing Music
-						</button>
+						</Link>
 					)}
 				</div>
 			</section>
 
-			{/* Value Proposition Section */}
+			{/* Comparison Section */}
+			<section className="comparison">
+				<h2>💸 Stop Paying for 15 Different Tools</h2>
+				<p className="section-subtitle">StreamPireX replaces your entire creator toolkit</p>
+				
+				<div className="comparison-grid">
+					<div className="comparison-card old">
+						<h4>❌ Without StreamPireX</h4>
+						<ul>
+							<li>DistroKid/TuneCore — $20-50/year</li>
+							<li>Adobe Premiere — $23/month</li>
+							<li>Canva Pro — $13/month</li>
+							<li>Spotify for Artists — Free but limited</li>
+							<li>Discord Nitro — $10/month</li>
+							<li>Streamlabs — $19/month</li>
+							<li>Patreon — 8-12% cut</li>
+							<li>Linktree Pro — $6/month</li>
+							<li>Mailchimp — $13/month</li>
+							<li>Google Analytics — Complex setup</li>
+						</ul>
+						<div className="comparison-total">$200-500/month + 30-50% platform cuts</div>
+					</div>
+					
+					<div className="comparison-card new">
+						<h4>✅ With StreamPireX</h4>
+						<ul>
+							<li>✓ Music distribution to 150+ platforms</li>
+							<li>✓ Built-in video editor</li>
+							<li>✓ Stories & StreamClips</li>
+							<li>✓ Live streaming with OBS</li>
+							<li>✓ Gaming hub & voice chat</li>
+							<li>✓ Podcast hosting</li>
+							<li>✓ Creator marketplace</li>
+							<li>✓ Performance royalty collection</li>
+							<li>✓ Unified analytics</li>
+							<li>✓ 90% revenue share</li>
+						</ul>
+						<div className="comparison-total">Starting at $9.99/month — Keep 90%</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Why Choose StreamPireX Section */}
 			<section className="why-choose-streampirex">
-				<h2>🚀 Why Creators Choose StreamPipeX</h2>
+				<h2>🚀 Why Creators Choose StreamPireX</h2>
 				<p>The only platform designed for complete creator independence</p>
 				<div className="value-props-grid">
 					<div className="value-prop-card">
@@ -196,6 +344,7 @@ const Home = () => {
 				</div>
 			</section>
 
+			{/* Gaming & Social Features Section */}
 			<section className="gaming-social-features">
 				<div className="feature-container">
 					<div className="feature-section">
@@ -287,7 +436,7 @@ const Home = () => {
 								<span className="feature-icon">🔗</span>
 								<div>
 									<strong>Cross-Platform Sharing</strong>
-									<p>Share your StreamPipeX content across social networks</p>
+									<p>Share your StreamPireX content across social networks</p>
 								</div>
 							</div>
 							<div className="feature-item">
@@ -302,438 +451,67 @@ const Home = () => {
 				</div>
 			</section>
 
-			{/* Conditional rendering for bottom CTA - only show when NOT logged in */}
+			{/* Creator Types Section */}
+			<section className="creator-types">
+				<h2>🎨 Built for Every Creator</h2>
+				<div className="creator-grid">
+					<div className="creator-card">
+						<span className="creator-emoji">🎤</span>
+						<h4>Musicians</h4>
+						<p>Distribute worldwide, collect royalties, sell merch, go live</p>
+					</div>
+					<div className="creator-card">
+						<span className="creator-emoji">🎬</span>
+						<h4>Video Creators</h4>
+						<p>Edit, publish, monetize, and grow your audience</p>
+					</div>
+					<div className="creator-card">
+						<span className="creator-emoji">🎙️</span>
+						<h4>Podcasters</h4>
+						<p>Host, distribute, analyze, and monetize episodes</p>
+					</div>
+					<div className="creator-card">
+						<span className="creator-emoji">🎮</span>
+						<h4>Gamers</h4>
+						<p>Stream, find squads, voice chat, share gameplay</p>
+					</div>
+					<div className="creator-card">
+						<span className="creator-emoji">📻</span>
+						<h4>Radio DJs</h4>
+						<p>24/7 stations, song submissions, live mixing</p>
+					</div>
+					<div className="creator-card">
+						<span className="creator-emoji">💼</span>
+						<h4>Influencers</h4>
+						<p>Stories, social features, brand partnerships</p>
+					</div>
+				</div>
+			</section>
+
+			{/* Final CTA - only show when NOT logged in */}
 			{!user && (
-				<section className="join-now text-center">
-					<h2>Ready to Share Your Voice with the World?</h2>
-					<p>Create, distribute, game, and grow your creative career on StreampireX.</p>
-					<button onClick={() => window.location.href = '/signup'} className="btn btn-success btn-lg">Start Your Journey Today</button>
+				<section className="final-cta">
+					<h2>Ready to Own Your Creative Career?</h2>
+					<p>Join thousands of creators who've switched to StreamPireX</p>
+					<div className="cta-buttons">
+						<Link to="/signup" className="btn btn-primary btn-lg">Start Free Today</Link>
+						<Link to="/pricing" className="btn btn-outline-light btn-lg">View Pricing</Link>
+					</div>
+					<p className="cta-note">No credit card required • Free tier available • Cancel anytime</p>
 				</section>
 			)}
 
+			{/* Footer */}
 			<footer className="footer">
-				<p>© {new Date().getFullYear()} StreampireX. All rights reserved.</p>
+				<div className="footer-links">
+					<Link to="/pricing">Pricing</Link>
+					<Link to="/about">About</Link>
+					<Link to="/support">Support</Link>
+					<Link to="/terms">Terms</Link>
+					<Link to="/privacy">Privacy</Link>
+				</div>
+				<p>© {new Date().getFullYear()} StreamPireX by Eye Forge Studios LLC. All rights reserved.</p>
 			</footer>
-
-			<style jsx>{`
-				/* General layout */
-				.streampirex-home {
-					background: #0d1117;
-					color: #ffffff;
-					font-family: 'Segoe UI', sans-serif;
-					min-height: 100vh;
-					line-height: 1.6;
-				}
-
-				/* Hero Section */
-				.hero {
-					display: flex;
-					flex-direction: column;
-					align-items: center;
-					text-align: center;
-					padding: 4rem 2rem;
-					background: linear-gradient(145deg, #1f2937, #111827);
-					border-bottom: 2px solid #00ffc8;
-				}
-
-				.hero h1 {
-					font-size: 2.8rem;
-					color: #00ffc8;
-					font-weight: bold;
-				}
-
-				.hero p {
-					color: #d1d5db;
-					font-size: 1.2rem;
-					max-width: 700px;
-					margin: 1rem auto;
-				}
-
-				.hero-image-placeholder {
-					width: 270px;
-					height: 270px;
-					border-radius: 50%;
-					box-shadow: 0 0 25px #00ffc8;
-					margin-top: 2rem;
-					background: linear-gradient(145deg, #1f2937, #374151);
-					display: flex;
-					align-items: center;
-					justify-content: center;
-					font-size: 4rem;
-				}
-
-				/* Call to Action Buttons */
-				.cta-buttons button,
-				.cta-buttons a {
-					margin: 0.5rem;
-					font-size: 1.1rem;
-					padding: 0.75rem 1.5rem;
-					border: none;
-					border-radius: 8px;
-					cursor: pointer;
-					transition: all 0.3s ease;
-					text-decoration: none;
-					display: inline-block;
-				}
-
-				.btn-primary {
-					background: #00ffc8;
-					color: #0d1117;
-					font-weight: bold;
-				}
-
-				.btn-primary:hover {
-					background: #00e6b3;
-					transform: translateY(-2px);
-				}
-
-				.btn-outline-light {
-					background: transparent;
-					color: #ffffff;
-					border: 2px solid #ffffff !important;
-				}
-
-				.btn-outline-light:hover {
-					background: #ffffff;
-					color: #0d1117;
-					text-decoration: none;
-				}
-
-				.btn-success {
-					background: #10b981;
-					color: #ffffff;
-					font-weight: bold;
-				}
-
-				.btn-success:hover {
-					background: #059669;
-					transform: translateY(-2px);
-					text-decoration: none;
-				}
-
-				.btn-lg {
-					font-size: 1.3rem;
-					padding: 1rem 2rem;
-				}
-
-				/* Features Section */
-				.features {
-					padding: 4rem 2rem;
-					background: #161b22;
-				}
-
-				.features h2 {
-					text-align: center;
-					margin-bottom: 2.5rem;
-					color: #00ffc8;
-					font-size: 2rem;
-				}
-
-				.feature-grid {
-					display: grid;
-					grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-					gap: 1.5rem;
-					max-width: 1400px;
-					margin: 0 auto;
-				}
-
-				.feature-card {
-					background: #1f2937;
-					padding: 1.5rem;
-					border-radius: 12px;
-					box-shadow: 0 0 12px rgba(0, 255, 200, 0.1);
-					transition: transform 0.2s ease, box-shadow 0.2s ease;
-				}
-
-				.feature-card:hover {
-					transform: translateY(-5px);
-					box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
-				}
-
-				.feature-card h4 {
-					color: #00ffc8;
-					margin-bottom: 0.5rem;
-				}
-
-				/* Music Distribution Section - REDESIGNED */
-				.music-distribution {
-					padding: 4rem 2rem;
-					background: #0f172a;
-					text-align: center;
-				}
-
-				.music-distribution h2 {
-					color: #00ffc8;
-					font-size: 2rem;
-					margin-bottom: 1rem;
-				}
-
-				.music-distribution > p {
-					color: #d1d5db;
-					font-size: 1.1rem;
-					margin-bottom: 3rem;
-					max-width: 800px;
-					margin-left: auto;
-					margin-right: auto;
-				}
-
-				.platforms-showcase {
-					max-width: 1400px;
-					margin: 0 auto 3rem auto;
-					display: flex;
-					flex-direction: column;
-					gap: 2rem;
-				}
-
-				.platform-row {
-					background: #1f2937;
-					border-radius: 12px;
-					padding: 2rem;
-					box-shadow: 0 0 12px rgba(0, 255, 200, 0.1);
-				}
-
-				.platform-row h4 {
-					color: #00ffc8;
-					font-size: 1.2rem;
-					margin-bottom: 1.5rem;
-					text-align: left;
-				}
-
-				.platform-badges {
-					display: flex;
-					flex-wrap: wrap;
-					gap: 0.75rem;
-					justify-content: flex-start;
-				}
-
-				.platform-badge {
-					background: #374151;
-					color: #d1d5db;
-					padding: 0.5rem 1rem;
-					border-radius: 20px;
-					font-size: 0.9rem;
-					font-weight: 500;
-					transition: all 0.3s ease;
-					border: 1px solid #4b5563;
-				}
-
-				.platform-badge:hover {
-					background: #00ffc8;
-					color: #0d1117;
-					transform: translateY(-2px);
-					box-shadow: 0 4px 12px rgba(0, 255, 200, 0.3);
-				}
-
-				.distribution-cta {
-					text-align: center;
-					margin-top: 2rem;
-				}
-
-				/* Why Choose StreamPipeX Section */
-				.why-choose-streampirex {
-					padding: 4rem 2rem;
-					background: #161b22;
-					text-align: center;
-				}
-
-				.why-choose-streampirex h2 {
-					color: #00ffc8;
-					font-size: 2rem;
-					margin-bottom: 1rem;
-				}
-
-				.why-choose-streampirex > p {
-					color: #d1d5db;
-					font-size: 1.1rem;
-					margin-bottom: 3rem;
-					max-width: 700px;
-					margin-left: auto;
-					margin-right: auto;
-				}
-
-				.value-props-grid {
-					display: grid;
-					grid-template-columns: repeat(4, 1fr);  // FORCES 4 COLUMNS
-					gap: 2rem;
-					max-width: 1200px;
-					margin: 0 auto;
-				}
-
-				.value-prop-card {
-					background: #1f2937;
-					padding: 2rem;
-					border-radius: 12px;
-					box-shadow: 0 0 12px rgba(0, 255, 200, 0.1);
-					border-left: 4px solid #00ffc8;
-					transition: transform 0.3s ease, box-shadow 0.3s ease;
-				}
-
-				.value-prop-card:hover {
-					transform: translateY(-5px);
-					box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
-				}
-
-				.value-icon {
-					font-size: 2.5rem;
-					margin-bottom: 1rem;
-				}
-
-				.value-prop-card h4 {
-					color: #00ffc8;
-					margin-bottom: 1rem;
-					font-size: 1.2rem;
-				}
-
-				.value-prop-card p {
-					color: #d1d5db;
-					line-height: 1.6;
-				}
-
-				/* Gaming & Social Features Section */
-				.gaming-social-features {
-					padding: 4rem 2rem;
-					background: #111827;
-				}
-
-				.feature-container {
-					max-width: 1200px;
-					margin: 0 auto;
-					display: grid;
-					grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-					gap: 3rem;
-				}
-
-				.feature-section h3 {
-					color: #00ffc8;
-					font-size: 1.5rem;
-					margin-bottom: 1.5rem;
-					text-align: center;
-				}
-
-				.feature-list {
-					display: flex;
-					flex-direction: column;
-					gap: 1rem;
-				}
-
-				.feature-item {
-					display: flex;
-					align-items: flex-start;
-					gap: 1rem;
-					background: #1f2937;
-					padding: 1.2rem;
-					border-radius: 10px;
-					border-left: 4px solid #00ffc8;
-				}
-
-				.feature-icon {
-					font-size: 1.5rem;
-					flex-shrink: 0;
-				}
-
-				.feature-item strong {
-					color: #00ffc8;
-					display: block;
-					margin-bottom: 0.3rem;
-				}
-
-				.feature-item p {
-					color: #d1d5db;
-					margin: 0;
-					font-size: 0.9rem;
-				}
-
-				/* Join Now Section */
-				.join-now {
-					background: #0f172a;
-					padding: 4rem 2rem;
-					text-align: center;
-				}
-
-				.join-now h2 {
-					color: #00ffc8;
-					margin-bottom: 1rem;
-					font-size: 2rem;
-				}
-
-				.join-now p {
-					color: #d1d5db;
-					font-size: 1.1rem;
-					margin-bottom: 2rem;
-				}
-
-				/* Footer */
-				.footer {
-					text-align: center;
-					padding: 1rem;
-					background: #0d1117;
-					font-size: 0.9rem;
-					color: #6b7280;
-					border-top: 1px solid #1f2937;
-				}
-
-				/* Responsive Design */
-				@media (max-width: 768px) {
-					.hero {
-						padding: 2rem 1rem;
-					}
-					
-					.hero h1 {
-						font-size: 2.2rem;
-					}
-					
-					.hero-image-placeholder {
-						width: 200px;
-						height: 200px;
-						font-size: 3rem;
-					}
-					
-					.feature-grid {
-						grid-template-columns: 1fr;
-					}
-					
-					.platforms-showcase {
-						padding: 0 1rem;
-					}
-					
-					.platform-row {
-						padding: 1.5rem;
-					}
-					
-					.platform-row h4 {
-						text-align: center;
-						margin-bottom: 1rem;
-					}
-					
-					.platform-badges {
-						justify-content: center;
-						gap: 0.5rem;
-					}
-					
-					.platform-badge {
-						font-size: 0.8rem;
-						padding: 0.4rem 0.8rem;
-					}
-					
-					.value-props-grid {
-						grid-template-columns: 1fr;
-						gap: 1.5rem;
-						padding: 0 1rem;
-					}
-					
-					.value-prop-card {
-						padding: 1.5rem;
-					}
-					
-					.why-choose-streampirex h2 {
-						font-size: 1.8rem;
-					}
-
-					.feature-container {
-						grid-template-columns: 1fr;
-					}
-				}
-			`}</style>
 		</div>
 	);
 };
