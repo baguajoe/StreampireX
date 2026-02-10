@@ -2907,35 +2907,41 @@ class PodcastChapter(db.Model):
             "manual_edit": self.manual_edit
         }
 
-
-
+# =============================================================================
+# Notification Model - ADD THIS TO YOUR models.py
+# =============================================================================
 
 class Notification(db.Model):
-    __table_args__ = {'extend_existing': True}
+    __tablename__ = 'notifications'
+    
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)  # Who receives the notification
-    action_user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)  # Who triggered the notification
-    content_id = db.Column(db.Integer, nullable=False)  # Related to which content
-    content_type = db.Column(db.String(50), nullable=False)  # "podcast", "radio", "livestream"
-    message = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    is_read = db.Column(db.Boolean, default=False)
-
-    user = db.relationship("User", foreign_keys=[user_id], backref=db.backref("notifications", lazy=True))
-    action_user = db.relationship("User", foreign_keys=[action_user_id])
-
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    from_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    type = db.Column(db.String(50), nullable=False, index=True)
+    content = db.Column(db.String(500), nullable=True)
+    extra_data = db.Column(db.JSON, nullable=True)
+    is_read = db.Column(db.Boolean, default=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('notifications', lazy='dynamic'))
+    from_user = db.relationship('User', foreign_keys=[from_user_id])
+    
     def serialize(self):
         return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "action_user_id": self.action_user_id,
-            "content_id": self.content_id,
-            "content_type": self.content_type,
-            "message": self.message,
-            "is_read": self.is_read,
-            "created_at": self.created_at.isoformat(),
+            'id': self.id,
+            'type': self.type,
+            'content': self.content,
+            'extra_data': self.extra_data or {},
+            'is_read': self.is_read,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'user': {
+                'id': self.from_user.id,
+                'username': self.from_user.username,
+                'display_name': getattr(self.from_user, 'display_name', None) or self.from_user.username,
+                'avatar': getattr(self.from_user, 'profile_picture', None)
+            } if self.from_user else None
         }
-    
 
 class Product(db.Model):
     __table_args__ = {'extend_existing': True}
