@@ -1,806 +1,1034 @@
-/* ===== STREAMPIREX LIVE STREAMS PAGE - DARK THEME ===== */
-/* Signature Colors: Teal #00ffc8, Orange #FF6600 */
+/* =============================================================================
+   liveStream.css - Live Streams Hub Styles
+   =============================================================================
+   REPLACE your existing src/front/styles/liveStream.css with this content
+   ============================================================================= */
 
-/* ============================================
-   MAIN CONTAINER - FULL WIDTH DARK
-   ============================================ */
-.live-streams-wrapper {
+/* ==================== PAGE CONTAINER ==================== */
+
+.live-streams-page {
+  min-height: 100vh;
   background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
-  min-height: calc(100vh - 85px - 50px);
-  padding: 30px 40px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: #e1e4e8;
-  width: 100%;
-  max-width: 100%;
-  text-align: center;
+  padding: 0 0 60px;
+  color: #e5e7eb;
 }
 
-/* Break out of parent padding if needed */
-.main-content .live-streams-wrapper {
-  width: calc(100% + 40px) !important;
-  margin-left: -20px !important;
-  margin-right: -20px !important;
-  margin-top: -20px !important;
-  padding: 30px 40px;
-}
+/* ==================== LOADING STATE ==================== */
 
-/* ============================================
-   PAGE TITLE
-   ============================================ */
-.section-title {
-  font-size: 2.4rem;
-  font-weight: 700;
-  color: #00ffc8;
-  margin-bottom: 30px;
-  text-shadow: 0 0 25px rgba(0, 255, 200, 0.4);
-}
-
-/* ============================================
-   SEARCH INPUT
-   ============================================ */
-.search-input {
-  width: 100%;
-  max-width: 600px;
-  padding: 14px 24px;
-  font-size: 1rem;
-  border-radius: 50px;
-  border: 2px solid rgba(0, 255, 200, 0.3);
-  background: rgba(0, 0, 0, 0.4);
-  color: #e1e4e8;
-  margin-bottom: 30px;
-  transition: all 0.3s ease;
-}
-
-.search-input::placeholder {
-  color: #8b949e;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #00ffc8;
-  box-shadow: 0 0 0 4px rgba(0, 255, 200, 0.15);
-  background: rgba(0, 0, 0, 0.5);
-}
-
-/* ============================================
-   CATEGORY SCROLL
-   ============================================ */
-.category-scroll {
+.streams-loading {
   display: flex;
-  overflow-x: auto;
-  gap: 10px;
-  padding: 15px 10px;
-  margin-bottom: 30px;
-  scrollbar-width: thin;
-  scrollbar-color: #00ffc8 rgba(0, 0, 0, 0.3);
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.category-scroll::-webkit-scrollbar {
-  height: 6px;
-}
-
-.category-scroll::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, #00ffc8, #00e6b3);
-  border-radius: 10px;
-}
-
-.category-scroll::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
-}
-
-/* ============================================
-   CATEGORY BUTTONS
-   ============================================ */
-.category-btn {
-  flex: 0 0 auto;
-  padding: 10px 20px;
-  border-radius: 50px;
-  background: rgba(31, 41, 55, 0.8);
-  color: #8b949e;
-  font-weight: 600;
-  border: 2px solid transparent;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 14px;
-}
-
-.category-btn:hover {
-  background: rgba(0, 255, 200, 0.1);
-  color: #00ffc8;
-  border-color: rgba(0, 255, 200, 0.3);
-}
-
-.category-btn.active {
-  background: linear-gradient(135deg, #00ffc8, #00e6b3);
-  color: #0d1117;
-  font-weight: 700;
-  box-shadow: 0 4px 20px rgba(0, 255, 200, 0.4);
-  border-color: transparent;
-}
-
-/* ============================================
-   STREAM GRID
-   ============================================ */
-.live-stream-grid {
-  display: grid;
-  gap: 25px;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  text-align: left;
-}
-
-/* ============================================
-   STREAM CARDS
-   ============================================ */
-.live-stream-card {
-  background: linear-gradient(145deg, #1f2937, #111827);
-  border: 1px solid rgba(0, 255, 200, 0.15);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.live-stream-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(135deg, #00ffc8, #00e6b3);
-}
-
-.live-stream-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 40px rgba(0, 255, 200, 0.15);
-  border-color: rgba(0, 255, 200, 0.4);
-}
-
-.live-stream-card h3 {
-  color: #e1e4e8;
-  font-size: 1.3rem;
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.live-stream-card p {
-  color: #8b949e;
-  line-height: 1.6;
-  margin: 8px 0;
-}
-
-/* Live/Offline Status */
-.live-stream-card p:last-of-type {
-  font-weight: 600;
-}
-
-/* ============================================
-   VIEW/WATCH LINK
-   ============================================ */
-.view-link {
-  margin-top: 15px;
-  display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  color: #00ffc8;
-  font-weight: 600;
-  text-decoration: none;
-  padding: 10px 20px;
-  border-radius: 8px;
-  background: rgba(0, 255, 200, 0.1);
-  border: 2px solid rgba(0, 255, 200, 0.3);
-  transition: all 0.3s ease;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 20px;
 }
 
-.view-link:hover {
-  background: rgba(0, 255, 200, 0.2);
-  border-color: #00ffc8;
-  transform: translateX(5px);
+.loading-pulse {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00ffc8, #00a8ff);
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
-/* ============================================
-   STATUS MESSAGES
-   ============================================ */
-.status-message {
-  margin-top: 60px;
-  font-size: 1.3rem;
-  color: #8b949e;
-  padding: 40px;
-  background: linear-gradient(145deg, #1f2937, #111827);
-  border-radius: 16px;
-  border: 2px dashed rgba(0, 255, 200, 0.2);
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
 }
 
-.status-message.error {
-  color: #ff6b6b;
-  border-color: rgba(255, 107, 107, 0.3);
-  background: rgba(255, 107, 107, 0.1);
+.streams-loading p {
+  color: #9ca3af;
+  font-size: 1rem;
 }
 
-/* ============================================
-   VIDEO PLAYER CONTAINER
-   ============================================ */
-.live-stream-card video {
-  width: 100%;
-  border-radius: 10px;
-  margin: 15px 0;
-  border: 2px solid rgba(0, 255, 200, 0.2);
+/* ==================== HERO SECTION ==================== */
+
+.streams-hero {
+  background: linear-gradient(135deg, rgba(0, 255, 200, 0.1) 0%, rgba(0, 168, 255, 0.1) 100%);
+  border-bottom: 1px solid rgba(0, 255, 200, 0.1);
+  padding: 40px 30px;
 }
 
-/* ============================================
-   VIDEO CHAT CONTAINER
-   ============================================ */
-.video-chat-container {
-  display: flex;
-  flex-direction: row;
-  gap: 25px;
-  background: linear-gradient(145deg, #1f2937, #111827);
-  padding: 20px;
-  border-radius: 16px;
-  border: 1px solid rgba(0, 255, 200, 0.15);
-}
-
-.video-chat-container video {
-  max-width: 100%;
-  height: auto;
-  border-radius: 12px;
-  border: 2px solid rgba(0, 255, 200, 0.2);
-}
-
-.chat-box {
-  max-width: 400px;
-  overflow-y: auto;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 12px;
-  padding: 15px;
-  border: 1px solid rgba(0, 255, 200, 0.1);
-}
-
-/* ============================================
-   LIVE CONCERTS SECTION
-   ============================================ */
-.container {
-  background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%);
-  min-height: calc(100vh - 85px - 50px);
-  padding: 30px 40px;
-  color: #e1e4e8;
-  width: 100%;
-  max-width: 100%;
-}
-
-.main-content .container {
-  width: calc(100% + 40px) !important;
-  margin-left: -20px !important;
-  margin-right: -20px !important;
-  margin-top: -20px !important;
-}
-
-.container h2 {
-  color: #00ffc8;
-  font-size: 2.2rem;
-  font-weight: 700;
-  margin-bottom: 30px;
-  text-shadow: 0 0 20px rgba(0, 255, 200, 0.4);
-}
-
-.container h3 {
-  color: #e1e4e8;
-  font-size: 1.4rem;
-  font-weight: 600;
-  margin-bottom: 20px;
-}
-
-.container input[type="text"],
-.container input[type="date"],
-.container input[type="number"] {
-  display: block;
-  width: 100%;
-  max-width: 500px;
-  margin: 15px 0;
-  padding: 14px 18px;
-  font-size: 14px;
-  border: 2px solid rgba(0, 255, 200, 0.2);
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.3);
-  color: #e1e4e8;
-  transition: all 0.3s ease;
-}
-
-.container input[type="text"]::placeholder,
-.container input[type="number"]::placeholder {
-  color: #8b949e;
-}
-
-.container input[type="text"]:focus,
-.container input[type="date"]:focus,
-.container input[type="number"]:focus {
-  outline: none;
-  border-color: #00ffc8;
-  box-shadow: 0 0 0 3px rgba(0, 255, 200, 0.15);
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.container button {
-  background: linear-gradient(135deg, #00ffc8, #00e6b3);
-  color: #0d1117;
-  padding: 14px 28px;
-  border: none;
-  border-radius: 10px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 15px;
-  margin-top: 15px;
-  box-shadow: 0 4px 20px rgba(0, 255, 200, 0.4);
-}
-
-.container button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 30px rgba(0, 255, 200, 0.5);
-}
-
-/* ============================================
-   POLL COMPONENT STYLING
-   ============================================ */
-.poll-component {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 15px;
-  border-radius: 12px;
-  margin-top: 15px;
-  border: 1px solid rgba(0, 255, 200, 0.1);
-}
-
-.poll-component h4 {
-  color: #00ffc8;
-  margin-bottom: 12px;
-}
-
-.poll-component button {
-  background: linear-gradient(135deg, #FF6600, #ff8533);
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  margin: 5px;
-  transition: all 0.3s ease;
-}
-
-.poll-component button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(255, 102, 0, 0.4);
-}
-
-/* ============================================
-   RESPONSIVE DESIGN
-   ============================================ */
-@media (max-width: 992px) {
-  .live-streams-wrapper,
-  .container {
-    padding: 20px;
-  }
-  
-  .main-content .live-streams-wrapper,
-  .main-content .container {
-    padding: 20px;
-  }
-  
-  .live-stream-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  .live-streams-wrapper,
-  .container {
-    padding: 15px;
-  }
-  
-  .section-title {
-    font-size: 1.8rem;
-  }
-  
-  .search-input {
-    width: 100%;
-    max-width: 100%;
-    padding: 12px 20px;
-  }
-  
-  .category-scroll {
-    justify-content: flex-start;
-    flex-wrap: nowrap;
-  }
-  
-  .category-btn {
-    padding: 8px 16px;
-    font-size: 13px;
-  }
-  
-  .live-stream-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  
-  .live-stream-card {
-    padding: 15px;
-  }
-  
-  .video-chat-container {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .chat-box {
-    width: 100%;
-    max-width: 100%;
-  }
-  
-  .container h2 {
-    font-size: 1.8rem;
-  }
-  
-  .container input[type="text"],
-  .container input[type="date"],
-  .container input[type="number"] {
-    max-width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .section-title {
-    font-size: 1.5rem;
-  }
-  
-  .category-btn {
-    padding: 8px 14px;
-    font-size: 12px;
-  }
-  
-  .live-stream-card h3 {
-    font-size: 1.1rem;
-  }
-  
-  .status-message {
-    font-size: 1.1rem;
-    padding: 30px 20px;
-  }
-  
-  .container button {
-    width: 100%;
-    padding: 15px;
-  }
-}
-
-/* ============================================
-   CONCERTS SECTION - INTEGRATED
-   ============================================ */
-.concerts-section {
-  margin-bottom: 40px;
-  text-align: left;
-}
-
-.concerts-header {
+.hero-content {
+  max-width: 1400px;
+  margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgba(0, 255, 200, 0.2);
+  flex-wrap: wrap;
+  gap: 30px;
 }
 
-.concerts-header h3 {
-  font-size: 1.6rem;
+.hero-text h1 {
+  font-size: 2.2rem;
   font-weight: 700;
-  color: #00ffc8;
+  margin: 0 0 8px;
+  color: #fff;
+}
+
+.hero-text p {
   margin: 0;
-  text-shadow: 0 0 15px rgba(0, 255, 200, 0.3);
+  color: #9ca3af;
+  font-size: 1.05rem;
 }
 
-.create-concert-toggle {
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: 2px solid #00ffc8;
-  background: transparent;
-  color: #00ffc8;
-  font-size: 0.95rem;
+.hero-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.go-live-btn.primary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #ff4444, #ff6b6b);
+  color: #fff;
+  border-radius: 30px;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(255, 68, 68, 0.4);
 }
 
-.create-concert-toggle:hover {
-  background: rgba(0, 255, 200, 0.1);
+.go-live-btn.primary:hover {
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 68, 68, 0.5);
 }
 
-/* Concert Message */
-.concert-message {
-  padding: 14px 20px;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  font-weight: 600;
-  text-align: center;
+.schedule-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 30px;
+  font-weight: 500;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: all 0.3s;
 }
 
-.concert-message.success {
-  background: rgba(0, 255, 200, 0.1);
-  border: 1px solid rgba(0, 255, 200, 0.4);
+.schedule-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #00ffc8;
   color: #00ffc8;
 }
 
-.concert-message.error {
-  background: rgba(255, 107, 107, 0.1);
-  border: 1px solid rgba(255, 107, 107, 0.4);
-  color: #ff6b6b;
+.btn-icon {
+  font-size: 1.2rem;
 }
 
-/* Concert Form */
-.concert-form {
-  background: linear-gradient(145deg, #1f2937, #111827);
-  border: 1px solid rgba(0, 255, 200, 0.2);
-  border-radius: 16px;
-  padding: 30px;
-  margin-bottom: 30px;
+/* Live Stats */
+.live-stats {
+  display: flex;
+  gap: 40px;
+  margin-top: 30px;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 30px;
 }
 
-.concert-form h4 {
-  font-size: 1.3rem;
-  color: #e1e4e8;
-  margin: 0 0 25px 0;
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgba(0, 255, 200, 0.1);
-}
-
-.concert-form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-bottom: 25px;
-}
-
-.concert-form .form-group {
+.stat-item {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.concert-form .form-group.full-width {
-  grid-column: 1 / -1;
-}
-
-.concert-form .form-group label {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #8b949e;
-}
-
-.concert-form .form-group input,
-.concert-form .form-group select,
-.concert-form .form-group textarea {
-  padding: 14px 16px;
-  border: 2px solid rgba(0, 255, 200, 0.2);
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.3);
-  color: #e1e4e8;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-}
-
-.concert-form .form-group input::placeholder,
-.concert-form .form-group textarea::placeholder {
-  color: #8b949e;
-}
-
-.concert-form .form-group input:focus,
-.concert-form .form-group select:focus,
-.concert-form .form-group textarea:focus {
-  outline: none;
-  border-color: #00ffc8;
-  box-shadow: 0 0 0 3px rgba(0, 255, 200, 0.15);
-}
-
-.concert-form .form-group select {
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2300ffc8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 15px center;
-  padding-right: 40px;
-}
-
-.concert-form .form-group select option {
-  background: #1f2937;
-  color: #e1e4e8;
-}
-
-.concert-form .form-group textarea {
-  resize: vertical;
-  min-height: 80px;
-  font-family: inherit;
-}
-
-.create-concert-btn {
-  padding: 14px 30px;
-  border-radius: 10px;
-  border: none;
-  background: linear-gradient(135deg, #00ffc8, #00e6b3);
-  color: #0d1117;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 255, 200, 0.3);
-}
-
-.create-concert-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(0, 255, 200, 0.4);
-}
-
-.create-concert-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Concerts Grid */
-.concerts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 25px;
-}
-
-/* Concert Card */
-.concert-card {
-  background: linear-gradient(145deg, #1f2937, #111827);
-  border-radius: 16px;
-  padding: 25px;
-  border: 1px solid rgba(0, 255, 200, 0.15);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.concert-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #FF6600, #ff8533);
-}
-
-.concert-card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(0, 255, 200, 0.3);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-}
-
-.concert-badge {
-  display: inline-block;
-  padding: 5px 12px;
-  background: linear-gradient(135deg, #FF6600, #ff8533);
-  color: white;
-  font-size: 0.7rem;
-  font-weight: 700;
-  border-radius: 20px;
-  margin-bottom: 15px;
+.stat-label {
+  font-size: 0.85rem;
+  color: #6b7280;
+  text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.concert-card h4 {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #e1e4e8;
-  margin: 0 0 12px 0;
+.live-pulse {
+  width: 10px;
+  height: 10px;
+  background: #ff4444;
+  border-radius: 50%;
+  animation: livePulse 1.5s ease-in-out infinite;
 }
 
-.concert-date {
-  font-size: 0.95rem;
-  color: #8b949e;
-  margin: 0 0 12px 0;
+@keyframes livePulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7); }
+  50% { opacity: 0.8; box-shadow: 0 0 0 8px rgba(255, 68, 68, 0); }
 }
 
-.concert-description {
-  font-size: 0.9rem;
-  color: #6e7681;
-  margin: 0 0 20px 0;
-  line-height: 1.5;
+/* ==================== FEATURED SECTION ==================== */
+
+.featured-section {
+  max-width: 1400px;
+  margin: 40px auto 0;
+  padding: 0 30px;
 }
 
-.concert-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 15px;
-  border-top: 1px solid rgba(0, 255, 200, 0.1);
-}
-
-.concert-price {
+.section-title {
   font-size: 1.4rem;
-  font-weight: 700;
-  color: #FF6600;
-  text-shadow: 0 0 10px rgba(255, 102, 0, 0.3);
+  font-weight: 600;
+  margin: 0 0 20px;
+  color: #fff;
 }
 
-.buy-ticket-btn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #FF6600, #ff8533);
-  color: white;
-  font-size: 0.9rem;
-  font-weight: 700;
+.featured-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .featured-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .featured-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.featured-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  border-radius: 16px;
+  overflow: hidden;
   text-decoration: none;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(255, 102, 0, 0.3);
+  transition: all 0.3s;
 }
 
-.buy-ticket-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255, 102, 0, 0.4);
+.featured-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 255, 200, 0.4);
+  box-shadow: 0 8px 30px rgba(0, 255, 200, 0.15);
 }
 
-.no-concerts {
-  text-align: center;
-  padding: 40px;
-  color: #8b949e;
-  background: rgba(0, 0, 0, 0.2);
+.featured-thumbnail {
+  position: relative;
+  aspect-ratio: 16/9;
+  background: #1f2937;
+  overflow: hidden;
+}
+
+.featured-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1f2937, #374151);
+  font-size: 3rem;
+}
+
+.live-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #ff4444;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-radius: 50%;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.viewer-count {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.featured-info {
+  padding: 16px;
+}
+
+.streamer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.streamer-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(0, 255, 200, 0.3);
+}
+
+.streamer-name {
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+.featured-info .stream-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.stream-category {
+  display: inline-block;
+  padding: 4px 10px;
+  background: rgba(0, 255, 200, 0.1);
+  color: #00ffc8;
   border-radius: 12px;
-  border: 2px dashed rgba(0, 255, 200, 0.2);
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
-/* Responsive - Concerts */
+/* ==================== CONTROLS ==================== */
+
+.streams-controls {
+  max-width: 1400px;
+  margin: 30px auto 0;
+  padding: 0 30px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 280px;
+  max-width: 400px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 12px 40px 12px 44px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 25px;
+  color: #fff;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.search-box input:focus {
+  outline: none;
+  border-color: #00ffc8;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.search-box input::placeholder {
+  color: #6b7280;
+}
+
+.clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #9ca3af;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.clear-search:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-btn {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  color: #9ca3af;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.category-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.category-btn.active {
+  background: rgba(0, 255, 200, 0.15);
+  border-color: #00ffc8;
+  color: #00ffc8;
+}
+
+.notification-btn {
+  padding: 10px 20px;
+  background: rgba(255, 200, 0, 0.1);
+  border: 1px solid rgba(255, 200, 0, 0.3);
+  border-radius: 20px;
+  color: #ffc800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: auto;
+}
+
+.notification-btn:hover {
+  background: rgba(255, 200, 0, 0.2);
+}
+
+/* ==================== TABS ==================== */
+
+.streams-tabs {
+  max-width: 1400px;
+  margin: 30px auto 0;
+  padding: 0 30px;
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 24px;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.tab-btn:hover {
+  color: #fff;
+}
+
+.tab-btn.active {
+  color: #00ffc8;
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #00ffc8, #00a8ff);
+  border-radius: 3px 3px 0 0;
+}
+
+.live-indicator {
+  width: 8px;
+  height: 8px;
+  background: #ff4444;
+  border-radius: 50%;
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+
+.tab-count {
+  padding: 2px 8px;
+  background: rgba(0, 255, 200, 0.15);
+  color: #00ffc8;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ==================== ERROR STATE ==================== */
+
+.streams-error {
+  max-width: 1400px;
+  margin: 30px auto;
+  padding: 30px;
+  background: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  border-radius: 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.error-icon {
+  font-size: 2rem;
+}
+
+.streams-error p {
+  margin: 0;
+  color: #ff6b6b;
+}
+
+.retry-btn {
+  padding: 10px 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.retry-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ==================== CONTENT AREA ==================== */
+
+.streams-content {
+  max-width: 1400px;
+  margin: 30px auto 0;
+  padding: 0 30px;
+}
+
+.streams-section {
+  min-height: 300px;
+}
+
+.streams-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 1200px) {
+  .streams-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .streams-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .streams-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==================== STREAM CARD ==================== */
+
+.stream-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.stream-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 255, 200, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.card-thumbnail {
+  position: relative;
+  aspect-ratio: 16/9;
+  background: #1f2937;
+  overflow: hidden;
+}
+
+.card-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.stream-card:hover .card-thumbnail img {
+  transform: scale(1.05);
+}
+
+.card-thumbnail .thumbnail-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1f2937, #374151);
+  font-size: 2.5rem;
+}
+
+.card-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.card-badge.live {
+  background: #ff4444;
+  color: #fff;
+}
+
+.card-badge.scheduled {
+  background: rgba(0, 168, 255, 0.9);
+  color: #fff;
+}
+
+.card-badge.vod {
+  background: rgba(128, 90, 213, 0.9);
+  color: #fff;
+}
+
+.card-viewers {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.card-duration {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.9);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.card-play-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.stream-card:hover .card-play-overlay {
+  opacity: 1;
+}
+
+.play-icon {
+  width: 56px;
+  height: 56px;
+  background: rgba(0, 255, 200, 0.9);
+  color: #000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  padding-left: 4px;
+}
+
+.card-info {
+  padding: 14px;
+}
+
+.card-header {
+  display: flex;
+  gap: 12px;
+}
+
+.card-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(0, 255, 200, 0.2);
+  flex-shrink: 0;
+}
+
+.card-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+.card-streamer {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.card-category {
+  padding: 3px 8px;
+  background: rgba(0, 255, 200, 0.1);
+  color: #00ffc8;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.card-views,
+.card-date {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* ==================== EMPTY STATE ==================== */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px;
+  font-size: 1.3rem;
+  color: #fff;
+}
+
+.empty-state p {
+  margin: 0 0 24px;
+  color: #9ca3af;
+  max-width: 400px;
+}
+
+.empty-action-btn {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #00ffc8, #00a8ff);
+  color: #000;
+  border-radius: 25px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.empty-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 255, 200, 0.4);
+}
+
+/* ==================== INFO BANNER ==================== */
+
+.info-banner {
+  max-width: 1400px;
+  margin: 60px auto 0;
+  padding: 0 30px;
+}
+
+.info-content {
+  background: linear-gradient(135deg, rgba(0, 255, 200, 0.05) 0%, rgba(0, 168, 255, 0.05) 100%);
+  border: 1px solid rgba(0, 255, 200, 0.1);
+  border-radius: 20px;
+  padding: 40px;
+}
+
+.info-content h3 {
+  margin: 0 0 30px;
+  font-size: 1.4rem;
+  color: #fff;
+  text-align: center;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 30px;
+}
+
+@media (max-width: 900px) {
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.info-item {
+  text-align: center;
+}
+
+.info-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.info-item h4 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: #fff;
+}
+
+.info-item p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #9ca3af;
+  line-height: 1.4;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
 @media (max-width: 768px) {
-  .concerts-header {
+  .streams-hero {
+    padding: 30px 20px;
+  }
+
+  .hero-content {
     flex-direction: column;
-    gap: 15px;
     text-align: center;
   }
-  
-  .create-concert-toggle {
+
+  .hero-text h1 {
+    font-size: 1.8rem;
+  }
+
+  .hero-actions {
+    justify-content: center;
+  }
+
+  .live-stats {
+    justify-content: center;
+    padding: 0 20px;
+    gap: 30px;
+  }
+
+  .featured-section,
+  .streams-controls,
+  .streams-tabs,
+  .streams-content,
+  .info-banner {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .streams-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-box {
+    max-width: 100%;
+  }
+
+  .category-filters {
+    justify-content: center;
+  }
+
+  .notification-btn {
+    margin-left: 0;
     width: 100%;
   }
-  
-  .concert-form-grid {
-    grid-template-columns: 1fr;
+
+  .streams-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
-  
-  .concert-form .form-group.full-width {
-    grid-column: 1;
+
+  .tab-btn {
+    padding: 12px 16px;
+    white-space: nowrap;
   }
-  
-  .concerts-grid {
-    grid-template-columns: 1fr;
+
+  .info-content {
+    padding: 30px 20px;
   }
 }
 
-@media (max-width: 480px) {
-  .concert-form {
-    padding: 20px 15px;
-  }
-  
-  .concert-card {
-    padding: 20px 15px;
-  }
-  
-  .concert-footer {
-    flex-direction: column;
-    gap: 15px;
-  }
-  
-  .buy-ticket-btn {
-    width: 100%;
-    text-align: center;
-  }
+/* ==================== OLD CLASSES OVERRIDE ==================== */
+/* These override any old styles that might conflict */
+
+.live-streams-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%) !important;
+  color: #e5e7eb !important;
+}
+
+.live-stream-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 24px !important;
+}
+
+.live-stream-card {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+}
+
+.go-live-banner {
+  background: linear-gradient(135deg, rgba(0, 255, 200, 0.1) 0%, rgba(0, 168, 255, 0.1) 100%) !important;
+  border: 1px solid rgba(0, 255, 200, 0.1) !important;
+  border-radius: 16px !important;
+  padding: 24px !important;
+  margin-bottom: 30px !important;
+}
+
+.go-live-banner h3 {
+  color: #fff !important;
+  margin: 0 0 8px !important;
+}
+
+.go-live-banner p {
+  color: #9ca3af !important;
+  margin: 0 !important;
+}
+
+.go-live-btn {
+  background: linear-gradient(135deg, #ff4444, #ff6b6b) !important;
+  color: #fff !important;
+  padding: 12px 24px !important;
+  border-radius: 25px !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+}
+
+.streams-empty {
+  text-align: center !important;
+  padding: 60px 20px !important;
+}
+
+.streams-empty h3 {
+  color: #fff !important;
+}
+
+.streams-empty p {
+  color: #9ca3af !important;
+}
+
+.filter-btn {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #9ca3af !important;
+  padding: 8px 16px !important;
+  border-radius: 20px !important;
+}
+
+.filter-btn.active {
+  background: rgba(0, 255, 200, 0.15) !important;
+  border-color: #00ffc8 !important;
+  color: #00ffc8 !important;
+}
+
+.streams-search {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+  border-radius: 25px !important;
+  padding: 12px 20px !important;
+}
+
+.streams-search:focus {
+  border-color: #00ffc8 !important;
+  outline: none !important;
+}
+
+.streams-header h1 {
+  color: #fff !important;
 }

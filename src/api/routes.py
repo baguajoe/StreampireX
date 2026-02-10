@@ -15,6 +15,7 @@ import mimetypes
 import jwt
 import time
 import stripe
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 import hashlib
 import random
 from werkzeug.utils import secure_filename
@@ -22594,6 +22595,588 @@ def delete_story_comment(comment_id):
         print(f"Error deleting story comment: {e}")
         return jsonify({"error": str(e)}), 500
 
+# =============================================================================
+# STORY ROUTES - Add to src/api/routes.py
+# =============================================================================
+# Endpoints for creating, viewing, and sharing stories
+# =============================================================================
+
+from datetime import datetime, timedelta
+
+# =============================================================================
+# GET STORIES FROM FOLLOWED USERS (for Stories Bar)
+# =============================================================================
+
+@api.route('/stories/feed', methods=['GET'])
+@jwt_required()
+def get_stories_feed():
+    """Get stories from users the current user follows (for stories bar)"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Get users current user follows
+        following_ids = [f.followed_id for f in Follow.query.filter_by(follower_id=user_id).all()]
+        
+        # Include own stories
+        all_user_ids = [user_id] + following_ids
+        
+        # Get non-expired stories from followed users (grouped by user)
+        now = datetime.utcnow()
+        
+        stories_by_user = {}
+        
+        for uid in all_user_ids:
+            user_stories = Story.query.filter(
+                Story.user_id == uid,
+                Story.is_highlight == False,
+                Story.expires_at > now
+            ).order_by(Story.created_at.asc()).all()
+            
+            if user_stories:
+                user = User.query.get(uid)
+                
+                # Check if current user has viewed all stories
+                viewed_story_ids = [v.story_id for v in StoryView.query.filter(
+                    StoryView.user_id == user_id,
+                    StoryView.story_id.in_([s.id for s in user_stories])
+                ).all()]
+                
+                has_unseen = any(s.id not in viewed_story_ids for s in user_stories)
+                
+                stories_by_user[uid] = {
+                    'user': {
+                        'id': user.id,
+                        'username': user.username,
+                        'display_name': getattr(user, 'display_name', None) or user.username,
+                        'avatar_url': getattr(user, 'profile_picture', None) or getattr(user, 'avatar_url', None)
+                    },
+                    'stories': [s.serialize() for s in user_stories],
+                    'stories_count': len(user_stories),
+                    'has_unseen': has_unseen,
+                    'is_own': uid == user_id
+                }
+        
+        # Sort: own stories first, then by has_unseen, then by most recent
+        sorted_users = sorted(
+            stories_by_user.values(),
+            key=lambda x: (not x['is_own'], not x['has_unseen'], -x['stories'][0]['id'] if x['stories'] else 0)
+        )
+        
+        return jsonify({
+            'success': True,
+            'stories': sorted_users,
+            'total_users': len(sorted_users)
+        }), 200
+        
+    except Exception as e:
+        print(f"Stories feed error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to load stories'}), 500
+
+
+# =============================================================================
+# CREATE A NEW STORY (Upload or Share)
+# =============================================================================
+
+@api.route('/stories', methods=['POST'])
+@jwt_required()
+def create_story():
+    """Create a new story - either upload media or share existing content"""
+    try:
+        user_id = get_jwt_identity()
+        
+        # Check for file upload
+        if request.files and 'media' in request.files:
+            # Handle file upload
+            media_file = request.files['media']
+            caption = request.form.get('caption', '')
+            allow_reshare = request.form.get('allow_reshare', 'true').lower() == 'true'
+            allow_comments = request.form.get('allow_comments', 'true').lower() == 'true'
+            
+            # Upload to Cloudinary
+            upload_result = uploadFile(media_file, folder="stories")
+            
+            if not upload_result or 'url' not in upload_result:
+                return jsonify({'error': 'Failed to upload media'}), 500
+            
+            media_url = upload_result['url']
+            media_type = 'video' if media_file.content_type.startswith('video') else 'image'
+            
+            # Create story
+            story = Story(
+                user_id=user_id,
+                media_url=media_url,
+                media_type=media_type,
+                caption=caption,
+                allow_reshare=allow_reshare,
+                allow_comments=allow_comments
+            )
+            
+        else:
+            # Handle JSON data (sharing content or media URL)
+            data = request.get_json()
+            
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+            
+            # Check if sharing existing content
+            shared_content_id = data.get('shared_content_id')
+            shared_content_type = data.get('shared_content_type')
+            
+            if shared_content_id and shared_content_type:
+                # Sharing existing content
+                content_map = {
+                    'video': Video,
+                    'post': Post,
+                    'track': Audio,
+                    'podcast': Podcast,
+                }
+                
+                model = content_map.get(shared_content_type)
+                if not model:
+                    return jsonify({'error': 'Invalid content type'}), 400
+                
+                content = model.query.get(shared_content_id)
+                if not content:
+                    return jsonify({'error': 'Content not found'}), 404
+                
+                # Get original creator ID
+                original_creator_id = getattr(content, 'user_id', None) or getattr(content, 'author_id', None) or getattr(content, 'host_id', None)
+                
+                # Get thumbnail/media URL from the content
+                media_url = (
+                    getattr(content, 'thumbnail_url', None) or 
+                    getattr(content, 'cover_url', None) or 
+                    getattr(content, 'artwork_url', None) or
+                    getattr(content, 'image_url', None)
+                )
+                
+                story = Story(
+                    user_id=user_id,
+                    media_url=media_url,
+                    media_type='image',  # Thumbnail is image
+                    caption=data.get('caption', ''),
+                    shared_content_id=shared_content_id,
+                    shared_content_type=shared_content_type,
+                    shared_from_user_id=original_creator_id,
+                    allow_reshare=data.get('allow_reshare', True),
+                    allow_comments=data.get('allow_comments', True)
+                )
+                
+            else:
+                # Direct URL or media
+                media_url = data.get('media_url')
+                if not media_url:
+                    return jsonify({'error': 'Media URL required'}), 400
+                
+                story = Story(
+                    user_id=user_id,
+                    media_url=media_url,
+                    media_type=data.get('media_type', 'image'),
+                    caption=data.get('caption', ''),
+                    allow_reshare=data.get('allow_reshare', True),
+                    allow_comments=data.get('allow_comments', True)
+                )
+        
+        db.session.add(story)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Story created!',
+            'story': story.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Create story error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to create story: {str(e)}'}), 500
+
+
+# =============================================================================
+# VIEW A STORY (Mark as viewed)
+# =============================================================================
+
+@api.route('/stories/<int:story_id>/view', methods=['POST'])
+@jwt_required()
+def view_story(story_id):
+    """Mark a story as viewed by current user"""
+    try:
+        user_id = get_jwt_identity()
+        
+        story = Story.query.get(story_id)
+        if not story:
+            return jsonify({'error': 'Story not found'}), 404
+        
+        # Check if already viewed
+        existing_view = StoryView.query.filter_by(
+            story_id=story_id,
+            user_id=user_id
+        ).first()
+        
+        if not existing_view:
+            # Create new view
+            view = StoryView(
+                story_id=story_id,
+                user_id=user_id
+            )
+            db.session.add(view)
+            
+            # Increment view count
+            story.views_count = (story.views_count or 0) + 1
+            db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'views_count': story.views_count
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"View story error: {e}")
+        return jsonify({'error': 'Failed to record view'}), 500
+
+
+# =============================================================================
+# GET STORY VIEWERS (for story owner)
+# =============================================================================
+
+@api.route('/stories/<int:story_id>/viewers', methods=['GET'])
+@jwt_required()
+def get_story_viewers(story_id):
+    """Get list of users who viewed a story (only for story owner)"""
+    try:
+        user_id = get_jwt_identity()
+        
+        story = Story.query.get(story_id)
+        if not story:
+            return jsonify({'error': 'Story not found'}), 404
+        
+        # Only story owner can see viewers
+        if story.user_id != user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        views = StoryView.query.filter_by(story_id=story_id).order_by(StoryView.viewed_at.desc()).all()
+        
+        return jsonify({
+            'success': True,
+            'viewers': [v.serialize() for v in views],
+            'total_views': len(views)
+        }), 200
+        
+    except Exception as e:
+        print(f"Get viewers error: {e}")
+        return jsonify({'error': 'Failed to get viewers'}), 500
+
+
+# =============================================================================
+# REACT/COMMENT ON STORY
+# =============================================================================
+
+@api.route('/stories/<int:story_id>/react', methods=['POST'])
+@jwt_required()
+def react_to_story(story_id):
+    """React or comment on a story"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        story = Story.query.get(story_id)
+        if not story:
+            return jsonify({'error': 'Story not found'}), 404
+        
+        if not story.allow_comments:
+            return jsonify({'error': 'Comments disabled on this story'}), 403
+        
+        text = data.get('text')
+        reaction = data.get('reaction')  # Emoji like ❤️ 🔥 😂
+        
+        if not text and not reaction:
+            return jsonify({'error': 'Text or reaction required'}), 400
+        
+        comment = StoryComment(
+            story_id=story_id,
+            user_id=user_id,
+            text=text,
+            reaction=reaction
+        )
+        
+        db.session.add(comment)
+        story.comments_count = (story.comments_count or 0) + 1
+        db.session.commit()
+        
+        # TODO: Send notification to story owner
+        
+        return jsonify({
+            'success': True,
+            'comment': comment.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"React error: {e}")
+        return jsonify({'error': 'Failed to react'}), 500
+
+
+# =============================================================================
+# DELETE STORY
+# =============================================================================
+
+@api.route('/stories/<int:story_id>', methods=['DELETE'])
+@jwt_required()
+def delete_story(story_id):
+    """Delete a story"""
+    try:
+        user_id = get_jwt_identity()
+        
+        story = Story.query.get(story_id)
+        if not story:
+            return jsonify({'error': 'Story not found'}), 404
+        
+        if story.user_id != user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        # Delete related records
+        StoryView.query.filter_by(story_id=story_id).delete()
+        StoryComment.query.filter_by(story_id=story_id).delete()
+        
+        db.session.delete(story)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Story deleted'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Delete story error: {e}")
+        return jsonify({'error': 'Failed to delete story'}), 500
+
+
+# =============================================================================
+# GET USER'S OWN STORIES
+# =============================================================================
+
+@api.route('/stories/me', methods=['GET'])
+@jwt_required()
+def get_my_stories():
+    """Get current user's active stories"""
+    try:
+        user_id = get_jwt_identity()
+        now = datetime.utcnow()
+        
+        # Get active stories
+        active_stories = Story.query.filter(
+            Story.user_id == user_id,
+            Story.is_highlight == False,
+            Story.expires_at > now
+        ).order_by(Story.created_at.desc()).all()
+        
+        # Get highlights
+        highlights = Story.query.filter(
+            Story.user_id == user_id,
+            Story.is_highlight == True
+        ).order_by(Story.created_at.desc()).all()
+        
+        return jsonify({
+            'success': True,
+            'active_stories': [s.serialize() for s in active_stories],
+            'highlights': [s.serialize() for s in highlights]
+        }), 200
+        
+    except Exception as e:
+        print(f"Get my stories error: {e}")
+        return jsonify({'error': 'Failed to get stories'}), 500
+
+
+# =============================================================================
+# SHARE CONTENT TO STORY (Quick action from any content)
+# =============================================================================
+
+@api.route('/stories/share', methods=['POST'])
+@jwt_required()
+def share_to_story():
+    """Quick share any content to your story"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        content_type = data.get('content_type')  # 'video', 'post', 'track', 'podcast'
+        content_id = data.get('content_id')
+        caption = data.get('caption', '')
+        
+        if not content_type or not content_id:
+            return jsonify({'error': 'Content type and ID required'}), 400
+        
+        # Validate content exists
+        content_map = {
+            'video': Video,
+            'post': Post,
+            'track': Audio,
+            'podcast': Podcast,
+        }
+        
+        model = content_map.get(content_type)
+        if not model:
+            return jsonify({'error': 'Invalid content type'}), 400
+        
+        content = model.query.get(content_id)
+        if not content:
+            return jsonify({'error': 'Content not found'}), 404
+        
+        # Get original creator
+        original_creator_id = (
+            getattr(content, 'user_id', None) or 
+            getattr(content, 'author_id', None) or 
+            getattr(content, 'host_id', None)
+        )
+        
+        # Get thumbnail
+        media_url = (
+            getattr(content, 'thumbnail_url', None) or 
+            getattr(content, 'cover_url', None) or 
+            getattr(content, 'artwork_url', None) or
+            getattr(content, 'image_url', None)
+        )
+        
+        # Create the story
+        story = Story(
+            user_id=user_id,
+            media_url=media_url,
+            media_type='image',
+            caption=caption,
+            shared_content_id=content_id,
+            shared_content_type=content_type,
+            shared_from_user_id=original_creator_id
+        )
+        
+        db.session.add(story)
+        
+        # Increment shares count on original content if available
+        if hasattr(content, 'shares'):
+            content.shares = (content.shares or 0) + 1
+        elif hasattr(content, 'shares_count'):
+            content.shares_count = (content.shares_count or 0) + 1
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Shared to your story!',
+            'story': story.serialize()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Share to story error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to share: {str(e)}'}), 500
+
+
+# =============================================================================
+# SAVE STORY TO HIGHLIGHTS
+# =============================================================================
+
+@api.route('/stories/<int:story_id>/highlight', methods=['POST'])
+@jwt_required()
+def add_to_highlights(story_id):
+    """Save a story to highlights (won't expire)"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        
+        story = Story.query.get(story_id)
+        if not story:
+            return jsonify({'error': 'Story not found'}), 404
+        
+        if story.user_id != user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        highlight_name = data.get('highlight_name', 'Highlights')
+        
+        story.is_highlight = True
+        story.highlight_name = highlight_name
+        story.expires_at = None  # Never expires
+        
+        # Create or update highlight collection
+        highlight = StoryHighlight.query.filter_by(
+            user_id=user_id,
+            name=highlight_name
+        ).first()
+        
+        if not highlight:
+            highlight = StoryHighlight(
+                user_id=user_id,
+                name=highlight_name
+            )
+            db.session.add(highlight)
+        else:
+            highlight.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Added to {highlight_name}',
+            'story': story.serialize()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Add to highlights error: {e}")
+        return jsonify({'error': 'Failed to add to highlights'}), 500
+
+
+# =============================================================================
+# GET USER'S HIGHLIGHTS
+# =============================================================================
+
+@api.route('/users/<int:target_user_id>/highlights', methods=['GET'])
+@jwt_required(optional=True)
+def get_user_highlights(target_user_id):
+    """Get a user's story highlights"""
+    try:
+        highlights = StoryHighlight.query.filter_by(user_id=target_user_id).all()
+        
+        return jsonify({
+            'success': True,
+            'highlights': [h.serialize() for h in highlights]
+        }), 200
+        
+    except Exception as e:
+        print(f"Get highlights error: {e}")
+        return jsonify({'error': 'Failed to get highlights'}), 500
+
+
+# =============================================================================
+# CLEANUP EXPIRED STORIES (Run periodically)
+# =============================================================================
+
+def cleanup_expired_stories():
+    """Delete expired stories (run this as a scheduled job)"""
+    try:
+        now = datetime.utcnow()
+        expired = Story.query.filter(
+            Story.is_highlight == False,
+            Story.expires_at < now
+        ).all()
+        
+        for story in expired:
+            StoryView.query.filter_by(story_id=story.id).delete()
+            StoryComment.query.filter_by(story_id=story.id).delete()
+            db.session.delete(story)
+        
+        db.session.commit()
+        print(f"✅ Cleaned up {len(expired)} expired stories")
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Story cleanup error: {e}")
 
 # ==================== UPDATE: MODIFY CREATE STORY ====================
 # Update the create_story route to include comment_mode:
