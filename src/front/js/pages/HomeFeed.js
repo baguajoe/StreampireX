@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import UploadVideo from "../component/UploadVideo";
 import StoriesBar from "../component/StoriesBar";
+import NotificationsWidget from "../component/NotificationsWidget";
 import "../../styles/HomeFeed.css";
 
 const HomeFeed = () => {
@@ -742,6 +743,11 @@ const HomeFeed = () => {
 
         {/* RIGHT COLUMN */}
         <div className="feed-sidebar right">
+          {/* Notifications Widget */}
+          <div className="sidebar-section">
+            <NotificationsWidget maxItems={5} showHeader={true} />
+          </div>
+
           <div className="sidebar-section">
             <h3>🎛️ Quick Actions</h3>
             <div className="sidebar-actions">
