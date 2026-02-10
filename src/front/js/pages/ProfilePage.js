@@ -6,6 +6,7 @@ import VideoChatPopup from "../component/VideoChatPopup";
 import InboxDrawer from "../component/InboxDrawer";
 import SocialMediaManager from "../component/SocialMediaManager";
 import PostCard from '../component/PostCard';
+import VideoCallButton from "../component/VideoCallButton";
 import VideoChannelManager from "../component/VideoChannelManager";
 import "../../styles/ProfilePage.css";
 import "../../styles/PostCard.css";
@@ -1346,8 +1347,8 @@ const ProfilePage = () => {
                 setLoading(true);
                 const cloudinaryUrl = await uploadToCloudinary(file, 'image');
                 setMedia(prev => ({ ...prev, profilePicture: cloudinaryUrl }));
-        const formData = new FormData()
-        formData.append("profile_picture",file)
+                const formData = new FormData()
+                formData.append("profile_picture", file)
                 const token = localStorage.getItem('token');
                 await fetch(`${BACKEND_URL}/api/user/profile`, {
                     method: 'PUT',
@@ -1736,7 +1737,7 @@ const ProfilePage = () => {
                 {/* Cover Photo Section */}
                 <div className="cover-photo-container">
                     <img
-                        src={media.coverPhoto || user.cover_photo }
+                        src={media.coverPhoto || user.cover_photo}
                         alt="Cover"
                         className="cover-photo"
                     />
@@ -1850,7 +1851,14 @@ const ProfilePage = () => {
                         >
                             Chat
                         </button>
-
+                        {/* 📹 VIDEO CALL BUTTON - ADD THIS! */}
+                        {!isOwnProfile && !isBlocked && (
+                            <VideoCallButton
+                                targetUser={user}
+                                variant="default"
+                                size="medium"
+                            />
+                        )}
                         {/* Follow button - only show on other users' profiles and if not blocked */}
                         {!isOwnProfile && !isBlocked && (
                             <button

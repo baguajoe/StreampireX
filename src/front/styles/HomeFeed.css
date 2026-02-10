@@ -409,7 +409,7 @@
 }
 
 /* =============================================================================
-   QUICK ACTIONS SECTION
+   QUICK ACTIONS SECTION - COLORFUL CARDS
    ============================================================================= */
 
 .quick-actions-section {
@@ -434,48 +434,160 @@
   gap: 16px;
 }
 
+/* Base Quick Action Card */
 .quick-action-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 24px 16px;
-  background: linear-gradient(145deg, #161b22 0%, #0d1117 100%);
-  border: 1px solid #30363d;
   border-radius: 12px;
   text-decoration: none;
-  color: #c9d1d9;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  border: none;
 }
 
 .quick-action-card:hover {
-  border-color: #00ffc8;
-  background: linear-gradient(145deg, #1f2937 0%, #161b22 100%);
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 255, 200, 0.15);
   text-decoration: none;
-  color: #e6edf3;
 }
 
 .quick-action-card .action-icon {
   font-size: 32px;
   margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
 }
 
 .quick-action-card h3 {
-  color: #00ffc8;
   font-size: 15px;
   font-weight: 600;
   margin-bottom: 4px;
   text-align: center;
+  position: relative;
+  z-index: 1;
+  color: #fff;
 }
 
 .quick-action-card p {
-  color: #8b949e;
   font-size: 12px;
   text-align: center;
   margin: 0;
+  opacity: 0.9;
+  position: relative;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* =============================================================================
+   INDIVIDUAL CARD COLORS - ALL COLORFUL
+   ============================================================================= */
+
+/* 1. Upload Video - Pink */
+.quick-action-card.video-upload,
+.quick-action-card[href="/upload-video"] {
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+}
+
+.quick-action-card.video-upload:hover,
+.quick-action-card[href="/upload-video"]:hover {
+  box-shadow: 0 8px 25px rgba(236, 72, 153, 0.5);
+}
+
+/* 2. Upload Music - Green */
+.quick-action-card.music-upload,
+.quick-action-card[href="/upload-music"] {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.quick-action-card.music-upload:hover,
+.quick-action-card[href="/upload-music"]:hover {
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
+}
+
+/* 3. Create Podcast - Purple */
+.quick-action-card.podcast-create,
+.quick-action-card[href="/podcast-create"] {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.quick-action-card.podcast-create:hover,
+.quick-action-card[href="/podcast-create"]:hover {
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.5);
+}
+
+/* 4. Go Live - Orange */
+.quick-action-card.go-live,
+.quick-action-card[href="/go-live"] {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+}
+
+.quick-action-card.go-live:hover,
+.quick-action-card[href="/go-live"]:hover {
+  box-shadow: 0 8px 25px rgba(249, 115, 22, 0.5);
+}
+
+/* 5. Create Radio - Blue */
+.quick-action-card.radio-create,
+.quick-action-card[href="/create-radio"] {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.quick-action-card.radio-create:hover,
+.quick-action-card[href="/create-radio"]:hover {
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+}
+
+/* 6. Discover Users - Cyan/Teal */
+.quick-action-card.discover,
+.quick-action-card[href="/discover-users"] {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+}
+
+.quick-action-card.discover:hover,
+.quick-action-card[href="/discover-users"]:hover {
+  box-shadow: 0 8px 25px rgba(6, 182, 212, 0.5);
+}
+
+/* 7. Marketplace - Yellow/Amber */
+.quick-action-card.marketplace,
+.quick-action-card[href="/marketplace"] {
+  background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3);
+}
+
+.quick-action-card.marketplace:hover,
+.quick-action-card[href="/marketplace"]:hover {
+  box-shadow: 0 8px 25px rgba(234, 179, 8, 0.5);
+}
+
+/* 8. Gamer Chat - Red */
+.quick-action-card.gamer-chat,
+.quick-action-card[href="/gamers/chat"] {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.quick-action-card.gamer-chat:hover,
+.quick-action-card[href="/gamers/chat"]:hover {
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
 }
 
 /* =============================================================================

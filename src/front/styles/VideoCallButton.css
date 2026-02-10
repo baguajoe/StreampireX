@@ -1,0 +1,353 @@
+/* =============================================================================
+   VideoCallButton.css - StreamPireX Video Call Button Styles
+   ============================================================================= */
+
+/* =============================================================================
+   BUTTON STYLES
+   ============================================================================= */
+
+.video-call-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #00ffc8 0%, #00e6b3 100%);
+  border: none;
+  border-radius: 10px;
+  color: #0d1117;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.video-call-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 255, 200, 0.35);
+}
+
+.video-call-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.video-call-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.video-call-btn .btn-icon {
+  font-size: 16px;
+}
+
+/* Sizes */
+.video-call-btn.small {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.video-call-btn.small .btn-icon {
+  font-size: 14px;
+}
+
+.video-call-btn.large {
+  padding: 14px 24px;
+  font-size: 16px;
+  border-radius: 12px;
+}
+
+.video-call-btn.large .btn-icon {
+  font-size: 20px;
+}
+
+/* Icon Only Variant */
+.video-call-btn.icon-only {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.video-call-btn.icon-only.small {
+  width: 36px;
+  height: 36px;
+}
+
+.video-call-btn.icon-only.large {
+  width: 52px;
+  height: 52px;
+}
+
+.video-call-btn.icon-only .btn-icon {
+  font-size: 20px;
+}
+
+.video-call-btn.icon-only.small .btn-icon {
+  font-size: 16px;
+}
+
+.video-call-btn.icon-only.large .btn-icon {
+  font-size: 24px;
+}
+
+/* Full Variant */
+.video-call-btn.full {
+  width: 100%;
+  justify-content: center;
+  padding: 14px 20px;
+  font-size: 15px;
+}
+
+/* Spinner */
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(13, 17, 23, 0.3);
+  border-top-color: #0d1117;
+  border-radius: 50%;
+  animation: btn-spin 0.8s linear infinite;
+}
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* =============================================================================
+   CONFIRMATION MODAL
+   ============================================================================= */
+
+.call-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.call-confirm-modal {
+  width: 90%;
+  max-width: 380px;
+  background: linear-gradient(145deg, #1a1f2e 0%, #0d1117 100%);
+  border: 1px solid #30363d;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Modal Header */
+.call-confirm-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(0, 255, 200, 0.1) 0%, rgba(0, 255, 200, 0.02) 100%);
+  border-bottom: 1px solid #21262d;
+}
+
+.call-confirm-header .call-icon {
+  font-size: 28px;
+}
+
+.call-confirm-header h3 {
+  margin: 0;
+  color: #e6edf3;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Modal Body */
+.call-confirm-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 24px;
+  text-align: center;
+}
+
+.call-user-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid #00ffc8;
+  object-fit: cover;
+  margin-bottom: 16px;
+  box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
+}
+
+.call-confirm-body p {
+  color: #c9d1d9;
+  font-size: 15px;
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+}
+
+.call-confirm-body strong {
+  color: #00ffc8;
+}
+
+.call-note {
+  color: #8b949e;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.call-note::before {
+  content: '💡';
+  font-size: 14px;
+}
+
+/* Modal Actions */
+.call-confirm-actions {
+  display: flex;
+  gap: 12px;
+  padding: 20px 24px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid #21262d;
+}
+
+.call-cancel-btn {
+  flex: 1;
+  padding: 12px 20px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 10px;
+  color: #c9d1d9;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.call-cancel-btn:hover {
+  background: #30363d;
+  border-color: #484f58;
+}
+
+.call-start-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #00ffc8 0%, #00e6b3 100%);
+  border: none;
+  border-radius: 10px;
+  color: #0d1117;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.call-start-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 255, 200, 0.35);
+}
+
+.call-start-btn span {
+  font-size: 16px;
+}
+
+/* =============================================================================
+   ALTERNATIVE BUTTON STYLES (Dark Variant)
+   ============================================================================= */
+
+.video-call-btn.dark {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #e6edf3;
+}
+
+.video-call-btn.dark:hover:not(:disabled) {
+  background: #30363d;
+  border-color: #00ffc8;
+  color: #00ffc8;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.video-call-btn.dark .btn-spinner {
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: #00ffc8;
+}
+
+/* Outline Variant */
+.video-call-btn.outline {
+  background: transparent;
+  border: 2px solid #00ffc8;
+  color: #00ffc8;
+}
+
+.video-call-btn.outline:hover:not(:disabled) {
+  background: rgba(0, 255, 200, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 255, 200, 0.2);
+}
+
+.video-call-btn.outline .btn-spinner {
+  border-color: rgba(0, 255, 200, 0.3);
+  border-top-color: #00ffc8;
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 480px) {
+  .call-confirm-modal {
+    width: 95%;
+    max-width: none;
+    margin: 0 10px;
+  }
+  
+  .call-confirm-header {
+    padding: 16px;
+  }
+  
+  .call-confirm-body {
+    padding: 24px 20px;
+  }
+  
+  .call-user-avatar {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .call-confirm-actions {
+    flex-direction: column;
+    padding: 16px 20px;
+  }
+  
+  .call-cancel-btn,
+  .call-start-btn {
+    width: 100%;
+  }
+}

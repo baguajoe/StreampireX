@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import UploadVideo from "../component/UploadVideo";
-import WebRTCChat from "../component/WebRTCChat";
 import StoriesBar from "../component/StoriesBar";
 import "../../styles/HomeFeed.css";
 
@@ -759,16 +758,6 @@ const HomeFeed = () => {
                 📹 Upload Video
               </Link>
             </div>
-
-            {user?.id && (
-              <div className="webrtc-section">
-                <WebRTCChat
-                  roomId={`user-${user.id}`}
-                  userId={user.id}
-                  userName={user.display_name || user.username || "Anonymous"}
-                />
-              </div>
-            )}
           </div>
 
           <div className="sidebar-section">

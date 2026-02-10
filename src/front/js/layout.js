@@ -34,6 +34,7 @@ import RadioSchedule from "./pages/RadioSchedule";
 import DiscoverUsersPage from "./pages/DiscoverUsersPage";
 import GoLivePage from './pages/GoLivePage';
 import CreateClipPage from './pages/CreateClipPage';
+import FloatingVideoCall from "./component/FloatingVideoCall";
 
 import VideoUpload from "./pages/VideoUpload";
 import VideoDetails from "./component/VideoDetails";
@@ -241,6 +242,7 @@ const Layout = () => {
               {/* 404 Fallback */}
               <Route path="*" element={<h1>Not found!</h1>} />
             </Routes>
+            <FloatingVideoCall currentUser={user} />
           </main>
         </div>
         <Footer />
