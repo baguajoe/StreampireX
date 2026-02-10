@@ -1,4 +1,4 @@
-// Updated Navbar.js with Cart functionality and Sidebar Fix
+// Updated Navbar.js with Cart functionality, Sidebar Fix, and Notifications Bell
 import React, { useEffect, useState, useContext } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Context } from "../store/appContext";
@@ -12,6 +12,7 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [cartTotal, setCartTotal] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const location = useLocation();
   const { store, actions } = useContext(Context);
 
@@ -28,6 +29,35 @@ const Navbar = () => {
         .catch((err) => console.error("Error fetching user:", err));
     }
   }, []);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    const fetchNotificationCount = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BACKEND_URL}/api/notifications/unread-count`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setUnreadNotifications(data.unread_count || 0);
+        }
+      } catch (err) {
+        console.error("Error fetching notification count:", err);
+      }
+    };
+
+    fetchNotificationCount();
+
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchNotificationCount, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Update cart count and total when cart changes
   useEffect(() => {
@@ -162,6 +192,39 @@ const Navbar = () => {
             <PWAInstallButton />
           </div>
 
+          {/* 🔔 Notifications Bell */}
+          {user && (
+            <Link
+              to="/notifications"
+              className={`notification-bell ${isActive('/notifications') ? 'active' : ''}`}
+              onClick={closeMobileMenu}
+              title="Notifications"
+            >
+              <div className="bell-icon-container">
+                <svg
+                  className="bell-icon"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  width="24"
+                  height="24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
+                {unreadNotifications > 0 && (
+                  <span className="notification-badge">
+                    {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                  </span>
+                )}
+              </div>
+            </Link>
+          )}
+
           {/* Cart & Checkout Section */}
           <div className="cart-checkout-section">
             {/* Checkout Button (only show when cart has items) */}
@@ -258,6 +321,19 @@ const Navbar = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                     Profile
+                  </Link>
+                  <Link
+                    to="/notifications"
+                    className="dropdown-link"
+                    onClick={closeAllMenus}
+                  >
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    Notifications
+                    {unreadNotifications > 0 && (
+                      <span className="dropdown-badge">{unreadNotifications}</span>
+                    )}
                   </Link>
                   <Link
                     to="/orders"
