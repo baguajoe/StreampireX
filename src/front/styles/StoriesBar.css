@@ -1,0 +1,318 @@
+/* =============================================================================
+   StoriesBar.css - Horizontal stories bar styles
+   =============================================================================
+   Location: /src/front/styles/StoriesBar.css
+   ============================================================================= */
+
+/* ==================== CONTAINER ==================== */
+
+.stories-bar {
+  position: relative;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px 0;
+  margin-bottom: 24px;
+}
+
+/* ==================== SCROLL CONTAINER ==================== */
+
+.stories-scroll {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 0 50px;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.stories-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ==================== SCROLL BUTTONS ==================== */
+
+.scroll-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.stories-bar:hover .scroll-btn {
+  opacity: 1;
+}
+
+.scroll-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.scroll-left {
+  left: 8px;
+}
+
+.scroll-right {
+  right: 8px;
+}
+
+/* ==================== STORY ITEM ==================== */
+
+.story-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.story-item:hover {
+  transform: scale(1.05);
+}
+
+/* ==================== AVATAR WRAPPER ==================== */
+
+.story-avatar-wrapper {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(135deg, #374151, #4b5563);
+}
+
+/* Unseen stories - gradient ring */
+.story-avatar-wrapper.has-unseen {
+  background: linear-gradient(135deg, #00ffc8, #00a8ff, #ff6b6b, #ffc800);
+  background-size: 300% 300%;
+  animation: gradientRotate 3s ease infinite;
+}
+
+@keyframes gradientRotate {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Seen stories - gray ring */
+.story-avatar-wrapper.seen {
+  background: linear-gradient(135deg, #374151, #4b5563);
+}
+
+/* Your story - dashed border */
+.story-avatar-wrapper.no-story {
+  background: transparent;
+  border: 2px dashed rgba(0, 255, 200, 0.4);
+}
+
+.story-avatar-wrapper.has-story {
+  background: linear-gradient(135deg, #00ffc8, #00a8ff);
+}
+
+/* ==================== AVATAR IMAGE ==================== */
+
+.story-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #0d1117;
+  background: #1f2937;
+}
+
+/* ==================== ADD STORY BADGE ==================== */
+
+.add-story-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, #00ffc8, #00a8ff);
+  border-radius: 50%;
+  border: 3px solid #0d1117;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* ==================== STORY COUNT BADGE ==================== */
+
+.story-count-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: #00ffc8;
+  border-radius: 10px;
+  border: 2px solid #0d1117;
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==================== SEGMENTED RING (Multiple Stories) ==================== */
+
+/* For multiple stories, create segmented ring effect */
+.story-avatar-wrapper[style*="--story-count"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    #00ffc8 0deg calc(360deg / var(--story-count) - 5deg),
+    transparent calc(360deg / var(--story-count) - 5deg) calc(360deg / var(--story-count)),
+    #00ffc8 calc(360deg / var(--story-count)) calc(360deg / var(--story-count) * 2 - 5deg),
+    transparent calc(360deg / var(--story-count) * 2 - 5deg) calc(360deg / var(--story-count) * 2)
+  );
+  mask: radial-gradient(transparent 65%, black 67%);
+  -webkit-mask: radial-gradient(transparent 65%, black 67%);
+}
+
+/* ==================== USERNAME ==================== */
+
+.story-username {
+  color: #e5e7eb;
+  font-size: 0.75rem;
+  max-width: 74px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+}
+
+/* ==================== YOUR STORY SPECIFIC ==================== */
+
+.story-item.your-story .story-username {
+  color: #00ffc8;
+  font-weight: 500;
+}
+
+/* ==================== LOADING PLACEHOLDERS ==================== */
+
+.stories-loading {
+  display: flex;
+  gap: 16px;
+  padding: 0 50px;
+}
+
+.story-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.placeholder-avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1f2937, #374151);
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.placeholder-name {
+  width: 50px;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #1f2937, #374151);
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ==================== EMPTY STATE ==================== */
+
+.stories-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 20px;
+}
+
+.stories-empty p {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 768px) {
+  .stories-bar {
+    border-radius: 0;
+    margin: 0 -20px 24px;
+    padding: 12px 0;
+  }
+
+  .stories-scroll {
+    padding: 0 20px;
+    gap: 12px;
+  }
+
+  .scroll-btn {
+    display: none;
+  }
+
+  .story-avatar-wrapper {
+    width: 60px;
+    height: 60px;
+  }
+
+  .story-username {
+    font-size: 0.7rem;
+    max-width: 64px;
+  }
+
+  .add-story-badge {
+    width: 20px;
+    height: 20px;
+    font-size: 0.9rem;
+  }
+}
+
+/* ==================== LIVE INDICATOR (if user is live) ==================== */
+
+.story-avatar-wrapper.is-live::after {
+  content: 'LIVE';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  background: #ff4444;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  border-radius: 4px;
+  border: 2px solid #0d1117;
+  letter-spacing: 0.5px;
+}

@@ -1,17 +1,26 @@
-// src/front/js/component/StoriesBar.js
-// Horizontal scrollable bar showing story circles (like Instagram)
-import React, { useState, useEffect, useContext } from "react";
-import { Context } from "../store/appContext";
-import { useNavigate } from "react-router-dom";
-import "../../styles/Stories.css";
+// =============================================================================
+// StoriesBar.js - Horizontal stories bar at top of feed
+// =============================================================================
+// Location: /src/front/js/component/StoriesBar.js
+// Features: Story avatars with gradient rings, create story button, story viewer
+// =============================================================================
+
+import React, { useState, useEffect, useContext, useRef } from 'react';
+import { Context } from '../store/appContext';
+import { StoryViewerModal } from '../pages/StoryViewer';
+import CreateStoryModal from './CreateStoryModal';
+import '../../styles/StoriesBar.css';
 
 const StoriesBar = () => {
   const { store } = useContext(Context);
-  const navigate = useNavigate();
-  
-  const [storiesFeed, setStoriesFeed] = useState([]);
+  const [usersStories, setUsersStories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [hasOwnStory, setHasOwnStory] = useState(false);
+  const [selectedUserIndex, setSelectedUserIndex] = useState(null);
+  const [showViewer, setShowViewer] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  const scrollRef = useRef(null);
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
 
   useEffect(() => {
     fetchStoriesFeed();
@@ -19,46 +28,79 @@ const StoriesBar = () => {
 
   const fetchStoriesFeed = async () => {
     try {
-      const token = localStorage.getItem("token") || sessionStorage.getItem("token");
+      setLoading(true);
+      const token = localStorage.getItem('token');
       if (!token) {
         setLoading(false);
         return;
       }
 
-      const backendUrl = process.env.REACT_APP_BACKEND_URL;
       const response = await fetch(`${backendUrl}/api/stories/feed`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
 
       if (response.ok) {
         const data = await response.json();
-        setStoriesFeed(data);
-        
-        // Check if current user has any stories
-        const ownStories = data.find(u => u.user.id === store.user?.id);
-        setHasOwnStory(!!ownStories);
+        // data should be an array of { user, stories, has_unseen }
+        setUsersStories(data.users_stories || data || []);
       }
     } catch (error) {
-      console.error("Error fetching stories feed:", error);
+      console.error('Error fetching stories:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const openStoryViewer = (userId, index = 0) => {
-    navigate(`/stories/${userId}?start=${index}`);
+  const handleStoryClick = (index) => {
+    setSelectedUserIndex(index);
+    setShowViewer(true);
   };
 
-  const openStoryUpload = () => {
-    navigate("/stories/create");
+  const handleCloseViewer = () => {
+    setShowViewer(false);
+    setSelectedUserIndex(null);
+    // Refresh to update viewed status
+    fetchStoriesFeed();
   };
+
+  const handleCreateStory = () => {
+    setShowCreateModal(true);
+  };
+
+  const handleStoryCreated = (newStory) => {
+    // Add new story to current user's stories
+    fetchStoriesFeed();
+  };
+
+  // Scroll handlers
+  const scrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -200, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+    }
+  };
+
+  // Check if current user has stories
+  const currentUserStories = usersStories.find(u => u.user?.id === store.user?.id);
+  const hasOwnStory = currentUserStories?.stories?.length > 0;
 
   if (loading) {
     return (
       <div className="stories-bar">
-        <div className="stories-bar-inner">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="story-circle-skeleton" />
+        <div className="stories-loading">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="story-placeholder">
+              <div className="placeholder-avatar"></div>
+              <div className="placeholder-name"></div>
+            </div>
           ))}
         </div>
       </div>
@@ -66,64 +108,92 @@ const StoriesBar = () => {
   }
 
   return (
-    <div className="stories-bar">
-      <div className="stories-bar-inner">
-        {/* Add Story Button (always first) */}
-        <div className="story-item add-story" onClick={openStoryUpload}>
-          <div className={`story-circle ${hasOwnStory ? 'has-story' : ''}`}>
-            {store.user?.profile_image_url ? (
+    <>
+      <div className="stories-bar">
+        {/* Scroll Buttons */}
+        <button className="scroll-btn scroll-left" onClick={scrollLeft}>
+          ‹
+        </button>
+
+        <div className="stories-scroll" ref={scrollRef}>
+          {/* Your Story - Always First */}
+          <div className="story-item your-story" onClick={handleCreateStory}>
+            <div className={`story-avatar-wrapper ${hasOwnStory ? 'has-story' : 'no-story'}`}>
               <img 
-                src={store.user.profile_image_url} 
-                alt="Your story" 
+                src={store.user?.profile_picture || store.user?.avatar_url || '/default-avatar.png'}
+                alt="Your story"
                 className="story-avatar"
               />
-            ) : (
-              <div className="story-avatar-placeholder">
-                {store.user?.username?.charAt(0).toUpperCase() || "?"}
-              </div>
-            )}
-            <div className="add-story-icon">+</div>
+              <div className="add-story-badge">+</div>
+            </div>
+            <span className="story-username">Your Story</span>
           </div>
-          <span className="story-username">Your Story</span>
+
+          {/* Other Users' Stories */}
+          {usersStories
+            .filter(u => u.user?.id !== store.user?.id)
+            .map((userStory, index) => {
+              const user = userStory.user;
+              const storyCount = userStory.stories?.length || 0;
+              const hasUnseen = userStory.has_unseen;
+
+              return (
+                <div 
+                  key={user.id} 
+                  className="story-item"
+                  onClick={() => handleStoryClick(
+                    usersStories.findIndex(u => u.user?.id === user.id)
+                  )}
+                >
+                  <div 
+                    className={`story-avatar-wrapper ${hasUnseen ? 'has-unseen' : 'seen'}`}
+                    style={storyCount > 1 ? { '--story-count': storyCount } : {}}
+                  >
+                    <img 
+                      src={user.profile_picture || user.avatar_url || '/default-avatar.png'}
+                      alt={user.username}
+                      className="story-avatar"
+                    />
+                    {storyCount > 1 && (
+                      <span className="story-count-badge">{storyCount}</span>
+                    )}
+                  </div>
+                  <span className="story-username">
+                    {user.display_name || user.username || 'User'}
+                  </span>
+                </div>
+              );
+            })}
+
+          {/* Empty State */}
+          {usersStories.length === 0 && (
+            <div className="stories-empty">
+              <p>No stories yet. Follow more creators!</p>
+            </div>
+          )}
         </div>
 
-        {/* Other Users' Stories */}
-        {storiesFeed.map((userStories, index) => (
-          // Skip own stories in the feed (shown in "Your Story")
-          userStories.user.id !== store.user?.id && (
-            <div 
-              key={userStories.user.id} 
-              className="story-item"
-              onClick={() => openStoryViewer(userStories.user.id)}
-            >
-              <div className={`story-circle ${userStories.has_unviewed ? 'unviewed' : 'viewed'}`}>
-                {userStories.user.profile_image ? (
-                  <img 
-                    src={userStories.user.profile_image} 
-                    alt={userStories.user.username} 
-                    className="story-avatar"
-                  />
-                ) : (
-                  <div className="story-avatar-placeholder">
-                    {userStories.user.username?.charAt(0).toUpperCase() || "?"}
-                  </div>
-                )}
-              </div>
-              <span className="story-username">
-                {userStories.user.gamertag || userStories.user.username}
-              </span>
-            </div>
-          )
-        ))}
-
-        {/* If no stories from followed users */}
-        {storiesFeed.filter(u => u.user.id !== store.user?.id).length === 0 && (
-          <div className="no-stories-message">
-            <p>No stories yet. Follow more creators!</p>
-          </div>
-        )}
+        <button className="scroll-btn scroll-right" onClick={scrollRight}>
+          ›
+        </button>
       </div>
-    </div>
+
+      {/* Story Viewer Modal */}
+      {showViewer && selectedUserIndex !== null && (
+        <StoryViewerModal
+          usersStories={usersStories}
+          initialUserIndex={selectedUserIndex}
+          onClose={handleCloseViewer}
+        />
+      )}
+
+      {/* Create Story Modal */}
+      <CreateStoryModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onStoryCreated={handleStoryCreated}
+      />
+    </>
   );
 };
 

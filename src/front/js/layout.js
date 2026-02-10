@@ -183,13 +183,12 @@ const Layout = () => {
               <Route path="/browse-radio-stations" element={<BrowseRadioStations />} />
               <Route path="/radio/:type/:id" element={<RadioStationDetailPage />} />
 
-              {/* 🎬 Videos */}
+              {/* 🎬 Videos & Stories */}
               <Route path="/videos" element={<BrowseVideosPage />} />
               <Route path="/go-live" element={<GoLivePage />} />
               <Route path="/create-clip" element={<CreateClipPage />} />
               <Route path="/stories/create" element={<StoryUpload />} />
               <Route path="/stories/:userId" element={<StoryViewer />} />
-
 
               {/* 💿 Releases */}
               <Route path="/create-release" element={<CreateReleasePage />} />

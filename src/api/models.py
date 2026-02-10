@@ -5552,172 +5552,273 @@ class Photo(db.Model):
 # ============================================
 # Make sure you have: from datetime import datetime, timedelta
 
+# =============================================================================
+# STORY MODELS - Add to src/api/models.py
+# =============================================================================
+# Supports: Original uploads, shared videos, shared posts, shared tracks
+# Features: 24hr expiration, view tracking, comments, highlights
+# =============================================================================
+
+from datetime import datetime, timedelta
+
 class Story(db.Model):
+    """Vertical stories that expire after 24 hours - supports sharing other content"""
     __tablename__ = 'stories'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    media_url = db.Column(db.String(500), nullable=False)
-    media_type = db.Column(db.String(20), nullable=False)  # 'image' or 'video'
-    caption = db.Column(db.String(200), nullable=True)
-    music_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=True)  # References audio table
     
-    # Comment settings: 'private', 'public', 'both', 'disabled'
-    comment_mode = db.Column(db.String(20), default='both')
+    # Original content (when user uploads directly)
+    media_url = db.Column(db.String(500), nullable=True)  # Image/video URL
+    media_type = db.Column(db.String(20), default='image')  # 'image', 'video'
+    caption = db.Column(db.String(500), nullable=True)
     
-    # Highlights (saved stories that don't expire)
+    # Shared content (when sharing someone else's content)
+    shared_content_id = db.Column(db.Integer, nullable=True)  # ID of shared content
+    shared_content_type = db.Column(db.String(50), nullable=True)  # 'video', 'post', 'track', 'podcast'
+    shared_from_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Original creator
+    
+    # Story settings
+    allow_reshare = db.Column(db.Boolean, default=True)  # Can others share this story?
+    allow_comments = db.Column(db.Boolean, default=True)
+    
+    # Highlight feature (stories that don't expire)
     is_highlight = db.Column(db.Boolean, default=False)
-    highlight_name = db.Column(db.String(50), nullable=True)
+    highlight_name = db.Column(db.String(100), nullable=True)  # e.g., "Music", "Gaming", "BTS"
     
-    # Metrics
-    view_count = db.Column(db.Integer, default=0)
+    # Engagement metrics
+    views_count = db.Column(db.Integer, default=0)
+    likes_count = db.Column(db.Integer, default=0)
+    comments_count = db.Column(db.Integer, default=0)
+    shares_count = db.Column(db.Integer, default=0)
     
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    expires_at = db.Column(db.DateTime, nullable=True)  # null for highlights
+    expires_at = db.Column(db.DateTime, nullable=True)  # Set to 24hrs after creation
     
     # Relationships
-    user = db.relationship('User', backref=db.backref('stories', lazy='dynamic'))
-    music = db.relationship('Audio', backref=db.backref('stories', lazy='dynamic'))
-    views = db.relationship('StoryView', backref='story', lazy='dynamic', cascade='all, delete-orphan')
-    replies = db.relationship('StoryReply', backref='story', lazy='dynamic', cascade='all, delete-orphan')
-    comments = db.relationship('StoryComment', backref='story', lazy='dynamic', cascade='all, delete-orphan')
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('stories', lazy='dynamic'))
+    shared_from_user = db.relationship('User', foreign_keys=[shared_from_user_id])
     
     def __init__(self, **kwargs):
         super(Story, self).__init__(**kwargs)
-        if not kwargs.get('is_highlight'):
+        # Auto-set expiration to 24 hours unless it's a highlight
+        if not self.is_highlight and not self.expires_at:
             self.expires_at = datetime.utcnow() + timedelta(hours=24)
     
     @property
     def is_expired(self):
+        """Check if story has expired"""
         if self.is_highlight:
             return False
-        return self.expires_at and datetime.utcnow() > self.expires_at
+        return datetime.utcnow() > self.expires_at if self.expires_at else False
     
     @property
     def time_remaining(self):
+        """Get time remaining before expiration"""
         if self.is_highlight or not self.expires_at:
             return None
         remaining = self.expires_at - datetime.utcnow()
-        if remaining.total_seconds() <= 0:
-            return 0
-        return int(remaining.total_seconds())
+        return max(0, remaining.total_seconds())
     
-    def serialize(self, viewer_id=None):
-        viewed = False
-        if viewer_id:
-            viewed = StoryView.query.filter_by(story_id=self.id, viewer_id=viewer_id).first() is not None
+    @property
+    def is_shared(self):
+        """Check if this story is shared content"""
+        return self.shared_content_id is not None
+    
+    def get_shared_content(self):
+        """Retrieve the actual shared content"""
+        if not self.is_shared:
+            return None
+        
+        content_map = {
+            'video': Video,
+            'post': Post,
+            'track': Audio,
+            'podcast': Podcast,
+        }
+        
+        model = content_map.get(self.shared_content_type)
+        if model:
+            return model.query.get(self.shared_content_id)
+        return None
+    
+    def serialize(self):
+        # Get user info
+        user_data = None
+        if self.user:
+            user_data = {
+                'id': self.user.id,
+                'username': self.user.username,
+                'display_name': getattr(self.user, 'display_name', None) or self.user.username,
+                'avatar_url': getattr(self.user, 'profile_picture', None) or getattr(self.user, 'avatar_url', None)
+            }
+        
+        # Get shared content info
+        shared_content_data = None
+        if self.is_shared:
+            content = self.get_shared_content()
+            if content:
+                shared_content_data = {
+                    'id': content.id,
+                    'type': self.shared_content_type,
+                    'title': getattr(content, 'title', None),
+                    'thumbnail_url': getattr(content, 'thumbnail_url', None) or getattr(content, 'cover_url', None) or getattr(content, 'artwork_url', None),
+                    'url': getattr(content, 'file_url', None) or getattr(content, 'video_url', None) or getattr(content, 'audio_url', None),
+                }
+            
+            # Get original creator info
+            if self.shared_from_user:
+                shared_content_data['original_creator'] = {
+                    'id': self.shared_from_user.id,
+                    'username': self.shared_from_user.username,
+                    'display_name': getattr(self.shared_from_user, 'display_name', None) or self.shared_from_user.username,
+                    'avatar_url': getattr(self.shared_from_user, 'profile_picture', None) or getattr(self.shared_from_user, 'avatar_url', None)
+                }
         
         return {
             'id': self.id,
             'user_id': self.user_id,
+            'user': user_data,
+            
+            # Content
             'media_url': self.media_url,
             'media_type': self.media_type,
             'caption': self.caption,
-            'music_id': self.music_id,
-            'comment_mode': self.comment_mode,
+            
+            # Shared content
+            'is_shared': self.is_shared,
+            'shared_content': shared_content_data,
+            'shared_content_type': self.shared_content_type,
+            
+            # Settings
+            'allow_reshare': self.allow_reshare,
+            'allow_comments': self.allow_comments,
+            
+            # Highlight
             'is_highlight': self.is_highlight,
             'highlight_name': self.highlight_name,
-            'view_count': self.view_count,
+            
+            # Metrics
+            'views_count': self.views_count,
+            'likes_count': self.likes_count,
+            'comments_count': self.comments_count,
+            'shares_count': self.shares_count,
+            
+            # Time
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'expires_at': self.expires_at.isoformat() if self.expires_at else None,
-            'time_remaining': self.time_remaining,
             'is_expired': self.is_expired,
-            'viewed': viewed,
-            'user': {
-                'id': self.user.id,
-                'username': self.user.username,
-                'profile_picture': self.user.profile_picture
-            } if self.user else None,
-            'music': self.music.serialize_for_player() if self.music else None
+            'time_remaining': self.time_remaining
         }
 
 
 class StoryView(db.Model):
+    """Track who viewed each story"""
     __tablename__ = 'story_views'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
-    viewer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # Unique constraint - one view per user per story
-    __table_args__ = (db.UniqueConstraint('story_id', 'viewer_id', name='unique_story_view'),)
-    
-    viewer = db.relationship('User', backref=db.backref('story_views', lazy='dynamic'))
-    
-    def serialize(self):
-        return {
-            'id': self.id,
-            'story_id': self.story_id,
-            'viewer_id': self.viewer_id,
-            'viewed_at': self.viewed_at.isoformat() if self.viewed_at else None,
-            'viewer': {
-                'id': self.viewer.id,
-                'username': self.viewer.username,
-                'profile_picture': self.viewer.profile_picture
-            } if self.viewer else None
-        }
-
-
-class StoryReply(db.Model):
-    """Private replies to stories - only visible to story owner"""
-    __tablename__ = 'story_replies'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
-    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    message = db.Column(db.String(500), nullable=False)
-    is_read = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    sender = db.relationship('User', backref=db.backref('story_replies_sent', lazy='dynamic'))
-    
-    def serialize(self):
-        return {
-            'id': self.id,
-            'story_id': self.story_id,
-            'sender_id': self.sender_id,
-            'message': self.message,
-            'is_read': self.is_read,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'sender': {
-                'id': self.sender.id,
-                'username': self.sender.username,
-                'profile_picture': self.sender.profile_picture
-            } if self.sender else None
-        }
-
-
-class StoryComment(db.Model):
-    """Public comments on stories - visible to everyone"""
-    __tablename__ = 'story_comments'
+    __table_args__ = (
+        db.UniqueConstraint('story_id', 'user_id', name='unique_story_view'),
+        {'extend_existing': True}
+    )
     
     id = db.Column(db.Integer, primary_key=True)
     story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    text = db.Column(db.String(300), nullable=False)
-    parent_id = db.Column(db.Integer, db.ForeignKey('story_comments.id'), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    user = db.relationship('User', backref=db.backref('story_comments', lazy='dynamic'))
-    replies = db.relationship('StoryComment', backref=db.backref('parent', remote_side=[id]), lazy='dynamic')
+    # Relationships
+    story = db.relationship('Story', backref=db.backref('views', lazy='dynamic'))
+    user = db.relationship('User', backref=db.backref('story_views', lazy='dynamic'))
     
     def serialize(self):
         return {
             'id': self.id,
             'story_id': self.story_id,
             'user_id': self.user_id,
-            'text': self.text,
-            'parent_id': self.parent_id,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'viewer': {
+                'id': self.user.id,
+                'username': self.user.username,
+                'avatar_url': getattr(self.user, 'profile_picture', None) or getattr(self.user, 'avatar_url', None)
+            } if self.user else None,
+            'viewed_at': self.viewed_at.isoformat() if self.viewed_at else None
+        }
+
+
+class StoryComment(db.Model):
+    """Comments/reactions on stories (DM-style)"""
+    __tablename__ = 'story_comments'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    text = db.Column(db.String(500), nullable=True)  # Text comment
+    reaction = db.Column(db.String(10), nullable=True)  # Emoji reaction like ❤️ 🔥 😂
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    story = db.relationship('Story', backref=db.backref('story_comments', lazy='dynamic'))
+    user = db.relationship('User', backref=db.backref('story_comments_made', lazy='dynamic'))
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'story_id': self.story_id,
+            'user_id': self.user_id,
             'user': {
                 'id': self.user.id,
                 'username': self.user.username,
-                'profile_picture': self.user.profile_picture
+                'avatar_url': getattr(self.user, 'profile_picture', None) or getattr(self.user, 'avatar_url', None)
             } if self.user else None,
-            'reply_count': self.replies.count() if self.replies else 0
+            'text': self.text,
+            'reaction': self.reaction,
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+
+class StoryHighlight(db.Model):
+    """Group saved stories into highlight collections"""
+    __tablename__ = 'story_highlights'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)  # "Music", "Gaming", "Behind the Scenes"
+    cover_url = db.Column(db.String(500), nullable=True)  # Custom cover image
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('story_highlights', lazy='dynamic'))
+    
+    def serialize(self):
+        # Get stories in this highlight
+        stories = Story.query.filter_by(
+            user_id=self.user_id,
+            is_highlight=True,
+            highlight_name=self.name
+        ).order_by(Story.created_at.desc()).all()
+        
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'name': self.name,
+            'cover_url': self.cover_url or (stories[0].media_url if stories else None),
+            'stories_count': len(stories),
+            'stories': [s.serialize() for s in stories[:10]],  # First 10 for preview
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+# =============================================================================
+# ADD TO IMPORTS IN models.py:
+# from datetime import datetime, timedelta
+# 
+# ADD TO EXPORTS:
+# Story, StoryView, StoryComment, StoryHighlight
+# =============================================================================
 # =============================================================================
 # DATABASE MIGRATION SQL
 # =============================================================================
