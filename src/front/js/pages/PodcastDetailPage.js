@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useRef } from "react";
+ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TipJar from "../component/TipJar";
+import UniversalSocialShare from "../component/UniversalSocialShare";
 import "../../styles/PodcastDetailPage.css";
 
 const PodcastDetailPage = () => {
@@ -13,6 +14,7 @@ const PodcastDetailPage = () => {
   const [currentPlaying, setCurrentPlaying] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [liked, setLiked] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [audioRef, setAudioRef] = useState(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState(null);
@@ -195,16 +197,7 @@ const PodcastDetailPage = () => {
   };
 
   const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: podcast?.title,
-        text: podcast?.description,
-        url: window.location.href
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      alert("Link copied to clipboard!");
-    }
+    setShowShareModal(true);
   };
 
   const handleSubscribe = async () => {
@@ -343,7 +336,7 @@ const PodcastDetailPage = () => {
               </button>
 
               <button onClick={handleShare} className="action-btn share-btn">
-                🔗 Share
+                🚀 Share
               </button>
 
               <button onClick={handleSubscribe} className="action-btn subscribe-btn">
@@ -459,6 +452,21 @@ const PodcastDetailPage = () => {
           </ul>
         )}
       </div>
+
+      {/* Social Share Modal */}
+      <UniversalSocialShare
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        contentType="podcast"
+        contentData={{
+          title: podcast?.title || 'Podcast',
+          description: podcast?.description || '',
+          url: window.location.href,
+          image: podcast?.cover_art_url || podcast?.cover_image_url,
+          host: podcast?.host_name,
+          episodeCount: episodes?.length || 0,
+        }}
+      />
     </div>
   );
 };

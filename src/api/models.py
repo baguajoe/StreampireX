@@ -2907,6 +2907,44 @@ class PodcastChapter(db.Model):
             "manual_edit": self.manual_edit
         }
 
+class ArchivedShow(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, default="")
+    file_url = db.Column(db.String(500))          # Cloudinary URL (not local path)
+    cover_image_url = db.Column(db.String(500))
+    duration = db.Column(db.Integer)               # seconds
+    dj_name = db.Column(db.String(100))
+    genre = db.Column(db.String(50))
+    recorded_at = db.Column(db.DateTime)           # when the show aired
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    play_count = db.Column(db.Integer, default=0)
+    is_public = db.Column(db.Boolean, default=True)
+
+    # Relationships
+    station = db.relationship('RadioStation', backref=db.backref('archived_shows', lazy='dynamic'))
+    user = db.relationship('User', backref=db.backref('archived_shows', lazy='dynamic'))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "station_id": self.station_id,
+            "user_id": self.user_id,
+            "title": self.title,
+            "description": self.description,
+            "file_url": self.file_url,
+            "cover_image_url": self.cover_image_url,
+            "duration": self.duration,
+            "dj_name": self.dj_name,
+            "genre": self.genre,
+            "recorded_at": self.recorded_at.isoformat() if self.recorded_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "play_count": self.play_count,
+            "is_public": self.is_public
+        }
+
 # =============================================================================
 # Notification Model - ADD THIS TO YOUR models.py
 # =============================================================================
