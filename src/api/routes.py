@@ -29,7 +29,7 @@ from flask_cors import CORS, cross_origin
 from flask_apscheduler import APScheduler
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import or_, and_
-from src.api.subscription_utils import get_user_plan, plan_required
+from src.api.subscription_utils import get_user_plan, plan_required, check_content_limit
 from src.api.revenue_split import calculate_split, calculate_ad_revenue
 from src.api.reports_utils import generate_monthly_report
 from src.api.utils.revelator_api import submit_release_to_revelator
