@@ -67,12 +67,19 @@ const Home = () => {
 				<p className="section-subtitle">Professional creator tools, simplified</p>
 				
 				<div className="feature-grid">
-					{/* Row 1: Content Creation */}
+					{/* Row 1: Hook — Free/Social features that attract everyone */}
 					<div className="feature-card highlight">
-						<div className="feature-icon">🎬</div>
-						<h4>Video Editor</h4>
-						<p>Professional video editing right in your browser. Trim, cut, merge, add effects, transitions, text overlays, and export in multiple formats.</p>
-						<span className="feature-tag">Built-in</span>
+						<div className="feature-icon">👥</div>
+						<h4>Social Network</h4>
+						<p>Follow creators, like content, comment, and share. Build your audience with familiar social features.</p>
+						<span className="feature-tag">Free</span>
+					</div>
+					
+					<div className="feature-card highlight">
+						<div className="feature-icon">💬</div>
+						<h4>Direct Messaging</h4>
+						<p>Real-time chat with fans and collaborators. Group chats, media sharing, and message requests.</p>
+						<span className="feature-tag">Free</span>
 					</div>
 					
 					<div className="feature-card highlight">
@@ -87,14 +94,34 @@ const Home = () => {
 						<h4>StreamClips</h4>
 						<p>Create permanent highlight clips from your content. Build a portfolio that attracts new followers and showcases your best work.</p>
 					</div>
+
+					{/* Row 2: Core Creator Tools — What makes them stay */}
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎬</div>
+						<h4>Video Editor</h4>
+						<p>Professional video editing right in your browser. Trim, cut, merge, add effects, transitions, text overlays, and export in multiple formats.</p>
+						<span className="feature-tag">Built-in</span>
+					</div>
 					
 					<div className="feature-card">
 						<div className="feature-icon">🎧</div>
 						<h4>Music Studio</h4>
 						<p>Upload tracks, create albums, manage releases. Built-in audio processing and waveform visualization.</p>
 					</div>
+					
+					<div className="feature-card">
+						<div className="feature-icon">🔴</div>
+						<h4>Live Streaming</h4>
+						<p>Go live with OBS integration, screen sharing, and real-time chat. Stream gameplay, performances, or connect with fans.</p>
+					</div>
+					
+					<div className="feature-card">
+						<div className="feature-icon">🎙️</div>
+						<h4>Podcast Hosting</h4>
+						<p>Host episodes, distribute to directories, track analytics. Built-in recording tools and RSS feed generation.</p>
+					</div>
 
-					{/* Row 2: Distribution & Delivery */}
+					{/* Row 3: Distribution & Reach — Why they upgrade */}
 					<div className="feature-card highlight">
 						<div className="feature-icon">🌍</div>
 						<h4>Global Distribution</h4>
@@ -110,28 +137,28 @@ const Home = () => {
 					</div>
 					
 					<div className="feature-card">
-						<div className="feature-icon">🔴</div>
-						<h4>Live Streaming</h4>
-						<p>Go live with OBS integration, screen sharing, and real-time chat. Stream gameplay, performances, or connect with fans.</p>
-					</div>
-					
-					<div className="feature-card">
 						<div className="feature-icon">📻</div>
 						<h4>24/7 Radio Stations</h4>
 						<p>Create always-on radio stations. Accept song submissions, build listener communities, and monetize your broadcasts.</p>
 					</div>
-
-					{/* Row 3: Audio & Gaming */}
-					<div className="feature-card">
-						<div className="feature-icon">🎙️</div>
-						<h4>Podcast Hosting</h4>
-						<p>Host episodes, distribute to directories, track analytics. Built-in recording tools and RSS feed generation.</p>
-					</div>
 					
+					<div className="feature-card">
+						<div className="feature-icon">🔗</div>
+						<h4>Cross-Platform Sharing</h4>
+						<p>Share your StreamPireX content across all social networks. One-click posting to Instagram, Twitter, TikTok, and more.</p>
+					</div>
+
+					{/* Row 4: Gaming & Collaboration */}
 					<div className="feature-card">
 						<div className="feature-icon">🎮</div>
 						<h4>Gaming Hub</h4>
 						<p>Squad finder, team rooms, voice chat, and screen sharing. Find teammates by game, skill level, and region.</p>
+					</div>
+					
+					<div className="feature-card">
+						<div className="feature-icon">🎤</div>
+						<h4>Voice Chat Rooms</h4>
+						<p>Crystal-clear voice communication with your team. Push-to-talk, noise suppression, and private channels.</p>
 					</div>
 					
 					<div className="feature-card">
@@ -141,37 +168,12 @@ const Home = () => {
 					</div>
 					
 					<div className="feature-card">
-						<div className="feature-icon">🎤</div>
-						<h4>Voice Chat Rooms</h4>
-						<p>Crystal-clear voice communication with your team. Push-to-talk, noise suppression, and private channels.</p>
-					</div>
-
-					{/* Row 4: Social & Community */}
-					<div className="feature-card">
 						<div className="feature-icon">📨</div>
 						<h4>Game Invites</h4>
 						<p>Send and receive game invites directly in the platform. Coordinate matches without leaving StreamPireX.</p>
 					</div>
-					
-					<div className="feature-card">
-						<div className="feature-icon">👥</div>
-						<h4>Social Network</h4>
-						<p>Follow creators, like content, comment, and share. Build your audience with familiar social features.</p>
-					</div>
-					
-					<div className="feature-card">
-						<div className="feature-icon">💬</div>
-						<h4>Direct Messaging</h4>
-						<p>Real-time chat with fans and collaborators. Group chats, media sharing, and message requests.</p>
-					</div>
-					
-					<div className="feature-card">
-						<div className="feature-icon">🔗</div>
-						<h4>Cross-Platform Sharing</h4>
-						<p>Share your StreamPireX content across all social networks. One-click posting to Instagram, Twitter, TikTok, and more.</p>
-					</div>
 
-					{/* Row 5: Monetization & Analytics */}
+					{/* Row 5: Monetization & Analytics — The upsell */}
 					<div className="feature-card highlight">
 						<div className="feature-icon">💰</div>
 						<h4>Creator Marketplace</h4>
