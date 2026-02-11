@@ -4,7 +4,7 @@ eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app, session
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert, PodcastPlayHistory, PlayHistory, PostLike, PostComment, Photo, ClipSave, ClipComment, ClipCommentLike, UserWallet, WalletTransaction, CreatorPaymentSettings, StoryComment, Story, StoryView, StoryHighlight
+from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert, PodcastPlayHistory, PlayHistory, PostLike, PostComment, Photo, ClipSave, ClipComment, ClipCommentLike, UserWallet, WalletTransaction, CreatorPaymentSettings, StoryComment, Story, StoryView, StoryHighlight, ArchivedShow
 # ADD these imports
 from .steam_service import SteamService
 from datetime import datetime
@@ -36,6 +36,7 @@ from src.api.utils.revelator_api import submit_release_to_revelator
 from rq import Queue
 from redis import Redis
 from src.api.utils.tasks import send_release_to_revelator
+from .subscription_utils import get_user_plan, plan_required, check_content_limit
 from mutagen import File
 # Add this import at the top of your routes.py file
 from flask import Flask, request, jsonify, send_file, Response, redirect
@@ -1382,7 +1383,19 @@ def download_podcast_episode(episode_id):
 @jwt_required()
 def upload_podcast():
     user_id = get_jwt_identity()
-    
+
+    # ── Tier Limit Check (Podcast) ──
+    limit_check = check_content_limit(user_id, 'podcast')
+    if not limit_check["allowed"]:
+        return jsonify({
+            "error": limit_check["upgrade_message"],
+            "limit_reached": True,
+            "current_count": limit_check["current_count"],
+            "max_allowed": limit_check["max_allowed"],
+            "plan": limit_check["plan_name"],
+            "upgrade_url": "/pricing"
+        }), 403
+
     # File type validation constants
     ALLOWED_AUDIO_TYPES = {'mp3', 'wav', 'flac', 'm4a', 'aac'}
     ALLOWED_VIDEO_TYPES = {'mp4', 'mov', 'avi', 'mkv', 'webm'}
@@ -1390,33 +1403,31 @@ def upload_podcast():
     MAX_AUDIO_SIZE = 500 * 1024 * 1024  # 500MB
     MAX_VIDEO_SIZE = 2 * 1024 * 1024 * 1024  # 2GB
     MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10MB
-    
+
     def validate_file_type_and_size(file, allowed_types, max_size, file_type_name):
         """Validate file type and size"""
         if not file or not hasattr(file, 'filename') or file.filename == '':
             return None, f"No {file_type_name} file provided"
-        
-        # Check file extension (case-insensitive)
+
         if '.' not in file.filename:
             return None, f"Invalid {file_type_name} file - no extension found"
-            
+
         file_ext = file.filename.rsplit('.', 1)[1].lower()
         if file_ext not in allowed_types:
             return None, f"Invalid {file_type_name} format. Allowed: {', '.join(allowed_types)}"
-        
-        # Check file size by seeking to end
-        original_position = file.tell()  # Remember current position
-        file.seek(0, 2)  # Seek to end
+
+        original_position = file.tell()
+        file.seek(0, 2)
         file_size = file.tell()
-        file.seek(original_position)  # Reset to original position
-        
+        file.seek(original_position)
+
         if file_size > max_size:
             size_mb = max_size // (1024 * 1024)
             return None, f"{file_type_name.capitalize()} file too large. Maximum size: {size_mb}MB"
-        
+
         if file_size == 0:
             return None, f"{file_type_name.capitalize()} file is empty"
-        
+
         return True, None
 
     try:
@@ -1427,36 +1438,36 @@ def upload_podcast():
         subscription_tier = request.form.get("subscription_tier", "Free")
         streaming_enabled = request.form.get("streaming_enabled") == "true"
         scheduled_release = request.form.get("scheduled_release")
-        
+
         # Basic validation
         if not title:
             return jsonify({"error": "Podcast title is required"}), 400
-        
+
         if len(title) > 255:
             return jsonify({"error": "Title too long (max 255 characters)"}), 400
-        
+
         # Get uploaded files
         cover_art = request.files.get("cover_art")
         audio_file = request.files.get("audio")
         video_file = request.files.get("video")
-        
+
         print(f"DEBUG: Received files - Audio: {audio_file.filename if audio_file else 'None'}, Video: {video_file.filename if video_file else 'None'}, Cover: {cover_art.filename if cover_art else 'None'}")
-        
+
         # Validate that at least one media file is provided
         if not audio_file and not video_file:
             return jsonify({"error": "Either audio or video file is required"}), 400
-        
+
         # Initialize variables
         audio_url, video_url, cover_url, duration = None, None, None, None
         audio_file_name, video_file_name = None, None
-        
+
         # Validate and upload cover art (optional)
         if cover_art and cover_art.filename:
             print(f"DEBUG: Validating cover art: {cover_art.filename}")
             is_valid, error_msg = validate_file_type_and_size(cover_art, ALLOWED_IMAGE_TYPES, MAX_IMAGE_SIZE, "image")
             if error_msg:
                 return jsonify({"error": f"Cover art error: {error_msg}"}), 400
-            
+
             try:
                 cover_filename = secure_filename(cover_art.filename)
                 cover_url = uploadFile(cover_art, f"podcast_covers/{user_id}_{cover_filename}")
@@ -1464,30 +1475,29 @@ def upload_podcast():
             except Exception as e:
                 print(f"ERROR: Cover art upload failed: {e}")
                 return jsonify({"error": f"Cover art upload failed: {str(e)}"}), 500
-        
+
         # Validate and upload audio file
         if audio_file and audio_file.filename:
             print(f"DEBUG: Validating audio file: {audio_file.filename}")
             is_valid, error_msg = validate_file_type_and_size(audio_file, ALLOWED_AUDIO_TYPES, MAX_AUDIO_SIZE, "audio")
             if error_msg:
                 return jsonify({"error": f"Audio file error: {error_msg}"}), 400
-            
+
             try:
                 audio_file_name = secure_filename(audio_file.filename)
                 audio_url = uploadFile(audio_file, f"podcast_audio/{user_id}_{audio_file_name}")
                 print(f"SUCCESS: Audio uploaded to: {audio_url}")
-                
             except Exception as e:
                 print(f"ERROR: Audio upload failed: {e}")
                 return jsonify({"error": f"Audio file upload failed: {str(e)}"}), 500
-        
+
         # Validate and upload video file
         if video_file and video_file.filename:
             print(f"DEBUG: Validating video file: {video_file.filename}")
             is_valid, error_msg = validate_file_type_and_size(video_file, ALLOWED_VIDEO_TYPES, MAX_VIDEO_SIZE, "video")
             if error_msg:
                 return jsonify({"error": f"Video file error: {error_msg}"}), 400
-            
+
             try:
                 video_file_name = secure_filename(video_file.filename)
                 video_url = uploadFile(video_file, f"podcast_videos/{user_id}_{video_file_name}")
@@ -1495,7 +1505,7 @@ def upload_podcast():
             except Exception as e:
                 print(f"ERROR: Video upload failed: {e}")
                 return jsonify({"error": f"Video file upload failed: {str(e)}"}), 500
-        
+
         # Parse scheduled release date
         parsed_scheduled_release = None
         if scheduled_release:
@@ -1507,7 +1517,19 @@ def upload_podcast():
             except ValueError as ve:
                 print(f"WARNING: Invalid scheduled release date format: {scheduled_release}, error: {ve}")
                 parsed_scheduled_release = None
-        
+
+        # ── Tier Limit Check (Episodes) ──
+        episode_limit_check = check_content_limit(user_id, 'podcast_episode')
+        if not episode_limit_check["allowed"]:
+            return jsonify({
+                "error": episode_limit_check["upgrade_message"],
+                "limit_reached": True,
+                "current_count": episode_limit_check["current_count"],
+                "max_allowed": episode_limit_check["max_allowed"],
+                "plan": episode_limit_check["plan_name"],
+                "upgrade_url": "/pricing"
+            }), 403
+
         # Create podcast record
         new_podcast = Podcast(
             creator_id=user_id,
@@ -1524,15 +1546,15 @@ def upload_podcast():
             streaming_enabled=streaming_enabled,
             scheduled_release=parsed_scheduled_release
         )
-        
+
         db.session.add(new_podcast)
         db.session.flush()  # Get the podcast ID without committing
-        
+
         print(f"SUCCESS: Created podcast with ID: {new_podcast.id}")
-        
+
         # Create separate episodes for each media type
         episodes_created = []
-        
+
         # Create video episode if video was uploaded
         if video_url:
             try:
@@ -1552,7 +1574,7 @@ def upload_podcast():
                 print(f"SUCCESS: Created video episode for podcast {new_podcast.id}")
             except Exception as episode_error:
                 print(f"WARNING: Failed to create video episode: {episode_error}")
-        
+
         # Create audio episode if audio was uploaded
         if audio_url:
             try:
@@ -1572,11 +1594,11 @@ def upload_podcast():
                 print(f"SUCCESS: Created audio episode for podcast {new_podcast.id}")
             except Exception as episode_error:
                 print(f"WARNING: Failed to create audio episode: {episode_error}")
-        
+
         # Commit all changes
         db.session.commit()
         print(f"SUCCESS: All changes committed to database")
-        
+
         # Prepare response
         response_data = {
             "message": "Podcast uploaded successfully",
@@ -1591,7 +1613,7 @@ def upload_podcast():
                 "streaming_enabled": streaming_enabled
             }
         }
-        
+
         # Add URLs to response if they exist
         if audio_url:
             response_data["audio_url"] = audio_url
@@ -1599,13 +1621,13 @@ def upload_podcast():
             response_data["video_url"] = video_url
         if cover_url:
             response_data["cover_url"] = cover_url
-        
+
         return jsonify(response_data), 201
-        
+
     except Exception as e:
         # Rollback any database changes
         db.session.rollback()
-        
+
         # Log the full error for debugging
         import traceback
         print("=== PODCAST UPLOAD ERROR ===")
@@ -1613,7 +1635,7 @@ def upload_podcast():
         print("Traceback:")
         traceback.print_exc()
         print("=== END ERROR ===")
-        
+
         # Return error to client
         return jsonify({
             "error": "Podcast upload failed. Please try again.",
@@ -1966,14 +1988,26 @@ def add_audio_to_radio():
 def create_radio_station_fixed():
     """Create radio station with proper Cloudinary integration"""
     user_id = get_jwt_identity()
-    
+
+    # ── Tier Limit Check ──
+    limit_check = check_content_limit(user_id, 'radio_station')
+    if not limit_check["allowed"]:
+        return jsonify({
+            "error": limit_check["upgrade_message"],
+            "limit_reached": True,
+            "current_count": limit_check["current_count"],
+            "max_allowed": limit_check["max_allowed"],
+            "plan": limit_check["plan_name"],
+            "upgrade_url": "/pricing"
+        }), 403
+
     try:
         # Get form data
         data = request.form.to_dict()
         name = data.get('stationName') or data.get('name')
         description = data.get('description', '')
         category = data.get('category', 'Music')
-        
+
         if not name:
             return jsonify({"error": "Station name is required"}), 400
 
@@ -2016,13 +2050,13 @@ def create_radio_station_fixed():
             user_id=user_id,
             name=name,
             description=description,
-            logo_url=logo_url,                    # ✅ Cloudinary URL
-            cover_image_url=cover_url,            # ✅ Cloudinary URL
-            stream_url=initial_mix_url,           # ✅ Primary audio URL
-            loop_audio_url=initial_mix_url,       # ✅ Loop audio URL  
-            audio_url=initial_mix_url,            # ✅ Backup audio URL
+            logo_url=logo_url,
+            cover_image_url=cover_url,
+            stream_url=initial_mix_url,
+            loop_audio_url=initial_mix_url,
+            audio_url=initial_mix_url,
             is_public=True,
-            is_live=True if initial_mix_url else False,  # Only live if has audio
+            is_live=True if initial_mix_url else False,
             genres=[category] if category else ["Music"],
             creator_name=creator_name,
             created_at=datetime.utcnow(),
@@ -2030,20 +2064,20 @@ def create_radio_station_fixed():
         )
 
         db.session.add(new_station)
-        db.session.flush()  # Get station ID
+        db.session.flush()
 
         # ✅ Create Audio record if initial mix was uploaded
         if initial_mix_url:
             mix_title = data.get("mixTitle", f"{name} - Initial Mix")
-            
+
             initial_audio = Audio(
                 user_id=user_id,
                 title=mix_title,
                 description=data.get("mixDescription", ""),
-                file_url=initial_mix_url,  # ✅ Cloudinary URL
+                file_url=initial_mix_url,
                 uploaded_at=datetime.utcnow()
             )
-            
+
             db.session.add(initial_audio)
 
         db.session.commit()
@@ -2051,13 +2085,14 @@ def create_radio_station_fixed():
         return jsonify({
             "message": "Radio station created successfully!",
             "station": new_station.serialize(),
-            "redirect_url": f"/radio/{new_station.id}"
+            "redirect_url": f"/radio/station/{new_station.id}"
         }), 201
 
     except Exception as e:
         db.session.rollback()
         print(f"❌ Station creation error: {str(e)}")
         return jsonify({"error": f"Failed to create station: {str(e)}"}), 500
+
 
 @api.route("/radio/like", methods=["POST"])
 @jwt_required()
@@ -4260,6 +4295,18 @@ def update_social_links():
 def create_radio_station_profile():
     """Create radio station with comprehensive DJ mix features and royalty tracking"""
     user_id = get_jwt_identity()
+
+    # ── Tier Limit Check ──
+    limit_check = check_content_limit(user_id, 'radio_station')
+    if not limit_check["allowed"]:
+        return jsonify({
+            "error": limit_check["upgrade_message"],
+            "limit_reached": True,
+            "current_count": limit_check["current_count"],
+            "max_allowed": limit_check["max_allowed"],
+            "plan": limit_check["plan_name"],
+            "upgrade_url": "/pricing"
+        }), 403
     
     try:
         # Get form data
@@ -5037,6 +5084,18 @@ def create_station():
     data = request.json
     user_id = get_jwt_identity()
 
+    # ── Tier Limit Check ──
+    limit_check = check_content_limit(user_id, 'radio_station')
+    if not limit_check["allowed"]:
+        return jsonify({
+            "error": limit_check["upgrade_message"],
+            "limit_reached": True,
+            "current_count": limit_check["current_count"],
+            "max_allowed": limit_check["max_allowed"],
+            "plan": limit_check["plan_name"],
+            "upgrade_url": "/pricing"
+        }), 403
+
     new_station = RadioStation(
         name=data["name"],
         owner_id=user_id,
@@ -5048,14 +5107,12 @@ def create_station():
     db.session.add(new_station)
     db.session.commit()
 
-    return jsonify({"message": "Radio station created!", "station": new_station.serialize()}), 201
-
-class ArchivedShow(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'))
-    title = db.Column(db.String(100))
-    file_path = db.Column(db.String(255))
-
+    return jsonify({
+        "message": "Radio station created!",
+        "station": new_station.serialize(),
+        "redirect_url": f"/radio/{new_station.id}"
+    }), 201
+                    
 
 @api.route('/podcast/dashboard', methods=['GET'])
 @jwt_required()
@@ -5362,6 +5419,19 @@ def play_radio_music(station_id):
 @jwt_required()
 def create_indie_station():
     user_id = get_jwt_identity()
+
+    # ── Tier Limit Check ──
+    limit_check = check_content_limit(user_id, 'radio_station')
+    if not limit_check["allowed"]:
+        return jsonify({
+            "error": limit_check["upgrade_message"],
+            "limit_reached": True,
+            "current_count": limit_check["current_count"],
+            "max_allowed": limit_check["max_allowed"],
+            "plan": limit_check["plan_name"],
+            "upgrade_url": "/pricing"
+        }), 403
+
     data = request.json
     station_name = data.get("name")
 
@@ -6995,19 +7065,31 @@ def create_podcast():
     """Simple podcast creation for API tests - your upload_podcast stays the same"""
     try:
         user_id = get_jwt_identity()
+
+        # ── Tier Limit Check ──
+        limit_check = check_content_limit(user_id, 'podcast')
+        if not limit_check["allowed"]:
+            return jsonify({
+                "error": limit_check["upgrade_message"],
+                "limit_reached": True,
+                "current_count": limit_check["current_count"],
+                "max_allowed": limit_check["max_allowed"],
+                "plan": limit_check["plan_name"],
+                "upgrade_url": "/pricing"
+            }), 403
+
         data = request.get_json()
-        
+
         title = data.get('title')
         if not title:
             return jsonify({"error": "Title is required"}), 400
-        
+
         # Create basic podcast using your existing model
         new_podcast = Podcast(
             creator_id=user_id,
             title=title,
             description=data.get('description', ''),
             category=data.get('category', 'General'),
-            # Use your model's defaults
             duration=0,
             monetization_type='free',
             subscription_tier='Free',
@@ -7022,15 +7104,15 @@ def create_podcast():
             creator_earnings=0.85,
             uploaded_at=datetime.utcnow()
         )
-        
+
         db.session.add(new_podcast)
         db.session.commit()
-        
+
         return jsonify({
             "message": "Podcast created successfully",
             "podcast": new_podcast.serialize()
         }), 201
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Failed to create podcast"}), 500
@@ -10494,6 +10576,19 @@ def review_submission(submission_id):
 def create_radio_station_with_loop():
     """Create radio station with immediate audio loop setup"""
     user_id = get_jwt_identity()
+
+    # ── Tier Limit Check ──
+    limit_check = check_content_limit(user_id, 'radio_station')
+    if not limit_check["allowed"]:
+        return jsonify({
+            "error": limit_check["upgrade_message"],
+            "limit_reached": True,
+            "current_count": limit_check["current_count"],
+            "max_allowed": limit_check["max_allowed"],
+            "plan": limit_check["plan_name"],
+            "upgrade_url": "/pricing"
+        }), 403
+
     data = request.get_json()
     
     # Create radio station
@@ -10564,6 +10659,42 @@ def get_available_tracks_for_station(user_id, preferred_genres=None):
             user_tracks = filtered_tracks
     
     return user_tracks[:20]  # Limit to 20 tracks for the loop
+
+
+def create_playlist_schedule(tracks):
+    """Create playlist schedule from audio tracks"""
+    schedule_tracks = []
+    
+    for track in tracks:
+        # Get duration (you might need to calculate this if not stored)
+        duration = get_track_duration(track)
+        
+        track_info = {
+            "id": track.id,
+            "title": track.title,
+            "artist": getattr(track, 'artist_name', 'Unknown Artist'),
+            "duration": duration,
+            "file_url": track.file_url
+        }
+        schedule_tracks.append(track_info)
+    
+    return {
+        "tracks": schedule_tracks,
+        "total_tracks": len(schedule_tracks),
+        "created_at": datetime.utcnow().isoformat()
+    }
+
+
+def get_track_duration(track):
+    """Get track duration in MM:SS format"""
+    if hasattr(track, 'duration') and track.duration:
+        # If duration is in seconds
+        minutes = track.duration // 60
+        seconds = track.duration % 60
+        return f"{minutes}:{seconds:02d}"
+    
+    # Default duration if not available
+    return "3:30"
 
 
 def create_playlist_schedule(tracks):
@@ -23152,6 +23283,82 @@ def get_user_highlights(target_user_id):
         print(f"Get highlights error: {e}")
         return jsonify({'error': 'Failed to get highlights'}), 500
 
+
+# ============ ARCHIVED SHOWS ============
+
+@api.route('/radio/<int:station_id>/archives', methods=['GET'])
+def get_archived_shows(station_id):
+    """Get all archived shows for a station"""
+    shows = ArchivedShow.query.filter_by(
+        station_id=station_id, is_public=True
+    ).order_by(ArchivedShow.recorded_at.desc()).all()
+    return jsonify([show.serialize() for show in shows]), 200
+
+
+@api.route('/radio/<int:station_id>/archives', methods=['POST'])
+@jwt_required()
+def create_archived_show(station_id):
+    """Archive a show/broadcast"""
+    user_id = get_jwt_identity()
+
+    station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+    if not station:
+        return jsonify({"error": "Station not found or unauthorized"}), 404
+
+    data = request.form.to_dict()
+    file_url = None
+    cover_url = None
+
+    # Handle audio upload
+    if 'audio' in request.files:
+        audio_file = request.files['audio']
+        if audio_file and audio_file.filename:
+            filename = secure_filename(audio_file.filename)
+            file_url = uploadFile(audio_file, f"archives/{user_id}_{filename}")
+
+    # Handle cover upload
+    if 'cover' in request.files:
+        cover_file = request.files['cover']
+        if cover_file and cover_file.filename:
+            filename = secure_filename(cover_file.filename)
+            cover_url = uploadFile(cover_file, f"archive_covers/{user_id}_{filename}")
+
+    show = ArchivedShow(
+        station_id=station_id,
+        user_id=user_id,
+        title=data.get("title", "Untitled Show"),
+        description=data.get("description", ""),
+        file_url=file_url,
+        cover_image_url=cover_url,
+        duration=int(data.get("duration", 0)) if data.get("duration") else None,
+        dj_name=data.get("dj_name", ""),
+        genre=data.get("genre", ""),
+        recorded_at=datetime.utcnow(),
+        created_at=datetime.utcnow()
+    )
+
+    db.session.add(show)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Show archived!",
+        "show": show.serialize()
+    }), 201
+
+
+@api.route('/radio/archives/<int:show_id>', methods=['DELETE'])
+@jwt_required()
+def delete_archived_show(show_id):
+    """Delete an archived show"""
+    user_id = get_jwt_identity()
+    show = ArchivedShow.query.get(show_id)
+
+    if not show or show.user_id != user_id:
+        return jsonify({"error": "Not found or unauthorized"}), 404
+
+    db.session.delete(show)
+    db.session.commit()
+    return jsonify({"message": "Archived show deleted"}), 200
 
 # =============================================================================
 # CLEANUP EXPIRED STORIES (Run periodically)

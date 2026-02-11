@@ -24,6 +24,7 @@ import TheGrooveMechanicsImg from "../../img/TheGrooveMechanics.png";
 import IndigoRainImg from "../../img/IndigoRain.png";
 import ZaraMoonlightImg from "../../img/ZaraMoonlight.png";
 import TipJar from "./TipJar";
+import UniversalSocialShare from "./UniversalSocialShare";
 
 const RadioStationDetailPage = () => {
   const { id, type } = useParams();
@@ -46,6 +47,9 @@ const RadioStationDetailPage = () => {
 
   // NEW: Current user state
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Social share state
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Refs
   const audioRef = useRef(null);
@@ -586,7 +590,6 @@ const RadioStationDetailPage = () => {
   }, []);
 
   // Improved play/pause handler
-  // Improved play/pause handler
   const handlePlayPause = useCallback(async () => {
     if (type === 'static') {
       setIsPlaying(!isPlaying);
@@ -987,6 +990,38 @@ const RadioStationDetailPage = () => {
               {connectionStatus !== 'disconnected' && renderConnectionStatus()}
             </div>
 
+            {/* Share Station Button */}
+            <div style={{ marginTop: '12px' }}>
+              <button
+                onClick={() => setShowShareModal(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #00b894, #00cec9)',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '10px 24px',
+                  borderRadius: '25px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 4px 15px rgba(0, 184, 148, 0.3)',
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 184, 148, 0.4)';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 184, 148, 0.3)';
+                }}
+              >
+                🚀 Share Station
+              </button>
+            </div>
+
             {/* NEW: Owner/Listener Controls */}
             {type !== 'static' && (
               <div className="station-action-buttons">
@@ -1231,6 +1266,21 @@ const RadioStationDetailPage = () => {
           )}
         </div>
       </div>
+
+      {/* Social Share Modal */}
+      <UniversalSocialShare
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        contentType="radio"
+        contentData={{
+          title: station?.name || 'Radio Station',
+          description: station?.description || '',
+          url: window.location.href,
+          image: station?.image || station?.cover_image_url || station?.logo_url,
+          genre: station?.genre,
+          listeners: station?.listeners,
+        }}
+      />
     </div>
   );
 };

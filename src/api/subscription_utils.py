@@ -44,6 +44,278 @@ def plan_required(required_feature):
         return decorated_function
     return decorator
 
+
+# =============================================================================
+# CONTENT LIMIT ENFORCEMENT
+# =============================================================================
+# Enforces tier limits for radio stations, podcasts, and podcast episodes.
+#
+# Tier Limits (from PricingPlans):
+# | Content           | Free | Starter | Creator | Pro       |
+# |-------------------|------|---------|---------|-----------|
+# | Radio Stations    | 0    | 1       | 3       | Unlimited |
+# | Podcast Shows     | 0    | 2       | 10      | Unlimited |
+# | Podcast Episodes  | 0    | 5       | Unlimited| Unlimited|
+#
+# Usage in routes.py:
+#   from .subscription_utils import check_content_limit
+#
+#   limit_check = check_content_limit(user_id, 'radio_station')
+#   if not limit_check["allowed"]:
+#       return jsonify({
+#           "error": limit_check["upgrade_message"],
+#           "limit_reached": True,
+#           "current_count": limit_check["current_count"],
+#           "max_allowed": limit_check["max_allowed"],
+#           "plan": limit_check["plan_name"],
+#           "upgrade_url": "/pricing"
+#       }), 403
+# =============================================================================
+
+def check_content_limit(user_id, content_type):
+    """
+    Check if user can create more content based on their subscription tier.
+    
+    Args:
+        user_id: The user's ID
+        content_type: 'radio_station', 'podcast', or 'podcast_episode'
+    
+    Returns:
+        dict: {
+            "allowed": bool,
+            "current_count": int,
+            "max_allowed": int or "unlimited",
+            "plan_name": str,
+            "upgrade_message": str or None
+        }
+    """
+    from .models import RadioStation, Podcast, PodcastEpisode
+
+    plan = get_user_plan(user_id)
+
+    if not plan:
+        plan_name = "Free"
+        max_radio = 0
+        max_podcast_episodes = 0
+        includes_podcasts = False
+    else:
+        plan_name = plan.name
+        max_radio = getattr(plan, 'max_radio_stations', 0) or 0
+        max_podcast_episodes = getattr(plan, 'max_podcast_episodes', 0) or 0
+        includes_podcasts = getattr(plan, 'includes_podcasts', False)
+
+    # ─────────────────────────────────────────────────────────
+    # RADIO STATIONS
+    # ─────────────────────────────────────────────────────────
+    if content_type == 'radio_station':
+        current_count = RadioStation.query.filter_by(user_id=user_id).count()
+
+        # -1 means unlimited (Pro tier)
+        if max_radio == -1:
+            return {
+                "allowed": True,
+                "current_count": current_count,
+                "max_allowed": "unlimited",
+                "plan_name": plan_name,
+                "upgrade_message": None
+            }
+
+        if current_count >= max_radio:
+            if max_radio == 0:
+                upgrade_msg = (
+                    f"Your {plan_name} plan doesn't include radio stations. "
+                    f"Upgrade to Starter ($9.99/mo) for 1 station, "
+                    f"Creator ($19.99/mo) for 3 stations, "
+                    f"or Pro ($29.99/mo) for unlimited stations."
+                )
+            elif max_radio == 1:
+                upgrade_msg = (
+                    f"Your {plan_name} plan allows 1 radio station and you already have {current_count}. "
+                    f"Upgrade to Creator ($19.99/mo) for 3 stations "
+                    f"or Pro ($29.99/mo) for unlimited stations."
+                )
+            elif max_radio == 3:
+                upgrade_msg = (
+                    f"Your {plan_name} plan allows 3 radio stations and you already have {current_count}. "
+                    f"Upgrade to Pro ($29.99/mo) for unlimited stations."
+                )
+            else:
+                upgrade_msg = (
+                    f"You've reached your limit of {max_radio} radio stations on the {plan_name} plan. "
+                    f"Upgrade your plan for more stations."
+                )
+
+            return {
+                "allowed": False,
+                "current_count": current_count,
+                "max_allowed": max_radio,
+                "plan_name": plan_name,
+                "upgrade_message": upgrade_msg
+            }
+
+        return {
+            "allowed": True,
+            "current_count": current_count,
+            "max_allowed": max_radio,
+            "plan_name": plan_name,
+            "upgrade_message": None
+        }
+
+    # ─────────────────────────────────────────────────────────
+    # PODCASTS (the show itself)
+    # ─────────────────────────────────────────────────────────
+    elif content_type == 'podcast':
+        # Count podcasts owned by user (try multiple FK column names)
+        current_count = 0
+        for fk_field in ['creator_id', 'host_id', 'user_id']:
+            try:
+                current_count = Podcast.query.filter_by(**{fk_field: user_id}).count()
+                break
+            except Exception:
+                continue
+
+        # Plan doesn't include podcasts at all
+        if not includes_podcasts:
+            return {
+                "allowed": False,
+                "current_count": current_count,
+                "max_allowed": 0,
+                "plan_name": plan_name,
+                "upgrade_message": (
+                    f"Your {plan_name} plan doesn't include podcasts. "
+                    f"Upgrade to Starter ($9.99/mo) to create podcasts."
+                )
+            }
+
+        # Check max_podcasts if the column exists on the plan
+        max_podcasts = getattr(plan, 'max_podcasts', None) if plan else None
+
+        # If column doesn't exist, derive from plan name
+        if max_podcasts is None:
+            podcast_limits = {
+                "free": 0,
+                "starter": 2,
+                "creator": 10,
+                "pro": -1
+            }
+            max_podcasts = podcast_limits.get(plan_name.lower(), 2)
+
+        # Unlimited
+        if max_podcasts == -1:
+            return {
+                "allowed": True,
+                "current_count": current_count,
+                "max_allowed": "unlimited",
+                "plan_name": plan_name,
+                "upgrade_message": None
+            }
+
+        # At or over limit
+        if current_count >= max_podcasts:
+            if max_podcasts <= 2:
+                upgrade_msg = (
+                    f"You've reached your limit of {max_podcasts} podcasts on the {plan_name} plan. "
+                    f"Upgrade to Creator ($19.99/mo) for 10 podcasts "
+                    f"or Pro ($29.99/mo) for unlimited."
+                )
+            else:
+                upgrade_msg = (
+                    f"You've reached your limit of {max_podcasts} podcasts on the {plan_name} plan. "
+                    f"Upgrade to Pro ($29.99/mo) for unlimited podcasts."
+                )
+
+            return {
+                "allowed": False,
+                "current_count": current_count,
+                "max_allowed": max_podcasts,
+                "plan_name": plan_name,
+                "upgrade_message": upgrade_msg
+            }
+
+        return {
+            "allowed": True,
+            "current_count": current_count,
+            "max_allowed": max_podcasts,
+            "plan_name": plan_name,
+            "upgrade_message": None
+        }
+
+    # ─────────────────────────────────────────────────────────
+    # PODCAST EPISODES
+    # ─────────────────────────────────────────────────────────
+    elif content_type == 'podcast_episode':
+        # Count total episodes across all user's podcasts
+        current_count = 0
+        user_podcasts = []
+        for fk_field in ['creator_id', 'host_id', 'user_id']:
+            try:
+                user_podcasts = Podcast.query.filter_by(**{fk_field: user_id}).all()
+                if user_podcasts:
+                    break
+            except Exception:
+                continue
+
+        for podcast in user_podcasts:
+            current_count += PodcastEpisode.query.filter_by(podcast_id=podcast.id).count()
+
+        # Unlimited
+        if max_podcast_episodes == -1:
+            return {
+                "allowed": True,
+                "current_count": current_count,
+                "max_allowed": "unlimited",
+                "plan_name": plan_name,
+                "upgrade_message": None
+            }
+
+        # At or over limit
+        if current_count >= max_podcast_episodes:
+            if max_podcast_episodes == 0:
+                upgrade_msg = (
+                    f"Your {plan_name} plan doesn't include podcast episodes. "
+                    f"Upgrade to Starter ($9.99/mo) for 5 episodes."
+                )
+            elif max_podcast_episodes == 5:
+                upgrade_msg = (
+                    f"You've used all {max_podcast_episodes} episodes on your {plan_name} plan. "
+                    f"Upgrade to Creator ($19.99/mo) for unlimited episodes."
+                )
+            else:
+                upgrade_msg = (
+                    f"You've reached your limit of {max_podcast_episodes} episodes on the {plan_name} plan. "
+                    f"Upgrade for more."
+                )
+
+            return {
+                "allowed": False,
+                "current_count": current_count,
+                "max_allowed": max_podcast_episodes,
+                "plan_name": plan_name,
+                "upgrade_message": upgrade_msg
+            }
+
+        return {
+            "allowed": True,
+            "current_count": current_count,
+            "max_allowed": max_podcast_episodes,
+            "plan_name": plan_name,
+            "upgrade_message": None
+        }
+
+    # Unknown content type - allow by default
+    return {
+        "allowed": True,
+        "current_count": 0,
+        "max_allowed": "unknown",
+        "plan_name": plan_name if plan else "Free",
+        "upgrade_message": None
+    }
+
+
+# =============================================================================
+# EXISTING UPLOAD LIMIT FUNCTIONS
+# =============================================================================
+
 def check_upload_limit(user_id, content_type):
     """Check if user has reached their monthly upload limit"""
     from .models import Music, Video, db
