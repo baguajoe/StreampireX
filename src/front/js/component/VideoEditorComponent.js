@@ -3547,18 +3547,7 @@ TIMELINE
       </div>
 
       {/* Top Toolbar Bar */}
-      <div className="editor-menu-bar" style={{
-        display: 'flex',
-        alignItems: 'center',
-        padding: '6px 12px',
-        background: '#1a1a1a',
-        borderBottom: '1px solid #333',
-        minHeight: '48px',
-        gap: '6px',
-        flexWrap: 'wrap',
-        width: '100%',
-        boxSizing: 'border-box'
-      }}>
+      <div className="editor-menu-bar">
         {/* Left Section - Project Info */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px' }}>
           <h2 style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap' }}>{project.title}</h2>
@@ -4527,19 +4516,14 @@ TIMELINE
         <div className="editor-center-panel">
           {/* SOURCE MONITOR & PROGRAM MONITOR */}
           <div className="preview-area-container">
-            <div className="preview-area" style={{ padding: '10px' }}>
+            <div className="preview-area">
               <div className="preview-container">
-                <div style={{
-                  height: '32px',
-                  background: '#2f2f2f',
-                  borderBottom: '1px solid #3a3a3a',
+                <div className="monitor-header" style={{
                   display: 'flex',
                   alignItems: 'center',
-                  padding: '0 10px',
                   fontSize: '11px',
                   fontWeight: 600,
-                  color: '#a7a7a7',
-                  borderRadius: '6px 6px 0 0'
+                  color: '#a7a7a7'
                 }}>
                   SOURCE MONITOR
                 </div>
@@ -4663,20 +4647,15 @@ TIMELINE
             </div>
 
             {/* PROGRAM MONITOR */}
-            <div className="preview-area" style={{ padding: '10px' }}>
+            <div className="preview-area">
               <div className="preview-container">
-                <div style={{
-                  height: '32px',
-                  background: '#2f2f2f',
-                  borderBottom: '1px solid #3a3a3a',
+                <div className="monitor-header" style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '0 10px',
                   fontSize: '11px',
                   fontWeight: 600,
-                  color: 'white',
-                  borderRadius: '6px 6px 0 0'
+                  color: 'white'
                 }}>
                   <span>PROGRAM MONITOR</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -6193,632 +6172,642 @@ TIMELINE
       </div>
 
       {/* Enhanced Effects Panel */}
-      {showEffectsPanel && (
-        <div className="effects-panel-enhanced">
-          <div className="effects-panel-header">
-            <h4>
-              {selectedClip
-                ? `Effects Stack - ${selectedClip.title}`
-                : selectedTransition
-                  ? 'Transition Properties'
-                  : 'Effects Panel'
-              }
-            </h4>
-            <button onClick={closeEffectsPanel} className="close-panel-btn">
-              <X size={14} />
-            </button>
-          </div>
+      {
+        showEffectsPanel && (
+          <div className="effects-panel-enhanced">
+            <div className="effects-panel-header">
+              <h4>
+                {selectedClip
+                  ? `Effects Stack - ${selectedClip.title}`
+                  : selectedTransition
+                    ? 'Transition Properties'
+                    : 'Effects Panel'
+                }
+              </h4>
+              <button onClick={closeEffectsPanel} className="close-panel-btn">
+                <X size={14} />
+              </button>
+            </div>
 
-          {selectedClip ? (
-            <div className="effects-panel-content-enhanced">
-              {/* Effects Stack */}
-              <div className="effects-stack">
-                <div className="stack-header">
-                  <h5>Effects Stack ({selectedClip.effects?.length || 0})</h5>
-                  <div className="stack-controls">
-                    <button className="stack-btn" title="Reset All">
-                      <RefreshCw size={12} />
-                    </button>
-                    <button className="stack-btn" title="Copy Effects">
-                      <Copy size={12} />
-                    </button>
+            {selectedClip ? (
+              <div className="effects-panel-content-enhanced">
+                {/* Effects Stack */}
+                <div className="effects-stack">
+                  <div className="stack-header">
+                    <h5>Effects Stack ({selectedClip.effects?.length || 0})</h5>
+                    <div className="stack-controls">
+                      <button className="stack-btn" title="Reset All">
+                        <RefreshCw size={12} />
+                      </button>
+                      <button className="stack-btn" title="Copy Effects">
+                        <Copy size={12} />
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                {selectedClip.effects && selectedClip.effects.length > 0 ? (
-                  <div className="applied-effects-list">
-                    {selectedClip.effects.map((appliedEffect, index) => {
-                      const effectData = effects.find(e => e.id === appliedEffect.id);
-                      return (
-                        <div key={appliedEffect.id} className="applied-effect-item-enhanced">
-                          <div className="effect-item-header">
-                            <div className="effect-info-left">
-                              <button
-                                className={`effect-toggle ${appliedEffect.enabled ? 'enabled' : 'disabled'}`}
-                                onClick={() => toggleEffect(selectedClip.id, appliedEffect.id)}
-                                title={appliedEffect.enabled ? 'Disable Effect' : 'Enable Effect'}
-                              >
-                                {appliedEffect.enabled ? <Eye size={12} /> : <EyeOff size={12} />}
-                              </button>
-                              <div className="effect-details">
-                                <span className="effect-name">{effectData?.name || appliedEffect.id}</span>
-                                <span className="effect-category">{effectData?.category || 'Unknown'}</span>
+                  {selectedClip.effects && selectedClip.effects.length > 0 ? (
+                    <div className="applied-effects-list">
+                      {selectedClip.effects.map((appliedEffect, index) => {
+                        const effectData = effects.find(e => e.id === appliedEffect.id);
+                        return (
+                          <div key={appliedEffect.id} className="applied-effect-item-enhanced">
+                            <div className="effect-item-header">
+                              <div className="effect-info-left">
+                                <button
+                                  className={`effect-toggle ${appliedEffect.enabled ? 'enabled' : 'disabled'}`}
+                                  onClick={() => toggleEffect(selectedClip.id, appliedEffect.id)}
+                                  title={appliedEffect.enabled ? 'Disable Effect' : 'Enable Effect'}
+                                >
+                                  {appliedEffect.enabled ? <Eye size={12} /> : <EyeOff size={12} />}
+                                </button>
+                                <div className="effect-details">
+                                  <span className="effect-name">{effectData?.name || appliedEffect.id}</span>
+                                  <span className="effect-category">{effectData?.category || 'Unknown'}</span>
+                                </div>
+                              </div>
+                              <div className="effect-controls-right">
+                                <span className="effect-value">{appliedEffect.value}%</span>
+                                <button
+                                  className="effect-remove"
+                                  onClick={() => removeEffect(selectedClip.id, appliedEffect.id)}
+                                  title="Remove Effect"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
                               </div>
                             </div>
-                            <div className="effect-controls-right">
-                              <span className="effect-value">{appliedEffect.value}%</span>
-                              <button
-                                className="effect-remove"
-                                onClick={() => removeEffect(selectedClip.id, appliedEffect.id)}
-                                title="Remove Effect"
-                              >
-                                <Trash2 size={12} />
-                              </button>
+
+                            <div className="effect-parameters">
+                              <div className="parameter-row">
+                                <label>Intensity</label>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={appliedEffect.value}
+                                  onChange={(e) => applyEffect(selectedClip.id, appliedEffect.id, e.target.value)}
+                                  className="effect-slider-enhanced"
+                                  disabled={!appliedEffect.enabled}
+                                />
+                              </div>
+
+                              {/* Specific effect parameters */}
+                              {effectData?.category === 'colorGrading' && (
+                                <>
+                                  <div className="parameter-row">
+                                    <label>Highlights</label>
+                                    <input type="range" min="-100" max="100" defaultValue="0" className="effect-slider-enhanced" />
+                                  </div>
+                                  <div className="parameter-row">
+                                    <label>Shadows</label>
+                                    <input type="range" min="-100" max="100" defaultValue="0" className="effect-slider-enhanced" />
+                                  </div>
+                                  <div className="parameter-row">
+                                    <label>Midtones</label>
+                                    <input type="range" min="-100" max="100" defaultValue="0" className="effect-slider-enhanced" />
+                                  </div>
+                                </>
+                              )}
+
+                              {effectData?.category === 'blur' && (
+                                <>
+                                  <div className="parameter-row">
+                                    <label>Blur Radius</label>
+                                    <input type="range" min="0" max="50" defaultValue="5" className="effect-slider-enhanced" />
+                                  </div>
+                                  <div className="parameter-row">
+                                    <label>Quality</label>
+                                    <select className="effect-select">
+                                      <option>Low</option>
+                                      <option>Medium</option>
+                                      <option>High</option>
+                                    </select>
+                                  </div>
+                                </>
+                              )}
+
+                              {effectData?.category === 'keying' && (
+                                <>
+                                  <div className="parameter-row">
+                                    <label>Key Color</label>
+                                    <input type="color" defaultValue="#00ff00" className="color-picker" />
+                                  </div>
+                                  <div className="parameter-row">
+                                    <label>Tolerance</label>
+                                    <input type="range" min="0" max="100" defaultValue="20" className="effect-slider-enhanced" />
+                                  </div>
+                                  <div className="parameter-row">
+                                    <label>Edge Feather</label>
+                                    <input type="range" min="0" max="50" defaultValue="5" className="effect-slider-enhanced" />
+                                  </div>
+                                </>
+                              )}
                             </div>
                           </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="no-effects-message">
+                      <Wand2 size={24} />
+                      <p>No effects applied</p>
+                      <span>Drag effects from the left panel</span>
+                    </div>
+                  )}
+                </div>
 
-                          <div className="effect-parameters">
-                            <div className="parameter-row">
-                              <label>Intensity</label>
-                              <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={appliedEffect.value}
-                                onChange={(e) => applyEffect(selectedClip.id, appliedEffect.id, e.target.value)}
-                                className="effect-slider-enhanced"
-                                disabled={!appliedEffect.enabled}
-                              />
-                            </div>
-
-                            {/* Specific effect parameters */}
-                            {effectData?.category === 'colorGrading' && (
-                              <>
-                                <div className="parameter-row">
-                                  <label>Highlights</label>
-                                  <input type="range" min="-100" max="100" defaultValue="0" className="effect-slider-enhanced" />
-                                </div>
-                                <div className="parameter-row">
-                                  <label>Shadows</label>
-                                  <input type="range" min="-100" max="100" defaultValue="0" className="effect-slider-enhanced" />
-                                </div>
-                                <div className="parameter-row">
-                                  <label>Midtones</label>
-                                  <input type="range" min="-100" max="100" defaultValue="0" className="effect-slider-enhanced" />
-                                </div>
-                              </>
-                            )}
-
-                            {effectData?.category === 'blur' && (
-                              <>
-                                <div className="parameter-row">
-                                  <label>Blur Radius</label>
-                                  <input type="range" min="0" max="50" defaultValue="5" className="effect-slider-enhanced" />
-                                </div>
-                                <div className="parameter-row">
-                                  <label>Quality</label>
-                                  <select className="effect-select">
-                                    <option>Low</option>
-                                    <option>Medium</option>
-                                    <option>High</option>
-                                  </select>
-                                </div>
-                              </>
-                            )}
-
-                            {effectData?.category === 'keying' && (
-                              <>
-                                <div className="parameter-row">
-                                  <label>Key Color</label>
-                                  <input type="color" defaultValue="#00ff00" className="color-picker" />
-                                </div>
-                                <div className="parameter-row">
-                                  <label>Tolerance</label>
-                                  <input type="range" min="0" max="100" defaultValue="20" className="effect-slider-enhanced" />
-                                </div>
-                                <div className="parameter-row">
-                                  <label>Edge Feather</label>
-                                  <input type="range" min="0" max="50" defaultValue="5" className="effect-slider-enhanced" />
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
+                {/* Quick Apply Effects */}
+                <div className="quick-apply-section">
+                  <h5>Quick Apply</h5>
+                  <div className="quick-effects-grid-enhanced">
+                    {effects.filter(effect =>
+                      selectedClip.type === 'video' ? videoEffects.includes(effect) : audioEffects.includes(effect)
+                    ).slice(0, 8).map(effect => {
+                      const Icon = effect.icon;
+                      return (
+                        <button
+                          key={effect.id}
+                          className="quick-effect-btn-enhanced"
+                          onClick={() => applyEffect(selectedClip.id, effect.id, 50)}
+                          title={effect.description}
+                        >
+                          <Icon size={14} />
+                          <span>{effect.name}</span>
+                        </button>
                       );
                     })}
                   </div>
-                ) : (
-                  <div className="no-effects-message">
-                    <Wand2 size={24} />
-                    <p>No effects applied</p>
-                    <span>Drag effects from the left panel</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Quick Apply Effects */}
-              <div className="quick-apply-section">
-                <h5>Quick Apply</h5>
-                <div className="quick-effects-grid-enhanced">
-                  {effects.filter(effect =>
-                    selectedClip.type === 'video' ? videoEffects.includes(effect) : audioEffects.includes(effect)
-                  ).slice(0, 8).map(effect => {
-                    const Icon = effect.icon;
-                    return (
-                      <button
-                        key={effect.id}
-                        className="quick-effect-btn-enhanced"
-                        onClick={() => applyEffect(selectedClip.id, effect.id, 50)}
-                        title={effect.description}
-                      >
-                        <Icon size={14} />
-                        <span>{effect.name}</span>
-                      </button>
-                    );
-                  })}
                 </div>
-              </div>
 
-              {/* Presets */}
-              <div className="presets-section">
-                <h5>Effect Presets</h5>
-                <div className="preset-list">
-                  {selectedClip && selectedClip.type === 'audio' ? (
-                    <>
-                      {Object.keys(audioPresets).map(presetName => (
+                {/* Presets */}
+                <div className="presets-section">
+                  <h5>Effect Presets</h5>
+                  <div className="preset-list">
+                    {selectedClip && selectedClip.type === 'audio' ? (
+                      <>
+                        {Object.keys(audioPresets).map(presetName => (
+                          <button
+                            key={presetName}
+                            className="preset-btn"
+                            onClick={() => applyPreset(selectedClip.id, presetName)}
+                          >
+                            <Sparkles size={12} />
+                            {presetName.charAt(0).toUpperCase() + presetName.slice(1)} Style
+                          </button>
+                        ))}
+
+                        {/* Auto-suggest button */}
                         <button
-                          key={presetName}
-                          className="preset-btn"
-                          onClick={() => applyPreset(selectedClip.id, presetName)}
+                          className="preset-btn suggest-btn"
+                          onClick={() => suggestEffects(selectedClip.id)}
                         >
-                          <Sparkles size={12} />
-                          {presetName.charAt(0).toUpperCase() + presetName.slice(1)} Style
+                          <Wand2 size={12} />
+                          Auto-Suggest Effects
                         </button>
-                      ))}
-
-                      {/* Auto-suggest button */}
-                      <button
-                        className="preset-btn suggest-btn"
-                        onClick={() => suggestEffects(selectedClip.id)}
-                      >
-                        <Wand2 size={12} />
-                        Auto-Suggest Effects
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button className="preset-btn">
-                        <Sparkles size={12} />
-                        Cinema Look
-                      </button>
-                      <button className="preset-btn">
-                        <Sun size={12} />
-                        Warm & Bright
-                      </button>
-                      <button className="preset-btn">
-                        <Palette size={12} />
-                        Vintage Film
-                      </button>
-                      <button className="preset-btn">
-                        <Contrast size={12} />
-                        High Contrast
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : selectedTransition ? (
-            <div className="effects-panel-content-enhanced">
-              <div className="transition-properties">
-                <h5>Transition Properties</h5>
-                <div className="parameter-row">
-                  <label>Duration: {selectedTransition.duration}s</label>
-                  <input
-                    type="range"
-                    min="0.1"
-                    max="5"
-                    step="0.1"
-                    defaultValue={selectedTransition.duration}
-                    onChange={(e) => {
-                      setTracks(tracks.map(track => ({
-                        ...track,
-                        transitions: (track.transitions || []).map(t =>
-                          t.id === selectedTransition.id
-                            ? { ...t, duration: parseFloat(e.target.value) }
-                            : t
-                        )
-                      })));
-                    }}
-                    className="effect-slider-enhanced"
-                  />
-                </div>
-                <div className="parameter-row">
-                  <label>Ease In</label>
-                  <input type="range" min="0" max="100" defaultValue="50" className="effect-slider-enhanced" />
-                </div>
-                <div className="parameter-row">
-                  <label>Ease Out</label>
-                  <input type="range" min="0" max="100" defaultValue="50" className="effect-slider-enhanced" />
-                </div>
-                <div className="parameter-row">
-                  <label>Alignment</label>
-                  <select className="effect-select">
-                    <option>Center at Cut</option>
-                    <option>Start at Cut</option>
-                    <option>End at Cut</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="no-selection-message-enhanced">
-              <div className="no-selection-icon">
-                <Layers size={48} />
-              </div>
-              <h3>Select a Clip or Transition</h3>
-              <p>Click on timeline elements to view and edit their effects</p>
-              <div className="selection-help">
-                <div className="help-item">
-                  <Video size={16} />
-                  <span>Video clips support visual effects</span>
-                </div>
-                <div className="help-item">
-                  <AudioWaveform size={16} />
-                  <span>Audio clips support audio processing</span>
-                </div>
-                <div className="help-item">
-                  <Wand2 size={16} />
-                  <span>Drag effects onto clips to apply</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Compositing Panel */}
-      {showCompositingPanel && (
-        <div className="compositing-panel-enhanced">
-          <div className="compositing-panel-header">
-            <h4>Transform & Compositing</h4>
-            <button onClick={closeCompositingPanel} className="close-panel-btn">
-              <X size={14} />
-            </button>
-          </div>
-
-          {selectedClip && selectedClip.type === 'video' ? (
-            <div className="compositing-panel-content-enhanced">
-              {/* Transform Controls */}
-              <div className="compositing-section">
-                <h5>Transform</h5>
-                <div className="transform-grid">
-                  <div className="transform-group">
-                    <label>Position</label>
-                    <div className="dual-control">
-                      <div className="control-pair">
-                        <span>X</span>
-                        <input
-                          type="number"
-                          value={selectedClip.compositing?.position?.x || 0}
-                          onChange={(e) => updateCompositing(selectedClip.id, 'position', { x: parseInt(e.target.value) })}
-                          className="numeric-input"
-                        />
-                      </div>
-                      <div className="control-pair">
-                        <span>Y</span>
-                        <input
-                          type="number"
-                          value={selectedClip.compositing?.position?.y || 0}
-                          onChange={(e) => updateCompositing(selectedClip.id, 'position', { y: parseInt(e.target.value) })}
-                          className="numeric-input"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="transform-group">
-                    <label>Scale</label>
-                    <div className="dual-control">
-                      <div className="control-pair">
-                        <span>W</span>
-                        <input
-                          type="number"
-                          value={selectedClip.compositing?.scale?.x || 100}
-                          onChange={(e) => updateCompositing(selectedClip.id, 'scale', { x: parseInt(e.target.value) })}
-                          className="numeric-input"
-                        />
-                      </div>
-                      <div className="control-pair">
-                        <span>H</span>
-                        <input
-                          type="number"
-                          value={selectedClip.compositing?.scale?.y || 100}
-                          onChange={(e) => updateCompositing(selectedClip.id, 'scale', { y: parseInt(e.target.value) })}
-                          className="numeric-input"
-                        />
-                      </div>
-                    </div>
-                    <button className="lock-aspect-btn" title="Lock Aspect Ratio">
-                      <Lock size={10} />
-                    </button>
-                  </div>
-
-                  <div className="transform-group">
-                    <label>Rotation</label>
-                    <div className="rotation-control">
-                      <input
-                        type="number"
-                        value={selectedClip.compositing?.rotation || 0}
-                        onChange={(e) => updateCompositing(selectedClip.id, 'rotation', parseInt(e.target.value))}
-                        className="numeric-input"
-                      />
-                      <span>°</span>
-                    </div>
+                      </>
+                    ) : (
+                      <>
+                        <button className="preset-btn">
+                          <Sparkles size={12} />
+                          Cinema Look
+                        </button>
+                        <button className="preset-btn">
+                          <Sun size={12} />
+                          Warm & Bright
+                        </button>
+                        <button className="preset-btn">
+                          <Palette size={12} />
+                          Vintage Film
+                        </button>
+                        <button className="preset-btn">
+                          <Contrast size={12} />
+                          High Contrast
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
-
-              {/* Blending */}
-              <div className="compositing-section">
-                <h5>Opacity & Blending</h5>
-                <div className="blend-controls">
+            ) : selectedTransition ? (
+              <div className="effects-panel-content-enhanced">
+                <div className="transition-properties">
+                  <h5>Transition Properties</h5>
                   <div className="parameter-row">
-                    <label>Opacity: {selectedClip.compositing?.opacity || 100}%</label>
+                    <label>Duration: {selectedTransition.duration}s</label>
                     <input
                       type="range"
-                      min="0"
-                      max="100"
-                      value={selectedClip.compositing?.opacity || 100}
-                      onChange={(e) => updateCompositing(selectedClip.id, 'opacity', parseInt(e.target.value))}
-                      className="compositing-slider-enhanced"
+                      min="0.1"
+                      max="5"
+                      step="0.1"
+                      defaultValue={selectedTransition.duration}
+                      onChange={(e) => {
+                        setTracks(tracks.map(track => ({
+                          ...track,
+                          transitions: (track.transitions || []).map(t =>
+                            t.id === selectedTransition.id
+                              ? { ...t, duration: parseFloat(e.target.value) }
+                              : t
+                          )
+                        })));
+                      }}
+                      className="effect-slider-enhanced"
                     />
                   </div>
                   <div className="parameter-row">
-                    <label>Blend Mode</label>
-                    <select
-                      value={selectedClip.compositing?.blendMode || 'normal'}
-                      onChange={(e) => updateCompositing(selectedClip.id, 'blendMode', e.target.value)}
-                      className="blend-mode-select-enhanced"
-                    >
-                      <optgroup label="Normal">
-                        <option value="normal">Normal</option>
-                        <option value="dissolve">Dissolve</option>
-                      </optgroup>
-                      <optgroup label="Darken">
-                        <option value="darken">Darken</option>
-                        <option value="multiply">Multiply</option>
-                        <option value="color-burn">Color Burn</option>
-                        <option value="linear-burn">Linear Burn</option>
-                      </optgroup>
-                      <optgroup label="Lighten">
-                        <option value="lighten">Lighten</option>
-                        <option value="screen">Screen</option>
-                        <option value="color-dodge">Color Dodge</option>
-                        <option value="linear-dodge">Linear Dodge</option>
-                      </optgroup>
-                      <optgroup label="Overlay">
-                        <option value="overlay">Overlay</option>
-                        <option value="soft-light">Soft Light</option>
-                        <option value="hard-light">Hard Light</option>
-                        <option value="vivid-light">Vivid Light</option>
-                        <option value="linear-light">Linear Light</option>
-                        <option value="pin-light">Pin Light</option>
-                        <option value="hard-mix">Hard Mix</option>
-                      </optgroup>
-                      <optgroup label="Difference">
-                        <option value="difference">Difference</option>
-                        <option value="exclusion">Exclusion</option>
-                        <option value="subtract">Subtract</option>
-                        <option value="divide">Divide</option>
-                      </optgroup>
-                      <optgroup label="Color">
-                        <option value="hue">Hue</option>
-                        <option value="saturation">Saturation</option>
-                        <option value="color">Color</option>
-                        <option value="luminosity">Luminosity</option>
-                      </optgroup>
+                    <label>Ease In</label>
+                    <input type="range" min="0" max="100" defaultValue="50" className="effect-slider-enhanced" />
+                  </div>
+                  <div className="parameter-row">
+                    <label>Ease Out</label>
+                    <input type="range" min="0" max="100" defaultValue="50" className="effect-slider-enhanced" />
+                  </div>
+                  <div className="parameter-row">
+                    <label>Alignment</label>
+                    <select className="effect-select">
+                      <option>Center at Cut</option>
+                      <option>Start at Cut</option>
+                      <option>End at Cut</option>
                     </select>
                   </div>
                 </div>
               </div>
+            ) : (
+              <div className="no-selection-message-enhanced">
+                <div className="no-selection-icon">
+                  <Layers size={48} />
+                </div>
+                <h3>Select a Clip or Transition</h3>
+                <p>Click on timeline elements to view and edit their effects</p>
+                <div className="selection-help">
+                  <div className="help-item">
+                    <Video size={16} />
+                    <span>Video clips support visual effects</span>
+                  </div>
+                  <div className="help-item">
+                    <AudioWaveform size={16} />
+                    <span>Audio clips support audio processing</span>
+                  </div>
+                  <div className="help-item">
+                    <Wand2 size={16} />
+                    <span>Drag effects onto clips to apply</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      }
 
-              {/* Advanced Controls */}
-              <div className="compositing-section">
-                <h5>Advanced</h5>
-                <div className="advanced-controls">
-                  <div className="parameter-row">
-                    <label>Motion Blur</label>
-                    <input type="range" min="0" max="100" defaultValue="0" className="compositing-slider-enhanced" />
-                  </div>
-                  <div className="parameter-row">
-                    <label>3D Rotation X</label>
-                    <input type="range" min="-180" max="180" defaultValue="0" className="compositing-slider-enhanced" />
-                  </div>
-                  <div className="parameter-row">
-                    <label>3D Rotation Y</label>
-                    <input type="range" min="-180" max="180" defaultValue="0" className="compositing-slider-enhanced" />
-                  </div>
-                  <div className="parameter-row">
-                    <label>Perspective</label>
-                    <input type="range" min="0" max="200" defaultValue="100" className="compositing-slider-enhanced" />
-                  </div>
-                </div>
-              </div>
+      {/* Compositing Panel */}
+      {
+        showCompositingPanel && (
+          <div className="compositing-panel-enhanced">
+            <div className="compositing-panel-header">
+              <h4>Transform & Compositing</h4>
+              <button onClick={closeCompositingPanel} className="close-panel-btn">
+                <X size={14} />
+              </button>
+            </div>
 
-              {/* Transform Presets */}
-              <div className="compositing-section">
-                <h5>Transform Presets</h5>
-                <div className="preset-grid">
-                  <button
-                    className="preset-transform-btn"
-                    onClick={() => {
-                      updateCompositing(selectedClip.id, 'scale', { x: 25, y: 25 });
-                      updateCompositing(selectedClip.id, 'position', { x: 600, y: -300 });
-                    }}
-                  >
-                    <Minimize2 size={12} />
-                    Picture in Picture
-                  </button>
-                  <button
-                    className="preset-transform-btn"
-                    onClick={() => {
-                      updateCompositing(selectedClip.id, 'scale', { x: 150, y: 150 });
-                      updateCompositing(selectedClip.id, 'position', { x: 0, y: 0 });
-                    }}
-                  >
-                    <ZoomIn size={12} />
-                    Zoom In
-                  </button>
-                  <button
-                    className="preset-transform-btn"
-                    onClick={() => {
-                      updateCompositing(selectedClip.id, 'position', { x: -960, y: 0 });
-                    }}
-                  >
-                    <ArrowLeftRight size={12} />
-                    Split Screen L
-                  </button>
-                  <button
-                    className="preset-transform-btn"
-                    onClick={() => {
-                      updateCompositing(selectedClip.id, 'position', { x: 960, y: 0 });
-                    }}
-                  >
-                    <ArrowLeftRight size={12} />
-                    Split Screen R
-                  </button>
+            {selectedClip && selectedClip.type === 'video' ? (
+              <div className="compositing-panel-content-enhanced">
+                {/* Transform Controls */}
+                <div className="compositing-section">
+                  <h5>Transform</h5>
+                  <div className="transform-grid">
+                    <div className="transform-group">
+                      <label>Position</label>
+                      <div className="dual-control">
+                        <div className="control-pair">
+                          <span>X</span>
+                          <input
+                            type="number"
+                            value={selectedClip.compositing?.position?.x || 0}
+                            onChange={(e) => updateCompositing(selectedClip.id, 'position', { x: parseInt(e.target.value) })}
+                            className="numeric-input"
+                          />
+                        </div>
+                        <div className="control-pair">
+                          <span>Y</span>
+                          <input
+                            type="number"
+                            value={selectedClip.compositing?.position?.y || 0}
+                            onChange={(e) => updateCompositing(selectedClip.id, 'position', { y: parseInt(e.target.value) })}
+                            className="numeric-input"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="transform-group">
+                      <label>Scale</label>
+                      <div className="dual-control">
+                        <div className="control-pair">
+                          <span>W</span>
+                          <input
+                            type="number"
+                            value={selectedClip.compositing?.scale?.x || 100}
+                            onChange={(e) => updateCompositing(selectedClip.id, 'scale', { x: parseInt(e.target.value) })}
+                            className="numeric-input"
+                          />
+                        </div>
+                        <div className="control-pair">
+                          <span>H</span>
+                          <input
+                            type="number"
+                            value={selectedClip.compositing?.scale?.y || 100}
+                            onChange={(e) => updateCompositing(selectedClip.id, 'scale', { y: parseInt(e.target.value) })}
+                            className="numeric-input"
+                          />
+                        </div>
+                      </div>
+                      <button className="lock-aspect-btn" title="Lock Aspect Ratio">
+                        <Lock size={10} />
+                      </button>
+                    </div>
+
+                    <div className="transform-group">
+                      <label>Rotation</label>
+                      <div className="rotation-control">
+                        <input
+                          type="number"
+                          value={selectedClip.compositing?.rotation || 0}
+                          onChange={(e) => updateCompositing(selectedClip.id, 'rotation', parseInt(e.target.value))}
+                          className="numeric-input"
+                        />
+                        <span>°</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Blending */}
+                <div className="compositing-section">
+                  <h5>Opacity & Blending</h5>
+                  <div className="blend-controls">
+                    <div className="parameter-row">
+                      <label>Opacity: {selectedClip.compositing?.opacity || 100}%</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={selectedClip.compositing?.opacity || 100}
+                        onChange={(e) => updateCompositing(selectedClip.id, 'opacity', parseInt(e.target.value))}
+                        className="compositing-slider-enhanced"
+                      />
+                    </div>
+                    <div className="parameter-row">
+                      <label>Blend Mode</label>
+                      <select
+                        value={selectedClip.compositing?.blendMode || 'normal'}
+                        onChange={(e) => updateCompositing(selectedClip.id, 'blendMode', e.target.value)}
+                        className="blend-mode-select-enhanced"
+                      >
+                        <optgroup label="Normal">
+                          <option value="normal">Normal</option>
+                          <option value="dissolve">Dissolve</option>
+                        </optgroup>
+                        <optgroup label="Darken">
+                          <option value="darken">Darken</option>
+                          <option value="multiply">Multiply</option>
+                          <option value="color-burn">Color Burn</option>
+                          <option value="linear-burn">Linear Burn</option>
+                        </optgroup>
+                        <optgroup label="Lighten">
+                          <option value="lighten">Lighten</option>
+                          <option value="screen">Screen</option>
+                          <option value="color-dodge">Color Dodge</option>
+                          <option value="linear-dodge">Linear Dodge</option>
+                        </optgroup>
+                        <optgroup label="Overlay">
+                          <option value="overlay">Overlay</option>
+                          <option value="soft-light">Soft Light</option>
+                          <option value="hard-light">Hard Light</option>
+                          <option value="vivid-light">Vivid Light</option>
+                          <option value="linear-light">Linear Light</option>
+                          <option value="pin-light">Pin Light</option>
+                          <option value="hard-mix">Hard Mix</option>
+                        </optgroup>
+                        <optgroup label="Difference">
+                          <option value="difference">Difference</option>
+                          <option value="exclusion">Exclusion</option>
+                          <option value="subtract">Subtract</option>
+                          <option value="divide">Divide</option>
+                        </optgroup>
+                        <optgroup label="Color">
+                          <option value="hue">Hue</option>
+                          <option value="saturation">Saturation</option>
+                          <option value="color">Color</option>
+                          <option value="luminosity">Luminosity</option>
+                        </optgroup>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Advanced Controls */}
+                <div className="compositing-section">
+                  <h5>Advanced</h5>
+                  <div className="advanced-controls">
+                    <div className="parameter-row">
+                      <label>Motion Blur</label>
+                      <input type="range" min="0" max="100" defaultValue="0" className="compositing-slider-enhanced" />
+                    </div>
+                    <div className="parameter-row">
+                      <label>3D Rotation X</label>
+                      <input type="range" min="-180" max="180" defaultValue="0" className="compositing-slider-enhanced" />
+                    </div>
+                    <div className="parameter-row">
+                      <label>3D Rotation Y</label>
+                      <input type="range" min="-180" max="180" defaultValue="0" className="compositing-slider-enhanced" />
+                    </div>
+                    <div className="parameter-row">
+                      <label>Perspective</label>
+                      <input type="range" min="0" max="200" defaultValue="100" className="compositing-slider-enhanced" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Transform Presets */}
+                <div className="compositing-section">
+                  <h5>Transform Presets</h5>
+                  <div className="preset-grid">
+                    <button
+                      className="preset-transform-btn"
+                      onClick={() => {
+                        updateCompositing(selectedClip.id, 'scale', { x: 25, y: 25 });
+                        updateCompositing(selectedClip.id, 'position', { x: 600, y: -300 });
+                      }}
+                    >
+                      <Minimize2 size={12} />
+                      Picture in Picture
+                    </button>
+                    <button
+                      className="preset-transform-btn"
+                      onClick={() => {
+                        updateCompositing(selectedClip.id, 'scale', { x: 150, y: 150 });
+                        updateCompositing(selectedClip.id, 'position', { x: 0, y: 0 });
+                      }}
+                    >
+                      <ZoomIn size={12} />
+                      Zoom In
+                    </button>
+                    <button
+                      className="preset-transform-btn"
+                      onClick={() => {
+                        updateCompositing(selectedClip.id, 'position', { x: -960, y: 0 });
+                      }}
+                    >
+                      <ArrowLeftRight size={12} />
+                      Split Screen L
+                    </button>
+                    <button
+                      className="preset-transform-btn"
+                      onClick={() => {
+                        updateCompositing(selectedClip.id, 'position', { x: 960, y: 0 });
+                      }}
+                    >
+                      <ArrowLeftRight size={12} />
+                      Split Screen R
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="no-video-clip-message-enhanced">
-              <div className="no-clip-icon">
-                <Video size={48} />
+            ) : (
+              <div className="no-video-clip-message-enhanced">
+                <div className="no-clip-icon">
+                  <Video size={48} />
+                </div>
+                <h3>Select a Video Clip</h3>
+                <p>Transform and compositing controls are available for video clips only</p>
+                <div className="compositing-features">
+                  <div className="feature-item">
+                    <Move size={16} />
+                    <span>Position & Scale</span>
+                  </div>
+                  <div className="feature-item">
+                    <RotateCw size={16} />
+                    <span>Rotation & 3D Transform</span>
+                  </div>
+                  <div className="feature-item">
+                    <Layers size={16} />
+                    <span>Blend Modes & Opacity</span>
+                  </div>
+                </div>
               </div>
-              <h3>Select a Video Clip</h3>
-              <p>Transform and compositing controls are available for video clips only</p>
-              <div className="compositing-features">
-                <div className="feature-item">
-                  <Move size={16} />
-                  <span>Position & Scale</span>
-                </div>
-                <div className="feature-item">
-                  <RotateCw size={16} />
-                  <span>Rotation & 3D Transform</span>
-                </div>
-                <div className="feature-item">
-                  <Layers size={16} />
-                  <span>Blend Modes & Opacity</span>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )
+      }
 
       {/* Color Grading Workspace */}
-      {showColorGrading && (
-        <div className="color-workspace">
-          <div className="color-workspace-header">
-            <h4>Color Grading Workspace</h4>
-            <button onClick={() => setShowColorGrading(false)} className="close-panel-btn">
-              <X size={14} />
-            </button>
-          </div>
-          <div className="color-tools">
-            <div className="color-wheels">
-              <div className="color-wheel-section">
-                <h5>Shadows</h5>
-                <div className="color-wheel shadows-wheel"></div>
-                <div className="wheel-controls">
-                  <input type="range" min="-100" max="100" defaultValue="0" />
+      {
+        showColorGrading && (
+          <div className="color-workspace">
+            <div className="color-workspace-header">
+              <h4>Color Grading Workspace</h4>
+              <button onClick={() => setShowColorGrading(false)} className="close-panel-btn">
+                <X size={14} />
+              </button>
+            </div>
+            <div className="color-tools">
+              <div className="color-wheels">
+                <div className="color-wheel-section">
+                  <h5>Shadows</h5>
+                  <div className="color-wheel shadows-wheel"></div>
+                  <div className="wheel-controls">
+                    <input type="range" min="-100" max="100" defaultValue="0" />
+                  </div>
                 </div>
-              </div>
-              <div className="color-wheel-section">
-                <h5>Midtones</h5>
-                <div className="color-wheel midtones-wheel"></div>
-                <div className="wheel-controls">
-                  <input type="range" min="-100" max="100" defaultValue="0" />
+                <div className="color-wheel-section">
+                  <h5>Midtones</h5>
+                  <div className="color-wheel midtones-wheel"></div>
+                  <div className="wheel-controls">
+                    <input type="range" min="-100" max="100" defaultValue="0" />
+                  </div>
                 </div>
-              </div>
-              <div className="color-wheel-section">
-                <h5>Highlights</h5>
-                <div className="color-wheel highlights-wheel"></div>
-                <div className="wheel-controls">
-                  <input type="range" min="-100" max="100" defaultValue="0" />
+                <div className="color-wheel-section">
+                  <h5>Highlights</h5>
+                  <div className="color-wheel highlights-wheel"></div>
+                  <div className="wheel-controls">
+                    <input type="range" min="-100" max="100" defaultValue="0" />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Audio Mixing Workspace */}
-      {showAudioMixing && (
-        <div className="audio-workspace">
-          <div className="audio-workspace-header">
-            <h4>Audio Mixing Console</h4>
-            <button onClick={() => setShowAudioMixing(false)} className="close-panel-btn">
-              <X size={14} />
-            </button>
-          </div>
+      {
+        showAudioMixing && (
+          <div className="audio-workspace">
+            <div className="audio-workspace-header">
+              <h4>Audio Mixing Console</h4>
+              <button onClick={() => setShowAudioMixing(false)} className="close-panel-btn">
+                <X size={14} />
+              </button>
+            </div>
 
-          <div className="mixing-console">
-            {tracks.filter(t => t.type === 'audio' || t.clips.some(c => c.type === 'audio')).map(track => (
-              <div key={track.id} className="mixer-channel">
-                <div className="channel-header">
-                  <span>{track.name}</span>
+            <div className="mixing-console">
+              {tracks.filter(t => t.type === 'audio' || t.clips.some(c => c.type === 'audio')).map(track => (
+                <div key={track.id} className="mixer-channel">
+                  <div className="channel-header">
+                    <span>{track.name}</span>
+                  </div>
+                  <div className="channel-controls">
+                    <div className="eq-controls">
+                      <div className="eq-band">
+                        <label>High</label>
+                        <input type="range" min="-24" max="24" defaultValue="0" className="eq-slider" />
+                      </div>
+                      <div className="eq-band">
+                        <label>Mid</label>
+                        <input type="range" min="-24" max="24" defaultValue="0" className="eq-slider" />
+                      </div>
+                      <div className="eq-band">
+                        <label>Low</label>
+                        <input type="range" min="-24" max="24" defaultValue="0" className="eq-slider" />
+                      </div>
+                    </div>
+                    <div className="channel-fader">
+                      <input
+                        type="range"
+                        min="-60"
+                        max="12"
+                        defaultValue="0"
+                        className="volume-fader"
+                        orient="vertical"
+                      />
+                      <div className="fader-label">0dB</div>
+                    </div>
+                    <div className="level-meter">
+                      <div className="meter-bar"></div>
+                    </div>
+                  </div>
                 </div>
-                <div className="channel-controls">
-                  <div className="eq-controls">
-                    <div className="eq-band">
-                      <label>High</label>
-                      <input type="range" min="-24" max="24" defaultValue="0" className="eq-slider" />
-                    </div>
-                    <div className="eq-band">
-                      <label>Mid</label>
-                      <input type="range" min="-24" max="24" defaultValue="0" className="eq-slider" />
-                    </div>
-                    <div className="eq-band">
-                      <label>Low</label>
-                      <input type="range" min="-24" max="24" defaultValue="0" className="eq-slider" />
-                    </div>
-                  </div>
-                  <div className="channel-fader">
-                    <input
-                      type="range"
-                      min="-60"
-                      max="12"
-                      defaultValue="0"
-                      className="volume-fader"
-                      orient="vertical"
-                    />
-                    <div className="fader-label">0dB</div>
-                  </div>
-                  <div className="level-meter">
-                    <div className="meter-bar"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Export Modal (NEW) */}
-      {showExportModal && (
-        <ExportModal
-          project={project}
-          tracks={tracks}
-          frameRate={frameRate}
-          onClose={() => setShowExportModal(false)}
-          onExportComplete={(result) => {
-            console.log('Export completed:', result);
-          }}
-        />
-      )}
-    </div>
+      {
+        showExportModal && (
+          <ExportModal
+            project={project}
+            tracks={tracks}
+            frameRate={frameRate}
+            onClose={() => setShowExportModal(false)}
+            onExportComplete={(result) => {
+              console.log('Export completed:', result);
+            }}
+          />
+        )
+      }
+    </div >
   );
 };
 

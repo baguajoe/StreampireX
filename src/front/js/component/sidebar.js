@@ -1,5 +1,5 @@
 // src/front/js/component/sidebar.js
-// UPDATED: Gaming section always visible, dark theme background fix
+// UPDATED: Videos moved after Dashboard, Gaming section always visible, dark theme
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import styled from "styled-components";
@@ -208,7 +208,7 @@ const Sidebar = ({ user }) => {
     squads: 0
   });
 
-  // Determine what profiles the user has (based on signup booleans + fallbacks)
+  // Determine what profiles the user has
   const hasArtistProfile =
     user?.is_artist === true ||
     user?.profile_type === 'artist' ||
@@ -237,7 +237,6 @@ const Sidebar = ({ user }) => {
       {/* ============================== */}
       <SectionHeader>👤 Profiles & Pages</SectionHeader>
 
-      {/* Social Profile — Everyone has this */}
       <ProfileMenuItem
         to="/profile"
         className={
@@ -253,7 +252,6 @@ const Sidebar = ({ user }) => {
         <MenuHint>main identity</MenuHint>
       </ProfileMenuItem>
 
-      {/* Artist Profile — Only if they have one */}
       {hasArtistProfile && (
         <ProfileMenuItem
           to="/profile/artist"
@@ -264,7 +262,6 @@ const Sidebar = ({ user }) => {
         </ProfileMenuItem>
       )}
 
-      {/* Gamer Profile — Only if they have one */}
       {hasGamerProfile && (
         <ProfileMenuItem
           to="/profile/gamer"
@@ -275,7 +272,6 @@ const Sidebar = ({ user }) => {
         </ProfileMenuItem>
       )}
 
-      {/* Create Profile Link — Show if missing any profile type */}
       {(!hasArtistProfile || !hasGamerProfile) && (
         <CreateProfileLink to="/settings/profiles">
           ➕ Add Profile Type...
@@ -309,6 +305,23 @@ const Sidebar = ({ user }) => {
       </DashboardLink>
 
       {/* ============================== */}
+      {/* 🎬 VIDEOS                      */}
+      {/* ============================== */}
+      <SectionHeader>🎬 Videos</SectionHeader>
+      <MenuItem to="/videos" className={isActive("/videos") ? "active" : ""}>
+        🎞️ Browse Videos
+      </MenuItem>
+      <MenuItem to="/profile/video" className={isActive("/profile/video") ? "active" : ""}>
+        📹 My Channel
+      </MenuItem>
+      <MenuItem to="/upload-video" className={isActive("/upload-video") ? "active" : ""}>
+        📤 Upload Video
+      </MenuItem>
+      <MenuItem to="/video-editor" className={isActive("/video-editor") ? "active" : ""}>
+        🎬 Video Editor
+      </MenuItem>
+
+      {/* ============================== */}
       {/* 🎤 MUSIC — Only for artists    */}
       {/* ============================== */}
       {hasArtistProfile && (
@@ -325,8 +338,6 @@ const Sidebar = ({ user }) => {
 
       {/* ============================== */}
       {/* 🎮 GAMING — Always visible     */}
-      {/* Community features accessible  */}
-      {/* to everyone, not gated         */}
       {/* ============================== */}
       <GamingSectionHeader onClick={() => setShowGamerSection(!showGamerSection)}>
         <span>🎮 Gaming</span>
@@ -365,23 +376,6 @@ const Sidebar = ({ user }) => {
       </MenuItem>
       <MenuItem to="/browse-podcast-categories" className={isActive("/browse-podcast-categories") ? "active" : ""}>
         🎧 Browse Categories
-      </MenuItem>
-
-      {/* ============================== */}
-      {/* 🎬 VIDEOS                      */}
-      {/* ============================== */}
-      <SectionHeader>🎬 Videos</SectionHeader>
-      <MenuItem to="/videos" className={isActive("/videos") ? "active" : ""}>
-        🎞️ Browse Videos
-      </MenuItem>
-      <MenuItem to="/profile/video" className={isActive("/profile/video") ? "active" : ""}>
-        📹 My Channel
-      </MenuItem>
-      <MenuItem to="/upload-video" className={isActive("/upload-video") ? "active" : ""}>
-        📤 Upload Video
-      </MenuItem>
-      <MenuItem to="/video-editor" className={isActive("/video-editor") ? "active" : ""}>
-        🎬 Video Editor
       </MenuItem>
 
       {/* ============================== */}

@@ -16570,10 +16570,14 @@ def update_user_profile():
         json_data = request.get_json() if request.is_json else {}
         data.update(json_data)
         
-        # Update artist-specific fields
+        # Update all supported fields (including profile_picture and cover_photo as URLs)
         for field in ['artist_name', 'bio', 'genre', 'location', 'website', 
                      'spotify_link', 'apple_music_link', 'youtube_link', 
-                     'instagram_link', 'twitter_link']:
+                     'instagram_link', 'twitter_link',
+                     'profile_picture', 'cover_photo',
+                     'display_name', 'business_name', 'business_type', 
+                     'business_website', 'current_mood', 'custom_mood_label',
+                     'custom_mood_emoji', 'storefront_link']:
             if field in data:
                 setattr(user, field, data[field])
         
@@ -16587,14 +16591,12 @@ def update_user_profile():
             except:
                 return jsonify({"error": "Invalid social_links format"}), 400
         
-        # Handle file uploads
+        # Handle file uploads (fallback if frontend sends raw files instead of URLs)
         if "profile_picture" in request.files:
             pic = request.files["profile_picture"]
-            print(pic)
             if pic.filename != "":
                 filename = secure_filename(pic.filename)
                 pic_url = uploadFile(pic, filename)
-                print(pic_url)
                 user.profile_picture = pic_url
         
         if "cover_photo" in request.files:
@@ -16612,6 +16614,7 @@ def update_user_profile():
         }), 200
         
     except Exception as e:
+        db.session.rollback()
         return jsonify({"error": f"Failed to update profile: {str(e)}"}), 500
 
 # 7. SERVE STATIC FILES (for local images)

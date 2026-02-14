@@ -11,6 +11,7 @@ import VideoChannelManager from "../component/VideoChannelManager";
 import "../../styles/ProfilePage.css";
 import "../../styles/PostCard.css";
 import "../../styles/QuickActionModals.css";
+import "../../styles/ProfilePageFixes.css";   // <-- add this line
 
 // Image imports
 import lady1 from "../../img/lady1.png";
@@ -1347,19 +1348,22 @@ const ProfilePage = () => {
                 setLoading(true);
                 const cloudinaryUrl = await uploadToCloudinary(file, 'image');
                 setMedia(prev => ({ ...prev, profilePicture: cloudinaryUrl }));
-                const formData = new FormData()
-                formData.append("profile_picture", file)
+
                 const token = localStorage.getItem('token');
-                await fetch(`${BACKEND_URL}/api/user/profile`, {
+                const response = await fetch(`${BACKEND_URL}/api/user/profile`, {
                     method: 'PUT',
                     headers: {
                         'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data'
+                        'Content-Type': 'application/json'
                     },
-                    body: formData
+                    body: JSON.stringify({ profile_picture: cloudinaryUrl })
                 });
 
-                setUser(prev => ({ ...prev, profile_picture: cloudinaryUrl }));
+                if (!response.ok) {
+                    console.error('Save failed:', response.status, await response.text());
+                } else {
+                    setUser(prev => ({ ...prev, profile_picture: cloudinaryUrl }));
+                }
             } catch (error) {
                 console.error('Profile picture upload error:', error);
                 setError('Failed to upload profile picture');
