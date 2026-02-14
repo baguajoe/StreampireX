@@ -6,7 +6,7 @@
   color: #1e293b;
   background-color: #ffffff;
   box-sizing: border-box;
-  min-height: 100vh;
+ 
 }
 
 /* Header Section */
@@ -749,7 +749,7 @@ body {
   color: #1e293b;
   background-color: #ffffff;
   box-sizing: border-box;
-  min-height: 100vh;
+}
   /* ============================================
    SONOSUITE INTEGRATION SECTIONS
    ============================================ */
@@ -1559,4 +1559,3 @@ body {
       width: 100%;
     }
   }
-}

@@ -1,0 +1,82 @@
+/* =============================================================================
+   ProfilePageFixes.css - IMPORT THIS AFTER ProfilePage.css
+   =============================================================================
+   Fixes: Cover photo height, image positioning, upload button visibility,
+          and hides PWA debug bar in production
+   
+   Add to ProfilePage.js:
+   import "../../styles/ProfilePageFixes.css";
+   ============================================================================= */
+
+/* --- FIX 1: Cover photo container - taller height --- */
+.cover-photo-container {
+  height: 360px !important;
+}
+
+/* --- FIX 2: Cover photo image - remove the -22rem offset --- */
+.cover-photo {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center center !important;  /* WAS: 50% -22rem - this pushed image way up */
+}
+
+/* --- FIX 3: Upload button overlay - always visible (semi-transparent) --- */
+.cover-photo-overlay {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: linear-gradient(to bottom, transparent 50%, rgba(13, 17, 23, 0.7) 100%) !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: flex-end !important;
+  padding: 24px !important;
+  opacity: 0.8 !important;          /* WAS: 0 - button was completely hidden */
+  transition: opacity 0.3s ease !important;
+}
+
+.cover-photo-container:hover .cover-photo-overlay {
+  opacity: 1 !important;
+}
+
+/* --- FIX 4: Make upload button more prominent --- */
+.cover-upload-btn {
+  background: rgba(0, 255, 200, 0.95) !important;
+  color: #0d1117 !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 12px 24px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: 0 4px 16px rgba(0, 255, 200, 0.4) !important;
+  z-index: 5 !important;
+}
+
+.cover-upload-btn:hover {
+  background: #00ffc8 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(0, 255, 200, 0.5) !important;
+}
+
+/* --- FIX 5: Hide PWA debug bar (the small "PWA | HTTPS | Prompt" strip) --- */
+.pwa-section .debugInfo,
+.pwa-section > div > div:last-child {
+  display: none !important;
+}
+
+/* --- FIX 6: Responsive cover photo --- */
+@media (max-width: 768px) {
+  .cover-photo-container {
+    height: 260px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .cover-photo-container {
+    height: 200px !important;
+  }
+}
