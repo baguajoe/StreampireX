@@ -2335,6 +2335,9 @@ class Audio(db.Model):
     last_processed_at = db.Column(db.DateTime)
     isrc_code = db.Column(db.String(50))
     last_played = db.Column(db.DateTime, nullable=True)
+    processed_file_url = db.Column(db.String(500), nullable=True)
+    processing_status = db.Column(db.String(50), default='original')  # original, processing, mastered, error
+    last_processed_at = db.Column(db.DateTime, nullable=True)
     
     # Optional additional fields
     duration = db.Column(db.String(10))  # e.g., "3:45"

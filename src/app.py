@@ -35,6 +35,7 @@ from flask_apscheduler import APScheduler
 import cloudinary
 import click
 from flask.cli import with_appcontext
+from src.api.ai_mastering import ai_mastering_bp
 
 # Import your blueprints - use src prefix
 from src.api.routes import api
@@ -275,6 +276,7 @@ app.register_blueprint(video_editor_bp)
 app.register_blueprint(follow_bp) 
 app.register_blueprint(video_tier_bp, url_prefix='/api')  # ADD THIS
 app.register_blueprint(notifications_bp)
+app.register_blueprint(ai_mastering_bp)
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)

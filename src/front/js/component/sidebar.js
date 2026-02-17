@@ -241,9 +241,9 @@ const Sidebar = ({ user }) => {
         to="/profile"
         className={
           isActive("/profile") &&
-          !isActive("/profile/gamer") &&
-          !isActive("/profile/artist") &&
-          !isActive("/profile/video")
+            !isActive("/profile/gamer") &&
+            !isActive("/profile/artist") &&
+            !isActive("/profile/video")
             ? "active"
             : ""
         }
@@ -332,6 +332,9 @@ const Sidebar = ({ user }) => {
           </MenuItem>
           <MenuItem to="/collaborator-splits" className={isActive("/collaborator-splits") ? "active" : ""}>
             👥 Collaborator Splits
+          </MenuItem>
+          <MenuItem to="/ai-mastering" className={isActive("/ai-mastering") ? "active" : ""}>
+            🎚️ AI Mastering
           </MenuItem>
         </>
       )}
