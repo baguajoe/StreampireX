@@ -288,8 +288,15 @@
 }
 
 @keyframes pulse-live {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
 }
 
 /* ===========================================
@@ -416,12 +423,12 @@
     .sidebar {
         width: 220px;
     }
-    
+
     .main-content {
         margin-left: 220px;
         width: calc(100% - 220px);
     }
-    
+
     .navbar,
     .horizontal-navbar {
         left: 220px;
@@ -430,6 +437,7 @@
 }
 
 @media (max-width: 768px) {
+
     /* Hide sidebar by default on mobile */
     .sidebar {
         width: 250px;
@@ -437,14 +445,14 @@
         transition: transform 0.3s ease;
         box-shadow: none;
     }
-    
+
     /* Show sidebar when expanded */
     .sidebar.expanded,
     .sidebar.mobile-open {
         transform: translateX(0);
         box-shadow: 5px 0 25px rgba(0, 0, 0, 0.5);
     }
-    
+
     /* Full width content on mobile */
     .main-content {
         margin-left: 0;
@@ -452,14 +460,14 @@
         padding: 15px;
         padding-top: 80px;
     }
-    
+
     /* Full width navbar on mobile */
     .navbar,
     .horizontal-navbar {
         left: 0;
         width: 100%;
     }
-    
+
     /* Page container adjustments */
     .page-container .main-content {
         margin-left: 0;
@@ -577,6 +585,7 @@
         opacity: 0;
         transform: translateX(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -589,11 +598,25 @@
 }
 
 /* Stagger animation for menu items */
-.sidebar a:nth-child(1) { animation-delay: 0.02s; }
-.sidebar a:nth-child(2) { animation-delay: 0.04s; }
-.sidebar a:nth-child(3) { animation-delay: 0.06s; }
-.sidebar a:nth-child(4) { animation-delay: 0.08s; }
-.sidebar a:nth-child(5) { animation-delay: 0.10s; }
+.sidebar a:nth-child(1) {
+    animation-delay: 0.02s;
+}
+
+.sidebar a:nth-child(2) {
+    animation-delay: 0.04s;
+}
+
+.sidebar a:nth-child(3) {
+    animation-delay: 0.06s;
+}
+
+.sidebar a:nth-child(4) {
+    animation-delay: 0.08s;
+}
+
+.sidebar a:nth-child(5) {
+    animation-delay: 0.10s;
+}
 
 /* ===========================================
    DARK/LIGHT THEME TOGGLE (Optional)
@@ -626,9 +649,61 @@
     .sidebar {
         display: none !important;
     }
-    
+
     .main-content {
         margin-left: 0 !important;
         width: 100% !important;
+    }
+
+    /* Collapsed sidebar */
+    body.sidebar-collapsed .sidebar {
+        width: 0;
+        min-width: 0;
+        overflow: hidden;
+        padding: 0;
+    }
+
+    body.sidebar-collapsed .sidebar * {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    body.sidebar-collapsed .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    body.sidebar-collapsed .sidebar-toggle-btn {
+        opacity: 1 !important;
+        pointer-events: all !important;
+        position: fixed;
+        left: 10px;
+        top: 70px;
+        z-index: 1000;
+    }
+
+    /* Toggle button styling */
+    .sidebar-toggle-btn {
+        background: transparent;
+        border: 1px solid rgba(0, 255, 200, 0.3);
+        color: #00ffc8;
+        font-size: 1.2rem;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .sidebar-toggle-btn:hover {
+        background: rgba(0, 255, 200, 0.1);
+    }
+
+    /* Smooth transition */
+    .sidebar {
+        transition: width 0.3s ease, padding 0.3s ease;
+    }
+
+    .main-content {
+        transition: margin-left 0.3s ease, width 0.3s ease;
     }
 }
