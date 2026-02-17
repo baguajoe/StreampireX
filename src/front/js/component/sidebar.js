@@ -1,5 +1,5 @@
 // src/front/js/component/sidebar.js
-// UPDATED: Videos moved after Dashboard, Gaming section always visible, dark theme
+// Collapsible sidebar with dark theme
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import styled from "styled-components";
@@ -20,6 +20,32 @@ const SidebarContainer = styled.div`
   background: linear-gradient(180deg, #0a1628 0%, #001220 100%);
   border-right: 1px solid rgba(0, 255, 200, 0.1);
   box-shadow: 2px 0 15px rgba(0, 0, 0, 0.4);
+  transition: width 0.3s ease, min-width 0.3s ease, padding 0.3s ease;
+  overflow: hidden;
+
+  &.collapsed {
+    width: 58px;
+    min-width: 58px;
+    padding: 20px 6px;
+  }
+
+  &.collapsed .sidebar-label,
+  &.collapsed .sidebar-hint,
+  &.collapsed .sidebar-section-text,
+  &.collapsed .sidebar-create-link,
+  &.collapsed .sidebar-usage-section,
+  &.collapsed .sidebar-arrow {
+    display: none;
+  }
+
+  &.collapsed .sidebar-section-header {
+    justify-content: center;
+    padding: 16px 4px 6px;
+  }
+
+  &.collapsed .sidebar-section-header::after {
+    display: none;
+  }
 `;
 
 const SectionHeader = styled.h4`
@@ -34,6 +60,7 @@ const SectionHeader = styled.h4`
   align-items: center;
   gap: 8px;
   cursor: default;
+  white-space: nowrap;
 
   &::after {
     content: '';
@@ -55,6 +82,8 @@ const MenuItem = styled(Link)`
   margin: 2px 0;
   border-left: 3px solid transparent;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
 
   &:hover {
     background: rgba(0, 255, 200, 0.1);
@@ -110,7 +139,6 @@ const CreateProfileLink = styled(Link)`
   }
 `;
 
-// Dashboard link — teal highlight
 const DashboardLink = styled(MenuItem)`
   background: linear-gradient(135deg, rgba(0, 255, 200, 0.08), transparent);
   border: 1px solid rgba(0, 255, 200, 0.15);
@@ -129,7 +157,6 @@ const DashboardLink = styled(MenuItem)`
   }
 `;
 
-// Gaming styled components — blue accent #4a9eff
 const GamingSectionHeader = styled.div`
   color: #4a9eff;
   font-size: 0.7rem;
@@ -146,6 +173,8 @@ const GamingSectionHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
 
   &:hover {
     background: rgba(74, 158, 255, 0.14);
@@ -201,6 +230,7 @@ const Sidebar = ({ user }) => {
   const isActive = (path) =>
     location.pathname.startsWith(path.replace(/:\w+/g, ""));
 
+  const [collapsed, setCollapsed] = useState(false);
   const [showGamerSection, setShowGamerSection] = useState(true);
   const [gamingNotifications, setGamingNotifications] = useState({
     chatrooms: 0,
@@ -208,7 +238,6 @@ const Sidebar = ({ user }) => {
     squads: 0
   });
 
-  // Determine what profiles the user has
   const hasArtistProfile =
     user?.is_artist === true ||
     user?.profile_type === 'artist' ||
@@ -218,6 +247,16 @@ const Sidebar = ({ user }) => {
     user?.is_gamer === true ||
     user?.profile_type === 'gamer' ||
     user?.profile_type === 'multiple';
+
+  // Persist collapsed state
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar_collapsed");
+    if (saved !== null) setCollapsed(saved === "true");
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("sidebar_collapsed", collapsed);
+  }, [collapsed]);
 
   // Persist gaming section expand/collapse
   useEffect(() => {
@@ -230,26 +269,56 @@ const Sidebar = ({ user }) => {
   }, [showGamerSection]);
 
   return (
-    <SidebarContainer className="sidebar">
+    <SidebarContainer className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+
+      {/* Toggle Button */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        style={{
+          background: 'rgba(0,255,200,0.08)',
+          border: '1px solid rgba(0,255,200,0.2)',
+          color: '#00ffc8',
+          padding: '8px',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          marginBottom: '12px',
+          fontSize: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          minHeight: '38px',
+          flexShrink: 0,
+        }}
+      >
+        {collapsed ? '▶' : '◀'}
+        <span className="sidebar-label" style={{ fontSize: '0.78rem' }}>
+          {collapsed ? '' : 'Collapse'}
+        </span>
+      </button>
 
       {/* ============================== */}
       {/* 👤 PROFILES & PAGES            */}
       {/* ============================== */}
-      <SectionHeader>👤 Profiles & Pages</SectionHeader>
+      <SectionHeader className="sidebar-section-header">
+        👤 <span className="sidebar-section-text">Profiles & Pages</span>
+      </SectionHeader>
 
       <ProfileMenuItem
         to="/profile"
         className={
           isActive("/profile") &&
-            !isActive("/profile/gamer") &&
-            !isActive("/profile/artist") &&
-            !isActive("/profile/video")
-            ? "active"
-            : ""
+          !isActive("/profile/gamer") &&
+          !isActive("/profile/artist") &&
+          !isActive("/profile/video")
+            ? "active" : ""
         }
       >
-        👤 Social Profile
-        <MenuHint>main identity</MenuHint>
+        👤 <span className="sidebar-label">Social Profile</span>
+        <MenuHint className="sidebar-hint">main identity</MenuHint>
       </ProfileMenuItem>
 
       {hasArtistProfile && (
@@ -257,8 +326,8 @@ const Sidebar = ({ user }) => {
           to="/profile/artist"
           className={isActive("/profile/artist") ? "active" : ""}
         >
-          🎵 Artist Page
-          <MenuHint>your music</MenuHint>
+          🎵 <span className="sidebar-label">Artist Page</span>
+          <MenuHint className="sidebar-hint">your music</MenuHint>
         </ProfileMenuItem>
       )}
 
@@ -267,13 +336,13 @@ const Sidebar = ({ user }) => {
           to="/profile/gamer"
           className={isActive("/profile/gamer") ? "active" : ""}
         >
-          🎮 Gamer Profile
-          <MenuHint>gaming/squads</MenuHint>
+          🎮 <span className="sidebar-label">Gamer Profile</span>
+          <MenuHint className="sidebar-hint">gaming/squads</MenuHint>
         </ProfileMenuItem>
       )}
 
       {(!hasArtistProfile || !hasGamerProfile) && (
-        <CreateProfileLink to="/settings/profiles">
+        <CreateProfileLink to="/settings/profiles" className="sidebar-create-link">
           ➕ Add Profile Type...
         </CreateProfileLink>
       )}
@@ -281,44 +350,53 @@ const Sidebar = ({ user }) => {
       {/* ============================== */}
       {/* 🏠 FEED & DISCOVERY            */}
       {/* ============================== */}
-      <SectionHeader>🏠 Feed</SectionHeader>
+      <SectionHeader className="sidebar-section-header">
+        🏠 <span className="sidebar-section-text">Feed</span>
+      </SectionHeader>
+
       <MenuItem to="/home-feed" className={isActive("/home-feed") ? "active" : ""}>
-        🏠 Home Feed
+        🏠 <span className="sidebar-label">Home Feed</span>
       </MenuItem>
       <MenuItem to="/content-library" className={isActive("/content-library") ? "active" : ""}>
-        📚 Content Library
+        📚 <span className="sidebar-label">Content Library</span>
       </MenuItem>
       <MenuItem to="/discover-users" className={isActive("/discover-users") ? "active" : ""}>
-        🔍 Discover Users
+        🔍 <span className="sidebar-label">Discover Users</span>
       </MenuItem>
 
       {/* ============================== */}
       {/* 📊 UNIFIED DASHBOARD           */}
       {/* ============================== */}
-      <SectionHeader>📊 Dashboard</SectionHeader>
+      <SectionHeader className="sidebar-section-header">
+        📊 <span className="sidebar-section-text">Dashboard</span>
+      </SectionHeader>
+
       <DashboardLink
         to="/dashboard"
         className={isActive("/dashboard") ? "active" : ""}
       >
-        🚀 Creator Dashboard
-        <MenuHint>all in one</MenuHint>
+        🚀 <span className="sidebar-label">Creator Dashboard</span>
+        <MenuHint className="sidebar-hint">all in one</MenuHint>
       </DashboardLink>
 
       {/* ============================== */}
       {/* 🎬 VIDEOS                      */}
       {/* ============================== */}
-      <SectionHeader>🎬 Videos</SectionHeader>
+      <SectionHeader className="sidebar-section-header">
+        🎬 <span className="sidebar-section-text">Videos</span>
+      </SectionHeader>
+
       <MenuItem to="/videos" className={isActive("/videos") ? "active" : ""}>
-        🎞️ Browse Videos
+        🎞️ <span className="sidebar-label">Browse Videos</span>
       </MenuItem>
       <MenuItem to="/profile/video" className={isActive("/profile/video") ? "active" : ""}>
-        📹 My Channel
+        📹 <span className="sidebar-label">My Channel</span>
       </MenuItem>
       <MenuItem to="/upload-video" className={isActive("/upload-video") ? "active" : ""}>
-        📤 Upload Video
+        📤 <span className="sidebar-label">Upload Video</span>
       </MenuItem>
       <MenuItem to="/video-editor" className={isActive("/video-editor") ? "active" : ""}>
-        🎬 Video Editor
+        🎬 <span className="sidebar-label">Video Editor</span>
       </MenuItem>
 
       {/* ============================== */}
@@ -326,15 +404,18 @@ const Sidebar = ({ user }) => {
       {/* ============================== */}
       {hasArtistProfile && (
         <>
-          <SectionHeader>🎤 Music</SectionHeader>
+          <SectionHeader className="sidebar-section-header">
+            🎤 <span className="sidebar-section-text">Music</span>
+          </SectionHeader>
+
           <MenuItem to="/music-distribution" className={isActive("/music-distribution") ? "active" : ""}>
-            🌍 Music Distribution
+            🌍 <span className="sidebar-label">Music Distribution</span>
           </MenuItem>
           <MenuItem to="/collaborator-splits" className={isActive("/collaborator-splits") ? "active" : ""}>
-            👥 Collaborator Splits
+            👥 <span className="sidebar-label">Collaborator Splits</span>
           </MenuItem>
           <MenuItem to="/ai-mastering" className={isActive("/ai-mastering") ? "active" : ""}>
-            🎚️ AI Mastering
+            🎚️ <span className="sidebar-label">AI Mastering</span>
           </MenuItem>
         </>
       )}
@@ -343,26 +424,28 @@ const Sidebar = ({ user }) => {
       {/* 🎮 GAMING — Always visible     */}
       {/* ============================== */}
       <GamingSectionHeader onClick={() => setShowGamerSection(!showGamerSection)}>
-        <span>🎮 Gaming</span>
-        <span style={{ fontSize: '0.7rem' }}>{showGamerSection ? "▼" : "▶"}</span>
+        <span>🎮 <span className="sidebar-label">Gaming</span></span>
+        <span className="sidebar-arrow" style={{ fontSize: '0.7rem' }}>
+          {showGamerSection ? "▼" : "▶"}
+        </span>
       </GamingSectionHeader>
 
       {showGamerSection && (
         <>
           <GamingMenuItem to="/gamers/chat" className={isActive("/gamers/chat") ? "active" : ""}>
-            💬 Gamer Chatrooms
+            💬 <span className="sidebar-label">Gamer Chatrooms</span>
             {gamingNotifications.chatrooms > 0 && (
               <NotificationBadge>{gamingNotifications.chatrooms}</NotificationBadge>
             )}
           </GamingMenuItem>
           <GamingMenuItem to="/team-room" className={isActive("/team-room") ? "active" : ""}>
-            🧑‍🤝‍🧑 Team Room
+            🧑‍🤝‍🧑 <span className="sidebar-label">Team Room</span>
             {gamingNotifications.teamRoom > 0 && (
               <NotificationBadge>{gamingNotifications.teamRoom}</NotificationBadge>
             )}
           </GamingMenuItem>
           <GamingMenuItem to="/squad-finder" className={isActive("/squad-finder") ? "active" : ""}>
-            🔍 Find Squads
+            🔍 <span className="sidebar-label">Find Squads</span>
             {gamingNotifications.squads > 0 && (
               <NotificationBadge>{gamingNotifications.squads}</NotificationBadge>
             )}
@@ -373,59 +456,74 @@ const Sidebar = ({ user }) => {
       {/* ============================== */}
       {/* 🎧 PODCASTS                    */}
       {/* ============================== */}
-      <SectionHeader>🎧 Podcasts</SectionHeader>
+      <SectionHeader className="sidebar-section-header">
+        🎧 <span className="sidebar-section-text">Podcasts</span>
+      </SectionHeader>
+
       <MenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>
-        🎙️ Create Podcast
+        🎙️ <span className="sidebar-label">Create Podcast</span>
       </MenuItem>
       <MenuItem to="/browse-podcast-categories" className={isActive("/browse-podcast-categories") ? "active" : ""}>
-        🎧 Browse Categories
+        🎧 <span className="sidebar-label">Browse Categories</span>
       </MenuItem>
 
       {/* ============================== */}
       {/* 📻 RADIO STATIONS              */}
       {/* ============================== */}
-      <SectionHeader>📻 Radio</SectionHeader>
+      <SectionHeader className="sidebar-section-header">
+        📻 <span className="sidebar-section-text">Radio</span>
+      </SectionHeader>
+
       <MenuItem to="/browse-radio-stations" className={isActive("/browse-radio-stations") ? "active" : ""}>
-        📻 Browse Stations
+        📻 <span className="sidebar-label">Browse Stations</span>
       </MenuItem>
       <MenuItem to="/create-radio" className={isActive("/create-radio") ? "active" : ""}>
-        ➕ Create Station
+        ➕ <span className="sidebar-label">Create Station</span>
       </MenuItem>
 
       {/* ============================== */}
       {/* 🎥 LIVE STREAMING              */}
       {/* ============================== */}
-      <SectionHeader>🎥 Live</SectionHeader>
+      <SectionHeader className="sidebar-section-header">
+        🎥 <span className="sidebar-section-text">Live</span>
+      </SectionHeader>
+
       <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
-        📡 Live Streams
+        📡 <span className="sidebar-label">Live Streams</span>
       </MenuItem>
 
       {/* ============================== */}
       {/* 🛍️ STORE & MARKETPLACE         */}
       {/* ============================== */}
-      <SectionHeader>🛍️ Store</SectionHeader>
+      <SectionHeader className="sidebar-section-header">
+        🛍️ <span className="sidebar-section-text">Store</span>
+      </SectionHeader>
+
       <MenuItem to="/marketplace" className={isActive("/marketplace") ? "active" : ""}>
-        🛒 Marketplace
+        🛒 <span className="sidebar-label">Marketplace</span>
       </MenuItem>
       <MenuItem to="/storefront" className={isActive("/storefront") ? "active" : ""}>
-        🏪 My Storefront
+        🏪 <span className="sidebar-label">My Storefront</span>
       </MenuItem>
       <MenuItem to="/orders" className={isActive("/orders") ? "active" : ""}>
-        📦 Orders
+        📦 <span className="sidebar-label">Orders</span>
       </MenuItem>
 
       {/* ============================== */}
       {/* ⚙️ ACCOUNT                     */}
       {/* ============================== */}
-      <SectionHeader>⚙️ Account</SectionHeader>
+      <SectionHeader className="sidebar-section-header">
+        ⚙️ <span className="sidebar-section-text">Account</span>
+      </SectionHeader>
+
       <MenuItem to="/settings" className={isActive("/settings") ? "active" : ""}>
-        ⚙️ Settings
+        ⚙️ <span className="sidebar-label">Settings</span>
       </MenuItem>
 
       {/* ============================== */}
       {/* 📊 USAGE STATUS                */}
       {/* ============================== */}
-      <UsageSection>
+      <UsageSection className="sidebar-usage-section">
         <StorageStatus compact={true} />
         <BandwidthStatus compact={true} />
       </UsageSection>

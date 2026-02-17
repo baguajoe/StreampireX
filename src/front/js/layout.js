@@ -36,7 +36,7 @@ import GoLivePage from './pages/GoLivePage';
 import CreateClipPage from './pages/CreateClipPage';
 import FloatingVideoCall from "./component/FloatingVideoCall";
 import SubscriptionSuccess from './pages/SubscriptionSuccess';
-import AIMastering from "../component/AIMastering";
+import AIMasteringPage from "./pages/AIMasteringPage";       // ✅ correct
 
 import VideoUpload from "./pages/VideoUpload";
 import VideoDetails from "./component/VideoDetails";
@@ -151,7 +151,7 @@ const Layout = () => {
               <Route path="/radio-dashboard" element={<Navigate to="/dashboard/radio" replace />} />
               <Route path="/video-dashboard" element={<Navigate to="/dashboard/videos" replace />} />
               <Route path="/sales-dashboard" element={<Navigate to="/dashboard/store" replace />} />
-              <Route path="/ai-mastering" element={<AIMastering />} />
+              <Route path="/ai-mastering" element={<AIMasteringPage />} />
 
               {/* Video Channel Routes */}
               <Route path="/profile/video" element={<VideoChannelProfile />} />
