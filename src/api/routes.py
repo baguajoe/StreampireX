@@ -240,7 +240,7 @@ def get_user_limits(user_id):
             'max_projects': 3,
             'max_export_quality': '720p'
         },
-        'basic': {
+        'starter': {
             'video_clip_max_size': 2 * 1024 * 1024 * 1024,
             'audio_clip_max_size': 500 * 1024 * 1024,
             'project_total_max_size': 10 * 1024 * 1024 * 1024,
@@ -248,7 +248,7 @@ def get_user_limits(user_id):
             'max_projects': 10,
             'max_export_quality': '1080p'
         },
-        'premium': {
+        'creator': {
             'video_clip_max_size': 5 * 1024 * 1024 * 1024,
             'audio_clip_max_size': 1024 * 1024 * 1024,
             'project_total_max_size': 50 * 1024 * 1024 * 1024,
@@ -256,7 +256,7 @@ def get_user_limits(user_id):
             'max_projects': 50,
             'max_export_quality': '4k'
         },
-        'professional': {
+        'pro': {
             'video_clip_max_size': 20 * 1024 * 1024 * 1024,
             'audio_clip_max_size': 2 * 1024 * 1024 * 1024,
             'project_total_max_size': 500 * 1024 * 1024 * 1024,
