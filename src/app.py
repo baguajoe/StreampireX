@@ -39,6 +39,7 @@ from src.api.ai_mastering import ai_mastering_bp
 from src.api.ai_mastering_phase3 import ai_mastering_phase3_bp
 from src.api.ai_radio_dj import ai_radio_dj_bp
 from src.api.ai_content_routes import ai_content_bp
+from src.api.recording_studio_routes import recording_studio_bp
 
 # Import your blueprints - use src prefix
 from src.api.routes import api
@@ -283,6 +284,7 @@ app.register_blueprint(ai_mastering_bp)
 app.register_blueprint(ai_mastering_phase3_bp)
 app.register_blueprint(ai_radio_dj_bp)
 app.register_blueprint(ai_content_bp)
+app.register_blueprint(recording_studio_bp)
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)

@@ -454,6 +454,10 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/ai-mastering" className={isActive("/ai-mastering") ? "active" : ""}>
             🎚️ <span className="sidebar-label">AI Mastering</span>
           </MenuItem>
+          <MenuItem to="/recording-studio" className={isActive("/recording-studio") ? "active" : ""}>
+            🎛️ <span className="sidebar-label">Recording Studio</span>
+            <MenuHint className="sidebar-hint">8-track</MenuHint>
+          </MenuItem>
         </>
       )}
 
