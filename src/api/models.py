@@ -170,6 +170,12 @@ class User(db.Model):
     # 💳 Access & Purchases (existing)
     vr_tickets = db.relationship('VRAccessTicket', backref='user', lazy=True)
     ticket_purchases = db.relationship('TicketPurchase', backref='user', lazy=True)
+    recording_projects = db.relationship(
+    "RecordingProject",
+    back_populates="user",
+    lazy=True,
+    cascade="all, delete-orphan"
+)
     
     # 🧑‍💼 Business Info (existing)
     business_name = db.Column(db.String(255), nullable=True)
@@ -1949,121 +1955,108 @@ class PricingPlan(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
-
 class RecordingProject(db.Model):
-    __tablename__ = 'recording_projects'
+    __tablename__ = "recording_projects"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    # ✅ MUST match User.__tablename__ exactly
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
     # ── Project Info ──
-    name = db.Column(db.String(200), nullable=False, default='Untitled Project')
+    name = db.Column(db.String(200), nullable=False, default="Untitled Project")
     description = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(20), default='draft')  # draft | mixing | mixed | mastered | published
+    status = db.Column(db.String(20), default="draft")
     genre = db.Column(db.String(100), nullable=True)
-    tags = db.Column(db.Text, nullable=True)  # JSON array of tag strings
+    tags = db.Column(db.Text, nullable=True)
 
     # ── Transport / Session Settings ──
     bpm = db.Column(db.Integer, default=120)
-    time_signature_top = db.Column(db.Integer, default=4)      # e.g. 4 in 4/4
-    time_signature_bottom = db.Column(db.Integer, default=4)    # e.g. 4 in 4/4
+    time_signature_top = db.Column(db.Integer, default=4)
+    time_signature_bottom = db.Column(db.Integer, default=4)
     master_volume = db.Column(db.Float, default=80.0)
     metronome_enabled = db.Column(db.Boolean, default=False)
     count_in_enabled = db.Column(db.Boolean, default=False)
-    duration_seconds = db.Column(db.Float, default=0.0)         # length of longest track
-    sample_rate = db.Column(db.Integer, default=44100)          # 44100 | 48000 | 96000
+    duration_seconds = db.Column(db.Float, default=0.0)
+    sample_rate = db.Column(db.Integer, default=44100)
 
     # ── Tracks Data (JSON) ──
-    # Each track object: { id, name, color, volume, pan, mute, solo, armed,
-    #   audio_url, waveform_data, effects: { eq: {...}, compressor: {...},
-    #   reverb: {...}, delay: {...}, distortion: {...}, filter: {...} } }
-    tracks_json = db.Column(db.Text, default='[]')
-
-    # ── Individual Track Audio Files (JSON array of URLs) ──
-    # Parallel array to tracks_json for quick access to audio URLs
-    track_audio_urls = db.Column(db.Text, default='[]')
+    tracks_json = db.Column(db.Text, default="[]")
+    track_audio_urls = db.Column(db.Text, default="[]")
 
     # ── Mixdown / Bounce ──
-    mixdown_url = db.Column(db.String(500), nullable=True)       # final bounce WAV/MP3 URL
-    mixdown_format = db.Column(db.String(10), nullable=True)     # wav | mp3 | flac
-    mixdown_bit_depth = db.Column(db.Integer, default=16)        # 16 | 24 | 32
-    mixdown_channels = db.Column(db.Integer, default=2)          # 1=mono, 2=stereo
+    mixdown_url = db.Column(db.String(500), nullable=True)
+    mixdown_format = db.Column(db.String(10), nullable=True)
+    mixdown_bit_depth = db.Column(db.Integer, default=16)
+    mixdown_channels = db.Column(db.Integer, default=2)
     mixdown_created_at = db.Column(db.DateTime, nullable=True)
 
-    # ── Cover Art (optional) ──
+    # ── Cover Art ──
     cover_art_url = db.Column(db.String(500), nullable=True)
 
-    # ── Publishing (if user sends to distribution) ──
+    # ── Publishing ──
     is_published = db.Column(db.Boolean, default=False)
     published_at = db.Column(db.DateTime, nullable=True)
-    distribution_id = db.Column(db.Integer, db.ForeignKey('distributions.id'), nullable=True)
+    distribution_id = db.Column(db.Integer, db.ForeignKey("music_distribution.id"), nullable=True)
 
-    # ── Storage Tracking ──
-    total_size_bytes = db.Column(db.BigInteger, default=0)  # total project file size
+    # ── Storage ──
+    total_size_bytes = db.Column(db.BigInteger, default=0)
     track_count = db.Column(db.Integer, default=0)
 
     # ── Timestamps ──
     created_at = db.Column(db.DateTime, default=db.func.now())
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
-    # ── Relationships ──
-    user = db.relationship('User', backref=db.backref('recording_projects', lazy=True))
+    # ✅ Cleaner than backref for large apps + avoids admin reflection edge cases
+    user = db.relationship("User", back_populates="recording_projects")
 
     def serialize(self):
         return {
-            'id': self.id,
-            'user_id': self.user_id,
-            # Project info
-            'name': self.name,
-            'description': self.description,
-            'status': self.status,
-            'genre': self.genre,
-            'tags': self.tags,
-            # Transport
-            'bpm': self.bpm,
-            'time_signature': f"{self.time_signature_top}/{self.time_signature_bottom}",
-            'master_volume': self.master_volume,
-            'metronome_enabled': self.metronome_enabled,
-            'count_in_enabled': self.count_in_enabled,
-            'duration_seconds': self.duration_seconds,
-            'sample_rate': self.sample_rate,
-            # Tracks
-            'tracks_json': self.tracks_json,
-            'track_audio_urls': self.track_audio_urls,
-            'track_count': self.track_count,
-            # Mixdown
-            'mixdown_url': self.mixdown_url,
-            'mixdown_format': self.mixdown_format,
-            'mixdown_bit_depth': self.mixdown_bit_depth,
-            'mixdown_channels': self.mixdown_channels,
-            'mixdown_created_at': self.mixdown_created_at.isoformat() if self.mixdown_created_at else None,
-            # Cover / Publishing
-            'cover_art_url': self.cover_art_url,
-            'is_published': self.is_published,
-            'published_at': self.published_at.isoformat() if self.published_at else None,
-            'distribution_id': self.distribution_id,
-            # Storage
-            'total_size_bytes': self.total_size_bytes,
-            # Timestamps
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            "id": self.id,
+            "user_id": self.user_id,
+            "name": self.name,
+            "description": self.description,
+            "status": self.status,
+            "genre": self.genre,
+            "tags": self.tags,
+            "bpm": self.bpm,
+            "time_signature": f"{self.time_signature_top}/{self.time_signature_bottom}",
+            "master_volume": self.master_volume,
+            "metronome_enabled": self.metronome_enabled,
+            "count_in_enabled": self.count_in_enabled,
+            "duration_seconds": self.duration_seconds,
+            "sample_rate": self.sample_rate,
+            "tracks_json": self.tracks_json,
+            "track_audio_urls": self.track_audio_urls,
+            "track_count": self.track_count,
+            "mixdown_url": self.mixdown_url,
+            "mixdown_format": self.mixdown_format,
+            "mixdown_bit_depth": self.mixdown_bit_depth,
+            "mixdown_channels": self.mixdown_channels,
+            "mixdown_created_at": self.mixdown_created_at.isoformat() if self.mixdown_created_at else None,
+            "cover_art_url": self.cover_art_url,
+            "is_published": self.is_published,
+            "published_at": self.published_at.isoformat() if self.published_at else None,
+            "distribution_id": self.distribution_id,
+            "total_size_bytes": self.total_size_bytes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
     def serialize_compact(self):
-        """Lightweight version for project list views (no tracks_json)"""
         return {
-            'id': self.id,
-            'name': self.name,
-            'status': self.status,
-            'genre': self.genre,
-            'bpm': self.bpm,
-            'duration_seconds': self.duration_seconds,
-            'track_count': self.track_count,
-            'mixdown_url': self.mixdown_url,
-            'cover_art_url': self.cover_art_url,
-            'is_published': self.is_published,
-            'total_size_bytes': self.total_size_bytes,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            "id": self.id,
+            "name": self.name,
+            "status": self.status,
+            "genre": self.genre,
+            "bpm": self.bpm,
+            "duration_seconds": self.duration_seconds,
+            "track_count": self.track_count,
+            "mixdown_url": self.mixdown_url,
+            "cover_art_url": self.cover_art_url,
+            "is_published": self.is_published,
+            "total_size_bytes": self.total_size_bytes,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
