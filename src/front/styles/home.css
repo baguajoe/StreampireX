@@ -261,10 +261,11 @@
 	background: transparent !important;
 }
 
+/* 7-card grid: 4 cols on desktop, auto-wraps 3 on second row */
 .streampirex-home .ai-features-grid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 2rem;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 1.5rem;
 	max-width: 1200px;
 	margin: 2.5rem auto 0;
 }
@@ -388,6 +389,72 @@
 }
 
 /* =============================================
+   How It Works Section
+   ============================================= */
+.streampirex-home .how-it-works {
+	padding: 4rem 2rem;
+	background: #111827 !important;
+	text-align: center;
+}
+
+.streampirex-home .how-it-works h2 {
+	color: #00ffc8 !important;
+	font-size: 2rem;
+	margin-bottom: 2rem;
+	background: transparent !important;
+}
+
+.streampirex-home .steps-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 2rem;
+	max-width: 1000px;
+	margin: 0 auto;
+}
+
+.streampirex-home .step-card {
+	background: #1f2937 !important;
+	padding: 2rem 1.5rem;
+	border-radius: 14px;
+	border: 1px solid rgba(0, 255, 200, 0.12);
+	position: relative;
+	transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.streampirex-home .step-card:hover {
+	transform: translateY(-4px);
+	box-shadow: 0 8px 30px rgba(0, 255, 200, 0.12);
+}
+
+.streampirex-home .step-number {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, #00ffc8, #00a8ff) !important;
+	color: #0d1117;
+	font-size: 1.4rem;
+	font-weight: 900;
+	margin-bottom: 1rem;
+}
+
+.streampirex-home .step-card h4 {
+	color: #ffffff !important;
+	font-size: 1.15rem;
+	margin-bottom: 0.75rem;
+	background: transparent !important;
+}
+
+.streampirex-home .step-card p {
+	color: #9ca3af !important;
+	font-size: 0.9rem;
+	line-height: 1.6;
+	background: transparent !important;
+}
+
+/* =============================================
    Features Section
    ============================================= */
 .streampirex-home .features {
@@ -477,7 +544,7 @@
 }
 
 /* =============================================
-   Comparison Section (your "comparison-section" uses these cards)
+   Comparison Section
    ============================================= */
 .streampirex-home .comparison-section {
 	padding: 4rem 2rem;
@@ -864,6 +931,107 @@
 }
 
 /* =============================================
+   Pricing Preview Section
+   ============================================= */
+.streampirex-home .pricing-preview {
+	padding: 4rem 2rem;
+	background: #0f172a !important;
+	text-align: center;
+	border-top: 2px solid rgba(0, 255, 200, 0.15);
+	border-bottom: 2px solid rgba(0, 255, 200, 0.15);
+}
+
+.streampirex-home .pricing-preview h2 {
+	color: #00ffc8 !important;
+	font-size: 2rem;
+	margin-bottom: 0.5rem;
+	background: transparent !important;
+}
+
+.streampirex-home .pricing-preview-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 1.5rem;
+	max-width: 1200px;
+	margin: 2rem auto 0;
+}
+
+.streampirex-home .pricing-preview-card {
+	background: #1f2937 !important;
+	padding: 1.75rem 1.5rem;
+	border-radius: 14px;
+	box-shadow: 0 0 14px rgba(0, 255, 200, 0.08);
+	border: 1px solid rgba(0, 255, 200, 0.12);
+	position: relative;
+	min-height: 190px;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+}
+
+.streampirex-home .pricing-preview-card h4 {
+	color: #ffffff !important;
+	font-size: 1.2rem;
+	margin-bottom: 0.75rem;
+	background: transparent !important;
+}
+
+.streampirex-home .pricing-preview-card.starter {
+	border-color: rgba(255, 102, 0, 0.35);
+	box-shadow: 0 0 18px rgba(255, 102, 0, 0.12);
+}
+
+.streampirex-home .pricing-preview-card.creator {
+	border-color: rgba(0, 255, 200, 0.35);
+	box-shadow: 0 0 20px rgba(0, 255, 200, 0.14);
+}
+
+.streampirex-home .pricing-preview-card.pro {
+	border-color: rgba(124, 58, 237, 0.35);
+	box-shadow: 0 0 18px rgba(124, 58, 237, 0.12);
+}
+
+.streampirex-home .preview-price {
+	font-size: 2.2rem;
+	font-weight: 900;
+	color: #00ffc8 !important;
+	margin-bottom: 0.75rem;
+	background: transparent !important;
+}
+
+.streampirex-home .preview-price span {
+	font-size: 1rem;
+	font-weight: 700;
+	color: #9ca3af !important;
+	margin-left: 0.35rem;
+}
+
+.streampirex-home .pricing-preview-card p {
+	color: #d1d5db !important;
+	font-size: 0.9rem;
+	line-height: 1.5;
+	background: transparent !important;
+}
+
+.streampirex-home .preview-popular {
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	background: linear-gradient(135deg, #FF6600, #ff914d) !important;
+	color: #0d1117 !important;
+	font-weight: 900;
+	font-size: 0.7rem;
+	padding: 0.25rem 0.75rem;
+	border-radius: 20px;
+	text-transform: uppercase;
+	letter-spacing: 0.6px;
+}
+
+.streampirex-home .pricing-preview-cta {
+	margin-top: 2rem;
+}
+
+/* =============================================
    Footer
    ============================================= */
 .streampirex-home .home-footer {
@@ -926,6 +1094,11 @@
 	.streampirex-home .feature-container {
 		grid-template-columns: 1fr;
 	}
+
+	.streampirex-home .pricing-preview-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		max-width: 700px;
+	}
 }
 
 /* Tablets */
@@ -944,8 +1117,17 @@
 	}
 
 	.streampirex-home .ai-features-grid {
+		grid-template-columns: repeat(2, 1fr);
+		max-width: 800px;
+		margin-left: auto;
+		margin-right: auto;
+	}
+
+	.streampirex-home .steps-grid {
 		grid-template-columns: 1fr;
-		max-width: 600px;
+		max-width: 500px;
+		margin-left: auto;
+		margin-right: auto;
 	}
 }
 
@@ -994,6 +1176,13 @@
 		padding: 1.5rem 1rem;
 	}
 
+	.streampirex-home .ai-features-grid {
+		grid-template-columns: 1fr;
+		max-width: 600px;
+		margin-left: auto;
+		margin-right: auto;
+	}
+
 	.streampirex-home .earnings-row .platform-name {
 		width: 80px;
 		font-size: 0.8rem;
@@ -1025,6 +1214,15 @@
 		flex-wrap: wrap;
 		gap: 1rem;
 		justify-content: center;
+	}
+
+	.streampirex-home .pricing-preview {
+		padding: 2.5rem 1rem;
+	}
+
+	.streampirex-home .pricing-preview-grid {
+		grid-template-columns: 1fr;
+		max-width: 520px;
 	}
 }
 
@@ -1092,125 +1290,5 @@
 	.streampirex-home .coming-soon-tag {
 		font-size: 0.7rem;
 		padding: 4px 10px;
-	}
-
-	/* =============================================
-   Pricing Preview Section (ADDED)
-   ============================================= */
-	.streampirex-home .pricing-preview {
-		padding: 4rem 2rem;
-		background: #0f172a !important;
-		text-align: center;
-		border-top: 2px solid rgba(0, 255, 200, 0.15);
-		border-bottom: 2px solid rgba(0, 255, 200, 0.15);
-	}
-
-	.streampirex-home .pricing-preview h2 {
-		color: #00ffc8 !important;
-		font-size: 2rem;
-		margin-bottom: 0.5rem;
-		background: transparent !important;
-	}
-
-	.streampirex-home .pricing-preview-grid {
-		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 1.5rem;
-		max-width: 1200px;
-		margin: 2rem auto 0;
-	}
-
-	.streampirex-home .pricing-preview-card {
-		background: #1f2937 !important;
-		padding: 1.75rem 1.5rem;
-		border-radius: 14px;
-		box-shadow: 0 0 14px rgba(0, 255, 200, 0.08);
-		border: 1px solid rgba(0, 255, 200, 0.12);
-		position: relative;
-		min-height: 190px;
-		display: flex;
-		flex-direction: column;
-		justify-content: flex-start;
-	}
-
-	.streampirex-home .pricing-preview-card h4 {
-		color: #ffffff !important;
-		font-size: 1.2rem;
-		margin-bottom: 0.75rem;
-		background: transparent !important;
-	}
-
-	.streampirex-home .pricing-preview-card.starter {
-		border-color: rgba(255, 102, 0, 0.35);
-		box-shadow: 0 0 18px rgba(255, 102, 0, 0.12);
-	}
-
-	.streampirex-home .pricing-preview-card.creator {
-		border-color: rgba(0, 255, 200, 0.35);
-		box-shadow: 0 0 20px rgba(0, 255, 200, 0.14);
-	}
-
-	.streampirex-home .pricing-preview-card.pro {
-		border-color: rgba(124, 58, 237, 0.35);
-		box-shadow: 0 0 18px rgba(124, 58, 237, 0.12);
-	}
-
-	.streampirex-home .preview-price {
-		font-size: 2.2rem;
-		font-weight: 900;
-		color: #00ffc8 !important;
-		margin-bottom: 0.75rem;
-		background: transparent !important;
-	}
-
-	.streampirex-home .preview-price span {
-		font-size: 1rem;
-		font-weight: 700;
-		color: #9ca3af !important;
-		margin-left: 0.35rem;
-	}
-
-	.streampirex-home .pricing-preview-card p {
-		color: #d1d5db !important;
-		font-size: 0.9rem;
-		line-height: 1.5;
-		background: transparent !important;
-	}
-
-	.streampirex-home .preview-popular {
-		position: absolute;
-		top: 1rem;
-		right: 1rem;
-		background: linear-gradient(135deg, #FF6600, #ff914d) !important;
-		color: #0d1117 !important;
-		font-weight: 900;
-		font-size: 0.7rem;
-		padding: 0.25rem 0.75rem;
-		border-radius: 20px;
-		text-transform: uppercase;
-		letter-spacing: 0.6px;
-	}
-
-	.streampirex-home .pricing-preview-cta {
-		margin-top: 2rem;
-	}
-
-	/* Responsive for Pricing Preview */
-	@media (max-width: 1200px) {
-		.streampirex-home .pricing-preview-grid {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-			max-width: 700px;
-		}
-	}
-
-	@media (max-width: 768px) {
-		.streampirex-home .pricing-preview {
-			padding: 2.5rem 1rem;
-		}
-
-		.streampirex-home .pricing-preview-grid {
-			grid-template-columns: 1fr;
-			max-width: 520px;
-		}
 	}
 }
