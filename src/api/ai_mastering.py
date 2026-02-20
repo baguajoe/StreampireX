@@ -1525,5 +1525,11 @@ def upload_reference_track():
         return jsonify({"error": str(e)}), 500
 
 
+# =============================================================================
+# EXPORT ALIAS — ai_mastering_phase3.py imports this name
+# =============================================================================
+master_audio = process_audio_file
+
+
 # Phase 3 (Neural Network) — coming soon.
 # See ai_mastering_nn.py for the trained model integration.

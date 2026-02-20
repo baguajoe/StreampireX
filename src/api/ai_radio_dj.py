@@ -3,12 +3,19 @@
 # AI RADIO DJ — StreamPireX
 # =====================================================
 # Phase 2: Fully automated AI-powered radio DJ system
+# + Smart Playlist Curation (NEW)
 #
-# Pipeline per talk break:
+# EXISTING Pipeline per talk break:
 #   1. AI writes DJ script (Claude/OpenAI API)
 #   2. TTS generates DJ voice audio (OpenAI TTS / ElevenLabs)
 #   3. FFmpeg stitches: talk break + crossfade + next song
 #   4. Output feeds into existing radio stream
+#
+# NEW Playlist Curation Pipeline:
+#   1. Fetch user's audio library with metadata
+#   2. AI analyzes energy, BPM, key, mood per track
+#   3. Smart ordering via 4 strategies (energy arc, genre blocks, smooth mix, shuffle)
+#   4. Apply curated playlist to radio station
 #
 # Register: app.register_blueprint(ai_radio_dj_bp)
 # =====================================================
@@ -22,10 +29,12 @@ import tempfile
 import traceback
 import subprocess
 import random
+import math
 import requests
+from collections import defaultdict
 
 # Internal imports
-from src.api.models import db, Audio, RadioStation, RadioPlaylist, User
+from src.api.models import db, Audio, RadioStation, User
 from src.api.cloudinary_setup import uploadFile
 
 ai_radio_dj_bp = Blueprint('ai_radio_dj', __name__)
@@ -34,16 +43,13 @@ ai_radio_dj_bp = Blueprint('ai_radio_dj', __name__)
 # =====================================================
 # DJ PERSONAS
 # =====================================================
-# Each persona defines the DJ's personality, voice,
-# and style. Creators pick a persona or create custom.
-# =====================================================
 
 DJ_PERSONAS = {
     "smooth_mike": {
         "name": "Smooth Mike",
         "personality": "Laid-back, warm, soulful. Talks like a late-night R&B DJ. Smooth transitions, keeps it chill.",
-        "voice": "onyx",             # OpenAI TTS voice
-        "elevenlabs_voice": None,    # ElevenLabs voice ID (if using)
+        "voice": "onyx",
+        "elevenlabs_voice": None,
         "genres": ["rnb", "soul", "jazz", "lo-fi"],
         "catchphrases": [
             "You're vibin' with Smooth Mike...",
@@ -136,10 +142,6 @@ DJ_PERSONAS = {
 # =====================================================
 # TALK BREAK TEMPLATES
 # =====================================================
-# Different types of talk breaks the DJ can generate.
-# The automation system picks the right one based on
-# schedule rules (time of day, song count, etc.)
-# =====================================================
 
 BREAK_TYPES = {
     "song_intro": {
@@ -206,17 +208,14 @@ depending on the mood. Keep it under {max_words} words.""",
 # =====================================================
 # SCHEDULE RULES
 # =====================================================
-# Defines when talk breaks happen and what type.
-# Creators can customize these per station.
-# =====================================================
 
 DEFAULT_SCHEDULE_RULES = {
-    "songs_between_breaks": 3,          # Talk break every N songs
-    "station_id_interval_minutes": 30,  # Station ID every 30 min
-    "time_check_interval_minutes": 60,  # Time check every hour
-    "shoutout_interval_minutes": 45,    # Listener shoutout every 45 min
-    "crossfade_duration_seconds": 3,    # Crossfade between talk + song
-    "talk_break_max_seconds": 15,       # Max talk break length
+    "songs_between_breaks": 3,
+    "station_id_interval_minutes": 30,
+    "time_check_interval_minutes": 60,
+    "shoutout_interval_minutes": 45,
+    "crossfade_duration_seconds": 3,
+    "talk_break_max_seconds": 15,
     "enable_song_intros": True,
     "enable_station_ids": True,
     "enable_time_checks": True,
@@ -243,19 +242,13 @@ def generate_dj_script(
     upcoming_count=3,
     mood="chill",
 ):
-    """
-    Generate a DJ talk break script using AI.
-
-    Tries OpenAI first, falls back to template-based generation.
-    Returns the script text.
-    """
+    """Generate a DJ talk break script using AI."""
     persona = DJ_PERSONAS.get(persona_key, DJ_PERSONAS["auto_dj"])
     break_config = BREAK_TYPES.get(break_type, BREAK_TYPES["song_intro"])
 
     now = datetime.utcnow()
     catchphrase = random.choice(persona["catchphrases"]).replace("{station_name}", station_name)
 
-    # Build the prompt
     prompt = break_config["prompt_template"].format(
         dj_name=persona["name"],
         station_name=station_name,
@@ -296,7 +289,7 @@ def generate_dj_script(
         except Exception as e:
             print(f"⚠️ Anthropic script generation failed: {e}")
 
-    # Fallback: template-based (no API needed)
+    # Fallback: template-based
     return _generate_fallback_script(persona, break_type, station_name,
                                       last_song, last_artist, next_song, next_artist)
 
@@ -350,10 +343,7 @@ def _generate_with_anthropic(prompt, api_key):
 
 def _generate_fallback_script(persona, break_type, station_name,
                                last_song, last_artist, next_song, next_artist):
-    """
-    Template-based fallback when no AI API is available.
-    Still sounds decent — just less varied.
-    """
+    """Template-based fallback when no AI API is available."""
     dj = persona["name"]
     catchphrase = random.choice(persona["catchphrases"]).replace("{station_name}", station_name)
 
@@ -405,20 +395,10 @@ def _get_time_of_day(hour):
 # =====================================================
 
 def generate_tts_audio(script, persona_key, output_path, custom_voice_id=None):
-    """
-    Convert DJ script to spoken audio.
-
-    Priority order:
-    1. Custom cloned voice (creator's own voice via ElevenLabs)
-    2. OpenAI TTS (preset persona voice)
-    3. ElevenLabs preset voice
-    4. pyttsx3 offline fallback
-
-    Returns path to the generated audio file.
-    """
+    """Convert DJ script to spoken audio."""
     persona = DJ_PERSONAS.get(persona_key, DJ_PERSONAS["auto_dj"])
 
-    # Priority 1: Custom cloned voice (creator's own voice)
+    # Priority 1: Custom cloned voice
     elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
     if custom_voice_id and elevenlabs_key:
         try:
@@ -429,7 +409,7 @@ def generate_tts_audio(script, persona_key, output_path, custom_voice_id=None):
         except Exception as e:
             print(f"⚠️ Custom voice TTS failed, falling back: {e}")
 
-    # Priority 2: OpenAI TTS (preset persona voice)
+    # Priority 2: OpenAI TTS
     openai_key = os.environ.get("OPENAI_API_KEY")
     if openai_key:
         try:
@@ -449,7 +429,7 @@ def generate_tts_audio(script, persona_key, output_path, custom_voice_id=None):
         except Exception as e:
             print(f"⚠️ ElevenLabs TTS failed: {e}")
 
-    # Priority 4: Offline fallback (pyttsx3)
+    # Priority 4: Offline fallback
     try:
         result = _tts_offline(script, output_path)
         if result:
@@ -461,7 +441,7 @@ def generate_tts_audio(script, persona_key, output_path, custom_voice_id=None):
 
 
 def _tts_openai(script, voice, output_path, api_key):
-    """Generate speech using OpenAI TTS API. ~$0.015 per 1K chars."""
+    """Generate speech using OpenAI TTS API."""
     response = requests.post(
         "https://api.openai.com/v1/audio/speech",
         headers={
@@ -470,10 +450,10 @@ def _tts_openai(script, voice, output_path, api_key):
         },
         json={
             "model": "tts-1",
-            "voice": voice,       # alloy, echo, fable, onyx, nova, shimmer
+            "voice": voice,
             "input": script,
             "response_format": "mp3",
-            "speed": 1.05,        # Slightly faster for radio energy
+            "speed": 1.05,
         },
         timeout=30,
     )
@@ -487,7 +467,7 @@ def _tts_openai(script, voice, output_path, api_key):
 
 
 def _tts_elevenlabs(script, voice_id, output_path, api_key):
-    """Generate speech using ElevenLabs API. Higher quality, custom voices."""
+    """Generate speech using ElevenLabs API."""
     response = requests.post(
         f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
         headers={
@@ -514,7 +494,7 @@ def _tts_elevenlabs(script, voice_id, output_path, api_key):
 
 
 def _tts_offline(script, output_path):
-    """Offline TTS fallback using pyttsx3 (no API key needed)."""
+    """Offline TTS fallback using pyttsx3."""
     try:
         import pyttsx3
         engine = pyttsx3.init()
@@ -533,14 +513,7 @@ def _tts_offline(script, output_path):
 # =====================================================
 
 def stitch_talk_and_song(talk_break_path, song_path, output_path, crossfade_seconds=3):
-    """
-    Combine talk break audio + song with a crossfade.
-
-    Uses FFmpeg acrossfade filter:
-    [talk break] --crossfade--> [song]
-
-    Returns path to the combined output file.
-    """
+    """Combine talk break audio + song with a crossfade."""
     try:
         cmd = [
             "ffmpeg", "-y",
@@ -557,7 +530,6 @@ def stitch_talk_and_song(talk_break_path, song_path, output_path, crossfade_seco
 
         if result.returncode != 0:
             print(f"⚠️ FFmpeg crossfade failed: {result.stderr}")
-            # Fallback: simple concatenation without crossfade
             return _concat_simple(talk_break_path, song_path, output_path)
 
         print(f"🎵 Stitched: talk break + song → {output_path}")
@@ -598,19 +570,13 @@ def _concat_simple(audio_a, audio_b, output_path):
 
 
 def insert_station_id(song_path, station_id_path, output_path, position="start"):
-    """
-    Insert a station ID clip at the start or end of a song.
-
-    position: "start" or "end"
-    """
+    """Insert a station ID clip at the start or end of a song."""
     try:
         if position == "start":
             first, second = station_id_path, song_path
         else:
             first, second = song_path, station_id_path
-
         return stitch_talk_and_song(first, second, output_path, crossfade_seconds=2)
-
     except Exception as e:
         print(f"❌ Station ID insert error: {e}")
         return None
@@ -631,19 +597,10 @@ def download_audio_file(url, output_path):
 # =====================================================
 
 def get_next_break_type(station_state):
-    """
-    Decide what kind of talk break to play next based on schedule rules.
-
-    station_state tracks:
-    - songs_since_last_break
-    - last_station_id_at
-    - last_time_check_at
-    - last_shoutout_at
-    """
+    """Decide what kind of talk break to play next based on schedule rules."""
     rules = station_state.get("rules", DEFAULT_SCHEDULE_RULES)
     now = datetime.utcnow()
 
-    # Station ID check (highest priority)
     last_station_id = station_state.get("last_station_id_at")
     if last_station_id and rules["enable_station_ids"]:
         if isinstance(last_station_id, str):
@@ -652,7 +609,6 @@ def get_next_break_type(station_state):
         if minutes_since >= rules["station_id_interval_minutes"]:
             return "station_id"
 
-    # Time check
     last_time_check = station_state.get("last_time_check_at")
     if last_time_check and rules["enable_time_checks"]:
         if isinstance(last_time_check, str):
@@ -661,7 +617,6 @@ def get_next_break_type(station_state):
         if minutes_since >= rules["time_check_interval_minutes"]:
             return "time_check"
 
-    # Shoutout
     last_shoutout = station_state.get("last_shoutout_at")
     if last_shoutout and rules["enable_shoutouts"]:
         if isinstance(last_shoutout, str):
@@ -670,12 +625,11 @@ def get_next_break_type(station_state):
         if minutes_since >= rules["shoutout_interval_minutes"]:
             return "shoutout"
 
-    # Song intro (default — every N songs)
     songs_since = station_state.get("songs_since_last_break", 0)
     if songs_since >= rules["songs_between_breaks"] and rules["enable_song_intros"]:
         return "song_intro"
 
-    return None  # No break needed
+    return None
 
 
 def generate_break_segment(
@@ -686,12 +640,7 @@ def generate_break_segment(
     next_track_info,
     listener_count=0,
 ):
-    """
-    Full pipeline: generate script → TTS → return audio path.
-
-    This is the main function called by the automation loop.
-    Returns path to the talk break audio file, or None.
-    """
+    """Full pipeline: generate script → TTS → return audio path."""
     station = RadioStation.query.get(station_id)
     if not station:
         return None
@@ -699,7 +648,6 @@ def generate_break_segment(
     temp_dir = tempfile.mkdtemp()
 
     try:
-        # Step 1: Generate script
         script = generate_dj_script(
             persona_key=persona_key,
             break_type=break_type,
@@ -714,7 +662,6 @@ def generate_break_segment(
 
         print(f"📝 DJ Script ({break_type}): {script}")
 
-        # Step 2: Generate TTS audio (check for custom cloned voice)
         custom_voice_id = None
         if station.playlist_schedule:
             dj_config = station.playlist_schedule.get("dj_config", {})
@@ -727,7 +674,6 @@ def generate_break_segment(
             print("⚠️ TTS failed — skipping talk break")
             return None
 
-        # Step 3: Upload talk break to Cloudinary for streaming
         break_filename = f"dj_break_{station_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.mp3"
         with open(tts_path, "rb") as f:
             break_url = uploadFile(f, break_filename)
@@ -748,7 +694,6 @@ def generate_break_segment(
         return None
 
     finally:
-        # Cleanup temp files
         try:
             import shutil
             shutil.rmtree(temp_dir, ignore_errors=True)
@@ -765,12 +710,7 @@ def generate_stitched_segment(
     crossfade_seconds=3,
     listener_count=0,
 ):
-    """
-    Full pipeline: script → TTS → stitch with next song → upload.
-
-    Returns a complete audio segment: [talk break + crossfade + next song]
-    ready to be inserted into the radio stream.
-    """
+    """Full pipeline: script → TTS → stitch with next song → upload."""
     station = RadioStation.query.get(station_id)
     if not station:
         return None
@@ -778,7 +718,6 @@ def generate_stitched_segment(
     temp_dir = tempfile.mkdtemp()
 
     try:
-        # Step 1: Generate the talk break audio
         script = generate_dj_script(
             persona_key=persona_key,
             break_type=break_type,
@@ -793,7 +732,6 @@ def generate_stitched_segment(
 
         print(f"📝 DJ Script: {script}")
 
-        # Check for custom cloned voice
         custom_voice_id = None
         if station.playlist_schedule:
             dj_config = station.playlist_schedule.get("dj_config", {})
@@ -805,10 +743,8 @@ def generate_stitched_segment(
         if not tts_result:
             return None
 
-        # Step 2: Download next song from Cloudinary
         next_song_url = next_track_info.get("file_url")
         if not next_song_url:
-            # Try to get from Audio model
             audio = Audio.query.get(next_track_info.get("id"))
             if audio:
                 next_song_url = audio.file_url
@@ -823,14 +759,12 @@ def generate_stitched_segment(
         song_path = os.path.join(temp_dir, "next_song.mp3")
         download_audio_file(next_song_url, song_path)
 
-        # Step 3: Stitch together
         output_path = os.path.join(temp_dir, "stitched_segment.mp3")
         stitch_result = stitch_talk_and_song(tts_path, song_path, output_path, crossfade_seconds)
 
         if not stitch_result:
             return None
 
-        # Step 4: Upload stitched segment
         segment_filename = f"dj_segment_{station_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.mp3"
         with open(output_path, "rb") as f:
             segment_url = uploadFile(f, segment_filename)
@@ -859,8 +793,281 @@ def generate_stitched_segment(
             pass
 
 
+# =============================================================================
+# ███████╗███╗   ███╗ █████╗ ██████╗ ████████╗    ██████╗ ██╗      █████╗ ██╗   ██╗██╗     ██╗███████╗████████╗
+# ██╔════╝████╗ ████║██╔══██╗██╔══██╗╚══██╔══╝    ██╔══██╗██║     ██╔══██╗╚██╗ ██╔╝██║     ██║██╔════╝╚══██╔══╝
+# ███████╗██╔████╔██║███████║██████╔╝   ██║       ██████╔╝██║     ███████║ ╚████╔╝ ██║     ██║███████╗   ██║
+# ╚════██║██║╚██╔╝██║██╔══██║██╔══██╗   ██║       ██╔═══╝ ██║     ██╔══██║  ╚██╔╝  ██║     ██║╚════██║   ██║
+# ███████║██║ ╚═╝ ██║██║  ██║██║  ██║   ██║       ██║     ███████╗██║  ██║   ██║   ███████╗██║███████║   ██║
+# ╚══════╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝       ╚═╝     ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝╚══════╝╚═╝
+# =============================================================================
+# AI SMART PLAYLIST CURATION
+# Lets the AI DJ pick songs from the user's uploaded library,
+# auto-build playlists based on genre/mood/BPM/key,
+# and schedule tracks intelligently.
+# =============================================================================
+
+
 # =====================================================
-# API ROUTES
+# MUSIC KEY COMPATIBILITY (Camelot Wheel)
+# =====================================================
+
+CAMELOT_WHEEL = {
+    "C major": "8B",   "A minor": "8A",
+    "G major": "9B",   "E minor": "9A",
+    "D major": "10B",  "B minor": "10A",
+    "A major": "11B",  "F# minor": "11A",
+    "E major": "12B",  "C# minor": "12A",
+    "B major": "1B",   "G# minor": "1A",
+    "F# major": "2B",  "D# minor": "2A",
+    "Db major": "3B",  "Bb minor": "3A",
+    "Ab major": "4B",  "F minor": "4A",
+    "Eb major": "5B",  "C minor": "5A",
+    "Bb major": "6B",  "G minor": "6A",
+    "F major": "7B",   "D minor": "7A",
+}
+
+
+def get_camelot(key_str):
+    """Convert key string to Camelot code."""
+    if not key_str:
+        return None
+    return CAMELOT_WHEEL.get(key_str)
+
+
+def keys_compatible(key1, key2):
+    """Check if two keys are harmonically compatible (adjacent on Camelot wheel)."""
+    c1 = get_camelot(key1)
+    c2 = get_camelot(key2)
+    if not c1 or not c2:
+        return True  # Unknown keys = assume compatible
+
+    num1 = int(c1[:-1])
+    letter1 = c1[-1]
+    num2 = int(c2[:-1])
+    letter2 = c2[-1]
+
+    if c1 == c2:
+        return True
+    if num1 == num2:
+        return True
+    if letter1 == letter2 and abs(num1 - num2) in [1, 11]:
+        return True
+    return False
+
+
+# =====================================================
+# ENERGY ESTIMATION (from BPM, mood, genre)
+# =====================================================
+
+MOOD_ENERGY = {
+    "energetic": 0.9, "hype": 0.95, "aggressive": 0.85, "upbeat": 0.8,
+    "happy": 0.7, "groovy": 0.7, "funky": 0.7,
+    "chill": 0.4, "mellow": 0.35, "relaxed": 0.3, "ambient": 0.2,
+    "melancholic": 0.4, "dark": 0.5, "dreamy": 0.3,
+    "intense": 0.85, "powerful": 0.8, "smooth": 0.5,
+    "romantic": 0.4, "nostalgic": 0.45, "euphoric": 0.9,
+}
+
+GENRE_ENERGY = {
+    "EDM": 0.85, "House": 0.75, "Techno": 0.8, "Trance": 0.7,
+    "Drum & Bass": 0.9, "Dubstep": 0.85, "Trap": 0.8,
+    "Hip-Hop": 0.65, "R&B": 0.5, "Soul": 0.5, "Funk": 0.7,
+    "Pop": 0.65, "Rock": 0.7, "Metal": 0.9, "Punk": 0.85,
+    "Jazz": 0.45, "Blues": 0.4, "Classical": 0.35,
+    "Reggae": 0.5, "Lo-Fi": 0.3, "Ambient": 0.2,
+    "Country": 0.55, "Folk": 0.4, "Indie": 0.55,
+    "Latin": 0.7, "Afrobeat": 0.75, "K-Pop": 0.7,
+}
+
+
+def estimate_energy(track_data):
+    """Estimate energy level 0.0-1.0 from available metadata."""
+    scores = []
+
+    bpm = track_data.get("bpm")
+    if bpm and isinstance(bpm, (int, float)) and bpm > 0:
+        bpm_energy = min(1.0, max(0.1, (bpm - 50) / 140))
+        scores.append(bpm_energy)
+
+    mood = (track_data.get("mood") or "").lower().strip()
+    if mood in MOOD_ENERGY:
+        scores.append(MOOD_ENERGY[mood])
+
+    genre = track_data.get("genre") or ""
+    for g, e in GENRE_ENERGY.items():
+        if g.lower() in genre.lower():
+            scores.append(e)
+            break
+
+    if scores:
+        return round(sum(scores) / len(scores), 2)
+    return 0.5
+
+
+# =====================================================
+# PLAYLIST STRATEGIES
+# =====================================================
+
+def strategy_energy_arc(tracks):
+    """Classic DJ set flow: build up → peak → cooldown."""
+    if len(tracks) <= 3:
+        return sorted(tracks, key=lambda t: t["energy"])
+
+    by_energy = sorted(tracks, key=lambda t: t["energy"])
+    n = len(by_energy)
+
+    low = by_energy[:n // 3]
+    mid = by_energy[n // 3: 2 * n // 3]
+    high = by_energy[2 * n // 3:]
+
+    result = []
+
+    # Opener: 1-2 mid-energy tracks
+    openers = mid[:min(2, len(mid))]
+    result.extend(openers)
+    for t in openers:
+        if t in mid:
+            mid.remove(t)
+
+    # Build: rising energy
+    build = sorted(mid + low, key=lambda t: t["energy"])
+    result.extend(build)
+
+    # Peak: highest energy tracks
+    result.extend(sorted(high, key=lambda t: t["energy"]))
+
+    return result
+
+
+def strategy_genre_blocks(tracks):
+    """Group by genre, play genre blocks with smooth transitions between them."""
+    by_genre = defaultdict(list)
+    for t in tracks:
+        genre = t.get("genre") or "Unknown"
+        by_genre[genre].append(t)
+
+    for genre in by_genre:
+        by_genre[genre].sort(key=lambda t: t["energy"])
+
+    genre_order = sorted(by_genre.keys(),
+                         key=lambda g: sum(t["energy"] for t in by_genre[g]) / len(by_genre[g]))
+
+    result = []
+    for genre in genre_order:
+        result.extend(by_genre[genre])
+
+    return result
+
+
+def strategy_smooth_mix(tracks):
+    """Harmonic mixing: each track flows into a key-compatible next track."""
+    if not tracks:
+        return tracks
+
+    remaining = list(tracks)
+    result = []
+
+    remaining.sort(key=lambda t: abs(t["energy"] - 0.5))
+    current = remaining.pop(0)
+    result.append(current)
+
+    while remaining:
+        best = None
+        best_score = -1
+
+        for candidate in remaining:
+            score = 0.0
+
+            if keys_compatible(current.get("key"), candidate.get("key")):
+                score += 3.0
+
+            if current.get("bpm") and candidate.get("bpm"):
+                bpm_diff = abs(current["bpm"] - candidate["bpm"])
+                if bpm_diff <= 5:
+                    score += 2.0
+                elif bpm_diff <= 15:
+                    score += 1.0
+
+            energy_diff = abs(current["energy"] - candidate["energy"])
+            score += max(0, 1.5 - energy_diff * 3)
+
+            if current.get("genre") == candidate.get("genre"):
+                score += 0.5
+
+            if score > best_score:
+                best_score = score
+                best = candidate
+
+        if best:
+            remaining.remove(best)
+            result.append(best)
+            current = best
+        else:
+            result.append(remaining.pop(0))
+
+    return result
+
+
+def strategy_shuffle(tracks):
+    """Smart shuffle: avoids same artist/genre back-to-back."""
+    shuffled = list(tracks)
+    random.shuffle(shuffled)
+
+    for i in range(len(shuffled) - 1):
+        if (shuffled[i].get("artist") and
+            shuffled[i].get("artist") == shuffled[i + 1].get("artist")):
+            for j in range(i + 2, len(shuffled)):
+                if shuffled[j].get("artist") != shuffled[i].get("artist"):
+                    shuffled[i + 1], shuffled[j] = shuffled[j], shuffled[i + 1]
+                    break
+
+    return shuffled
+
+
+PLAYLIST_STRATEGIES = {
+    "energy_arc": {
+        "fn": strategy_energy_arc,
+        "name": "Energy Arc",
+        "description": "Classic DJ flow: build up → peak → cooldown",
+        "icon": "📈"
+    },
+    "genre_blocks": {
+        "fn": strategy_genre_blocks,
+        "name": "Genre Blocks",
+        "description": "Group similar genres together with smooth transitions",
+        "icon": "🎵"
+    },
+    "smooth_mix": {
+        "fn": strategy_smooth_mix,
+        "name": "Smooth Mix",
+        "description": "Harmonic mixing — each track flows into the next by key & BPM",
+        "icon": "🎧"
+    },
+    "shuffle": {
+        "fn": strategy_shuffle,
+        "name": "Smart Shuffle",
+        "description": "Randomized but avoids same artist/genre back-to-back",
+        "icon": "🔀"
+    }
+}
+
+
+# =====================================================
+# HELPER
+# =====================================================
+
+def format_duration(seconds):
+    """Convert seconds to MM:SS format."""
+    if not seconds or not isinstance(seconds, (int, float)):
+        return "3:30"
+    minutes = int(seconds) // 60
+    secs = int(seconds) % 60
+    return f"{minutes}:{secs:02d}"
+
+
+# =====================================================
+# API ROUTES — DJ PERSONAS & BREAKS
 # =====================================================
 
 @ai_radio_dj_bp.route('/api/ai/radio/personas', methods=['GET'])
@@ -895,20 +1102,7 @@ def get_break_types():
 @ai_radio_dj_bp.route('/api/ai/radio/generate-script', methods=['POST'])
 @jwt_required()
 def api_generate_script():
-    """
-    Generate a DJ talk break script (text only, no audio).
-
-    JSON body:
-    {
-        "station_id": 1,
-        "persona": "dj_blaze",
-        "break_type": "song_intro",
-        "last_song": "Title",
-        "last_artist": "Artist",
-        "next_song": "Title",
-        "next_artist": "Artist"
-    }
-    """
+    """Generate a DJ talk break script (text only, no audio)."""
     user_id = get_jwt_identity()
     data = request.get_json()
 
@@ -947,22 +1141,7 @@ def api_generate_script():
 @ai_radio_dj_bp.route('/api/ai/radio/generate-break', methods=['POST'])
 @jwt_required()
 def api_generate_break():
-    """
-    Generate a complete talk break: script + TTS audio.
-
-    JSON body:
-    {
-        "station_id": 1,
-        "persona": "smooth_mike",
-        "break_type": "song_intro",
-        "last_song": "Title",
-        "last_artist": "Artist",
-        "next_song": "Title",
-        "next_artist": "Artist"
-    }
-
-    Returns: { "audio_url": "...", "script": "..." }
-    """
+    """Generate a complete talk break: script + TTS audio."""
     user_id = get_jwt_identity()
     data = request.get_json()
 
@@ -1004,22 +1183,7 @@ def api_generate_break():
 @ai_radio_dj_bp.route('/api/ai/radio/generate-segment', methods=['POST'])
 @jwt_required()
 def api_generate_stitched_segment():
-    """
-    Generate a full stitched segment: talk break + crossfade + next song.
-
-    JSON body:
-    {
-        "station_id": 1,
-        "persona": "dj_blaze",
-        "break_type": "song_intro",
-        "next_track_id": 42,
-        "last_song": "Previous Song",
-        "last_artist": "Previous Artist",
-        "crossfade_seconds": 3
-    }
-
-    Returns: { "audio_url": "...", "script": "...", "next_track": {...} }
-    """
+    """Generate a full stitched segment: talk break + crossfade + next song."""
     user_id = get_jwt_identity()
     data = request.get_json()
 
@@ -1031,7 +1195,6 @@ def api_generate_stitched_segment():
     if str(station.user_id) != str(user_id):
         return jsonify({"error": "Unauthorized"}), 403
 
-    # Get next track info
     next_track_id = data.get("next_track_id")
     if next_track_id:
         audio = Audio.query.get(next_track_id)
@@ -1071,6 +1234,10 @@ def api_generate_stitched_segment():
     return jsonify(result), 200
 
 
+# =====================================================
+# API ROUTES — STATION DJ CONFIG
+# =====================================================
+
 @ai_radio_dj_bp.route('/api/ai/radio/station/<int:station_id>/config', methods=['GET'])
 @jwt_required()
 def get_station_dj_config(station_id):
@@ -1083,7 +1250,6 @@ def get_station_dj_config(station_id):
     if str(station.user_id) != str(user_id):
         return jsonify({"error": "Unauthorized"}), 403
 
-    # DJ config is stored in station's JSON fields
     dj_config = {}
     if hasattr(station, 'playlist_schedule') and station.playlist_schedule:
         dj_config = station.playlist_schedule.get("dj_config", {})
@@ -1101,20 +1267,7 @@ def get_station_dj_config(station_id):
 @ai_radio_dj_bp.route('/api/ai/radio/station/<int:station_id>/config', methods=['PUT'])
 @jwt_required()
 def update_station_dj_config(station_id):
-    """
-    Enable/configure AI DJ for a station.
-
-    JSON body:
-    {
-        "enabled": true,
-        "persona": "dj_blaze",
-        "rules": {
-            "songs_between_breaks": 3,
-            "station_id_interval_minutes": 30,
-            ...
-        }
-    }
-    """
+    """Enable/configure AI DJ for a station."""
     user_id = get_jwt_identity()
     station = RadioStation.query.get(station_id)
 
@@ -1125,7 +1278,6 @@ def update_station_dj_config(station_id):
 
     data = request.get_json()
 
-    # Update DJ config in playlist_schedule JSON
     current_schedule = station.playlist_schedule or {}
     current_schedule["dj_config"] = {
         "enabled": data.get("enabled", False),
@@ -1135,7 +1287,6 @@ def update_station_dj_config(station_id):
     }
 
     station.playlist_schedule = current_schedule
-    # Force SQLAlchemy to detect the change on JSON column
     from sqlalchemy.orm.attributes import flag_modified
     flag_modified(station, "playlist_schedule")
     db.session.commit()
@@ -1149,13 +1300,7 @@ def update_station_dj_config(station_id):
 @ai_radio_dj_bp.route('/api/ai/radio/station/<int:station_id>/next-break', methods=['POST'])
 @jwt_required()
 def trigger_next_break(station_id):
-    """
-    Manually trigger the next DJ break for a station.
-    Useful for testing or one-off breaks.
-
-    The automation system calls this internally on a schedule,
-    but creators can also trigger it from the dashboard.
-    """
+    """Manually trigger the next DJ break for a station."""
     user_id = get_jwt_identity()
     station = RadioStation.query.get(station_id)
 
@@ -1164,24 +1309,20 @@ def trigger_next_break(station_id):
     if str(station.user_id) != str(user_id):
         return jsonify({"error": "Unauthorized"}), 403
 
-    # Get DJ config
     dj_config = {}
     if station.playlist_schedule:
         dj_config = station.playlist_schedule.get("dj_config", {})
 
     persona_key = dj_config.get("persona", "auto_dj")
 
-    # Get current and next track from playlist
     current_track = station.get_current_track() or {"title": "Unknown", "artist": "Unknown"}
     next_track_info = _get_next_track(station)
 
     if not next_track_info:
         return jsonify({"error": "No next track available"}), 400
 
-    # Determine break type
     break_type = request.get_json().get("break_type", "song_intro") if request.get_json() else "song_intro"
 
-    # Generate the break
     result = generate_break_segment(
         station_id=station_id,
         persona_key=persona_key,
@@ -1203,16 +1344,7 @@ def trigger_next_break(station_id):
 @ai_radio_dj_bp.route('/api/ai/radio/station/<int:station_id>/request', methods=['POST'])
 @jwt_required()
 def listener_request(station_id):
-    """
-    Submit a listener song request.
-
-    JSON body:
-    {
-        "song_title": "Song Name",
-        "artist": "Artist Name",
-        "message": "Play this for my birthday!"
-    }
-    """
+    """Submit a listener song request."""
     user_id = get_jwt_identity()
     data = request.get_json()
 
@@ -1220,7 +1352,6 @@ def listener_request(station_id):
     if not station:
         return jsonify({"error": "Station not found"}), 404
 
-    # Store request in playlist_schedule metadata
     current_schedule = station.playlist_schedule or {}
     requests_list = current_schedule.get("listener_requests", [])
     requests_list.append({
@@ -1232,7 +1363,6 @@ def listener_request(station_id):
         "fulfilled": False,
     })
 
-    # Keep last 50 requests
     current_schedule["listener_requests"] = requests_list[-50:]
     station.playlist_schedule = current_schedule
 
@@ -1253,7 +1383,6 @@ def get_ai_radio_capabilities():
     has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
     has_elevenlabs = bool(os.environ.get("ELEVENLABS_API_KEY"))
 
-    # Check FFmpeg
     has_ffmpeg = False
     try:
         result = subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=5)
@@ -1267,45 +1396,25 @@ def get_ai_radio_capabilities():
         "tts_elevenlabs": has_elevenlabs,
         "voice_cloning": has_elevenlabs,
         "audio_stitching": has_ffmpeg,
-        "offline_tts": True,  # pyttsx3 fallback always possible
+        "offline_tts": True,
         "total_personas": len(DJ_PERSONAS),
         "total_break_types": len(BREAK_TYPES),
+        "playlist_curation": True,
+        "total_strategies": len(PLAYLIST_STRATEGIES),
         "status": "ready" if (has_openai or has_anthropic) and has_ffmpeg else "limited",
     }), 200
 
 
 # =====================================================
-# VOICE CLONING — "Use My Voice" Feature
+# API ROUTES — VOICE CLONING
 # =====================================================
-# Creators upload a 1-3 minute voice sample.
-# ElevenLabs clones their voice.
-# All DJ breaks on their station use their real voice.
-#
-# Flow:
-#   1. Creator records/uploads voice sample
-#   2. POST /api/ai/radio/voice/clone → sends to ElevenLabs
-#   3. Returns voice_id → saved to station dj_config
-#   4. generate_tts_audio() checks for custom_voice_id first
-#   5. Every break from now on sounds like the creator
-# =====================================================
-
 
 @ai_radio_dj_bp.route('/api/ai/radio/voice/clone', methods=['POST'])
 @jwt_required()
 def clone_voice():
-    """
-    Clone a creator's voice using ElevenLabs.
-
-    Requires: multipart form with 'voice_sample' audio file.
-    Optional: 'voice_name' (defaults to station name + "DJ")
-              'station_id' (auto-saves to station config)
-
-    The creator uploads 1-3 minutes of clear speech.
-    ElevenLabs creates a voice clone in ~30 seconds.
-    """
+    """Clone a creator's voice using ElevenLabs."""
     user_id = get_jwt_identity()
 
-    # Check ElevenLabs key
     elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
     if not elevenlabs_key:
         return jsonify({
@@ -1313,7 +1422,6 @@ def clone_voice():
             "message": "This feature will be enabled soon. Using preset DJ voices for now."
         }), 503
 
-    # Get voice sample file
     if 'voice_sample' not in request.files:
         return jsonify({"error": "Please upload a voice sample (MP3, WAV, or M4A)"}), 400
 
@@ -1321,17 +1429,14 @@ def clone_voice():
     if not voice_file.filename:
         return jsonify({"error": "No file selected"}), 400
 
-    # Validate file type
     allowed_ext = {'.mp3', '.wav', '.m4a', '.flac', '.ogg', '.webm'}
     ext = os.path.splitext(voice_file.filename)[1].lower()
     if ext not in allowed_ext:
         return jsonify({"error": f"Unsupported format. Use: {', '.join(allowed_ext)}"}), 400
 
-    # Get optional params
     station_id = request.form.get("station_id")
     voice_name = request.form.get("voice_name", "")
 
-    # If station provided, verify ownership
     station = None
     if station_id:
         station = RadioStation.query.get(station_id)
@@ -1347,7 +1452,6 @@ def clone_voice():
         voice_name = f"{user.username}'s Voice" if user else "Custom DJ Voice"
 
     try:
-        # Send to ElevenLabs for cloning
         response = requests.post(
             "https://api.elevenlabs.io/v1/voices/add",
             headers={"xi-api-key": elevenlabs_key},
@@ -1364,10 +1468,7 @@ def clone_voice():
         if response.status_code != 200:
             error_detail = response.json() if response.headers.get("content-type", "").startswith("application/json") else response.text
             print(f"❌ ElevenLabs clone failed: {error_detail}")
-            return jsonify({
-                "error": "Voice cloning failed",
-                "detail": str(error_detail),
-            }), 500
+            return jsonify({"error": "Voice cloning failed", "detail": str(error_detail)}), 500
 
         clone_data = response.json()
         voice_id = clone_data.get("voice_id")
@@ -1377,7 +1478,6 @@ def clone_voice():
 
         print(f"🎤 Voice cloned! ID: {voice_id}, Name: {voice_name}")
 
-        # Auto-save to station config if station provided
         if station:
             current_schedule = station.playlist_schedule or {}
             dj_config = current_schedule.get("dj_config", {})
@@ -1411,17 +1511,7 @@ def clone_voice():
 @ai_radio_dj_bp.route('/api/ai/radio/voice/preview', methods=['POST'])
 @jwt_required()
 def preview_cloned_voice():
-    """
-    Preview a cloned voice by generating a short test phrase.
-
-    JSON body:
-    {
-        "station_id": 1,
-        "text": "What's up everybody, you're listening to my station!"
-    }
-
-    Uses the station's saved custom_voice_id to generate audio.
-    """
+    """Preview a cloned voice by generating a short test phrase."""
     user_id = get_jwt_identity()
     data = request.get_json()
 
@@ -1433,7 +1523,6 @@ def preview_cloned_voice():
     if str(station.user_id) != str(user_id):
         return jsonify({"error": "Unauthorized"}), 403
 
-    # Get custom voice ID
     dj_config = {}
     if station.playlist_schedule:
         dj_config = station.playlist_schedule.get("dj_config", {})
@@ -1456,7 +1545,6 @@ def preview_cloned_voice():
         if not result:
             return jsonify({"error": "Preview generation failed"}), 500
 
-        # Upload preview to Cloudinary
         preview_filename = f"voice_preview_{station_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.mp3"
         with open(preview_path, "rb") as f:
             preview_url = uploadFile(f, preview_filename)
@@ -1482,11 +1570,7 @@ def preview_cloned_voice():
 @ai_radio_dj_bp.route('/api/ai/radio/voice/remove', methods=['POST'])
 @jwt_required()
 def remove_cloned_voice():
-    """
-    Remove a cloned voice from a station and optionally delete from ElevenLabs.
-
-    JSON body: { "station_id": 1, "delete_from_elevenlabs": true }
-    """
+    """Remove a cloned voice from a station."""
     user_id = get_jwt_identity()
     data = request.get_json()
 
@@ -1498,7 +1582,6 @@ def remove_cloned_voice():
     if str(station.user_id) != str(user_id):
         return jsonify({"error": "Unauthorized"}), 403
 
-    # Get current voice ID before removing
     dj_config = {}
     if station.playlist_schedule:
         dj_config = station.playlist_schedule.get("dj_config", {})
@@ -1506,7 +1589,6 @@ def remove_cloned_voice():
     voice_id = dj_config.get("custom_voice_id")
     voice_name = dj_config.get("custom_voice_name", "Custom Voice")
 
-    # Optionally delete from ElevenLabs
     if data.get("delete_from_elevenlabs") and voice_id:
         elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
         if elevenlabs_key:
@@ -1520,7 +1602,6 @@ def remove_cloned_voice():
             except Exception as e:
                 print(f"⚠️ Failed to delete voice from ElevenLabs: {e}")
 
-    # Remove from station config
     current_schedule = station.playlist_schedule or {}
     if "dj_config" in current_schedule:
         current_schedule["dj_config"].pop("custom_voice_id", None)
@@ -1540,6 +1621,333 @@ def remove_cloned_voice():
 
 
 # =====================================================
+# API ROUTES — SMART PLAYLIST CURATION (NEW)
+# =====================================================
+
+@ai_radio_dj_bp.route('/api/ai/radio/<int:station_id>/library', methods=['GET'])
+@jwt_required()
+def get_station_library(station_id):
+    """
+    Fetch the user's audio library for playlist curation.
+    Returns all tracks owned by the user with metadata for AI analysis.
+    """
+    try:
+        user_id = get_jwt_identity()
+
+        station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+        if not station:
+            return jsonify({"error": "Station not found or unauthorized"}), 404
+
+        tracks = Audio.query.filter_by(user_id=user_id).order_by(Audio.uploaded_at.desc()).all()
+
+        track_list = []
+        for track in tracks:
+            track_data = {
+                "id": track.id,
+                "title": track.title or "Untitled",
+                "artist": getattr(track, 'artist', None) or getattr(track, 'creator_name', None) or "Unknown",
+                "genre": getattr(track, 'genre', None) or "",
+                "bpm": getattr(track, 'bpm', None),
+                "key": getattr(track, 'key', None) or getattr(track, 'musical_key', None),
+                "mood": getattr(track, 'mood', None) or "",
+                "duration": getattr(track, 'duration', None),
+                "duration_formatted": format_duration(getattr(track, 'duration', None)),
+                "file_url": track.file_url,
+                "artwork_url": getattr(track, 'artwork_url', None) or getattr(track, 'cover_url', None),
+                "uploaded_at": track.uploaded_at.isoformat() if track.uploaded_at else None,
+            }
+            track_data["energy"] = estimate_energy(track_data)
+            track_list.append(track_data)
+
+        # Get tracks already in the station's playlist
+        current_playlist_ids = []
+        if station.playlist_schedule and "tracks" in station.playlist_schedule:
+            for pt in station.playlist_schedule["tracks"]:
+                tid = pt.get("audio_file_id") or pt.get("id")
+                if tid:
+                    current_playlist_ids.append(tid)
+
+        return jsonify({
+            "station_id": station_id,
+            "station_name": station.name,
+            "station_genre": (station.genres[0] if station.genres else ""),
+            "total_tracks": len(track_list),
+            "tracks": track_list,
+            "current_playlist_ids": current_playlist_ids,
+            "strategies": {
+                key: {
+                    "name": val["name"],
+                    "description": val["description"],
+                    "icon": val["icon"]
+                }
+                for key, val in PLAYLIST_STRATEGIES.items()
+            }
+        }), 200
+
+    except Exception as e:
+        print(f"❌ Error fetching library: {e}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@ai_radio_dj_bp.route('/api/ai/radio/<int:station_id>/generate-playlist', methods=['POST'])
+@jwt_required()
+def generate_smart_playlist(station_id):
+    """
+    AI generates an optimized playlist from the user's selected tracks.
+
+    Request JSON:
+    {
+        "track_ids": [1, 2, 3, ...],
+        "strategy": "energy_arc",
+        "max_tracks": 50,
+        "target_duration_minutes": 180,
+        "genre_filter": "Hip-Hop",
+        "mood_filter": "chill",
+        "exclude_ids": [5, 6]
+    }
+    """
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json() or {}
+
+        station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+        if not station:
+            return jsonify({"error": "Station not found or unauthorized"}), 404
+
+        track_ids = data.get("track_ids", [])
+        strategy_key = data.get("strategy", "energy_arc")
+        max_tracks = data.get("max_tracks", 100)
+        target_duration = data.get("target_duration_minutes")
+        genre_filter = data.get("genre_filter", "").strip()
+        mood_filter = data.get("mood_filter", "").strip().lower()
+        exclude_ids = set(data.get("exclude_ids", []))
+
+        if strategy_key not in PLAYLIST_STRATEGIES:
+            return jsonify({"error": f"Invalid strategy. Options: {list(PLAYLIST_STRATEGIES.keys())}"}), 400
+
+        # Build track query
+        query = Audio.query.filter_by(user_id=user_id)
+        if track_ids:
+            query = query.filter(Audio.id.in_(track_ids))
+
+        tracks = query.all()
+
+        if not tracks:
+            return jsonify({"error": "No tracks found. Upload music first!"}), 400
+
+        # Build track data with metadata
+        track_data_list = []
+        for track in tracks:
+            if track.id in exclude_ids:
+                continue
+
+            td = {
+                "id": track.id,
+                "title": track.title or "Untitled",
+                "artist": getattr(track, 'artist', None) or getattr(track, 'creator_name', None) or "Unknown",
+                "genre": getattr(track, 'genre', None) or "",
+                "bpm": getattr(track, 'bpm', None),
+                "key": getattr(track, 'key', None) or getattr(track, 'musical_key', None),
+                "mood": getattr(track, 'mood', None) or "",
+                "duration": getattr(track, 'duration', None),
+                "file_url": track.file_url,
+                "artwork_url": getattr(track, 'artwork_url', None) or getattr(track, 'cover_url', None),
+            }
+            td["energy"] = estimate_energy(td)
+            track_data_list.append(td)
+
+        # Apply filters
+        if genre_filter:
+            track_data_list = [t for t in track_data_list
+                               if genre_filter.lower() in (t.get("genre") or "").lower()]
+
+        if mood_filter:
+            track_data_list = [t for t in track_data_list
+                               if mood_filter in (t.get("mood") or "").lower()]
+
+        if not track_data_list:
+            return jsonify({"error": "No tracks match your filters."}), 400
+
+        # Limit track count
+        if len(track_data_list) > max_tracks:
+            track_data_list = track_data_list[:max_tracks]
+
+        # Apply target duration limit
+        if target_duration:
+            target_seconds = target_duration * 60
+            cumulative = 0
+            limited = []
+            for t in track_data_list:
+                dur = t.get("duration") or 210
+                if cumulative + dur > target_seconds and limited:
+                    break
+                limited.append(t)
+                cumulative += dur
+            track_data_list = limited
+
+        # RUN THE STRATEGY
+        strategy_info = PLAYLIST_STRATEGIES[strategy_key]
+        ordered = strategy_info["fn"](track_data_list)
+
+        # Build playlist response
+        total_duration = sum(t.get("duration") or 210 for t in ordered)
+        playlist = []
+        for i, track in enumerate(ordered):
+            playlist.append({
+                "position": i + 1,
+                "id": track["id"],
+                "title": track["title"],
+                "artist": track["artist"],
+                "genre": track.get("genre", ""),
+                "bpm": track.get("bpm"),
+                "key": track.get("key"),
+                "mood": track.get("mood", ""),
+                "energy": track["energy"],
+                "duration": track.get("duration"),
+                "duration_formatted": format_duration(track.get("duration")),
+                "file_url": track.get("file_url"),
+                "artwork_url": track.get("artwork_url"),
+            })
+
+        # Generate insights
+        avg_energy = sum(t["energy"] for t in ordered) / len(ordered) if ordered else 0
+        avg_bpm = 0
+        bpm_tracks = [t for t in ordered if t.get("bpm")]
+        if bpm_tracks:
+            avg_bpm = sum(t["bpm"] for t in bpm_tracks) / len(bpm_tracks)
+
+        genres_used = list(set(t.get("genre", "Unknown") for t in ordered if t.get("genre")))
+        moods_used = list(set(t.get("mood", "") for t in ordered if t.get("mood")))
+
+        insights = {
+            "total_tracks": len(ordered),
+            "total_duration_seconds": total_duration,
+            "total_duration_formatted": f"{total_duration // 3600}h {(total_duration % 3600) // 60}m",
+            "avg_energy": round(avg_energy, 2),
+            "avg_bpm": round(avg_bpm, 1),
+            "genres_used": genres_used,
+            "moods_used": moods_used,
+            "strategy_used": strategy_info["name"],
+            "strategy_description": strategy_info["description"],
+            "energy_flow": [round(t["energy"], 2) for t in ordered],
+        }
+
+        return jsonify({
+            "playlist": playlist,
+            "insights": insights,
+            "station_id": station_id,
+            "strategy": strategy_key,
+        }), 200
+
+    except Exception as e:
+        print(f"❌ Error generating playlist: {e}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@ai_radio_dj_bp.route('/api/ai/radio/<int:station_id>/apply-playlist', methods=['POST'])
+@jwt_required()
+def apply_playlist_to_station(station_id):
+    """
+    Save the AI-generated playlist to the station's playlist_schedule.
+
+    Request JSON:
+    {
+        "playlist": [...],
+        "strategy": "energy_arc",
+        "loop_duration_minutes": 180
+    }
+    """
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json() or {}
+
+        station = RadioStation.query.filter_by(id=station_id, user_id=user_id).first()
+        if not station:
+            return jsonify({"error": "Station not found or unauthorized"}), 404
+
+        playlist = data.get("playlist", [])
+        if not playlist:
+            return jsonify({"error": "No playlist provided"}), 400
+
+        strategy = data.get("strategy", "custom")
+        loop_duration = data.get("loop_duration_minutes", 180)
+
+        # Build the playlist_schedule in the format the radio system expects
+        # Preserve existing dj_config if present
+        existing_dj_config = {}
+        if station.playlist_schedule and "dj_config" in station.playlist_schedule:
+            existing_dj_config = station.playlist_schedule["dj_config"]
+
+        playlist_schedule = {
+            "tracks": [],
+            "loop_mode": True,
+            "shuffle": False,
+            "ai_generated": True,
+            "strategy": strategy,
+            "created_at": datetime.utcnow().isoformat(),
+            "total_tracks": len(playlist),
+            "dj_config": existing_dj_config,
+            "dj_info": {
+                "dj_name": "AI DJ",
+                "generated_by": "StreamPireX AI Playlist Curation",
+                "strategy_used": strategy,
+            }
+        }
+
+        for i, track in enumerate(playlist):
+            track_entry = {
+                "id": f"track_{i + 1}",
+                "audio_file_id": track.get("id"),
+                "title": track.get("title", ""),
+                "artist": track.get("artist", ""),
+                "genre": track.get("genre", ""),
+                "bpm": track.get("bpm"),
+                "key": track.get("key"),
+                "mood": track.get("mood", ""),
+                "energy": track.get("energy"),
+                "duration": format_duration(track.get("duration")),
+                "play_order": i + 1,
+                "file_url": track.get("file_url", ""),
+                "artwork_url": track.get("artwork_url"),
+            }
+            playlist_schedule["tracks"].append(track_entry)
+
+        # Update station
+        station.playlist_schedule = playlist_schedule
+        station.is_loop_enabled = True
+        station.loop_duration_minutes = loop_duration
+        station.is_live = True
+        station.loop_started_at = datetime.utcnow()
+
+        # Set now playing to first track
+        if playlist_schedule["tracks"]:
+            station.now_playing_metadata = playlist_schedule["tracks"][0]
+
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(station, 'playlist_schedule')
+        flag_modified(station, 'now_playing_metadata')
+
+        db.session.commit()
+
+        return jsonify({
+            "message": f"🎵 AI playlist applied! {len(playlist)} tracks loaded with {strategy} strategy.",
+            "station_id": station_id,
+            "tracks_loaded": len(playlist),
+            "strategy": strategy,
+            "is_live": True,
+            "now_playing": playlist_schedule["tracks"][0] if playlist_schedule["tracks"] else None,
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error applying playlist: {e}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+# =====================================================
 # HELPER FUNCTIONS
 # =====================================================
 
@@ -1556,7 +1964,6 @@ def _get_next_track(station):
     if not current:
         return tracks[0] if tracks else None
 
-    # Find current track index and return next
     current_id = current.get("id")
     for i, track in enumerate(tracks):
         if track.get("id") == current_id:
