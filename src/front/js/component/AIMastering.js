@@ -1,37 +1,4 @@
-// src/front/js/component/AIMastering.js
-// =====================================================
-// AI MASTERING STUDIO - StreamPireX
-// =====================================================
-// Phase 1: DSP Presets (pedalboard signal chains)
-// Phase 2: Adaptive Reference Mastering (Matchering)
-//          + Hybrid Mode (Matchering → DSP polish)
-//          + Custom Reference ("make it sound like THIS")
-// Phase 3: Smart Auto-Detect (librosa analysis → auto preset)
-//          + 50 Genre Reference Profiles
-//          + Track Analysis (BPM, key, mood, frequency)
-// =====================================================
-//
-// BACKEND ENDPOINTS USED (15 total):
-// ─────────────────────────────────────────────────────
-// ai_mastering.py (11 routes):
-//   GET  /api/ai/mastering/capabilities       → fetchCapabilities()
-//   GET  /api/ai/mastering/presets             → fetchPresets()
-//   GET  /api/ai/mastering/references          → fetchReferences()
-//   GET  /api/ai/mastering/tracks              → fetchTracks()
-//   POST /api/ai/mastering/process             → handleMaster() [DSP]
-//   POST /api/ai/mastering/reference-master    → handleMaster() [ref/hybrid]
-//   POST /api/ai/mastering/custom-reference    → handleCustomRefMaster()
-//   POST /api/ai/mastering/upload-and-master   → handleUploadAndMaster()
-//   GET  /api/ai/mastering/status/<id>         → pollMasteringStatus()
-//   GET  /api/ai/mastering/compare/<id>        → fetchComparisonUrls()
-//   POST /api/ai/mastering/upload-reference    → handleUploadReferenceTrack()
-//
-// ai_mastering_phase3.py (4 routes):
-//   GET  /api/ai/mastering/profiles                  → fetchGenreProfiles()
-//   POST /api/ai/mastering/analyze                   → handleAnalyzeTrack()
-//   POST /api/ai/mastering/smart-master              → handleSmartMaster()
-//   POST /api/ai/mastering/profile-reference-master  → handleProfileReferenceMaster()
-// =====================================================
+
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import "../../styles/AIMastering.css";
