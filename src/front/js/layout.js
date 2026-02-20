@@ -89,6 +89,7 @@ import UserVideoChannelPage from "./pages/UserVideoChannelPage";
 import ArtistProfilePage from "./pages/ArtistProfilePage";
 import CollaboratorSplitPage from "./pages/CollaboratorSplitPage";
 import VideoEditor from "./pages/VideoEditor";
+import RecordingStudio from "./pages/RecordingStudio";
 
 import EditGamerProfilePage from "./pages/EditGamerProfilePage";
 import CreateTeamRoomPage from "./pages/CreateTeamRoomPage";
@@ -158,6 +159,7 @@ const Layout = () => {
               <Route path="/ai-radio-dj" element={<AIRadioDJPage />} />
               <Route path="/ai-radio-dj/:stationId" element={<AIRadioDJ />} />
               <Route path="/ai-writer" element={<AIContentWriter />} />
+              <Route path="/recording-studio" element={<RecordingStudio />} />
               
 
               {/* Video Channel Routes */}
