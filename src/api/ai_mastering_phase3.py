@@ -1248,11 +1248,14 @@ def get_reference_profiles():
     }), 200
 
 
-@ai_mastering_phase3_bp.route('/api/ai/mastering/reference-master', methods=['POST'])
+@ai_mastering_phase3_bp.route('/api/ai/mastering/profile-reference-master', methods=['POST'])
 @jwt_required()
-def api_reference_master():
+def api_profile_reference_master():
     """
-    Master a track using reference matching (Matchering).
+    Master a track using reference matching (Matchering) via file upload.
+    
+    NOTE: This is the Phase 3 file-upload version.
+    The main /reference-master route (JSON body with audio_id) is in ai_mastering.py.
 
     POST with multipart form:
     - 'audio_file': the track to master
@@ -1260,7 +1263,7 @@ def api_reference_master():
     
     OR:
     - 'audio_file': the track to master
-    - 'profile_id': use a pre-built reference profile
+    - 'profile_id': use a pre-built reference profile (from 50 genre profiles)
     """
     user_id = get_jwt_identity()
 

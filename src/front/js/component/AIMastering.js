@@ -10,6 +10,28 @@
 //          + 50 Genre Reference Profiles
 //          + Track Analysis (BPM, key, mood, frequency)
 // =====================================================
+//
+// BACKEND ENDPOINTS USED (15 total):
+// ─────────────────────────────────────────────────────
+// ai_mastering.py (11 routes):
+//   GET  /api/ai/mastering/capabilities       → fetchCapabilities()
+//   GET  /api/ai/mastering/presets             → fetchPresets()
+//   GET  /api/ai/mastering/references          → fetchReferences()
+//   GET  /api/ai/mastering/tracks              → fetchTracks()
+//   POST /api/ai/mastering/process             → handleMaster() [DSP]
+//   POST /api/ai/mastering/reference-master    → handleMaster() [ref/hybrid]
+//   POST /api/ai/mastering/custom-reference    → handleCustomRefMaster()
+//   POST /api/ai/mastering/upload-and-master   → handleUploadAndMaster()
+//   GET  /api/ai/mastering/status/<id>         → pollMasteringStatus()
+//   GET  /api/ai/mastering/compare/<id>        → fetchComparisonUrls()
+//   POST /api/ai/mastering/upload-reference    → handleUploadReferenceTrack()
+//
+// ai_mastering_phase3.py (4 routes):
+//   GET  /api/ai/mastering/profiles                  → fetchGenreProfiles()
+//   POST /api/ai/mastering/analyze                   → handleAnalyzeTrack()
+//   POST /api/ai/mastering/smart-master              → handleSmartMaster()
+//   POST /api/ai/mastering/profile-reference-master  → handleProfileReferenceMaster()
+// =====================================================
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import "../../styles/AIMastering.css";
@@ -44,12 +66,25 @@ const AIMastering = () => {
   const [selectedProfile, setSelectedProfile] = useState("");
   const [smartUploadFile, setSmartUploadFile] = useState(null);
 
+  // =====================================================
+  // NEW: Status polling + A/B comparison + reference upload
+  //      + profile reference mastering state
+  // =====================================================
+  const [comparisonData, setComparisonData] = useState(null);
+  const [uploadingReference, setUploadingReference] = useState(false);
+  const [refUploadProfile, setRefUploadProfile] = useState("");
+  const [refUploadFile, setRefUploadFile] = useState(null);
+  const [refUploadSuccess, setRefUploadSuccess] = useState("");
+  const [profileMastering, setProfileMastering] = useState(false);
+
   const originalAudioRef = useRef(null);
   const masteredAudioRef = useRef(null);
   const fileInputRef = useRef(null);
   const refFileInputRef = useRef(null);
   const smartFileInputRef = useRef(null);
+  const refUploadInputRef = useRef(null);
   const progressIntervalRef = useRef(null);
+  const statusPollRef = useRef(null);
 
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
 
@@ -128,6 +163,104 @@ const AIMastering = () => {
     fetchGenreProfiles();
   }, [fetchCapabilities, fetchPresets, fetchReferences, fetchTracks, fetchGenreProfiles]);
 
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (statusPollRef.current) clearInterval(statusPollRef.current);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    };
+  }, []);
+
+  // =====================================================
+  // STATUS POLLING — GET /api/ai/mastering/status/<id>
+  // =====================================================
+  // Polls the backend for real mastering status on library
+  // tracks. Used alongside simulated progress so the UI
+  // stays responsive while the server processes audio.
+  // =====================================================
+
+  const stopStatusPolling = () => {
+    if (statusPollRef.current) {
+      clearInterval(statusPollRef.current);
+      statusPollRef.current = null;
+    }
+  };
+
+  const pollMasteringStatus = useCallback(
+    (audioId) => {
+      if (!audioId) return;
+      const token = localStorage.getItem("token");
+
+      statusPollRef.current = setInterval(async () => {
+        try {
+          const res = await fetch(
+            BACKEND_URL + "/api/ai/mastering/status/" + audioId,
+            { headers: { Authorization: "Bearer " + token } }
+          );
+          if (!res.ok) return;
+
+          const data = await res.json();
+
+          if (data.status === "mastered" && data.mastered_url) {
+            // Done — stop polling
+            stopStatusPolling();
+            setProgress(100);
+
+            // Update track in local state
+            setTracks((prev) =>
+              prev.map((t) =>
+                t.id === audioId
+                  ? { ...t, mastered_url: data.mastered_url, status: "mastered" }
+                  : t
+              )
+            );
+            setSelectedTrack((prev) =>
+              prev && prev.id === audioId
+                ? { ...prev, mastered_url: data.mastered_url, status: "mastered" }
+                : prev
+            );
+          } else if (data.status === "error") {
+            stopStatusPolling();
+            setError("Mastering failed on server");
+            setProcessing(false);
+          }
+          // else still processing — keep polling
+        } catch (err) {
+          console.error("Status poll error:", err);
+        }
+      }, 2000); // Poll every 2 seconds
+    },
+    [BACKEND_URL]
+  );
+
+  // =====================================================
+  // A/B COMPARISON — GET /api/ai/mastering/compare/<id>
+  // =====================================================
+  // Fetches server-side original + mastered URLs for the
+  // selected track. Ensures the A/B player uses accurate
+  // URLs from the database, not just local/session state.
+  // =====================================================
+
+  const fetchComparisonUrls = useCallback(
+    async (audioId) => {
+      if (!audioId) return;
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(
+          BACKEND_URL + "/api/ai/mastering/compare/" + audioId,
+          { headers: { Authorization: "Bearer " + token } }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setComparisonData(data);
+        }
+      } catch (err) {
+        console.error("Comparison fetch failed:", err);
+      }
+    },
+    [BACKEND_URL]
+  );
+
   // =====================================================
   // PROGRESS SIMULATION
   // =====================================================
@@ -164,7 +297,11 @@ const AIMastering = () => {
     setProcessing(true);
     setError("");
     setResult(null);
+    setComparisonData(null);
     startProgress();
+
+    // Start real status polling for library tracks
+    pollMasteringStatus(selectedTrack.id);
 
     try {
       const token = localStorage.getItem("token");
@@ -201,6 +338,7 @@ const AIMastering = () => {
       if (!res.ok) throw new Error(data.error || "Mastering failed");
 
       stopProgress();
+      stopStatusPolling();
       setResult(data);
 
       // Update local state
@@ -216,8 +354,12 @@ const AIMastering = () => {
         mastered_url: data.mastered_url,
         status: "mastered",
       }));
+
+      // Fetch A/B comparison URLs from server
+      fetchComparisonUrls(selectedTrack.id);
     } catch (err) {
       stopProgress();
+      stopStatusPolling();
       setError(err.message);
     } finally {
       setProcessing(false);
@@ -233,7 +375,11 @@ const AIMastering = () => {
     setProcessing(true);
     setError("");
     setResult(null);
+    setComparisonData(null);
     startProgress();
+
+    // Start real status polling
+    pollMasteringStatus(selectedTrack.id);
 
     try {
       const token = localStorage.getItem("token");
@@ -257,10 +403,15 @@ const AIMastering = () => {
         throw new Error(data.error || "Custom reference mastering failed");
 
       stopProgress();
+      stopStatusPolling();
       setResult(data);
       fetchTracks();
+
+      // Fetch A/B comparison URLs from server
+      fetchComparisonUrls(selectedTrack.id);
     } catch (err) {
       stopProgress();
+      stopStatusPolling();
       setError(err.message);
     } finally {
       setProcessing(false);
@@ -276,6 +427,7 @@ const AIMastering = () => {
     setProcessing(true);
     setError("");
     setResult(null);
+    setComparisonData(null);
     startProgress();
 
     try {
@@ -307,6 +459,11 @@ const AIMastering = () => {
       setUploadFile(null);
       setUploadTitle("");
       if (fileInputRef.current) fileInputRef.current.value = "";
+
+      // If the response includes audio_id, fetch comparison URLs
+      if (data.audio_id) {
+        fetchComparisonUrls(data.audio_id);
+      }
     } catch (err) {
       stopProgress();
       setError(err.message);
@@ -378,6 +535,7 @@ const AIMastering = () => {
     setProcessing(true);
     setError("");
     setResult(null);
+    setComparisonData(null);
     startProgress();
 
     try {
@@ -406,6 +564,121 @@ const AIMastering = () => {
       setError(err.message);
     } finally {
       setProcessing(false);
+    }
+  };
+
+  // =====================================================
+  // PROFILE REFERENCE MASTER
+  // POST /api/ai/mastering/profile-reference-master
+  // =====================================================
+  // Used in 50 Genre Profiles mode. Uploads the audio
+  // file + selected genre profile_id to Phase 3 endpoint
+  // which uses Matchering for true reference matching
+  // (if a reference WAV exists for that profile) or
+  // falls back to DSP preset mastering.
+  // =====================================================
+
+  const handleProfileReferenceMaster = async () => {
+    if (!smartUploadFile || !selectedProfile) {
+      setError("Upload a track and select a genre profile");
+      return;
+    }
+
+    setProfileMastering(true);
+    setProcessing(true);
+    setError("");
+    setResult(null);
+    setComparisonData(null);
+    startProgress();
+
+    try {
+      const token = localStorage.getItem("token");
+      const fd = new FormData();
+      fd.append("audio_file", smartUploadFile);
+      fd.append("profile_id", selectedProfile);
+
+      const res = await fetch(
+        BACKEND_URL + "/api/ai/mastering/profile-reference-master",
+        {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+          body: fd,
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Profile reference mastering failed");
+
+      stopProgress();
+      setResult(data);
+      fetchTracks();
+    } catch (err) {
+      stopProgress();
+      setError(err.message);
+    } finally {
+      setProcessing(false);
+      setProfileMastering(false);
+    }
+  };
+
+  // =====================================================
+  // UPLOAD REFERENCE TRACK
+  // POST /api/ai/mastering/upload-reference
+  // =====================================================
+  // Lets creators upload a professional reference WAV for
+  // a specific genre profile slot. Once uploaded, that
+  // profile uses Matchering for true adaptive reference
+  // mastering instead of DSP fallback.
+  // =====================================================
+
+  const handleRefUploadFileSelect = (e) => {
+    const f = e.target.files[0];
+    if (f) {
+      setRefUploadFile(f);
+      setError("");
+      setRefUploadSuccess("");
+    }
+  };
+
+  const handleUploadReferenceTrack = async () => {
+    if (!refUploadFile || !refUploadProfile) {
+      setError("Select a profile and a reference audio file");
+      return;
+    }
+
+    setUploadingReference(true);
+    setError("");
+    setRefUploadSuccess("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const fd = new FormData();
+      fd.append("file", refUploadFile);
+      fd.append("profile", refUploadProfile);
+
+      const res = await fetch(
+        BACKEND_URL + "/api/ai/mastering/upload-reference",
+        {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+          body: fd,
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Reference upload failed");
+
+      setRefUploadSuccess(data.message || "Reference track uploaded!");
+      setRefUploadFile(null);
+      if (refUploadInputRef.current) refUploadInputRef.current.value = "";
+
+      // Refresh capabilities and references — new ref may now be available
+      fetchCapabilities();
+      fetchReferences();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingReference(false);
     }
   };
 
@@ -511,6 +784,17 @@ const AIMastering = () => {
     return "Master Track";
   };
 
+  // Build A/B audio src URLs — prefer server comparison data, fall back to local state
+  const getOriginalSrc = () => {
+    if (comparisonData?.original_url) return comparisonData.original_url;
+    return selectedTrack?.file_url || result?.original_url || "";
+  };
+
+  const getMasteredSrc = () => {
+    if (comparisonData?.mastered_url) return comparisonData.mastered_url;
+    return result?.mastered_url || "";
+  };
+
   // =====================================================
   // RENDER
   // =====================================================
@@ -593,7 +877,12 @@ const AIMastering = () => {
                     onClick={() => {
                       setSelectedTrack(track);
                       setResult(null);
+                      setComparisonData(null);
                       stopAllAudio();
+                      // Fetch comparison URLs if track was previously mastered
+                      if (track.status === "mastered" || track.mastered_url) {
+                        fetchComparisonUrls(track.id);
+                      }
                     }}
                   >
                     <div className="ai-master-track-info">
@@ -801,6 +1090,62 @@ const AIMastering = () => {
                     </span>
                   </div>
                 ))}
+              </div>
+
+              {/* =============================================== */}
+              {/* Upload Reference Track for a Profile            */}
+              {/* POST /api/ai/mastering/upload-reference          */}
+              {/* =============================================== */}
+              <div className="ai-master-ref-upload-section">
+                <h4>{"\u{1F4E4}"} Upload Reference Track for a Profile</h4>
+                <p className="ai-master-section-desc">
+                  Upload a professionally mastered WAV to enable true adaptive mastering
+                  for any genre profile. Once uploaded, that profile will use Matchering
+                  instead of DSP fallback.
+                </p>
+                <div className="ai-master-ref-upload-row">
+                  <select
+                    className="ai-master-ref-profile-select"
+                    value={refUploadProfile}
+                    onChange={(e) => setRefUploadProfile(e.target.value)}
+                  >
+                    <option value="">Select profile...</option>
+                    {references.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name} {r.method === "adaptive" ? "(has reference)" : "(needs reference)"}
+                      </option>
+                    ))}
+                  </select>
+                  <div
+                    className={"ai-master-ref-upload-drop" + (refUploadFile ? " has-file" : "")}
+                    onClick={() => refUploadInputRef.current?.click()}
+                  >
+                    {refUploadFile ? (
+                      <span className="ai-master-file-name">{refUploadFile.name}</span>
+                    ) : (
+                      <span>Click to select reference WAV</span>
+                    )}
+                  </div>
+                  <input
+                    ref={refUploadInputRef}
+                    type="file"
+                    accept=".mp3,.wav,.flac"
+                    onChange={handleRefUploadFileSelect}
+                    style={{ display: "none" }}
+                  />
+                  <button
+                    className="ai-master-ref-upload-btn"
+                    onClick={handleUploadReferenceTrack}
+                    disabled={uploadingReference || !refUploadFile || !refUploadProfile}
+                  >
+                    {uploadingReference ? "Uploading..." : "\u{1F4E4} Upload Reference"}
+                  </button>
+                </div>
+                {refUploadSuccess && (
+                  <div className="ai-master-ref-upload-success">
+                    {"\u2705"} {refUploadSuccess}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1082,18 +1427,31 @@ const AIMastering = () => {
                 </div>
               )}
 
-              {/* Master with Profile Button */}
+              {/* Master with Profile — DSP (smart-master) + Reference (profile-reference-master) */}
               {selectedProfile && smartUploadFile && (
-                <div className="ai-master-action" style={{ marginTop: "1.5rem" }}>
+                <div className="ai-master-action ai-master-profile-actions" style={{ marginTop: "1.5rem" }}>
                   <button
                     className="ai-master-btn"
                     onClick={handleSmartMaster}
                     disabled={processing}
                   >
-                    {processing
+                    {processing && !profileMastering
                       ? "Mastering... " + progress + "%"
-                      : "\u{1F39A}\uFE0F Master with \"" + selectedProfile.replace(/_/g, " ") + "\""}
+                      : "\u{1F39A}\uFE0F DSP Master with \"" + selectedProfile.replace(/_/g, " ") + "\""}
                   </button>
+                  <button
+                    className="ai-master-btn ai-master-btn-ref"
+                    onClick={handleProfileReferenceMaster}
+                    disabled={processing}
+                  >
+                    {profileMastering
+                      ? "Reference Mastering... " + progress + "%"
+                      : "\u{1F9E0} Reference Master with \"" + selectedProfile.replace(/_/g, " ") + "\""}
+                  </button>
+                  <p className="ai-master-section-desc" style={{ marginTop: "0.5rem", fontSize: "0.75rem" }}>
+                    DSP uses signal-chain processing. Reference uses Matchering to match a pro reference track
+                    (if available for this profile).
+                  </p>
                 </div>
               )}
             </div>
@@ -1167,6 +1525,8 @@ const AIMastering = () => {
                   "\u{1F916} Smart Auto-Detect"}
                 {result.method === "profile" &&
                   "\u{1F4CB} Genre Profile"}
+                {result.method === "profile_reference" &&
+                  "\u{1F9E0} Profile Reference (Matchering)"}
                 {(result.method === "dsp_fallback" || !result.method) &&
                   "\u2699\uFE0F DSP Engine"}
                 {result.stats?.stages && (
@@ -1213,14 +1573,36 @@ const AIMastering = () => {
                 <div className="ai-master-stat">
                   <span className="ai-master-stat-label">Preset</span>
                   <span className="ai-master-stat-value">
-                    {result.preset?.name || result.reference?.name || result.recommended_preset || "--"}
+                    {result.preset?.name || result.reference?.name || result.recommended_preset || result.preset_used || "--"}
                   </span>
                 </div>
               </div>
 
+              {/* Smart Master confidence + reason (Phase 3) */}
+              {result.confidence && (
+                <div className="ai-master-smart-result">
+                  <span className="ai-master-confidence-badge">
+                    {"\u{1F916}"} {result.confidence}% confidence
+                  </span>
+                  {result.reason && (
+                    <p className="ai-recommended-reason">{result.reason}</p>
+                  )}
+                </div>
+              )}
+
               {/* A/B Comparison Player */}
               <div className="ai-master-comparison">
                 <h4>{"\u{1F50A}"} A/B Compare</h4>
+                {comparisonData && (
+                  <div className="ai-master-comparison-info">
+                    <small>
+                      {comparisonData.has_mastered
+                        ? "\u2705 Server-verified mastered version"
+                        : "\u{1F4C2} Using session data"}
+                      {comparisonData.preset_used && (" \u2014 Preset: " + comparisonData.preset_used)}
+                    </small>
+                  </div>
+                )}
                 <div className="ai-master-compare-btns">
                   <button
                     className={
@@ -1251,13 +1633,13 @@ const AIMastering = () => {
                 </div>
                 <audio
                   ref={originalAudioRef}
-                  src={selectedTrack?.file_url || result.original_url}
+                  src={getOriginalSrc()}
                   onEnded={() => setPlayingOriginal(false)}
                   crossOrigin="anonymous"
                 />
                 <audio
                   ref={masteredAudioRef}
-                  src={result.mastered_url}
+                  src={getMasteredSrc()}
                   onEnded={() => setPlayingMastered(false)}
                   crossOrigin="anonymous"
                 />
@@ -1267,6 +1649,75 @@ const AIMastering = () => {
               <div className="ai-master-download">
                 <a
                   href={result.mastered_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ai-master-download-btn"
+                >
+                  {"\u2B07\uFE0F"} Download Mastered Track
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* =============================================== */}
+          {/* Previously Mastered — A/B player when selecting */}
+          {/* a mastered track from library (no new result)   */}
+          {/* Uses GET /api/ai/mastering/compare/<id> data    */}
+          {/* =============================================== */}
+          {!result && comparisonData?.has_mastered && selectedTrack && (
+            <div className="ai-master-results">
+              <h3>{"\u{1F50A}"} Previously Mastered</h3>
+              <div className="ai-master-comparison-info">
+                <small>
+                  {"\u2705"} This track was mastered previously
+                  {comparisonData.preset_used && (" \u2014 Preset: " + comparisonData.preset_used)}
+                </small>
+              </div>
+              <div className="ai-master-comparison">
+                <div className="ai-master-compare-btns">
+                  <button
+                    className={
+                      "ai-master-compare-btn original" +
+                      (playingOriginal ? " playing" : "")
+                    }
+                    onClick={toggleOriginal}
+                  >
+                    {playingOriginal ? "\u23F8 Pause" : "\u25B6\uFE0F Play"}{" "}
+                    Original
+                  </button>
+                  <button
+                    className={
+                      "ai-master-compare-btn mastered" +
+                      (playingMastered ? " playing" : "")
+                    }
+                    onClick={toggleMastered}
+                  >
+                    {playingMastered ? "\u23F8 Pause" : "\u25B6\uFE0F Play"}{" "}
+                    Mastered
+                  </button>
+                  <button
+                    className="ai-master-compare-btn stop"
+                    onClick={stopAllAudio}
+                  >
+                    {"\u23F9"} Stop
+                  </button>
+                </div>
+                <audio
+                  ref={originalAudioRef}
+                  src={getOriginalSrc()}
+                  onEnded={() => setPlayingOriginal(false)}
+                  crossOrigin="anonymous"
+                />
+                <audio
+                  ref={masteredAudioRef}
+                  src={getMasteredSrc()}
+                  onEnded={() => setPlayingMastered(false)}
+                  crossOrigin="anonymous"
+                />
+              </div>
+              <div className="ai-master-download">
+                <a
+                  href={comparisonData.mastered_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="ai-master-download-btn"
