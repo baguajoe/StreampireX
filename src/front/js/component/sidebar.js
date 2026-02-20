@@ -311,9 +311,9 @@ const Sidebar = ({ user }) => {
         to="/profile"
         className={
           isActive("/profile") &&
-          !isActive("/profile/gamer") &&
-          !isActive("/profile/artist") &&
-          !isActive("/profile/video")
+            !isActive("/profile/gamer") &&
+            !isActive("/profile/artist") &&
+            !isActive("/profile/video")
             ? "active" : ""
         }
       >
@@ -479,6 +479,9 @@ const Sidebar = ({ user }) => {
       </MenuItem>
       <MenuItem to="/create-radio" className={isActive("/create-radio") ? "active" : ""}>
         ➕ <span className="sidebar-label">Create Station</span>
+      </MenuItem>
+      <MenuItem to="/ai-radio-dj" className={isActive("/ai-radio-dj") ? "active" : ""}>
+        🤖 <span className="sidebar-label">AI Radio DJ</span>
       </MenuItem>
 
       {/* ============================== */}

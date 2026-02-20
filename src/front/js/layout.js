@@ -37,6 +37,8 @@ import CreateClipPage from './pages/CreateClipPage';
 import FloatingVideoCall from "./component/FloatingVideoCall";
 import SubscriptionSuccess from './pages/SubscriptionSuccess';
 import AIMasteringPage from "./pages/AIMasteringPage";       // ✅ correct
+import AIRadioDJPage from "./pages/AIRadioDJPage";
+import AIRadioDJ from "./component/AIRadioDJ";
 
 import VideoUpload from "./pages/VideoUpload";
 import VideoDetails from "./component/VideoDetails";
@@ -152,6 +154,8 @@ const Layout = () => {
               <Route path="/video-dashboard" element={<Navigate to="/dashboard/videos" replace />} />
               <Route path="/sales-dashboard" element={<Navigate to="/dashboard/store" replace />} />
               <Route path="/ai-mastering" element={<AIMasteringPage />} />
+              <Route path="/ai-radio-dj" element={<AIRadioDJPage />} />
+              <Route path="/ai-radio-dj/:stationId" element={<AIRadioDJ />} />
 
               {/* Video Channel Routes */}
               <Route path="/profile/video" element={<VideoChannelProfile />} />
@@ -250,7 +254,7 @@ const Layout = () => {
 
               {/* 404 Fallback */}
               <Route path="*" element={<h1>Not found!</h1>} />
-              
+
             </Routes>
             <FloatingVideoCall currentUser={user} />
           </main>

@@ -339,7 +339,7 @@
 	text-align: center;
 }
 
-.streampirex-home .music-distribution > p {
+.streampirex-home .music-distribution>p {
 	color: #d1d5db !important;
 	font-size: 1.1rem;
 	margin-bottom: 3rem;
@@ -474,7 +474,7 @@
 .streampirex-home .comparison-card li {
 	padding: 0.5rem 0;
 	color: #d1d5db !important;
-	border-bottom: 1px solid rgba(255,255,255,0.1);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 	font-size: 0.95rem;
 	background: transparent !important;
 }
@@ -487,7 +487,7 @@
 	font-weight: bold;
 	font-size: 1.1rem;
 	padding-top: 1rem;
-	border-top: 2px solid rgba(255,255,255,0.2);
+	border-top: 2px solid rgba(255, 255, 255, 0.2);
 	color: #d1d5db !important;
 	background: transparent !important;
 }
@@ -512,7 +512,7 @@
 	background: transparent !important;
 }
 
-.streampirex-home .why-choose-streampirex > p {
+.streampirex-home .why-choose-streampirex>p {
 	color: #d1d5db !important;
 	font-size: 1.1rem;
 	margin-bottom: 2rem;
@@ -710,7 +710,7 @@
 }
 
 .streampirex-home .join-now p,
-.streampirex-home .final-cta > p {
+.streampirex-home .final-cta>p {
 	color: #d1d5db !important;
 	font-size: 1.1rem;
 	margin-bottom: 2rem;
@@ -767,15 +767,15 @@
 	.streampirex-home .feature-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
-	
+
 	.streampirex-home .value-props-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
-	
+
 	.streampirex-home .creator-grid {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
-	
+
 	.streampirex-home .feature-container {
 		grid-template-columns: 1fr;
 	}
@@ -786,12 +786,12 @@
 	.streampirex-home .feature-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
-	
+
 	.streampirex-home .comparison-grid {
 		grid-template-columns: 1fr;
 		max-width: 600px;
 	}
-	
+
 	.streampirex-home .problem-solution {
 		grid-template-columns: 1fr;
 	}
@@ -802,46 +802,46 @@
 	.streampirex-home .hero {
 		padding: 2rem 1rem;
 	}
-	
+
 	.streampirex-home .hero h1 {
 		font-size: 2.2rem;
 	}
-	
+
 	.streampirex-home .hero-image,
 	.streampirex-home .hero-image-placeholder {
 		width: 200px;
 		height: 200px;
 		font-size: 3rem;
 	}
-	
+
 	.streampirex-home .hero-stats {
 		gap: 2rem;
 	}
-	
+
 	.streampirex-home .feature-grid {
 		grid-template-columns: 1fr;
 	}
-	
+
 	.streampirex-home .features {
 		padding: 2rem 1rem;
 	}
-	
+
 	.streampirex-home .music-distribution {
 		padding: 2rem 1rem;
 	}
-	
+
 	.streampirex-home .platform-row {
 		padding: 1.5rem;
 	}
-	
+
 	.streampirex-home .value-props-grid {
 		grid-template-columns: 1fr;
 	}
-	
+
 	.streampirex-home .creator-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
-	
+
 	.streampirex-home .join-now,
 	.streampirex-home .final-cta {
 		padding: 2rem 1rem;
@@ -850,7 +850,7 @@
 	.streampirex-home .feature-container {
 		grid-template-columns: 1fr;
 	}
-	
+
 	.streampirex-home .footer-links {
 		flex-wrap: wrap;
 		gap: 1rem;
@@ -862,42 +862,528 @@
 	.streampirex-home .hero h1 {
 		font-size: 1.8rem;
 	}
-	
+
 	.streampirex-home .hero p {
 		font-size: 1rem;
 	}
-	
+
 	.streampirex-home .hero-image,
 	.streampirex-home .hero-image-placeholder {
 		width: 150px;
 		height: 150px;
 	}
-	
+
 	.streampirex-home .feature-card {
 		padding: 1rem;
 		min-height: auto;
 	}
-	
+
 	.streampirex-home .creator-grid {
 		grid-template-columns: 1fr;
 	}
-	
+
 	.streampirex-home .cta-buttons {
 		flex-direction: column;
 		align-items: center;
 	}
-	
+
 	.streampirex-home .cta-buttons .btn,
 	.streampirex-home .cta-buttons a {
 		width: 100%;
 		max-width: 280px;
 	}
-	
+
 	.streampirex-home .stat-number {
 		font-size: 2rem;
 	}
-	
+
 	.streampirex-home .comparison-card {
 		padding: 1.5rem;
+	}
+
+	/* =============================================================================
+   HOME.CSS ADDITIONS — AI Features + New Sections
+   =============================================================================
+   Add this to the BOTTOM of your existing home.css file.
+   Do NOT replace the existing CSS — just append this.
+   ============================================================================= */
+
+
+	/* =============================================
+   Hero Tagline (new)
+   ============================================= */
+	.streampirex-home .hero-tagline {
+		font-size: 1.5rem !important;
+		color: #FF6600 !important;
+		font-weight: bold;
+		letter-spacing: 1px;
+		text-transform: uppercase;
+		margin-bottom: 0.5rem !important;
+	}
+
+
+	/* =============================================
+   AI Features Section
+   ============================================= */
+	.streampirex-home .ai-features-section {
+		padding: 4rem 2rem;
+		background: linear-gradient(145deg, #0d1117, #1a1f2e) !important;
+		border-top: 2px solid rgba(0, 255, 200, 0.2);
+		border-bottom: 2px solid rgba(0, 255, 200, 0.2);
+		text-align: center;
+	}
+
+	.streampirex-home .ai-features-section h2 {
+		color: #00ffc8 !important;
+		font-size: 2.2rem;
+		margin-bottom: 0.5rem;
+		background: transparent !important;
+	}
+
+	.streampirex-home .ai-features-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 2rem;
+		max-width: 1200px;
+		margin: 2.5rem auto 0;
+	}
+
+	.streampirex-home .ai-feature-card {
+		background: linear-gradient(145deg, #161b22, #1f2937) !important;
+		border: 1px solid rgba(0, 255, 200, 0.15);
+		border-radius: 16px;
+		padding: 2rem 1.5rem;
+		text-align: center;
+		position: relative;
+		transition: all 0.3s ease;
+		overflow: hidden;
+	}
+
+	.streampirex-home .ai-feature-card::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 3px;
+		background: linear-gradient(90deg, #00ffc8, #FF6600, #7c3aed);
+	}
+
+	.streampirex-home .ai-feature-card:hover {
+		border-color: #00ffc8;
+		transform: translateY(-4px);
+		box-shadow: 0 12px 40px rgba(0, 255, 200, 0.15);
+	}
+
+	.streampirex-home .ai-feature-icon {
+		font-size: 3rem;
+		margin-bottom: 1rem;
+	}
+
+	.streampirex-home .ai-badge {
+		display: inline-block;
+		background: linear-gradient(135deg, #00ffc8, #00a8ff);
+		color: #0d1117;
+		font-size: 0.7rem;
+		font-weight: 800;
+		padding: 3px 10px;
+		border-radius: 20px;
+		letter-spacing: 1px;
+		margin-bottom: 0.75rem;
+	}
+
+	.streampirex-home .ai-feature-card h4 {
+		color: #ffffff !important;
+		font-size: 1.3rem;
+		margin-bottom: 0.75rem;
+		background: transparent !important;
+	}
+
+	.streampirex-home .ai-feature-card p {
+		color: #9ca3af !important;
+		font-size: 0.95rem;
+		line-height: 1.6;
+		background: transparent !important;
+	}
+
+	.streampirex-home .ai-feature-stats {
+		display: flex;
+		justify-content: center;
+		gap: 0.75rem;
+		margin-top: 1.25rem;
+		flex-wrap: wrap;
+	}
+
+	.streampirex-home .ai-feature-stats span {
+		background: rgba(0, 255, 200, 0.1);
+		color: #00ffc8;
+		font-size: 0.75rem;
+		padding: 4px 10px;
+		border-radius: 20px;
+		border: 1px solid rgba(0, 255, 200, 0.2);
+		font-weight: 600;
+	}
+
+
+	/* =============================================
+   AI Coming Soon
+   ============================================= */
+	.streampirex-home .ai-coming-soon {
+		max-width: 800px;
+		margin: 3rem auto 0;
+		padding: 1.5rem 2rem;
+		background: rgba(124, 58, 237, 0.1);
+		border: 1px solid rgba(124, 58, 237, 0.3);
+		border-radius: 12px;
+	}
+
+	.streampirex-home .ai-coming-soon h4 {
+		color: #c084fc !important;
+		margin-bottom: 1rem;
+		font-size: 1.1rem;
+		background: transparent !important;
+	}
+
+	.streampirex-home .coming-soon-items {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.75rem;
+	}
+
+	.streampirex-home .coming-soon-tag {
+		background: rgba(124, 58, 237, 0.15);
+		color: #c084fc;
+		padding: 5px 14px;
+		border-radius: 20px;
+		font-size: 0.8rem;
+		font-weight: 600;
+		border: 1px solid rgba(124, 58, 237, 0.3);
+	}
+
+
+	/* =============================================
+   AI Tag on Feature Cards
+   ============================================= */
+	.streampirex-home .feature-tag.ai-tag {
+		background: linear-gradient(135deg, #00ffc8, #00a8ff) !important;
+		color: #0d1117 !important;
+		font-weight: 700;
+		letter-spacing: 0.5px;
+	}
+
+
+	/* =============================================
+   Platform Comparison Section
+   ============================================= */
+	.streampirex-home .comparison {
+		padding: 4rem 2rem;
+		background: #0d1117 !important;
+		text-align: center;
+	}
+
+	.streampirex-home .comparison h2 {
+		color: #00ffc8 !important;
+		font-size: 2rem;
+		margin-bottom: 0.5rem;
+		background: transparent !important;
+	}
+
+	.streampirex-home .comparison-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 2rem;
+		max-width: 900px;
+		margin: 2rem auto 0;
+	}
+
+	.streampirex-home .comparison-card {
+		background: #161b22 !important;
+		border-radius: 16px;
+		padding: 2rem;
+		border: 1px solid #30363d;
+	}
+
+	.streampirex-home .comparison-card h3 {
+		color: #ffffff !important;
+		margin-bottom: 1.5rem;
+		font-size: 1.3rem;
+		background: transparent !important;
+	}
+
+	.streampirex-home .comparison-card.streampirex-card {
+		border-color: #00ffc8;
+		box-shadow: 0 0 20px rgba(0, 255, 200, 0.1);
+	}
+
+	.streampirex-home .comparison-card.streampirex-card h3 {
+		color: #00ffc8 !important;
+	}
+
+	.streampirex-home .comparison-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+
+	.streampirex-home .comparison-list li {
+		display: flex;
+		justify-content: space-between;
+		padding: 0.6rem 0;
+		border-bottom: 1px solid #30363d;
+		color: #d1d5db;
+		font-size: 0.9rem;
+	}
+
+	.streampirex-home .comparison-list li:last-child {
+		border-bottom: none;
+	}
+
+	.streampirex-home .comparison-list li.total {
+		font-weight: bold;
+		font-size: 1.1rem;
+		border-top: 2px solid #30363d;
+		margin-top: 0.5rem;
+		padding-top: 1rem;
+	}
+
+	.streampirex-home .other-platforms .comparison-list li.total span:last-child {
+		color: #ff4444;
+	}
+
+	.streampirex-home .streampirex-card .comparison-list li.total span:last-child {
+		color: #00ffc8;
+		font-size: 1.3rem;
+	}
+
+	.streampirex-home .streampirex-card .comparison-list li span:last-child {
+		color: #00ffc8;
+		font-weight: 600;
+	}
+
+
+	/* =============================================
+   Earnings Comparison Bars
+   ============================================= */
+	.streampirex-home .earnings {
+		padding: 4rem 2rem;
+		background: linear-gradient(145deg, #1f2937, #111827) !important;
+		text-align: center;
+	}
+
+	.streampirex-home .earnings h2 {
+		color: #00ffc8 !important;
+		font-size: 2rem;
+		margin-bottom: 2rem;
+		background: transparent !important;
+	}
+
+	.streampirex-home .earnings-bars {
+		max-width: 700px;
+		margin: 0 auto;
+	}
+
+	.streampirex-home .earnings-row {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin-bottom: 1rem;
+	}
+
+	.streampirex-home .earnings-row .platform-name {
+		width: 110px;
+		text-align: right;
+		color: #9ca3af;
+		font-size: 0.9rem;
+		font-weight: 600;
+	}
+
+	.streampirex-home .bar-container {
+		flex: 1;
+		background: #1f2937;
+		border-radius: 8px;
+		overflow: hidden;
+		height: 36px;
+	}
+
+	.streampirex-home .bar {
+		height: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		padding-right: 12px;
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: #ffffff;
+		border-radius: 8px;
+		transition: width 1s ease;
+	}
+
+	.streampirex-home .youtube-bar {
+		background: linear-gradient(90deg, #cc0000, #ff4444);
+	}
+
+	.streampirex-home .twitch-bar {
+		background: linear-gradient(90deg, #6441a5, #9146ff);
+	}
+
+	.streampirex-home .spotify-bar {
+		background: linear-gradient(90deg, #1a7a3a, #1db954);
+	}
+
+	.streampirex-home .spx-bar {
+		background: linear-gradient(90deg, #00a88a, #00ffc8);
+		color: #0d1117;
+	}
+
+	.streampirex-home .highlight-row .platform-name {
+		color: #00ffc8;
+		font-weight: 700;
+	}
+
+
+	/* =============================================
+   Final CTA Section
+   ============================================= */
+	.streampirex-home .final-cta {
+		padding: 4rem 2rem;
+		text-align: center;
+		background: linear-gradient(145deg, #0d1117, #1a1f2e) !important;
+		border-top: 2px solid rgba(0, 255, 200, 0.2);
+	}
+
+	.streampirex-home .final-cta h2 {
+		color: #00ffc8 !important;
+		font-size: 2.2rem;
+		margin-bottom: 1rem;
+		background: transparent !important;
+	}
+
+	.streampirex-home .final-cta p {
+		color: #9ca3af !important;
+		font-size: 1.1rem;
+		max-width: 600px;
+		margin: 0 auto 2rem;
+		background: transparent !important;
+	}
+
+	.streampirex-home .btn-lg {
+		padding: 14px 32px !important;
+		font-size: 1.1rem !important;
+	}
+
+
+	/* =============================================
+   Footer
+   ============================================= */
+	.streampirex-home .home-footer {
+		padding: 2rem;
+		border-top: 1px solid #30363d;
+		background: #0d1117 !important;
+	}
+
+	.streampirex-home .footer-content {
+		max-width: 1200px;
+		margin: 0 auto;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 1rem;
+	}
+
+	.streampirex-home .footer-content p {
+		color: #6b7280 !important;
+		font-size: 0.85rem;
+		margin: 0;
+		background: transparent !important;
+	}
+
+	.streampirex-home .footer-links {
+		display: flex;
+		gap: 1.5rem;
+	}
+
+	.streampirex-home .footer-links a {
+		color: #6b7280;
+		font-size: 0.85rem;
+		text-decoration: none;
+		transition: color 0.3s;
+	}
+
+	.streampirex-home .footer-links a:hover {
+		color: #00ffc8;
+	}
+
+
+	/* =============================================
+   Responsive — AI Features
+   ============================================= */
+	@media (max-width: 1024px) {
+		.streampirex-home .ai-features-grid {
+			grid-template-columns: 1fr;
+			max-width: 600px;
+		}
+
+		.streampirex-home .comparison-grid {
+			grid-template-columns: 1fr;
+			max-width: 500px;
+		}
+	}
+
+	@media (max-width: 768px) {
+		.streampirex-home .hero-tagline {
+			font-size: 1.1rem !important;
+		}
+
+		.streampirex-home .ai-features-section {
+			padding: 2.5rem 1rem;
+		}
+
+		.streampirex-home .ai-features-section h2 {
+			font-size: 1.8rem;
+		}
+
+		.streampirex-home .ai-feature-card {
+			padding: 1.5rem 1rem;
+		}
+
+		.streampirex-home .earnings-row .platform-name {
+			width: 80px;
+			font-size: 0.8rem;
+		}
+
+		.streampirex-home .final-cta h2 {
+			font-size: 1.8rem;
+		}
+
+		.streampirex-home .footer-content {
+			flex-direction: column;
+			text-align: center;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.streampirex-home .hero-tagline {
+			font-size: 0.95rem !important;
+		}
+
+		.streampirex-home .ai-feature-stats {
+			gap: 0.5rem;
+		}
+
+		.streampirex-home .ai-feature-stats span {
+			font-size: 0.65rem;
+			padding: 3px 8px;
+		}
+
+		.streampirex-home .coming-soon-items {
+			gap: 0.5rem;
+		}
+
+		.streampirex-home .coming-soon-tag {
+			font-size: 0.7rem;
+			padding: 4px 10px;
+		}
 	}
 }
