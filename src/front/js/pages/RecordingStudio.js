@@ -11,8 +11,10 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ArrangerView from '../component/ArrangerView';
+import AIMixAssistant from '../component/AIMixAssistant';
 import '../../styles/RecordingStudio.css';
 import '../../styles/ArrangerView.css';
+import '../../styles/AIMixAssistant.css';
 
 const TRACK_COLORS = ['#34c759','#ff9500','#007aff','#af52de','#ff3b30','#5ac8fa','#ff2d55','#ffcc00',
   '#30d158','#ff6b35','#0a84ff','#bf5af2','#ff453a','#64d2ff','#ff375f','#ffd60a',
@@ -72,6 +74,7 @@ const RecordingStudio = ({ user }) => {
   const [saving, setSaving] = useState(false);
   const [mixingDown, setMixingDown] = useState(false);
   const [activeEffectsTrack, setActiveEffectsTrack] = useState(null);
+  const [showAIMix, setShowAIMix] = useState(false);
 
   const audioCtxRef = useRef(null);
   const masterGainRef = useRef(null);
@@ -416,6 +419,34 @@ const RecordingStudio = ({ user }) => {
 
   const fmt = (s) => { const m=Math.floor(s/60),sec=Math.floor(s%60),ms=Math.floor((s%1)*100); return `${m}:${String(sec).padStart(2,'0')}.${String(ms).padStart(2,'0')}`; };
 
+  // ── AI Mix Assistant apply callbacks ──
+  const handleAIApplyVolume = useCallback((trackIndex, value) => {
+    updateTrack(trackIndex, { volume: value });
+    if (trackGainsRef.current[trackIndex]) trackGainsRef.current[trackIndex].gain.value = value;
+    setStatus(`AI: Track ${trackIndex + 1} vol → ${Math.round(value * 100)}%`);
+  }, [updateTrack]);
+
+  const handleAIApplyPan = useCallback((trackIndex, value) => {
+    updateTrack(trackIndex, { pan: value });
+    if (trackPansRef.current[trackIndex]) trackPansRef.current[trackIndex].pan.value = value;
+    const label = value === 0 ? 'C' : value < 0 ? `L${Math.abs(Math.round(value*50))}` : `R${Math.round(value*50)}`;
+    setStatus(`AI: Track ${trackIndex + 1} pan → ${label}`);
+  }, [updateTrack]);
+
+  const handleAIApplyEQ = useCallback((trackIndex, eqSuggestion) => {
+    const updates = {};
+    if (eqSuggestion.frequency < 400) updates.lowGain = eqSuggestion.gain_db;
+    else if (eqSuggestion.frequency < 3000) { updates.midGain = eqSuggestion.gain_db; updates.midFreq = eqSuggestion.frequency; }
+    else updates.highGain = eqSuggestion.gain_db;
+    setTracks(prev => prev.map((t, i) => i !== trackIndex ? t : { ...t, effects: { ...t.effects, eq: { ...t.effects.eq, ...updates, enabled: true } } }));
+    setStatus(`AI: Track ${trackIndex + 1} EQ adjusted`);
+  }, []);
+
+  const handleAIApplyCompression = useCallback((trackIndex, comp) => {
+    setTracks(prev => prev.map((t, i) => i !== trackIndex ? t : { ...t, effects: { ...t.effects, compressor: { threshold: comp.suggested_threshold || -20, ratio: comp.suggested_ratio || 4, attack: (comp.suggested_attack_ms || 10) / 1000, release: (comp.suggested_release_ms || 100) / 1000, enabled: true } } }));
+    setStatus(`AI: Track ${trackIndex + 1} compressor applied`);
+  }, []);
+
   // ── ArrangerView callbacks ──
   const handleArrangerPlay = useCallback(() => { if (!isPlaying) startPlayback(); }, [isPlaying]);
   const handleArrangerStop = useCallback(() => { if (isPlaying) stopPlayback(); }, [isPlaying]);
@@ -487,6 +518,16 @@ const RecordingStudio = ({ user }) => {
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             Arrange
+          </button>
+          <button
+            className={`daw-view-tab ai-tab ${showAIMix ? 'active' : ''}`}
+            onClick={() => setShowAIMix(!showAIMix)}
+            title="AI Mix Assistant"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="8" r="1.5" fill="currentColor"/>
+            </svg>
+            AI Mix
           </button>
         </div>
 
@@ -664,6 +705,19 @@ const RecordingStudio = ({ user }) => {
               </div>
             ))}
           </div>
+        )}
+
+        {/* ──────── AI MIX ASSISTANT PANEL ──────── */}
+        {showAIMix && (
+          <AIMixAssistant
+            tracks={tracks}
+            projectId={projectId}
+            onApplyVolume={handleAIApplyVolume}
+            onApplyPan={handleAIApplyPan}
+            onApplyEQ={handleAIApplyEQ}
+            onApplyCompression={handleAIApplyCompression}
+            onClose={() => setShowAIMix(false)}
+          />
         )}
       </div>
 
