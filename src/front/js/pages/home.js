@@ -2,9 +2,9 @@
 // Home.js — StreamPireX Landing Page (Updated Feb 2026)
 // =============================================================================
 // Prices: Free $0 | Starter $12.99 | Creator $22.99 | Pro $31.99
-// Features: Recording Studio, AI Mix Assistant, AI Mastering, AI Radio DJ,
-//           Voice Cloning, Video Editor, Live Streaming, Podcasts, Radio,
-//           Gaming Hub, Social Network, Music Distribution, Marketplace
+// Features: Recording Studio, AI Mix Assistant, AI Mastering, AI Stem Separation,
+//           AI Radio DJ, Voice Cloning, Video Editor, Live Streaming, Podcasts,
+//           Radio, Gaming Hub, Social Network, Music Distribution, Marketplace
 // =============================================================================
 
 import React, { useContext } from "react";
@@ -70,7 +70,7 @@ const Home = () => {
 			</header>
 
 			{/* ================================================================
-			    AI FEATURES (6-card grid)
+			    AI FEATURES (7-card grid)
 			    ================================================================ */}
 			<section className="ai-features-section">
 				<h2>🤖 AI-Powered Creator Tools</h2>
@@ -123,6 +123,23 @@ const Home = () => {
 						</div>
 					</div>
 
+					{/* NEW — AI Stem Separation */}
+					<div className="ai-feature-card">
+						<div className="ai-feature-icon">🎵</div>
+						<div className="ai-badge">AI</div>
+						<h4>AI Stem Separation</h4>
+						<p>
+							Split any song into individual stems — vocals, drums, bass, and instruments.
+							Powered by Meta's Demucs AI. Isolate vocals for remixes, extract drums for
+							sampling, or separate guitar and piano with 6-stem mode.
+						</p>
+						<div className="ai-feature-stats">
+							<span>4 or 6 Stems</span>
+							<span>5 AI Models</span>
+							<span>Pro Quality</span>
+						</div>
+					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">📻</div>
 						<div className="ai-badge">AI</div>
@@ -154,7 +171,7 @@ const Home = () => {
 					</div>
 
 					<div className="ai-feature-card">
-						<div className="ai-feature-icon">🎵</div>
+						<div className="ai-feature-icon">🌍</div>
 						<div className="ai-badge">AI</div>
 						<h4>Smart Distribution</h4>
 						<p>
@@ -358,6 +375,7 @@ const Home = () => {
 							<li>🎬 Video Editor — $23/mo</li>
 							<li>🎚️ DAW Software — $10–30/mo</li>
 							<li>🎛️ Mastering Service — $10–50/track</li>
+							<li>🎵 Stem Splitter — $10–20/mo</li>
 							<li>📡 Streaming Platform — $15/mo</li>
 							<li>🎙️ Podcast Hosting — $12/mo</li>
 							<li>📻 Radio Hosting — $20/mo</li>
@@ -365,7 +383,7 @@ const Home = () => {
 							<li>🛍️ Merch Platform — $15/mo</li>
 							<li>📊 Analytics Tools — $10/mo</li>
 						</ul>
-						<p className="comparison-total">Total: $100–$200+/month</p>
+						<p className="comparison-total">Total: $120–$250+/month</p>
 					</div>
 					<div className="comparison-card new">
 						<h4>✅ StreamPireX All-in-One</h4>
@@ -373,6 +391,7 @@ const Home = () => {
 							<li>🎬 Video Editor — Full Tools + Templates</li>
 							<li>🎚️ Recording Studio — Multi-Track DAW</li>
 							<li>🤖 AI Mix Assistant + AI Mastering</li>
+							<li>🎵 AI Stem Separation — 4 or 6 Stems</li>
 							<li>📡 Live Streaming — Up to 4K</li>
 							<li>🎙️ Podcast Hosting — Unlimited</li>
 							<li>📻 24/7 Radio + AI DJ</li>
@@ -439,7 +458,7 @@ const Home = () => {
 					<div className="value-prop-card">
 						<span className="value-icon">🤖</span>
 						<h4>AI-Powered Tools</h4>
-						<p>AI mastering, AI mix assistant, AI radio DJ, and voice cloning. Pro results without the learning curve or expensive plugins.</p>
+						<p>AI mastering, AI mix assistant, AI stem separation, AI radio DJ, and voice cloning. Pro results without the learning curve or expensive plugins.</p>
 					</div>
 					<div className="value-prop-card">
 						<span className="value-icon">🎚️</span>
