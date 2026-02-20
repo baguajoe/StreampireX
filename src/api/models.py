@@ -6259,6 +6259,71 @@ class StoryHighlight(db.Model):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
 
+class StemSeparationJob(db.Model):
+    __tablename__ = 'stem_separation_jobs'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=True)
+
+    # Track info
+    title = db.Column(db.String(200), nullable=True)
+    original_url = db.Column(db.String(500), nullable=True)
+    duration_seconds = db.Column(db.Float, nullable=True)
+
+    # Processing info
+    model_used = db.Column(db.String(50), nullable=False, default='htdemucs')
+    device_used = db.Column(db.String(10), nullable=True)          # 'cpu' or 'cuda'
+    stem_count = db.Column(db.Integer, default=4)
+
+    # Stem URLs (individual columns for clean queries)
+    vocals_url = db.Column(db.String(500), nullable=True)
+    drums_url = db.Column(db.String(500), nullable=True)
+    bass_url = db.Column(db.String(500), nullable=True)
+    guitar_url = db.Column(db.String(500), nullable=True)          # 6-stem model only
+    piano_url = db.Column(db.String(500), nullable=True)           # 6-stem model only
+    other_url = db.Column(db.String(500), nullable=True)
+
+    # Status
+    status = db.Column(db.String(20), default='completed')         # processing, completed, error
+    error_message = db.Column(db.String(500), nullable=True)
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', backref=db.backref('stem_jobs', lazy='dynamic'))
+
+    def serialize(self):
+        stems = {}
+        stem_map = {
+            'vocals': {'url': self.vocals_url, 'name': 'Vocals', 'icon': '🎤', 'color': '#FF6B6B'},
+            'drums': {'url': self.drums_url, 'name': 'Drums', 'icon': '🥁', 'color': '#4ECDC4'},
+            'bass': {'url': self.bass_url, 'name': 'Bass', 'icon': '🎸', 'color': '#45B7D1'},
+            'guitar': {'url': self.guitar_url, 'name': 'Guitar', 'icon': '🪕', 'color': '#F59E0B'},
+            'piano': {'url': self.piano_url, 'name': 'Piano', 'icon': '🎹', 'color': '#A855F7'},
+            'other': {'url': self.other_url, 'name': 'Other / Instruments', 'icon': '🎹', 'color': '#96CEB4'},
+        }
+        for key, info in stem_map.items():
+            if info['url']:
+                stems[key] = info
+
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'audio_id': self.audio_id,
+            'title': self.title,
+            'original_url': self.original_url,
+            'duration_seconds': self.duration_seconds,
+            'model_used': self.model_used,
+            'device_used': self.device_used,
+            'stem_count': self.stem_count,
+            'stems': stems,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
 # =============================================================================
 # AI Mastering Job Model — Add to models.py
 # =============================================================================

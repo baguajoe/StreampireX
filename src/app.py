@@ -56,6 +56,7 @@ from src.api.follow_routes import follow_bp  # ADD THIS
 from src.api.video_tier_routes import video_tier_bp  # ADD THIS
 from src.api.notifications import notifications_bp
 from src.api.ai_mix_assistant import ai_mix_assistant_bp
+from src.api.ai_stem_separation import ai_stem_separation_bp
 
 
 # Rest of your code stays the same...
@@ -287,6 +288,7 @@ app.register_blueprint(ai_radio_dj_bp)
 app.register_blueprint(ai_content_bp)
 app.register_blueprint(recording_studio_bp)
 app.register_blueprint(ai_mix_assistant_bp)
+app.register_blueprint(ai_stem_separation_bp)
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)

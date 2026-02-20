@@ -1,0 +1,1010 @@
+/* src/front/styles/AIStemSeparation.css */
+/* =====================================================
+   AI STEM SEPARATION — StreamPireX
+   Dark theme consistent with platform design
+   ===================================================== */
+
+/* =====================================================
+   PAGE LAYOUT
+   ===================================================== */
+
+.stem-separation-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+  color: #e0e0e0;
+  min-height: 100vh;
+}
+
+/* =====================================================
+   HEADER
+   ===================================================== */
+
+.stem-header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.stem-header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(0, 255, 200, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.stem-header-content {
+  position: relative;
+  z-index: 1;
+}
+
+.stem-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.stem-icon {
+  margin-right: 8px;
+}
+
+.stem-header p {
+  color: #a0aec0;
+  font-size: 15px;
+  margin: 0 0 16px 0;
+  max-width: 700px;
+  line-height: 1.5;
+}
+
+.stem-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stem-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  color: #a0aec0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stem-badge.ai {
+  background: rgba(0, 255, 200, 0.12);
+  color: #00ffc8;
+  border-color: rgba(0, 255, 200, 0.3);
+}
+
+.stem-badge.gpu {
+  background: rgba(118, 185, 0, 0.12);
+  color: #76b900;
+  border-color: rgba(118, 185, 0, 0.3);
+}
+
+/* =====================================================
+   NOTICES
+   ===================================================== */
+
+.stem-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.4;
+  position: relative;
+}
+
+.stem-notice.warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+}
+
+.stem-notice.error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #f87171;
+}
+
+.stem-notice.success {
+  background: rgba(0, 255, 200, 0.08);
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  color: #00ffc8;
+}
+
+.stem-notice-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 0 4px;
+}
+
+.stem-notice-close:hover {
+  opacity: 1;
+}
+
+/* =====================================================
+   LAYOUT (2-column)
+   ===================================================== */
+
+.stem-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .stem-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stem-input-panel,
+.stem-results-panel {
+  background: #1a1a2e;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 24px;
+}
+
+/* =====================================================
+   TABS
+   ===================================================== */
+
+.stem-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.stem-tab {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #8892a4;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stem-tab:hover {
+  color: #e0e0e0;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.stem-tab.active {
+  background: rgba(0, 255, 200, 0.12);
+  color: #00ffc8;
+}
+
+/* =====================================================
+   UPLOAD AREA
+   ===================================================== */
+
+.stem-upload-area {
+  margin-bottom: 20px;
+}
+
+.stem-dropzone {
+  border: 2px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.stem-dropzone:hover {
+  border-color: rgba(0, 255, 200, 0.3);
+  background: rgba(0, 255, 200, 0.04);
+}
+
+.stem-dropzone.has-file {
+  border-color: rgba(0, 255, 200, 0.25);
+  background: rgba(0, 255, 200, 0.06);
+  padding: 16px 20px;
+}
+
+.stem-dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.stem-dropzone-icon {
+  font-size: 36px;
+}
+
+.stem-dropzone-content p {
+  color: #a0aec0;
+  font-size: 15px;
+  margin: 0;
+}
+
+.stem-dropzone-hint {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.stem-file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stem-file-icon {
+  font-size: 28px;
+}
+
+.stem-file-name {
+  font-weight: 600;
+  color: #e0e0e0;
+  font-size: 14px;
+}
+
+.stem-file-size {
+  color: #8892a4;
+  font-size: 12px;
+}
+
+.stem-file-remove {
+  margin-left: auto;
+  background: rgba(239, 68, 68, 0.15);
+  border: none;
+  color: #f87171;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stem-file-remove:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.stem-title-input {
+  margin-top: 14px;
+}
+
+.stem-title-input label {
+  display: block;
+  font-size: 12px;
+  color: #8892a4;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.stem-title-input input {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.stem-title-input input:focus {
+  border-color: rgba(0, 255, 200, 0.4);
+}
+
+/* =====================================================
+   LIBRARY & HISTORY
+   ===================================================== */
+
+.stem-loading,
+.stem-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #8892a4;
+}
+
+.stem-empty span {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.stem-track-list {
+  max-height: 280px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.stem-track-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.stem-track-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stem-track-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.stem-track-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+}
+
+.stem-track-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.stem-track-item.selected {
+  background: rgba(0, 255, 200, 0.08);
+  border-color: rgba(0, 255, 200, 0.2);
+}
+
+.stem-track-item.clickable:hover {
+  background: rgba(0, 255, 200, 0.06);
+}
+
+.stem-track-icon {
+  font-size: 20px;
+}
+
+.stem-track-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.stem-track-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #e0e0e0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stem-track-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: #8892a4;
+  margin-top: 2px;
+}
+
+.stem-status-dot {
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+.stem-status-dot.separated {
+  background: rgba(0, 255, 200, 0.15);
+  color: #00ffc8;
+}
+
+.stem-status-dot.mastered {
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+}
+
+.stem-status-dot.original {
+  background: rgba(255, 255, 255, 0.06);
+  color: #8892a4;
+}
+
+.stem-check {
+  color: #00ffc8;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.stem-load-btn {
+  color: #00ffc8;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.stem-track-item:hover .stem-load-btn {
+  opacity: 1;
+}
+
+/* =====================================================
+   MODEL SELECTION
+   ===================================================== */
+
+.stem-model-section {
+  margin-bottom: 20px;
+}
+
+.stem-model-section > label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #a0aec0;
+  margin-bottom: 10px;
+}
+
+.stem-model-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .stem-model-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stem-model-card {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stem-model-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.stem-model-card.selected {
+  border-color: rgba(0, 255, 200, 0.4);
+  background: rgba(0, 255, 200, 0.08);
+}
+
+.stem-model-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.stem-model-icon {
+  font-size: 16px;
+}
+
+.stem-model-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #e0e0e0;
+}
+
+.stem-model-desc {
+  font-size: 11px;
+  color: #8892a4;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.stem-model-tags {
+  display: flex;
+  gap: 6px;
+}
+
+.stem-quality-tag,
+.stem-speed-tag {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.stem-quality-tag.highest { background: rgba(0, 255, 200, 0.15); color: #00ffc8; }
+.stem-quality-tag.high { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.stem-quality-tag.good { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.stem-speed-tag.fast { background: rgba(0, 255, 200, 0.12); color: #00ffc8; }
+.stem-speed-tag.medium { background: rgba(245, 158, 11, 0.12); color: #fbbf24; }
+.stem-speed-tag.slower { background: rgba(239, 68, 68, 0.12); color: #f87171; }
+.stem-speed-tag.slowest { background: rgba(168, 85, 247, 0.12); color: #c084fc; }
+
+/* =====================================================
+   SEPARATE BUTTON
+   ===================================================== */
+
+.stem-separate-btn {
+  width: 100%;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #00ffc8 0%, #00d4a8 100%);
+  color: #0d1117;
+}
+
+.stem-separate-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0, 255, 200, 0.25);
+}
+
+.stem-separate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.stem-separate-btn.processing {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #00ffc8;
+  border: 1px solid rgba(0, 255, 200, 0.3);
+}
+
+.stem-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 255, 200, 0.3);
+  border-top-color: #00ffc8;
+  border-radius: 50%;
+  animation: stemSpin 0.8s linear infinite;
+}
+
+@keyframes stemSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* =====================================================
+   PROGRESS BAR
+   ===================================================== */
+
+.stem-progress-container {
+  margin-top: 14px;
+}
+
+.stem-progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.stem-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00ffc8, #00d4a8);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.stem-progress-status {
+  font-size: 12px;
+  color: #8892a4;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* =====================================================
+   RESULTS PANEL
+   ===================================================== */
+
+.stem-results-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.stem-results-placeholder {
+  text-align: center;
+  padding: 40px;
+}
+
+.stem-results-placeholder span {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.stem-results-placeholder h3 {
+  color: #e0e0e0;
+  font-size: 20px;
+  margin: 0 0 8px 0;
+}
+
+.stem-results-placeholder p {
+  color: #8892a4;
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 300px;
+  margin: 0 auto 20px;
+}
+
+.stem-preview-stems {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* =====================================================
+   RESULT HEADER
+   ===================================================== */
+
+.stem-result-header {
+  margin-bottom: 20px;
+}
+
+.stem-result-header h3 {
+  color: #ffffff;
+  font-size: 18px;
+  margin: 0 0 10px 0;
+}
+
+.stem-result-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.stem-result-tag {
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  color: #a0aec0;
+}
+
+.stem-result-tag.cuda {
+  background: rgba(118, 185, 0, 0.12);
+  color: #76b900;
+}
+
+.stem-result-tag.cpu {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+}
+
+/* =====================================================
+   TRANSPORT CONTROLS
+   ===================================================== */
+
+.stem-transport {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.stem-play-btn,
+.stem-download-all-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stem-play-btn {
+  flex: 1;
+  background: rgba(0, 255, 200, 0.12);
+  color: #00ffc8;
+  border: 1px solid rgba(0, 255, 200, 0.25);
+}
+
+.stem-play-btn:hover {
+  background: rgba(0, 255, 200, 0.2);
+}
+
+.stem-play-btn.playing {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.stem-download-all-btn {
+  background: rgba(255, 255, 255, 0.06);
+  color: #a0aec0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stem-download-all-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e0e0e0;
+}
+
+/* =====================================================
+   STEM MIXER CHANNELS
+   ===================================================== */
+
+.stem-mixer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.stem-channel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 3px solid var(--stem-color, #666);
+  transition: all 0.2s;
+}
+
+.stem-channel:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.stem-channel.muted {
+  opacity: 0.4;
+}
+
+.stem-channel.solo {
+  background: rgba(0, 255, 200, 0.06);
+  border-color: rgba(0, 255, 200, 0.15);
+  border-left-color: #00ffc8;
+}
+
+.stem-channel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.stem-channel-icon {
+  font-size: 20px;
+}
+
+.stem-channel-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #e0e0e0;
+}
+
+.stem-channel-size {
+  font-size: 11px;
+  color: #6b7280;
+  margin-left: auto;
+}
+
+/* =====================================================
+   MUTE / SOLO BUTTONS
+   ===================================================== */
+
+.stem-channel-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.stem-mute-btn,
+.stem-solo-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #8892a4;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stem-mute-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.stem-mute-btn.active {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.stem-solo-btn:hover {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.stem-solo-btn.active {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+/* =====================================================
+   VOLUME SLIDER
+   ===================================================== */
+
+.stem-volume-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stem-volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    var(--stem-color, #00ffc8) 0%,
+    var(--stem-color, #00ffc8) var(--fill-pct, 100%),
+    rgba(255, 255, 255, 0.08) var(--fill-pct, 100%),
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  outline: none;
+  cursor: pointer;
+}
+
+.stem-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.stem-volume-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.stem-volume-label {
+  font-size: 12px;
+  color: #8892a4;
+  font-weight: 600;
+  min-width: 36px;
+  text-align: right;
+}
+
+/* =====================================================
+   DOWNLOAD BUTTON
+   ===================================================== */
+
+.stem-download-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stem-download-btn:hover {
+  background: rgba(0, 255, 200, 0.1);
+  border-color: rgba(0, 255, 200, 0.25);
+}
+
+/* =====================================================
+   TIPS
+   ===================================================== */
+
+.stem-tips {
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stem-tips h4 {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  color: #e0e0e0;
+}
+
+.stem-tips p {
+  margin: 0;
+  font-size: 12px;
+  color: #8892a4;
+  line-height: 1.5;
+}
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 768px) {
+  .stem-separation-page {
+    padding: 16px;
+  }
+
+  .stem-header {
+    padding: 20px;
+  }
+
+  .stem-header h1 {
+    font-size: 22px;
+  }
+
+  .stem-model-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stem-channel {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .stem-channel-header {
+    min-width: 120px;
+  }
+
+  .stem-volume-container {
+    width: 100%;
+    order: 5;
+  }
+
+  .stem-transport {
+    flex-direction: column;
+  }
+}
