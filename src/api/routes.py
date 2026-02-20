@@ -309,20 +309,20 @@ def seed_pricing_plans():
             "name": "Free",
             "price_monthly": 0.00,
             "price_yearly": 0.00,
-            "trial_days": 0,  # No trial needed for free plan
+            "trial_days": 0,
             "includes_podcasts": False,
             "includes_radio": False,
             "includes_digital_sales": False,
             "includes_merch_sales": False,
             "includes_live_events": False,
-            "includes_tip_jar": False,
+            "includes_tip_jar": True,
             "includes_ad_revenue": False,
             "includes_music_distribution": False,
             "sonosuite_access": False,
             "distribution_uploads_limit": 0,
-            "includes_gaming_features": True,  # Basic gaming features
+            "includes_gaming_features": True,
             "includes_team_rooms": False,
-            "includes_squad_finder": True,  # Can search for squads
+            "includes_squad_finder": True,
             "includes_gaming_analytics": False,
             "includes_game_streaming": False,
             "includes_gaming_monetization": False,
@@ -330,33 +330,33 @@ def seed_pricing_plans():
             "video_uploads_limit": 0
         },
         {
-            "name": "Basic",
-            "price_monthly": 11.99,
-            "price_yearly": 119.00,  # 2 months free
-            "trial_days": 14,
-            "includes_podcasts": False,
-            "includes_radio": False,
+            "name": "Starter",
+            "price_monthly": 10.99,
+            "price_yearly": 109.99,
+            "trial_days": 7,
+            "includes_podcasts": True,
+            "includes_radio": True,
             "includes_digital_sales": False,
             "includes_merch_sales": False,
             "includes_live_events": False,
-            "includes_tip_jar": False,
+            "includes_tip_jar": True,
             "includes_ad_revenue": False,
             "includes_music_distribution": False,
             "sonosuite_access": False,
             "distribution_uploads_limit": 0,
             "includes_gaming_features": True,
-            "includes_team_rooms": True,  # Create private gaming rooms
+            "includes_team_rooms": True,
             "includes_squad_finder": True,
-            "includes_gaming_analytics": True,  # Basic gaming stats
+            "includes_gaming_analytics": True,
             "includes_game_streaming": False,
             "includes_gaming_monetization": False,
             "includes_video_distribution": False,
             "video_uploads_limit": 0
         },
         {
-            "name": "Pro",
-            "price_monthly": 21.99,
-            "price_yearly": 219.00,  # 2+ months free
+            "name": "Creator",
+            "price_monthly": 20.99,
+            "price_yearly": 209.99,
             "trial_days": 14,
             "includes_podcasts": True,
             "includes_radio": True,
@@ -365,23 +365,23 @@ def seed_pricing_plans():
             "includes_live_events": True,
             "includes_tip_jar": True,
             "includes_ad_revenue": True,
-            "includes_music_distribution": True,
-            "sonosuite_access": True,
-            "distribution_uploads_limit": 5,  # 5 tracks per month
+            "includes_music_distribution": False,
+            "sonosuite_access": False,
+            "distribution_uploads_limit": 0,
             "includes_gaming_features": True,
             "includes_team_rooms": True,
             "includes_squad_finder": True,
             "includes_gaming_analytics": True,
-            "includes_game_streaming": True,  # Live streaming capability
-            "includes_gaming_monetization": True,  # Tips and sponsorships
+            "includes_game_streaming": True,
+            "includes_gaming_monetization": True,
             "includes_video_distribution": True,
-            "video_uploads_limit": 3  # 3 videos per month
+            "video_uploads_limit": 20
         },
         {
-            "name": "Premium",
+            "name": "Pro",
             "price_monthly": 29.99,
-            "price_yearly": 299.00,  # 2+ months free
-            "trial_days": 14,
+            "price_yearly": 299.99,
+            "trial_days": 30,
             "includes_podcasts": True,
             "includes_radio": True,
             "includes_digital_sales": True,
@@ -391,7 +391,7 @@ def seed_pricing_plans():
             "includes_ad_revenue": True,
             "includes_music_distribution": True,
             "sonosuite_access": True,
-            "distribution_uploads_limit": -1,  # Unlimited uploads
+            "distribution_uploads_limit": -1,
             "includes_gaming_features": True,
             "includes_team_rooms": True,
             "includes_squad_finder": True,
@@ -399,24 +399,21 @@ def seed_pricing_plans():
             "includes_game_streaming": True,
             "includes_gaming_monetization": True,
             "includes_video_distribution": True,
-            "video_uploads_limit": -1  # Unlimited videos
+            "video_uploads_limit": -1
         }
     ]
     
     for plan_data in plans_data:
-        # Check if plan already exists
         existing_plan = PricingPlan.query.filter_by(name=plan_data["name"]).first()
         if not existing_plan:
             plan = PricingPlan(**plan_data)
             db.session.add(plan)
         else:
-            # Update existing plan with new fields
             for key, value in plan_data.items():
                 setattr(existing_plan, key, value)
     
     db.session.commit()
     print("✅ Pricing plans seeded successfully!")
-
 # =====================================================
 # HELPER FUNCTION - Add this near the top of routes.py
 # =====================================================
