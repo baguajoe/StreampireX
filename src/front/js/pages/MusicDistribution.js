@@ -471,11 +471,11 @@ const MusicDistribution = () => {
           <Link to="/pricing/plans" className="plan-btn">Current Plan</Link>
         </div>
 
-        {/* Pro Plan Card */}
-        <div className="plan-card pro popular">
+        {/* Creator Plan Card */}
+        <div className="plan-card creator popular">
           <div className="popular-badge">POPULAR</div>
-          <h3>⭐ Pro Plan</h3>
-          <p className="plan-price">$21.99<span>/month</span></p>
+          <h3>⭐ Creator Plan</h3>
+          <p className="plan-price">$20.99<span>/month</span></p>
           <p className="plan-desc">Upload content, livestreaming, analytics</p>
           <ul className="plan-features">
             <li>✅ Limited Music Distribution</li>
@@ -483,21 +483,21 @@ const MusicDistribution = () => {
             <li>✅ Create Podcasts</li>
             <li>✅ Radio Stations</li>
           </ul>
-          <Link to="/pricing" className="plan-btn primary">Choose Pro Plan</Link>
+          <Link to="/pricing" className="plan-btn primary">Choose Creator Plan</Link>
         </div>
 
-        {/* Premium Plan Card */}
-        <div className="plan-card premium">
-          <h3>💎 Premium Plan</h3>
+        {/* Pro Plan Card */}
+        <div className="plan-card pro">
+          <h3>💎 Pro Plan</h3>
           <p className="plan-price">$29.99<span>/month</span></p>
           <p className="plan-desc">Full creators, sell merch, marketplace</p>
           <ul className="plan-features">
             <li>✅ Unlimited Music Distribution</li>
             <li>✅ Digital & Merch Sales</li>
             <li>✅ Live Events</li>
-            <li>✅ All Pro Features</li>
+            <li>✅ All Creator Features</li>
           </ul>
-          <Link to="/pricing/plans" className="plan-btn">Upgrade to Premium</Link>
+          <Link to="/pricing/plans" className="plan-btn">Upgrade to Pro</Link>
         </div>
       </div>
 
