@@ -1,6 +1,7 @@
 /* ===========================================
    UPGRADE MODAL CSS - StreamPireX Theme
    =========================================== */
+/* 4-Tier: Free → Starter → Creator → Pro    */
 
 /* ===========================================
    MODAL OVERLAY
@@ -196,12 +197,17 @@
   text-transform: capitalize;
 }
 
-.tier-name.basic {
+/* --- 4-Tier Colors --- */
+.tier-name.starter {
   color: #4a9eff;
 }
 
-.tier-name.premium {
+.tier-name.creator {
   color: #00ffc8;
+}
+
+.tier-name.pro {
+  color: #ff6b00;
 }
 
 .upgrade-pricing {
@@ -405,24 +411,24 @@
     padding: 30px 20px;
     margin: 10px;
   }
-  
+
   .upgrade-modal-icon {
     font-size: 3rem;
   }
-  
+
   .upgrade-modal-title {
     font-size: 1.5rem;
   }
-  
+
   .upgrade-pricing .price {
     font-size: 2rem;
   }
-  
+
   .upgrade-prompt {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .prompt-upgrade-btn {
     width: 100%;
   }

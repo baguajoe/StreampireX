@@ -331,8 +331,8 @@ def seed_pricing_plans():
         },
         {
             "name": "Starter",
-            "price_monthly": 10.99,
-            "price_yearly": 109.99,
+            "price_monthly": 12.99,
+            "price_yearly": 129.99,
             "trial_days": 7,
             "includes_podcasts": True,
             "includes_radio": True,
@@ -355,8 +355,8 @@ def seed_pricing_plans():
         },
         {
             "name": "Creator",
-            "price_monthly": 20.99,
-            "price_yearly": 209.99,
+            "price_monthly": 22.99,
+            "price_yearly": 229.99,
             "trial_days": 14,
             "includes_podcasts": True,
             "includes_radio": True,
@@ -379,8 +379,8 @@ def seed_pricing_plans():
         },
         {
             "name": "Pro",
-            "price_monthly": 29.99,
-            "price_yearly": 299.99,
+            "price_monthly": 31.99,
+            "price_yearly": 319.99,
             "trial_days": 30,
             "includes_podcasts": True,
             "includes_radio": True,
