@@ -13,7 +13,7 @@ const PricingPlans = () => {
   const navigate = useNavigate();
 
   // ==========================================================================
-  // PRICING CONFIGURATION - 4 TIERS
+  // PRICING CONFIGURATION - 4 TIERS (Updated Feb 2026 — +$2 for AI costs)
   // ==========================================================================
   const pricing = {
     free: { monthly: 0, yearly: 0 },
@@ -201,7 +201,7 @@ const PricingPlans = () => {
       {/* ================================================================== */}
       <div className="value-banner">
         <h2>🎬 The All-in-One Creator Platform</h2>
-        <p>Replace 15+ tools with one platform. Video editing, streaming, gaming, music distribution, AI mastering, and more.</p>
+        <p>Replace 15+ tools with one platform. Video editing, streaming, gaming, music distribution, AI mastering, recording studio, and more.</p>
         <div className="value-stats">
           <div className="stat">
             <span className="stat-value">90%</span>
@@ -223,7 +223,7 @@ const PricingPlans = () => {
       {/* ================================================================== */}
       <div className="pricing-section">
         <h2 className="section-title">🎨 Creator Plans</h2>
-        <p className="section-subtitle">Full access to video editing, streaming, gaming, AI tools, and monetization</p>
+        <p className="section-subtitle">Full access to video editing, streaming, gaming, AI tools, recording studio, and monetization</p>
 
         <div className="pricing-cards four-tier">
 
@@ -262,6 +262,12 @@ const PricingPlans = () => {
                 <span>Small watermark on exports</span>
               </li>
 
+              {/* Recording Studio */}
+              <li className="feature included">
+                <span className="icon">🎚️</span>
+                <span><strong>Recording Studio</strong> (4 tracks)</span>
+              </li>
+
               {/* Clips */}
               <li className="feature included">
                 <span className="icon">📱</span>
@@ -297,6 +303,10 @@ const PricingPlans = () => {
               </li>
               <li className="feature excluded">
                 <span className="icon">✗</span>
+                <span>AI Mix Assistant</span>
+              </li>
+              <li className="feature excluded">
+                <span className="icon">✗</span>
                 <span>AI Radio DJ</span>
               </li>
 
@@ -321,7 +331,7 @@ const PricingPlans = () => {
           </div>
 
           {/* ============================================================ */}
-          {/* STARTER TIER - $10.99 */}
+          {/* STARTER TIER - $12.99 */}
           {/* ============================================================ */}
           <div className={`pricing-card starter ${isCurrentPlan('starter') ? 'current' : ''}`}>
             {isCurrentPlan('starter') && <div className="current-badge">Current Plan</div>}
@@ -360,6 +370,16 @@ const PricingPlans = () => {
               <li className="feature included">
                 <span className="icon">✓</span>
                 <span>25GB storage</span>
+              </li>
+
+              {/* Recording Studio + AI Mix */}
+              <li className="feature included highlight">
+                <span className="icon">🎚️</span>
+                <span><strong>Recording Studio</strong> (8 tracks)</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">🤖</span>
+                <span><strong>AI Mix Assistant</strong></span>
               </li>
 
               {/* Clips */}
@@ -412,16 +432,6 @@ const PricingPlans = () => {
                 <span><strong>AI Mastering</strong> (3/month)</span>
               </li>
 
-              {/* ADDED: AI Mix Assistant + Recording Studio */}
-              <li className="feature included">
-                <span className="icon">🤖</span>
-                <span><strong>AI Mix Assistant</strong></span>
-              </li>
-              <li className="feature included">
-                <span className="icon">🎚️</span>
-                <span><strong>Recording Studio</strong> (8 tracks)</span>
-              </li>
-
               <li className="feature excluded">
                 <span className="icon">✗</span>
                 <span>AI Radio DJ</span>
@@ -442,7 +452,7 @@ const PricingPlans = () => {
           </div>
 
           {/* ============================================================ */}
-          {/* CREATOR TIER - $20.99 (MOST POPULAR) */}
+          {/* CREATOR TIER - $22.99 (MOST POPULAR) */}
           {/* ============================================================ */}
           <div className={`pricing-card creator popular ${isCurrentPlan('creator') ? 'current' : ''}`}>
             <div className="popular-badge">🔥 Most Popular</div>
@@ -482,6 +492,16 @@ const PricingPlans = () => {
               <li className="feature included">
                 <span className="icon">✓</span>
                 <span>Collaborate with 8 people</span>
+              </li>
+
+              {/* Recording Studio + AI Mix */}
+              <li className="feature included highlight">
+                <span className="icon">🎚️</span>
+                <span><strong>Recording Studio</strong> (16 tracks)</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">🤖</span>
+                <span><strong>AI Mix Assistant</strong></span>
               </li>
 
               {/* Clips */}
@@ -542,16 +562,6 @@ const PricingPlans = () => {
                 <span><strong>AI Radio DJ</strong> (7 preset personas)</span>
               </li>
 
-              {/* ADDED: AI Mix Assistant + Recording Studio */}
-              <li className="feature included">
-                <span className="icon">🤖</span>
-                <span><strong>AI Mix Assistant</strong></span>
-              </li>
-              <li className="feature included">
-                <span className="icon">🎚️</span>
-                <span><strong>Recording Studio</strong> (16 tracks)</span>
-              </li>
-
               <li className="feature excluded">
                 <span className="icon">✗</span>
                 <span>AI Voice Cloning</span>
@@ -572,7 +582,7 @@ const PricingPlans = () => {
           </div>
 
           {/* ============================================================ */}
-          {/* PRO TIER - $29.99 */}
+          {/* PRO TIER - $31.99 */}
           {/* ============================================================ */}
           <div className={`pricing-card pro ${isCurrentPlan('pro') ? 'current' : ''}`}>
             {isCurrentPlan('pro') && <div className="current-badge">Current Plan</div>}
@@ -611,6 +621,16 @@ const PricingPlans = () => {
               <li className="feature included">
                 <span className="icon">✓</span>
                 <span>Team collaboration (unlimited)</span>
+              </li>
+
+              {/* Recording Studio + AI Mix */}
+              <li className="feature included highlight">
+                <span className="icon">🎚️</span>
+                <span><strong>Recording Studio</strong> (32 tracks)</span>
+              </li>
+              <li className="feature included special">
+                <span className="icon">🤖</span>
+                <span><strong>AI Mix Assistant</strong> (browser + server deep analysis)</span>
               </li>
 
               {/* Streaming */}
@@ -663,16 +683,6 @@ const PricingPlans = () => {
               <li className="feature included special">
                 <span className="icon">🎙️</span>
                 <span><strong>AI Voice Cloning</strong> — your voice as DJ</span>
-              </li>
-
-              {/* ADDED: AI Mix Assistant + Recording Studio */}
-              <li className="feature included">
-                <span className="icon">🤖</span>
-                <span><strong>AI Mix Assistant</strong> (server-side deep analysis)</span>
-              </li>
-              <li className="feature included">
-                <span className="icon">🎚️</span>
-                <span><strong>Recording Studio</strong> (32 tracks)</span>
               </li>
 
               {/* Support */}
@@ -970,6 +980,32 @@ const PricingPlans = () => {
                 <td>Unlimited</td>
               </tr>
 
+              {/* Recording Studio */}
+              <tr className="category-header">
+                <td colSpan="5">🎚️ Recording Studio</td>
+              </tr>
+              <tr>
+                <td>Recording Studio Tracks</td>
+                <td>4</td>
+                <td>8</td>
+                <td className="highlight">16</td>
+                <td>32</td>
+              </tr>
+              <tr>
+                <td>Effects Chain (EQ, Comp, Reverb, etc.)</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+                <td>✓</td>
+              </tr>
+              <tr>
+                <td>Arranger View</td>
+                <td>✓</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+                <td>✓</td>
+              </tr>
+
               {/* Clips */}
               <tr className="category-header">
                 <td colSpan="5">📱 Clips</td>
@@ -1081,6 +1117,13 @@ const PricingPlans = () => {
                 <td>✓</td>
               </tr>
               <tr>
+                <td>AI Mix Assistant</td>
+                <td>✗</td>
+                <td>✓ (Browser)</td>
+                <td className="highlight">✓ (Browser)</td>
+                <td>✓ (Browser + Server)</td>
+              </tr>
+              <tr>
                 <td>AI Radio DJ</td>
                 <td>✗</td>
                 <td>✗</td>
@@ -1093,22 +1136,6 @@ const PricingPlans = () => {
                 <td>✗</td>
                 <td className="highlight">✗</td>
                 <td>✓</td>
-              </tr>
-
-              {/* ADDED: AI Mix Assistant + Studio Tracks */}
-              <tr>
-                <td>AI Mix Assistant</td>
-                <td>✗</td>
-                <td>✓ (Browser)</td>
-                <td className="highlight">✓ (Browser)</td>
-                <td>✓ (Browser + Server)</td>
-              </tr>
-              <tr>
-                <td>Recording Studio Tracks</td>
-                <td>4</td>
-                <td>8</td>
-                <td className="highlight">16</td>
-                <td>32</td>
               </tr>
 
               {/* Gaming */}
@@ -1300,6 +1327,16 @@ const PricingPlans = () => {
           <div className="faq-item">
             <h3>What is AI Radio DJ?</h3>
             <p>AI Radio DJ generates realistic voice breaks for your radio stations using AI personas. Pro users can clone their own voice to create a custom DJ that sounds like them.</p>
+          </div>
+
+          <div className="faq-item">
+            <h3>What is the AI Mix Assistant?</h3>
+            <p>The AI Mix Assistant analyzes every track in your Recording Studio session — volume levels, panning, EQ conflicts, compression needs, and clipping risk. It gives per-track suggestions you can apply with one click. Pro users get deeper server-side analysis powered by librosa.</p>
+          </div>
+
+          <div className="faq-item">
+            <h3>What is the Recording Studio?</h3>
+            <p>A full multi-track DAW (Digital Audio Workstation) in your browser. Record audio, import files, add effects (EQ, compression, reverb, delay, distortion, filters), arrange regions on a timeline, and bounce to a final mix. Track limits scale with your plan: 4 (Free), 8 (Starter), 16 (Creator), 32 (Pro).</p>
           </div>
         </div>
       </div>

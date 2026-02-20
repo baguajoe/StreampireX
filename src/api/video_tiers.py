@@ -1,7 +1,7 @@
 # =============================================================================
 # VIDEO_TIERS.py - 4-Tier Configuration (Free, Starter, Creator, Pro)
 # =============================================================================
-# Tiers: Free → Starter ($10.99) → Creator ($20.99) → Pro ($29.99)
+# Tiers: Free → Starter ($12.99) → Creator ($22.99) → Pro ($31.99)
 # Matches seed_pricing_plans.py and PricingPlans.js
 # =============================================================================
 
