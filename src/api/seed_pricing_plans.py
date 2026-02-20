@@ -1,5 +1,5 @@
 # =============================================================================
-# seed_pricing_plans.py - Complete 4-Tier Seeder (All Fields)
+# seed_pricing_plans.py - Complete 4-Tier Seeder (All Fields + AI Features)
 # =============================================================================
 # Run: python seed_pricing_plans.py
 # =============================================================================
@@ -70,6 +70,13 @@ with app.app_context():
             max_podcast_episodes=0,
             max_radio_stations=0,
             includes_auto_dj=False,
+            
+            # AI Features
+            includes_ai_mastering=False,
+            ai_mastering_limit=0,
+            includes_ai_radio_dj=False,
+            includes_ai_voice_clone=False,
+            ai_dj_personas=0,
             
             # Gaming
             includes_gaming_features=True,
@@ -163,6 +170,13 @@ with app.app_context():
             max_radio_stations=1,
             includes_auto_dj=False,
             
+            # AI Features
+            includes_ai_mastering=True,
+            ai_mastering_limit=3,              # 3 masters per month
+            includes_ai_radio_dj=False,
+            includes_ai_voice_clone=False,
+            ai_dj_personas=0,
+            
             # Gaming
             includes_gaming_features=True,
             includes_gaming_community=True,
@@ -254,6 +268,13 @@ with app.app_context():
             max_podcast_episodes=-1,  # Unlimited
             max_radio_stations=3,
             includes_auto_dj=True,
+            
+            # AI Features
+            includes_ai_mastering=True,
+            ai_mastering_limit=15,             # 15 masters per month
+            includes_ai_radio_dj=True,
+            includes_ai_voice_clone=False,
+            ai_dj_personas=7,                  # All 7 preset personas
             
             # Gaming
             includes_gaming_features=True,
@@ -347,6 +368,13 @@ with app.app_context():
             max_radio_stations=-1,  # Unlimited
             includes_auto_dj=True,
             
+            # AI Features
+            includes_ai_mastering=True,
+            ai_mastering_limit=-1,             # Unlimited masters
+            includes_ai_radio_dj=True,
+            includes_ai_voice_clone=True,      # Clone your own voice!
+            ai_dj_personas=-1,                 # All personas + custom
+            
             # Gaming
             includes_gaming_features=True,
             includes_gaming_community=True,
@@ -430,3 +458,19 @@ with app.app_context():
         gaming = "✓" if plan.includes_game_streaming else "✗"
         music = "✓ (90%)" if plan.includes_music_distribution else "✗"
         print(f"  {plan.name:<10} | {stream:^8} | {podcast:^8} | {radio:^8} | {gaming:^10} | {music:^10}")
+    
+    print("\n🤖 AI Features Matrix:\n")
+    print(f"  {'Tier':<10} | {'AI Master':<12} | {'Limit':<10} | {'AI DJ':<8} | {'Voice Clone':<12} | {'Personas':<10}")
+    print(f"  {'-'*10} | {'-'*12} | {'-'*10} | {'-'*8} | {'-'*12} | {'-'*10}")
+    
+    for plan in PricingPlan.query.order_by(PricingPlan.sort_order).all():
+        ai_master = "✓" if plan.includes_ai_mastering else "✗"
+        limit = "Unlimited" if plan.ai_mastering_limit == -1 else f"{plan.ai_mastering_limit}/mo" if plan.ai_mastering_limit > 0 else "—"
+        ai_dj = "✓" if plan.includes_ai_radio_dj else "✗"
+        clone = "✓" if plan.includes_ai_voice_clone else "✗"
+        personas = "All+Custom" if plan.ai_dj_personas == -1 else f"{plan.ai_dj_personas}" if plan.ai_dj_personas > 0 else "—"
+        print(f"  {plan.name:<10} | {ai_master:^12} | {limit:^10} | {ai_dj:^8} | {clone:^12} | {personas:^10}")
+    
+    print("\n" + "=" * 70)
+    print("🚀 Ready to launch!")
+    print("=" * 70)

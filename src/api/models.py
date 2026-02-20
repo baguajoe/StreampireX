@@ -1617,6 +1617,15 @@ class PodcastHost(db.Model):
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import JSON
 
+# =============================================================================
+# PricingPlan Model - Complete with AI Features
+# =============================================================================
+# Tiers: Free → Starter ($9.99) → Creator ($19.99) → Pro ($29.99)
+# AI Features: AI Mastering, AI Radio DJ, AI Voice Clone
+# =============================================================================
+# REPLACE your existing PricingPlan class in models.py with this entire block
+# =============================================================================
+
 class PricingPlan(db.Model):
     __tablename__ = 'pricing_plans'
     __table_args__ = {'extend_existing': True}
@@ -1704,6 +1713,15 @@ class PricingPlan(db.Model):
     includes_auto_dj = db.Column(db.Boolean, default=False)
     
     # ==========================================================================
+    # AI FEATURES
+    # ==========================================================================
+    includes_ai_mastering = db.Column(db.Boolean, default=False)
+    ai_mastering_limit = db.Column(db.Integer, default=0)         # Monthly limit (-1 = unlimited)
+    includes_ai_radio_dj = db.Column(db.Boolean, default=False)
+    includes_ai_voice_clone = db.Column(db.Boolean, default=False)
+    ai_dj_personas = db.Column(db.Integer, default=0)             # How many personas available (-1 = all)
+    
+    # ==========================================================================
     # GAMING FEATURES
     # ==========================================================================
     includes_gaming_features = db.Column(db.Boolean, default=False)
@@ -1750,11 +1768,6 @@ class PricingPlan(db.Model):
     # ==========================================================================
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # ==========================================================================
-    # RELATIONSHIPS
-    # ==========================================================================
-    
     
     # ==========================================================================
     # METHODS
@@ -1804,6 +1817,22 @@ class PricingPlan(db.Model):
         """Check if a feature is unlimited (-1)"""
         value = getattr(self, feature_name, 0)
         return value == -1
+    
+    def can_use_ai_mastering(self):
+        """Check if plan includes AI mastering"""
+        return self.includes_ai_mastering
+    
+    def can_use_ai_radio_dj(self):
+        """Check if plan includes AI Radio DJ"""
+        return self.includes_ai_radio_dj
+    
+    def can_use_voice_clone(self):
+        """Check if plan includes AI voice cloning"""
+        return self.includes_ai_voice_clone
+    
+    def get_mastering_limit(self):
+        """Get monthly mastering limit. -1 = unlimited, 0 = none"""
+        return self.ai_mastering_limit
     
     def to_dict(self):
         """Alias for serialize"""
@@ -1877,6 +1906,13 @@ class PricingPlan(db.Model):
             "max_radio_stations": self.max_radio_stations,
             "includes_auto_dj": self.includes_auto_dj,
             
+            # AI Features
+            "includes_ai_mastering": self.includes_ai_mastering,
+            "ai_mastering_limit": self.ai_mastering_limit,
+            "includes_ai_radio_dj": self.includes_ai_radio_dj,
+            "includes_ai_voice_clone": self.includes_ai_voice_clone,
+            "ai_dj_personas": self.ai_dj_personas,
+            
             # Gaming
             "includes_gaming_features": self.includes_gaming_features,
             "includes_gaming_community": self.includes_gaming_community,
@@ -1913,6 +1949,262 @@ class PricingPlan(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
+
+
+# =============================================================================
+# MasteringJob Model — Tracks AI mastering usage for tier limits
+# =============================================================================
+# Tracks every mastering request so we can:
+#   1. Enforce monthly limits per tier (Starter=3, Creator=15, Pro=unlimited)
+#   2. Show creators their mastering history
+#   3. Let them re-download past masters
+#   4. Show investors "X tracks mastered this month"
+# =============================================================================
+
+class MasteringJob(db.Model):
+    __tablename__ = 'mastering_jobs'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=True)
+
+    # What was done
+    preset_used = db.Column(db.String(50), nullable=False)           # "trap", "boom_bap", etc.
+    was_auto_detected = db.Column(db.Boolean, default=False)         # True = AI picked the preset
+    confidence = db.Column(db.Float, nullable=True)                  # Auto-detect confidence 0-100
+    reference_profile = db.Column(db.String(50), nullable=True)      # If reference mastering was used
+
+    # Results
+    original_url = db.Column(db.String(500), nullable=True)          # Original upload URL
+    mastered_url = db.Column(db.String(500), nullable=True)          # Mastered output URL
+    analysis = db.Column(db.JSON, nullable=True)                     # Full analysis data (BPM, key, etc.)
+
+    # Status
+    status = db.Column(db.String(20), default='completed')           # pending, processing, completed, failed
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', backref=db.backref('mastering_jobs', lazy=True))
+
+    def __repr__(self):
+        return f'<MasteringJob {self.id} user={self.user_id} preset={self.preset_used}>'
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "audio_id": self.audio_id,
+            "preset_used": self.preset_used,
+            "was_auto_detected": self.was_auto_detected,
+            "confidence": self.confidence,
+            "reference_profile": self.reference_profile,
+            "original_url": self.original_url,
+            "mastered_url": self.mastered_url,
+            "analysis": self.analysis,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+# =============================================================================
+# HELPER: Check if user has mastering credits left this month
+# =============================================================================
+# Usage in any route:
+#
+#   from src.api.models import check_mastering_limit
+#   allowed, remaining, limit = check_mastering_limit(user_id)
+#   if not allowed:
+#       return jsonify({
+#           "error": "Monthly mastering limit reached",
+#           "limit": limit,
+#           "used": limit - remaining if limit > 0 else 0,
+#           "upgrade_url": "/pricing"
+#       }), 403
+# =============================================================================
+
+def check_mastering_limit(user_id):
+    """
+    Check if a user can master another track this month.
+    
+    Returns: (allowed: bool, remaining: int, limit: int)
+        - allowed: True if they can master, False if limit reached
+        - remaining: How many masters left this month (-1 = unlimited)
+        - limit: Their plan's monthly limit
+    """
+    user = User.query.get(user_id)
+    if not user:
+        return False, 0, 0
+
+    # Get user's plan
+    plan = None
+    
+    # Try to get plan from user's subscription
+    if hasattr(user, 'subscription') and user.subscription:
+        plan_name = None
+        if hasattr(user.subscription, 'plan_id'):
+            plan_name = user.subscription.plan_id
+        elif hasattr(user.subscription, 'plan_name'):
+            plan_name = user.subscription.plan_name
+        elif hasattr(user.subscription, 'tier'):
+            plan_name = user.subscription.tier
+            
+        if plan_name:
+            plan = PricingPlan.query.filter_by(name=plan_name).first()
+    
+    # Fallback: check user.plan_name or user.tier directly
+    if not plan and hasattr(user, 'plan_name') and user.plan_name:
+        plan = PricingPlan.query.filter_by(name=user.plan_name).first()
+    
+    if not plan and hasattr(user, 'tier') and user.tier:
+        plan = PricingPlan.query.filter_by(name=user.tier).first()
+    
+    # Default to free tier if no plan found
+    if not plan:
+        plan = PricingPlan.query.filter_by(name='Free').first()
+
+    # Get mastering limit from plan
+    limit = plan.ai_mastering_limit if plan and hasattr(plan, 'ai_mastering_limit') else 0
+    
+    # Free tier — no mastering
+    if limit == 0:
+        return False, 0, 0
+    
+    # Pro tier — unlimited
+    if limit == -1:
+        return True, -1, -1
+
+    # Count masters this month
+    first_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    used_this_month = MasteringJob.query.filter(
+        MasteringJob.user_id == user_id,
+        MasteringJob.created_at >= first_of_month,
+        MasteringJob.status == 'completed',
+    ).count()
+
+    remaining = limit - used_this_month
+    return remaining > 0, remaining, limit
+
+
+# =============================================================================
+# HELPER: Check AI Radio DJ access
+# =============================================================================
+
+def check_ai_dj_access(user_id):
+    """
+    Check if a user can use AI Radio DJ features.
+    
+    Returns: (allowed: bool, can_clone_voice: bool, persona_limit: int)
+    """
+    user = User.query.get(user_id)
+    if not user:
+        return False, False, 0
+
+    plan = None
+    
+    if hasattr(user, 'subscription') and user.subscription:
+        plan_name = None
+        if hasattr(user.subscription, 'plan_id'):
+            plan_name = user.subscription.plan_id
+        elif hasattr(user.subscription, 'plan_name'):
+            plan_name = user.subscription.plan_name
+        elif hasattr(user.subscription, 'tier'):
+            plan_name = user.subscription.tier
+        if plan_name:
+            plan = PricingPlan.query.filter_by(name=plan_name).first()
+    
+    if not plan and hasattr(user, 'plan_name') and user.plan_name:
+        plan = PricingPlan.query.filter_by(name=user.plan_name).first()
+    
+    if not plan and hasattr(user, 'tier') and user.tier:
+        plan = PricingPlan.query.filter_by(name=user.tier).first()
+    
+    if not plan:
+        plan = PricingPlan.query.filter_by(name='Free').first()
+
+    if not plan:
+        return False, False, 0
+
+    allowed = plan.includes_ai_radio_dj if hasattr(plan, 'includes_ai_radio_dj') else False
+    can_clone = plan.includes_ai_voice_clone if hasattr(plan, 'includes_ai_voice_clone') else False
+    personas = plan.ai_dj_personas if hasattr(plan, 'ai_dj_personas') else 0
+
+    return allowed, can_clone, personas
+
+
+# =============================================================================
+# MIGRATION SQL — Run on Railway PostgreSQL
+# =============================================================================
+# Copy and run this SQL in your Railway database console
+# =============================================================================
+
+AI_MIGRATION_SQL = """
+-- ============================================================
+-- AI Features: Add columns to pricing_plans
+-- ============================================================
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS includes_ai_mastering BOOLEAN DEFAULT FALSE;
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS ai_mastering_limit INTEGER DEFAULT 0;
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS includes_ai_radio_dj BOOLEAN DEFAULT FALSE;
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS includes_ai_voice_clone BOOLEAN DEFAULT FALSE;
+ALTER TABLE pricing_plans ADD COLUMN IF NOT EXISTS ai_dj_personas INTEGER DEFAULT 0;
+
+-- ============================================================
+-- Set AI values per tier
+-- ============================================================
+UPDATE pricing_plans SET
+    includes_ai_mastering = FALSE,
+    ai_mastering_limit = 0,
+    includes_ai_radio_dj = FALSE,
+    includes_ai_voice_clone = FALSE,
+    ai_dj_personas = 0
+WHERE name = 'Free';
+
+UPDATE pricing_plans SET
+    includes_ai_mastering = TRUE,
+    ai_mastering_limit = 3,
+    includes_ai_radio_dj = FALSE,
+    includes_ai_voice_clone = FALSE,
+    ai_dj_personas = 0
+WHERE name = 'Starter';
+
+UPDATE pricing_plans SET
+    includes_ai_mastering = TRUE,
+    ai_mastering_limit = 15,
+    includes_ai_radio_dj = TRUE,
+    includes_ai_voice_clone = FALSE,
+    ai_dj_personas = 7
+WHERE name = 'Creator';
+
+UPDATE pricing_plans SET
+    includes_ai_mastering = TRUE,
+    ai_mastering_limit = -1,
+    includes_ai_radio_dj = TRUE,
+    includes_ai_voice_clone = TRUE,
+    ai_dj_personas = -1
+WHERE name = 'Pro';
+
+-- ============================================================
+-- MasteringJob table
+-- ============================================================
+CREATE TABLE IF NOT EXISTS mastering_jobs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES "user"(id),
+    audio_id INTEGER REFERENCES audio(id),
+    preset_used VARCHAR(50) NOT NULL,
+    was_auto_detected BOOLEAN DEFAULT FALSE,
+    confidence FLOAT,
+    reference_profile VARCHAR(50),
+    original_url VARCHAR(500),
+    mastered_url VARCHAR(500),
+    analysis JSON,
+    status VARCHAR(20) DEFAULT 'completed',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_mastering_user_date 
+ON mastering_jobs(user_id, created_at);
+"""
 
 class AudioEffects(db.Model):
     __table_args__ = {'extend_existing': True}
@@ -5857,6 +6149,141 @@ class StoryHighlight(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
+
+# =============================================================================
+# AI Mastering Job Model — Add to models.py
+# =============================================================================
+# Tracks every mastering request so we can:
+#   1. Enforce monthly limits per tier (Starter=3, Creator=15, Pro=unlimited)
+#   2. Show creators their mastering history
+#   3. Let them re-download past masters
+#
+# Add this class anywhere in models.py after the Audio model
+# =============================================================================
+
+class MasteringJob(db.Model):
+    __tablename__ = 'mastering_jobs'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=True)
+
+    # What was done
+    preset_used = db.Column(db.String(50), nullable=False)           # "trap", "boom_bap", etc.
+    was_auto_detected = db.Column(db.Boolean, default=False)         # True = AI picked the preset
+    confidence = db.Column(db.Float, nullable=True)                  # Auto-detect confidence 0-100
+    reference_profile = db.Column(db.String(50), nullable=True)      # If reference mastering was used
+
+    # Results
+    original_url = db.Column(db.String(500), nullable=True)          # Original upload URL
+    mastered_url = db.Column(db.String(500), nullable=True)          # Mastered output URL
+    analysis = db.Column(db.JSON, nullable=True)                     # Full analysis data (BPM, key, etc.)
+
+    # Status
+    status = db.Column(db.String(20), default='completed')           # pending, processing, completed, failed
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', backref=db.backref('mastering_jobs', lazy=True))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "audio_id": self.audio_id,
+            "preset_used": self.preset_used,
+            "was_auto_detected": self.was_auto_detected,
+            "confidence": self.confidence,
+            "reference_profile": self.reference_profile,
+            "original_url": self.original_url,
+            "mastered_url": self.mastered_url,
+            "analysis": self.analysis,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+# =============================================================================
+# HELPER: Check if user has mastering credits left this month
+# =============================================================================
+# Call this before processing a mastering request:
+#
+#   allowed, remaining = check_mastering_limit(user_id)
+#   if not allowed:
+#       return jsonify({"error": "Monthly mastering limit reached. Upgrade your plan!"}), 403
+# =============================================================================
+
+def check_mastering_limit(user_id):
+    """
+    Check if a user can master another track this month.
+    
+    Returns: (allowed: bool, remaining: int)
+        - allowed: True if they can master, False if limit reached
+        - remaining: How many masters left this month (-1 = unlimited)
+    """
+    from datetime import datetime
+    
+    user = User.query.get(user_id)
+    if not user:
+        return False, 0
+
+    # Get user's plan
+    plan = None
+    if hasattr(user, 'subscription') and user.subscription:
+        plan_name = user.subscription.plan_id if hasattr(user.subscription, 'plan_id') else None
+        if plan_name:
+            plan = PricingPlan.query.filter_by(name=plan_name).first()
+    
+    # Default to free tier if no plan found
+    if not plan:
+        plan = PricingPlan.query.filter_by(name='Free').first()
+
+    # Check if plan includes AI mastering
+    limit = getattr(plan, 'ai_mastering_limit', 0) if plan else 0
+    
+    if limit == 0:
+        return False, 0                     # Free tier — no mastering
+    
+    if limit == -1:
+        return True, -1                     # Pro tier — unlimited
+
+    # Count masters this month
+    first_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    used_this_month = MasteringJob.query.filter(
+        MasteringJob.user_id == user_id,
+        MasteringJob.created_at >= first_of_month,
+        MasteringJob.status == 'completed',
+    ).count()
+
+    remaining = limit - used_this_month
+    return remaining > 0, remaining
+
+
+# =============================================================================
+# MIGRATION SQL — Run on your Railway database
+# =============================================================================
+
+MASTERING_JOB_SQL = """
+CREATE TABLE IF NOT EXISTS mastering_jobs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES "user"(id),
+    audio_id INTEGER REFERENCES audio(id),
+    preset_used VARCHAR(50) NOT NULL,
+    was_auto_detected BOOLEAN DEFAULT FALSE,
+    confidence FLOAT,
+    reference_profile VARCHAR(50),
+    original_url VARCHAR(500),
+    mastered_url VARCHAR(500),
+    analysis JSON,
+    status VARCHAR(20) DEFAULT 'completed',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_mastering_user_date 
+ON mastering_jobs(user_id, created_at);
+"""
 
 
 # =============================================================================

@@ -1,8 +1,9 @@
 // =============================================================================
-// PricingPlans.js - Complete 4-Tier + Distribution Plans
+// PricingPlans.js - Complete 4-Tier + Distribution Plans + AI Features
 // =============================================================================
 // Tiers: Free → Starter ($9.99) → Creator ($19.99) → Pro ($29.99)
 // Includes: Gaming Features, Artist Distribution, Label Distribution
+// AI Features: AI Mastering, AI Radio DJ, Voice Cloning
 // =============================================================================
 
 import React, { useState, useEffect, useContext } from 'react';
@@ -208,7 +209,7 @@ const PricingPlans = () => {
       {/* ================================================================== */}
       <div className="value-banner">
         <h2>🎬 The All-in-One Creator Platform</h2>
-        <p>Replace 15+ tools with one platform. Video editing, streaming, gaming, music distribution, and more.</p>
+        <p>Replace 15+ tools with one platform. Video editing, streaming, gaming, music distribution, AI mastering, and more.</p>
         <div className="value-stats">
           <div className="stat">
             <span className="stat-value">90%</span>
@@ -230,7 +231,7 @@ const PricingPlans = () => {
       {/* ================================================================== */}
       <div className="pricing-section">
         <h2 className="section-title">🎨 Creator Plans</h2>
-        <p className="section-subtitle">Full access to video editing, streaming, gaming, and monetization</p>
+        <p className="section-subtitle">Full access to video editing, streaming, gaming, AI tools, and monetization</p>
         
         <div className="pricing-cards four-tier">
           
@@ -295,6 +296,16 @@ const PricingPlans = () => {
               <li className="feature included">
                 <span className="icon">💰</span>
                 <span>Receive tips (keep 90%)</span>
+              </li>
+              
+              {/* AI Features - Free */}
+              <li className="feature excluded">
+                <span className="icon">✗</span>
+                <span>AI Mastering</span>
+              </li>
+              <li className="feature excluded">
+                <span className="icon">✗</span>
+                <span>AI Radio DJ</span>
               </li>
               
               {/* Excluded */}
@@ -402,6 +413,16 @@ const PricingPlans = () => {
                 <span className="icon">🎵</span>
                 <span>Premium music library</span>
               </li>
+
+              {/* AI Features - Starter */}
+              <li className="feature included highlight">
+                <span className="icon">🤖</span>
+                <span><strong>AI Mastering</strong> (3/month)</span>
+              </li>
+              <li className="feature excluded">
+                <span className="icon">✗</span>
+                <span>AI Radio DJ</span>
+              </li>
             </ul>
 
             <button 
@@ -507,6 +528,20 @@ const PricingPlans = () => {
                 <span className="icon">📊</span>
                 <span>Advanced Analytics Dashboard</span>
               </li>
+
+              {/* AI Features - Creator */}
+              <li className="feature included highlight">
+                <span className="icon">🤖</span>
+                <span><strong>AI Mastering</strong> (15/month)</span>
+              </li>
+              <li className="feature included highlight">
+                <span className="icon">📻</span>
+                <span><strong>AI Radio DJ</strong> (7 preset personas)</span>
+              </li>
+              <li className="feature excluded">
+                <span className="icon">✗</span>
+                <span>AI Voice Cloning</span>
+              </li>
             </ul>
 
             <button 
@@ -600,6 +635,20 @@ const PricingPlans = () => {
               <li className="feature included">
                 <span className="icon">💰</span>
                 <span>Performance royalty collection</span>
+              </li>
+
+              {/* AI Features - Pro */}
+              <li className="feature included special">
+                <span className="icon">🤖</span>
+                <span><strong>Unlimited AI Mastering</strong></span>
+              </li>
+              <li className="feature included special">
+                <span className="icon">📻</span>
+                <span><strong>AI Radio DJ</strong> (unlimited personas)</span>
+              </li>
+              <li className="feature included special">
+                <span className="icon">🎙️</span>
+                <span><strong>AI Voice Cloning</strong> — your voice as DJ</span>
               </li>
               
               {/* Support */}
@@ -982,6 +1031,46 @@ const PricingPlans = () => {
                 <td>✓</td>
               </tr>
 
+              {/* AI Features */}
+              <tr className="category-header">
+                <td colSpan="5">🤖 AI Features</td>
+              </tr>
+              <tr>
+                <td>AI Mastering</td>
+                <td>✗</td>
+                <td>3/month</td>
+                <td className="highlight">15/month</td>
+                <td>Unlimited</td>
+              </tr>
+              <tr>
+                <td>Smart Auto-Detect</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+                <td>✓</td>
+              </tr>
+              <tr>
+                <td>50 Genre Profiles</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+                <td>✓</td>
+              </tr>
+              <tr>
+                <td>AI Radio DJ</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td className="highlight">7 personas</td>
+                <td>Unlimited</td>
+              </tr>
+              <tr>
+                <td>AI Voice Cloning</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td className="highlight">✗</td>
+                <td>✓</td>
+              </tr>
+
               {/* Gaming */}
               <tr className="category-header">
                 <td colSpan="5">🎮 Gaming Features</td>
@@ -1161,6 +1250,16 @@ const PricingPlans = () => {
           <div className="faq-item">
             <h3>Is there a free trial?</h3>
             <p>Starter has a 7-day trial, Creator has 14 days, and Pro has a full 30-day trial. Cancel anytime during the trial.</p>
+          </div>
+
+          <div className="faq-item">
+            <h3>What is AI Mastering?</h3>
+            <p>AI Mastering uses professional DSP signal chains, adaptive reference matching, and smart auto-detection to master your tracks to studio quality. It analyzes BPM, key, mood, and frequency balance to pick the perfect mastering preset.</p>
+          </div>
+
+          <div className="faq-item">
+            <h3>What is AI Radio DJ?</h3>
+            <p>AI Radio DJ generates realistic voice breaks for your radio stations using AI personas. Pro users can clone their own voice to create a custom DJ that sounds like them.</p>
           </div>
         </div>
       </div>
