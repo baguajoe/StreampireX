@@ -1,7 +1,9 @@
 # =============================================================================
 # VIDEO_TIER_ROUTES.py - Flask Blueprint for Video Tier Features
 # =============================================================================
-# Uses 3 tiers: free, basic, premium
+# Uses 4 tiers: free, starter, creator, pro
+# Prices: Free $0 | Starter $12.99 | Creator $22.99 | Pro $31.99
+# Updated Feb 2026 — 4-tier system + AI features + Recording Studio
 # =============================================================================
 
 from flask import Blueprint, request, jsonify
@@ -40,7 +42,9 @@ from .models import Subscription, VideoClip
 # =============================================================================
 
 def get_user_tier(user_id):
-    """Get user's subscription tier from database"""
+    """Get user's subscription tier from database.
+    Returns: 'free', 'starter', 'creator', or 'pro'
+    """
     # Check if user has an active subscription
     subscription = Subscription.query.filter_by(
         user_id=user_id,
@@ -48,7 +52,7 @@ def get_user_tier(user_id):
     ).first()
     
     if subscription and subscription.plan:
-        # Return the plan name lowercase (free, basic, premium)
+        # Return the plan name lowercase (free, starter, creator, pro)
         return subscription.plan.name.lower()
     
     # Default to free tier
@@ -143,10 +147,17 @@ def check_4k_export():
     user_id = get_jwt_identity()
     user_tier = get_user_tier(user_id)
     
+    # 4K available on Creator and Pro
+    upgrade_tier = None
+    if user_tier == 'free':
+        upgrade_tier = 'creator'
+    elif user_tier == 'starter':
+        upgrade_tier = 'creator'
+    
     return jsonify({
         'can_export_4k': can_export_4k(user_tier),
         'current_max': get_video_editor_tier(user_tier).get('max_export_quality', '1080p'),
-        'upgrade_tier': 'basic' if user_tier == 'free' else None,
+        'upgrade_tier': upgrade_tier,
     }), 200
 
 
@@ -161,7 +172,7 @@ def check_watermark():
         'has_watermark': has_watermark(user_tier),
         'watermark_position': 'bottom-right' if has_watermark(user_tier) else None,
         'watermark_size': 'small' if has_watermark(user_tier) else None,
-        'upgrade_tier': 'basic' if has_watermark(user_tier) else None,
+        'upgrade_tier': 'starter' if has_watermark(user_tier) else None,
     }), 200
 
 
@@ -179,7 +190,7 @@ def check_can_stream():
         'max_duration_hours': tier.get('max_duration_hours'),
         'max_bitrate_kbps': tier.get('max_bitrate_kbps'),
         'simulcast': tier.get('simulcast', False),
-        'upgrade_tier': 'basic' if not can_stream(user_tier) else None,
+        'upgrade_tier': 'starter' if not can_stream(user_tier) else None,
     }), 200
 
 
@@ -191,10 +202,15 @@ def check_can_collaborate():
     user_tier = get_user_tier(user_id)
     tier = get_video_editor_tier(user_tier)
     
+    # Collaboration available on Creator and Pro
+    upgrade_tier = None
+    if not can_collaborate(user_tier):
+        upgrade_tier = 'creator'
+    
     return jsonify({
         'can_collaborate': can_collaborate(user_tier),
         'max_collaborators': tier.get('max_collaborators', 0),
-        'upgrade_tier': 'premium' if not can_collaborate(user_tier) else None,
+        'upgrade_tier': upgrade_tier,
     }), 200
 
 
@@ -270,7 +286,7 @@ def validate_stream_start_request():
         return jsonify({
             'allowed': False,
             'error': error,
-            'upgrade_tier': 'basic',
+            'upgrade_tier': 'starter',
         }), 403
 
 
@@ -324,8 +340,8 @@ def get_tier_comparison():
     """Get all tiers for comparison (public endpoint)"""
     
     comparison = []
-    # 3 tiers only: free, basic, premium
-    for tier_id in ['free', 'basic', 'premium']:
+    # 4 tiers: free, starter, creator, pro
+    for tier_id in ['free', 'starter', 'creator', 'pro']:
         video = VIDEO_EDITOR_TIERS[tier_id]
         streaming = STREAMING_TIERS[tier_id]
         
@@ -393,6 +409,11 @@ def get_free_features():
                 'description': 'Multi-track timeline for pro editing'
             },
             {
+                'icon': '🎚️',
+                'title': 'Recording Studio',
+                'description': '4-track DAW with full effects chain and arranger view'
+            },
+            {
                 'icon': '📤',
                 'title': 'YouTube Cross-Post',
                 'description': 'Share directly to YouTube'
@@ -416,13 +437,28 @@ def get_free_features():
             },
             {
                 'feature': 'Live Streaming',
-                'description': 'Available on Basic plan',
+                'description': 'Available on Starter plan and above',
+                'upgrade_removes': True
+            },
+            {
+                'feature': 'AI Mastering',
+                'description': 'Available on Starter plan and above',
+                'upgrade_removes': True
+            },
+            {
+                'feature': 'AI Mix Assistant',
+                'description': 'Available on Starter plan and above',
+                'upgrade_removes': True
+            },
+            {
+                'feature': 'AI Radio DJ',
+                'description': 'Available on Creator plan and above',
                 'upgrade_removes': True
             },
         ],
         'upgrade_cta': {
-            'text': 'Remove watermark & unlock more →',
-            'tier': 'basic',
+            'text': 'Remove watermark & unlock AI tools →',
+            'tier': 'starter',
             'price': '$12.99/mo'
         }
     }), 200

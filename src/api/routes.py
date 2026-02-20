@@ -14049,8 +14049,8 @@ def get_pricing_plans():
             {
                 "id": 2,
                 "name": "Starter",
-                "price_monthly": 10.99,
-                "price_yearly": 109.99,
+                "price_monthly": 12.99,
+                "price_yearly": 129.99,
                 "description": "Enhanced features for growing creators",
                 "includes_podcasts": True,
                 "includes_radio": True,
@@ -14082,8 +14082,8 @@ def get_pricing_plans():
             {
                 "id": 3,
                 "name": "Creator",
-                "price_monthly": 20.99,
-                "price_yearly": 209.99,
+                "price_monthly": 22.99,
+                "price_yearly": 229.99,
                 "description": "Professional tools for serious creators",
                 "includes_podcasts": True,
                 "includes_radio": True,
@@ -14116,8 +14116,8 @@ def get_pricing_plans():
             {
                 "id": 4,
                 "name": "Pro",
-                "price_monthly": 29.99,
-                "price_yearly": 299.99,  # ~17% savings
+                "price_monthly": 31.99,
+                "price_yearly": 319.99,  # ~17% savings
                 "description": "Maximum monetization power",
                 "includes_podcasts": True,
                 "includes_radio": True,

@@ -2,6 +2,8 @@
 # seed_pricing_plans.py - Complete 4-Tier Seeder (All Fields + AI Features)
 # =============================================================================
 # Run: python seed_pricing_plans.py
+# Updated Feb 2026 — +$2 across paid tiers for AI deployment costs
+# Prices: Free $0 | Starter $12.99 | Creator $22.99 | Pro $31.99
 # =============================================================================
 
 from api.models import db, PricingPlan
@@ -78,6 +80,10 @@ with app.app_context():
             includes_ai_voice_clone=False,
             ai_dj_personas=0,
             
+            # Recording Studio
+            # Free tier: 4 tracks, no AI Mix Assistant
+            # (Recording studio track limit uses max_tracks field above)
+            
             # Gaming
             includes_gaming_features=True,
             includes_gaming_community=True,
@@ -114,12 +120,12 @@ with app.app_context():
         ),
         
         # =====================================================================
-        # STARTER TIER - $10.99/month
+        # STARTER TIER - $12.99/month ($129.99/year)
         # =====================================================================
         PricingPlan(
             name="Starter",
-            price_monthly=10.99,
-            price_yearly=109.99,
+            price_monthly=12.99,
+            price_yearly=129.99,
             trial_days=7,
             sort_order=2,
             
@@ -177,6 +183,9 @@ with app.app_context():
             includes_ai_voice_clone=False,
             ai_dj_personas=0,
             
+            # Recording Studio
+            # Starter: 8 tracks (uses max_tracks above), AI Mix Assistant (browser-side)
+            
             # Gaming
             includes_gaming_features=True,
             includes_gaming_community=True,
@@ -213,12 +222,12 @@ with app.app_context():
         ),
         
         # =====================================================================
-        # CREATOR TIER - $20.99/month (MOST POPULAR)
+        # CREATOR TIER - $22.99/month ($229.99/year) — MOST POPULAR
         # =====================================================================
         PricingPlan(
             name="Creator",
-            price_monthly=20.99,
-            price_yearly=209.99,
+            price_monthly=22.99,
+            price_yearly=229.99,
             trial_days=14,
             sort_order=3,
             
@@ -276,6 +285,11 @@ with app.app_context():
             includes_ai_voice_clone=False,
             ai_dj_personas=7,                  # All 7 preset personas
             
+            # Recording Studio
+            # Creator: 16 tracks (uses max_tracks above = 24 for video, 
+            # recording studio enforced separately in RecordingStudio.js)
+            # AI Mix Assistant (browser-side)
+            
             # Gaming
             includes_gaming_features=True,
             includes_gaming_community=True,
@@ -312,12 +326,12 @@ with app.app_context():
         ),
         
         # =====================================================================
-        # PRO TIER - $29.99/month (ULTIMATE)
+        # PRO TIER - $31.99/month ($319.99/year) — ULTIMATE
         # =====================================================================
         PricingPlan(
             name="Pro",
-            price_monthly=29.99,
-            price_yearly=299.99,
+            price_monthly=31.99,
+            price_yearly=319.99,
             trial_days=30,
             sort_order=4,
             
@@ -374,6 +388,10 @@ with app.app_context():
             includes_ai_radio_dj=True,
             includes_ai_voice_clone=True,      # Clone your own voice!
             ai_dj_personas=-1,                 # All personas + custom
+            
+            # Recording Studio
+            # Pro: 32 tracks (enforced in RecordingStudio.js)
+            # AI Mix Assistant (browser + server-side deep analysis via librosa)
             
             # Gaming
             includes_gaming_features=True,

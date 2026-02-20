@@ -37,7 +37,7 @@ const FEATURE_DETAILS = {
     description: 'Work on projects together with your team in real-time.',
     benefits: ['Live editing', 'Team comments', 'Shared projects'],
   },
-  
+
   // Streaming
   streaming: {
     icon: '📡',
@@ -57,7 +57,7 @@ const FEATURE_DETAILS = {
     description: 'Stream in ultra HD 4K quality to your audience.',
     benefits: ['4K resolution', 'Pro quality', 'Stand out'],
   },
-  
+
   // Music
   music_distribution: {
     icon: '🎵',
@@ -71,7 +71,7 @@ const FEATURE_DETAILS = {
     description: 'Access thousands of royalty-free tracks for your content.',
     benefits: ['10,000+ tracks', 'All genres', 'Commercial use'],
   },
-  
+
   // Clips
   unlimited_clips: {
     icon: '📱',
@@ -85,7 +85,7 @@ const FEATURE_DETAILS = {
     description: 'Schedule your clips to post automatically at the best times.',
     benefits: ['Auto-posting', 'Best times', 'Set and forget'],
   },
-  
+
   // Cross-posting
   cross_posting: {
     icon: '🔗',
@@ -99,7 +99,7 @@ const FEATURE_DETAILS = {
     description: 'Schedule your posts to go out when your audience is most active.',
     benefits: ['Auto-schedule', 'Analytics-based', 'Optimal timing'],
   },
-  
+
   // Gaming
   team_rooms: {
     icon: '🎮',
@@ -107,7 +107,7 @@ const FEATURE_DETAILS = {
     description: 'Create private rooms for your gaming squad.',
     benefits: ['Voice chat', 'Screen share', 'Squad coordination'],
   },
-  
+
   // Storage
   more_storage: {
     icon: '💾',
@@ -115,7 +115,7 @@ const FEATURE_DETAILS = {
     description: 'Get more space to store your videos, music, and content.',
     benefits: ['Up to 250GB', 'All file types', 'Cloud backup'],
   },
-  
+
   // Generic fallback
   default: {
     icon: '🚀',
@@ -127,32 +127,32 @@ const FEATURE_DETAILS = {
 
 // Tier pricing for display — UPDATED to match current 4-tier structure
 const TIER_PRICING = {
-  starter: { monthly: 10.99, yearly: 109.99 },
-  creator: { monthly: 20.99, yearly: 209.99 },
-  pro: { monthly: 29.99, yearly: 299.99 },
+  starter: { monthly: 12.99, yearly: 129.99 },
+  creator: { monthly: 22.99, yearly: 229.99 },
+  pro: { monthly: 31.99, yearly: 319.99 },
 };
 
-const UpgradeModal = ({ 
-  feature, 
-  onClose, 
+const UpgradeModal = ({
+  feature,
+  onClose,
   isOpen = true,
   customTitle = null,
-  customDescription = null 
+  customDescription = null
 }) => {
   const navigate = useNavigate();
   const { userTier, getUpgradeMessage, getRequiredTier } = useTierAccess();
-  
+
   if (!isOpen) return null;
-  
+
   const requiredTier = getRequiredTier(feature);
   const featureDetails = FEATURE_DETAILS[feature] || FEATURE_DETAILS.default;
   const pricing = TIER_PRICING[requiredTier] || TIER_PRICING.starter;
-  
+
   const handleUpgrade = () => {
     onClose();
     navigate('/pricing');
   };
-  
+
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -166,27 +166,27 @@ const UpgradeModal = ({
         <button className="upgrade-modal-close" onClick={onClose}>
           ✕
         </button>
-        
+
         {/* Icon */}
         <div className="upgrade-modal-icon">
           {featureDetails.icon}
         </div>
-        
+
         {/* Title */}
         <h2 className="upgrade-modal-title">
           {customTitle || featureDetails.title}
         </h2>
-        
+
         {/* Current Tier Badge */}
         <div className="upgrade-modal-current-tier">
           You're on <span className="tier-badge">{userTier}</span>
         </div>
-        
+
         {/* Description */}
         <p className="upgrade-modal-description">
           {customDescription || featureDetails.description}
         </p>
-        
+
         {/* Benefits */}
         <div className="upgrade-modal-benefits">
           {featureDetails.benefits.map((benefit, index) => (
@@ -196,7 +196,7 @@ const UpgradeModal = ({
             </div>
           ))}
         </div>
-        
+
         {/* Upgrade CTA */}
         <div className="upgrade-modal-cta">
           <div className="upgrade-tier-info">
@@ -205,21 +205,21 @@ const UpgradeModal = ({
               {requiredTier.charAt(0).toUpperCase() + requiredTier.slice(1)}
             </span>
           </div>
-          
+
           <div className="upgrade-pricing">
             <span className="price">${pricing.monthly}</span>
             <span className="period">/month</span>
           </div>
-          
+
           <button className="upgrade-btn" onClick={handleUpgrade}>
             Upgrade Now
           </button>
-          
+
           <p className="upgrade-note">
             Cancel anytime • Billed ${pricing.yearly}/year saves 17%
           </p>
         </div>
-        
+
         {/* Maybe Later */}
         <button className="maybe-later-btn" onClick={onClose}>
           Maybe Later
@@ -236,17 +236,17 @@ const UpgradeModal = ({
 export const UpgradePrompt = ({ feature, compact = false }) => {
   const navigate = useNavigate();
   const { getUpgradeMessage, getRequiredTier } = useTierAccess();
-  
+
   const requiredTier = getRequiredTier(feature);
   const message = getUpgradeMessage(feature);
   const featureDetails = FEATURE_DETAILS[feature] || FEATURE_DETAILS.default;
-  
+
   if (compact) {
     return (
       <div className="upgrade-prompt-compact">
         <span className="prompt-icon">🔒</span>
         <span className="prompt-text">{message}</span>
-        <button 
+        <button
           className="prompt-btn"
           onClick={() => navigate('/pricing')}
         >
@@ -255,7 +255,7 @@ export const UpgradePrompt = ({ feature, compact = false }) => {
       </div>
     );
   }
-  
+
   return (
     <div className="upgrade-prompt">
       <div className="prompt-icon">{featureDetails.icon}</div>
@@ -263,7 +263,7 @@ export const UpgradePrompt = ({ feature, compact = false }) => {
         <h4>{featureDetails.title}</h4>
         <p>{message}</p>
       </div>
-      <button 
+      <button
         className="prompt-upgrade-btn"
         onClick={() => navigate('/pricing')}
       >
@@ -277,28 +277,28 @@ export const UpgradePrompt = ({ feature, compact = false }) => {
 // FEATURE GATE WRAPPER
 // =============================================================================
 
-export const FeatureGate = ({ 
-  feature, 
-  children, 
+export const FeatureGate = ({
+  feature,
+  children,
   fallback = null,
-  showPrompt = true 
+  showPrompt = true
 }) => {
   const { checkFeature } = useTierAccess();
-  
+
   const hasAccess = checkFeature(feature);
-  
+
   if (hasAccess) {
     return children;
   }
-  
+
   if (fallback) {
     return fallback;
   }
-  
+
   if (showPrompt) {
     return <UpgradePrompt feature={feature} />;
   }
-  
+
   return null;
 };
 
