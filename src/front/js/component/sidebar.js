@@ -197,6 +197,43 @@ const GamingMenuItem = styled(MenuItem)`
   }
 `;
 
+const AIMenuItem = styled(MenuItem)`
+  &:hover {
+    background: rgba(124, 58, 237, 0.1);
+    border-left-color: #a78bfa;
+    color: #a78bfa;
+  }
+
+  &.active {
+    background: rgba(124, 58, 237, 0.15);
+    border-left-color: #a78bfa;
+    color: #a78bfa;
+    box-shadow: inset 0 0 10px rgba(124, 58, 237, 0.15);
+  }
+`;
+
+const AISectionHeader = styled.h4`
+  color: #a78bfa;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 20px 15px 8px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: default;
+  white-space: nowrap;
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(167, 139, 250, 0.3);
+  }
+`;
+
 const NotificationBadge = styled.span`
   background: #ff4757;
   color: white;
@@ -483,6 +520,17 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/ai-radio-dj" className={isActive("/ai-radio-dj") ? "active" : ""}>
         🤖 <span className="sidebar-label">AI Radio DJ</span>
       </MenuItem>
+
+      {/* ============================== */}
+      {/* 🤖 AI TOOLS                    */}
+      {/* ============================== */}
+      <AISectionHeader className="sidebar-section-header">
+        🤖 <span className="sidebar-section-text">AI Tools</span>
+      </AISectionHeader>
+
+      <AIMenuItem to="/ai-writer" className={isActive("/ai-writer") ? "active" : ""}>
+        ✍️ <span className="sidebar-label">AI Content Writer</span>
+      </AIMenuItem>
 
       {/* ============================== */}
       {/* 🎥 LIVE STREAMING              */}

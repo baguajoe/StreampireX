@@ -39,6 +39,7 @@ import SubscriptionSuccess from './pages/SubscriptionSuccess';
 import AIMasteringPage from "./pages/AIMasteringPage";       // ✅ correct
 import AIRadioDJPage from "./pages/AIRadioDJPage";
 import AIRadioDJ from "./component/AIRadioDJ";
+import AIContentWriter from "./pages/AIContentWriter";
 
 import VideoUpload from "./pages/VideoUpload";
 import VideoDetails from "./component/VideoDetails";
@@ -156,6 +157,8 @@ const Layout = () => {
               <Route path="/ai-mastering" element={<AIMasteringPage />} />
               <Route path="/ai-radio-dj" element={<AIRadioDJPage />} />
               <Route path="/ai-radio-dj/:stationId" element={<AIRadioDJ />} />
+              <Route path="/ai-writer" element={<AIContentWriter />} />
+              
 
               {/* Video Channel Routes */}
               <Route path="/profile/video" element={<VideoChannelProfile />} />
