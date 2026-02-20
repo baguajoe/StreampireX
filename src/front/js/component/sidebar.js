@@ -535,6 +535,9 @@ const Sidebar = ({ user }) => {
       <AIMenuItem to="/ai-writer" className={isActive("/ai-writer") ? "active" : ""}>
         ✍️ <span className="sidebar-label">AI Content Writer</span>
       </AIMenuItem>
+      <AIMenuItem to="/ai-stems" className={isActive("/ai-stems") ? "active" : ""}>
+        🎵 <span className="sidebar-label">AI Stem Separation</span>
+      </AIMenuItem>
 
       {/* ============================== */}
       {/* 🎥 LIVE STREAMING              */}

@@ -40,6 +40,7 @@ import AIMasteringPage from "./pages/AIMasteringPage";       // ✅ correct
 import AIRadioDJPage from "./pages/AIRadioDJPage";
 import AIRadioDJ from "./component/AIRadioDJ";
 import AIContentWriter from "./pages/AIContentWriter";
+import AIStemSeparation from "./pages/AIStemSeparation";
 
 import VideoUpload from "./pages/VideoUpload";
 import VideoDetails from "./component/VideoDetails";
@@ -160,6 +161,7 @@ const Layout = () => {
               <Route path="/ai-radio-dj/:stationId" element={<AIRadioDJ />} />
               <Route path="/ai-writer" element={<AIContentWriter />} />
               <Route path="/recording-studio" element={<RecordingStudio />} />
+              <Route path="/ai-stems" element={<AIStemSeparation />} />
               
 
               {/* Video Channel Routes */}
