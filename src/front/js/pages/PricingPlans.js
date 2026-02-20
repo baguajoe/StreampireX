@@ -1,11 +1,3 @@
-// =============================================================================
-// PricingPlans.js - Complete 4-Tier + Distribution Plans + AI Features
-// =============================================================================
-// Tiers: Free → Starter ($10.99) → Creator ($20.99) → Pro ($29.99)
-// Includes: Gaming Features, Artist Distribution, Label Distribution
-// AI Features: AI Mastering, AI Radio DJ, Voice Cloning
-// =============================================================================
-
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Context } from '../store/appContext';
@@ -25,9 +17,9 @@ const PricingPlans = () => {
   // ==========================================================================
   const pricing = {
     free: { monthly: 0, yearly: 0 },
-    starter: { monthly: 10.99, yearly: 109.99 },
-    creator: { monthly: 20.99, yearly: 209.99 },
-    pro: { monthly: 29.99, yearly: 299.99 },
+    starter: { monthly: 12.99, yearly: 129.99 },
+    creator: { monthly: 22.99, yearly: 229.99 },
+    pro: { monthly: 31.99, yearly: 319.99 },
   };
 
   // Distribution Plan Pricing (yearly only)
@@ -111,7 +103,7 @@ const PricingPlans = () => {
     try {
       setProcessing(tier);
       const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
-      
+
       // Map tier names to database plan names (capitalized)
       const planNameMap = {
         'free': 'Free',
@@ -121,9 +113,9 @@ const PricingPlans = () => {
         'artist-distribution': 'standalone-artist',
         'label-distribution': 'standalone-label'
       };
-      
+
       let planId = planNameMap[tier] || tier;
-      
+
       const response = await fetch(`${backendUrl}/api/subscriptions/subscribe`, {
         method: 'POST',
         headers: {
@@ -173,14 +165,14 @@ const PricingPlans = () => {
   // ==========================================================================
   return (
     <div className="pricing-page">
-      
+
       {/* ================================================================== */}
       {/* HEADER SECTION */}
       {/* ================================================================== */}
       <div className="pricing-header">
         <h1>Simple, Transparent Pricing</h1>
         <p>Everything you need to create, stream, game, and grow. No hidden fees.</p>
-        
+
         {/* Billing Toggle */}
         <div className="billing-toggle">
           <span className={billingCycle === 'monthly' ? 'active' : ''}>Monthly</span>
@@ -232,20 +224,20 @@ const PricingPlans = () => {
       <div className="pricing-section">
         <h2 className="section-title">🎨 Creator Plans</h2>
         <p className="section-subtitle">Full access to video editing, streaming, gaming, AI tools, and monetization</p>
-        
+
         <div className="pricing-cards four-tier">
-          
+
           {/* ============================================================ */}
           {/* FREE TIER - $0 */}
           {/* ============================================================ */}
           <div className={`pricing-card free ${isCurrentPlan('free') ? 'current' : ''}`}>
             {isCurrentPlan('free') && <div className="current-badge">Current Plan</div>}
-            
+
             <div className="card-header">
               <h2>Free</h2>
               <p className="card-subtitle">For hobbyists & beginners</p>
             </div>
-            
+
             <div className="card-price">
               <span className="price">$0</span>
               <span className="period">/forever</span>
@@ -269,19 +261,19 @@ const PricingPlans = () => {
                 <span className="icon">~</span>
                 <span>Small watermark on exports</span>
               </li>
-              
+
               {/* Clips */}
               <li className="feature included">
                 <span className="icon">📱</span>
                 <span>3 clips/day (60 sec max)</span>
               </li>
-              
+
               {/* Cross-posting */}
               <li className="feature included">
                 <span className="icon">🔗</span>
                 <span>Cross-post to YouTube (1/day)</span>
               </li>
-              
+
               {/* Gaming - FREE FOR ALL */}
               <li className="feature included highlight">
                 <span className="icon">🎮</span>
@@ -291,13 +283,13 @@ const PricingPlans = () => {
                 <span className="icon">✓</span>
                 <span>Squad Finder</span>
               </li>
-              
+
               {/* Monetization */}
               <li className="feature included">
                 <span className="icon">💰</span>
                 <span>Receive tips (keep 90%)</span>
               </li>
-              
+
               {/* AI Features - Free */}
               <li className="feature excluded">
                 <span className="icon">✗</span>
@@ -307,7 +299,7 @@ const PricingPlans = () => {
                 <span className="icon">✗</span>
                 <span>AI Radio DJ</span>
               </li>
-              
+
               {/* Excluded */}
               <li className="feature excluded">
                 <span className="icon">✗</span>
@@ -319,7 +311,7 @@ const PricingPlans = () => {
               </li>
             </ul>
 
-            <button 
+            <button
               className="select-plan-btn"
               onClick={() => handleSelectPlan('free')}
               disabled={isCurrentPlan('free')}
@@ -333,12 +325,12 @@ const PricingPlans = () => {
           {/* ============================================================ */}
           <div className={`pricing-card starter ${isCurrentPlan('starter') ? 'current' : ''}`}>
             {isCurrentPlan('starter') && <div className="current-badge">Current Plan</div>}
-            
+
             <div className="card-header">
               <h2>Starter</h2>
               <p className="card-subtitle">For growing creators</p>
             </div>
-            
+
             <div className="card-price">
               <span className="price">${getMonthlyEquivalent('starter')}</span>
               <span className="period">/month</span>
@@ -355,7 +347,7 @@ const PricingPlans = () => {
                 <span className="icon">⬆️</span>
                 <span><strong>Everything in Free, plus:</strong></span>
               </li>
-              
+
               {/* Video Editing */}
               <li className="feature included">
                 <span className="icon">🎬</span>
@@ -369,25 +361,25 @@ const PricingPlans = () => {
                 <span className="icon">✓</span>
                 <span>25GB storage</span>
               </li>
-              
+
               {/* Clips */}
               <li className="feature included">
                 <span className="icon">📱</span>
                 <span>20 clips/day (3 min max)</span>
               </li>
-              
+
               {/* Streaming */}
               <li className="feature included highlight">
                 <span className="icon">📺</span>
                 <span><strong>Live Streaming</strong> (4 hrs, 720p)</span>
               </li>
-              
+
               {/* Cross-posting */}
               <li className="feature included">
                 <span className="icon">🔗</span>
                 <span>Cross-post to 3 platforms (5/day)</span>
               </li>
-              
+
               {/* Podcasts & Radio */}
               <li className="feature included">
                 <span className="icon">🎙️</span>
@@ -397,7 +389,7 @@ const PricingPlans = () => {
                 <span className="icon">📻</span>
                 <span>1 Radio station</span>
               </li>
-              
+
               {/* Gaming */}
               <li className="feature included highlight">
                 <span className="icon">🎮</span>
@@ -407,7 +399,7 @@ const PricingPlans = () => {
                 <span className="icon">✓</span>
                 <span>Gaming Analytics</span>
               </li>
-              
+
               {/* Music */}
               <li className="feature included">
                 <span className="icon">🎵</span>
@@ -419,13 +411,24 @@ const PricingPlans = () => {
                 <span className="icon">🤖</span>
                 <span><strong>AI Mastering</strong> (3/month)</span>
               </li>
+
+              {/* ADDED: AI Mix Assistant + Recording Studio */}
+              <li className="feature included">
+                <span className="icon">🤖</span>
+                <span><strong>AI Mix Assistant</strong></span>
+              </li>
+              <li className="feature included">
+                <span className="icon">🎚️</span>
+                <span><strong>Recording Studio</strong> (8 tracks)</span>
+              </li>
+
               <li className="feature excluded">
                 <span className="icon">✗</span>
                 <span>AI Radio DJ</span>
               </li>
             </ul>
 
-            <button 
+            <button
               className="select-plan-btn starter-btn"
               onClick={() => handleSelectPlan('starter')}
               disabled={processing === 'starter' || isCurrentPlan('starter')}
@@ -444,12 +447,12 @@ const PricingPlans = () => {
           <div className={`pricing-card creator popular ${isCurrentPlan('creator') ? 'current' : ''}`}>
             <div className="popular-badge">🔥 Most Popular</div>
             {isCurrentPlan('creator') && <div className="current-badge">Current Plan</div>}
-            
+
             <div className="card-header">
               <h2>Creator</h2>
               <p className="card-subtitle">For serious creators</p>
             </div>
-            
+
             <div className="card-price">
               <span className="price">${getMonthlyEquivalent('creator')}</span>
               <span className="period">/month</span>
@@ -466,7 +469,7 @@ const PricingPlans = () => {
                 <span className="icon">⬆️</span>
                 <span><strong>Everything in Starter, plus:</strong></span>
               </li>
-              
+
               {/* Video Editing */}
               <li className="feature included">
                 <span className="icon">🎬</span>
@@ -480,13 +483,13 @@ const PricingPlans = () => {
                 <span className="icon">✓</span>
                 <span>Collaborate with 8 people</span>
               </li>
-              
+
               {/* Clips */}
               <li className="feature included">
                 <span className="icon">📱</span>
                 <span><strong>Unlimited clips</strong> (10 min max)</span>
               </li>
-              
+
               {/* Streaming */}
               <li className="feature included highlight">
                 <span className="icon">📺</span>
@@ -496,13 +499,13 @@ const PricingPlans = () => {
                 <span className="icon">✓</span>
                 <span>1,000 concurrent viewers</span>
               </li>
-              
+
               {/* Cross-posting */}
               <li className="feature included">
                 <span className="icon">🔗</span>
                 <span>Cross-post to <strong>8 platforms</strong> (10/day)</span>
               </li>
-              
+
               {/* Podcasts & Radio */}
               <li className="feature included">
                 <span className="icon">🎙️</span>
@@ -512,7 +515,7 @@ const PricingPlans = () => {
                 <span className="icon">📻</span>
                 <span>3 Radio stations + Auto-DJ</span>
               </li>
-              
+
               {/* Gaming */}
               <li className="feature included highlight">
                 <span className="icon">🎮</span>
@@ -522,7 +525,7 @@ const PricingPlans = () => {
                 <span className="icon">✓</span>
                 <span>10 Team Rooms</span>
               </li>
-              
+
               {/* Analytics */}
               <li className="feature included">
                 <span className="icon">📊</span>
@@ -538,13 +541,24 @@ const PricingPlans = () => {
                 <span className="icon">📻</span>
                 <span><strong>AI Radio DJ</strong> (7 preset personas)</span>
               </li>
+
+              {/* ADDED: AI Mix Assistant + Recording Studio */}
+              <li className="feature included">
+                <span className="icon">🤖</span>
+                <span><strong>AI Mix Assistant</strong></span>
+              </li>
+              <li className="feature included">
+                <span className="icon">🎚️</span>
+                <span><strong>Recording Studio</strong> (16 tracks)</span>
+              </li>
+
               <li className="feature excluded">
                 <span className="icon">✗</span>
                 <span>AI Voice Cloning</span>
               </li>
             </ul>
 
-            <button 
+            <button
               className="select-plan-btn creator-btn"
               onClick={() => handleSelectPlan('creator')}
               disabled={processing === 'creator' || isCurrentPlan('creator')}
@@ -562,12 +576,12 @@ const PricingPlans = () => {
           {/* ============================================================ */}
           <div className={`pricing-card pro ${isCurrentPlan('pro') ? 'current' : ''}`}>
             {isCurrentPlan('pro') && <div className="current-badge">Current Plan</div>}
-            
+
             <div className="card-header">
               <h2>Pro</h2>
               <p className="card-subtitle">The ultimate creator suite</p>
             </div>
-            
+
             <div className="card-price">
               <span className="price">${getMonthlyEquivalent('pro')}</span>
               <span className="period">/month</span>
@@ -584,7 +598,7 @@ const PricingPlans = () => {
                 <span className="icon">⬆️</span>
                 <span><strong>Everything in Creator, plus:</strong></span>
               </li>
-              
+
               {/* Video Editing */}
               <li className="feature included">
                 <span className="icon">🎬</span>
@@ -598,7 +612,7 @@ const PricingPlans = () => {
                 <span className="icon">✓</span>
                 <span>Team collaboration (unlimited)</span>
               </li>
-              
+
               {/* Streaming */}
               <li className="feature included highlight">
                 <span className="icon">📺</span>
@@ -608,25 +622,25 @@ const PricingPlans = () => {
                 <span className="icon">✓</span>
                 <span>Simulcast to 5 destinations</span>
               </li>
-              
+
               {/* Cross-posting */}
               <li className="feature included">
                 <span className="icon">🔗</span>
                 <span>Cross-post to <strong>ALL platforms</strong> (unlimited)</span>
               </li>
-              
+
               {/* Radio */}
               <li className="feature included">
                 <span className="icon">📻</span>
                 <span><strong>Unlimited</strong> Radio stations</span>
               </li>
-              
+
               {/* Gaming */}
               <li className="feature included highlight">
                 <span className="icon">🎮</span>
                 <span><strong>Cloud Gaming</strong> + Unlimited Team Rooms</span>
               </li>
-              
+
               {/* Music Distribution - PRO EXCLUSIVE */}
               <li className="feature included special">
                 <span className="icon">🎵</span>
@@ -650,7 +664,17 @@ const PricingPlans = () => {
                 <span className="icon">🎙️</span>
                 <span><strong>AI Voice Cloning</strong> — your voice as DJ</span>
               </li>
-              
+
+              {/* ADDED: AI Mix Assistant + Recording Studio */}
+              <li className="feature included">
+                <span className="icon">🤖</span>
+                <span><strong>AI Mix Assistant</strong> (server-side deep analysis)</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">🎚️</span>
+                <span><strong>Recording Studio</strong> (32 tracks)</span>
+              </li>
+
               {/* Support */}
               <li className="feature included">
                 <span className="icon">⚡</span>
@@ -662,7 +686,7 @@ const PricingPlans = () => {
               </li>
             </ul>
 
-            <button 
+            <button
               className="select-plan-btn pro-btn"
               onClick={() => handleSelectPlan('pro')}
               disabled={processing === 'pro' || isCurrentPlan('pro')}
@@ -683,21 +707,21 @@ const PricingPlans = () => {
       <div className="pricing-section distribution-section">
         <h2 className="section-title">🎵 Music Distribution Plans</h2>
         <p className="section-subtitle">Distribute your music globally to 150+ platforms. Annual billing only.</p>
-        
+
         <div className="distribution-cards">
-          
+
           {/* ============================================================ */}
           {/* ARTIST DISTRIBUTION */}
           {/* ============================================================ */}
           <div className={`pricing-card distribution artist ${isCurrentPlan('artist-distribution') ? 'current' : ''}`}>
             {isCurrentPlan('artist-distribution') && <div className="current-badge">Current Plan</div>}
-            
+
             <div className="card-header">
               <div className="distribution-icon">🎤</div>
               <h2>Artist Distribution</h2>
               <p className="card-subtitle">For independent artists</p>
             </div>
-            
+
             <div className="card-price">
               <span className="price">${distributionPricing.artist}</span>
               <span className="period">/year</span>
@@ -739,7 +763,7 @@ const PricingPlans = () => {
               </li>
             </ul>
 
-            <button 
+            <button
               className="select-plan-btn distribution-btn"
               onClick={() => handleSelectPlan('artist-distribution', true)}
               disabled={processing === 'artist-distribution' || isCurrentPlan('artist-distribution')}
@@ -758,13 +782,13 @@ const PricingPlans = () => {
           <div className={`pricing-card distribution label ${isCurrentPlan('label-distribution') ? 'current' : ''}`}>
             <div className="label-badge">🏆 For Labels</div>
             {isCurrentPlan('label-distribution') && <div className="current-badge">Current Plan</div>}
-            
+
             <div className="card-header">
               <div className="distribution-icon">🏷️</div>
               <h2>Label Distribution</h2>
               <p className="card-subtitle">For record labels & managers</p>
             </div>
-            
+
             <div className="card-price">
               <span className="price">${distributionPricing.label}</span>
               <span className="period">/year</span>
@@ -806,7 +830,7 @@ const PricingPlans = () => {
               </li>
             </ul>
 
-            <button 
+            <button
               className="select-plan-btn distribution-btn label-btn"
               onClick={() => handleSelectPlan('label-distribution', true)}
               disabled={processing === 'label-distribution' || isCurrentPlan('label-distribution')}
@@ -819,7 +843,7 @@ const PricingPlans = () => {
             </button>
           </div>
         </div>
-        
+
         <div className="distribution-note">
           <p>💡 <strong>Pro creators</strong> already have music distribution included! These standalone plans are for users who only need distribution.</p>
         </div>
@@ -880,16 +904,16 @@ const PricingPlans = () => {
               <tr>
                 <td>Monthly Price</td>
                 <td>$0</td>
-                <td>$10.99</td>
-                <td className="highlight">$20.99</td>
-                <td>$29.99</td>
+                <td>$12.99</td>
+                <td className="highlight">$22.99</td>
+                <td>$31.99</td>
               </tr>
               <tr>
                 <td>Yearly Price</td>
                 <td>$0</td>
-                <td>$109.99</td>
-                <td className="highlight">$209.99</td>
-                <td>$299.99</td>
+                <td>$129.99</td>
+                <td className="highlight">$229.99</td>
+                <td>$319.99</td>
               </tr>
 
               {/* Video Editing */}
@@ -1071,6 +1095,22 @@ const PricingPlans = () => {
                 <td>✓</td>
               </tr>
 
+              {/* ADDED: AI Mix Assistant + Studio Tracks */}
+              <tr>
+                <td>AI Mix Assistant</td>
+                <td>✗</td>
+                <td>✓ (Browser)</td>
+                <td className="highlight">✓ (Browser)</td>
+                <td>✓ (Browser + Server)</td>
+              </tr>
+              <tr>
+                <td>Recording Studio Tracks</td>
+                <td>4</td>
+                <td>8</td>
+                <td className="highlight">16</td>
+                <td>32</td>
+              </tr>
+
               {/* Gaming */}
               <tr className="category-header">
                 <td colSpan="5">🎮 Gaming Features</td>
@@ -1210,43 +1250,43 @@ const PricingPlans = () => {
       {/* ================================================================== */}
       <div className="pricing-faq">
         <h2>❓ Frequently Asked Questions</h2>
-        
+
         <div className="faq-grid">
           <div className="faq-item">
             <h3>Can I upgrade or downgrade anytime?</h3>
             <p>Yes! Change your plan anytime. Upgrades take effect immediately, downgrades at the end of your billing cycle.</p>
           </div>
-          
+
           <div className="faq-item">
             <h3>What payment methods do you accept?</h3>
             <p>All major credit cards, debit cards, and PayPal through our secure Stripe payment processor.</p>
           </div>
-          
+
           <div className="faq-item">
             <h3>Do I need a distribution plan if I'm Pro?</h3>
             <p>No! Pro already includes full music distribution. The Artist/Label plans are for users who only need distribution without other creator features.</p>
           </div>
-          
+
           <div className="faq-item">
             <h3>What's included in gaming features?</h3>
             <p>Squad Finder, Team Rooms, gaming analytics, game streaming integration, and monetization tools for gaming content.</p>
           </div>
-          
+
           <div className="faq-item">
             <h3>How does 90% creator earnings work?</h3>
             <p>You keep 90% of tips and subscriptions. We only take 10% for processing. External payments (CashApp, Venmo) go 100% to you!</p>
           </div>
-          
+
           <div className="faq-item">
             <h3>Can I cancel anytime?</h3>
             <p>Yes, cancel anytime with no fees. Keep access until the end of your billing period.</p>
           </div>
-          
+
           <div className="faq-item">
             <h3>What happens to my content if I downgrade?</h3>
             <p>Your content stays safe! You just won't be able to upload more until you're within your new plan's limits.</p>
           </div>
-          
+
           <div className="faq-item">
             <h3>Is there a free trial?</h3>
             <p>Starter has a 7-day trial, Creator has 14 days, and Pro has a full 30-day trial. Cancel anytime during the trial.</p>
@@ -1270,7 +1310,7 @@ const PricingPlans = () => {
       <div className="pricing-cta">
         <h2>Ready to create?</h2>
         <p>Join thousands of creators building their audience on StreamPireX</p>
-        <button 
+        <button
           className="cta-button"
           onClick={() => navigate('/signup')}
         >
