@@ -125,10 +125,11 @@ const FEATURE_DETAILS = {
   },
 };
 
-// Tier pricing for display
+// Tier pricing for display — UPDATED to match current 4-tier structure
 const TIER_PRICING = {
-  basic: { monthly: 12.99, yearly: 129.99 },
-  premium: { monthly: 29.99, yearly: 299.99 },
+  starter: { monthly: 10.99, yearly: 109.99 },
+  creator: { monthly: 20.99, yearly: 209.99 },
+  pro: { monthly: 29.99, yearly: 299.99 },
 };
 
 const UpgradeModal = ({ 
@@ -145,7 +146,7 @@ const UpgradeModal = ({
   
   const requiredTier = getRequiredTier(feature);
   const featureDetails = FEATURE_DETAILS[feature] || FEATURE_DETAILS.default;
-  const pricing = TIER_PRICING[requiredTier] || TIER_PRICING.basic;
+  const pricing = TIER_PRICING[requiredTier] || TIER_PRICING.starter;
   
   const handleUpgrade = () => {
     onClose();

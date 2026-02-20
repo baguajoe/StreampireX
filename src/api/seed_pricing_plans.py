@@ -114,12 +114,12 @@ with app.app_context():
         ),
         
         # =====================================================================
-        # STARTER TIER - $9.99/month
+        # STARTER TIER - $10.99/month
         # =====================================================================
         PricingPlan(
             name="Starter",
-            price_monthly=9.99,
-            price_yearly=99.99,
+            price_monthly=10.99,
+            price_yearly=109.99,
             trial_days=7,
             sort_order=2,
             
@@ -213,12 +213,12 @@ with app.app_context():
         ),
         
         # =====================================================================
-        # CREATOR TIER - $19.99/month (MOST POPULAR)
+        # CREATOR TIER - $20.99/month (MOST POPULAR)
         # =====================================================================
         PricingPlan(
             name="Creator",
-            price_monthly=19.99,
-            price_yearly=199.99,
+            price_monthly=20.99,
+            price_yearly=209.99,
             trial_days=14,
             sort_order=3,
             

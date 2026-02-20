@@ -466,7 +466,7 @@ const Home = () => {
 							<li><span>Live Streaming</span><span>✓ Included</span></li>
 							<li><span>Podcasts</span><span>✓ Included</span></li>
 							<li><span>Social + Gaming</span><span>✓ Included</span></li>
-							<li className="total"><span>All-in-One</span><span>$9.99/mo</span></li>
+							<li className="total"><span>All-in-One</span><span>$10.99/mo</span></li>
 						</ul>
 					</div>
 				</div>

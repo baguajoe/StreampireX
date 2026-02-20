@@ -1,7 +1,7 @@
 // =============================================================================
 // PricingPlans.js - Complete 4-Tier + Distribution Plans + AI Features
 // =============================================================================
-// Tiers: Free → Starter ($9.99) → Creator ($19.99) → Pro ($29.99)
+// Tiers: Free → Starter ($10.99) → Creator ($20.99) → Pro ($29.99)
 // Includes: Gaming Features, Artist Distribution, Label Distribution
 // AI Features: AI Mastering, AI Radio DJ, Voice Cloning
 // =============================================================================
@@ -25,8 +25,8 @@ const PricingPlans = () => {
   // ==========================================================================
   const pricing = {
     free: { monthly: 0, yearly: 0 },
-    starter: { monthly: 9.99, yearly: 99.99 },
-    creator: { monthly: 19.99, yearly: 199.99 },
+    starter: { monthly: 10.99, yearly: 109.99 },
+    creator: { monthly: 20.99, yearly: 209.99 },
     pro: { monthly: 29.99, yearly: 299.99 },
   };
 
@@ -329,7 +329,7 @@ const PricingPlans = () => {
           </div>
 
           {/* ============================================================ */}
-          {/* STARTER TIER - $9.99 */}
+          {/* STARTER TIER - $10.99 */}
           {/* ============================================================ */}
           <div className={`pricing-card starter ${isCurrentPlan('starter') ? 'current' : ''}`}>
             {isCurrentPlan('starter') && <div className="current-badge">Current Plan</div>}
@@ -439,7 +439,7 @@ const PricingPlans = () => {
           </div>
 
           {/* ============================================================ */}
-          {/* CREATOR TIER - $19.99 (MOST POPULAR) */}
+          {/* CREATOR TIER - $20.99 (MOST POPULAR) */}
           {/* ============================================================ */}
           <div className={`pricing-card creator popular ${isCurrentPlan('creator') ? 'current' : ''}`}>
             <div className="popular-badge">🔥 Most Popular</div>
@@ -880,15 +880,15 @@ const PricingPlans = () => {
               <tr>
                 <td>Monthly Price</td>
                 <td>$0</td>
-                <td>$9.99</td>
-                <td className="highlight">$19.99</td>
+                <td>$10.99</td>
+                <td className="highlight">$20.99</td>
                 <td>$29.99</td>
               </tr>
               <tr>
                 <td>Yearly Price</td>
                 <td>$0</td>
-                <td>$99.99</td>
-                <td className="highlight">$199.99</td>
+                <td>$109.99</td>
+                <td className="highlight">$209.99</td>
                 <td>$299.99</td>
               </tr>
 
