@@ -1,20 +1,13 @@
-// =============================================================================
-// RecordingStudio.js - Multi-Track DAW (Logic Pro Inspired)
-// =============================================================================
-// Location: src/front/js/pages/RecordingStudio.js
-// Route: /recording-studio
-// Pure Web Audio API — zero external audio libraries
-// Effects: EQ, Compressor, Reverb, Delay, Distortion, Filter per track
-// Views: Record (mixer/waveform) | Arrange (timeline/regions)
-// Track limits: Free=4, Starter=8, Creator=16, Pro=32
-// =============================================================================
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ArrangerView from '../component/ArrangerView';
 import AIMixAssistant from '../component/AIMixAssistant';
+import SamplerBeatMaker from '../component/SamplerBeatMaker';
+import MicSimulator from '../component/MicSimulator';
 import '../../styles/RecordingStudio.css';
 import '../../styles/ArrangerView.css';
 import '../../styles/AIMixAssistant.css';
+import '../../styles/SamplerBeatMaker.css';
+import '../../styles/MicSimulator.css';
 
 const TRACK_COLORS = ['#34c759','#ff9500','#007aff','#af52de','#ff3b30','#5ac8fa','#ff2d55','#ffcc00',
   '#30d158','#ff6b35','#0a84ff','#bf5af2','#ff453a','#64d2ff','#ff375f','#ffd60a',
@@ -45,8 +38,8 @@ const RecordingStudio = ({ user }) => {
   const userTier = (user?.subscription_tier || user?.tier || 'free').toLowerCase();
   const maxTracks = TIER_TRACK_LIMITS[userTier] || DEFAULT_MAX;
 
-  // ── View mode: record (mixer) or arrange (timeline) ──
-  const [viewMode, setViewMode] = useState('record'); // 'record' | 'arrange'
+  // ── View mode: record | arrange | beatmaker ──
+  const [viewMode, setViewMode] = useState('record');
 
   // ── Project state ──
   const [projectName, setProjectName] = useState('Untitled Project');
@@ -75,6 +68,10 @@ const RecordingStudio = ({ user }) => {
   const [mixingDown, setMixingDown] = useState(false);
   const [activeEffectsTrack, setActiveEffectsTrack] = useState(null);
   const [showAIMix, setShowAIMix] = useState(false);
+
+  // ── Mic Simulator state ──
+  const [showMicSim, setShowMicSim] = useState(false);
+  const [micSimStream, setMicSimStream] = useState(null);
 
   const audioCtxRef = useRef(null);
   const masterGainRef = useRef(null);
@@ -176,7 +173,7 @@ const RecordingStudio = ({ user }) => {
     if(fx.delay.enabled&&fx.delay.mix>0){const d=ctx.createDelay(5);d.delayTime.value=fx.delay.time;const fb=ctx.createGain();fb.gain.value=fx.delay.feedback;const mx=ctx.createGain();mx.gain.value=fx.delay.mix;dry.connect(d);d.connect(fb);fb.connect(d);d.connect(mx);mx.connect(master);}
   };
 
-  // ── Recording ──
+  // ── Recording (with optional Mic Simulator) ──
   const startRecording = async () => {
     const ai=tracks.findIndex(t=>t.armed);
     if(ai===-1){setStatus('⚠ Arm a track');return;}
@@ -184,6 +181,8 @@ const RecordingStudio = ({ user }) => {
       const ctx=getCtx();
       const stream=await navigator.mediaDevices.getUserMedia({audio:{deviceId:selectedDevice!=='default'?{exact:selectedDevice}:undefined,echoCancellation:false,noiseSuppression:false,autoGainControl:false,sampleRate:44100}});
       mediaStreamRef.current=stream;
+      setMicSimStream(stream);
+
       const src=ctx.createMediaStreamSource(stream);inputAnalyserRef.current=ctx.createAnalyser();inputAnalyserRef.current.fftSize=256;src.connect(inputAnalyserRef.current);
       const mon=()=>{if(!inputAnalyserRef.current)return;const d=new Uint8Array(inputAnalyserRef.current.frequencyBinCount);inputAnalyserRef.current.getByteFrequencyData(d);setInputLevel(d.reduce((a,b)=>a+b,0)/d.length/255);inputAnimRef.current=requestAnimationFrame(mon);};mon();
       if(countIn){setStatus('Count in...');await playCountIn(ctx);}
@@ -199,8 +198,25 @@ const RecordingStudio = ({ user }) => {
     if(mediaRecorderRef.current&&mediaRecorderRef.current.state!=='inactive')mediaRecorderRef.current.stop();
     if(mediaStreamRef.current){mediaStreamRef.current.getTracks().forEach(t=>t.stop());mediaStreamRef.current=null;}
     if(inputAnimRef.current)cancelAnimationFrame(inputAnimRef.current);
+    setMicSimStream(null);
     setInputLevel(0);setIsRecording(false);stopPlayback();
   };
+
+  // ── Mic Simulator recording callback ──
+  const handleMicSimRecordingComplete = useCallback((blob) => {
+    const ai = tracks.findIndex(t => t.armed);
+    if (ai === -1) {
+      setStatus('⚠ Arm a track first to receive Mic Sim recording');
+      return;
+    }
+    const ctx = getCtx();
+    blob.arrayBuffer().then(ab => ctx.decodeAudioData(ab)).then(buf => {
+      updateTrack(ai, { audioBuffer: buf, audio_url: URL.createObjectURL(blob) });
+      createRegionFromRecording(ai, buf);
+      uploadTrack(blob, ai);
+      setStatus(`✓ Mic Sim recorded → Track ${ai + 1}`);
+    }).catch(e => setStatus(`✗ ${e.message}`));
+  }, [tracks]);
 
   // ── Playback ──
   const startPlayback = (overdub=false) => {
@@ -274,6 +290,30 @@ const RecordingStudio = ({ user }) => {
     updateTrack(ti,{audioBuffer:null,audio_url:null,armed:false,regions:[]});
     setStatus(`Track ${ti+1} cleared`);
   };
+
+  // ── Beat Maker export → DAW track import ──
+  const handleBeatExport = useCallback((renderedBuffer, blob) => {
+    let targetTrack = tracks.findIndex(t => !t.audioBuffer);
+    if (targetTrack === -1 && tracks.length < maxTracks) {
+      targetTrack = tracks.length;
+      setTracks(prev => [...prev, DEFAULT_TRACK(targetTrack)]);
+    }
+    if (targetTrack === -1) {
+      setStatus('⚠ No empty tracks. Clear a track first.');
+      return;
+    }
+    const ctx = getCtx();
+    if (renderedBuffer) {
+      updateTrack(targetTrack, {
+        audioBuffer: renderedBuffer,
+        audio_url: URL.createObjectURL(blob),
+        name: 'Beat Export',
+      });
+      createRegionFromImport(targetTrack, renderedBuffer, 'Beat Export');
+      setStatus(`✓ Beat → Track ${targetTrack + 1}`);
+      setViewMode('record');
+    }
+  }, [tracks, maxTracks]);
 
   // ── Mixdown / Bounce ──
   const handleMixdown = async () => {
@@ -505,28 +545,24 @@ const RecordingStudio = ({ user }) => {
 
         {/* ═══ View Toggle ═══ */}
         <div className="daw-topbar-center-tabs">
-          <button
-            className={`daw-view-tab ${viewMode==='record'?'active':''}`}
-            onClick={()=>setViewMode('record')}
-          >
+          <button className={`daw-view-tab ${viewMode==='record'?'active':''}`} onClick={()=>setViewMode('record')}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
             Record
           </button>
-          <button
-            className={`daw-view-tab ${viewMode==='arrange'?'active':''}`}
-            onClick={()=>setViewMode('arrange')}
-          >
+          <button className={`daw-view-tab ${viewMode==='arrange'?'active':''}`} onClick={()=>setViewMode('arrange')}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             Arrange
           </button>
-          <button
-            className={`daw-view-tab ai-tab ${showAIMix ? 'active' : ''}`}
-            onClick={() => setShowAIMix(!showAIMix)}
-            title="AI Mix Assistant"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="8" r="1.5" fill="currentColor"/>
-            </svg>
+          <button className={`daw-view-tab ${viewMode==='beatmaker'?'active':''}`} onClick={()=>setViewMode('beatmaker')}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/></svg>
+            Beat Maker
+          </button>
+          <button className={`daw-view-tab ${showMicSim?'active':''}`} onClick={()=>setShowMicSim(!showMicSim)} title="Mic Simulator">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            Mic Sim
+          </button>
+          <button className={`daw-view-tab ai-tab ${showAIMix?'active':''}`} onClick={()=>setShowAIMix(!showAIMix)} title="AI Mix Assistant">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="8" r="1.5" fill="currentColor"/></svg>
             AI Mix
           </button>
         </div>
@@ -564,11 +600,10 @@ const RecordingStudio = ({ user }) => {
       {/* ═══════════════════ MAIN VIEW AREA ═══════════════════ */}
       <div className="daw-main">
 
-        {/* ──────── RECORD VIEW (Mixer + Waveforms) ──────── */}
+        {/* ──────── RECORD VIEW ──────── */}
         {viewMode === 'record' && (
           <>
             <div className="daw-tracks-area">
-              {/* Ruler */}
               <div className="daw-ruler">
                 <div className="daw-ruler-header"></div>
                 <div className="daw-ruler-timeline">
@@ -580,8 +615,6 @@ const RecordingStudio = ({ user }) => {
                   {duration>0&&<div className="daw-ruler-playhead" style={{left:`${(currentTime/Math.max(duration,1))*100}%`}}></div>}
                 </div>
               </div>
-
-              {/* Track Rows */}
               {tracks.map((track,i)=>(
                 <div key={i} className={`daw-track-row ${track.armed?'armed':''} ${track.muted?'muted':''} ${track.solo?'soloed':''} ${activeEffectsTrack===i?'fx-open':''}`}>
                   <div className="daw-track-strip">
@@ -601,34 +634,20 @@ const RecordingStudio = ({ user }) => {
                       <span className="daw-pan-val">{track.pan===0?'C':track.pan<0?`L${Math.abs(Math.round(track.pan*50))}`:`R${Math.round(track.pan*50)}`}</span>
                     </div>
                     <div className="daw-track-actions-strip">
-                      <button className="daw-tiny-btn" onClick={()=>handleImport(i)} title="Import">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                      </button>
-                      <button className="daw-tiny-btn" onClick={()=>clearTrack(i)} title="Clear Track">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                      </button>
-                      <button className="daw-tiny-btn" onClick={()=>setActiveEffectsTrack(activeEffectsTrack===i?null:i)} title="FX">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-                      </button>
-                      <button className="daw-tiny-btn" onClick={()=>removeTrack(i)} title="Remove Track">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                      </button>
+                      <button className="daw-tiny-btn" onClick={()=>handleImport(i)} title="Import"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+                      <button className="daw-tiny-btn" onClick={()=>clearTrack(i)} title="Clear"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                      <button className="daw-tiny-btn" onClick={()=>setActiveEffectsTrack(activeEffectsTrack===i?null:i)} title="FX"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></button>
+                      <button className="daw-tiny-btn" onClick={()=>removeTrack(i)} title="Remove"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                     </div>
                   </div>
                   <div className="daw-track-region">
                     {track.audioBuffer
-                      ? <div className="daw-region-block" style={{'--region-color':track.color}}>
-                          <div className="daw-region-label">{track.name}</div>
-                          <canvas ref={el=>{canvasRefs.current[i]=el;}} width={1200} height={56} className="daw-waveform-canvas" />
-                        </div>
-                      : <div className="daw-region-empty">{track.armed?<span className="daw-armed-label">● Armed</span>:<span>Empty</span>}</div>
-                    }
+                      ? <div className="daw-region-block" style={{'--region-color':track.color}}><div className="daw-region-label">{track.name}</div><canvas ref={el=>{canvasRefs.current[i]=el;}} width={1200} height={56} className="daw-waveform-canvas" /></div>
+                      : <div className="daw-region-empty">{track.armed?<span className="daw-armed-label">● Armed</span>:<span>Empty</span>}</div>}
                     {duration>0&&<div className="daw-track-playhead" style={{left:`${(currentTime/Math.max(duration,1))*100}%`}}></div>}
                   </div>
                 </div>
               ))}
-
-              {/* Add Track */}
               <div className="daw-add-track-row">
                 <button className="daw-add-track-btn" onClick={addTrack} disabled={tracks.length >= maxTracks}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -640,35 +659,31 @@ const RecordingStudio = ({ user }) => {
           </>
         )}
 
-        {/* ──────── ARRANGE VIEW (ArrangerView Component) ──────── */}
+        {/* ──────── ARRANGE VIEW ──────── */}
         {viewMode === 'arrange' && (
           <ArrangerView
-            tracks={tracks}
-            setTracks={setTracks}
-            bpm={bpm}
-            timeSignatureTop={timeSignature[0]}
-            timeSignatureBottom={timeSignature[1]}
-            masterVolume={masterVolume}
-            onMasterVolumeChange={setMasterVolume}
-            projectName={projectName}
-            userTier={userTier}
-            playheadBeat={playheadBeat}
-            isPlaying={isPlaying}
-            isRecording={isRecording}
-            onPlay={handleArrangerPlay}
-            onStop={handleArrangerStop}
-            onRecord={handleArrangerRecord}
-            onSeek={seekToBeat}
-            onBpmChange={handleBpmChange}
-            onTimeSignatureChange={handleTimeSignatureChange}
-            onToggleFx={handleToggleFx}
-            onBounce={handleMixdown}
-            onSave={saveProject}
-            saving={saving}
+            tracks={tracks} setTracks={setTracks} bpm={bpm}
+            timeSignatureTop={timeSignature[0]} timeSignatureBottom={timeSignature[1]}
+            masterVolume={masterVolume} onMasterVolumeChange={setMasterVolume}
+            projectName={projectName} userTier={userTier}
+            playheadBeat={playheadBeat} isPlaying={isPlaying} isRecording={isRecording}
+            onPlay={handleArrangerPlay} onStop={handleArrangerStop} onRecord={handleArrangerRecord}
+            onSeek={seekToBeat} onBpmChange={handleBpmChange}
+            onTimeSignatureChange={handleTimeSignatureChange} onToggleFx={handleToggleFx}
+            onBounce={handleMixdown} onSave={saveProject} saving={saving}
           />
         )}
 
-        {/* ──────── FX PANEL (visible in Record view when track selected) ──────── */}
+        {/* ──────── BEAT MAKER VIEW ──────── */}
+        {viewMode === 'beatmaker' && (
+          <SamplerBeatMaker
+            onExport={handleBeatExport}
+            onClose={() => setViewMode('record')}
+            isEmbedded={true}
+          />
+        )}
+
+        {/* ──────── FX PANEL ──────── */}
         {viewMode === 'record' && afx && (
           <div className="daw-fx-panel">
             <div className="daw-fx-header">
@@ -676,7 +691,6 @@ const RecordingStudio = ({ user }) => {
               <span>{afx.name} — Effects</span>
               <button className="daw-fx-close" onClick={()=>setActiveEffectsTrack(null)}>✕</button>
             </div>
-
             {[
               {key:'eq',label:'EQ',params:[{p:'lowGain',l:'Low',min:-12,max:12,step:0.5,fmt:v=>`${v>0?'+':''}${v}dB`},{p:'midGain',l:'Mid',min:-12,max:12,step:0.5,fmt:v=>`${v>0?'+':''}${v}dB`},{p:'midFreq',l:'Mid Freq',min:200,max:8000,step:10,fmt:v=>v>=1000?(v/1000).toFixed(1)+'k':v},{p:'highGain',l:'High',min:-12,max:12,step:0.5,fmt:v=>`${v>0?'+':''}${v}dB`}]},
               {key:'compressor',label:'Compressor',params:[{p:'threshold',l:'Thresh',min:-60,max:0,step:1,fmt:v=>`${v}dB`},{p:'ratio',l:'Ratio',min:1,max:20,step:0.5,fmt:v=>`${v}:1`},{p:'attack',l:'Attack',min:0,max:1,step:0.001,fmt:v=>`${(v*1000).toFixed(0)}ms`},{p:'release',l:'Release',min:0.01,max:1,step:0.01,fmt:v=>`${(v*1000).toFixed(0)}ms`}]},
@@ -695,11 +709,7 @@ const RecordingStudio = ({ user }) => {
                 <div className="daw-fx-controls">
                   {extra}
                   {params.map(({p,l,min,max,step,fmt})=>(
-                    <div key={p} className="daw-fx-param">
-                      <label>{l}</label>
-                      <input type="range" min={min} max={max} step={step} value={afx.effects[key][p]} onChange={e=>updateEffect(activeEffectsTrack,key,p,parseFloat(e.target.value))} />
-                      <span>{fmt(afx.effects[key][p])}</span>
-                    </div>
+                    <div key={p} className="daw-fx-param"><label>{l}</label><input type="range" min={min} max={max} step={step} value={afx.effects[key][p]} onChange={e=>updateEffect(activeEffectsTrack,key,p,parseFloat(e.target.value))} /><span>{fmt(afx.effects[key][p])}</span></div>
                   ))}
                 </div>
               </div>
@@ -707,15 +717,26 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {/* ──────── AI MIX ASSISTANT PANEL ──────── */}
+        {/* ──────── MIC SIMULATOR PANEL ──────── */}
+        {showMicSim && (
+          <div className="daw-mic-sim-panel">
+            <MicSimulator
+              audioContext={audioCtxRef.current}
+              inputStream={micSimStream}
+              onRecordingComplete={handleMicSimRecordingComplete}
+              embedded={true}
+              defaultMic="sm7b"
+              showRecordButton={true}
+            />
+          </div>
+        )}
+
+        {/* ──────── AI MIX ASSISTANT ──────── */}
         {showAIMix && (
           <AIMixAssistant
-            tracks={tracks}
-            projectId={projectId}
-            onApplyVolume={handleAIApplyVolume}
-            onApplyPan={handleAIApplyPan}
-            onApplyEQ={handleAIApplyEQ}
-            onApplyCompression={handleAIApplyCompression}
+            tracks={tracks} projectId={projectId}
+            onApplyVolume={handleAIApplyVolume} onApplyPan={handleAIApplyPan}
+            onApplyEQ={handleAIApplyEQ} onApplyCompression={handleAIApplyCompression}
             onClose={() => setShowAIMix(false)}
           />
         )}

@@ -3,8 +3,16 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[[source]]
+url = "https://download.pytorch.org/whl/cpu"
+verify_ssl = true
+name = "pytorch-cpu"
+
 [packages]
 matchering = "*"
+torch = {version = "*", index = "pytorch-cpu"}
+torchaudio = {version = "*", index = "pytorch-cpu"}
+demucs = "*"
 
 [dev-packages]
 
