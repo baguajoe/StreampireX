@@ -38,12 +38,25 @@ const DEFAULT_PAD = {
   trimStart: 0, trimEnd: null,
   playMode: 'oneshot', reverse: false,
   muted: false, soloed: false,
-  // Effects (Phase 3)
+  // Program type: drum | keygroup | clip
+  programType: 'drum',
+  // Effects
   filterOn: false, filterType: 'lowpass', filterFreq: 2000, filterQ: 1,
   reverbOn: false, reverbMix: 0.3,
   delayOn: false, delayTime: 0.25, delayFeedback: 0.3, delayMix: 0.2,
   distortionOn: false, distortionAmt: 20,
-  attack: 0, release: 0,
+  // Full ADSR envelope
+  attack: 0, decay: 0, sustain: 1.0, release: 0,
+  // Phase 2: Velocity layers (up to 4)
+  layers: [], roundRobin: false, roundRobinIdx: 0,
+  // Phase 3: Keygroup
+  rootNote: 60, keyRangeLow: 36, keyRangeHigh: 84,
+  // Phase 4: Time stretch
+  originalBpm: 0, timeStretch: false, stretchMode: 'repitch', pitchShift: 0,
+  // Phase 5: Clip launcher
+  clipPlaying: false, clipQueued: false, clipLoopStart: 0, clipLoopEnd: null,
+  clipColor: null, clipName: '',
+  normalized: false,
 };
 
 const STEP_COUNTS = [16, 32, 64];
@@ -83,6 +96,32 @@ const mkPattern = (n, sc) => ({
   stepCount: sc || 16,
 });
 
+// ── Zero-crossing snap helper (prevents clicks on chop points) ──
+const findZeroCrossing = (data, sampleIdx, range = 512) => {
+  const start = Math.max(0, sampleIdx - range);
+  const end = Math.min(data.length - 1, sampleIdx + range);
+  let closest = sampleIdx, minDist = range + 1;
+  for (let i = start; i < end - 1; i++) {
+    if ((data[i] >= 0 && data[i + 1] < 0) || (data[i] < 0 && data[i + 1] >= 0)) {
+      const dist = Math.abs(i - sampleIdx);
+      if (dist < minDist) { minDist = dist; closest = i; }
+    }
+  }
+  return closest;
+};
+
+// ── RMS level calculation (Fix #4: proper loudness metering) ──
+const calcRMS = (analyser) => {
+  const buf = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(buf);
+  let sum = 0;
+  for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+  return Math.sqrt(sum / buf.length);
+};
+
+const CHROMATIC_KEYS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const CHOP_MODES = ['transient', 'bpmgrid', 'equal', 'manual'];
+
 // =============================================================================
 // COMPONENT
 // =============================================================================
@@ -98,6 +137,8 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   const mediaStream = useRef(null);
   const mediaRec = useRef(null);
   const recChunks = useRef([]);
+  const blobUrls = useRef([]); // Fix #3: track blob URLs for cleanup
+  const reverbBufCache = useRef({}); // Fix #10: cache reverb IR per decay
 
   // ==== PADS ====
   const [pads, setPads] = useState(
@@ -148,6 +189,9 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   const [chopPts, setChopPts] = useState([]);
   const [chopSens, setChopSens] = useState(0.3);
   const chopCanvas = useRef(null);
+  const [chopMode, setChopMode] = useState('transient');
+  const [chopSlices, setChopSlices] = useState(8);
+  const [zeroCrossSnap, setZeroCrossSnap] = useState(true);
 
   // ==== MIXER (Phase 2) ====
   const [showMixer, setShowMixer] = useState(false);
@@ -162,6 +206,21 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   // ==== SOUND LIBRARY (Phase 2) ====
   const [showLib, setShowLib] = useState(false);
   const [selKit, setSelKit] = useState(null);
+
+  // ==== PHASE 2-5 STATE ====
+  const [keygroupMode, setKeygroupMode] = useState(false);
+  const [exportBitDepth, setExportBitDepth] = useState(16);
+  const [activeKgNotes, setActiveKgNotes] = useState(new Set()); // Phase 3: active keygroup notes
+  const [showKeyboard, setShowKeyboard] = useState(false); // Phase 3: visual keyboard
+
+  // ==== PHASE 5: Clip Launcher STATE ====
+  const [showClipLauncher, setShowClipLauncher] = useState(false);
+  const [scenes, setScenes] = useState(() => Array.from({ length: 4 }, (_, i) => ({
+    name: `Scene ${i + 1}`, clips: Array(16).fill(null), // null = empty slot
+  })));
+  const [clipStates, setClipStates] = useState({}); // key: `${sceneIdx}_${padIdx}` → 'stopped'|'playing'|'queued'
+  const [activeScene, setActiveScene] = useState(-1);
+  const clipSources = useRef({}); // active clip audio sources
 
   // ==== MIDI (Phase 3) ====
   const [midiInputs, setMidiInputs] = useState([]);
@@ -241,16 +300,25 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   // AUDIO INIT
   // =========================================================================
 
+  // Fix #10: Cache reverb IR per decay value (deterministic bounce)
+  const getReverbIR = useCallback((ctx, decay = 2.0) => {
+    const key = decay.toFixed(1);
+    if (reverbBufCache.current[key]) return reverbBufCache.current[key];
+    const len = ctx.sampleRate * decay;
+    const ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5);
+    }
+    reverbBufCache.current[key] = ir;
+    return ir;
+  }, []);
+
   const initCtx = useCallback(() => {
     if (ctxRef.current && ctxRef.current.state !== 'closed') return ctxRef.current;
     const c = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive', sampleRate: 44100 });
     const mg = c.createGain(); mg.gain.value = masterVol; mg.connect(c.destination); masterRef.current = mg;
     const met = c.createGain(); met.gain.value = 0.3; met.connect(c.destination); metGainRef.current = met;
-    // Reverb IR
-    const len = c.sampleRate * 2;
-    const ir = c.createBuffer(2, len, c.sampleRate);
-    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5); }
-    reverbBuf.current = ir;
     ctxRef.current = c;
     return c;
   }, [masterVol]);
@@ -300,6 +368,26 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
         setMidiMap(p => ({ ...p, [note]: midiLearnPad }));
         setMidiLearn(false); setMidiLearnPad(null); return;
       }
+
+      // Phase 3: Check if any pad is set to keygroup and note is in its range
+      const kgPads = padsRef.current
+        .map((p, i) => ({ pad: p, idx: i }))
+        .filter(({ pad }) => pad.programType === 'keygroup' && pad.buffer &&
+          note >= (pad.keyRangeLow || 0) && note <= (pad.keyRangeHigh || 127));
+
+      if (kgPads.length > 0) {
+        if (noteOn) {
+          const v = vel / 127;
+          kgPads.forEach(({ idx }) => playPadKeygroup(idx, note, v));
+          if (liveRef.current && ctxRef.current)
+            setRecHits(p => [...p, { pad: kgPads[0].idx, time: ctxRef.current.currentTime - recStartT.current, velocity: vel / 127, midiNote: note }]);
+        } else if (noteOff) {
+          kgPads.forEach(({ idx }) => stopPadKeygroup(idx, note));
+        }
+        return; // keygroup handled, don't fall through to drum mode
+      }
+
+      // Drum mode: standard pad mapping
       const pi = midiMap[note]; if (pi === undefined) return;
       if (noteOn) {
         const v = vel / 127; playPad(pi, v);
@@ -308,7 +396,7 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
     };
     selMidi.onmidimessage = handle;
     return () => { selMidi.onmidimessage = null; };
-  }, [selMidi, midiMap, midiLearn, midiLearnPad]);
+  }, [selMidi, midiMap, midiLearn, midiLearnPad, playPad, stopPad, playPadKeygroup, stopPadKeygroup]);
 
   // =========================================================================
   // SAMPLE LOADING
@@ -371,6 +459,269 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   }, []);
 
   // =========================================================================
+  // SAMPLE PROCESSING (Normalize, Reverse, Fade)
+  // =========================================================================
+
+  const normalizeSample = useCallback((pi) => {
+    const pad = padsRef.current[pi]; if (!pad?.buffer) return;
+    const c = initCtx(); const buf = pad.buffer;
+    const newBuf = c.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
+    let peak = 0;
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      const data = buf.getChannelData(ch);
+      for (let i = 0; i < data.length; i++) { const abs = Math.abs(data[i]); if (abs > peak) peak = abs; }
+    }
+    if (peak === 0) return;
+    const gain = 1.0 / peak;
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      const src = buf.getChannelData(ch), dst = newBuf.getChannelData(ch);
+      for (let i = 0; i < src.length; i++) dst[i] = src[i] * gain;
+    }
+    setPads(p => { const u = [...p]; u[pi] = { ...u[pi], buffer: newBuf, normalized: true }; return u; });
+  }, [initCtx]);
+
+  const reverseSampleDestructive = useCallback((pi) => {
+    const pad = padsRef.current[pi]; if (!pad?.buffer) return;
+    const c = initCtx(); const buf = pad.buffer;
+    const rev = c.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      const s = buf.getChannelData(ch), d = rev.getChannelData(ch);
+      for (let i = 0; i < s.length; i++) d[i] = s[s.length - 1 - i];
+    }
+    setPads(p => { const u = [...p]; u[pi] = { ...u[pi], buffer: rev, reverse: !u[pi].reverse }; return u; });
+  }, [initCtx]);
+
+  // Phase 1: Fade in (destructive, writes curve into buffer)
+  const fadeInSample = useCallback((pi, durSec = 0.05) => {
+    const pad = padsRef.current[pi]; if (!pad?.buffer) return;
+    const c = initCtx(); const buf = pad.buffer;
+    const newBuf = c.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
+    const fadeSamples = Math.min(Math.floor(durSec * buf.sampleRate), buf.length);
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      const src = buf.getChannelData(ch), dst = newBuf.getChannelData(ch);
+      for (let i = 0; i < buf.length; i++) {
+        dst[i] = i < fadeSamples ? src[i] * (i / fadeSamples) : src[i];
+      }
+    }
+    setPads(p => { const u = [...p]; u[pi] = { ...u[pi], buffer: newBuf }; return u; });
+  }, [initCtx]);
+
+  // Phase 1: Fade out (destructive)
+  const fadeOutSample = useCallback((pi, durSec = 0.05) => {
+    const pad = padsRef.current[pi]; if (!pad?.buffer) return;
+    const c = initCtx(); const buf = pad.buffer;
+    const newBuf = c.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
+    const fadeSamples = Math.min(Math.floor(durSec * buf.sampleRate), buf.length);
+    const fadeStart = buf.length - fadeSamples;
+    for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+      const src = buf.getChannelData(ch), dst = newBuf.getChannelData(ch);
+      for (let i = 0; i < buf.length; i++) {
+        dst[i] = i >= fadeStart ? src[i] * ((buf.length - 1 - i) / fadeSamples) : src[i];
+      }
+    }
+    setPads(p => { const u = [...p]; u[pi] = { ...u[pi], buffer: newBuf }; return u; });
+  }, [initCtx]);
+
+  const previewSrcRef = useRef(null);
+  const chopPlayheadRef = useRef(null); // animation frame ID
+  const [activeSlice, setActiveSlice] = useState(-1);
+
+  const stopPreview = useCallback(() => {
+    if (previewSrcRef.current) { try { previewSrcRef.current.stop(); } catch(e) {} previewSrcRef.current = null; }
+    if (chopPlayheadRef.current) { cancelAnimationFrame(chopPlayheadRef.current); chopPlayheadRef.current = null; }
+    setActiveSlice(-1);
+  }, []);
+
+  const previewSlice = useCallback((sliceIdx) => {
+    if (chopIdx === null) return;
+    const pad = pads[chopIdx]; if (!pad?.buffer) return;
+    const c = initCtx();
+    stopPreview(); // kill any playing preview
+
+    const all = [0, ...chopPts, pad.buffer.duration];
+    const start = all[sliceIdx] || 0, end = all[sliceIdx + 1] || pad.buffer.duration;
+    const dur = end - start;
+
+    const src = c.createBufferSource();
+    src.buffer = pad.buffer; src.connect(masterRef.current);
+    src.start(0, start, dur);
+    previewSrcRef.current = src;
+    setActiveSlice(sliceIdx);
+
+    // Animate playhead on chop canvas
+    const startTime = c.currentTime;
+    const cv = chopCanvas.current;
+    const animate = () => {
+      if (!previewSrcRef.current) return;
+      const elapsed = c.currentTime - startTime;
+      if (elapsed >= dur) { stopPreview(); return; }
+      if (cv) {
+        const ctx2 = cv.getContext('2d');
+        drawWave(); // redraw base
+        const x = ((start + elapsed) / pad.buffer.duration) * cv.width;
+        ctx2.strokeStyle = '#fff'; ctx2.lineWidth = 2; ctx2.setLineDash([]);
+        ctx2.beginPath(); ctx2.moveTo(x, 0); ctx2.lineTo(x, cv.height); ctx2.stroke();
+      }
+      chopPlayheadRef.current = requestAnimationFrame(animate);
+    };
+    chopPlayheadRef.current = requestAnimationFrame(animate);
+
+    src.onended = () => { stopPreview(); };
+  }, [chopIdx, pads, chopPts, initCtx, stopPreview, drawWave]);
+
+  // Phase 1: Undo last chop point
+  const chopUndoStack = useRef([]);
+  const undoChop = useCallback(() => {
+    setChopPts(prev => {
+      if (prev.length === 0) return prev;
+      chopUndoStack.current.push(prev[prev.length - 1]);
+      return prev.slice(0, -1);
+    });
+  }, []);
+  const redoChop = useCallback(() => {
+    if (chopUndoStack.current.length === 0) return;
+    const pt = chopUndoStack.current.pop();
+    setChopPts(prev => [...prev, pt].sort((a, b) => a - b));
+  }, []);
+
+  // Phase 4: BPM detection from sample
+  const detectBpm = useCallback((pi) => {
+    const pad = padsRef.current[pi]; if (!pad?.buffer) return 0;
+    const data = pad.buffer.getChannelData(0), sr = pad.buffer.sampleRate;
+    const dsRate = 4000, dsFactor = Math.floor(sr / dsRate);
+    const ds = []; for (let i = 0; i < data.length; i += dsFactor) ds.push(Math.abs(data[i]));
+    const frameSize = 128, energy = [];
+    for (let i = 0; i < ds.length - frameSize; i += frameSize) {
+      let e = 0; for (let j = 0; j < frameSize; j++) e += ds[i + j] * ds[i + j]; energy.push(e / frameSize);
+    }
+    const diff = [0]; for (let i = 1; i < energy.length; i++) diff.push(Math.max(0, energy[i] - energy[i - 1]));
+    const minLag = Math.floor(dsRate * 60 / (200 * frameSize));
+    const maxLag = Math.floor(dsRate * 60 / (50 * frameSize));
+    let bestLag = minLag, bestCorr = -1;
+    for (let lag = minLag; lag <= Math.min(maxLag, diff.length / 2); lag++) {
+      let corr = 0; for (let i = 0; i < diff.length - lag; i++) corr += diff[i] * diff[i + lag];
+      if (corr > bestCorr) { bestCorr = corr; bestLag = lag; }
+    }
+    const detected = Math.round(60 / (bestLag * frameSize / dsRate));
+    return (detected >= 50 && detected <= 200) ? detected : 0;
+  }, []);
+
+  const setBpmFromSample = useCallback((pi) => {
+    const detected = detectBpm(pi);
+    if (detected > 0) setPads(p => { const u = [...p]; u[pi] = { ...u[pi], originalBpm: detected }; return u; });
+  }, [detectBpm]);
+
+  // Phase 4: Granular time stretch — overlap-add grain synthesis
+  // Creates a new AudioBuffer that is time-stretched without changing pitch
+  const grainStretch = useCallback((buffer, stretchRatio, pitchSemitones = 0) => {
+    if (!buffer || stretchRatio <= 0) return buffer;
+    const c = ctxRef.current || initCtx();
+    const sr = buffer.sampleRate;
+    const nc = buffer.numberOfChannels;
+    const origLen = buffer.length;
+    const newLen = Math.round(origLen * stretchRatio);
+    if (newLen <= 0 || newLen > sr * 120) return buffer; // sanity: max 120s
+
+    const grainSize = Math.round(sr * 0.04); // 40ms grains
+    const hopOut = Math.round(grainSize * 0.5); // 50% overlap
+    const hopIn = Math.round(hopOut / stretchRatio);
+
+    const outBuf = c.createBuffer(nc, newLen, sr);
+
+    // Hann window
+    const window = new Float32Array(grainSize);
+    for (let i = 0; i < grainSize; i++) window[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (grainSize - 1)));
+
+    for (let ch = 0; ch < nc; ch++) {
+      const input = buffer.getChannelData(ch);
+      const output = outBuf.getChannelData(ch);
+
+      let inPos = 0;
+      let outPos = 0;
+      while (outPos < newLen) {
+        const readStart = Math.round(inPos);
+        for (let i = 0; i < grainSize && outPos + i < newLen; i++) {
+          const readIdx = readStart + i;
+          const sample = readIdx < origLen ? input[readIdx] : 0;
+          output[outPos + i] += sample * window[i];
+        }
+        inPos += hopIn;
+        outPos += hopOut;
+      }
+    }
+
+    // Apply pitch shift if needed (resample the stretched buffer)
+    if (pitchSemitones !== 0) {
+      const pitchRatio = Math.pow(2, pitchSemitones / 12);
+      const pitchedLen = Math.round(newLen / pitchRatio);
+      if (pitchedLen <= 0 || pitchedLen > sr * 120) return outBuf;
+      const pitched = c.createBuffer(nc, pitchedLen, sr);
+      for (let ch = 0; ch < nc; ch++) {
+        const src = outBuf.getChannelData(ch);
+        const dst = pitched.getChannelData(ch);
+        for (let i = 0; i < pitchedLen; i++) {
+          const srcIdx = i * pitchRatio;
+          const idx0 = Math.floor(srcIdx);
+          const frac = srcIdx - idx0;
+          const s0 = idx0 < newLen ? src[idx0] : 0;
+          const s1 = idx0 + 1 < newLen ? src[idx0 + 1] : s0;
+          dst[i] = s0 + frac * (s1 - s0); // linear interpolation
+        }
+      }
+      return pitched;
+    }
+    return outBuf;
+  }, [initCtx]);
+
+  // Phase 4: Pre-stretch a pad's buffer for granular/slice modes
+  const stretchPadBuffer = useCallback((pi) => {
+    const pad = padsRef.current[pi];
+    if (!pad?.buffer || !pad.originalBpm || pad.originalBpm <= 0) return;
+    const ratio = bpmRef.current / pad.originalBpm;
+    if (Math.abs(ratio - 1.0) < 0.01) return; // no stretch needed
+    const stretched = grainStretch(pad.buffer, 1.0 / ratio, pad.pitchShift || 0);
+    if (stretched) {
+      setPads(p => {
+        const u = [...p];
+        u[pi] = { ...u[pi], _stretchedBuffer: stretched, _stretchedBpm: bpmRef.current };
+        return u;
+      });
+    }
+  }, [grainStretch]);
+
+  // Phase 2: Velocity layer management
+  const addLayer = useCallback((pi) => {
+    setPads(p => {
+      const u = [...p]; if (u[pi].layers.length >= 4) return u;
+      const count = u[pi].layers.length + 1;
+      const zoneSize = Math.floor(128 / count);
+      const layers = [...u[pi].layers, { buffer: null, name: '', velocityMin: 0, velocityMax: 127, volume: 1 }];
+      layers.forEach((l, i) => { l.velocityMin = i * zoneSize; l.velocityMax = i === count - 1 ? 127 : (i + 1) * zoneSize - 1; });
+      u[pi] = { ...u[pi], layers }; return u;
+    });
+  }, []);
+
+  const removeLayer = useCallback((pi, li) => {
+    setPads(p => {
+      const u = [...p]; const layers = u[pi].layers.filter((_, i) => i !== li);
+      const count = layers.length;
+      if (count > 0) { const z = Math.floor(128 / count); layers.forEach((l, i) => { l.velocityMin = i * z; l.velocityMax = i === count - 1 ? 127 : (i + 1) * z - 1; }); }
+      u[pi] = { ...u[pi], layers }; return u;
+    });
+  }, []);
+
+  const loadLayerSample = useCallback(async (pi, li, file) => {
+    const c = initCtx();
+    try {
+      let ab; if (file instanceof File || file instanceof Blob) ab = await file.arrayBuffer();
+      else if (typeof file === 'string') { const r = await fetch(file); ab = await r.arrayBuffer(); } else return;
+      const buf = await c.decodeAudioData(ab);
+      const name = file.name ? file.name.replace(/\.[^/.]+$/, '') : 'Layer ' + (li + 1);
+      setPads(p => { const u = [...p]; const layers = [...u[pi].layers]; layers[li] = { ...layers[li], buffer: buf, name }; u[pi] = { ...u[pi], layers }; return u; });
+    } catch (e) { console.error('Load layer failed:', e); }
+  }, [initCtx]);
+
+  // =========================================================================
   // PAD PLAYBACK WITH EFFECTS
   // =========================================================================
 
@@ -384,26 +735,118 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
     // Stop prev
     if (activeSrc.current[pi]) { try { activeSrc.current[pi].source.stop(); } catch (e) {} }
 
+    // Phase 2: Velocity layer selection
+    let sampleBuffer = pad.buffer;
+    let layerVol = 1.0; // per-layer volume multiplier
+    let layerIdx = -1;  // which layer triggered (-1 = base)
+    if (pad.layers && pad.layers.length > 0) {
+      const velMidi = Math.round(vel * 127);
+      if (pad.roundRobin && pad.layers.length > 1) {
+        // Round robin: cycle through layers regardless of velocity
+        const validLayers = pad.layers.map((l, i) => ({ ...l, _i: i })).filter(l => l.buffer);
+        if (validLayers.length > 0) {
+          const rr = (pad.roundRobinIdx || 0) % validLayers.length;
+          sampleBuffer = validLayers[rr].buffer;
+          layerVol = validLayers[rr].volume ?? 1;
+          layerIdx = validLayers[rr]._i;
+          padsRef.current[pi] = { ...padsRef.current[pi], roundRobinIdx: (pad.roundRobinIdx || 0) + 1 };
+        }
+      } else {
+        // Velocity zone: find matching layer
+        for (let li = 0; li < pad.layers.length; li++) {
+          const l = pad.layers[li];
+          if (l.buffer && velMidi >= l.velocityMin && velMidi <= l.velocityMax) {
+            sampleBuffer = l.buffer;
+            layerVol = l.volume ?? 1;
+            layerIdx = li;
+            break;
+          }
+        }
+      }
+    }
+
     const src = c.createBufferSource();
     const gain = c.createGain();
     const pan = c.createStereoPanner();
 
     // Reverse
     if (pad.reverse) {
-      const rev = c.createBuffer(pad.buffer.numberOfChannels, pad.buffer.length, pad.buffer.sampleRate);
-      for (let ch = 0; ch < pad.buffer.numberOfChannels; ch++) {
-        const s = pad.buffer.getChannelData(ch), d = rev.getChannelData(ch);
+      const rev = c.createBuffer(sampleBuffer.numberOfChannels, sampleBuffer.length, sampleBuffer.sampleRate);
+      for (let ch = 0; ch < sampleBuffer.numberOfChannels; ch++) {
+        const s = sampleBuffer.getChannelData(ch), d = rev.getChannelData(ch);
         for (let i = 0; i < s.length; i++) d[i] = s[s.length - 1 - i];
       }
       src.buffer = rev;
-    } else src.buffer = pad.buffer;
+    } else src.buffer = sampleBuffer;
 
     src.playbackRate.value = Math.pow(2, pad.pitch / 12);
-    if (pad.playMode === 'loop') { src.loop = true; src.loopStart = pad.trimStart; src.loopEnd = pad.trimEnd || pad.buffer.duration; }
+
+    // Phase 1: Crossfade loop - build buffer with crossfaded loop boundaries
+    if (pad.playMode === 'loop') {
+      const loopStart = pad.trimStart || 0;
+      const loopEnd = pad.trimEnd || sampleBuffer.duration;
+      const loopDur = loopEnd - loopStart;
+      const xfadeDur = Math.min(0.01, loopDur * 0.05); // 10ms or 5% of loop, whichever is smaller
+      const xfadeSamples = Math.floor(xfadeDur * sampleBuffer.sampleRate);
+      if (xfadeSamples > 0 && loopDur > xfadeDur * 2) {
+        const startSamp = Math.floor(loopStart * sampleBuffer.sampleRate);
+        const endSamp = Math.floor(loopEnd * sampleBuffer.sampleRate);
+        const loopLen = endSamp - startSamp;
+        const nc = sampleBuffer.numberOfChannels;
+        const xfBuf = c.createBuffer(nc, loopLen, sampleBuffer.sampleRate);
+        for (let ch = 0; ch < nc; ch++) {
+          const orig = sampleBuffer.getChannelData(ch);
+          const dst = xfBuf.getChannelData(ch);
+          for (let i = 0; i < loopLen; i++) dst[i] = orig[startSamp + i];
+          // Crossfade: blend end into start
+          for (let i = 0; i < xfadeSamples; i++) {
+            const fadeOut = (xfadeSamples - i) / xfadeSamples;
+            const fadeIn = i / xfadeSamples;
+            const endVal = dst[loopLen - xfadeSamples + i]; // sample near loop end
+            const startVal = dst[i]; // sample near loop start
+            dst[i] = startVal * fadeIn + endVal * fadeOut;
+          }
+        }
+        src.buffer = xfBuf;
+        src.loop = true; src.loopStart = 0; src.loopEnd = xfBuf.duration;
+      } else {
+        src.loop = true; src.loopStart = loopStart; src.loopEnd = loopEnd;
+      }
+    }
+
+    // Phase 4: Time stretch
+    if (pad.timeStretch && pad.originalBpm > 0) {
+      if (pad.stretchMode === 'repitch') {
+        // Repitch: changes tempo AND pitch via playbackRate
+        src.playbackRate.value *= bpmRef.current / pad.originalBpm;
+        // Apply additional pitch shift
+        if (pad.pitchShift) src.playbackRate.value *= Math.pow(2, pad.pitchShift / 12);
+      } else if (pad.stretchMode === 'granular' || pad.stretchMode === 'slice') {
+        // Granular/Slice: use pre-stretched buffer (preserves pitch)
+        if (pad._stretchedBuffer && pad._stretchedBpm === bpmRef.current) {
+          src.buffer = pad._stretchedBuffer;
+        } else {
+          // Fallback to repitch if no pre-stretched buffer available
+          src.playbackRate.value *= bpmRef.current / pad.originalBpm;
+        }
+        // Pitch shift is baked into granular buffer, no additional rate change
+      }
+    } else if (pad.pitchShift && pad.pitchShift !== 0) {
+      // Independent pitch shift without time stretch
+      src.playbackRate.value *= Math.pow(2, pad.pitchShift / 12);
+    }
 
     const st = time || c.currentTime;
-    if (pad.attack > 0) { gain.gain.setValueAtTime(0, st); gain.gain.linearRampToValueAtTime(pad.volume * vel, st + pad.attack); }
-    else gain.gain.setValueAtTime(pad.volume * vel, st);
+    const peakVol = pad.volume * vel * layerVol;
+    // Full ADSR envelope
+    if (pad.attack > 0) {
+      gain.gain.setValueAtTime(0, st);
+      gain.gain.linearRampToValueAtTime(peakVol, st + pad.attack);
+      if (pad.decay > 0) gain.gain.linearRampToValueAtTime(peakVol * (pad.sustain ?? 1), st + pad.attack + pad.decay);
+    } else {
+      gain.gain.setValueAtTime(peakVol * (pad.decay > 0 ? 1 : (pad.sustain ?? 1)), st);
+      if (pad.decay > 0) gain.gain.linearRampToValueAtTime(peakVol * (pad.sustain ?? 1), st + pad.decay);
+    }
     pan.pan.value = pad.pan;
 
     // Effects chain: src → [filter] → [distortion] → gain → pan → master + [delay wet] + [reverb wet]
@@ -425,22 +868,23 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
       dl.delayTime.value = pad.delayTime; dg.gain.value = pad.delayMix; fb.gain.value = pad.delayFeedback;
       pan.connect(dl); dl.connect(dg); dl.connect(fb); fb.connect(dl); dg.connect(masterRef.current);
     }
-    if (pad.reverbOn && reverbBuf.current) {
+    if (pad.reverbOn) {
+      const ir = getReverbIR(c, 2.0);
       const conv = c.createConvolver(), rg = c.createGain();
-      conv.buffer = reverbBuf.current; rg.gain.value = pad.reverbMix;
+      conv.buffer = ir; rg.gain.value = pad.reverbMix;
       pan.connect(conv); conv.connect(rg); rg.connect(masterRef.current);
     }
 
     const off = pad.trimStart || 0;
-    const dur = (pad.trimEnd || pad.buffer.duration) - off;
+    const dur = (pad.trimEnd || sampleBuffer.duration) - off;
     if (pad.playMode === 'loop') src.start(st, off);
     else src.start(st, off, dur + (pad.release || 0));
 
     if (pad.release > 0 && pad.playMode !== 'loop') {
-      const rs = st + dur; gain.gain.setValueAtTime(pad.volume * vel, rs); gain.gain.linearRampToValueAtTime(0, rs + pad.release);
+      const rs = st + dur; gain.gain.setValueAtTime(peakVol * (pad.sustain ?? 1), rs); gain.gain.linearRampToValueAtTime(0, rs + pad.release);
     }
 
-    activeSrc.current[pi] = { source: src, gain };
+    activeSrc.current[pi] = { source: src, gain, layerIdx };
     setActivePads(p => new Set([...p, pi]));
     src.onended = () => { setActivePads(p => { const n = new Set(p); n.delete(pi); return n; }); delete activeSrc.current[pi]; };
 
@@ -453,9 +897,144 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
     setActivePads(p => { const n = new Set(p); n.delete(pi); return n; });
   }, []);
 
+  // Phase 3: Keygroup playback (chromatic pitch from root note with full effects chain)
+  const playPadKeygroup = useCallback((pi, midiNote, vel = 0.8) => {
+    const c = initCtx();
+    const pad = padsRef.current[pi];
+    if (!pad?.buffer || pad.muted) return;
+    if (midiNote < (pad.keyRangeLow || 0) || midiNote > (pad.keyRangeHigh || 127)) return;
+
+    const key = `kg_${pi}_${midiNote}`;
+    // Stop previous note on same key (retrigger)
+    if (activeSrc.current[key]) { try { activeSrc.current[key].source.stop(); } catch(e) {} delete activeSrc.current[key]; }
+
+    // Velocity layer selection (same as drum mode)
+    let sampleBuffer = pad.buffer;
+    let layerVol = 1.0;
+    if (pad.layers && pad.layers.length > 0) {
+      const velMidi = Math.round(vel * 127);
+      if (pad.roundRobin && pad.layers.length > 1) {
+        const valid = pad.layers.filter(l => l.buffer);
+        if (valid.length > 0) {
+          const rr = (pad.roundRobinIdx || 0) % valid.length;
+          sampleBuffer = valid[rr].buffer; layerVol = valid[rr].volume ?? 1;
+          padsRef.current[pi] = { ...padsRef.current[pi], roundRobinIdx: (pad.roundRobinIdx || 0) + 1 };
+        }
+      } else {
+        const match = pad.layers.find(l => l.buffer && velMidi >= l.velocityMin && velMidi <= l.velocityMax);
+        if (match) { sampleBuffer = match.buffer; layerVol = match.volume ?? 1; }
+      }
+    }
+
+    const src = c.createBufferSource();
+    const gain = c.createGain();
+    const pan = c.createStereoPanner();
+
+    // Reverse
+    if (pad.reverse) {
+      const rev = c.createBuffer(sampleBuffer.numberOfChannels, sampleBuffer.length, sampleBuffer.sampleRate);
+      for (let ch = 0; ch < sampleBuffer.numberOfChannels; ch++) {
+        const s = sampleBuffer.getChannelData(ch), d = rev.getChannelData(ch);
+        for (let i = 0; i < s.length; i++) d[i] = s[s.length - 1 - i];
+      }
+      src.buffer = rev;
+    } else src.buffer = sampleBuffer;
+
+    // Chromatic pitch: semitones from root note
+    const semitones = midiNote - (pad.rootNote || 60);
+    src.playbackRate.value = Math.pow(2, (semitones + (pad.pitch || 0)) / 12);
+
+    // ADSR envelope
+    const st = c.currentTime;
+    const peakVol = pad.volume * vel * layerVol;
+    if (pad.attack > 0) {
+      gain.gain.setValueAtTime(0, st);
+      gain.gain.linearRampToValueAtTime(peakVol, st + pad.attack);
+      if (pad.decay > 0) gain.gain.linearRampToValueAtTime(peakVol * (pad.sustain ?? 1), st + pad.attack + pad.decay);
+    } else {
+      gain.gain.setValueAtTime(peakVol * (pad.decay > 0 ? 1 : (pad.sustain ?? 1)), st);
+      if (pad.decay > 0) gain.gain.linearRampToValueAtTime(peakVol * (pad.sustain ?? 1), st + pad.decay);
+    }
+    pan.pan.value = pad.pan;
+
+    // Effects chain
+    let last = src;
+    if (pad.filterOn) {
+      const f = c.createBiquadFilter(); f.type = pad.filterType; f.frequency.value = pad.filterFreq; f.Q.value = pad.filterQ;
+      last.connect(f); last = f;
+    }
+    if (pad.distortionOn) {
+      const ws = c.createWaveShaper(); const amt = pad.distortionAmt;
+      const curve = new Float32Array(44100);
+      for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; curve[i] = ((3 + amt) * x * 20 * (Math.PI / 180)) / (Math.PI + amt * Math.abs(x)); }
+      ws.curve = curve; ws.oversample = '2x'; last.connect(ws); last = ws;
+    }
+    last.connect(gain); gain.connect(pan); pan.connect(masterRef.current);
+
+    if (pad.delayOn) {
+      const dl = c.createDelay(2), dg = c.createGain(), fb = c.createGain();
+      dl.delayTime.value = pad.delayTime; dg.gain.value = pad.delayMix; fb.gain.value = pad.delayFeedback;
+      pan.connect(dl); dl.connect(dg); dl.connect(fb); fb.connect(dl); dg.connect(masterRef.current);
+    }
+    if (pad.reverbOn) {
+      const ir = getReverbIR(c, 2.0);
+      const conv = c.createConvolver(), rg = c.createGain();
+      conv.buffer = ir; rg.gain.value = pad.reverbMix;
+      pan.connect(conv); conv.connect(rg); rg.connect(masterRef.current);
+    }
+
+    // Playback — loop for sustained keygroup, oneshot otherwise
+    const off = pad.trimStart || 0;
+    const dur = (pad.trimEnd || sampleBuffer.duration) - off;
+    if (pad.playMode === 'loop') {
+      src.loop = true; src.loopStart = off; src.loopEnd = pad.trimEnd || sampleBuffer.duration;
+      src.start(st, off);
+    } else {
+      src.start(st, off, dur + (pad.release || 0));
+      if (pad.release > 0) {
+        const rs = st + dur;
+        gain.gain.setValueAtTime(peakVol * (pad.sustain ?? 1), rs);
+        gain.gain.linearRampToValueAtTime(0, rs + pad.release);
+      }
+    }
+
+    activeSrc.current[key] = { source: src, gain, midiNote, padIdx: pi };
+    setActivePads(p => new Set([...p, pi]));
+    setActiveKgNotes(p => new Set([...p, midiNote]));
+    src.onended = () => {
+      delete activeSrc.current[key];
+      setActiveKgNotes(p => { const n = new Set(p); n.delete(midiNote); return n; });
+    };
+  }, [initCtx, getReverbIR]);
+
+  // Phase 3: Stop keygroup note (for noteOff / key release)
+  const stopPadKeygroup = useCallback((pi, midiNote) => {
+    const key = `kg_${pi}_${midiNote}`;
+    const entry = activeSrc.current[key];
+    if (!entry) return;
+    const pad = padsRef.current[pi];
+    const rel = pad?.release || 0.02;
+    const c = ctxRef.current;
+    if (c && entry.gain) {
+      // Release envelope on noteOff
+      const now = c.currentTime;
+      entry.gain.gain.cancelScheduledValues(now);
+      entry.gain.gain.setValueAtTime(entry.gain.gain.value, now);
+      entry.gain.gain.linearRampToValueAtTime(0, now + rel);
+      try { entry.source.stop(now + rel + 0.01); } catch(e) {}
+    } else {
+      try { entry.source.stop(); } catch(e) {}
+    }
+    delete activeSrc.current[key];
+    setActiveKgNotes(p => { const n = new Set(p); n.delete(midiNote); return n; });
+  }, []);
+
   const stopAll = useCallback(() => {
     Object.keys(activeSrc.current).forEach(k => { try { activeSrc.current[k].source.stop(); } catch (e) {} });
     activeSrc.current = {}; setActivePads(new Set());
+    // Phase 5: also stop clip launcher sources
+    Object.keys(clipSources.current).forEach(k => { try { clipSources.current[k].source.stop(); } catch (e) {} });
+    clipSources.current = {}; setClipStates({}); setActiveScene(-1);
   }, []);
 
   // =========================================================================
@@ -478,7 +1057,7 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   const schedStep = useCallback((si, t) => {
     const cs = stepsRef.current;
     for (let pi = 0; pi < 16; pi++) { if (cs[pi]?.[si]) playPad(pi, stepVel[pi]?.[si] ?? 0.8, t); }
-    if (metRef.current) { const spb = scRef.current / 4; metClick(t, si % spb === 0); }
+    if (metRef.current) { const spb = scRef.current / 4; metClick(t, si % spb === 0); } // Fix #5: spb based on step count / beats
     const d = (t - ctxRef.current.currentTime) * 1000;
     setTimeout(() => setCurStep(si), Math.max(0, d));
   }, [playPad, metClick, stepVel]);
@@ -550,6 +1129,260 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   }, []);
 
   // =========================================================================
+  // PHASE 5: CLIP LAUNCHER (Ableton-style)
+  // =========================================================================
+
+  const CLIP_COLORS = ['#ff4444','#ff8800','#ffd700','#00ff88','#00ffc8','#4a9eff','#8844ff','#ff44aa'];
+
+  // Assign a pad's current buffer to a clip slot
+  const assignClip = useCallback((sceneIdx, padIdx) => {
+    const pad = padsRef.current[padIdx];
+    if (!pad?.buffer) return;
+    setScenes(prev => {
+      const u = prev.map(s => ({ ...s, clips: [...s.clips] }));
+      u[sceneIdx].clips[padIdx] = {
+        padIdx,
+        name: pad.name || `Clip ${padIdx + 1}`,
+        loopStart: pad.trimStart || 0,
+        loopEnd: pad.trimEnd || pad.buffer.duration,
+        color: CLIP_COLORS[(sceneIdx + padIdx) % CLIP_COLORS.length],
+        volume: pad.volume,
+        pitch: pad.pitch,
+      };
+      return u;
+    });
+  }, []);
+
+  // Remove clip from slot
+  const removeClip = useCallback((sceneIdx, padIdx) => {
+    const key = `${sceneIdx}_${padIdx}`;
+    // Stop if playing
+    if (clipSources.current[key]) {
+      try { clipSources.current[key].source.stop(); } catch(e) {}
+      delete clipSources.current[key];
+    }
+    setClipStates(prev => { const u = { ...prev }; delete u[key]; return u; });
+    setScenes(prev => {
+      const u = prev.map(s => ({ ...s, clips: [...s.clips] }));
+      u[sceneIdx].clips[padIdx] = null;
+      return u;
+    });
+  }, []);
+
+  // Launch a single clip — loops the pad's buffer
+  const launchClip = useCallback((sceneIdx, padIdx) => {
+    const clip = scenes[sceneIdx]?.clips[padIdx];
+    if (!clip) return;
+    const pad = padsRef.current[padIdx];
+    if (!pad?.buffer) return;
+    const c = initCtx();
+    const key = `${sceneIdx}_${padIdx}`;
+
+    // Stop any currently playing clip on this pad (across all scenes)
+    Object.keys(clipSources.current).forEach(k => {
+      if (k.endsWith(`_${padIdx}`)) {
+        try { clipSources.current[k].source.stop(); } catch(e) {}
+        delete clipSources.current[k];
+        setClipStates(prev => { const u = { ...prev }; u[k] = 'stopped'; return u; });
+      }
+    });
+
+    const src = c.createBufferSource();
+    const gain = c.createGain();
+    const pan = c.createStereoPanner();
+
+    src.buffer = pad.buffer;
+    src.loop = true;
+    src.loopStart = clip.loopStart || 0;
+    src.loopEnd = clip.loopEnd || pad.buffer.duration;
+    src.playbackRate.value = Math.pow(2, (clip.pitch || 0) / 12);
+
+    // Time stretch sync if enabled
+    if (pad.timeStretch && pad.originalBpm > 0 && pad.stretchMode === 'repitch') {
+      src.playbackRate.value *= bpmRef.current / pad.originalBpm;
+    }
+
+    gain.gain.value = clip.volume ?? pad.volume;
+    pan.pan.value = pad.pan;
+    src.connect(gain); gain.connect(pan); pan.connect(masterRef.current);
+    src.start(0, clip.loopStart || 0);
+
+    clipSources.current[key] = { source: src, gain, pan };
+    setClipStates(prev => ({ ...prev, [key]: 'playing' }));
+    setActivePads(p => new Set([...p, padIdx]));
+
+    src.onended = () => {
+      delete clipSources.current[key];
+      setClipStates(prev => { const u = { ...prev }; if (u[key] === 'playing') u[key] = 'stopped'; return u; });
+      setActivePads(p => { const n = new Set(p); n.delete(padIdx); return n; });
+    };
+  }, [scenes, initCtx]);
+
+  // Stop a single clip
+  const stopClip = useCallback((sceneIdx, padIdx) => {
+    const key = `${sceneIdx}_${padIdx}`;
+    if (clipSources.current[key]) {
+      const entry = clipSources.current[key];
+      const c = ctxRef.current;
+      // Fade out over 20ms to prevent click
+      if (c && entry.gain) {
+        entry.gain.gain.setValueAtTime(entry.gain.gain.value, c.currentTime);
+        entry.gain.gain.linearRampToValueAtTime(0, c.currentTime + 0.02);
+        try { entry.source.stop(c.currentTime + 0.025); } catch(e) {}
+      } else {
+        try { entry.source.stop(); } catch(e) {}
+      }
+      delete clipSources.current[key];
+    }
+    setClipStates(prev => ({ ...prev, [key]: 'stopped' }));
+  }, []);
+
+  // Toggle clip — play if stopped, stop if playing; queue if sequencer is running
+  const toggleClip = useCallback((sceneIdx, padIdx) => {
+    const key = `${sceneIdx}_${padIdx}`;
+    const state = clipStates[key];
+    if (state === 'playing') {
+      stopClip(sceneIdx, padIdx);
+    } else if (state === 'queued') {
+      // Cancel queue
+      setClipStates(prev => ({ ...prev, [key]: 'stopped' }));
+    } else {
+      // If sequencer is playing, queue to next bar boundary
+      if (playingRef.current) {
+        setClipStates(prev => ({ ...prev, [key]: 'queued' }));
+        // Calculate time to next bar
+        const c = ctxRef.current;
+        if (c) {
+          const beatDur = 60.0 / bpmRef.current;
+          const barDur = beatDur * 4;
+          const elapsed = c.currentTime - (nextStepT.current || c.currentTime);
+          const nextBar = barDur - (elapsed % barDur);
+          const launchTime = c.currentTime + nextBar;
+          setTimeout(() => {
+            // Check still queued before launching
+            const currentState = clipStates[key];
+            if (currentState === 'queued' || !clipSources.current[key]) {
+              launchClip(sceneIdx, padIdx);
+            }
+          }, nextBar * 1000);
+        } else {
+          launchClip(sceneIdx, padIdx);
+        }
+      } else {
+        launchClip(sceneIdx, padIdx);
+      }
+    }
+  }, [clipStates, launchClip, stopClip]);
+
+  // Launch entire scene — launch all clips in a scene, stop everything else
+  const launchScene = useCallback((sceneIdx) => {
+    const scene = scenes[sceneIdx];
+    if (!scene) return;
+
+    // Stop all currently playing clips with fade
+    Object.keys(clipSources.current).forEach(k => {
+      const entry = clipSources.current[k];
+      const c = ctxRef.current;
+      if (c && entry?.gain) {
+        entry.gain.gain.setValueAtTime(entry.gain.gain.value, c.currentTime);
+        entry.gain.gain.linearRampToValueAtTime(0, c.currentTime + 0.02);
+        try { entry.source.stop(c.currentTime + 0.025); } catch(e) {}
+      } else {
+        try { entry.source.stop(); } catch(e) {}
+      }
+      delete clipSources.current[k];
+    });
+    setClipStates(prev => {
+      const u = {};
+      Object.keys(prev).forEach(k => { u[k] = 'stopped'; });
+      return u;
+    });
+
+    // Launch all non-null clips in this scene
+    scene.clips.forEach((clip, padIdx) => {
+      if (clip) launchClip(sceneIdx, padIdx);
+    });
+    setActiveScene(sceneIdx);
+  }, [scenes, launchClip]);
+
+  // Stop all clips with fade
+  const stopAllClips = useCallback(() => {
+    const c = ctxRef.current;
+    Object.keys(clipSources.current).forEach(k => {
+      const entry = clipSources.current[k];
+      if (c && entry?.gain) {
+        entry.gain.gain.setValueAtTime(entry.gain.gain.value, c.currentTime);
+        entry.gain.gain.linearRampToValueAtTime(0, c.currentTime + 0.02);
+        try { entry.source.stop(c.currentTime + 0.025); } catch(e) {}
+      } else {
+        try { entry.source.stop(); } catch(e) {}
+      }
+      delete clipSources.current[k];
+    });
+    setClipStates({});
+    setActiveScene(-1);
+  }, []);
+
+  // Add a new scene
+  const addScene = useCallback(() => {
+    setScenes(prev => [...prev, {
+      name: `Scene ${prev.length + 1}`,
+      clips: Array(16).fill(null),
+    }]);
+  }, []);
+
+  // Duplicate a scene
+  const duplicateScene = useCallback((idx) => {
+    setScenes(prev => {
+      const src = prev[idx];
+      if (!src) return prev;
+      const dup = { name: `${src.name} (copy)`, clips: src.clips.map(c => c ? { ...c } : null) };
+      const u = [...prev]; u.splice(idx + 1, 0, dup); return u;
+    });
+  }, []);
+
+  // Remove a scene
+  const removeScene = useCallback((idx) => {
+    // Stop any clips in this scene first
+    scenes[idx]?.clips.forEach((clip, padIdx) => {
+      if (clip) stopClip(idx, padIdx);
+    });
+    setScenes(prev => prev.filter((_, i) => i !== idx));
+    if (activeScene === idx) setActiveScene(-1);
+  }, [scenes, stopClip, activeScene]);
+
+  // Rename scene
+  const renameScene = useCallback((idx, name) => {
+    setScenes(prev => { const u = [...prev]; u[idx] = { ...u[idx], name }; return u; });
+  }, []);
+
+  // Update clip properties
+  const updateClip = useCallback((sceneIdx, padIdx, props) => {
+    setScenes(prev => {
+      const u = prev.map(s => ({ ...s, clips: [...s.clips] }));
+      if (u[sceneIdx].clips[padIdx]) u[sceneIdx].clips[padIdx] = { ...u[sceneIdx].clips[padIdx], ...props };
+      return u;
+    });
+    // If clip is playing, update gain/rate live
+    const key = `${sceneIdx}_${padIdx}`;
+    const entry = clipSources.current[key];
+    if (entry) {
+      if (props.volume !== undefined && entry.gain) entry.gain.gain.value = props.volume;
+      if (props.pitch !== undefined && entry.source) entry.source.playbackRate.value = Math.pow(2, props.pitch / 12);
+    }
+  }, []);
+
+  // Auto-fill scene from current pad states
+  const fillSceneFromPads = useCallback((sceneIdx) => {
+    padsRef.current.forEach((pad, pi) => {
+      if (pad.buffer) assignClip(sceneIdx, pi);
+    });
+  }, [assignClip]);
+
+  // Clip editing state
+  const [editingClip, setEditingClip] = useState(null); // { sceneIdx, padIdx }
+
+  // =========================================================================
   // LIVE RECORDING + QUANTIZE (Phase 2)
   // =========================================================================
 
@@ -594,7 +1427,22 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
     const pad = pads[chopIdx]; if (!pad?.buffer) return;
     const ctx = cv.getContext('2d'), w = cv.width, h = cv.height;
     const data = pad.buffer.getChannelData(0), step = Math.ceil(data.length / w);
+    const dur = pad.buffer.duration;
     ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#0a1628'; ctx.fillRect(0, 0, w, h);
+
+    // Alternating slice background shading
+    const allPts = [0, ...chopPts, dur];
+    for (let i = 0; i < allPts.length - 1; i++) {
+      const x1 = (allPts[i] / dur) * w, x2 = (allPts[i + 1] / dur) * w;
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(0,255,200,0.03)' : 'rgba(255,102,0,0.03)';
+      ctx.fillRect(x1, 0, x2 - x1, h);
+      // Slice number centered
+      ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.font = 'bold 24px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(`${i + 1}`, (x1 + x2) / 2, h / 2 + 8);
+    }
+    ctx.textAlign = 'start';
+
+    // Waveform
     ctx.strokeStyle = '#00ffc8'; ctx.lineWidth = 1; ctx.beginPath();
     for (let i = 0; i < w; i++) {
       const s = i * step; let mn = 1, mx = -1;
@@ -602,48 +1450,169 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
       ctx.moveTo(i, ((1 + mn) / 2) * h); ctx.lineTo(i, ((1 + mx) / 2) * h);
     }
     ctx.stroke();
-    ctx.strokeStyle = '#ff6600'; ctx.lineWidth = 2;
-    chopPts.forEach(pt => { const x = (pt / pad.buffer.duration) * w; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); });
-    const ts = ((pad.trimStart || 0) / pad.buffer.duration) * w;
-    const te = ((pad.trimEnd || pad.buffer.duration) / pad.buffer.duration) * w;
-    ctx.fillStyle = 'rgba(0,255,200,0.05)'; ctx.fillRect(ts, 0, te - ts, h);
+
+    // Chop lines with drag handles
+    chopPts.forEach((pt, idx) => {
+      const x = (pt / dur) * w;
+      // Line
+      ctx.strokeStyle = '#ff6600'; ctx.lineWidth = 2;
+      ctx.setLineDash([4, 2]); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); ctx.setLineDash([]);
+      // Top handle (triangle)
+      ctx.fillStyle = '#ff6600'; ctx.beginPath();
+      ctx.moveTo(x - 6, 0); ctx.lineTo(x + 6, 0); ctx.lineTo(x, 12); ctx.fill();
+      // Bottom handle
+      ctx.beginPath(); ctx.moveTo(x - 6, h); ctx.lineTo(x + 6, h); ctx.lineTo(x, h - 12); ctx.fill();
+      // Time label
+      ctx.fillStyle = '#fff'; ctx.font = '9px monospace';
+      ctx.fillText(`${pt.toFixed(3)}s`, x + 3, h - 3);
+    });
+
+    // Trim region highlight
+    const ts = ((pad.trimStart || 0) / dur) * w;
+    const te = ((pad.trimEnd || dur) / dur) * w;
+    if (pad.trimStart > 0) { ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(0, 0, ts, h); }
+    if ((pad.trimEnd || dur) < dur) { ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(te, 0, w - te, h); }
   }, [chopIdx, pads, chopPts]);
 
   useEffect(() => { if (showChop) drawWave(); }, [showChop, drawWave, chopPts]);
 
+  // Phase 1: Drag state for chop points
+  const chopDragRef = useRef({ dragging: false, idx: -1 });
+
   const chopCanvasClick = useCallback((e) => {
+    if (e.button !== 0 || chopDragRef.current.dragging) return;
     const cv = chopCanvas.current; if (!cv || chopIdx === null) return;
     const pad = pads[chopIdx]; if (!pad?.buffer) return;
     const r = cv.getBoundingClientRect();
-    const t = ((e.clientX - r.left) / cv.width) * pad.buffer.duration;
+    const clickX = e.clientX - r.left;
+    const dur = pad.buffer.duration;
+    // Don't add if clicking near an existing handle (drag takes priority)
+    const nearExisting = chopPts.findIndex(pt => Math.abs((pt / dur) * cv.width - clickX) < 8);
+    if (nearExisting !== -1) return;
+    let t = (clickX / cv.width) * dur;
+    if (zeroCrossSnap) {
+      const sampleIdx = Math.floor(t * pad.buffer.sampleRate);
+      const data = pad.buffer.getChannelData(0);
+      t = findZeroCrossing(data, sampleIdx) / pad.buffer.sampleRate;
+    }
     setChopPts(p => [...p, t].sort((a, b) => a - b));
-  }, [chopIdx, pads]);
+  }, [chopIdx, pads, zeroCrossSnap, chopPts]);
+
+  // Phase 1: Mousedown on chop handle starts drag
+  const chopMouseDown = useCallback((e) => {
+    if (e.button !== 0) return;
+    const cv = chopCanvas.current; if (!cv || chopIdx === null) return;
+    const pad = pads[chopIdx]; if (!pad?.buffer) return;
+    const r = cv.getBoundingClientRect();
+    const clickX = e.clientX - r.left;
+    const dur = pad.buffer.duration;
+    const nearIdx = chopPts.findIndex(pt => Math.abs((pt / dur) * cv.width - clickX) < 8);
+    if (nearIdx !== -1) { e.preventDefault(); chopDragRef.current = { dragging: true, idx: nearIdx }; }
+  }, [chopIdx, pads, chopPts]);
+
+  const chopMouseMove = useCallback((e) => {
+    if (!chopDragRef.current.dragging) return;
+    const cv = chopCanvas.current; if (!cv || chopIdx === null) return;
+    const pad = pads[chopIdx]; if (!pad?.buffer) return;
+    const r = cv.getBoundingClientRect();
+    const dur = pad.buffer.duration;
+    let t = Math.max(0.001, Math.min(dur - 0.001, ((e.clientX - r.left) / cv.width) * dur));
+    if (zeroCrossSnap) {
+      const data = pad.buffer.getChannelData(0);
+      t = findZeroCrossing(data, Math.floor(t * pad.buffer.sampleRate)) / pad.buffer.sampleRate;
+    }
+    setChopPts(prev => {
+      const u = [...prev]; u[chopDragRef.current.idx] = t; return u.sort((a, b) => a - b);
+    });
+  }, [chopIdx, pads, zeroCrossSnap]);
+
+  const chopMouseUp = useCallback(() => { chopDragRef.current = { dragging: false, idx: -1 }; }, []);
+
+  // Phase 1: Right-click to delete chop point
+  const chopContextMenu = useCallback((e) => {
+    e.preventDefault();
+    const cv = chopCanvas.current; if (!cv || chopIdx === null) return;
+    const pad = pads[chopIdx]; if (!pad?.buffer) return;
+    const r = cv.getBoundingClientRect();
+    const clickX = e.clientX - r.left;
+    const dur = pad.buffer.duration;
+    const nearIdx = chopPts.findIndex(pt => Math.abs((pt / dur) * cv.width - clickX) < 12);
+    if (nearIdx !== -1) setChopPts(prev => prev.filter((_, i) => i !== nearIdx));
+  }, [chopIdx, pads, chopPts]);
 
   const autoChop = useCallback(() => {
     if (chopIdx === null) return; const pad = pads[chopIdx]; if (!pad?.buffer) return;
-    const data = pad.buffer.getChannelData(0), sr = pad.buffer.sampleRate;
-    const ws = Math.floor(sr * 0.01); const pts = [];
-    let prevE = 0;
-    for (let i = 0; i < data.length; i += ws) {
-      let e = 0; for (let j = i; j < Math.min(i + ws, data.length); j++) e += data[j] * data[j]; e /= ws;
-      if (e > chopSens * 0.1 && e > prevE * 3 && i > 0) {
-        const t = i / sr; if (pts.length === 0 || t - pts[pts.length - 1] > 0.05) pts.push(t);
+    const data = pad.buffer.getChannelData(0), sr = pad.buffer.sampleRate, dur = pad.buffer.duration;
+    let pts = [];
+    if (chopMode === 'transient') {
+      const ws = Math.floor(sr * 0.01); let prevE = 0;
+      for (let i = 0; i < data.length; i += ws) {
+        let e = 0; for (let j = i; j < Math.min(i + ws, data.length); j++) e += data[j] * data[j]; e /= ws;
+        if (e > chopSens * 0.1 && e > prevE * 3 && i > 0) {
+          let t = i / sr;
+          if (zeroCrossSnap) { const zc = findZeroCrossing(data, i); t = zc / sr; }
+          if (pts.length === 0 || t - pts[pts.length - 1] > 0.05) pts.push(t);
+        }
+        prevE = e;
       }
-      prevE = e;
+    } else if (chopMode === 'bpmgrid') {
+      const beatDur = 60.0 / bpm;
+      const sliceDur = beatDur / 4; // 16th note grid
+      for (let t = sliceDur; t < dur - 0.01; t += sliceDur) {
+        let snapT = t;
+        if (zeroCrossSnap) { const zc = findZeroCrossing(data, Math.floor(t * sr)); snapT = zc / sr; }
+        pts.push(snapT);
+      }
+    } else if (chopMode === 'equal') {
+      const sliceDur = dur / chopSlices;
+      for (let i = 1; i < chopSlices; i++) {
+        let t = sliceDur * i;
+        if (zeroCrossSnap) { const zc = findZeroCrossing(data, Math.floor(t * sr)); t = zc / sr; }
+        pts.push(t);
+      }
     }
     setChopPts(pts);
-  }, [chopIdx, pads, chopSens]);
+  }, [chopIdx, pads, chopSens, chopMode, zeroCrossSnap, bpm, chopSlices]);
 
   const distributeToPads = useCallback(() => {
     if (chopIdx === null || chopPts.length === 0) return;
     const pad = pads[chopIdx]; if (!pad?.buffer) return;
-    const all = [0, ...chopPts, pad.buffer.duration];
-    all.forEach((st, i) => {
-      if (i >= all.length - 1 || i >= 16) return;
-      setPads(p => { const u = [...p]; u[i] = { ...u[i], buffer: pad.buffer, name: `Chop ${i + 1}`, trimStart: st, trimEnd: all[i + 1] }; return u; });
-    });
+    const c = initCtx();
+    const buf = pad.buffer;
+    const sr = buf.sampleRate;
+    const nc = buf.numberOfChannels;
+    const all = [0, ...chopPts, buf.duration];
+    const crossfadeSamples = Math.floor(sr * 0.002); // 2ms crossfade to prevent clicks
+
+    const count = Math.min(all.length - 1, 16);
+    for (let i = 0; i < count; i++) {
+      const startSec = all[i];
+      const endSec = all[i + 1];
+      const startSample = Math.floor(startSec * sr);
+      const endSample = Math.min(Math.ceil(endSec * sr), buf.length);
+      const len = endSample - startSample;
+      if (len <= 0) continue;
+
+      // Extract into its own buffer
+      const sliceBuf = c.createBuffer(nc, len, sr);
+      for (let ch = 0; ch < nc; ch++) {
+        const src = buf.getChannelData(ch);
+        const dst = sliceBuf.getChannelData(ch);
+        for (let s = 0; s < len; s++) dst[s] = src[startSample + s];
+        // Crossfade edges to prevent clicks
+        const fi = Math.min(crossfadeSamples, Math.floor(len / 4));
+        for (let s = 0; s < fi; s++) dst[s] *= s / fi; // fade in
+        for (let s = 0; s < fi; s++) dst[len - 1 - s] *= s / fi; // fade out
+      }
+
+      setPads(p => {
+        const u = [...p];
+        u[i] = { ...u[i], buffer: sliceBuf, name: `Chop ${i + 1}`, trimStart: 0, trimEnd: sliceBuf.duration };
+        return u;
+      });
+    }
     setShowChop(false);
-  }, [chopIdx, chopPts, pads]);
+  }, [chopIdx, chopPts, pads, initCtx]);
 
   // =========================================================================
   // PATTERN MANAGEMENT (Phase 2)
@@ -691,17 +1660,53 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   // KEYBOARD
   // =========================================================================
 
+  // Phase 3: QWERTY → chromatic note mapping (2 octaves centered on root)
+  const KG_KEY_MAP = useMemo(() => ({
+    'z': 0, 's': 1, 'x': 2, 'd': 3, 'c': 4, 'v': 5, 'g': 6, 'b': 7, 'h': 8, 'n': 9, 'j': 10, 'm': 11, // Lower octave
+    'q': 12, '2': 13, 'w': 14, '3': 15, 'e': 16, 'r': 17, '5': 18, 't': 19, '6': 20, 'y': 21, '7': 22, 'u': 23, 'i': 24, // Upper octave
+  }), []);
+
+  const kgActiveKeys = useRef(new Set()); // prevent key repeat
+
   useEffect(() => {
     const kd = (e) => {
       if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
       const k = e.key.toLowerCase();
+      if (k === ' ') { e.preventDefault(); togglePlay(); return; }
+
+      // Phase 3: If selected pad is keygroup, use chromatic keyboard
+      if (selectedPad !== null && padsRef.current[selectedPad]?.programType === 'keygroup' && KG_KEY_MAP.hasOwnProperty(k)) {
+        if (kgActiveKeys.current.has(k)) return; // prevent repeat
+        kgActiveKeys.current.add(k);
+        e.preventDefault();
+        const pad = padsRef.current[selectedPad];
+        const rootOctaveBase = Math.floor((pad.rootNote || 60) / 12) * 12; // C of root's octave
+        const midiNote = rootOctaveBase + KG_KEY_MAP[k];
+        initCtx(); playPadKeygroup(selectedPad, midiNote);
+        return;
+      }
+
+      // Standard drum pad keys
       if (KEY_TO_PAD.hasOwnProperty(k)) { e.preventDefault(); initCtx(); playPad(KEY_TO_PAD[k]); if (liveRef.current) handleLiveHit(KEY_TO_PAD[k]); if (midiLearn) { setMidiLearnPad(KEY_TO_PAD[k]); } }
-      if (k === ' ') { e.preventDefault(); togglePlay(); }
     };
-    const ku = (e) => { const k = e.key.toLowerCase(); if (KEY_TO_PAD.hasOwnProperty(k) && padsRef.current[KEY_TO_PAD[k]]?.playMode === 'hold') stopPad(KEY_TO_PAD[k]); };
+    const ku = (e) => {
+      const k = e.key.toLowerCase();
+
+      // Phase 3: Keygroup noteOff on key release
+      if (selectedPad !== null && padsRef.current[selectedPad]?.programType === 'keygroup' && KG_KEY_MAP.hasOwnProperty(k)) {
+        kgActiveKeys.current.delete(k);
+        const pad = padsRef.current[selectedPad];
+        const rootOctaveBase = Math.floor((pad.rootNote || 60) / 12) * 12;
+        const midiNote = rootOctaveBase + KG_KEY_MAP[k];
+        stopPadKeygroup(selectedPad, midiNote);
+        return;
+      }
+
+      if (KEY_TO_PAD.hasOwnProperty(k) && padsRef.current[KEY_TO_PAD[k]]?.playMode === 'hold') stopPad(KEY_TO_PAD[k]);
+    };
     window.addEventListener('keydown', kd); window.addEventListener('keyup', ku);
     return () => { window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); };
-  }, [playPad, stopPad, togglePlay, handleLiveHit, initCtx, midiLearn]);
+  }, [playPad, stopPad, togglePlay, handleLiveHit, initCtx, midiLearn, selectedPad, playPadKeygroup, stopPadKeygroup, KG_KEY_MAP]);
 
   // =========================================================================
   // DRAG & DROP / FILE SELECT
@@ -746,19 +1751,33 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   // =========================================================================
 
   // ── WAV encoder (lossless, direct from AudioBuffer) ──
-  const toWav = useCallback((buf) => {
-    const nc = buf.numberOfChannels, sr = buf.sampleRate, ba = nc * 2, dl = buf.length * ba;
+  // WAV encoder: supports 16-bit PCM, 24-bit PCM, 32-bit float
+  const toWav = useCallback((buf, bitDepth) => {
+    const bd = bitDepth || exportBitDepth || 16;
+    const nc = buf.numberOfChannels, sr = buf.sampleRate;
+    const bytesPerSample = bd === 32 ? 4 : bd === 24 ? 3 : 2;
+    const ba = nc * bytesPerSample, dl = buf.length * ba;
+    const fmt = bd === 32 ? 3 : 1; // 3=IEEE float, 1=PCM
     const ab = new ArrayBuffer(44 + dl), v = new DataView(ab);
     const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
     ws(0,'RIFF'); v.setUint32(4,36+dl,true); ws(8,'WAVE'); ws(12,'fmt '); v.setUint32(16,16,true);
-    v.setUint16(20,1,true); v.setUint16(22,nc,true); v.setUint32(24,sr,true);
-    v.setUint32(28,sr*ba,true); v.setUint16(32,ba,true); v.setUint16(34,16,true);
+    v.setUint16(20,fmt,true); v.setUint16(22,nc,true); v.setUint32(24,sr,true);
+    v.setUint32(28,sr*ba,true); v.setUint16(32,ba,true); v.setUint16(34,bd,true);
     ws(36,'data'); v.setUint32(40,dl,true);
     const chs = []; for (let c = 0; c < nc; c++) chs.push(buf.getChannelData(c));
     let o = 44;
-    for (let i = 0; i < buf.length; i++) for (let c = 0; c < nc; c++) { let s = Math.max(-1,Math.min(1,chs[c][i])); v.setInt16(o, s < 0 ? s*0x8000 : s*0x7FFF, true); o += 2; }
+    for (let i = 0; i < buf.length; i++) {
+      for (let c = 0; c < nc; c++) {
+        const s = Math.max(-1, Math.min(1, chs[c][i]));
+        if (bd === 32) { v.setFloat32(o, s, true); o += 4; }
+        else if (bd === 24) {
+          const int24 = s < 0 ? Math.max(-8388608, Math.round(s * 8388608)) : Math.min(8388607, Math.round(s * 8388607));
+          v.setUint8(o, int24 & 0xFF); v.setUint8(o+1, (int24>>8)&0xFF); v.setUint8(o+2, (int24>>16)&0xFF); o += 3;
+        } else { v.setInt16(o, s < 0 ? s*0x8000 : s*0x7FFF, true); o += 2; }
+      }
+    }
     return new Blob([ab], { type: 'audio/wav' });
-  }, []);
+  }, [exportBitDepth]);
 
   // ── MP3 encoder (loads lamejs dynamically) ──
   const loadLame = useCallback(() => {
@@ -835,7 +1854,7 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   }, [toMediaRecorderFormat]);
 
   // ── Universal format converter ──
-  const FORMAT_INFO = { wav: { ext: 'wav', label: 'WAV (Lossless)' }, mp3: { ext: 'mp3', label: 'MP3' }, ogg: { ext: 'ogg', label: 'OGG Opus' }, webm: { ext: 'webm', label: 'WebM Opus' } };
+  const FORMAT_INFO = { wav: { ext: 'wav', label: 'WAV (Lossless)' }, wav24: { ext: 'wav', label: 'WAV 24-bit' }, wav32: { ext: 'wav', label: 'WAV 32-bit Float' }, mp3: { ext: 'mp3', label: 'MP3' }, ogg: { ext: 'ogg', label: 'OGG Opus' }, webm: { ext: 'webm', label: 'WebM Opus' } };
 
   const convertToFormat = useCallback(async (audioBuffer, format, quality) => {
     switch (format) {
@@ -852,7 +1871,8 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
     const a = document.createElement('a');
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Fix #3: Revoke after delay to ensure download completes
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   }, []);
 
   // ── Render single pattern ──
@@ -1108,7 +2128,7 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   // =========================================================================
   // CLEANUP
   // =========================================================================
-  useEffect(() => { return () => { stopSeq(); if (ctxRef.current) ctxRef.current.close(); if (mediaStream.current) mediaStream.current.getTracks().forEach(t => t.stop()); }; }, [stopSeq]);
+  useEffect(() => { return () => { stopSeq(); if (ctxRef.current) ctxRef.current.close(); if (mediaStream.current) mediaStream.current.getTracks().forEach(t => t.stop()); blobUrls.current.forEach(u => { try { URL.revokeObjectURL(u); } catch(e) {} }); Object.keys(clipSources.current).forEach(k => { try { clipSources.current[k].source.stop(); } catch(e) {} }); }; }, [stopSeq]);
 
   // =========================================================================
   // RENDER
@@ -1161,6 +2181,7 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
           <button className={`transport-btn ${showMixer ? 'active' : ''}`} onClick={() => setShowMixer(p => !p)} title="Mixer">🎚️</button>
           <button className={`transport-btn ${showLib ? 'active' : ''}`} onClick={() => setShowLib(p => !p)} title="Library">📚</button>
           <button className={`transport-btn ${songMode ? 'active' : ''}`} onClick={() => setSongMode(p => !p)} title="Song Mode">🎼</button>
+          <button className={`transport-btn ${showClipLauncher ? 'active' : ''}`} onClick={() => setShowClipLauncher(p => !p)} title="Clip Launcher">🚀</button>
 
           <div className="view-toggle">
             <button className={view === 'pads' ? 'active' : ''} onClick={() => setView('pads')}>Pads</button>
@@ -1171,7 +2192,7 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
           <div className="export-dropdown">
             <button className="export-btn" onClick={() => setShowExportPanel(!showExportPanel)} disabled={exporting}>{exporting ? '⏳...' : '⬇ Export'}</button>
             <div className="export-menu">
-              <button onClick={() => exportBeat('wav')}>WAV</button>
+              <button onClick={() => exportBeat('wav')}>WAV {exportBitDepth}b</button>
               <button onClick={() => exportBeat('mp3')}>MP3</button>
               <button onClick={() => exportBeat('ogg')}>OGG</button>
               <button onClick={() => exportStems()}>Stems</button>
@@ -1215,6 +2236,14 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
       {micCount > 0 && <div className="mic-countdown-overlay"><div className="countdown-number">{micCount}</div></div>}
       {micRec && micCount === 0 && <div className="mic-record-bar"><span className="rec-dot pulse">🎙️</span> Recording to Pad {(micPad || 0) + 1}...<button onClick={stopMicRec}>⏹ Stop</button></div>}
 
+      {/* Phase 3: Keygroup mode indicator */}
+      {selectedPad !== null && pads[selectedPad]?.programType === 'keygroup' && (
+        <div className="keygroup-bar">
+          🎹 Keygroup Mode — Pad {selectedPad + 1} · Root: {CHROMATIC_KEYS[(pads[selectedPad].rootNote || 60) % 12]}{Math.floor((pads[selectedPad].rootNote || 60) / 12) - 1} · Use QWERTY or MIDI keyboard to play chromatically
+          {activeKgNotes.size > 0 && <span className="kg-active-notes"> · Playing: {[...activeKgNotes].map(n => CHROMATIC_KEYS[n % 12] + (Math.floor(n / 12) - 1)).join(', ')}</span>}
+        </div>
+      )}
+
       {/* MAIN CONTENT */}
       <div className={`sampler-content view-${view}`}>
 
@@ -1235,6 +2264,9 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
                   <div className="pad-key">{PAD_KEY_LABELS[i]}</div>
                   <div className="pad-name">{pad.name}</div>
                   {!pad.buffer && <div className="pad-hint">Drop audio or double-click</div>}
+                  {pad.layers?.length > 0 && <div className="pad-layer-badge">L{pad.layers.length}</div>}
+                  {pad.programType === 'keygroup' && <div className="pad-kg-badge">KG</div>}
+                  {pad.timeStretch && <div className="pad-ts-badge">TS</div>}
                   {pad.muted && <div className="pad-mute-badge">M</div>}
                   {pad.filterOn && <div className="pad-fx-badge">FX</div>}
                   {midiLearn && <div className="pad-midi-badge">MIDI?</div>}
@@ -1247,6 +2279,10 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
               <button onClick={stopAll}>⏹ Stop All</button>
               <button onClick={() => selectedPad !== null && openChop(selectedPad)} disabled={selectedPad === null || !pads[selectedPad]?.buffer}>✂️ Chop</button>
               <button onClick={() => selectedPad !== null && startMicRec(selectedPad)} disabled={selectedPad === null || micRec}>🎙️ Sample</button>
+              <button onClick={() => selectedPad !== null && normalizeSample(selectedPad)} disabled={selectedPad === null || !pads[selectedPad]?.buffer}>📊 Norm</button>
+              <button onClick={() => selectedPad !== null && reverseSampleDestructive(selectedPad)} disabled={selectedPad === null || !pads[selectedPad]?.buffer}>◀ Rev</button>
+              <button onClick={() => selectedPad !== null && fadeInSample(selectedPad, 0.05)} disabled={selectedPad === null || !pads[selectedPad]?.buffer} title="Fade In (50ms)">⤴ In</button>
+              <button onClick={() => selectedPad !== null && fadeOutSample(selectedPad, 0.05)} disabled={selectedPad === null || !pads[selectedPad]?.buffer} title="Fade Out (50ms)">⤵ Out</button>
               <button onClick={() => { const n = prompt('Kit name:'); if (n) saveKit(n); }}>💾 Save Kit</button>
               <div className="step-count-selector"><label>Steps:</label>
                 {STEP_COUNTS.map(c => (
@@ -1383,6 +2419,151 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
         </div>
       )}
 
+      {/* PHASE 5: CLIP LAUNCHER */}
+      {showClipLauncher && (
+        <div className="clip-launcher-panel">
+          <div className="clip-launcher-header">
+            <h3>🚀 Clip Launcher</h3>
+            <div className="clip-launcher-actions">
+              <button onClick={addScene}>+ Scene</button>
+              <button onClick={stopAllClips} className="clip-stop-all">⏹ Stop All</button>
+              {editingClip && <button onClick={() => setEditingClip(null)} className="clip-edit-close">✕ Close Editor</button>}
+              <button onClick={() => setShowClipLauncher(false)}>✕</button>
+            </div>
+          </div>
+
+          <div className="clip-grid-wrapper">
+            {/* Column headers — pad names */}
+            <div className="clip-grid-header">
+              <div className="clip-scene-label-cell"></div>
+              {pads.map((pad, pi) => (
+                <div key={pi} className={`clip-pad-header ${pad.buffer ? '' : 'empty'}`}>
+                  <span className="clip-pad-color" style={{ background: pad.color }}></span>
+                  <span className="clip-pad-name">{pi + 1}</span>
+                </div>
+              ))}
+              <div className="clip-scene-launch-cell">Scene</div>
+            </div>
+
+            {/* Scene rows */}
+            {scenes.map((scene, si) => (
+              <div key={si} className={`clip-scene-row ${activeScene === si ? 'active-scene' : ''}`}>
+                <div className="clip-scene-label">
+                  <input className="clip-scene-name" value={scene.name} onChange={(e) => renameScene(si, e.target.value)} />
+                  <div className="clip-scene-btns">
+                    <button onClick={() => fillSceneFromPads(si)} title="Fill from pads">📥</button>
+                    <button onClick={() => duplicateScene(si)} title="Duplicate scene">📋</button>
+                    <button onClick={() => removeScene(si)} title="Remove scene" className="clip-scene-rm">✕</button>
+                  </div>
+                </div>
+
+                {/* Clip cells for each pad */}
+                {pads.map((pad, pi) => {
+                  const clip = scene.clips[pi];
+                  const key = `${si}_${pi}`;
+                  const state = clipStates[key] || 'stopped';
+                  const isEditing = editingClip?.sceneIdx === si && editingClip?.padIdx === pi;
+                  return (
+                    <div key={pi}
+                      className={`clip-cell ${clip ? 'has-clip' : 'empty-cell'} ${state} ${isEditing ? 'editing' : ''}`}
+                      style={clip ? { '--clip-color': clip.color } : {}}
+                      onContextMenu={(e) => { e.preventDefault(); if (clip) removeClip(si, pi); }}
+                      onDoubleClick={() => { if (clip) setEditingClip({ sceneIdx: si, padIdx: pi }); }}
+                    >
+                      {clip ? (
+                        <button className="clip-trigger" onClick={() => toggleClip(si, pi)}>
+                          <span className="clip-state-icon">
+                            {state === 'playing' ? '▶' : state === 'queued' ? '◉' : '■'}
+                          </span>
+                          <span className="clip-name">{clip.name}</span>
+                        </button>
+                      ) : (
+                        pad.buffer ? (
+                          <button className="clip-assign" onClick={() => assignClip(si, pi)} title={`Assign ${pad.name}`}>+</button>
+                        ) : (
+                          <div className="clip-empty-slot"></div>
+                        )
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Scene launch button */}
+                <div className="clip-scene-launch-cell">
+                  <button className={`clip-scene-launch ${activeScene === si ? 'active' : ''}`}
+                    onClick={() => launchScene(si)} title={`Launch ${scene.name}`}>
+                    ▶
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Clip Editor Panel — shown when double-clicking a clip */}
+          {editingClip && (() => {
+            const { sceneIdx, padIdx } = editingClip;
+            const clip = scenes[sceneIdx]?.clips[padIdx];
+            const pad = pads[padIdx];
+            if (!clip || !pad?.buffer) return null;
+            const dur = pad.buffer.duration;
+            return (
+              <div className="clip-editor">
+                <div className="clip-editor-header">
+                  <span className="clip-editor-dot" style={{ background: clip.color }}></span>
+                  <span>Editing: {clip.name}</span>
+                  <span className="clip-editor-info">Scene {sceneIdx + 1} · Pad {padIdx + 1}</span>
+                </div>
+                <div className="clip-editor-controls">
+                  <div className="clip-edit-row">
+                    <label>Volume</label>
+                    <input type="range" min={0} max={150} value={Math.round((clip.volume ?? 1) * 100)}
+                      onChange={(e) => updateClip(sceneIdx, padIdx, { volume: +e.target.value / 100 })} />
+                    <span>{Math.round((clip.volume ?? 1) * 100)}%</span>
+                  </div>
+                  <div className="clip-edit-row">
+                    <label>Pitch</label>
+                    <input type="range" min={-12} max={12} value={clip.pitch || 0}
+                      onChange={(e) => updateClip(sceneIdx, padIdx, { pitch: +e.target.value })} />
+                    <span>{(clip.pitch || 0) > 0 ? '+' : ''}{clip.pitch || 0}st</span>
+                  </div>
+                  <div className="clip-edit-row">
+                    <label>Loop Start</label>
+                    <input type="range" min={0} max={Math.round(dur * 1000)} value={Math.round((clip.loopStart || 0) * 1000)}
+                      onChange={(e) => updateClip(sceneIdx, padIdx, { loopStart: +e.target.value / 1000 })} />
+                    <span>{(clip.loopStart || 0).toFixed(2)}s</span>
+                  </div>
+                  <div className="clip-edit-row">
+                    <label>Loop End</label>
+                    <input type="range" min={0} max={Math.round(dur * 1000)} value={Math.round((clip.loopEnd || dur) * 1000)}
+                      onChange={(e) => updateClip(sceneIdx, padIdx, { loopEnd: +e.target.value / 1000 })} />
+                    <span>{(clip.loopEnd || dur).toFixed(2)}s</span>
+                  </div>
+                  <div className="clip-edit-row">
+                    <label>Color</label>
+                    <div className="clip-color-picker">
+                      {CLIP_COLORS.map(c => (
+                        <button key={c} className={`clip-color-swatch ${clip.color === c ? 'active' : ''}`}
+                          style={{ background: c }}
+                          onClick={() => updateClip(sceneIdx, padIdx, { color: c })} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="clip-edit-row">
+                    <label>Name</label>
+                    <input type="text" className="clip-edit-name" value={clip.name}
+                      onChange={(e) => updateClip(sceneIdx, padIdx, { name: e.target.value })} />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="clip-launcher-hint">
+            Click to play/stop (queues to bar if sequencer running) · <strong>Double-click</strong> to edit clip · <strong>+</strong> assigns pad · Right-click removes · <strong>📋</strong> duplicates scene
+          </div>
+        </div>
+      )}
+
       {/* EXPORT PANEL (Phase 3 Enhanced) */}
       {showExportPanel && (
         <div className="export-panel-overlay" onClick={() => setShowExportPanel(false)}>
@@ -1397,6 +2578,7 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
             <div className="export-section">
               <label className="export-label">Format</label>
               <div className="export-format-grid">
+                <div className="export-opt"><label>Bit Depth</label><select value={exportBitDepth} onChange={(e) => setExportBitDepth(+e.target.value)}><option value={16}>16-bit CD</option><option value={24}>24-bit Studio</option><option value={32}>32-bit Float</option></select></div>
                 {Object.entries(FORMAT_INFO).map(([key, info]) => (
                   <button key={key} className={`export-format-btn ${exportFormat === key ? 'active' : ''}`} onClick={() => setExportFormat(key)}>
                     <span className="format-ext">.{info.ext}</span>
@@ -1475,15 +2657,41 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
         <div className="chop-view-overlay">
           <div className="chop-view">
             <div className="chop-header"><h3>✂️ Chop — {pads[chopIdx]?.name}</h3><button onClick={() => setShowChop(false)}>✕</button></div>
-            <canvas ref={chopCanvas} className="chop-canvas" width={800} height={200} onClick={chopCanvasClick} />
+            <canvas ref={chopCanvas} className="chop-canvas" width={800} height={200}
+              onClick={chopCanvasClick}
+              onMouseDown={chopMouseDown}
+              onMouseMove={chopMouseMove}
+              onMouseUp={chopMouseUp}
+              onMouseLeave={chopMouseUp}
+              onContextMenu={chopContextMenu}
+              style={{ cursor: chopDragRef.current?.dragging ? 'ew-resize' : 'crosshair' }} />
             <div className="chop-controls">
-              <button onClick={autoChop}>🤖 Auto-Chop</button>
-              <div className="chop-sensitivity"><label>Sensitivity</label><input type="range" min={1} max={100} value={Math.round(chopSens * 100)} onChange={(e) => setChopSens(+e.target.value / 100)} /></div>
+              <div className="chop-mode-selector">
+                {CHOP_MODES.map(m => (
+                  <button key={m} className={chopMode === m ? 'active' : ''} onClick={() => setChopMode(m)}>
+                    {m === 'transient' ? '🎯 Transient' : m === 'bpmgrid' ? '🎵 BPM Grid' : m === 'equal' ? '📏 Equal' : '✋ Manual'}
+                  </button>
+                ))}
+              </div>
+              <button onClick={autoChop} disabled={chopMode === 'manual'}>🤖 Auto-Chop</button>
+              {chopMode === 'transient' && <div className="chop-sensitivity"><label>Sensitivity</label><input type="range" min={1} max={100} value={Math.round(chopSens * 100)} onChange={(e) => setChopSens(+e.target.value / 100)} /></div>}
+              {chopMode === 'equal' && <div className="chop-sensitivity"><label>Slices</label><input type="range" min={2} max={32} value={chopSlices} onChange={(e) => setChopSlices(+e.target.value)} /><span>{chopSlices}</span></div>}
+              <label className="chop-zc-toggle"><input type="checkbox" checked={zeroCrossSnap} onChange={(e) => setZeroCrossSnap(e.target.checked)} /> Zero-Cross Snap</label>
               <button onClick={() => setChopPts([])}>Clear</button>
-              <span className="chop-count">{chopPts.length} chops</span>
+              <button onClick={undoChop} disabled={chopPts.length === 0} title="Undo last chop">↩</button>
+              <button onClick={redoChop} title="Redo chop">↪</button>
+              <button onClick={stopPreview} disabled={activeSlice < 0} title="Stop preview">⏹</button>
+              <span className="chop-count">{chopPts.length} chops → {chopPts.length + 1} slices</span>
               <button className="distribute-btn" onClick={distributeToPads} disabled={chopPts.length === 0}>📤 Distribute to Pads</button>
             </div>
-            <div className="chop-hint">Click waveform to add chop points. Auto-Chop detects transients.</div>
+            <div className="chop-slices-preview">
+              {(() => { const all = [0, ...chopPts, pads[chopIdx]?.buffer?.duration || 0];
+                return all.slice(0, -1).map((_, si) => (
+                  <button key={si} className={`chop-slice-btn ${activeSlice === si ? 'playing' : ''}`} onClick={() => previewSlice(si)}>▶ {si+1} ({((all[si+1]-all[si])*1000).toFixed(0)}ms)</button>
+                ));
+              })()}
+            </div>
+            <div className="chop-hint">Click = add point · Drag handle = move · Right-click = delete point · Slices get 2ms crossfade</div>
           </div>
         </div>
       )}
@@ -1498,6 +2706,8 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
           <div className="settings-tabs">
             <button className={settingsTab === 'main' ? 'active' : ''} onClick={() => setSettingsTab('main')}>Main</button>
             <button className={settingsTab === 'effects' ? 'active' : ''} onClick={() => setSettingsTab('effects')}>Effects</button>
+            <button className={settingsTab === 'layers' ? 'active' : ''} onClick={() => setSettingsTab('layers')}>Layers</button>
+            <button className={settingsTab === 'stretch' ? 'active' : ''} onClick={() => setSettingsTab('stretch')}>Stretch</button>
           </div>
           <div className="pad-settings-actions">
             <button onClick={() => fileSelect(selectedPad)}>📂 Load</button>
@@ -1515,7 +2725,16 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
             <div className="pad-setting"><label>Mode</label><div className="play-mode-btns">{['oneshot','hold','loop'].map(m => <button key={m} className={pads[selectedPad].playMode === m ? 'active' : ''} onClick={() => updatePad(selectedPad, { playMode: m })}>{m === 'oneshot' ? '▶ One' : m === 'hold' ? '✊ Hold' : '🔁 Loop'}</button>)}</div></div>
             <div className="pad-setting"><label>Reverse</label><button className={`toggle-btn ${pads[selectedPad].reverse ? 'active' : ''}`} onClick={() => updatePad(selectedPad, { reverse: !pads[selectedPad].reverse })}>{pads[selectedPad].reverse ? '◀ Rev' : '▶ Norm'}</button></div>
             <div className="pad-setting"><label>Attack</label><input type="range" min={0} max={1000} value={Math.round(pads[selectedPad].attack * 1000)} onChange={(e) => updatePad(selectedPad, { attack: +e.target.value / 1000 })} /><span className="setting-value">{(pads[selectedPad].attack * 1000).toFixed(0)}ms</span></div>
+            <div className="pad-setting"><label>Decay</label><input type="range" min={0} max={2000} value={Math.round((pads[selectedPad].decay || 0) * 1000)} onChange={(e) => updatePad(selectedPad, { decay: +e.target.value / 1000 })} /><span className="setting-value">{((pads[selectedPad].decay || 0) * 1000).toFixed(0)}ms</span></div>
+            <div className="pad-setting"><label>Sustain</label><input type="range" min={0} max={100} value={Math.round((pads[selectedPad].sustain ?? 1) * 100)} onChange={(e) => updatePad(selectedPad, { sustain: +e.target.value / 100 })} /><span className="setting-value">{Math.round((pads[selectedPad].sustain ?? 1) * 100)}%</span></div>
             <div className="pad-setting"><label>Release</label><input type="range" min={0} max={2000} value={Math.round(pads[selectedPad].release * 1000)} onChange={(e) => updatePad(selectedPad, { release: +e.target.value / 1000 })} /><span className="setting-value">{(pads[selectedPad].release * 1000).toFixed(0)}ms</span></div>
+            <div className="pad-setting"><label>Program</label><select value={pads[selectedPad].programType || 'drum'} onChange={(e) => updatePad(selectedPad, { programType: e.target.value })}><option value="drum">🥁 Drum</option><option value="keygroup">🎹 Keygroup</option><option value="clip">🔁 Clip</option></select></div>
+            {(pads[selectedPad].programType === 'keygroup') && <>
+              <div className="pad-setting"><label>Root Note</label><input type="range" min={24} max={96} value={pads[selectedPad].rootNote || 60} onChange={(e) => updatePad(selectedPad, { rootNote: +e.target.value })} /><span className="setting-value">{CHROMATIC_KEYS[(pads[selectedPad].rootNote || 60) % 12]}{Math.floor((pads[selectedPad].rootNote || 60) / 12) - 1}</span></div>
+              <div className="pad-setting"><label>Key Low</label><input type="range" min={0} max={127} value={pads[selectedPad].keyRangeLow || 36} onChange={(e) => updatePad(selectedPad, { keyRangeLow: +e.target.value })} /><span className="setting-value">{CHROMATIC_KEYS[(pads[selectedPad].keyRangeLow || 36) % 12]}{Math.floor((pads[selectedPad].keyRangeLow || 36) / 12) - 1}</span></div>
+              <div className="pad-setting"><label>Key High</label><input type="range" min={0} max={127} value={pads[selectedPad].keyRangeHigh || 84} onChange={(e) => updatePad(selectedPad, { keyRangeHigh: +e.target.value })} /><span className="setting-value">{CHROMATIC_KEYS[(pads[selectedPad].keyRangeHigh || 84) % 12]}{Math.floor((pads[selectedPad].keyRangeHigh || 84) / 12) - 1}</span></div>
+              <div className="pad-setting"><button className="toggle-btn" onClick={() => setShowKeyboard(p => !p)}>{showKeyboard ? '⌨️ Hide Keyboard' : '🎹 Show Keyboard'}</button></div>
+            </>}
             <div className="pad-setting mute-solo">
               <button className={`mute-btn ${pads[selectedPad].muted ? 'active' : ''}`} onClick={() => updatePad(selectedPad, { muted: !pads[selectedPad].muted })}>{pads[selectedPad].muted ? '🔇 M' : 'M'}</button>
               <button className={`solo-btn ${pads[selectedPad].soloed ? 'active' : ''}`} onClick={() => updatePad(selectedPad, { soloed: !pads[selectedPad].soloed })}>{pads[selectedPad].soloed ? '🎯 S' : 'S'}</button>
@@ -1549,6 +2768,218 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
               {pads[selectedPad].reverbOn && <div className="pad-setting"><label>Mix</label><input type="range" min={0} max={100} value={Math.round(pads[selectedPad].reverbMix * 100)} onChange={(e) => updatePad(selectedPad, { reverbMix: +e.target.value / 100 })} /><span className="setting-value">{Math.round(pads[selectedPad].reverbMix * 100)}%</span></div>}
             </div>
           </>)}
+
+          {/* LAYERS TAB (Phase 2 — Velocity Layers) */}
+          {pads[selectedPad].buffer && settingsTab === 'layers' && (
+            <div className="layers-section">
+              <div className="layers-header">
+                <span>Velocity Layers ({pads[selectedPad].layers.length}/4)</span>
+                <button onClick={() => addLayer(selectedPad)} disabled={pads[selectedPad].layers.length >= 4}>+ Add Layer</button>
+                <label className="rr-toggle"><input type="checkbox" checked={pads[selectedPad].roundRobin || false} onChange={(e) => updatePad(selectedPad, { roundRobin: e.target.checked })} /> Round Robin</label>
+              </div>
+
+              {/* Velocity zone visualization bar */}
+              {pads[selectedPad].layers.length > 0 && (
+                <div className="velocity-zone-bar">
+                  <div className="vz-labels"><span>0</span><span>pp</span><span>mp</span><span>f</span><span>ff</span><span>127</span></div>
+                  <div className="vz-track">
+                    {pads[selectedPad].layers.map((layer, li) => {
+                      const left = (layer.velocityMin / 127) * 100;
+                      const width = ((layer.velocityMax - layer.velocityMin) / 127) * 100;
+                      const colors = ['#ff4444', '#ffa500', '#00ffc8', '#4a9eff'];
+                      return (
+                        <div key={li} className="vz-zone" style={{
+                          left: `${left}%`, width: `${Math.max(width, 2)}%`,
+                          background: colors[li % colors.length], opacity: layer.buffer ? 0.8 : 0.3,
+                        }}>
+                          <span className="vz-zone-label">{li + 1}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {pads[selectedPad].layers.map((layer, li) => {
+                const isActive = activePads.has(selectedPad) && activeSrc.current[selectedPad]?.layerIdx === li;
+                const colors = ['#ff4444','#ffa500','#00ffc8','#4a9eff'];
+                return (
+                <div key={li} className={`layer-row ${layer.buffer ? 'loaded' : 'empty'} ${isActive ? 'layer-active' : ''}`}
+                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('layer-dragover'); }}
+                  onDragLeave={(e) => { e.currentTarget.classList.remove('layer-dragover'); }}
+                  onDrop={(e) => {
+                    e.preventDefault(); e.currentTarget.classList.remove('layer-dragover');
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type.startsWith('audio/')) loadLayerSample(selectedPad, li, file);
+                  }}
+                >
+                  <div className="layer-row-top">
+                    <span className="layer-num" style={{ color: colors[li] }}>{li + 1}</span>
+                    <span className="layer-name">{layer.buffer ? (layer.name || `Layer ${li + 1}`) : '(drop audio here)'}</span>
+                    <button className="layer-load-btn" onClick={() => {
+                      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'audio/*';
+                      inp.onchange = (e) => { if (e.target.files[0]) loadLayerSample(selectedPad, li, e.target.files[0]); }; inp.click();
+                    }}>{layer.buffer ? '🔄' : '📂'}</button>
+                    {layer.buffer && <button className="layer-preview-btn" onClick={() => {
+                      const c = initCtx(); const src = c.createBufferSource();
+                      const g = c.createGain(); g.gain.value = layer.volume ?? 1;
+                      src.buffer = layer.buffer; src.connect(g); g.connect(masterRef.current); src.start(0);
+                    }}>▶</button>}
+                    <button className="layer-remove-btn" onClick={() => removeLayer(selectedPad, li)}>✕</button>
+                  </div>
+                  <div className="layer-row-vel">
+                    <label>Vel:</label>
+                    <input type="range" min={0} max={127} value={layer.velocityMin} onChange={(e) => {
+                      const val = +e.target.value;
+                      setPads(p => { const u = [...p]; const layers = [...u[selectedPad].layers];
+                        layers[li] = { ...layers[li], velocityMin: Math.min(val, layers[li].velocityMax - 1) };
+                        u[selectedPad] = { ...u[selectedPad], layers }; return u; });
+                    }} />
+                    <span className="vel-range-display">{layer.velocityMin}–{layer.velocityMax}</span>
+                    <input type="range" min={0} max={127} value={layer.velocityMax} onChange={(e) => {
+                      const val = +e.target.value;
+                      setPads(p => { const u = [...p]; const layers = [...u[selectedPad].layers];
+                        layers[li] = { ...layers[li], velocityMax: Math.max(val, layers[li].velocityMin + 1) };
+                        u[selectedPad] = { ...u[selectedPad], layers }; return u; });
+                    }} />
+                  </div>
+                  <div className="layer-row-vol">
+                    <label>Vol:</label>
+                    <input type="range" min={0} max={150} value={Math.round((layer.volume ?? 1) * 100)} onChange={(e) => {
+                      const val = +e.target.value / 100;
+                      setPads(p => { const u = [...p]; const layers = [...u[selectedPad].layers];
+                        layers[li] = { ...layers[li], volume: val };
+                        u[selectedPad] = { ...u[selectedPad], layers }; return u; });
+                    }} />
+                    <span className="layer-vol-display">{Math.round((layer.volume ?? 1) * 100)}%</span>
+                  </div>
+                </div>
+                );
+              })}
+              {pads[selectedPad].layers.length === 0 && (
+                <div className="layers-empty">
+                  <p>No velocity layers — base sample plays at all velocities.</p>
+                  <p className="layers-hint">Add layers to assign different samples per hit strength (pp → ff).</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STRETCH TAB (Phase 4 — Time Stretch & BPM Sync) */}
+          {pads[selectedPad].buffer && settingsTab === 'stretch' && (
+            <div className="stretch-section">
+              <div className="pad-setting">
+                <label>Time Stretch</label>
+                <button className={`toggle-btn ${pads[selectedPad].timeStretch ? 'active' : ''}`}
+                  onClick={() => updatePad(selectedPad, { timeStretch: !pads[selectedPad].timeStretch })}>
+                  {pads[selectedPad].timeStretch ? '✅ On' : '⬜ Off'}
+                </button>
+              </div>
+
+              <div className="pad-setting">
+                <label>Original BPM</label>
+                <input type="number" min={40} max={300} value={pads[selectedPad].originalBpm || ''}
+                  placeholder="Auto" onChange={(e) => updatePad(selectedPad, { originalBpm: +e.target.value || 0 })}
+                  className="stretch-bpm-input" />
+                <button className="stretch-detect-btn" onClick={() => setBpmFromSample(selectedPad)}>🔍 Detect</button>
+                <button className="stretch-half-btn" onClick={() => updatePad(selectedPad, { originalBpm: Math.round((pads[selectedPad].originalBpm || 120) / 2) })} title="Half-time">½×</button>
+                <button className="stretch-double-btn" onClick={() => updatePad(selectedPad, { originalBpm: Math.round((pads[selectedPad].originalBpm || 120) * 2) })} title="Double-time">2×</button>
+              </div>
+
+              {pads[selectedPad].originalBpm > 0 && (
+                <div className="stretch-info">
+                  <span className="stretch-ratio">
+                    {pads[selectedPad].originalBpm} → {bpm} BPM
+                    ({((bpm / pads[selectedPad].originalBpm) * 100).toFixed(0)}%)
+                  </span>
+                </div>
+              )}
+
+              <div className="pad-setting">
+                <label>Stretch Mode</label>
+                <div className="stretch-mode-btns">
+                  {['repitch', 'granular', 'slice'].map(m => (
+                    <button key={m} className={pads[selectedPad].stretchMode === m ? 'active' : ''}
+                      onClick={() => updatePad(selectedPad, { stretchMode: m })}>
+                      {m === 'repitch' ? '🔄 Repitch' : m === 'granular' ? '🌊 Granular' : '✂️ Slice'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="stretch-mode-desc">
+                {pads[selectedPad].stretchMode === 'repitch' && '⚡ Fast — tempo + pitch change together (like vinyl speed)'}
+                {pads[selectedPad].stretchMode === 'granular' && '🎵 Overlap-add granular — preserves pitch, best for tonal material'}
+                {pads[selectedPad].stretchMode === 'slice' && '🥁 Grain slicing — preserves pitch, good for drums & loops'}
+              </div>
+
+              {(pads[selectedPad].stretchMode === 'granular' || pads[selectedPad].stretchMode === 'slice') && (
+                <div className="pad-setting">
+                  <button className="stretch-prebake-btn" onClick={() => stretchPadBuffer(selectedPad)}
+                    disabled={!pads[selectedPad].originalBpm || pads[selectedPad].originalBpm <= 0}>
+                    {pads[selectedPad]._stretchedBuffer ? '🔄 Re-stretch' : '⚙️ Pre-stretch Buffer'}
+                  </button>
+                  {pads[selectedPad]._stretchedBuffer && <span className="stretch-status">✅ Stretched to {pads[selectedPad]._stretchedBpm} BPM</span>}
+                </div>
+              )}
+
+              <div className="pad-setting">
+                <label>Pitch Shift</label>
+                <input type="range" min={-24} max={24} value={pads[selectedPad].pitchShift || 0}
+                  onChange={(e) => updatePad(selectedPad, { pitchShift: +e.target.value })} />
+                <span className="setting-value">
+                  {(pads[selectedPad].pitchShift || 0) > 0 ? '+' : ''}{pads[selectedPad].pitchShift || 0}st
+                </span>
+              </div>
+
+              {(pads[selectedPad].pitchShift || 0) !== 0 && (
+                <div className="stretch-pitch-info">
+                  Pitch: {CHROMATIC_KEYS[((pads[selectedPad].rootNote || 60) + (pads[selectedPad].pitchShift || 0) + 120) % 12]}
+                  {pads[selectedPad].stretchMode !== 'repitch' && ' (independent of tempo)'}
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* PHASE 3: KEYGROUP VISUAL KEYBOARD */}
+      {showKeyboard && selectedPad !== null && pads[selectedPad]?.programType === 'keygroup' && (
+        <div className="kg-keyboard-panel">
+          <div className="kg-keyboard-header">
+            <span>🎹 Keygroup Keyboard — Pad {selectedPad + 1} ({pads[selectedPad].name})</span>
+            <span className="kg-root-display">Root: {CHROMATIC_KEYS[(pads[selectedPad].rootNote || 60) % 12]}{Math.floor((pads[selectedPad].rootNote || 60) / 12) - 1}</span>
+            <span className="kg-range-display">Range: {CHROMATIC_KEYS[(pads[selectedPad].keyRangeLow || 36) % 12]}{Math.floor((pads[selectedPad].keyRangeLow || 36) / 12) - 1} – {CHROMATIC_KEYS[(pads[selectedPad].keyRangeHigh || 84) % 12]}{Math.floor((pads[selectedPad].keyRangeHigh || 84) / 12) - 1}</span>
+            <button onClick={() => setShowKeyboard(false)}>✕</button>
+          </div>
+          <div className="kg-keyboard">
+            {(() => {
+              const low = pads[selectedPad].keyRangeLow || 36;
+              const high = pads[selectedPad].keyRangeHigh || 84;
+              const root = pads[selectedPad].rootNote || 60;
+              const keys = [];
+              for (let n = low; n <= high; n++) {
+                const noteName = CHROMATIC_KEYS[n % 12];
+                const octave = Math.floor(n / 12) - 1;
+                const isBlack = noteName.includes('#');
+                const isRoot = n === root;
+                const isActive = activeKgNotes.has(n);
+                keys.push(
+                  <div key={n}
+                    className={`kg-key ${isBlack ? 'black' : 'white'} ${isRoot ? 'root' : ''} ${isActive ? 'active' : ''}`}
+                    onMouseDown={(e) => { e.preventDefault(); initCtx(); playPadKeygroup(selectedPad, n, 0.8); }}
+                    onMouseUp={() => stopPadKeygroup(selectedPad, n)}
+                    onMouseLeave={() => { if (activeKgNotes.has(n)) stopPadKeygroup(selectedPad, n); }}
+                  >
+                    {(!isBlack || isRoot) && <span className="kg-key-label">{noteName}{isRoot ? octave : ''}</span>}
+                  </div>
+                );
+              }
+              return keys;
+            })()}
+          </div>
+          <div className="kg-keyboard-hint">Click keys or use QWERTY keyboard (Z=C, S=C#, X=D... Q=C+1 octave)</div>
         </div>
       )}
     </div>
