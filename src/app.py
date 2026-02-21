@@ -61,6 +61,7 @@ from src.api.ai_stem_separation import ai_stem_separation_bp
 from src.api.mic_simulator_routes import mic_simulator_bp  # 🎙️ Mic Simulator
 from src.api.freesound_api import freesound_bp  # 🔊 Freesound.org Sample Browser
 from src.api.sound_kit_routes import sound_kit_bp  # 🎛️ Sound Kit Management
+from src.api.playlist_routes import playlist_bp
 
 
 # Rest of your code stays the same...
@@ -296,6 +297,7 @@ app.register_blueprint(ai_stem_separation_bp)
 app.register_blueprint(mic_simulator_bp)  # 🎙️ Mic Simulator
 app.register_blueprint(freesound_bp)  # 🔊 Freesound.org Sample Browser
 app.register_blueprint(sound_kit_bp)  # 🎛️ Sound Kit Management
+app.register_blueprint(playlist_bp)
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)
