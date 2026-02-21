@@ -44,7 +44,8 @@ from src.api.recording_studio_routes import recording_studio_bp
 # Import your blueprints - use src prefix
 from src.api.routes import api
 from src.api.cache import cache
-from src.api.models import LiveChat, User, RadioStation, PricingPlan, SonoSuiteUser, Message, Conversation
+from src.api.models import LiveChat, User, RadioStation, PricingPlan, SonoSuiteUser, Message, Conversation, MicSimPreset, MicSimRecording
+from src.api.sound_kit_models import SoundKit, SoundKitSample, SoundKitLike  # 🎛️ Sound Kit Models
 from src.api.utils import APIException, generate_sitemap
 from src.api.admin import setup_admin
 from src.api.commands import setup_commands
@@ -57,6 +58,9 @@ from src.api.video_tier_routes import video_tier_bp  # ADD THIS
 from src.api.notifications import notifications_bp
 from src.api.ai_mix_assistant import ai_mix_assistant_bp
 from src.api.ai_stem_separation import ai_stem_separation_bp
+from src.api.mic_simulator_routes import mic_simulator_bp  # 🎙️ Mic Simulator
+from src.api.freesound_api import freesound_bp  # 🔊 Freesound.org Sample Browser
+from src.api.sound_kit_routes import sound_kit_bp  # 🎛️ Sound Kit Management
 
 
 # Rest of your code stays the same...
@@ -289,6 +293,9 @@ app.register_blueprint(ai_content_bp)
 app.register_blueprint(recording_studio_bp)
 app.register_blueprint(ai_mix_assistant_bp)
 app.register_blueprint(ai_stem_separation_bp)
+app.register_blueprint(mic_simulator_bp)  # 🎙️ Mic Simulator
+app.register_blueprint(freesound_bp)  # 🔊 Freesound.org Sample Browser
+app.register_blueprint(sound_kit_bp)  # 🎛️ Sound Kit Management
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)

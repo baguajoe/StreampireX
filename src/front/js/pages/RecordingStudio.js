@@ -1,13 +1,36 @@
+// =============================================================================
+// RecordingStudio.js - Multi-Track DAW (Cubase-Inspired)
+// =============================================================================
+// Location: src/front/js/pages/RecordingStudio.js
+// Route: /recording-studio
+// Pure Web Audio API — zero external audio libraries
+// Effects: EQ, Compressor, Reverb, Delay, Distortion, Filter per track
+// Views: Record | Arrange | Console | Beat Maker | Piano | Sounds | Split | Key Finder | AI Beats | Kits | Mic Sim | AI Mix
+// Track limits: Free=4, Starter=8, Creator=16, Pro=32
+// =============================================================================
+
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import ArrangerView from '../component/ArrangerView';
 import AIMixAssistant from '../component/AIMixAssistant';
 import SamplerBeatMaker from '../component/SamplerBeatMaker';
 import MicSimulator from '../component/MicSimulator';
+import VirtualPiano from '../component/VirtualPiano';
+import FreesoundBrowser from '../component/FreesoundBrowser';
+import KeyFinder from '../component/KeyFinder';
+import AIBeatAssistant from '../component/AIBeatAssistant';
+import PianoDrumSplit from '../component/PianoDrumSplit';
+import SoundKitManager from '../component/SoundKitManager';
 import '../../styles/RecordingStudio.css';
 import '../../styles/ArrangerView.css';
 import '../../styles/AIMixAssistant.css';
 import '../../styles/SamplerBeatMaker.css';
 import '../../styles/MicSimulator.css';
+import '../../styles/VirtualPiano.css';
+import '../../styles/FreesoundBrowser.css';
+import '../../styles/KeyFinder.css';
+import '../../styles/AIBeatAssistant.css';
+import '../../styles/PianoDrumSplit.css';
+import '../../styles/SoundKitManager.css';
 
 const TRACK_COLORS = ['#34c759','#ff9500','#007aff','#af52de','#ff3b30','#5ac8fa','#ff2d55','#ffcc00',
   '#30d158','#ff6b35','#0a84ff','#bf5af2','#ff453a','#64d2ff','#ff375f','#ffd60a',
@@ -38,7 +61,7 @@ const RecordingStudio = ({ user }) => {
   const userTier = (user?.subscription_tier || user?.tier || 'free').toLowerCase();
   const maxTracks = TIER_TRACK_LIMITS[userTier] || DEFAULT_MAX;
 
-  // ── View mode: record | arrange | beatmaker ──
+  // ── View mode: record | arrange | console | beatmaker | piano | split | sounds | keyfinder | aibeat | kits | micsim | aimix ──
   const [viewMode, setViewMode] = useState('record');
 
   // ── Project state ──
@@ -67,17 +90,20 @@ const RecordingStudio = ({ user }) => {
   const [saving, setSaving] = useState(false);
   const [mixingDown, setMixingDown] = useState(false);
   const [activeEffectsTrack, setActiveEffectsTrack] = useState(null);
-  const [showAIMix, setShowAIMix] = useState(false);
 
   // ── Mic Simulator state ──
-  const [showMicSim, setShowMicSim] = useState(false);
   const [micSimStream, setMicSimStream] = useState(null);
+
+  // ── Real-time meter levels for Console (FIX: was static) ──
+  const [meterLevels, setMeterLevels] = useState([]);
 
   const audioCtxRef = useRef(null);
   const masterGainRef = useRef(null);
   const trackSourcesRef = useRef([]);
   const trackGainsRef = useRef([]);
   const trackPansRef = useRef([]);
+  const trackAnalysersRef = useRef([]);    // FIX: {left, right} AnalyserNode pairs per track
+  const meterAnimRef = useRef(null);       // FIX: meter animation frame
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const chunksRef = useRef([]);
@@ -173,6 +199,42 @@ const RecordingStudio = ({ user }) => {
     if(fx.delay.enabled&&fx.delay.mix>0){const d=ctx.createDelay(5);d.delayTime.value=fx.delay.time;const fb=ctx.createGain();fb.gain.value=fx.delay.feedback;const mx=ctx.createGain();mx.gain.value=fx.delay.mix;dry.connect(d);d.connect(fb);fb.connect(d);d.connect(mx);mx.connect(master);}
   };
 
+  // ══════════════════════════════════════════════════════
+  // FIX: Real-time meter animation (for Console VU meters)
+  // ══════════════════════════════════════════════════════
+  // FIX: Read from separate L/R AnalyserNodes (ChannelSplitter-based, true stereo)
+  const startMeterAnimation = useCallback(() => {
+    if (meterAnimRef.current) cancelAnimationFrame(meterAnimRef.current);
+    const animate = () => {
+      const analysers = trackAnalysersRef.current;
+      if (!analysers || analysers.length === 0) { setMeterLevels([]); return; }
+      const levels = analysers.map(pair => {
+        if (!pair || !pair.left || !pair.right) return { left: 0, right: 0, peak: 0 };
+        // Read left channel
+        const dataL = new Uint8Array(pair.left.frequencyBinCount);
+        pair.left.getByteFrequencyData(dataL);
+        let sumL = 0;
+        for (let i = 0; i < dataL.length; i++) sumL += dataL[i];
+        const left = sumL / (dataL.length * 255);
+        // Read right channel
+        const dataR = new Uint8Array(pair.right.frequencyBinCount);
+        pair.right.getByteFrequencyData(dataR);
+        let sumR = 0;
+        for (let i = 0; i < dataR.length; i++) sumR += dataR[i];
+        const right = sumR / (dataR.length * 255);
+        return { left, right, peak: Math.max(left, right) };
+      });
+      setMeterLevels(levels);
+      meterAnimRef.current = requestAnimationFrame(animate);
+    };
+    meterAnimRef.current = requestAnimationFrame(animate);
+  }, []);
+
+  const stopMeterAnimation = useCallback(() => {
+    if (meterAnimRef.current) { cancelAnimationFrame(meterAnimRef.current); meterAnimRef.current = null; }
+    setMeterLevels([]);
+  }, []);
+
   // ── Recording (with optional Mic Simulator) ──
   const startRecording = async () => {
     const ai=tracks.findIndex(t=>t.armed);
@@ -189,7 +251,17 @@ const RecordingStudio = ({ user }) => {
       const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
       const rec=new MediaRecorder(stream,{mimeType:mime});chunksRef.current=[];
       rec.ondataavailable=e=>{if(e.data.size>0)chunksRef.current.push(e.data);};
-      rec.onstop=async()=>{const blob=new Blob(chunksRef.current,{type:mime});const ab=await blob.arrayBuffer();const buf=await ctx.decodeAudioData(ab);updateTrack(ai,{audioBuffer:buf,audio_url:URL.createObjectURL(blob)});createRegionFromRecording(ai,buf);await uploadTrack(blob,ai);setStatus('✓ Recorded');};
+      // FIX: Create audioUrl and pass to region creator for ArrangerView waveforms
+      rec.onstop=async()=>{
+        const blob=new Blob(chunksRef.current,{type:mime});
+        const ab=await blob.arrayBuffer();
+        const buf=await ctx.decodeAudioData(ab);
+        const audioUrl = URL.createObjectURL(blob);
+        updateTrack(ai,{audioBuffer:buf,audio_url:audioUrl});
+        createRegionFromRecording(ai, buf, audioUrl);
+        await uploadTrack(blob,ai);
+        setStatus('✓ Recorded');
+      };
       mediaRecorderRef.current=rec;rec.start(100);startPlayback(true);setIsRecording(true);setStatus(`● REC Track ${ai+1}`);
     }catch(e){setStatus(`✗ Mic: ${e.message}`);}
   };
@@ -210,33 +282,117 @@ const RecordingStudio = ({ user }) => {
       return;
     }
     const ctx = getCtx();
+    const audioUrl = URL.createObjectURL(blob);
     blob.arrayBuffer().then(ab => ctx.decodeAudioData(ab)).then(buf => {
-      updateTrack(ai, { audioBuffer: buf, audio_url: URL.createObjectURL(blob) });
-      createRegionFromRecording(ai, buf);
+      updateTrack(ai, { audioBuffer: buf, audio_url: audioUrl });
+      createRegionFromRecording(ai, buf, audioUrl);
       uploadTrack(blob, ai);
       setStatus(`✓ Mic Sim recorded → Track ${ai + 1}`);
     }).catch(e => setStatus(`✗ ${e.message}`));
   }, [tracks]);
 
-  // ── Playback ──
+  // ── Virtual Piano recording callback ──
+  const handlePianoRecordingComplete = useCallback((blob) => {
+    const ai = tracks.findIndex(t => t.armed);
+    if (ai === -1) {
+      setStatus('⚠ Arm a track first to receive Piano recording');
+      return;
+    }
+    const ctx = getCtx();
+    const audioUrl = URL.createObjectURL(blob);
+    blob.arrayBuffer().then(ab => ctx.decodeAudioData(ab)).then(buf => {
+      updateTrack(ai, { audioBuffer: buf, audio_url: audioUrl });
+      createRegionFromRecording(ai, buf, audioUrl);
+      uploadTrack(blob, ai);
+      setStatus(`✓ Piano recorded → Track ${ai + 1}`);
+    }).catch(e => setStatus(`✗ ${e.message}`));
+  }, [tracks]);
+
+  // ── Freesound Browser: load sound into armed track ──
+  const handleFreesoundSelect = useCallback((audioBuffer, name, audioUrl) => {
+    const ai = tracks.findIndex(t => t.armed);
+    if (ai === -1) {
+      setStatus('⚠ Arm a track first to load sound');
+      return;
+    }
+    updateTrack(ai, { audioBuffer, audio_url: audioUrl, name: name || `Freesound Sample` });
+    createRegionFromRecording(ai, audioBuffer, audioUrl);
+    setStatus(`✓ "${name}" loaded → Track ${ai + 1}`);
+  }, [tracks]);
+
+  // ── Piano+Drum Split recording callback ──
+  const handleSplitRecordingComplete = useCallback((blob) => {
+    const ai = tracks.findIndex(t => t.armed);
+    if (ai === -1) { setStatus('⚠ Arm a track first to receive Split recording'); return; }
+    const ctx = getCtx();
+    const audioUrl = URL.createObjectURL(blob);
+    blob.arrayBuffer().then(ab => ctx.decodeAudioData(ab)).then(buf => {
+      updateTrack(ai, { audioBuffer: buf, audio_url: audioUrl });
+      createRegionFromRecording(ai, buf, audioUrl);
+      uploadTrack(blob, ai);
+      setStatus(`✓ Split recording → Track ${ai + 1}`);
+    }).catch(e => setStatus(`✗ ${e.message}`));
+  }, [tracks]);
+
+  // ── AI Beat pattern apply callback (log for now; Beat Maker integration future) ──
+  const handleAIBeatApply = useCallback((patternData) => {
+    setStatus(`✓ AI Beat pattern generated: ${patternData.genre} @ ${patternData.bpm} BPM — Switch to Beat Maker to use`);
+    // Future: auto-load patternData into SamplerBeatMaker step sequencer
+  }, []);
+
+  // ── Sound Kit: load full kit into Beat Maker ──
+  const handleLoadKit = useCallback((samples) => {
+    if (!samples || samples.length === 0) { setStatus('⚠ Kit has no samples'); return; }
+    setStatus(`✓ Kit loaded — ${samples.length} samples available. Switch to Beat Maker to play.`);
+    // Future: auto-populate SamplerBeatMaker pads with kit samples
+  }, []);
+
+  // ── Sound Kit: load single sample to a pad ──
+  const handleLoadKitSample = useCallback((audioBuffer, name, url, padNum) => {
+    setStatus(`✓ "${name}" loaded → Pad ${padNum >= 0 ? padNum + 1 : '(unassigned)'}`);
+  }, []);
+
+  // ── Playback — FIX: now creates AnalyserNode per track for real-time metering ──
   const startPlayback = (overdub=false) => {
     const ctx=getCtx();
     trackSourcesRef.current.forEach(s=>{try{s.stop();}catch(e){}});
     trackSourcesRef.current=[];trackGainsRef.current=[];trackPansRef.current=[];
+    trackAnalysersRef.current=[];
     let maxDur=0;
     tracks.forEach((t,i)=>{
-      if(!t.audioBuffer)return;
+      if(!t.audioBuffer){
+        trackAnalysersRef.current[i]=null;
+        return;
+      }
       const s=ctx.createBufferSource();s.buffer=t.audioBuffer;
       const g=ctx.createGain();g.gain.value=isAudible(t)?t.volume:0;
       const p=ctx.createStereoPanner();p.pan.value=t.pan;
+
+      // FIX: ChannelSplitter → separate L/R AnalyserNodes for true stereo metering
+      const splitter=ctx.createChannelSplitter(2);
+      const analyserL=ctx.createAnalyser();
+      analyserL.fftSize=256;
+      analyserL.smoothingTimeConstant=0.7;
+      const analyserR=ctx.createAnalyser();
+      analyserR.fftSize=256;
+      analyserR.smoothingTimeConstant=0.7;
+
       const fxNodes=buildFxChain(ctx,t);let last=s;fxNodes.forEach(n=>{last.connect(n);last=n;});
-      last.connect(g);g.connect(p);p.connect(masterGainRef.current);
+      last.connect(g);g.connect(p);
+      // FIX: Post-fader metering with true stereo split
+      p.connect(splitter);
+      splitter.connect(analyserL, 0);  // left channel
+      splitter.connect(analyserR, 1);  // right channel
+      p.connect(masterGainRef.current);
       buildSends(ctx,t,p,masterGainRef.current);
       s.start(0,playOffsetRef.current);trackSourcesRef.current[i]=s;trackGainsRef.current[i]=g;trackPansRef.current[i]=p;
+      trackAnalysersRef.current[i]={ left: analyserL, right: analyserR };
       if(t.audioBuffer.duration>maxDur)maxDur=t.audioBuffer.duration;
     });
     setDuration(maxDur);playStartRef.current=ctx.currentTime;setIsPlaying(true);
     if(metronomeOn)startMetronome(ctx);
+    // FIX: Start real-time meter animation
+    startMeterAnimation();
     timeRef.current=setInterval(()=>{if(audioCtxRef.current){const el=audioCtxRef.current.currentTime-playStartRef.current+playOffsetRef.current;setCurrentTime(el);if(el>=maxDur&&maxDur>0&&!overdub)stopPlayback();}},50);
     if(!overdub)setStatus('▶ Playing');
   };
@@ -244,6 +400,9 @@ const RecordingStudio = ({ user }) => {
   const stopPlayback = () => {
     trackSourcesRef.current.forEach(s=>{try{s.stop();}catch(e){}});trackSourcesRef.current=[];
     if(metroRef.current)clearInterval(metroRef.current);if(timeRef.current)clearInterval(timeRef.current);
+    // FIX: Stop meter animation and clear analyser refs
+    stopMeterAnimation();
+    trackAnalysersRef.current=[];
     setIsPlaying(false);if(!isRecording){playOffsetRef.current=currentTime;setStatus('■ Stopped');}
   };
 
@@ -263,14 +422,15 @@ const RecordingStudio = ({ user }) => {
     click();const id=setInterval(()=>{c++;if(c>=4){clearInterval(id);res();}else click();},iv);
   });
 
-  // ── File import ──
+  // ── File import — FIX: now passes audioUrl to region creator ──
   const handleImport = async (ti) => {
     const inp=document.createElement('input');inp.type='file';inp.accept='audio/*';
     inp.onchange=async(e)=>{const f=e.target.files[0];if(!f)return;setStatus(`Importing...`);
       try{const ctx=getCtx();const ab=await f.arrayBuffer();const buf=await ctx.decodeAudioData(ab);
         const name = f.name.replace(/\.[^/.]+$/,'').substring(0,20);
-        updateTrack(ti,{audioBuffer:buf,audio_url:URL.createObjectURL(f),name});
-        createRegionFromImport(ti, buf, name);
+        const audioUrl = URL.createObjectURL(f);
+        updateTrack(ti,{audioBuffer:buf,audio_url:audioUrl,name});
+        createRegionFromImport(ti, buf, name, audioUrl);
         if(projectId){const fd=new FormData();fd.append('file',f);fd.append('project_id',projectId);fd.append('track_index',ti);
           const tok=localStorage.getItem('token')||sessionStorage.getItem('token');const bu=process.env.REACT_APP_BACKEND_URL||'';
           await fetch(`${bu}/api/studio/tracks/import`,{method:'POST',headers:{'Authorization':`Bearer ${tok}`},body:fd});}
@@ -291,7 +451,7 @@ const RecordingStudio = ({ user }) => {
     setStatus(`Track ${ti+1} cleared`);
   };
 
-  // ── Beat Maker export → DAW track import ──
+  // ── Beat Maker export → DAW track import — FIX: passes audioUrl ──
   const handleBeatExport = useCallback((renderedBuffer, blob) => {
     let targetTrack = tracks.findIndex(t => !t.audioBuffer);
     if (targetTrack === -1 && tracks.length < maxTracks) {
@@ -304,12 +464,13 @@ const RecordingStudio = ({ user }) => {
     }
     const ctx = getCtx();
     if (renderedBuffer) {
+      const audioUrl = URL.createObjectURL(blob);
       updateTrack(targetTrack, {
         audioBuffer: renderedBuffer,
-        audio_url: URL.createObjectURL(blob),
+        audio_url: audioUrl,
         name: 'Beat Export',
       });
-      createRegionFromImport(targetTrack, renderedBuffer, 'Beat Export');
+      createRegionFromImport(targetTrack, renderedBuffer, 'Beat Export', audioUrl);
       setStatus(`✓ Beat → Track ${targetTrack + 1}`);
       setViewMode('record');
     }
@@ -354,7 +515,7 @@ const RecordingStudio = ({ user }) => {
   const saveProject = async () => {
     setSaving(true);setStatus('Saving...');
     try{const tok=localStorage.getItem('token')||sessionStorage.getItem('token');const bu=process.env.REACT_APP_BACKEND_URL||'';
-      const td=tracks.map(t=>({name:t.name,volume:t.volume,pan:t.pan,muted:t.muted,solo:t.solo,effects:t.effects,color:t.color,regions:(t.regions||[]).map(r=>({...r, audioBufferUrl: null})),audio_url:typeof t.audio_url==='string'&&!t.audio_url.startsWith('blob:')?t.audio_url:null}));
+      const td=tracks.map(t=>({name:t.name,volume:t.volume,pan:t.pan,muted:t.muted,solo:t.solo,effects:t.effects,color:t.color,regions:(t.regions||[]).map(r=>({...r, audioUrl: null})),audio_url:typeof t.audio_url==='string'&&!t.audio_url.startsWith('blob:')?t.audio_url:null}));
       const method=projectId?'PUT':'POST';const url=projectId?`${bu}/api/studio/projects/${projectId}`:`${bu}/api/studio/projects`;
       const res=await fetch(url,{method,headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},body:JSON.stringify({name:projectName,bpm,time_signature:`${timeSignature[0]}/${timeSignature[1]}`,tracks:td,master_volume:masterVolume})});
       const data=await res.json();if(data.success){setProjectId(data.project.id);setStatus('✓ Saved');}
@@ -421,16 +582,22 @@ const RecordingStudio = ({ user }) => {
     setCurrentTime(secs);
   }, [bpm, isPlaying]);
 
+  // ══════════════════════════════════════════════════════════
+  // FIX: Region creation — uses "duration" (not "durationBeats")
+  //       + includes "audioUrl" for ArrangerView waveform rendering
+  // ══════════════════════════════════════════════════════════
+
   // ── Auto-create region when recording stops ──
-  const createRegionFromRecording = (trackIndex, audioBuffer) => {
+  const createRegionFromRecording = (trackIndex, audioBuffer, audioUrl) => {
     const regionId = `rgn_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const startBeat = secondsToBeat(playOffsetRef.current, bpm);
-    const durationBeats = secondsToBeat(audioBuffer.duration, bpm);
+    const duration = secondsToBeat(audioBuffer.duration, bpm);
     const newRegion = {
       id: regionId,
       name: tracks[trackIndex]?.name || `Track ${trackIndex + 1}`,
       startBeat,
-      durationBeats,
+      duration,        // FIX: was "durationBeats" — ArrangerView reads "region.duration"
+      audioUrl,         // FIX: was missing — needed for waveform rendering in ArrangerView
       color: tracks[trackIndex]?.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length],
       loopEnabled: false,
       loopCount: 1,
@@ -441,15 +608,16 @@ const RecordingStudio = ({ user }) => {
   };
 
   // ── Auto-create region when importing audio ──
-  const createRegionFromImport = (trackIndex, audioBuffer, name) => {
+  const createRegionFromImport = (trackIndex, audioBuffer, name, audioUrl) => {
     const regionId = `rgn_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-    const durationBeats = secondsToBeat(audioBuffer.duration, bpm);
+    const duration = secondsToBeat(audioBuffer.duration, bpm);
     setTracks(prev => prev.map((t, i) =>
       i === trackIndex ? { ...t, regions: [...(t.regions || []), {
         id: regionId,
         name: name || `Import ${trackIndex + 1}`,
         startBeat: 0,
-        durationBeats,
+        duration,        // FIX: was "durationBeats"
+        audioUrl,         // FIX: was missing
         color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length],
         loopEnabled: false,
         loopCount: 1,
@@ -553,15 +721,43 @@ const RecordingStudio = ({ user }) => {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             Arrange
           </button>
+          <button className={`daw-view-tab ${viewMode==='console'?'active':''}`} onClick={()=>setViewMode('console')}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="10" r="2"/><circle cx="20" cy="14" r="2"/></svg>
+            Console
+          </button>
           <button className={`daw-view-tab ${viewMode==='beatmaker'?'active':''}`} onClick={()=>setViewMode('beatmaker')}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/></svg>
             Beat Maker
           </button>
-          <button className={`daw-view-tab ${showMicSim?'active':''}`} onClick={()=>setShowMicSim(!showMicSim)} title="Mic Simulator">
+          <button className={`daw-view-tab ${viewMode==='piano'?'active':''}`} onClick={()=>setViewMode('piano')} title="Virtual Piano">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="4" x2="6" y2="14"/><line x1="10" y1="4" x2="10" y2="14"/><line x1="14" y1="4" x2="14" y2="14"/><line x1="18" y1="4" x2="18" y2="14"/></svg>
+            Piano
+          </button>
+          <button className={`daw-view-tab ${viewMode==='sounds'?'active':''}`} onClick={()=>setViewMode('sounds')} title="Sound Browser (Freesound.org)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            Sounds
+          </button>
+          <button className={`daw-view-tab ${viewMode==='split'?'active':''}`} onClick={()=>setViewMode('split')} title="Piano + Drums Split">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="9" rx="1"/><rect x="2" y="13" width="20" height="9" rx="1"/></svg>
+            Split
+          </button>
+          <button className={`daw-view-tab ${viewMode==='keyfinder'?'active':''}`} onClick={()=>setViewMode('keyfinder')} title="Key & Scale Detector">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            Key Finder
+          </button>
+          <button className={`daw-view-tab ai-tab ${viewMode==='aibeat'?'active':''}`} onClick={()=>setViewMode('aibeat')} title="AI Beat Generator">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a4 4 0 014 4v1h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2V6a4 4 0 014-4z"/></svg>
+            AI Beats
+          </button>
+          <button className={`daw-view-tab ${viewMode==='kits'?'active':''}`} onClick={()=>setViewMode('kits')} title="Sound Kit Manager">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 9h20"/><path d="M9 21V9"/></svg>
+            Kits
+          </button>
+          <button className={`daw-view-tab ${viewMode==='micsim'?'active':''}`} onClick={()=>setViewMode('micsim')} title="Mic Simulator">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
             Mic Sim
           </button>
-          <button className={`daw-view-tab ai-tab ${showAIMix?'active':''}`} onClick={()=>setShowAIMix(!showAIMix)} title="AI Mix Assistant">
+          <button className={`daw-view-tab ai-tab ${viewMode==='aimix'?'active':''}`} onClick={()=>setViewMode('aimix')} title="AI Mix Assistant">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="8" r="1.5" fill="currentColor"/></svg>
             AI Mix
           </button>
@@ -642,7 +838,7 @@ const RecordingStudio = ({ user }) => {
                   </div>
                   <div className="daw-track-region">
                     {track.audioBuffer
-                      ? <div className="daw-region-block" style={{'--region-color':track.color}}><div className="daw-region-label">{track.name}</div><canvas ref={el=>{canvasRefs.current[i]=el;}} width={1200} height={56} className="daw-waveform-canvas" /></div>
+                      ? <div className="daw-region-block" style={{'--region-color':track.color}}><div className="daw-region-label">{track.name}</div><canvas ref={el=>{canvasRefs.current[i]=el;}} width={1200} height={96} className="daw-waveform-canvas" /></div>
                       : <div className="daw-region-empty">{track.armed?<span className="daw-armed-label">● Armed</span>:<span>Empty</span>}</div>}
                     {duration>0&&<div className="daw-track-playhead" style={{left:`${(currentTime/Math.max(duration,1))*100}%`}}></div>}
                   </div>
@@ -674,6 +870,170 @@ const RecordingStudio = ({ user }) => {
           />
         )}
 
+        {/* ──────── CONSOLE / MIXER VIEW (Cubase MixConsole) ──────── */}
+        {/* FIX: Meters now use real-time AnalyserNode levels instead of static track.volume */}
+        {viewMode === 'console' && (
+          <div className="daw-console">
+            <div className="daw-console-scroll">
+              {tracks.map((track, i) => {
+                const fx = track.effects;
+                const insertSlots = [
+                  { key: 'eq',         label: 'EQ',          on: fx.eq.enabled,         cls: 'eq' },
+                  { key: 'compressor', label: 'Compressor',  on: fx.compressor.enabled, cls: 'comp' },
+                  { key: 'reverb',     label: 'Reverb',      on: fx.reverb.enabled,     cls: 'reverb' },
+                  { key: 'delay',      label: 'Delay',       on: fx.delay.enabled,      cls: 'delay' },
+                  { key: 'distortion', label: 'Distortion',  on: fx.distortion.enabled, cls: 'distortion' },
+                  { key: 'filter',     label: `Filter ${fx.filter.type === 'lowpass' ? 'LP' : fx.filter.type === 'highpass' ? 'HP' : fx.filter.type === 'bandpass' ? 'BP' : 'N'}`, on: fx.filter.enabled, cls: 'filter' },
+                ];
+                const panLabel = track.pan === 0 ? 'C' : track.pan < 0 ? `L${Math.abs(Math.round(track.pan * 50))}` : `R${Math.round(track.pan * 50)}`;
+                const volDb = track.volume > 0 ? (20 * Math.log10(track.volume)).toFixed(1) : '-∞';
+
+                // FIX: Real-time meter levels from AnalyserNodes
+                const level = meterLevels[i] || { left: 0, right: 0, peak: 0 };
+                const meterL = level.left * 100;
+                const meterR = level.right * 100;
+
+                return (
+                  <div key={i} className={`daw-channel ${activeEffectsTrack === i ? 'selected' : ''}`}>
+                    {/* Routing */}
+                    <div className="daw-ch-routing">
+                      <span className="daw-ch-routing-label">Routing</span>
+                      <span className="daw-ch-routing-value">Mono In 2 (Mic)</span>
+                      <span className="daw-ch-routing-value">{track.solo ? 'Solo Bus' : 'Stereo Out'}</span>
+                    </div>
+
+                    {/* Inserts */}
+                    <div className="daw-ch-inserts">
+                      <span className="daw-ch-inserts-label">Inserts</span>
+                      {insertSlots.map(slot => (
+                        <div
+                          key={slot.key}
+                          className={`daw-ch-insert-slot ${slot.on ? `active ${slot.cls}` : 'inactive'}`}
+                          onClick={() => {
+                            setActiveEffectsTrack(i);
+                            updateEffect(i, slot.key, 'enabled', !slot.on);
+                          }}
+                          title={`${slot.label} — click to toggle`}
+                        >
+                          {slot.label}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* M S L e */}
+                    <div className="daw-ch-controls">
+                      <div className={`daw-ch-badge ${track.muted ? 'm-on' : ''}`}
+                        onClick={() => { updateTrack(i, { muted: !track.muted }); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = !track.muted ? 0 : track.volume; }}>M</div>
+                      <div className={`daw-ch-badge ${track.solo ? 's-on' : ''}`}
+                        onClick={() => updateTrack(i, { solo: !track.solo })}>S</div>
+                      <div className="daw-ch-badge" onClick={() => { /* listen/monitor placeholder */ }}>L</div>
+                      <div className={`daw-ch-badge ${activeEffectsTrack === i ? 'e-on' : ''}`}
+                        onClick={() => setActiveEffectsTrack(activeEffectsTrack === i ? null : i)}>e</div>
+                    </div>
+
+                    {/* Pan */}
+                    <div className="daw-ch-pan">
+                      <input
+                        type="range" min="-1" max="1" step="0.02" value={track.pan}
+                        className="daw-ch-pan-display"
+                        style={{ background: 'transparent', cursor: 'pointer', border: 'none', WebkitAppearance: 'none', appearance: 'none', height: '18px', width: '100%' }}
+                        onChange={e => { const v = parseFloat(e.target.value); updateTrack(i, { pan: v }); if (trackPansRef.current[i]) trackPansRef.current[i].pan.value = v; }}
+                        title={panLabel}
+                      />
+                    </div>
+                    <div style={{ textAlign: 'center', fontSize: '0.58rem', color: '#5a7088', fontFamily: "'JetBrains Mono', monospace", padding: '1px 0' }}>
+                      {panLabel}
+                    </div>
+
+                    {/* Fader + Meter — FIX: Real-time AnalyserNode levels */}
+                    <div className="daw-ch-fader-area">
+                      <div className="daw-ch-meter">
+                        <div className="daw-ch-meter-bar">
+                          <div className="daw-ch-meter-fill" style={{ height: `${isPlaying ? Math.max(meterL, 2) : 0}%`, transition: isPlaying ? 'height 0.06s linear' : 'height 0.4s ease-out' }}></div>
+                        </div>
+                        <div className="daw-ch-meter-bar">
+                          <div className="daw-ch-meter-fill" style={{ height: `${isPlaying ? Math.max(meterR, 2) : 0}%`, transition: isPlaying ? 'height 0.06s linear' : 'height 0.4s ease-out' }}></div>
+                        </div>
+                      </div>
+                      <div className="daw-ch-fader">
+                        <input type="range" min="0" max="1" step="0.005" value={track.volume}
+                          onChange={e => { const v = parseFloat(e.target.value); updateTrack(i, { volume: v }); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = v; }}
+                          orient="vertical" />
+                      </div>
+                      <div className="daw-ch-vol-display">
+                        <span className="daw-ch-vol-val">{volDb}</span>
+                      </div>
+                    </div>
+
+                    {/* R/W Automation */}
+                    <div className="daw-ch-automation">
+                      <div className="daw-ch-rw">R</div>
+                      <div className="daw-ch-rw">W</div>
+                    </div>
+
+                    {/* Record Enable */}
+                    <div className="daw-ch-rec">
+                      <div className={`daw-ch-rec-btn ${track.armed ? 'armed' : ''}`}
+                        onClick={() => setTracks(p => p.map((t, idx) => ({ ...t, armed: idx === i ? !t.armed : false })))} />
+                    </div>
+
+                    {/* Channel Name */}
+                    <div className="daw-ch-name">
+                      <div className="daw-ch-number"><span className="daw-ch-type-icon">🎵</span> {i + 1}</div>
+                      <input className="daw-ch-name-input" value={track.name} onChange={e => updateTrack(i, { name: e.target.value })} />
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* ── Master Channel — FIX: Real-time meter levels ── */}
+              <div className="daw-channel master-channel">
+                <div className="daw-ch-routing">
+                  <span className="daw-ch-routing-label">Routing</span>
+                  <span className="daw-ch-routing-value">Stereo Out</span>
+                </div>
+                <div className="daw-ch-inserts">
+                  <span className="daw-ch-inserts-label">Inserts</span>
+                </div>
+                <div className="daw-ch-controls">
+                  <div className="daw-ch-badge">M</div>
+                  <div className="daw-ch-badge">S</div>
+                </div>
+                <div className="daw-ch-pan">
+                  <div className="daw-ch-pan-display" style={{ textAlign: 'center' }}>C</div>
+                </div>
+                <div style={{ textAlign: 'center', fontSize: '0.58rem', color: '#5a7088', fontFamily: "'JetBrains Mono', monospace", padding: '1px 0' }}>C</div>
+                <div className="daw-ch-fader-area">
+                  <div className="daw-ch-meter">
+                    <div className="daw-ch-meter-bar">
+                      <div className="daw-ch-meter-fill" style={{ height: `${isPlaying ? Math.max((meterLevels.reduce((a, l) => Math.max(a, l?.left || 0), 0)) * 90, 2) : 0}%`, transition: isPlaying ? 'height 0.06s linear' : 'height 0.4s ease-out' }}></div>
+                    </div>
+                    <div className="daw-ch-meter-bar">
+                      <div className="daw-ch-meter-fill" style={{ height: `${isPlaying ? Math.max((meterLevels.reduce((a, l) => Math.max(a, l?.right || 0), 0)) * 90, 2) : 0}%`, transition: isPlaying ? 'height 0.06s linear' : 'height 0.4s ease-out' }}></div>
+                    </div>
+                  </div>
+                  <div className="daw-ch-fader">
+                    <input type="range" min="0" max="1" step="0.005" value={masterVolume}
+                      onChange={e => setMasterVolume(parseFloat(e.target.value))} orient="vertical" />
+                  </div>
+                  <div className="daw-ch-vol-display">
+                    <span className="daw-ch-vol-val">{masterVolume > 0 ? (20 * Math.log10(masterVolume)).toFixed(1) : '-∞'}</span>
+                  </div>
+                </div>
+                <div className="daw-ch-automation">
+                  <div className="daw-ch-rw">R</div>
+                  <div className="daw-ch-rw">W</div>
+                </div>
+                <div className="daw-ch-rec"></div>
+                <div className="daw-ch-name">
+                  <div className="daw-ch-number">🔊 M</div>
+                  <input className="daw-ch-name-input" value="Master" readOnly style={{ cursor: 'default' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ──────── BEAT MAKER VIEW ──────── */}
         {viewMode === 'beatmaker' && (
           <SamplerBeatMaker
@@ -683,8 +1043,79 @@ const RecordingStudio = ({ user }) => {
           />
         )}
 
+        {/* ──────── VIRTUAL PIANO VIEW ──────── */}
+        {viewMode === 'piano' && (
+          <div className="daw-piano-view">
+            <VirtualPiano
+              audioContext={audioCtxRef.current}
+              onRecordingComplete={handlePianoRecordingComplete}
+              embedded={true}
+            />
+          </div>
+        )}
+
+        {/* ──────── FREESOUND BROWSER VIEW ──────── */}
+        {viewMode === 'sounds' && (
+          <div className="daw-freesound-view">
+            <FreesoundBrowser
+              audioContext={audioCtxRef.current}
+              onSoundSelect={handleFreesoundSelect}
+              onClose={() => setViewMode('record')}
+              isEmbedded={true}
+            />
+          </div>
+        )}
+
+        {/* ──────── PIANO + DRUMS SPLIT VIEW ──────── */}
+        {viewMode === 'split' && (
+          <div className="daw-split-view">
+            <PianoDrumSplit
+              audioContext={audioCtxRef.current}
+              onRecordingComplete={handleSplitRecordingComplete}
+              isEmbedded={true}
+            />
+          </div>
+        )}
+
+        {/* ──────── KEY FINDER VIEW ──────── */}
+        {viewMode === 'keyfinder' && (
+          <div className="daw-keyfinder-view">
+            <KeyFinder
+              tracks={tracks}
+              audioContext={audioCtxRef.current}
+              onClose={() => setViewMode('record')}
+              isEmbedded={true}
+            />
+          </div>
+        )}
+
+        {/* ──────── AI BEAT ASSISTANT VIEW ──────── */}
+        {viewMode === 'aibeat' && (
+          <div className="daw-aibeat-view">
+            <AIBeatAssistant
+              onApplyPattern={handleAIBeatApply}
+              onClose={() => setViewMode('beatmaker')}
+              isEmbedded={true}
+            />
+          </div>
+        )}
+
+        {/* ──────── SOUND KIT MANAGER VIEW ──────── */}
+        {viewMode === 'kits' && (
+          <div className="daw-kits-view">
+            <SoundKitManager
+              audioContext={audioCtxRef.current}
+              onLoadKit={handleLoadKit}
+              onLoadSample={handleLoadKitSample}
+              currentPads={null}
+              onClose={() => setViewMode('beatmaker')}
+              isEmbedded={true}
+            />
+          </div>
+        )}
+
         {/* ──────── FX PANEL ──────── */}
-        {viewMode === 'record' && afx && (
+        {(viewMode === 'record' || viewMode === 'console') && afx && (
           <div className="daw-fx-panel">
             <div className="daw-fx-header">
               <span style={{color:afx.color}}>●</span>
@@ -717,9 +1148,9 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {/* ──────── MIC SIMULATOR PANEL ──────── */}
-        {showMicSim && (
-          <div className="daw-mic-sim-panel">
+        {/* ──────── MIC SIMULATOR VIEW ──────── */}
+        {viewMode === 'micsim' && (
+          <div className="daw-micsim-view">
             <MicSimulator
               audioContext={audioCtxRef.current}
               inputStream={micSimStream}
@@ -731,14 +1162,16 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {/* ──────── AI MIX ASSISTANT ──────── */}
-        {showAIMix && (
-          <AIMixAssistant
-            tracks={tracks} projectId={projectId}
-            onApplyVolume={handleAIApplyVolume} onApplyPan={handleAIApplyPan}
-            onApplyEQ={handleAIApplyEQ} onApplyCompression={handleAIApplyCompression}
-            onClose={() => setShowAIMix(false)}
-          />
+        {/* ──────── AI MIX ASSISTANT VIEW ──────── */}
+        {viewMode === 'aimix' && (
+          <div className="daw-aimix-view">
+            <AIMixAssistant
+              tracks={tracks} projectId={projectId}
+              onApplyVolume={handleAIApplyVolume} onApplyPan={handleAIApplyPan}
+              onApplyEQ={handleAIApplyEQ} onApplyCompression={handleAIApplyCompression}
+              onClose={() => setViewMode('record')}
+            />
+          </div>
         )}
       </div>
 

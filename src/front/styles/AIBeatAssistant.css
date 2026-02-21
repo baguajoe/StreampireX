@@ -1,0 +1,435 @@
+/* =============================================================================
+   AIBeatAssistant.css — AI Beat Generator Styles
+   Theme: Cubase dark navy
+   ============================================================================= */
+
+.aibeat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0d1117;
+  color: #c9d1d9;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+.aibeat-embedded { border-radius: 0; }
+
+/* ── Header ── */
+.aibeat-header {
+  padding: 12px 16px 8px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+
+.aibeat-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.aibeat-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e6edf3;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aibeat-icon { font-size: 1.1rem; }
+
+.aibeat-subtitle {
+  font-size: 0.68rem;
+  color: #484f58;
+  margin: 4px 0 0;
+}
+
+.aibeat-close-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid #30363d;
+  background: transparent;
+  color: #8b949e;
+  cursor: pointer;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aibeat-close-btn:hover {
+  border-color: #ff453a;
+  color: #ff453a;
+}
+
+/* ── Body ── */
+.aibeat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aibeat-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aibeat-label {
+  font-size: 0.65rem;
+  color: #5a7088;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.aibeat-section-title {
+  font-size: 0.72rem;
+  color: #5a7088;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+/* ── Genre Grid ── */
+.aibeat-genre-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.aibeat-genre-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #8b949e;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.aibeat-genre-btn:hover {
+  border-color: #58a6ff;
+  color: #c9d1d9;
+  background: #161b22;
+}
+
+.aibeat-genre-btn.active {
+  border-color: #FF6600;
+  background: rgba(255, 102, 0, 0.08);
+  color: #FF6600;
+  box-shadow: 0 0 8px rgba(255, 102, 0, 0.15);
+}
+
+.aibeat-genre-emoji { font-size: 0.9rem; }
+.aibeat-genre-name { font-weight: 600; }
+
+.aibeat-genre-desc {
+  font-size: 0.72rem;
+  color: #5a7088;
+  margin: 4px 0 0;
+  font-style: italic;
+}
+
+/* ── Controls ── */
+.aibeat-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.aibeat-ctrl {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 100px;
+}
+
+.aibeat-ctrl label {
+  font-size: 0.6rem;
+  color: #5a7088;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+
+.aibeat-ctrl input[type="range"] {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #21262d;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.aibeat-ctrl input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #FF6600;
+  cursor: pointer;
+}
+
+.aibeat-val {
+  font-size: 0.62rem;
+  color: #FF6600;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Action Buttons ── */
+.aibeat-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aibeat-generate-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #FF6600;
+  background: rgba(255, 102, 0, 0.08);
+  color: #FF6600;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.aibeat-generate-btn:hover {
+  background: rgba(255, 102, 0, 0.18);
+  box-shadow: 0 0 12px rgba(255, 102, 0, 0.15);
+}
+
+.aibeat-play-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+  background: #161b22;
+  color: #c9d1d9;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.aibeat-play-btn:hover {
+  border-color: #00ffc8;
+  color: #00ffc8;
+}
+
+.aibeat-play-btn.playing {
+  border-color: #ff453a;
+  color: #ff453a;
+  background: rgba(255, 69, 58, 0.08);
+}
+
+.aibeat-apply-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #00ffc8;
+  background: rgba(0, 255, 200, 0.08);
+  color: #00ffc8;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.aibeat-apply-btn:hover:not(:disabled) {
+  background: rgba(0, 255, 200, 0.18);
+  box-shadow: 0 0 12px rgba(0, 255, 200, 0.15);
+}
+
+.aibeat-apply-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ═══════════════════════════════════════════════════
+   PATTERN VISUALIZATION
+   ═══════════════════════════════════════════════════ */
+.aibeat-pattern-viz {
+  padding: 16px;
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 10px;
+}
+
+.aibeat-pattern-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aibeat-pattern-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aibeat-inst-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #5a7088;
+  width: 70px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aibeat-steps {
+  display: flex;
+  gap: 3px;
+  flex: 1;
+}
+
+.aibeat-step {
+  flex: 1;
+  height: 22px;
+  border-radius: 3px;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  transition: all 0.1s;
+}
+
+.aibeat-step.beat-start {
+  border-left: 2px solid #30363d;
+}
+
+.aibeat-step.active {
+  background: #FF6600;
+  border-color: #FF6600;
+}
+
+.aibeat-step.current {
+  box-shadow: 0 0 8px rgba(255, 102, 0, 0.5);
+}
+
+.aibeat-step.current:not(.active) {
+  border-color: #FF6600;
+  background: rgba(255, 102, 0, 0.1);
+}
+
+/* Beat markers */
+.aibeat-beat-markers {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.aibeat-steps.markers {
+  display: flex;
+  gap: 3px;
+  flex: 1;
+}
+
+.aibeat-marker {
+  flex: 1;
+  text-align: center;
+  font-size: 0.55rem;
+  color: #484f58;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.aibeat-marker.beat {
+  color: #8b949e;
+  font-weight: 700;
+}
+
+/* ── Chord Suggestions ── */
+.aibeat-chords {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #21262d;
+  flex-wrap: wrap;
+}
+
+.aibeat-chord-label {
+  font-size: 0.65rem;
+  color: #5a7088;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.aibeat-chord {
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(0, 255, 200, 0.06);
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  color: #00ffc8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .aibeat-controls {
+    gap: 10px;
+  }
+
+  .aibeat-ctrl {
+    min-width: 80px;
+  }
+
+  .aibeat-genre-btn {
+    padding: 4px 7px;
+    font-size: 0.65rem;
+  }
+
+  .aibeat-inst-label {
+    width: 55px;
+    font-size: 0.58rem;
+  }
+
+  .aibeat-step {
+    height: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .aibeat-body {
+    padding: 10px;
+  }
+
+  .aibeat-actions {
+    flex-direction: column;
+  }
+
+  .aibeat-genre-emoji {
+    font-size: 0.75rem;
+  }
+
+  .aibeat-genre-name {
+    display: none;
+  }
+
+  .aibeat-step {
+    height: 14px;
+    gap: 2px;
+  }
+}

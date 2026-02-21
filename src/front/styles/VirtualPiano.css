@@ -1,0 +1,438 @@
+/* =============================================================================
+   VirtualPiano.css — Browser Piano / Synth Styles
+   Theme: Cubase-inspired dark navy
+   Colors: #0d1117 base, #00ffc8 teal accent, #FF6600 orange
+   ============================================================================= */
+
+.vpiano {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0d1117;
+  color: #c9d1d9;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+  user-select: none;
+}
+
+/* ── Top Controls Bar ── */
+.vpiano-controls {
+  padding: 12px 16px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.vpiano-ctrl-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vpiano-ctrl-group.compact {
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.vpiano-label {
+  font-size: 0.62rem;
+  color: #5a7088;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+/* ── Instrument Grid ── */
+.vpiano-instrument-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vpiano-inst-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #8b949e;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vpiano-inst-btn:hover {
+  border-color: #58a6ff;
+  color: #c9d1d9;
+  background: #161b22;
+}
+
+.vpiano-inst-btn.active {
+  border-color: #00ffc8;
+  background: rgba(0, 255, 200, 0.08);
+  color: #00ffc8;
+  box-shadow: 0 0 8px rgba(0, 255, 200, 0.15);
+}
+
+.vpiano-inst-emoji {
+  font-size: 1rem;
+}
+
+.vpiano-inst-name {
+  font-weight: 600;
+}
+
+/* ── Control Row (octave, volume, sustain, etc.) ── */
+.vpiano-ctrl-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.vpiano-octave-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vpiano-sm-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #c9d1d9;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.vpiano-sm-btn:hover {
+  border-color: #00ffc8;
+  color: #00ffc8;
+}
+
+.vpiano-octave-display {
+  font-family: 'JetBrains Mono', 'Consolas', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #00ffc8;
+  min-width: 28px;
+  text-align: center;
+}
+
+.vpiano-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vpiano-slider {
+  width: 80px;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #21262d;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.vpiano-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #00ffc8;
+  cursor: pointer;
+}
+
+.vpiano-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  color: #5a7088;
+  min-width: 30px;
+}
+
+/* Toggle buttons */
+.vpiano-toggle-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #8b949e;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vpiano-toggle-btn:hover {
+  border-color: #58a6ff;
+  color: #c9d1d9;
+}
+
+.vpiano-toggle-btn.active {
+  border-color: #00ffc8;
+  background: rgba(0, 255, 200, 0.08);
+  color: #00ffc8;
+}
+
+/* Record button */
+.vpiano-rec-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background: #0d1117;
+  color: #8b949e;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vpiano-rec-btn:hover {
+  border-color: #ff453a;
+  color: #ff453a;
+}
+
+.vpiano-rec-btn.recording {
+  border-color: #ff453a;
+  background: rgba(255, 69, 58, 0.15);
+  color: #ff453a;
+  animation: rec-blink 1s ease-in-out infinite;
+}
+
+@keyframes rec-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Hints row */
+.vpiano-hints {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.vpiano-midi-badge {
+  font-size: 0.68rem;
+  background: rgba(0, 255, 200, 0.1);
+  color: #00ffc8;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  font-weight: 600;
+}
+
+.vpiano-hint {
+  font-size: 0.62rem;
+  color: #484f58;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ═══════════════════════════════════════════════════
+   PIANO KEYBOARD
+   ═══════════════════════════════════════════════════ */
+.vpiano-keyboard-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: stretch;
+  padding: 16px;
+  min-height: 200px;
+  overflow-x: auto;
+}
+
+.vpiano-keyboard {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 180px;
+  max-height: 320px;
+  gap: 2px;
+}
+
+/* ── White Keys ── */
+.vpiano-key.white {
+  flex: 1;
+  min-width: 36px;
+  background: linear-gradient(180deg, #e8e8e8 0%, #ffffff 10%, #f5f5f5 90%, #d0d0d0 100%);
+  border: 1px solid #999;
+  border-radius: 0 0 6px 6px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.06s ease, box-shadow 0.06s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 8px;
+  z-index: 1;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 -2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.vpiano-key.white:hover {
+  background: linear-gradient(180deg, #dde8f0 0%, #e8f4ff 10%, #e0eef8 90%, #c0d0dd 100%);
+}
+
+.vpiano-key.white.active {
+  background: linear-gradient(180deg, #00ffc8 0%, #00e6b3 10%, #00d4a8 90%, #00b89a 100%);
+  border-color: #009980;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 2px 6px rgba(0, 0, 0, 0.1), 0 0 15px rgba(0, 255, 200, 0.3);
+  transform: translateY(1px);
+}
+
+/* ── Black Keys ── */
+.vpiano-key.black {
+  position: absolute;
+  top: 0;
+  width: calc(100% / var(--white-count) * 0.58);
+  height: 62%;
+  background: linear-gradient(180deg, #333 0%, #222 40%, #1a1a1a 80%, #111 100%);
+  border: 1px solid #000;
+  border-radius: 0 0 4px 4px;
+  cursor: pointer;
+  z-index: 2;
+  transform: translateX(-50%);
+  transition: background 0.06s ease, box-shadow 0.06s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 6px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5), inset 0 -3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.vpiano-key.black:hover {
+  background: linear-gradient(180deg, #444 0%, #333 40%, #2a2a2a 80%, #1a1a1a 100%);
+}
+
+.vpiano-key.black.active {
+  background: linear-gradient(180deg, #00b89a 0%, #009980 40%, #007766 80%, #006655 100%);
+  border-color: #005544;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 12px rgba(0, 255, 200, 0.25);
+  transform: translateX(-50%) translateY(1px);
+  height: 60%;
+}
+
+/* ── Key Labels ── */
+.vpiano-key-labels {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.vpiano-note-name {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #666;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.vpiano-key.white.active .vpiano-note-name {
+  color: #004d40;
+}
+
+.vpiano-shortcut {
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #999;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.vpiano-key.white.active .vpiano-shortcut {
+  background: rgba(0, 0, 0, 0.12);
+  color: #006655;
+}
+
+.vpiano-shortcut.black-shortcut {
+  color: #666;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.55rem;
+}
+
+.vpiano-key.black.active .vpiano-shortcut.black-shortcut {
+  color: #d0fff0;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .vpiano-controls {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .vpiano-instrument-grid {
+    gap: 4px;
+  }
+
+  .vpiano-inst-btn {
+    padding: 4px 7px;
+    font-size: 0.65rem;
+  }
+
+  .vpiano-inst-emoji {
+    font-size: 0.85rem;
+  }
+
+  .vpiano-ctrl-row {
+    gap: 10px;
+  }
+
+  .vpiano-slider {
+    width: 60px;
+  }
+
+  .vpiano-keyboard-wrapper {
+    padding: 8px;
+    min-height: 150px;
+  }
+
+  .vpiano-key.white {
+    min-width: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .vpiano-inst-name {
+    display: none;
+  }
+
+  .vpiano-inst-btn {
+    padding: 4px 6px;
+  }
+
+  .vpiano-hint {
+    display: none;
+  }
+
+  .vpiano-key.white {
+    min-width: 22px;
+  }
+
+  .vpiano-note-name {
+    font-size: 0.5rem;
+  }
+}
