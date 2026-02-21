@@ -16,7 +16,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import '../../styles/SoundKitManager.css';
 
-const API_BASE = '/api/soundkits';
+const API_BASE = (process.env.REACT_APP_BACKEND_URL || '') + '/api/soundkits';
 
 const SoundKitManager = ({
   audioContext,

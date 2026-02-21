@@ -16,7 +16,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import '../../styles/FreesoundBrowser.css';
 
-const API_BASE = '/api/freesound';
+const API_BASE = (process.env.REACT_APP_BACKEND_URL || '') + '/api/freesound';
 
 // ── Duration formatter ──
 const fmtDuration = (secs) => {

@@ -1,64 +1,23 @@
-const CACHE_NAME = 'streamprex-v1';
-const OFFLINE_URLS = [
-    '/',
-    '/index.html',
-    '/manifest.json'
-];
+// StreamPireX PWA Service Worker v2
+const CACHE_NAME = 'streampirex-v2';
 
-// Install
-self.addEventListener('install', event => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then(cache => cache.addAll(OFFLINE_URLS))
-    );
-    self.skipWaiting();
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
 });
 
-// Activate
-self.addEventListener('activate', event => {
-    event.waitUntil(
-        caches.keys().then(keys =>
-            Promise.all(
-                keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-            )
-        )
-    );
-    self.clients.claim();
-});
-
-// Fetch
-self.addEventListener('fetch', event => {
-  const request = event.request;
-
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).catch(() => caches.match('/index.html'))
-    );
-    return;
-  }
-
-  if (!request.url.startsWith('http')) return;
-
-  event.respondWith(
-    caches.match(request).then(response => response || fetch(request))
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((names) => {
+      return Promise.all(names.map((name) => caches.delete(name)));
+    }).then(() => self.clients.claim())
   );
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith('/api/')) return;
+  if (event.request.mode === 'navigate') {
+    event.respondWith(fetch(event.request).catch(() => caches.match('/offline.html')));
+  }
+});
