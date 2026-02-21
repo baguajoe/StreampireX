@@ -1,0 +1,533 @@
+/* =============================================================================
+   MicSimulator.css — Virtual Microphone Emulator
+   StreamPireX Theme
+   ============================================================================= */
+
+/* ========== CONTAINER ========== */
+
+.mic-sim {
+  background: linear-gradient(180deg, #0d1e33 0%, #0a1628 100%);
+  border: 1px solid rgba(0, 255, 200, 0.12);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.mic-sim.embedded {
+  border: none;
+  border-radius: 0;
+  padding: 10px;
+  gap: 8px;
+}
+
+/* ========== HEADER ========== */
+
+.mic-sim-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mic-sim-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mic-sim-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mic-sim-model {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #00ffc8;
+}
+
+.mic-sim-type {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ========== MIC SELECTOR GRID ========== */
+
+.mic-selector {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 6px;
+}
+
+.mic-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.mic-option::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--mic-color);
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+
+.mic-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.mic-option:hover::before {
+  opacity: 0.8;
+}
+
+.mic-option.active {
+  background: rgba(0, 255, 200, 0.06);
+  border-color: rgba(0, 255, 200, 0.3);
+  box-shadow: 0 0 12px rgba(0, 255, 200, 0.08);
+}
+
+.mic-option.active::before {
+  background: #00ffc8;
+  opacity: 1;
+}
+
+.mic-option-icon {
+  font-size: 1.2rem;
+}
+
+.mic-option-name {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #ccc;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.mic-option.active .mic-option-name {
+  color: #00ffc8;
+}
+
+.mic-option-type {
+  font-size: 0.5rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ========== DESCRIPTION ========== */
+
+.mic-description {
+  font-size: 0.75rem;
+  color: #888;
+  font-style: italic;
+  padding: 0 4px;
+  line-height: 1.4;
+}
+
+/* ========== SPECTRUM + LEVEL ========== */
+
+.mic-viz-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.mic-spectrum {
+  flex: 1;
+  height: 80px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  background: #0a1628;
+}
+
+.mic-level-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 24px;
+}
+
+.mic-level-bar {
+  flex: 1;
+  width: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mic-level-fill {
+  width: 100%;
+  background: linear-gradient(180deg, #00ffc8, #00d4ff);
+  border-radius: 4px;
+  transition: height 0.05s;
+}
+
+.mic-level-fill.hot {
+  background: linear-gradient(180deg, #ffa500, #00ffc8);
+}
+
+.mic-level-fill.clip {
+  background: linear-gradient(180deg, #ff4444, #ffa500);
+}
+
+.mic-level-label {
+  font-size: 0.5rem;
+  color: #666;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* ========== CONTROLS ========== */
+
+.mic-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mic-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 150px;
+}
+
+.mic-control label {
+  font-size: 0.7rem;
+  color: #888;
+  white-space: nowrap;
+  min-width: 55px;
+}
+
+.mic-control input[type="range"] {
+  flex: 1;
+  height: 3px;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+}
+
+.mic-control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #00ffc8;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #0a1628;
+}
+
+.mic-control-val {
+  font-size: 0.7rem;
+  color: #00ffc8;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  min-width: 36px;
+  text-align: right;
+}
+
+/* Buttons */
+
+.mic-btn {
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #aaa;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.mic-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.mic-btn.active {
+  background: rgba(0, 255, 200, 0.12);
+  border-color: rgba(0, 255, 200, 0.3);
+  color: #00ffc8;
+}
+
+.mic-btn.ab {
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+}
+
+.mic-btn.ab.active {
+  background: rgba(255, 102, 0, 0.12);
+  border-color: rgba(255, 102, 0, 0.3);
+  color: #ff6600;
+}
+
+/* ========== ADVANCED ========== */
+
+.mic-advanced-toggle {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: left;
+}
+
+.mic-advanced-toggle:hover {
+  color: #aaa;
+}
+
+.mic-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.mic-specs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 12px;
+}
+
+.mic-spec {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  padding: 2px 0;
+}
+
+.mic-spec span:first-child {
+  color: #888;
+}
+
+.mic-spec span:last-child {
+  color: #00ffc8;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+}
+
+/* ========== RECORD SECTION ========== */
+
+.mic-record-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 0 4px;
+  position: relative;
+}
+
+.mic-countdown {
+  font-size: 3rem;
+  font-weight: 900;
+  color: #ff0000;
+  animation: micCountPulse 0.7s ease;
+  position: absolute;
+}
+
+@keyframes micCountPulse {
+  0% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.mic-record-btn {
+  padding: 10px 24px;
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  border-radius: 24px;
+  background: rgba(255, 0, 0, 0.08);
+  color: #ff6666;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mic-record-btn:hover:not(:disabled) {
+  background: rgba(255, 0, 0, 0.15);
+  border-color: rgba(255, 0, 0, 0.5);
+  color: #ff4444;
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.1);
+}
+
+.mic-record-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mic-recording-active {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px;
+  background: rgba(255, 0, 0, 0.06);
+  border: 1px solid rgba(255, 0, 0, 0.2);
+  border-radius: 24px;
+}
+
+.mic-rec-dot {
+  color: #ff0000;
+  font-size: 1.1rem;
+  animation: micRecBlink 1s infinite;
+}
+
+@keyframes micRecBlink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.mic-rec-time {
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ff6666;
+  min-width: 50px;
+}
+
+.mic-stop-btn {
+  padding: 5px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ccc;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.mic-stop-btn:hover {
+  background: rgba(255, 68, 68, 0.15);
+  border-color: rgba(255, 68, 68, 0.3);
+  color: #ff4444;
+}
+
+/* ========== RESPONSIVE ========== */
+
+@media (max-width: 600px) {
+  .mic-selector {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  }
+
+  .mic-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mic-control {
+    min-width: 100%;
+  }
+
+  .mic-viz-row {
+    flex-direction: column;
+  }
+
+  .mic-spectrum {
+    height: 60px;
+  }
+
+  .mic-level-container {
+    flex-direction: row;
+    width: 100%;
+    height: 16px;
+  }
+
+  .mic-level-bar {
+    flex: 1;
+    height: 8px;
+    width: auto;
+    flex-direction: row;
+  }
+
+  .mic-level-fill {
+    height: 100%;
+    width: auto;
+    transition: width 0.05s;
+  }
+}
+
+@media (max-width: 400px) {
+  .mic-selector {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mic-option-name {
+    font-size: 0.6rem;
+  }
+}
+
+/* Embedded Compact Mode */
+
+.mic-sim.embedded .mic-selector {
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 4px;
+}
+
+.mic-sim.embedded .mic-option {
+  padding: 5px 4px;
+}
+
+.mic-sim.embedded .mic-option-icon {
+  font-size: 1rem;
+}
+
+.mic-sim.embedded .mic-spectrum {
+  height: 60px;
+}
+
+.mic-sim.embedded .mic-description {
+  display: none;
+}

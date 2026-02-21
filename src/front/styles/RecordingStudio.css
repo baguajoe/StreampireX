@@ -1163,178 +1163,239 @@
 }
 
 .daw-topbar-center-tabs {
-  display: flex;
-  gap: 2px;
-  background: rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 8px;
-  padding: 3px;
+    display: flex;
+    gap: 2px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 3px;
 }
 
 .daw-view-tab {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 16px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: #666;
-  font-family: inherit;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 16px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: #666;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
 }
 
 .daw-view-tab:hover {
-  color: #aaa;
-  background: rgba(255,255,255,0.04);
+    color: #aaa;
+    background: rgba(255, 255, 255, 0.04);
 }
 
 .daw-view-tab.active {
-  background: rgba(52, 199, 89, 0.12);
-  border-color: rgba(52, 199, 89, 0.3);
-  color: #34c759;
-  box-shadow: 0 0 8px rgba(52, 199, 89, 0.1);
+    background: rgba(52, 199, 89, 0.12);
+    border-color: rgba(52, 199, 89, 0.3);
+    color: #34c759;
+    box-shadow: 0 0 8px rgba(52, 199, 89, 0.1);
 }
 
 .daw-view-tab.active svg {
-  filter: drop-shadow(0 0 3px rgba(52, 199, 89, 0.4));
+    filter: drop-shadow(0 0 3px rgba(52, 199, 89, 0.4));
 }
 
 /* ========== ADD TRACK ROW ========== */
 .daw-add-track-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  border-bottom: 1px solid #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #1a1a1a;
 }
 
 .daw-add-track-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  background: rgba(255,255,255,0.03);
-  border: 1px dashed rgba(255,255,255,0.1);
-  border-radius: 6px;
-  color: #666;
-  font-family: inherit;
-  font-size: 0.78rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #666;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
 .daw-add-track-btn:hover:not(:disabled) {
-  background: rgba(52, 199, 89, 0.08);
-  border-color: rgba(52, 199, 89, 0.3);
-  color: #34c759;
+    background: rgba(52, 199, 89, 0.08);
+    border-color: rgba(52, 199, 89, 0.3);
+    color: #34c759;
 }
 
 .daw-add-track-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
+    opacity: 0.35;
+    cursor: not-allowed;
 }
 
 .daw-tier-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #555;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 /* ========== MASTER BAR TIER BADGE ========== */
 .daw-master-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .daw-tier-badge {
-  padding: 3px 10px;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-family: 'JetBrains Mono', monospace;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: 'JetBrains Mono', monospace;
 }
 
 .daw-tier-badge[data-tier="free"] {
-  background: rgba(255,255,255,0.06);
-  color: #888;
-  border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.06);
+    color: #888;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .daw-tier-badge[data-tier="starter"] {
-  background: rgba(52, 199, 89, 0.1);
-  color: #34c759;
-  border: 1px solid rgba(52, 199, 89, 0.3);
+    background: rgba(52, 199, 89, 0.1);
+    color: #34c759;
+    border: 1px solid rgba(52, 199, 89, 0.3);
 }
 
 .daw-tier-badge[data-tier="creator"] {
-  background: rgba(0, 122, 255, 0.1);
-  color: #007aff;
-  border: 1px solid rgba(0, 122, 255, 0.3);
+    background: rgba(0, 122, 255, 0.1);
+    color: #007aff;
+    border: 1px solid rgba(0, 122, 255, 0.3);
 }
 
 .daw-tier-badge[data-tier="pro"] {
-  background: rgba(175, 82, 222, 0.1);
-  color: #af52de;
-  border: 1px solid rgba(175, 82, 222, 0.3);
+    background: rgba(175, 82, 222, 0.1);
+    color: #af52de;
+    border: 1px solid rgba(175, 82, 222, 0.3);
 }
 
 .daw-track-count {
-  font-size: 0.7rem;
-  font-family: 'JetBrains Mono', monospace;
-  color: #666;
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: #666;
 }
 
 /* ========== AI MIX TAB ========== */
 .daw-view-tab.ai-tab.active {
-  background: rgba(175, 82, 222, 0.12);
-  border-color: rgba(175, 82, 222, 0.3);
-  color: #bf5af2;
-  box-shadow: 0 0 8px rgba(175, 82, 222, 0.1);
+    background: rgba(175, 82, 222, 0.12);
+    border-color: rgba(175, 82, 222, 0.3);
+    color: #bf5af2;
+    box-shadow: 0 0 8px rgba(175, 82, 222, 0.1);
 }
 
 .daw-view-tab.ai-tab.active svg {
-  filter: drop-shadow(0 0 3px rgba(175, 82, 222, 0.4));
+    filter: drop-shadow(0 0 3px rgba(175, 82, 222, 0.4));
 }
 
 .daw-view-tab.ai-tab:not(.active) {
-  color: #666;
+    color: #666;
 }
 
 .daw-view-tab.ai-tab:not(.active):hover {
-  color: #bf5af2;
-  background: rgba(175, 82, 222, 0.06);
+    color: #bf5af2;
+    background: rgba(175, 82, 222, 0.06);
 }
 
 /* ========== RESPONSIVE ADDITIONS ========== */
 @media (max-width: 900px) {
-  .daw-topbar-center-tabs {
-    order: 10;
-    width: 100%;
-    justify-content: center;
-  }
-  .daw-master-info {
-    display: none;
-  }
+    .daw-topbar-center-tabs {
+        order: 10;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .daw-master-info {
+        display: none;
+    }
 }
 
 @media (max-width: 768px) {
-  .daw-view-tab {
-    padding: 4px 12px;
-    font-size: 0.72rem;
-  }
-  .daw-add-track-row {
-    padding: 6px 8px;
-  }
+    .daw-view-tab {
+        padding: 4px 12px;
+        font-size: 0.72rem;
+    }
+
+    .daw-add-track-row {
+        padding: 6px 8px;
+    }
+
+    /* =============================================================================
+   RecordingStudio.css ADDITIONS — Mic Simulator Panel
+   =============================================================================
+   APPEND this to your existing RecordingStudio.css file
+   ============================================================================= */
+
+    /* ========== MIC SIMULATOR PANEL ========== */
+
+    .daw-mic-sim-panel {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 340px;
+        background: linear-gradient(180deg, #0d1e33, #0a1628);
+        border-left: 1px solid rgba(0, 255, 200, 0.12);
+        z-index: 25;
+        overflow-y: auto;
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+        padding: 0;
+    }
+
+    .daw-mic-sim-panel .mic-sim.embedded {
+        height: 100%;
+        border: none;
+        border-radius: 0;
+    }
+
+    .daw-mic-sim-panel::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .daw-mic-sim-panel::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .daw-mic-sim-panel::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+    }
+
+    .daw-mic-sim-panel::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    @media (max-width: 768px) {
+        .daw-mic-sim-panel {
+            width: 100%;
+            position: fixed;
+            top: auto;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50vh;
+            border-left: none;
+            border-top: 1px solid rgba(0, 255, 200, 0.12);
+        }
+    }
 }
