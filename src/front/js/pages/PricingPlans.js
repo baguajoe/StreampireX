@@ -268,6 +268,12 @@ const PricingPlans = () => {
                 <span><strong>Recording Studio</strong> (4 tracks)</span>
               </li>
 
+              {/* AI Stem Separation — FREE */}
+              <li className="feature included highlight">
+                <span className="icon">🎵</span>
+                <span><strong>AI Stem Separation</strong> — Free!</span>
+              </li>
+
               {/* Clips */}
               <li className="feature included">
                 <span className="icon">📱</span>
@@ -380,6 +386,12 @@ const PricingPlans = () => {
               <li className="feature included">
                 <span className="icon">🤖</span>
                 <span><strong>AI Mix Assistant</strong></span>
+              </li>
+
+              {/* AI Stem Separation — FREE */}
+              <li className="feature included highlight">
+                <span className="icon">🎵</span>
+                <span><strong>AI Stem Separation</strong> — Free!</span>
               </li>
 
               {/* Clips */}
@@ -502,6 +514,12 @@ const PricingPlans = () => {
               <li className="feature included">
                 <span className="icon">🤖</span>
                 <span><strong>AI Mix Assistant</strong></span>
+              </li>
+
+              {/* AI Stem Separation — FREE */}
+              <li className="feature included highlight">
+                <span className="icon">🎵</span>
+                <span><strong>AI Stem Separation</strong> — Free!</span>
               </li>
 
               {/* Clips */}
@@ -631,6 +649,12 @@ const PricingPlans = () => {
               <li className="feature included special">
                 <span className="icon">🤖</span>
                 <span><strong>AI Mix Assistant</strong> (browser + server deep analysis)</span>
+              </li>
+
+              {/* AI Stem Separation — FREE */}
+              <li className="feature included highlight">
+                <span className="icon">🎵</span>
+                <span><strong>AI Stem Separation</strong> — Free!</span>
               </li>
 
               {/* Streaming */}
@@ -1096,6 +1120,13 @@ const PricingPlans = () => {
                 <td colSpan="5">🤖 AI Features</td>
               </tr>
               <tr>
+                <td>AI Stem Separation</td>
+                <td>✓ Free</td>
+                <td>✓ Free</td>
+                <td className="highlight">✓ Free</td>
+                <td>✓ Free</td>
+              </tr>
+              <tr>
                 <td>AI Mastering</td>
                 <td>✗</td>
                 <td>3/month</td>
@@ -1337,6 +1368,11 @@ const PricingPlans = () => {
           <div className="faq-item">
             <h3>What is the Recording Studio?</h3>
             <p>A full multi-track DAW (Digital Audio Workstation) in your browser. Record audio, import files, add effects (EQ, compression, reverb, delay, distortion, filters), arrange regions on a timeline, and bounce to a final mix. Track limits scale with your plan: 4 (Free), 8 (Starter), 16 (Creator), 32 (Pro).</p>
+          </div>
+
+          <div className="faq-item">
+            <h3>What is AI Stem Separation?</h3>
+            <p>AI Stem Separation uses Meta's Demucs AI to split any song into individual stems — vocals, drums, bass, and instruments. Choose 4-stem or 6-stem mode (which also separates guitar and piano). It's completely free on every plan with no limits. Perfect for remixing, sampling, karaoke, or isolating parts for practice.</p>
           </div>
         </div>
       </div>

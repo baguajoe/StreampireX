@@ -5,6 +5,7 @@
 // Features: Recording Studio, AI Mix Assistant, AI Mastering, AI Stem Separation,
 //           AI Radio DJ, Voice Cloning, Video Editor, Live Streaming, Podcasts,
 //           Radio, Gaming Hub, Social Network, Music Distribution, Marketplace
+// AI Stem Separation: FREE on all tiers, unlimited, all models
 // =============================================================================
 
 import React, { useContext } from "react";
@@ -123,20 +124,20 @@ const Home = () => {
 						</div>
 					</div>
 
-					{/* NEW — AI Stem Separation */}
+					{/* AI Stem Separation — FREE on all tiers */}
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🎵</div>
-						<div className="ai-badge">AI</div>
+						<div className="ai-badge free-badge">FREE</div>
 						<h4>AI Stem Separation</h4>
 						<p>
 							Split any song into individual stems — vocals, drums, bass, and instruments.
 							Powered by Meta's Demucs AI. Isolate vocals for remixes, extract drums for
-							sampling, or separate guitar and piano with 6-stem mode.
+							sampling, or separate guitar and piano with 6-stem mode. Free on every plan.
 						</p>
 						<div className="ai-feature-stats">
 							<span>4 or 6 Stems</span>
 							<span>5 AI Models</span>
-							<span>Pro Quality</span>
+							<span>Free All Tiers</span>
 						</div>
 					</div>
 
@@ -199,7 +200,7 @@ const Home = () => {
 			</section>
 
 			{/* ================================================================
-			    HOW IT WORKS (NEW)
+			    HOW IT WORKS
 			    ================================================================ */}
 			<section className="how-it-works">
 				<h2>⚡ Start Creating in 3 Steps</h2>
@@ -391,7 +392,7 @@ const Home = () => {
 							<li>🎬 Video Editor — Full Tools + Templates</li>
 							<li>🎚️ Recording Studio — Multi-Track DAW</li>
 							<li>🤖 AI Mix Assistant + AI Mastering</li>
-							<li>🎵 AI Stem Separation — 4 or 6 Stems</li>
+							<li>🎵 AI Stem Separation — FREE All Tiers</li>
 							<li>📡 Live Streaming — Up to 4K</li>
 							<li>🎙️ Podcast Hosting — Unlimited</li>
 							<li>📻 24/7 Radio + AI DJ</li>
@@ -458,7 +459,7 @@ const Home = () => {
 					<div className="value-prop-card">
 						<span className="value-icon">🤖</span>
 						<h4>AI-Powered Tools</h4>
-						<p>AI mastering, AI mix assistant, AI stem separation, AI radio DJ, and voice cloning. Pro results without the learning curve or expensive plugins.</p>
+						<p>AI mastering, AI mix assistant, free AI stem separation, AI radio DJ, and voice cloning. Pro results without the learning curve or expensive plugins.</p>
 					</div>
 					<div className="value-prop-card">
 						<span className="value-icon">🎚️</span>
@@ -483,23 +484,23 @@ const Home = () => {
 					<div className="pricing-preview-card">
 						<h4>Free</h4>
 						<div className="preview-price">$0</div>
-						<p>Full video editor, 4 studio tracks, gaming hub, social feed, 5GB storage</p>
+						<p>Full video editor, 4 studio tracks, AI stem separation, gaming hub, social feed, 5GB storage</p>
 					</div>
 					<div className="pricing-preview-card starter">
 						<h4>Starter</h4>
 						<div className="preview-price">$12.99<span>/mo</span></div>
-						<p>8 studio tracks, AI mastering (3/mo), AI mix assistant, live streaming, podcasts, radio, 25GB</p>
+						<p>8 studio tracks, AI mastering (3/mo), AI mix assistant, AI stems, live streaming, podcasts, radio, 25GB</p>
 					</div>
 					<div className="pricing-preview-card creator popular">
 						<div className="preview-popular">Most Popular</div>
 						<h4>Creator</h4>
 						<div className="preview-price">$22.99<span>/mo</span></div>
-						<p>16 tracks, AI mastering (15/mo), AI Radio DJ, 4K export, 100GB, game streaming</p>
+						<p>16 tracks, AI mastering (15/mo), AI Radio DJ, AI stems, 4K export, 100GB, game streaming</p>
 					</div>
 					<div className="pricing-preview-card pro">
 						<h4>Pro</h4>
 						<div className="preview-price">$31.99<span>/mo</span></div>
-						<p>32 tracks, unlimited AI mastering, voice cloning, 8K, music distribution, unlimited storage</p>
+						<p>32 tracks, unlimited AI mastering, voice cloning, AI stems, 8K, music distribution, unlimited storage</p>
 					</div>
 				</div>
 				<div className="pricing-preview-cta">
