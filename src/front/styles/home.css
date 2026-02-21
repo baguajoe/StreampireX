@@ -79,7 +79,7 @@
 	background: transparent !important;
 }
 
-/* Hero Tagline (new) */
+/* Hero Tagline */
 .streampirex-home .hero-tagline {
 	font-size: 1.5rem !important;
 	color: #FF6600 !important;
@@ -312,6 +312,22 @@
 	border-radius: 20px;
 	letter-spacing: 1px;
 	margin-bottom: 0.75rem;
+}
+
+/* FREE badge — green gradient for stem separation */
+.streampirex-home .ai-badge.free-badge {
+	background: linear-gradient(135deg, #10b981, #34d399) !important;
+	color: #0d1117 !important;
+	font-size: 0.75rem;
+	font-weight: 900;
+	padding: 4px 14px;
+	letter-spacing: 1.5px;
+	animation: free-pulse 2s ease-in-out infinite;
+}
+
+@keyframes free-pulse {
+	0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+	50% { box-shadow: 0 0 12px 4px rgba(16, 185, 129, 0.2); }
 }
 
 .streampirex-home .ai-feature-card h4 {
@@ -1098,6 +1114,10 @@
 	.streampirex-home .pricing-preview-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		max-width: 700px;
+	}
+
+	.streampirex-home .ai-features-grid {
+		grid-template-columns: repeat(3, 1fr);
 	}
 }
 
