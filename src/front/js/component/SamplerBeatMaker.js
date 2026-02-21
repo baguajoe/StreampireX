@@ -181,6 +181,12 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   const [settingsTab, setSettingsTab] = useState('main');
   const [dragPad, setDragPad] = useState(null);
   const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState('wav');
+  const [exportQuality, setExportQuality] = useState(192); // kbps for mp3
+  const [showExportPanel, setShowExportPanel] = useState(false);
+  const [exportProgress, setExportProgress] = useState('');
+  const [exportStatus, setExportStatus] = useState('');
+  const lameRef = useRef(null);
   const tapTimes = useRef([]);
 
   // ==== SEQUENCER REFS ====
@@ -736,9 +742,10 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   }, [stepCount]);
 
   // =========================================================================
-  // EXPORT — WAV / Stems / MIDI
+  // EXPORT — WAV / MP3 / OGG / WEBM / Stems / MIDI
   // =========================================================================
 
+  // ── WAV encoder (lossless, direct from AudioBuffer) ──
   const toWav = useCallback((buf) => {
     const nc = buf.numberOfChannels, sr = buf.sampleRate, ba = nc * 2, dl = buf.length * ba;
     const ab = new ArrayBuffer(44 + dl), v = new DataView(ab);
@@ -753,6 +760,102 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
     return new Blob([ab], { type: 'audio/wav' });
   }, []);
 
+  // ── MP3 encoder (loads lamejs dynamically) ──
+  const loadLame = useCallback(() => {
+    return new Promise((resolve, reject) => {
+      if (lameRef.current) { resolve(lameRef.current); return; }
+      if (window.lamejs) { lameRef.current = window.lamejs; resolve(window.lamejs); return; }
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
+      s.onload = () => { lameRef.current = window.lamejs; resolve(window.lamejs); };
+      s.onerror = () => reject(new Error('Failed to load MP3 encoder. Check internet connection.'));
+      document.head.appendChild(s);
+    });
+  }, []);
+
+  const toMp3 = useCallback(async (buf, kbps = 192) => {
+    const lamejs = await loadLame();
+    const nc = buf.numberOfChannels, sr = buf.sampleRate, len = buf.length;
+    const mp3enc = new lamejs.Mp3Encoder(nc, sr, kbps);
+    const blockSize = 1152;
+    const mp3Buf = [];
+    const left = new Int16Array(len);
+    const right = nc > 1 ? new Int16Array(len) : null;
+    const ld = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) left[i] = Math.max(-32768, Math.min(32767, Math.round(ld[i] * 32767)));
+    if (right) {
+      const rd = buf.getChannelData(1);
+      for (let i = 0; i < len; i++) right[i] = Math.max(-32768, Math.min(32767, Math.round(rd[i] * 32767)));
+    }
+    for (let i = 0; i < len; i += blockSize) {
+      const lc = left.subarray(i, i + blockSize);
+      const rc = right ? right.subarray(i, i + blockSize) : lc;
+      const chunk = nc > 1 ? mp3enc.encodeBuffer(lc, rc) : mp3enc.encodeBuffer(lc);
+      if (chunk.length > 0) mp3Buf.push(chunk);
+    }
+    const end = mp3enc.flush();
+    if (end.length > 0) mp3Buf.push(end);
+    return new Blob(mp3Buf, { type: 'audio/mp3' });
+  }, [loadLame]);
+
+  // ── OGG / WEBM encoder (MediaRecorder re-encode from AudioBuffer) ──
+  const toMediaRecorderFormat = useCallback(async (buf, mimeType) => {
+    return new Promise((resolve, reject) => {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const dest = ctx.createMediaStreamDestination();
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(dest);
+      const supported = MediaRecorder.isTypeSupported(mimeType);
+      if (!supported) { reject(new Error(`${mimeType} not supported in this browser`)); ctx.close(); return; }
+      const rec = new MediaRecorder(dest.stream, { mimeType });
+      const chunks = [];
+      rec.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      rec.onstop = () => {
+        ctx.close();
+        resolve(new Blob(chunks, { type: mimeType }));
+      };
+      rec.onerror = (e) => { ctx.close(); reject(e.error || new Error('MediaRecorder error')); };
+      rec.start();
+      src.onended = () => { setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, 100); };
+      src.start(0);
+    });
+  }, []);
+
+  const toOgg = useCallback(async (buf) => {
+    const types = ['audio/ogg;codecs=opus', 'audio/ogg', 'audio/webm;codecs=opus'];
+    for (const t of types) { if (MediaRecorder.isTypeSupported(t)) return toMediaRecorderFormat(buf, t); }
+    throw new Error('OGG encoding not supported in this browser. Use WAV or MP3.');
+  }, [toMediaRecorderFormat]);
+
+  const toWebm = useCallback(async (buf) => {
+    const types = ['audio/webm;codecs=opus', 'audio/webm'];
+    for (const t of types) { if (MediaRecorder.isTypeSupported(t)) return toMediaRecorderFormat(buf, t); }
+    throw new Error('WebM encoding not supported in this browser. Use WAV or MP3.');
+  }, [toMediaRecorderFormat]);
+
+  // ── Universal format converter ──
+  const FORMAT_INFO = { wav: { ext: 'wav', label: 'WAV (Lossless)' }, mp3: { ext: 'mp3', label: 'MP3' }, ogg: { ext: 'ogg', label: 'OGG Opus' }, webm: { ext: 'webm', label: 'WebM Opus' } };
+
+  const convertToFormat = useCallback(async (audioBuffer, format, quality) => {
+    switch (format) {
+      case 'mp3': return toMp3(audioBuffer, quality || exportQuality);
+      case 'ogg': return toOgg(audioBuffer);
+      case 'webm': return toWebm(audioBuffer);
+      case 'wav': default: return toWav(audioBuffer);
+    }
+  }, [toWav, toMp3, toOgg, toWebm, exportQuality]);
+
+  // ── File download helper ──
+  const downloadBlob = useCallback((blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, []);
+
+  // ── Render single pattern ──
   const renderPat = useCallback(async (patSteps, patVel, patSC) => {
     const sd = 60.0 / bpm / 4, dur = patSC * sd, sr = 44100;
     const oc = new OfflineAudioContext(2, Math.ceil(dur * sr), sr);
@@ -773,63 +876,213 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
     return await oc.startRendering();
   }, [bpm, swing, pads, masterVol]);
 
-  const exportBeat = useCallback(async () => {
+  // ── Render full song (chain all patterns in songSeq) ──
+  const renderSong = useCallback(async () => {
+    const bufs = [];
+    for (const b of songSeq) {
+      const p = patterns[b.patternIndex];
+      if (p) bufs.push(await renderPat(p.steps, p.velocities, p.stepCount));
+    }
+    if (bufs.length === 0) return null;
+    const totalLen = bufs.reduce((s, b) => s + b.length, 0);
+    const oc = new OfflineAudioContext(2, totalLen, 44100);
+    let off = 0;
+    for (const b of bufs) {
+      const s = oc.createBufferSource(); s.buffer = b; s.connect(oc.destination); s.start(off / 44100); off += b.length;
+    }
+    return await oc.startRendering();
+  }, [songSeq, patterns, renderPat]);
+
+  // ── Render single pad stem (works for pattern or full song) ──
+  const renderStemForPad = useCallback(async (padIndex, useSongMode) => {
+    const pad = pads[padIndex];
+    if (!pad.buffer) return null;
+
+    if (useSongMode && songSeq.length > 0) {
+      // Render pad across all song patterns
+      const segBufs = [];
+      for (const b of songSeq) {
+        const p = patterns[b.patternIndex];
+        if (!p) continue;
+        const sc = p.stepCount, sd = 60.0 / bpm / 4, dur = sc * sd;
+        const oc = new OfflineAudioContext(2, Math.ceil(dur * 44100), 44100);
+        const g = oc.createGain(); g.gain.value = pad.volume; g.connect(oc.destination);
+        for (let si = 0; si < sc; si++) {
+          if (!p.steps[padIndex]?.[si]) continue;
+          let so = 0; if (si % 2 === 1 && swing > 0) so = sd * (swing / 100) * 0.5;
+          const s = oc.createBufferSource(), sg = oc.createGain();
+          s.buffer = pad.buffer; s.playbackRate.value = Math.pow(2, pad.pitch / 12);
+          sg.gain.value = p.velocities[padIndex]?.[si] ?? 0.8; s.connect(sg); sg.connect(g);
+          const off = pad.trimStart || 0; s.start(si * sd + so, off, (pad.trimEnd || pad.buffer.duration) - off);
+        }
+        segBufs.push(await oc.startRendering());
+      }
+      if (segBufs.length === 0) return null;
+      const totalLen = segBufs.reduce((s, b) => s + b.length, 0);
+      const oc = new OfflineAudioContext(2, totalLen, 44100);
+      let off = 0;
+      for (const b of segBufs) { const s = oc.createBufferSource(); s.buffer = b; s.connect(oc.destination); s.start(off / 44100); off += b.length; }
+      return await oc.startRendering();
+    } else {
+      // Render pad for current pattern only
+      const sd = 60.0 / bpm / 4, dur = stepCount * sd;
+      const oc = new OfflineAudioContext(2, Math.ceil(dur * 44100), 44100);
+      const g = oc.createGain(); g.gain.value = pad.volume; g.connect(oc.destination);
+      for (let si = 0; si < stepCount; si++) {
+        if (!steps[padIndex]?.[si]) continue;
+        let so = 0; if (si % 2 === 1 && swing > 0) so = sd * (swing / 100) * 0.5;
+        const s = oc.createBufferSource(), sg = oc.createGain();
+        s.buffer = pad.buffer; s.playbackRate.value = Math.pow(2, pad.pitch / 12);
+        sg.gain.value = stepVel[padIndex]?.[si] ?? 0.8; s.connect(sg); sg.connect(g);
+        const off = pad.trimStart || 0; s.start(si * sd + so, off, (pad.trimEnd || pad.buffer.duration) - off);
+      }
+      return await oc.startRendering();
+    }
+  }, [pads, steps, stepVel, stepCount, bpm, swing, songSeq, patterns]);
+
+  // ── Export full beat (desktop download + optional DAW send) ──
+  const exportBeat = useCallback(async (fmt, sendToDaw = false) => {
+    const format = fmt || exportFormat;
     setExporting(true);
+    setExportProgress('Rendering audio...');
     try {
       let rendered;
       if (songMode && songSeq.length > 0) {
-        const bufs = [];
-        for (const b of songSeq) { const p = patterns[b.patternIndex]; if (p) bufs.push(await renderPat(p.steps, p.velocities, p.stepCount)); }
-        const totalLen = bufs.reduce((s, b) => s + b.length, 0);
-        const oc = new OfflineAudioContext(2, totalLen, 44100); let off = 0;
-        for (const b of bufs) { const s = oc.createBufferSource(); s.buffer = b; s.connect(oc.destination); s.start(off / 44100); off += b.length; }
-        rendered = await oc.startRendering();
-      } else rendered = await renderPat(steps, stepVel, stepCount);
+        setExportProgress('Rendering song arrangement...');
+        rendered = await renderSong();
+        if (!rendered) throw new Error('No patterns in song sequence');
+      } else {
+        rendered = await renderPat(steps, stepVel, stepCount);
+      }
 
-      const blob = toWav(rendered);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `beat_${bpm}bpm_${new Date().toISOString().slice(0, 10)}.wav`;
-      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-      if (onExport) onExport(rendered, blob);
-    } catch (e) { console.error('Export fail:', e); alert('Export failed: ' + e.message); }
-    finally { setExporting(false); }
-  }, [songMode, songSeq, patterns, steps, stepVel, stepCount, bpm, renderPat, toWav, onExport]);
+      setExportProgress(`Encoding ${format.toUpperCase()}...`);
+      const blob = await convertToFormat(rendered, format, exportQuality);
+      const ext = FORMAT_INFO[format]?.ext || format;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const songLabel = songMode && songSeq.length > 0 ? 'song' : 'beat';
+      downloadBlob(blob, `${songLabel}_${bpm}bpm_${dateStr}.${ext}`);
 
-  const exportStems = useCallback(async () => {
+      // Also send WAV to DAW if requested (always WAV for DAW quality)
+      if (sendToDaw && onExport) {
+        const wavBlob = format === 'wav' ? blob : toWav(rendered);
+        onExport(rendered, wavBlob);
+      }
+
+      setExportProgress('');
+      setExportStatus(`✓ Exported ${format.toUpperCase()}`);
+    } catch (e) {
+      console.error('Export fail:', e);
+      setExportProgress('');
+      setExportStatus(`✗ Export failed: ${e.message}`);
+    } finally { setExporting(false); }
+  }, [songMode, songSeq, patterns, steps, stepVel, stepCount, bpm, exportFormat, exportQuality, renderPat, renderSong, convertToFormat, downloadBlob, toWav, onExport]);
+
+  // ── Export multi-track stems (each pad as separate file) ──
+  const exportStems = useCallback(async (fmt) => {
+    const format = fmt || exportFormat;
+    const useSong = songMode && songSeq.length > 0;
+    setExporting(true);
+    let exported = 0;
+    try {
+      const activePads = [];
+      for (let pi = 0; pi < 16; pi++) {
+        if (!pads[pi].buffer) continue;
+        // Check if pad has any active steps in current pattern or song patterns
+        if (useSong) {
+          const hasSteps = songSeq.some(b => { const p = patterns[b.patternIndex]; return p?.steps[pi]?.some(s => s); });
+          if (hasSteps) activePads.push(pi);
+        } else {
+          if (steps[pi]?.some(s => s)) activePads.push(pi);
+        }
+      }
+      if (activePads.length === 0) { setExportStatus('⚠ No active pads to export'); setExporting(false); return; }
+
+      for (const pi of activePads) {
+        setExportProgress(`Rendering stem ${++exported}/${activePads.length}: ${pads[pi].name}...`);
+        const stemBuf = await renderStemForPad(pi, useSong);
+        if (!stemBuf) continue;
+
+        setExportProgress(`Encoding ${pads[pi].name} → ${format.toUpperCase()}...`);
+        const blob = await convertToFormat(stemBuf, format, exportQuality);
+        const ext = FORMAT_INFO[format]?.ext || format;
+        const safeName = pads[pi].name.replace(/[^a-zA-Z0-9_-]/g, '_');
+        downloadBlob(blob, `stem_${safeName}_${bpm}bpm.${ext}`);
+        await new Promise(r => setTimeout(r, 350)); // Browser download spacing
+      }
+      setExportProgress('');
+      setExportStatus(`✓ ${exported} stems exported as ${format.toUpperCase()}`);
+    } catch (e) {
+      console.error('Stem export fail:', e);
+      setExportProgress('');
+      setExportStatus(`✗ Stem export failed: ${e.message}`);
+    } finally { setExporting(false); }
+  }, [pads, steps, stepVel, stepCount, bpm, swing, songMode, songSeq, patterns, exportFormat, exportQuality, convertToFormat, downloadBlob, renderStemForPad]);
+
+  // ── Export bounce (full mix + all stems together) ──
+  const exportBounceAll = useCallback(async (fmt) => {
+    const format = fmt || exportFormat;
     setExporting(true);
     try {
-      for (let pi = 0; pi < 16; pi++) {
-        if (!pads[pi].buffer || !steps[pi]?.some(s => s)) continue;
-        const sd = 60.0 / bpm / 4, dur = stepCount * sd;
-        const oc = new OfflineAudioContext(2, Math.ceil(dur * 44100), 44100);
-        const g = oc.createGain(); g.gain.value = pads[pi].volume; g.connect(oc.destination);
-        for (let si = 0; si < stepCount; si++) {
-          if (!steps[pi][si]) continue;
-          const s = oc.createBufferSource(), sg = oc.createGain();
-          s.buffer = pads[pi].buffer; s.playbackRate.value = Math.pow(2, pads[pi].pitch / 12);
-          sg.gain.value = stepVel[pi]?.[si] ?? 0.8; s.connect(sg); sg.connect(g);
-          const off = pads[pi].trimStart || 0; s.start(si * sd, off, (pads[pi].trimEnd || pads[pi].buffer.duration) - off);
-        }
-        const r = await oc.startRendering(); const blob = toWav(r);
-        const url = URL.createObjectURL(blob); const a = document.createElement('a');
-        a.href = url; a.download = `stem_${pads[pi].name.replace(/\s+/g, '_')}.wav`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-        await new Promise(r => setTimeout(r, 300));
-      }
-    } catch (e) { console.error('Stem export fail:', e); } finally { setExporting(false); }
-  }, [pads, steps, stepVel, stepCount, bpm, toWav]);
+      // 1) Export the full mix
+      setExportProgress('Bouncing full mix...');
+      await exportBeat(format, false);
+      await new Promise(r => setTimeout(r, 500));
+      // 2) Export all stems
+      await exportStems(format);
+      setExportStatus(`✓ Bounce complete (mix + stems) as ${format.toUpperCase()}`);
+    } catch (e) {
+      setExportProgress('');
+      setExportStatus(`✗ Bounce failed: ${e.message}`);
+    } finally { setExporting(false); }
+  }, [exportFormat, exportBeat, exportStems]);
 
+  // ── Quick export to DAW (always WAV for quality) ──
+  const exportToDaw = useCallback(async () => {
+    if (!onExport) { setExportStatus('⚠ DAW export only available inside Recording Studio'); return; }
+    setExporting(true);
+    setExportProgress('Rendering for DAW...');
+    try {
+      let rendered;
+      if (songMode && songSeq.length > 0) { rendered = await renderSong(); }
+      else { rendered = await renderPat(steps, stepVel, stepCount); }
+      if (!rendered) { setExportStatus('⚠ Nothing to export'); return; }
+      const blob = toWav(rendered);
+      onExport(rendered, blob);
+      setExportProgress('');
+      setExportStatus('✓ Sent to DAW track');
+    } catch (e) { setExportProgress(''); setExportStatus(`✗ ${e.message}`); }
+    finally { setExporting(false); }
+  }, [songMode, songSeq, steps, stepVel, stepCount, renderPat, renderSong, toWav, onExport]);
+
+  // ── MIDI export ──
   const exportMIDI = useCallback(() => {
+    const useSong = songMode && songSeq.length > 0;
     const tpb = 480, tps = tpb / 4;
     const hdr = [0x4D,0x54,0x68,0x64,0,0,0,6,0,0,0,1,(tpb>>8)&0xFF,tpb&0xFF];
     const evts = [];
     const usPerBeat = Math.round(60000000 / bpm);
     evts.push({ d: 0, data: [0xFF,0x51,0x03,(usPerBeat>>16)&0xFF,(usPerBeat>>8)&0xFF,usPerBeat&0xFF] });
-    for (let si = 0; si < stepCount; si++) for (let pi = 0; pi < 16; pi++) {
-      if (!steps[pi]?.[si]) continue;
-      const v = Math.round((stepVel[pi]?.[si] ?? 0.8) * 127), n = 36 + pi, tick = si * tps;
-      evts.push({ d: tick, data: [0x90, n, v] }); evts.push({ d: tick + tps - 1, data: [0x80, n, 0] });
+
+    if (useSong) {
+      let tickOff = 0;
+      for (const b of songSeq) {
+        const p = patterns[b.patternIndex];
+        if (!p) continue;
+        for (let si = 0; si < p.stepCount; si++) for (let pi = 0; pi < 16; pi++) {
+          if (!p.steps[pi]?.[si]) continue;
+          const v = Math.round((p.velocities[pi]?.[si] ?? 0.8) * 127), n = 36 + pi, tick = tickOff + si * tps;
+          evts.push({ d: tick, data: [0x90, n, v] }); evts.push({ d: tick + tps - 1, data: [0x80, n, 0] });
+        }
+        tickOff += p.stepCount * tps;
+      }
+    } else {
+      for (let si = 0; si < stepCount; si++) for (let pi = 0; pi < 16; pi++) {
+        if (!steps[pi]?.[si]) continue;
+        const v = Math.round((stepVel[pi]?.[si] ?? 0.8) * 127), n = 36 + pi, tick = si * tps;
+        evts.push({ d: tick, data: [0x90, n, v] }); evts.push({ d: tick + tps - 1, data: [0x80, n, 0] });
+      }
     }
+
     evts.sort((a, b) => a.d - b.d);
     const tb = []; let lt = 0;
     evts.forEach(e => {
@@ -840,10 +1093,17 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
     tb.push(0x00, 0xFF, 0x2F, 0x00);
     const th = [0x4D,0x54,0x72,0x6B,(tb.length>>24)&0xFF,(tb.length>>16)&0xFF,(tb.length>>8)&0xFF,tb.length&0xFF];
     const blob = new Blob([new Uint8Array([...hdr,...th,...tb])], { type: 'audio/midi' });
-    const url = URL.createObjectURL(blob); const a = document.createElement('a');
-    a.href = url; a.download = `beat_${bpm}bpm.mid`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-  }, [steps, stepVel, stepCount, bpm]);
+    const label = useSong ? 'song' : 'beat';
+    downloadBlob(blob, `${label}_${bpm}bpm.mid`);
+    setExportStatus('✓ MIDI exported');
+  }, [steps, stepVel, stepCount, bpm, songMode, songSeq, patterns, downloadBlob]);
+
+  // ── Auto-clear export status ──
+  useEffect(() => {
+    if (!exportStatus) return;
+    const t = setTimeout(() => setExportStatus(''), 4000);
+    return () => clearTimeout(t);
+  }, [exportStatus]);
 
   // =========================================================================
   // CLEANUP
@@ -909,13 +1169,22 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
           </div>
 
           <div className="export-dropdown">
-            <button className="export-btn" onClick={exportBeat} disabled={exporting}>{exporting ? '⏳...' : '⬇ Export'}</button>
+            <button className="export-btn" onClick={() => setShowExportPanel(!showExportPanel)} disabled={exporting}>{exporting ? '⏳...' : '⬇ Export'}</button>
             <div className="export-menu">
-              <button onClick={exportBeat}>WAV</button>
-              <button onClick={exportStems}>Stems</button>
-              <button onClick={exportMIDI}>MIDI</button>
+              <button onClick={() => exportBeat('wav')}>WAV</button>
+              <button onClick={() => exportBeat('mp3')}>MP3</button>
+              <button onClick={() => exportBeat('ogg')}>OGG</button>
+              <button onClick={() => exportStems()}>Stems</button>
+              <button onClick={() => exportMIDI()}>MIDI</button>
+              {onExport && <button onClick={exportToDaw}>→ DAW</button>}
+              <button onClick={() => setShowExportPanel(true)}>More...</button>
             </div>
           </div>
+          {(exportStatus || exportProgress) && (
+            <span className={`export-status-badge ${exportStatus.startsWith('✗') ? 'error' : exportStatus.startsWith('✓') ? 'success' : 'info'}`}>
+              {exportProgress || exportStatus}
+            </span>
+          )}
           {onClose && <button className="close-btn" onClick={onClose}>✕</button>}
         </div>
       </div>
@@ -1106,8 +1375,97 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
           </div>
           <div className="song-actions">
             <button className="song-play-btn" onClick={startSong} disabled={songSeq.length === 0}>▶ Play Song</button>
-            <button onClick={exportBeat} disabled={songSeq.length === 0 || exporting}>⬇ Export Song</button>
+            <button onClick={() => exportBeat(exportFormat)} disabled={songSeq.length === 0 || exporting}>⬇ Export Song ({exportFormat.toUpperCase()})</button>
+            <button onClick={() => exportStems(exportFormat)} disabled={songSeq.length === 0 || exporting}>⬇ Song Stems</button>
+            <button onClick={() => exportBounceAll(exportFormat)} disabled={songSeq.length === 0 || exporting}>⬇ Bounce All</button>
             <button onClick={() => setSongSeq([])}>🗑️ Clear</button>
+          </div>
+        </div>
+      )}
+
+      {/* EXPORT PANEL (Phase 3 Enhanced) */}
+      {showExportPanel && (
+        <div className="export-panel-overlay" onClick={() => setShowExportPanel(false)}>
+          <div className="export-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="export-panel-header">
+              <h3>⬇ Export</h3>
+              <button className="export-panel-close" onClick={() => setShowExportPanel(false)}>✕</button>
+            </div>
+
+            {exportProgress && <div className="export-progress-bar"><span className="export-progress-text">{exportProgress}</span><div className="export-progress-fill"></div></div>}
+
+            <div className="export-section">
+              <label className="export-label">Format</label>
+              <div className="export-format-grid">
+                {Object.entries(FORMAT_INFO).map(([key, info]) => (
+                  <button key={key} className={`export-format-btn ${exportFormat === key ? 'active' : ''}`} onClick={() => setExportFormat(key)}>
+                    <span className="format-ext">.{info.ext}</span>
+                    <span className="format-label">{info.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {exportFormat === 'mp3' && (
+              <div className="export-section">
+                <label className="export-label">MP3 Quality</label>
+                <div className="export-quality-row">
+                  {[128, 192, 256, 320].map(q => (
+                    <button key={q} className={`export-quality-btn ${exportQuality === q ? 'active' : ''}`} onClick={() => setExportQuality(q)}>
+                      {q} kbps{q === 320 ? ' (Best)' : q === 128 ? ' (Small)' : ''}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="export-section">
+              <label className="export-label">Download to Desktop</label>
+              <div className="export-actions-grid">
+                <button className="export-action-btn" onClick={() => exportBeat(exportFormat)} disabled={exporting}>
+                  <span className="action-icon">🎵</span>
+                  <span className="action-label">Full Mix</span>
+                  <span className="action-desc">{songMode && songSeq.length > 0 ? 'Song arrangement' : 'Current pattern'} as .{FORMAT_INFO[exportFormat]?.ext}</span>
+                </button>
+                <button className="export-action-btn" onClick={() => exportStems(exportFormat)} disabled={exporting}>
+                  <span className="action-icon">🎚️</span>
+                  <span className="action-label">Multi-Track Stems</span>
+                  <span className="action-desc">Each pad as separate .{FORMAT_INFO[exportFormat]?.ext}{songMode && songSeq.length > 0 ? ' (full song)' : ''}</span>
+                </button>
+                <button className="export-action-btn" onClick={() => exportBounceAll(exportFormat)} disabled={exporting}>
+                  <span className="action-icon">📦</span>
+                  <span className="action-label">Bounce All</span>
+                  <span className="action-desc">Full mix + all stems together</span>
+                </button>
+                <button className="export-action-btn" onClick={exportMIDI} disabled={exporting}>
+                  <span className="action-icon">🎹</span>
+                  <span className="action-label">MIDI</span>
+                  <span className="action-desc">{songMode && songSeq.length > 0 ? 'Full song' : 'Pattern'} note data (.mid)</span>
+                </button>
+              </div>
+            </div>
+
+            {onExport && (
+              <div className="export-section">
+                <label className="export-label">Send to Recording Studio</label>
+                <div className="export-actions-grid">
+                  <button className="export-action-btn daw-send-btn" onClick={exportToDaw} disabled={exporting}>
+                    <span className="action-icon">🎛️</span>
+                    <span className="action-label">Send to DAW Track</span>
+                    <span className="action-desc">Load into next empty track (always WAV quality)</span>
+                  </button>
+                  <button className="export-action-btn daw-send-btn" onClick={() => exportBeat(exportFormat, true)} disabled={exporting}>
+                    <span className="action-icon">⬇🎛️</span>
+                    <span className="action-label">Download + Send to DAW</span>
+                    <span className="action-desc">.{FORMAT_INFO[exportFormat]?.ext} to desktop AND WAV to DAW track</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="export-info">
+              <span>📋 {songMode && songSeq.length > 0 ? `Song: ${songSeq.length} patterns` : `Pattern: ${stepCount} steps`} · {bpm} BPM</span>
+            </div>
           </div>
         </div>
       )}

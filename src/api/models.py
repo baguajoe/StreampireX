@@ -6324,6 +6324,111 @@ class StemSeparationJob(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
+class MicSimPreset(db.Model):
+    """Custom mic simulator presets created by users"""
+    __tablename__ = 'mic_sim_presets'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, default='')
+
+    # Which built-in profile this is based on (flat, sm7b, u87, etc.)
+    base_profile = db.Column(db.String(50), default='flat')
+
+    # JSON array of filter objects: [{ type, frequency, gain, Q }, ...]
+    # Stores the complete Web Audio API filter chain configuration
+    filters = db.Column(db.JSON, default=list)
+
+    # Noise gate settings
+    noise_gate_enabled = db.Column(db.Boolean, default=False)
+    noise_gate_threshold = db.Column(db.Float, default=-40.0)  # dB
+
+    # Gain stages
+    input_gain = db.Column(db.Float, default=1.0)   # 0.0 - 3.0
+    output_gain = db.Column(db.Float, default=1.0)   # 0.0 - 3.0
+
+    # Community sharing
+    is_public = db.Column(db.Boolean, default=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    user = db.relationship('User', backref=db.backref('mic_sim_presets', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<MicSimPreset {self.name} (user={self.user_id})>'
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'name': self.name,
+            'description': self.description,
+            'base_profile': self.base_profile,
+            'filters': self.filters or [],
+            'noise_gate_enabled': self.noise_gate_enabled,
+            'noise_gate_threshold': self.noise_gate_threshold,
+            'input_gain': self.input_gain,
+            'output_gain': self.output_gain,
+            'is_public': self.is_public,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class MicSimRecording(db.Model):
+    """Audio recordings captured through the mic simulator"""
+    __tablename__ = 'mic_sim_recordings'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    name = db.Column(db.String(300), nullable=False)
+
+    # Which mic profile was active during recording
+    mic_profile = db.Column(db.String(50), default='flat')
+
+    # Optional link to a custom preset used
+    preset_id = db.Column(db.Integer, db.ForeignKey('mic_sim_presets.id', ondelete='SET NULL'), nullable=True)
+
+    # Cloudinary storage
+    audio_url = db.Column(db.String(500), nullable=False)
+    cloudinary_public_id = db.Column(db.String(300), nullable=True)
+
+    # Audio metadata
+    duration = db.Column(db.Float, default=0)       # seconds
+    file_size = db.Column(db.Integer, default=0)     # bytes
+    format = db.Column(db.String(20), default='wav')  # wav, mp3, ogg, webm
+    sample_rate = db.Column(db.Integer, default=44100)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', backref=db.backref('mic_sim_recordings', lazy='dynamic'))
+    preset = db.relationship('MicSimPreset', backref=db.backref('recordings', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<MicSimRecording {self.name} (profile={self.mic_profile})>'
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'name': self.name,
+            'mic_profile': self.mic_profile,
+            'preset_id': self.preset_id,
+            'audio_url': self.audio_url,
+            'duration': self.duration,
+            'file_size': self.file_size,
+            'format': self.format,
+            'sample_rate': self.sample_rate,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
 # =============================================================================
 # AI Mastering Job Model — Add to models.py
 # =============================================================================
