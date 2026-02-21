@@ -22,6 +22,14 @@ const ArtistProfilePage = () => {
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
+  // ===== NEW: Album & Playlist creation modal state =====
+  const [showAlbumModal, setShowAlbumModal] = useState(false);
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+  const [albumForm, setAlbumForm] = useState({ title: '', genre: '', release_date: '', cover_art: null });
+  const [playlistForm, setPlaylistForm] = useState({ name: '' });
+  const [creating, setCreating] = useState(false);
+  // ===== END NEW =====
+
   // Tab state management
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
@@ -299,8 +307,9 @@ const ArtistProfilePage = () => {
     }
   };
 
+  // ===== UPDATED: fetchOptionalData with fallback endpoints =====
   const fetchOptionalData = async (backendUrl, token) => {
-    // Albums
+    // Albums — try artist endpoint first, fallback to /my-albums
     try {
       const albumsRes = await fetch(`${backendUrl}/api/artist/albums`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -312,19 +321,41 @@ const ArtistProfilePage = () => {
           ...prev,
           totalAlbums: Array.isArray(albumsData) ? albumsData.length : 0
         }));
+      } else {
+        // Fallback to /my-albums endpoint (exists in routes.py)
+        const fallbackRes = await fetch(`${backendUrl}/api/my-albums`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (fallbackRes.ok) {
+          const albumsData = await fallbackRes.json();
+          setAlbums(Array.isArray(albumsData) ? albumsData : []);
+          setArtistStats(prev => ({
+            ...prev,
+            totalAlbums: Array.isArray(albumsData) ? albumsData.length : 0
+          }));
+        }
       }
     } catch (err) {
       console.log("Albums endpoint not available");
     }
 
-    // Playlists
+    // Playlists — try new CRUD endpoint first, fallback to old artist endpoint
     try {
-      const playlistsRes = await fetch(`${backendUrl}/api/artist/playlists`, {
+      const playlistsRes = await fetch(`${backendUrl}/api/playlists`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (playlistsRes.ok) {
         const playlistsData = await playlistsRes.json();
         setPlaylists(Array.isArray(playlistsData) ? playlistsData : []);
+      } else {
+        // Fallback to old artist/playlists endpoint
+        const fallbackRes = await fetch(`${backendUrl}/api/artist/playlists`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (fallbackRes.ok) {
+          const playlistsData = await fallbackRes.json();
+          setPlaylists(Array.isArray(playlistsData) ? playlistsData : []);
+        }
       }
     } catch (err) {
       console.log("Playlists endpoint not available");
@@ -351,6 +382,7 @@ const ArtistProfilePage = () => {
       ]);
     }
   };
+  // ===== END UPDATED =====
 
   // FUNCTIONAL: Increment play count
   const incrementPlayCount = async (trackId) => {
@@ -596,18 +628,97 @@ const ArtistProfilePage = () => {
     }
   };
 
-  // FUNCTIONAL: Create album
+  // ===== UPDATED: Create album — now opens modal instead of "coming soon" =====
   const handleCreateAlbum = () => {
-    // Redirect to album creation page or show modal
-    setSuccessMessage("Album creation coming soon!");
-    // You can implement: navigate('/artist/albums/create');
+    setShowAlbumModal(true);
   };
 
-  // FUNCTIONAL: Create playlist
-  const handleCreatePlaylist = () => {
-    setSuccessMessage("Playlist creation coming soon!");
-    // You can implement: navigate('/artist/playlists/create');
+  // Submit album creation to backend POST /api/create-album
+  const submitCreateAlbum = async () => {
+    if (!albumForm.title || !albumForm.genre || !albumForm.release_date || !albumForm.cover_art) {
+      setError("All fields are required: title, genre, release date, and cover art");
+      return;
+    }
+
+    try {
+      setCreating(true);
+      const token = localStorage.getItem("token");
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+
+      const formData = new FormData();
+      formData.append('title', albumForm.title);
+      formData.append('genre', albumForm.genre);
+      formData.append('release_date', albumForm.release_date);
+      formData.append('cover_art', albumForm.cover_art);
+
+      const res = await fetch(`${BACKEND_URL}/api/create-album`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to create album');
+      }
+
+      const data = await res.json();
+      setSuccessMessage(`Album "${albumForm.title}" created successfully!`);
+      setShowAlbumModal(false);
+      setAlbumForm({ title: '', genre: '', release_date: '', cover_art: null });
+      await fetchArtistData(); // Refresh albums list
+    } catch (err) {
+      console.error("Album creation error:", err);
+      setError(err.message || "Failed to create album");
+    } finally {
+      setCreating(false);
+    }
   };
+
+  // ===== UPDATED: Create playlist — now opens modal instead of "coming soon" =====
+  const handleCreatePlaylist = () => {
+    setShowPlaylistModal(true);
+  };
+
+  // Submit playlist creation to backend POST /api/playlists
+  const submitCreatePlaylist = async () => {
+    if (!playlistForm.name.trim()) {
+      setError("Playlist name is required");
+      return;
+    }
+
+    try {
+      setCreating(true);
+      const token = localStorage.getItem("token");
+      const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+
+      const res = await fetch(`${BACKEND_URL}/api/playlists`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: playlistForm.name.trim() })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to create playlist');
+      }
+
+      const data = await res.json();
+      setSuccessMessage(`Playlist "${playlistForm.name}" created successfully!`);
+      setShowPlaylistModal(false);
+      setPlaylistForm({ name: '' });
+      await fetchArtistData(); // Refresh playlists list
+    } catch (err) {
+      console.error("Playlist creation error:", err);
+      setError(err.message || "Failed to create playlist");
+    } finally {
+      setCreating(false);
+    }
+  };
+  // ===== END UPDATED =====
 
   // Handle track upload success
   const handleUploadNewTrack = async (newTrack) => {
@@ -871,7 +982,15 @@ const ArtistProfilePage = () => {
         return (
           <div className="tab-content">
             <section className="albums-section">
-              <h2>💿 Albums & EPs</h2>
+              {/* ===== UPDATED: Added section-header with Create button ===== */}
+              <div className="section-header">
+                <h2>💿 Albums & EPs</h2>
+                {isOwnProfile && (
+                  <button onClick={handleCreateAlbum} className="create-btn">
+                    ➕ Create Album
+                  </button>
+                )}
+              </div>
               <div className="albums-grid">
                 {filterItems(albums, "title").length > 0 ? filterItems(albums, "title").map((album, index) => (
                   <div key={album.id || index} className="album-card">
@@ -904,7 +1023,15 @@ const ArtistProfilePage = () => {
         return (
           <div className="tab-content">
             <section className="playlists-section">
-              <h2>📋 Playlists</h2>
+              {/* ===== UPDATED: Added section-header with Create button ===== */}
+              <div className="section-header">
+                <h2>📋 Playlists</h2>
+                {isOwnProfile && (
+                  <button onClick={handleCreatePlaylist} className="create-btn">
+                    ➕ Create Playlist
+                  </button>
+                )}
+              </div>
               <div className="playlists-grid">
                 {filterItems(playlists, "name").length > 0 ? filterItems(playlists, "name").map((playlist, index) => (
                   <div key={playlist.id || index} className="playlist-card">
@@ -1115,6 +1242,141 @@ const ArtistProfilePage = () => {
           </div>
         </div>
       )}
+
+      {/* ===== NEW: Album Creation Modal ===== */}
+      {showAlbumModal && (
+        <div className="modal-overlay" onClick={() => setShowAlbumModal(false)}>
+          <div className="creation-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="creation-modal-header">
+              <h3>💿 Create New Album</h3>
+              <button className="modal-close-btn" onClick={() => setShowAlbumModal(false)}>✕</button>
+            </div>
+            <div className="creation-modal-body">
+              <div className="creation-form-group">
+                <label>Album Title *</label>
+                <input
+                  type="text"
+                  placeholder="Enter album title"
+                  value={albumForm.title}
+                  onChange={(e) => setAlbumForm(prev => ({ ...prev, title: e.target.value }))}
+                  className="creation-input"
+                />
+              </div>
+              <div className="creation-form-group">
+                <label>Genre *</label>
+                <select
+                  value={albumForm.genre}
+                  onChange={(e) => setAlbumForm(prev => ({ ...prev, genre: e.target.value }))}
+                  className="creation-input"
+                >
+                  <option value="">Select genre</option>
+                  <option value="Hip-Hop">Hip-Hop</option>
+                  <option value="R&B">R&B</option>
+                  <option value="Pop">Pop</option>
+                  <option value="Rock">Rock</option>
+                  <option value="Electronic">Electronic</option>
+                  <option value="Jazz">Jazz</option>
+                  <option value="Latin">Latin</option>
+                  <option value="Country">Country</option>
+                  <option value="Classical">Classical</option>
+                  <option value="Afrobeat">Afrobeat</option>
+                  <option value="Reggae">Reggae</option>
+                  <option value="Indie">Indie</option>
+                  <option value="Metal">Metal</option>
+                  <option value="Folk">Folk</option>
+                  <option value="Lo-Fi">Lo-Fi</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="creation-form-group">
+                <label>Release Date *</label>
+                <input
+                  type="date"
+                  value={albumForm.release_date}
+                  onChange={(e) => setAlbumForm(prev => ({ ...prev, release_date: e.target.value }))}
+                  className="creation-input"
+                />
+              </div>
+              <div className="creation-form-group">
+                <label>Cover Art * (.jpg, .jpeg, .png)</label>
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png"
+                  onChange={(e) => setAlbumForm(prev => ({ ...prev, cover_art: e.target.files[0] || null }))}
+                  className="creation-input creation-file-input"
+                />
+              </div>
+            </div>
+            <div className="creation-modal-footer">
+              <button
+                className="creation-cancel-btn"
+                onClick={() => {
+                  setShowAlbumModal(false);
+                  setAlbumForm({ title: '', genre: '', release_date: '', cover_art: null });
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="creation-submit-btn"
+                onClick={submitCreateAlbum}
+                disabled={creating || !albumForm.title || !albumForm.genre || !albumForm.release_date || !albumForm.cover_art}
+              >
+                {creating ? '⏳ Creating...' : '💿 Create Album'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== NEW: Playlist Creation Modal ===== */}
+      {showPlaylistModal && (
+        <div className="modal-overlay" onClick={() => setShowPlaylistModal(false)}>
+          <div className="creation-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="creation-modal-header">
+              <h3>📋 Create New Playlist</h3>
+              <button className="modal-close-btn" onClick={() => setShowPlaylistModal(false)}>✕</button>
+            </div>
+            <div className="creation-modal-body">
+              <div className="creation-form-group">
+                <label>Playlist Name *</label>
+                <input
+                  type="text"
+                  placeholder="Enter playlist name"
+                  value={playlistForm.name}
+                  onChange={(e) => setPlaylistForm({ name: e.target.value })}
+                  className="creation-input"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && playlistForm.name.trim()) {
+                      submitCreatePlaylist();
+                    }
+                  }}
+                />
+              </div>
+              <p className="creation-hint">You can add tracks to this playlist after creating it.</p>
+            </div>
+            <div className="creation-modal-footer">
+              <button
+                className="creation-cancel-btn"
+                onClick={() => {
+                  setShowPlaylistModal(false);
+                  setPlaylistForm({ name: '' });
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="creation-submit-btn"
+                onClick={submitCreatePlaylist}
+                disabled={creating || !playlistForm.name.trim()}
+              >
+                {creating ? '⏳ Creating...' : '📋 Create Playlist'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ===== END NEW MODALS ===== */}
 
       <div className="profile-mode-toggle">
         {profileModes.map(mode => (
