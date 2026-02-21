@@ -4296,9 +4296,21 @@ class Conversation(db.Model):
     user1_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     user2_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     last_message_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)        # ADD THIS
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # ADD THIS
     
     user1 = db.relationship('User', foreign_keys=[user1_id])
     user2 = db.relationship('User', foreign_keys=[user2_id])
+    
+    def serialize(self):
+        return {
+            'id': self.id,
+            'user1_id': self.user1_id,
+            'user2_id': self.user2_id,
+            'last_message_at': self.last_message_at.isoformat() if self.last_message_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
 # 👥 Group Chat Model
 class Group(db.Model):

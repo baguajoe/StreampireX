@@ -12252,23 +12252,23 @@ def add_to_inner_circle():
         user_id = get_jwt_identity()
         data = request.get_json()
         
-        member_user_id = data.get('user_id')
-        if not member_user_id:
-            return jsonify({"error": "user_id is required"}), 400
+        friend_user_id = data.get('friend_user_id') or data.get('user_id')
+        if not friend_user_id:
+            return jsonify({"error": "friend_user_id is required"}), 400
         
         # Check if user exists
-        member_user = User.query.get(member_user_id)
-        if not member_user:
+        friend_user = User.query.get(friend_user_id)
+        if not friend_user:
             return jsonify({"error": "User not found"}), 404
         
         # Can't add yourself
-        if member_user_id == user_id:
+        if friend_user_id == user_id:
             return jsonify({"error": "Cannot add yourself to inner circle"}), 400
         
         # Check if already in circle
         existing = InnerCircle.query.filter_by(
             user_id=user_id,
-            member_user_id=member_user_id
+            friend_user_id=friend_user_id
         ).first()
         
         if existing:
@@ -12282,7 +12282,7 @@ def add_to_inner_circle():
         # Add to circle
         new_member = InnerCircle(
             user_id=user_id,
-            member_user_id=member_user_id,
+            friend_user_id=friend_user_id,
             position=current_count + 1
         )
         
@@ -12293,10 +12293,10 @@ def add_to_inner_circle():
             "message": "User added to inner circle",
             "member": {
                 "id": new_member.id,
-                "user_id": member_user.id,
-                "username": member_user.username,
-                "display_name": getattr(member_user, 'display_name', None),
-                "avatar_url": getattr(member_user, 'avatar_url', None),
+                "user_id": friend_user.id,
+                "username": friend_user.username,
+                "display_name": getattr(friend_user, 'display_name', None),
+                "avatar_url": getattr(friend_user, 'avatar_url', None),
                 "position": new_member.position
             }
         }), 201
