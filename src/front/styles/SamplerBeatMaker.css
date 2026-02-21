@@ -2195,3 +2195,1178 @@
 .sequencer-section::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.15);
 }
+
+/* ====================================================================
+   PHASE 1: Enhanced Chop & Slice
+   ==================================================================== */
+
+.chop-canvas {
+  cursor: crosshair;
+}
+
+.chop-mode-selector {
+  display: flex;
+  gap: 4px;
+}
+
+.chop-mode-selector button {
+  padding: 4px 8px;
+  font-size: 0.7rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #aab;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.chop-mode-selector button.active {
+  background: rgba(255,102,0,0.25);
+  border-color: #FF6600;
+  color: #FF6600;
+}
+
+.chop-mode-selector button:hover:not(.active) {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.chop-zc-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: #889;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chop-zc-toggle input[type="checkbox"] {
+  accent-color: #00ffc8;
+  width: 14px;
+  height: 14px;
+}
+
+.chop-slices-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 0;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+.chop-slice-btn {
+  padding: 3px 8px;
+  font-size: 0.65rem;
+  background: rgba(0,255,200,0.08);
+  border: 1px solid rgba(0,255,200,0.2);
+  border-radius: 3px;
+  color: #00ffc8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.chop-slice-btn:hover {
+  background: rgba(0,255,200,0.2);
+  border-color: #00ffc8;
+}
+
+.chop-actions {
+  padding: 4px 0;
+}
+
+/* ====================================================================
+   PHASE 2: Velocity Layers
+   ==================================================================== */
+
+.layers-section {
+  padding: 8px 0;
+}
+
+.layers-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 8px;
+  font-size: 0.8rem;
+  color: #aab;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 8px;
+}
+
+.layers-header button {
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  background: rgba(0,255,200,0.1);
+  border: 1px solid rgba(0,255,200,0.3);
+  border-radius: 4px;
+  color: #00ffc8;
+  cursor: pointer;
+}
+
+.layers-header button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.rr-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: #889;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.rr-toggle input { accent-color: #FF6600; }
+
+/* Velocity Zone Bar */
+.velocity-zone-bar {
+  margin: 6px 0 10px;
+  padding: 4px 0;
+}
+
+.vz-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  color: #556;
+  padding: 0 2px 2px;
+}
+
+.vz-track {
+  position: relative;
+  height: 20px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.vz-zone {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.vz-zone-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Layer Rows */
+.layer-row {
+  padding: 6px 8px;
+  margin: 4px 0;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.layer-row.loaded {
+  border-color: rgba(0,255,200,0.15);
+}
+
+.layer-row.empty {
+  opacity: 0.6;
+}
+
+.layer-row-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.layer-num {
+  font-size: 0.85rem;
+  font-weight: 700;
+  width: 18px;
+  text-align: center;
+}
+
+.layer-name {
+  flex: 1;
+  font-size: 0.75rem;
+  color: #ccd;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layer-load-btn,
+.layer-preview-btn,
+.layer-remove-btn {
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 3px;
+  color: #aab;
+  cursor: pointer;
+}
+
+.layer-preview-btn {
+  color: #00ffc8;
+  border-color: rgba(0,255,200,0.2);
+}
+
+.layer-remove-btn {
+  color: #ff4444;
+  border-color: rgba(255,68,68,0.2);
+}
+
+.layer-row-vel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 0.65rem;
+  color: #778;
+}
+
+.layer-row-vel label {
+  min-width: 22px;
+}
+
+.layer-row-vel input[type="range"] {
+  flex: 1;
+  height: 3px;
+  accent-color: #FF6600;
+}
+
+.vel-range-display {
+  min-width: 45px;
+  text-align: center;
+  font-family: monospace;
+  font-size: 0.7rem;
+  color: #FF6600;
+}
+
+.layers-empty {
+  text-align: center;
+  padding: 16px 8px;
+  color: #556;
+  font-size: 0.75rem;
+}
+
+.layers-empty p { margin: 4px 0; }
+
+.layers-hint {
+  font-size: 0.65rem;
+  color: #445;
+}
+
+/* ====================================================================
+   Pad Badges (Phase 1-5 indicators)
+   ==================================================================== */
+
+.pad-layer-badge,
+.pad-kg-badge,
+.pad-ts-badge {
+  position: absolute;
+  font-size: 0.5rem;
+  font-weight: 700;
+  padding: 1px 3px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.pad-layer-badge {
+  top: 2px;
+  right: 2px;
+  background: rgba(255,102,0,0.7);
+  color: #fff;
+}
+
+.pad-kg-badge {
+  bottom: 2px;
+  right: 2px;
+  background: rgba(0,255,200,0.6);
+  color: #000;
+}
+
+.pad-ts-badge {
+  bottom: 2px;
+  left: 2px;
+  background: rgba(74,158,255,0.6);
+  color: #fff;
+}
+
+/* ====================================================================
+   Keygroup Mode Bar
+   ==================================================================== */
+
+.keygroup-bar {
+  background: linear-gradient(90deg, rgba(0,255,200,0.1), rgba(74,158,255,0.1));
+  border: 1px solid rgba(0,255,200,0.2);
+  border-radius: 4px;
+  padding: 4px 12px;
+  margin: 2px 0;
+  font-size: 0.7rem;
+  color: #00ffc8;
+  text-align: center;
+}
+
+/* ====================================================================
+   Stretch Section
+   ==================================================================== */
+
+.stretch-section .pad-setting input[type="number"] {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  color: #fff;
+  padding: 3px 6px;
+  font-size: 0.75rem;
+}
+
+.stretch-section .pad-setting button {
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  background: rgba(74,158,255,0.15);
+  border: 1px solid rgba(74,158,255,0.3);
+  border-radius: 4px;
+  color: #4a9eff;
+  cursor: pointer;
+}
+
+/* ====================================================================
+   Phase 1: Slice preview active state
+   ==================================================================== */
+
+.chop-slice-btn.playing {
+  background: rgba(0,255,200,0.35);
+  border-color: #00ffc8;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(0,255,200,0.3);
+  animation: slicePulse 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes slicePulse {
+  from { box-shadow: 0 0 6px rgba(0,255,200,0.2); }
+  to { box-shadow: 0 0 12px rgba(0,255,200,0.5); }
+}
+
+/* Chop undo/redo/stop buttons */
+.chop-controls button[title="Undo last chop"],
+.chop-controls button[title="Redo chop"],
+.chop-controls button[title="Stop preview"] {
+  padding: 4px 6px;
+  font-size: 0.75rem;
+  min-width: 28px;
+}
+
+/* ====================================================================
+   Phase 2: Layer volume row
+   ==================================================================== */
+
+.layer-row-vol {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  font-size: 0.65rem;
+  color: #778;
+}
+
+.layer-row-vol label {
+  min-width: 22px;
+}
+
+.layer-row-vol input[type="range"] {
+  flex: 1;
+  height: 3px;
+  accent-color: #00ffc8;
+}
+
+.layer-vol-display {
+  min-width: 36px;
+  text-align: center;
+  font-family: monospace;
+  font-size: 0.7rem;
+  color: #00ffc8;
+}
+
+/* Layer active indicator (flash when triggered) */
+.layer-row.layer-active {
+  border-color: rgba(0,255,200,0.5) !important;
+  background: rgba(0,255,200,0.08) !important;
+  box-shadow: inset 0 0 12px rgba(0,255,200,0.1);
+  transition: all 0.05s;
+}
+
+/* Drag-drop onto layer */
+.layer-row.layer-dragover {
+  border-color: #FF6600 !important;
+  background: rgba(255,102,0,0.1) !important;
+  box-shadow: inset 0 0 8px rgba(255,102,0,0.15);
+}
+
+.layer-row.empty .layer-name {
+  font-style: italic;
+  color: #556;
+}
+
+/* ====================================================================
+   PHASE 3: Keygroup Mode
+   ==================================================================== */
+
+/* Keygroup status bar */
+.keygroup-bar {
+  background: linear-gradient(90deg, rgba(0,255,200,0.08), rgba(74,158,255,0.08));
+  border: 1px solid rgba(0,255,200,0.2);
+  border-radius: 6px;
+  padding: 6px 14px;
+  margin: 4px 0;
+  font-size: 0.72rem;
+  color: #00ffc8;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.kg-active-notes {
+  color: #FF6600;
+  font-weight: 600;
+}
+
+/* Visual Keyboard Panel */
+.kg-keyboard-panel {
+  background: linear-gradient(180deg, #0a1628, #0d1f3c);
+  border: 1px solid rgba(0,255,200,0.15);
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 4px;
+}
+
+.kg-keyboard-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 8px 8px;
+  font-size: 0.75rem;
+  color: #aab;
+  flex-wrap: wrap;
+}
+
+.kg-keyboard-header button {
+  margin-left: auto;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #aab;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.kg-root-display {
+  color: #00ffc8;
+  font-weight: 600;
+}
+
+.kg-range-display {
+  color: #778;
+  font-size: 0.65rem;
+}
+
+/* Piano keyboard */
+.kg-keyboard {
+  display: flex;
+  height: 80px;
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 0 0 6px 6px;
+  gap: 1px;
+}
+
+.kg-key {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+  user-select: none;
+  transition: all 0.05s;
+  border-radius: 0 0 3px 3px;
+}
+
+.kg-key.white {
+  background: linear-gradient(180deg, #e8e8e8, #f5f5f5);
+  min-width: 22px;
+  flex: 1;
+  height: 100%;
+  border: 1px solid #999;
+  z-index: 1;
+}
+
+.kg-key.black {
+  background: linear-gradient(180deg, #222, #333);
+  min-width: 14px;
+  width: 14px;
+  height: 55%;
+  margin-left: -7px;
+  margin-right: -7px;
+  z-index: 2;
+  border: 1px solid #111;
+}
+
+.kg-key.white:hover { background: linear-gradient(180deg, #d0e8ff, #e0f0ff); }
+.kg-key.black:hover { background: linear-gradient(180deg, #334, #445); }
+
+.kg-key.root.white {
+  background: linear-gradient(180deg, #a0ffe0, #c0fff0);
+  border-color: #00ffc8;
+}
+
+.kg-key.root.black {
+  background: linear-gradient(180deg, #005540, #007755);
+  border-color: #00ffc8;
+}
+
+.kg-key.active.white {
+  background: linear-gradient(180deg, #ff8800, #ffa040) !important;
+  box-shadow: 0 0 8px rgba(255,102,0,0.4);
+}
+
+.kg-key.active.black {
+  background: linear-gradient(180deg, #cc4400, #ff6600) !important;
+  box-shadow: 0 0 8px rgba(255,102,0,0.4);
+}
+
+.kg-key-label {
+  font-size: 0.55rem;
+  font-weight: 600;
+  color: #444;
+  pointer-events: none;
+}
+
+.kg-key.black .kg-key-label {
+  color: #bbb;
+}
+
+.kg-key.root .kg-key-label {
+  color: #006644;
+  font-weight: 800;
+}
+
+.kg-keyboard-hint {
+  text-align: center;
+  font-size: 0.62rem;
+  color: #556;
+  padding: 4px 0 0;
+}
+
+/* ====================================================================
+   PHASE 4: Time Stretch & BPM Sync
+   ==================================================================== */
+
+.stretch-section {
+  padding: 4px 0;
+}
+
+.stretch-bpm-input {
+  width: 65px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  color: #fff;
+  padding: 3px 6px;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.stretch-detect-btn,
+.stretch-half-btn,
+.stretch-double-btn {
+  padding: 3px 6px;
+  font-size: 0.7rem;
+  background: rgba(74,158,255,0.12);
+  border: 1px solid rgba(74,158,255,0.25);
+  border-radius: 4px;
+  color: #4a9eff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.stretch-detect-btn:hover,
+.stretch-half-btn:hover,
+.stretch-double-btn:hover {
+  background: rgba(74,158,255,0.25);
+  border-color: #4a9eff;
+}
+
+.stretch-info {
+  padding: 4px 0;
+  text-align: center;
+}
+
+.stretch-ratio {
+  font-size: 0.8rem;
+  color: #4a9eff;
+  font-weight: 600;
+}
+
+.stretch-mode-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.stretch-mode-btns button {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 0.68rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #889;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.stretch-mode-btns button.active {
+  background: rgba(74,158,255,0.2);
+  border-color: #4a9eff;
+  color: #4a9eff;
+}
+
+.stretch-mode-btns button:hover:not(.active) {
+  background: rgba(255,255,255,0.08);
+  color: #ccc;
+}
+
+.stretch-mode-desc {
+  font-size: 0.65rem;
+  color: #667;
+  padding: 4px 0;
+  text-align: center;
+  font-style: italic;
+}
+
+.stretch-prebake-btn {
+  padding: 5px 12px;
+  font-size: 0.72rem;
+  background: linear-gradient(135deg, rgba(74,158,255,0.15), rgba(0,255,200,0.15));
+  border: 1px solid rgba(74,158,255,0.3);
+  border-radius: 5px;
+  color: #4a9eff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.stretch-prebake-btn:hover {
+  background: linear-gradient(135deg, rgba(74,158,255,0.3), rgba(0,255,200,0.3));
+}
+
+.stretch-prebake-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.stretch-status {
+  font-size: 0.65rem;
+  color: #00ffc8;
+  margin-left: 8px;
+}
+
+.stretch-pitch-info {
+  font-size: 0.65rem;
+  color: #FF6600;
+  text-align: center;
+  padding: 2px 0;
+}
+
+/* ====================================================================
+   PHASE 5: Clip Launcher (Ableton-style)
+   ==================================================================== */
+
+.clip-launcher-panel {
+  background: linear-gradient(180deg, #0a1628, #0d1830);
+  border: 1px solid rgba(0,255,200,0.12);
+  border-radius: 8px;
+  padding: 8px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.clip-launcher-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 6px;
+}
+
+.clip-launcher-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #dde;
+}
+
+.clip-launcher-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.clip-launcher-actions button {
+  padding: 3px 8px;
+  font-size: 0.7rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #aab;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.clip-launcher-actions button:hover {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+
+.clip-stop-all {
+  color: #ff4444 !important;
+  border-color: rgba(255,68,68,0.3) !important;
+}
+
+.clip-stop-all:hover {
+  background: rgba(255,68,68,0.15) !important;
+}
+
+/* Grid wrapper */
+.clip-grid-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 280px;
+}
+
+/* Header row */
+.clip-grid-header {
+  display: flex;
+  gap: 2px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  margin-bottom: 4px;
+  position: sticky;
+  top: 0;
+  background: #0a1628;
+  z-index: 2;
+}
+
+.clip-pad-header {
+  flex: 0 0 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.6rem;
+  color: #889;
+  padding: 2px 0;
+}
+
+.clip-pad-header.empty { opacity: 0.3; }
+
+.clip-pad-color {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.clip-pad-name {
+  font-weight: 600;
+}
+
+.clip-scene-label-cell {
+  flex: 0 0 100px;
+  min-width: 100px;
+}
+
+.clip-scene-launch-cell {
+  flex: 0 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  color: #667;
+}
+
+/* Scene rows */
+.clip-scene-row {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 2px;
+  padding: 2px 0;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.clip-scene-row.active-scene {
+  background: rgba(0,255,200,0.04);
+}
+
+.clip-scene-label {
+  flex: 0 0 100px;
+  min-width: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 4px;
+}
+
+.clip-scene-name {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 3px;
+  color: #ccd;
+  font-size: 0.65rem;
+  padding: 2px 4px;
+}
+
+.clip-scene-name:focus {
+  border-color: rgba(0,255,200,0.3);
+  outline: none;
+}
+
+.clip-scene-btns {
+  display: flex;
+  gap: 2px;
+}
+
+.clip-scene-btns button {
+  padding: 1px 4px;
+  font-size: 0.6rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 2px;
+  color: #667;
+  cursor: pointer;
+}
+
+.clip-scene-btns button:hover { color: #aab; background: rgba(255,255,255,0.08); }
+
+.clip-scene-rm:hover { color: #ff4444 !important; }
+
+/* Clip cells */
+.clip-cell {
+  flex: 0 0 52px;
+  height: 36px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.1s;
+  position: relative;
+}
+
+.clip-cell.empty-cell {
+  background: rgba(255,255,255,0.015);
+  border: 1px solid rgba(255,255,255,0.03);
+}
+
+.clip-cell.has-clip {
+  background: color-mix(in srgb, var(--clip-color, #4a9eff) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--clip-color, #4a9eff) 40%, transparent);
+}
+
+.clip-cell.has-clip.playing {
+  background: color-mix(in srgb, var(--clip-color, #4a9eff) 30%, transparent);
+  border-color: var(--clip-color, #4a9eff);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--clip-color, #4a9eff) 30%, transparent);
+}
+
+.clip-cell.has-clip.queued {
+  animation: clipQueue 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes clipQueue {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
+}
+
+/* Clip trigger button */
+.clip-trigger {
+  width: 100%;
+  height: 100%;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  gap: 1px;
+  transition: all 0.1s;
+}
+
+.clip-trigger:hover {
+  transform: scale(1.05);
+}
+
+.clip-state-icon {
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.clip-cell.playing .clip-state-icon {
+  color: #00ff88;
+  animation: clipPulse 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes clipPulse {
+  from { opacity: 0.7; }
+  to { opacity: 1; }
+}
+
+.clip-cell.stopped .clip-state-icon {
+  color: #667;
+}
+
+.clip-name {
+  font-size: 0.5rem;
+  color: #aab;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 48px;
+  display: block;
+  text-align: center;
+}
+
+/* Assign button (empty slot with loaded pad) */
+.clip-assign {
+  width: 100%;
+  height: 100%;
+  background: none;
+  border: 1px dashed rgba(255,255,255,0.08);
+  border-radius: 3px;
+  color: #334;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.clip-assign:hover {
+  background: rgba(0,255,200,0.08);
+  border-color: rgba(0,255,200,0.3);
+  color: #00ffc8;
+}
+
+.clip-empty-slot {
+  width: 100%;
+  height: 100%;
+}
+
+/* Scene launch button */
+.clip-scene-launch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 2px solid rgba(255,255,255,0.1);
+  color: #667;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.clip-scene-launch:hover {
+  background: rgba(0,255,200,0.12);
+  border-color: rgba(0,255,200,0.4);
+  color: #00ffc8;
+  transform: scale(1.1);
+}
+
+.clip-scene-launch.active {
+  background: rgba(0,255,200,0.2);
+  border-color: #00ffc8;
+  color: #00ffc8;
+  box-shadow: 0 0 10px rgba(0,255,200,0.25);
+}
+
+/* Hint text */
+.clip-launcher-hint {
+  font-size: 0.62rem;
+  color: #445;
+  text-align: center;
+  padding: 6px 0 2px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  margin-top: 6px;
+}
+
+.clip-launcher-hint strong {
+  color: #00ffc8;
+}
+
+/* Responsive: narrower clips on small screens */
+@media (max-width: 900px) {
+  .clip-cell { flex: 0 0 38px; height: 30px; }
+  .clip-pad-header { flex: 0 0 38px; }
+  .clip-scene-label { flex: 0 0 70px; min-width: 70px; }
+  .clip-name { max-width: 34px; }
+}
+
+/* ====================================================================
+   PHASE 5 ADDITIONS: Clip Editor, Editing State, Color Picker
+   ==================================================================== */
+
+/* Editing highlight on cell */
+.clip-cell.editing {
+  outline: 2px solid #00ffc8;
+  outline-offset: -1px;
+  z-index: 1;
+}
+
+.clip-edit-close {
+  color: #00ffc8 !important;
+  border-color: rgba(0,255,200,0.3) !important;
+}
+
+/* Clip Editor Panel */
+.clip-editor {
+  background: rgba(0,255,200,0.03);
+  border: 1px solid rgba(0,255,200,0.15);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 8px;
+}
+
+.clip-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #ccd;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 6px;
+}
+
+.clip-editor-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.clip-editor-info {
+  margin-left: auto;
+  font-size: 0.65rem;
+  color: #667;
+}
+
+.clip-editor-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.clip-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: #aab;
+}
+
+.clip-edit-row label {
+  min-width: 70px;
+  color: #889;
+  font-size: 0.68rem;
+}
+
+.clip-edit-row input[type="range"] {
+  flex: 1;
+  height: 4px;
+  accent-color: #00ffc8;
+}
+
+.clip-edit-row span {
+  min-width: 50px;
+  text-align: right;
+  font-family: monospace;
+  font-size: 0.7rem;
+  color: #00ffc8;
+}
+
+.clip-edit-name {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #fff;
+  padding: 3px 6px;
+  font-size: 0.72rem;
+}
+
+.clip-edit-name:focus {
+  border-color: rgba(0,255,200,0.3);
+  outline: none;
+}
+
+/* Color picker */
+.clip-color-picker {
+  display: flex;
+  gap: 4px;
+}
+
+.clip-color-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.1s;
+  padding: 0;
+}
+
+.clip-color-swatch:hover {
+  transform: scale(1.2);
+  border-color: rgba(255,255,255,0.3);
+}
+
+.clip-color-swatch.active {
+  border-color: #fff;
+  transform: scale(1.15);
+  box-shadow: 0 0 6px rgba(255,255,255,0.3);
+}
+
+/* Queued state pulsing border */
+.clip-cell.has-clip.queued {
+  animation: clipQueue 0.5s ease-in-out infinite alternate;
+  border-style: dashed;
+}
+
+.clip-cell.queued .clip-state-icon {
+  color: #ffd700;
+  animation: clipQueueIcon 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes clipQueueIcon {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
