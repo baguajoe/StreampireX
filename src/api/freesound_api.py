@@ -6,9 +6,9 @@
 #          and to handle CORS. Supports search, sound details, and download.
 # Setup:
 #   1. Register at https://freesound.org/apiv2/apply/
-#   2. Set env var: FREESOUND_API_KEY=your_client_id
+#   2. Set env var: FREESOUND_API_KEY=your_api_key_here
 #   3. Register blueprint in app.py:
-#      from api.freesound_api import freesound_bp
+#      from src.api.freesound_api import freesound_bp
 #      app.register_blueprint(freesound_bp)
 # =============================================================================
 
@@ -19,49 +19,78 @@ from flask import Blueprint, request, jsonify, Response
 freesound_bp = Blueprint('freesound', __name__)
 
 FREESOUND_BASE = 'https://freesound.org/apiv2'
-API_KEY = os.environ.get('FREESOUND_API_KEY', '')
+
+
+def get_api_key():
+    """Read fresh each request so key is available after .env update + restart."""
+    return os.environ.get('FREESOUND_API_KEY', '')
+
 
 def get_headers():
-    return {'Authorization': f'Token {API_KEY}'}
+    return {'Authorization': f'Token {get_api_key()}'}
+
+
+def check_key():
+    """Return error response if key missing, or None if OK."""
+    key = get_api_key()
+    if not key:
+        print("❌ FREESOUND_API_KEY not set in environment!")
+        return jsonify({
+            'error': 'Freesound API key not configured. Set FREESOUND_API_KEY in .env and restart the server.'
+        }), 500
+    return None
+
+
+def safe_request(url, params=None, timeout=10, stream=False):
+    """Make request to Freesound with robust error handling."""
+    resp = requests.get(url, params=params, headers=get_headers(), timeout=timeout, stream=stream)
+
+    # Check for non-JSON responses (Freesound returns HTML for bad keys, 404s, etc.)
+    content_type = resp.headers.get('content-type', '')
+    if not stream and 'json' not in content_type:
+        body_preview = resp.text[:200] if resp.text else '(empty)'
+        print(f"⚠️ Freesound returned non-JSON ({resp.status_code}): {content_type}")
+        print(f"   Body preview: {body_preview}")
+        raise ValueError(
+            f'Freesound returned HTML instead of JSON (HTTP {resp.status_code}). '
+            f'Your API key may be invalid or missing.'
+        )
+
+    resp.raise_for_status()
+    return resp
 
 
 # ── Search sounds ──
-# GET /api/freesound/search?q=kick+drum&page=1&page_size=15&filter=duration:[0+TO+10]
+# GET /api/freesound/search?q=kick+drum&page=1&page_size=15
 @freesound_bp.route('/api/freesound/search', methods=['GET'])
 def search_sounds():
-    if not API_KEY:
-        return jsonify({'error': 'Freesound API key not configured'}), 500
+    key_error = check_key()
+    if key_error:
+        return key_error
 
     q = request.args.get('q', '')
     page = request.args.get('page', '1')
     page_size = request.args.get('page_size', '15')
-    sort = request.args.get('sort', 'score')  # score, duration_asc, duration_desc, created_desc, rating_desc, downloads_desc
+    sort = request.args.get('sort', 'score')
     filter_param = request.args.get('filter', '')
 
-    # Optional: limit duration for samples (e.g., under 30 seconds)
     if not filter_param:
         filter_param = 'duration:[0 TO 30]'
 
     params = {
         'query': q,
         'page': page,
-        'page_size': min(int(page_size), 30),  # Cap at 30
+        'page_size': min(int(page_size), 30),
         'sort': sort,
         'filter': filter_param,
         'fields': 'id,name,description,tags,duration,avg_rating,num_ratings,num_downloads,username,license,previews,images,type,filesize,samplerate,bitdepth,channels',
     }
 
     try:
-        resp = requests.get(
-            f'{FREESOUND_BASE}/search/text/',
-            params=params,
-            headers=get_headers(),
-            timeout=10
-        )
-        resp.raise_for_status()
+        print(f"🔍 Freesound search: q='{q}', page={page}, key={'SET' if get_api_key() else 'MISSING'}")
+        resp = safe_request(f'{FREESOUND_BASE}/search/text/', params=params)
         data = resp.json()
 
-        # Simplify results for frontend
         results = []
         for sound in data.get('results', []):
             previews = sound.get('previews', {})
@@ -81,15 +110,14 @@ def search_sounds():
                 'filesize': sound.get('filesize', 0),
                 'samplerate': sound.get('samplerate', 0),
                 'channels': sound.get('channels', 0),
-                # Preview URLs (low quality for preview, high quality for download)
                 'preview_hq_mp3': previews.get('preview-hq-mp3', ''),
                 'preview_lq_mp3': previews.get('preview-lq-mp3', ''),
                 'preview_hq_ogg': previews.get('preview-hq-ogg', ''),
-                # Waveform image
                 'waveform_m': images.get('waveform_m', ''),
                 'spectral_m': images.get('spectral_m', ''),
             })
 
+        print(f"✅ Freesound returned {len(results)} results for '{q}'")
         return jsonify({
             'count': data.get('count', 0),
             'page': int(page),
@@ -99,10 +127,15 @@ def search_sounds():
         })
 
     except requests.exceptions.Timeout:
-        return jsonify({'error': 'Freesound API timeout'}), 504
+        return jsonify({'error': 'Freesound API timeout — try again'}), 504
     except requests.exceptions.HTTPError as e:
-        return jsonify({'error': f'Freesound API error: {e.response.status_code}'}), e.response.status_code
+        status = e.response.status_code if e.response is not None else 500
+        print(f"❌ Freesound HTTP error: {status}")
+        return jsonify({'error': f'Freesound API error (HTTP {status})'}), status
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 502
     except Exception as e:
+        print(f"❌ Freesound search error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -110,50 +143,44 @@ def search_sounds():
 # GET /api/freesound/sound/<id>
 @freesound_bp.route('/api/freesound/sound/<int:sound_id>', methods=['GET'])
 def get_sound(sound_id):
-    if not API_KEY:
-        return jsonify({'error': 'Freesound API key not configured'}), 500
+    key_error = check_key()
+    if key_error:
+        return key_error
 
     try:
-        resp = requests.get(
+        resp = safe_request(
             f'{FREESOUND_BASE}/sounds/{sound_id}/',
             params={'fields': 'id,name,description,tags,duration,avg_rating,num_downloads,username,license,previews,images,type,filesize,samplerate,bitdepth,channels,download'},
-            headers=get_headers(),
-            timeout=10
         )
-        resp.raise_for_status()
         return jsonify(resp.json())
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 502
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 
 # ── Download / proxy audio file ──
-# GET /api/freesound/download/<id>
-# Returns the preview audio file (no OAuth needed for previews)
+# GET /api/freesound/download/<id>?quality=hq
 @freesound_bp.route('/api/freesound/download/<int:sound_id>', methods=['GET'])
 def download_sound(sound_id):
-    if not API_KEY:
-        return jsonify({'error': 'Freesound API key not configured'}), 500
+    key_error = check_key()
+    if key_error:
+        return key_error
 
-    quality = request.args.get('quality', 'hq')  # hq or lq
+    quality = request.args.get('quality', 'hq')
 
     try:
-        # First get the sound details to find preview URL
-        resp = requests.get(
+        resp = safe_request(
             f'{FREESOUND_BASE}/sounds/{sound_id}/',
             params={'fields': 'previews,name'},
-            headers=get_headers(),
-            timeout=10
         )
-        resp.raise_for_status()
         data = resp.json()
         previews = data.get('previews', {})
 
-        # Use HQ MP3 preview (no OAuth needed)
         preview_url = previews.get(f'preview-{quality}-mp3', '') or previews.get('preview-hq-mp3', '')
         if not preview_url:
             return jsonify({'error': 'No preview available'}), 404
 
-        # Stream the audio file back
         audio_resp = requests.get(preview_url, stream=True, timeout=15)
         audio_resp.raise_for_status()
 
@@ -165,6 +192,8 @@ def download_sound(sound_id):
                 'Content-Length': audio_resp.headers.get('Content-Length', ''),
             }
         )
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 502
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -173,18 +202,18 @@ def download_sound(sound_id):
 # GET /api/freesound/similar/<id>
 @freesound_bp.route('/api/freesound/similar/<int:sound_id>', methods=['GET'])
 def similar_sounds(sound_id):
-    if not API_KEY:
-        return jsonify({'error': 'Freesound API key not configured'}), 500
+    key_error = check_key()
+    if key_error:
+        return key_error
 
     try:
-        resp = requests.get(
+        resp = safe_request(
             f'{FREESOUND_BASE}/sounds/{sound_id}/similar/',
             params={'fields': 'id,name,duration,tags,previews,avg_rating,num_downloads,username'},
-            headers=get_headers(),
-            timeout=10
         )
-        resp.raise_for_status()
         return jsonify(resp.json())
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 502
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
