@@ -7,6 +7,12 @@
 // Effects: EQ, Compressor, Reverb, Delay, Distortion, Filter per track
 // Views: Record | Arrange | Console | Beat Maker | Piano Roll | Piano | Sounds | Split | Key Finder | AI Beats | Kits | Mic Sim | AI Mix | MIDI | Chords
 // Track limits: Free=4, Starter=8, Creator=16, Pro=32
+//
+// NEW:
+// - DAWMenuBar integrated (import + JSX)
+// - onAction handler wired to RecordingStudio functions
+// - selectedTrackIndex for Track/Edit actions
+// - Simple MIDI export (pianoRollNotes -> .mid download)
 // =============================================================================
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -27,6 +33,9 @@ import MidiImporter from '../component/MidiImporter';
 import MidiHardwareInput from '../component/MidiHardwareInput';
 import ChordProgressionGenerator from '../component/ChordProgressionGenerator';
 import { QuantizePanel } from '../component/QuantizeEngine';
+// ── NEW: DAW Menu Bar ──
+import DAWMenuBar from '../component/DAWMenuBar';
+
 import '../../styles/RecordingStudio.css';
 import '../../styles/ArrangerView.css';
 import '../../styles/AIMixAssistant.css';
@@ -42,12 +51,19 @@ import '../../styles/SoundKitManager.css';
 import '../../styles/PianoRoll.css';
 import '../../styles/ChordProgressionGenerator.css';
 
-const TRACK_COLORS = ['#34c759','#ff9500','#007aff','#af52de','#ff3b30','#5ac8fa','#ff2d55','#ffcc00',
-  '#30d158','#ff6b35','#0a84ff','#bf5af2','#ff453a','#64d2ff','#ff375f','#ffd60a',
-  '#32d74b','#ff8c00','#0066cc','#9b59b6','#e74c3c','#2ecc71','#e91e63','#f39c12',
-  '#27ae60','#d35400','#2980b9','#8e44ad','#c0392b','#16a085','#e84393','#fdcb6e'];
+// Optional (recommended) - add a menu bar css if you have one
+// import '../../styles/DAWMenuBar.css';
+
+const TRACK_COLORS = [
+  '#34c759', '#ff9500', '#007aff', '#af52de', '#ff3b30', '#5ac8fa', '#ff2d55', '#ffcc00',
+  '#30d158', '#ff6b35', '#0a84ff', '#bf5af2', '#ff453a', '#64d2ff', '#ff375f', '#ffd60a',
+  '#32d74b', '#ff8c00', '#0066cc', '#9b59b6', '#e74c3c', '#2ecc71', '#e91e63', '#f39c12',
+  '#27ae60', '#d35400', '#2980b9', '#8e44ad', '#c0392b', '#16a085', '#e84393', '#fdcb6e'
+];
+
 const TIER_TRACK_LIMITS = { free: 4, starter: 8, creator: 16, pro: 32 };
 const DEFAULT_MAX = 4;
+
 const DEFAULT_EFFECTS = () => ({
   eq: { lowGain: 0, midGain: 0, midFreq: 1000, highGain: 0, enabled: true },
   compressor: { threshold: -24, ratio: 4, attack: 0.003, release: 0.25, enabled: false },
@@ -56,25 +72,99 @@ const DEFAULT_EFFECTS = () => ({
   distortion: { amount: 0, enabled: false },
   filter: { type: 'lowpass', frequency: 20000, Q: 1, enabled: false },
 });
+
 const DEFAULT_TRACK = (i) => ({
-  name: `Track ${i+1}`, volume: 0.8, pan: 0, muted: false, solo: false,
-  armed: false, audio_url: null, color: TRACK_COLORS[i % TRACK_COLORS.length],
-  audioBuffer: null, effects: DEFAULT_EFFECTS(), regions: [],
+  name: `Track ${i + 1}`,
+  volume: 0.8,
+  pan: 0,
+  muted: false,
+  solo: false,
+  armed: false,
+  audio_url: null,
+  color: TRACK_COLORS[i % TRACK_COLORS.length],
+  audioBuffer: null,
+  effects: DEFAULT_EFFECTS(),
+  regions: [],
 });
 
 // ── Beat ↔ Seconds helpers ──
 const secondsToBeat = (seconds, bpm) => (seconds / 60) * bpm;
 const beatToSeconds = (beat, bpm) => (beat / bpm) * 60;
 
+// ── Small helpers ──
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+/**
+ * Minimal MIDI writer (SMF format 0 / single track).
+ * Notes expected: [{ note, velocity, startBeat, duration }]
+ */
+const midiFromNotes = ({ notes = [], bpm = 120, ppq = 480 }) => {
+  const sorted = [...notes]
+    .filter(n => Number.isFinite(n.note) && Number.isFinite(n.startBeat) && Number.isFinite(n.duration))
+    .map(n => ({
+      note: clamp(Math.round(n.note), 0, 127),
+      vel: clamp(
+        Math.round((n.velocity ?? 0.9) <= 1 ? (n.velocity ?? 0.9) * 127 : (n.velocity ?? 100)),
+        1, 127
+      ),
+      startTick: Math.max(0, Math.round((n.startBeat || 0) * ppq)),
+      endTick: Math.max(0, Math.round(((n.startBeat || 0) + (n.duration || 0)) * ppq)),
+      channel: clamp(Math.round(n.channel ?? 0), 0, 15),
+    }))
+    .filter(n => n.endTick > n.startTick)
+    .sort((a, b) => a.startTick - b.startTick);
+
+  const events = [];
+  const mpqn = Math.round(60000000 / (bpm || 120));
+  events.push({ tick: 0, bytes: [0xFF, 0x51, 0x03, (mpqn >> 16) & 0xFF, (mpqn >> 8) & 0xFF, mpqn & 0xFF] });
+
+  for (const n of sorted) {
+    events.push({ tick: n.startTick, bytes: [0x90 | n.channel, n.note, n.vel] });
+    events.push({ tick: n.endTick, bytes: [0x80 | n.channel, n.note, 0x00] });
+  }
+
+  const lastTick = events.reduce((m, e) => Math.max(m, e.tick), 0);
+  events.push({ tick: lastTick + 1, bytes: [0xFF, 0x2F, 0x00] });
+  events.sort((a, b) => a.tick - b.tick);
+
+  const trackData = [];
+  let prevTick = 0;
+
+  const writeVarLen = (val) => {
+    let v = val >>> 0;
+    let buffer = v & 0x7F;
+    while ((v >>= 7)) { buffer <<= 8; buffer |= ((v & 0x7F) | 0x80); }
+    while (true) { trackData.push(buffer & 0xFF); if (buffer & 0x80) buffer >>= 8; else break; }
+  };
+
+  for (const e of events) {
+    const delta = Math.max(0, e.tick - prevTick);
+    writeVarLen(delta);
+    trackData.push(...e.bytes);
+    prevTick = e.tick;
+  }
+
+  const header = [];
+  const pushStr = (s) => s.split('').forEach(ch => header.push(ch.charCodeAt(0)));
+  const pushU16 = (n) => { header.push((n >> 8) & 0xFF, n & 0xFF); };
+  const pushU32 = (n) => { header.push((n >> 24) & 0xFF, (n >> 16) & 0xFF, (n >> 8) & 0xFF, n & 0xFF); };
+
+  pushStr('MThd'); pushU32(6); pushU16(0); pushU16(1); pushU16(ppq);
+
+  const trackHeader = [];
+  const pushStr3 = (s) => s.split('').forEach(ch => trackHeader.push(ch.charCodeAt(0)));
+  const pushU32b = (n) => trackHeader.push((n >> 24) & 0xFF, (n >> 16) & 0xFF, (n >> 8) & 0xFF, n & 0xFF);
+  pushStr3('MTrk'); pushU32b(trackData.length);
+
+  return new Uint8Array([...header, ...trackHeader, ...trackData]);
+};
+
 const RecordingStudio = ({ user }) => {
   // ── Tier-based track limit ──
   const userTier = (user?.subscription_tier || user?.tier || 'free').toLowerCase();
   const maxTracks = TIER_TRACK_LIMITS[userTier] || DEFAULT_MAX;
 
-  // ── View mode: record | arrange | console | beatmaker | pianoroll | piano | split | sounds | keyfinder | aibeat | kits | micsim | aimix | midi | chords ──
   const [viewMode, setViewMode] = useState('record');
-
-  // ── Project state ──
   const [projectName, setProjectName] = useState('Untitled Project');
   const [projectId, setProjectId] = useState(null);
   const [projects, setProjects] = useState([]);
@@ -82,9 +172,11 @@ const RecordingStudio = ({ user }) => {
   const [bpm, setBpm] = useState(120);
   const [timeSignature, setTimeSignature] = useState([4, 4]);
   const [masterVolume, setMasterVolume] = useState(0.8);
-  const [tracks, setTracks] = useState(Array.from({length: Math.min(maxTracks, 8)},(_,i)=>DEFAULT_TRACK(i)));
+  const [tracks, setTracks] = useState(Array.from({ length: Math.min(maxTracks, 8) }, (_, i) => DEFAULT_TRACK(i)));
 
-  // ── Transport state ──
+  // ── Selected track (for DAWMenuBar Track/Edit actions) ──
+  const [selectedTrackIndex, setSelectedTrackIndex] = useState(0);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -92,7 +184,6 @@ const RecordingStudio = ({ user }) => {
   const [metronomeOn, setMetronomeOn] = useState(false);
   const [countIn, setCountIn] = useState(false);
 
-  // ── I/O state ──
   const [inputDevices, setInputDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState('default');
   const [inputLevel, setInputLevel] = useState(0);
@@ -100,14 +191,9 @@ const RecordingStudio = ({ user }) => {
   const [saving, setSaving] = useState(false);
   const [mixingDown, setMixingDown] = useState(false);
   const [activeEffectsTrack, setActiveEffectsTrack] = useState(null);
-
-  // ── Mic Simulator state ──
   const [micSimStream, setMicSimStream] = useState(null);
-
-  // ── Real-time meter levels for Console (FIX: was static) ──
   const [meterLevels, setMeterLevels] = useState([]);
 
-  // ── NEW: Piano Roll shared state ──
   const [pianoRollNotes, setPianoRollNotes] = useState([]);
   const [pianoRollKey, setPianoRollKey] = useState('C');
   const [pianoRollScale, setPianoRollScale] = useState('major');
@@ -117,8 +203,8 @@ const RecordingStudio = ({ user }) => {
   const trackSourcesRef = useRef([]);
   const trackGainsRef = useRef([]);
   const trackPansRef = useRef([]);
-  const trackAnalysersRef = useRef([]);    // FIX: {left, right} AnalyserNode pairs per track
-  const meterAnimRef = useRef(null);       // FIX: meter animation frame
+  const trackAnalysersRef = useRef([]);
+  const meterAnimRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const chunksRef = useRef([]);
@@ -130,14 +216,17 @@ const RecordingStudio = ({ user }) => {
   const inputAnalyserRef = useRef(null);
   const inputAnimRef = useRef(null);
 
-  // ── Beat-based playhead for ArrangerView ──
+  // Tap tempo tracking
+  const tapTimesRef = useRef([]);
+
   const playheadBeat = useMemo(() => secondsToBeat(currentTime, bpm), [currentTime, bpm]);
 
   useEffect(() => {
     navigator.mediaDevices.enumerateDevices().then(d => {
       setInputDevices(d.filter(x => x.kind === 'audioinput'));
     }).catch(console.error);
-    return () => { stopEverything(); if(audioCtxRef.current) audioCtxRef.current.close(); };
+    return () => { stopEverything(); if (audioCtxRef.current) audioCtxRef.current.close(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getCtx = useCallback(() => {
@@ -151,72 +240,73 @@ const RecordingStudio = ({ user }) => {
     return audioCtxRef.current;
   }, [masterVolume]);
 
-  useEffect(() => { if(masterGainRef.current) masterGainRef.current.gain.value = masterVolume; }, [masterVolume]);
+  useEffect(() => { if (masterGainRef.current) masterGainRef.current.gain.value = masterVolume; }, [masterVolume]);
 
-  const getReverbBuf = useCallback((ctx, decay=2) => {
+  const getReverbBuf = useCallback((ctx, decay = 2) => {
     const len = ctx.sampleRate * decay;
     const buf = ctx.createBuffer(2, len, ctx.sampleRate);
-    for(let ch=0;ch<2;ch++){const d=buf.getChannelData(ch);for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);}
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
     return buf;
   }, []);
 
-  const updateTrack = useCallback((i, u) => setTracks(p => p.map((t,idx) => idx===i ? {...t,...u} : t)), []);
-  const updateEffect = (ti, fx, param, val) => setTracks(p => p.map((t,i) => i!==ti ? t : {...t, effects:{...t.effects,[fx]:{...t.effects[fx],[param]:val}}}));
+  const updateTrack = useCallback((i, u) => setTracks(p => p.map((t, idx) => idx === i ? { ...t, ...u } : t)), []);
+  const updateEffect = (ti, fx, param, val) => setTracks(p => p.map((t, i) => i !== ti ? t : { ...t, effects: { ...t.effects, [fx]: { ...t.effects[fx], [param]: val } } }));
   const hasSolo = tracks.some(t => t.solo);
   const isAudible = (t) => !t.muted && (!hasSolo || t.solo);
 
   // ── Waveform drawing ──
   const drawWaveform = useCallback((el, buf, color) => {
-    if(!el||!buf) return;
-    const c=el.getContext('2d'), w=el.width, h=el.height, data=buf.getChannelData(0), step=Math.ceil(data.length/w), mid=h/2;
-    c.clearRect(0,0,w,h);
-    c.strokeStyle='rgba(255,255,255,0.03)';c.lineWidth=1;
-    for(let x=0;x<w;x+=50){c.beginPath();c.moveTo(x,0);c.lineTo(x,h);c.stroke();}
-    c.strokeStyle='rgba(255,255,255,0.06)';c.beginPath();c.moveTo(0,mid);c.lineTo(w,mid);c.stroke();
-    c.fillStyle=color+'40';c.beginPath();c.moveTo(0,mid);
-    for(let i=0;i<w;i++){let mx=-1;for(let j=0;j<step;j++){const d=data[i*step+j];if(d!==undefined&&d>mx)mx=d;}c.lineTo(i,mid-(mx*mid*0.9));}
-    for(let i=w-1;i>=0;i--){let mn=1;for(let j=0;j<step;j++){const d=data[i*step+j];if(d!==undefined&&d<mn)mn=d;}c.lineTo(i,mid-(mn*mid*0.9));}
-    c.closePath();c.fill();
-    c.strokeStyle=color;c.lineWidth=0.8;c.beginPath();
-    for(let i=0;i<w;i++){let mx=-1;for(let j=0;j<step;j++){const d=data[i*step+j];if(d!==undefined&&d>mx)mx=d;}const y=mid-(mx*mid*0.9);i===0?c.moveTo(i,y):c.lineTo(i,y);}
+    if (!el || !buf) return;
+    const c = el.getContext('2d'), w = el.width, h = el.height, data = buf.getChannelData(0), step = Math.ceil(data.length / w), mid = h / 2;
+    c.clearRect(0, 0, w, h);
+    c.strokeStyle = 'rgba(255,255,255,0.03)'; c.lineWidth = 1;
+    for (let x = 0; x < w; x += 50) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke(); }
+    c.strokeStyle = 'rgba(255,255,255,0.06)'; c.beginPath(); c.moveTo(0, mid); c.lineTo(w, mid); c.stroke();
+    c.fillStyle = color + '40'; c.beginPath(); c.moveTo(0, mid);
+    for (let i = 0; i < w; i++) { let mx = -1; for (let j = 0; j < step; j++) { const d = data[i * step + j]; if (d !== undefined && d > mx) mx = d; } c.lineTo(i, mid - (mx * mid * 0.9)); }
+    for (let i = w - 1; i >= 0; i--) { let mn = 1; for (let j = 0; j < step; j++) { const d = data[i * step + j]; if (d !== undefined && d < mn) mn = d; } c.lineTo(i, mid - (mn * mid * 0.9)); }
+    c.closePath(); c.fill();
+    c.strokeStyle = color; c.lineWidth = 0.8; c.beginPath();
+    for (let i = 0; i < w; i++) { let mx = -1; for (let j = 0; j < step; j++) { const d = data[i * step + j]; if (d !== undefined && d > mx) mx = d; } const y = mid - (mx * mid * 0.9); i === 0 ? c.moveTo(i, y) : c.lineTo(i, y); }
     c.stroke();
   }, []);
 
-  useEffect(() => { tracks.forEach((t,i) => { if(t.audioBuffer && canvasRefs.current[i]) drawWaveform(canvasRefs.current[i], t.audioBuffer, t.color); }); }, [tracks, drawWaveform]);
+  useEffect(() => { tracks.forEach((t, i) => { if (t.audioBuffer && canvasRefs.current[i]) drawWaveform(canvasRefs.current[i], t.audioBuffer, t.color); }); }, [tracks, drawWaveform]);
 
   const loadAudioBuffer = async (url, ti) => {
-    try { const ctx=getCtx(); const r=await fetch(url); const ab=await r.arrayBuffer(); const buf=await ctx.decodeAudioData(ab); updateTrack(ti,{audioBuffer:buf,audio_url:url}); return buf; }
-    catch(e){ console.error(e); return null; }
+    try { const ctx = getCtx(); const r = await fetch(url); const ab = await r.arrayBuffer(); const buf = await ctx.decodeAudioData(ab); updateTrack(ti, { audioBuffer: buf, audio_url: url }); return buf; }
+    catch (e) { console.error(e); return null; }
   };
 
   // ── Effects chain builder ──
   const buildFxChain = (ctx, track) => {
-    const nodes=[], fx=track.effects;
-    if(fx.eq.enabled){
-      const lo=ctx.createBiquadFilter();lo.type='lowshelf';lo.frequency.value=320;lo.gain.value=fx.eq.lowGain;
-      const mi=ctx.createBiquadFilter();mi.type='peaking';mi.frequency.value=fx.eq.midFreq;mi.Q.value=1.5;mi.gain.value=fx.eq.midGain;
-      const hi=ctx.createBiquadFilter();hi.type='highshelf';hi.frequency.value=3200;hi.gain.value=fx.eq.highGain;
-      nodes.push(lo,mi,hi);
+    const nodes = [], fx = track.effects;
+    if (fx.eq.enabled) {
+      const lo = ctx.createBiquadFilter(); lo.type = 'lowshelf'; lo.frequency.value = 320; lo.gain.value = fx.eq.lowGain;
+      const mi = ctx.createBiquadFilter(); mi.type = 'peaking'; mi.frequency.value = fx.eq.midFreq; mi.Q.value = 1.5; mi.gain.value = fx.eq.midGain;
+      const hi = ctx.createBiquadFilter(); hi.type = 'highshelf'; hi.frequency.value = 3200; hi.gain.value = fx.eq.highGain;
+      nodes.push(lo, mi, hi);
     }
-    if(fx.filter.enabled){const f=ctx.createBiquadFilter();f.type=fx.filter.type;f.frequency.value=fx.filter.frequency;f.Q.value=fx.filter.Q;nodes.push(f);}
-    if(fx.compressor.enabled){const c=ctx.createDynamicsCompressor();c.threshold.value=fx.compressor.threshold;c.ratio.value=fx.compressor.ratio;c.attack.value=fx.compressor.attack;c.release.value=fx.compressor.release;nodes.push(c);}
-    if(fx.distortion.enabled&&fx.distortion.amount>0){
-      const ws=ctx.createWaveShaper();const amt=fx.distortion.amount;const s=44100;const curve=new Float32Array(s);
-      for(let i=0;i<s;i++){const x=i*2/s-1;curve[i]=(3+amt)*x*20*(Math.PI/180)/(Math.PI+amt*Math.abs(x));}
-      ws.curve=curve;ws.oversample='4x';nodes.push(ws);
+    if (fx.filter.enabled) { const f = ctx.createBiquadFilter(); f.type = fx.filter.type; f.frequency.value = fx.filter.frequency; f.Q.value = fx.filter.Q; nodes.push(f); }
+    if (fx.compressor.enabled) { const c = ctx.createDynamicsCompressor(); c.threshold.value = fx.compressor.threshold; c.ratio.value = fx.compressor.ratio; c.attack.value = fx.compressor.attack; c.release.value = fx.compressor.release; nodes.push(c); }
+    if (fx.distortion.enabled && fx.distortion.amount > 0) {
+      const ws = ctx.createWaveShaper(); const amt = fx.distortion.amount; const s = 44100; const curve = new Float32Array(s);
+      for (let i = 0; i < s; i++) { const x = i * 2 / s - 1; curve[i] = (3 + amt) * x * 20 * (Math.PI / 180) / (Math.PI + amt * Math.abs(x)); }
+      ws.curve = curve; ws.oversample = '4x'; nodes.push(ws);
     }
     return nodes;
   };
 
   const buildSends = (ctx, track, dry, master) => {
-    const fx=track.effects;
-    if(fx.reverb.enabled&&fx.reverb.mix>0){const conv=ctx.createConvolver();conv.buffer=getReverbBuf(ctx,fx.reverb.decay);const g=ctx.createGain();g.gain.value=fx.reverb.mix;dry.connect(conv);conv.connect(g);g.connect(master);}
-    if(fx.delay.enabled&&fx.delay.mix>0){const d=ctx.createDelay(5);d.delayTime.value=fx.delay.time;const fb=ctx.createGain();fb.gain.value=fx.delay.feedback;const mx=ctx.createGain();mx.gain.value=fx.delay.mix;dry.connect(d);d.connect(fb);fb.connect(d);d.connect(mx);mx.connect(master);}
+    const fx = track.effects;
+    if (fx.reverb.enabled && fx.reverb.mix > 0) { const conv = ctx.createConvolver(); conv.buffer = getReverbBuf(ctx, fx.reverb.decay); const g = ctx.createGain(); g.gain.value = fx.reverb.mix; dry.connect(conv); conv.connect(g); g.connect(master); }
+    if (fx.delay.enabled && fx.delay.mix > 0) { const d = ctx.createDelay(5); d.delayTime.value = fx.delay.time; const fb = ctx.createGain(); fb.gain.value = fx.delay.feedback; const mx = ctx.createGain(); mx.gain.value = fx.delay.mix; dry.connect(d); d.connect(fb); fb.connect(d); d.connect(mx); mx.connect(master); }
   };
 
-  // ══════════════════════════════════════════════════════
-  // FIX: Real-time meter animation (for Console VU meters)
-  // ══════════════════════════════════════════════════════
+  // ── Real-time meter animation ──
   const startMeterAnimation = useCallback(() => {
     if (meterAnimRef.current) cancelAnimationFrame(meterAnimRef.current);
     const animate = () => {
@@ -224,15 +314,11 @@ const RecordingStudio = ({ user }) => {
       if (!analysers || analysers.length === 0) { setMeterLevels([]); return; }
       const levels = analysers.map(pair => {
         if (!pair || !pair.left || !pair.right) return { left: 0, right: 0, peak: 0 };
-        const dataL = new Uint8Array(pair.left.frequencyBinCount);
-        pair.left.getByteFrequencyData(dataL);
-        let sumL = 0;
-        for (let i = 0; i < dataL.length; i++) sumL += dataL[i];
+        const dataL = new Uint8Array(pair.left.frequencyBinCount); pair.left.getByteFrequencyData(dataL);
+        let sumL = 0; for (let i = 0; i < dataL.length; i++) sumL += dataL[i];
         const left = sumL / (dataL.length * 255);
-        const dataR = new Uint8Array(pair.right.frequencyBinCount);
-        pair.right.getByteFrequencyData(dataR);
-        let sumR = 0;
-        for (let i = 0; i < dataR.length; i++) sumR += dataR[i];
+        const dataR = new Uint8Array(pair.right.frequencyBinCount); pair.right.getByteFrequencyData(dataR);
+        let sumR = 0; for (let i = 0; i < dataR.length; i++) sumR += dataR[i];
         const right = sumR / (dataR.length * 255);
         return { left, right, peak: Math.max(left, right) };
       });
@@ -247,51 +333,43 @@ const RecordingStudio = ({ user }) => {
     setMeterLevels([]);
   }, []);
 
-  // ── Recording (with optional Mic Simulator) ──
+  // ── Recording ──
   const startRecording = async () => {
-    const ai=tracks.findIndex(t=>t.armed);
-    if(ai===-1){setStatus('⚠ Arm a track');return;}
-    try{
-      const ctx=getCtx();
-      const stream=await navigator.mediaDevices.getUserMedia({audio:{deviceId:selectedDevice!=='default'?{exact:selectedDevice}:undefined,echoCancellation:false,noiseSuppression:false,autoGainControl:false,sampleRate:44100}});
-      mediaStreamRef.current=stream;
+    const ai = tracks.findIndex(t => t.armed);
+    if (ai === -1) { setStatus('⚠ Arm a track'); return; }
+    try {
+      const ctx = getCtx();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: selectedDevice !== 'default' ? { exact: selectedDevice } : undefined, echoCancellation: false, noiseSuppression: false, autoGainControl: false, sampleRate: 44100 } });
+      mediaStreamRef.current = stream;
       setMicSimStream(stream);
-
-      const src=ctx.createMediaStreamSource(stream);inputAnalyserRef.current=ctx.createAnalyser();inputAnalyserRef.current.fftSize=256;src.connect(inputAnalyserRef.current);
-      const mon=()=>{if(!inputAnalyserRef.current)return;const d=new Uint8Array(inputAnalyserRef.current.frequencyBinCount);inputAnalyserRef.current.getByteFrequencyData(d);setInputLevel(d.reduce((a,b)=>a+b,0)/d.length/255);inputAnimRef.current=requestAnimationFrame(mon);};mon();
-      if(countIn){setStatus('Count in...');await playCountIn(ctx);}
-      const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
-      const rec=new MediaRecorder(stream,{mimeType:mime});chunksRef.current=[];
-      rec.ondataavailable=e=>{if(e.data.size>0)chunksRef.current.push(e.data);};
-      rec.onstop=async()=>{
-        const blob=new Blob(chunksRef.current,{type:mime});
-        const ab=await blob.arrayBuffer();
-        const buf=await ctx.decodeAudioData(ab);
+      const src = ctx.createMediaStreamSource(stream); inputAnalyserRef.current = ctx.createAnalyser(); inputAnalyserRef.current.fftSize = 256; src.connect(inputAnalyserRef.current);
+      const mon = () => { if (!inputAnalyserRef.current) return; const d = new Uint8Array(inputAnalyserRef.current.frequencyBinCount); inputAnalyserRef.current.getByteFrequencyData(d); setInputLevel(d.reduce((a, b) => a + b, 0) / d.length / 255); inputAnimRef.current = requestAnimationFrame(mon); }; mon();
+      if (countIn) { setStatus('Count in...'); await playCountIn(ctx); }
+      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+      const rec = new MediaRecorder(stream, { mimeType: mime }); chunksRef.current = [];
+      rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      rec.onstop = async () => {
+        const blob = new Blob(chunksRef.current, { type: mime });
+        const ab = await blob.arrayBuffer(); const buf = await ctx.decodeAudioData(ab);
         const audioUrl = URL.createObjectURL(blob);
-        updateTrack(ai,{audioBuffer:buf,audio_url:audioUrl});
+        updateTrack(ai, { audioBuffer: buf, audio_url: audioUrl });
         createRegionFromRecording(ai, buf, audioUrl);
-        await uploadTrack(blob,ai);
-        setStatus('✓ Recorded');
+        await uploadTrack(blob, ai); setStatus('✓ Recorded');
       };
-      mediaRecorderRef.current=rec;rec.start(100);startPlayback(true);setIsRecording(true);setStatus(`● REC Track ${ai+1}`);
-    }catch(e){setStatus(`✗ Mic: ${e.message}`);}
+      mediaRecorderRef.current = rec; rec.start(100); startPlayback(true); setIsRecording(true); setStatus(`● REC Track ${ai + 1}`);
+    } catch (e) { setStatus(`✗ Mic: ${e.message}`); }
   };
 
   const stopRecording = () => {
-    if(mediaRecorderRef.current&&mediaRecorderRef.current.state!=='inactive')mediaRecorderRef.current.stop();
-    if(mediaStreamRef.current){mediaStreamRef.current.getTracks().forEach(t=>t.stop());mediaStreamRef.current=null;}
-    if(inputAnimRef.current)cancelAnimationFrame(inputAnimRef.current);
-    setMicSimStream(null);
-    setInputLevel(0);setIsRecording(false);stopPlayback();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') mediaRecorderRef.current.stop();
+    if (mediaStreamRef.current) { mediaStreamRef.current.getTracks().forEach(t => t.stop()); mediaStreamRef.current = null; }
+    if (inputAnimRef.current) cancelAnimationFrame(inputAnimRef.current);
+    setMicSimStream(null); setInputLevel(0); setIsRecording(false); stopPlayback();
   };
 
-  // ── Mic Simulator recording callback ──
   const handleMicSimRecordingComplete = useCallback((blob) => {
     const ai = tracks.findIndex(t => t.armed);
-    if (ai === -1) {
-      setStatus('⚠ Arm a track first to receive Mic Sim recording');
-      return;
-    }
+    if (ai === -1) { setStatus('⚠ Arm a track first to receive Mic Sim recording'); return; }
     const ctx = getCtx();
     const audioUrl = URL.createObjectURL(blob);
     blob.arrayBuffer().then(ab => ctx.decodeAudioData(ab)).then(buf => {
@@ -300,15 +378,11 @@ const RecordingStudio = ({ user }) => {
       uploadTrack(blob, ai);
       setStatus(`✓ Mic Sim recorded → Track ${ai + 1}`);
     }).catch(e => setStatus(`✗ ${e.message}`));
-  }, [tracks]);
+  }, [tracks, getCtx, updateTrack]);
 
-  // ── Virtual Piano recording callback ──
   const handlePianoRecordingComplete = useCallback((blob) => {
     const ai = tracks.findIndex(t => t.armed);
-    if (ai === -1) {
-      setStatus('⚠ Arm a track first to receive Piano recording');
-      return;
-    }
+    if (ai === -1) { setStatus('⚠ Arm a track first to receive Piano recording'); return; }
     const ctx = getCtx();
     const audioUrl = URL.createObjectURL(blob);
     blob.arrayBuffer().then(ab => ctx.decodeAudioData(ab)).then(buf => {
@@ -317,21 +391,16 @@ const RecordingStudio = ({ user }) => {
       uploadTrack(blob, ai);
       setStatus(`✓ Piano recorded → Track ${ai + 1}`);
     }).catch(e => setStatus(`✗ ${e.message}`));
-  }, [tracks]);
+  }, [tracks, getCtx, updateTrack]);
 
-  // ── Freesound Browser: load sound into armed track ──
   const handleFreesoundSelect = useCallback((audioBuffer, name, audioUrl) => {
     const ai = tracks.findIndex(t => t.armed);
-    if (ai === -1) {
-      setStatus('⚠ Arm a track first to load sound');
-      return;
-    }
+    if (ai === -1) { setStatus('⚠ Arm a track first to load sound'); return; }
     updateTrack(ai, { audioBuffer, audio_url: audioUrl, name: name || `Freesound Sample` });
     createRegionFromRecording(ai, audioBuffer, audioUrl);
     setStatus(`✓ "${name}" loaded → Track ${ai + 1}`);
-  }, [tracks]);
+  }, [tracks, updateTrack]);
 
-  // ── Piano+Drum Split recording callback ──
   const handleSplitRecordingComplete = useCallback((blob) => {
     const ai = tracks.findIndex(t => t.armed);
     if (ai === -1) { setStatus('⚠ Arm a track first to receive Split recording'); return; }
@@ -343,317 +412,234 @@ const RecordingStudio = ({ user }) => {
       uploadTrack(blob, ai);
       setStatus(`✓ Split recording → Track ${ai + 1}`);
     }).catch(e => setStatus(`✗ ${e.message}`));
-  }, [tracks]);
+  }, [tracks, getCtx, updateTrack]);
 
-  // ── AI Beat pattern apply callback ──
   const handleAIBeatApply = useCallback((patternData) => {
     setStatus(`✓ AI Beat pattern generated: ${patternData.genre} @ ${patternData.bpm} BPM — Switch to Beat Maker to use`);
   }, []);
 
-  // ── Sound Kit: load full kit into Beat Maker ──
   const handleLoadKit = useCallback((samples) => {
     if (!samples || samples.length === 0) { setStatus('⚠ Kit has no samples'); return; }
     setStatus(`✓ Kit loaded — ${samples.length} samples available. Switch to Beat Maker to play.`);
   }, []);
 
-  // ── Sound Kit: load single sample to a pad ──
   const handleLoadKitSample = useCallback((audioBuffer, name, url, padNum) => {
     setStatus(`✓ "${name}" loaded → Pad ${padNum >= 0 ? padNum + 1 : '(unassigned)'}`);
   }, []);
 
-  // ══════════════════════════════════════════════════════
-  // NEW: Piano Roll callbacks
-  // ══════════════════════════════════════════════════════
+  const handlePianoRollNotesChange = useCallback((notes) => { setPianoRollNotes(notes); }, []);
 
-  // ── Piano Roll note change handler ──
-  const handlePianoRollNotesChange = useCallback((notes) => {
-    setPianoRollNotes(notes);
-  }, []);
-
-  // ── Piano Roll export to DAW track (renders MIDI notes to audio) ──
   const handlePianoRollExport = useCallback((renderedBuffer, blob) => {
     let targetTrack = tracks.findIndex(t => !t.audioBuffer);
-    if (targetTrack === -1 && tracks.length < maxTracks) {
-      targetTrack = tracks.length;
-      setTracks(prev => [...prev, DEFAULT_TRACK(targetTrack)]);
-    }
-    if (targetTrack === -1) {
-      setStatus('⚠ No empty tracks. Clear a track first.');
-      return;
-    }
+    if (targetTrack === -1 && tracks.length < maxTracks) { targetTrack = tracks.length; setTracks(prev => [...prev, DEFAULT_TRACK(targetTrack)]); }
+    if (targetTrack === -1) { setStatus('⚠ No empty tracks. Clear a track first.'); return; }
     if (renderedBuffer) {
       const audioUrl = URL.createObjectURL(blob);
-      updateTrack(targetTrack, {
-        audioBuffer: renderedBuffer,
-        audio_url: audioUrl,
-        name: 'Piano Roll Export',
-      });
+      updateTrack(targetTrack, { audioBuffer: renderedBuffer, audio_url: audioUrl, name: 'Piano Roll Export' });
       createRegionFromImport(targetTrack, renderedBuffer, 'Piano Roll Export', audioUrl);
-      setStatus(`✓ Piano Roll → Track ${targetTrack + 1}`);
-      setViewMode('record');
+      setStatus(`✓ Piano Roll → Track ${targetTrack + 1}`); setViewMode('record');
     }
-  }, [tracks, maxTracks]);
+  }, [tracks, maxTracks, updateTrack]);
 
-  // ── MIDI Import: load imported MIDI notes into Piano Roll ──
   const handleMidiImport = useCallback((midiData) => {
     if (midiData && midiData.notes) {
       setPianoRollNotes(midiData.notes);
       if (midiData.bpm) setBpm(midiData.bpm);
       if (midiData.key) setPianoRollKey(midiData.key);
-      setStatus(`✓ MIDI imported — ${midiData.notes.length} notes loaded`);
-      setViewMode('pianoroll');
+      setStatus(`✓ MIDI imported — ${midiData.notes.length} notes loaded`); setViewMode('pianoroll');
     }
   }, []);
 
-  // ── MIDI Hardware Input: receive live MIDI note ──
   const handleMidiNoteOn = useCallback((note) => {
-    // If in Piano Roll view, add note to the roll in real-time
     if (viewMode === 'pianoroll') {
-      const newNote = {
-        id: `midi_${Date.now()}_${note.note}`,
-        note: note.note,
-        velocity: note.velocity,
-        startBeat: secondsToBeat(currentTime, bpm),
-        duration: 0.25, // Default 16th note, will be extended on noteOff
-        channel: note.channel || 0,
-      };
+      const newNote = { id: `midi_${Date.now()}_${note.note}`, note: note.note, velocity: note.velocity, startBeat: secondsToBeat(currentTime, bpm), duration: 0.25, channel: note.channel || 0 };
       setPianoRollNotes(prev => [...prev, newNote]);
     }
     setStatus(`MIDI In: ${note.noteName || note.note} vel:${note.velocity}`);
   }, [viewMode, currentTime, bpm]);
 
-  // ── MIDI Hardware: note off (extend duration) ──
   const handleMidiNoteOff = useCallback((note) => {
     const currentBeat = secondsToBeat(currentTime, bpm);
     setPianoRollNotes(prev => prev.map(n => {
-      if (n.note === note.note && n.id && n.id.startsWith('midi_')) {
-        const dur = Math.max(currentBeat - n.startBeat, 0.125);
-        return { ...n, duration: dur };
-      }
+      if (n.note === note.note && n.id && n.id.startsWith('midi_')) { return { ...n, duration: Math.max(currentBeat - n.startBeat, 0.125) }; }
       return n;
     }));
   }, [currentTime, bpm]);
 
-  // ── Chord Progression Generator: insert chords into Piano Roll ──
   const handleChordInsert = useCallback((chordNotes) => {
-    if (chordNotes && chordNotes.length > 0) {
-      setPianoRollNotes(prev => [...prev, ...chordNotes]);
-      setStatus(`✓ ${chordNotes.length} chord notes inserted into Piano Roll`);
-    }
+    if (chordNotes && chordNotes.length > 0) { setPianoRollNotes(prev => [...prev, ...chordNotes]); setStatus(`✓ ${chordNotes.length} chord notes inserted into Piano Roll`); }
   }, []);
 
-  // ── Chord Progression: update key/scale context ──
-  const handleChordKeyChange = useCallback((key, scale) => {
-    setPianoRollKey(key);
-    setPianoRollScale(scale);
-  }, []);
+  const handleChordKeyChange = useCallback((key, scale) => { setPianoRollKey(key); setPianoRollScale(scale); }, []);
 
-  // ── Playback — FIX: now creates AnalyserNode per track for real-time metering ──
-  const startPlayback = (overdub=false) => {
-    const ctx=getCtx();
-    trackSourcesRef.current.forEach(s=>{try{s.stop();}catch(e){}});
-    trackSourcesRef.current=[];trackGainsRef.current=[];trackPansRef.current=[];
-    trackAnalysersRef.current=[];
-    let maxDur=0;
-    tracks.forEach((t,i)=>{
-      if(!t.audioBuffer){
-        trackAnalysersRef.current[i]=null;
-        return;
-      }
-      const s=ctx.createBufferSource();s.buffer=t.audioBuffer;
-      const g=ctx.createGain();g.gain.value=isAudible(t)?t.volume:0;
-      const p=ctx.createStereoPanner();p.pan.value=t.pan;
-
-      const splitter=ctx.createChannelSplitter(2);
-      const analyserL=ctx.createAnalyser();
-      analyserL.fftSize=256;
-      analyserL.smoothingTimeConstant=0.7;
-      const analyserR=ctx.createAnalyser();
-      analyserR.fftSize=256;
-      analyserR.smoothingTimeConstant=0.7;
-
-      const fxNodes=buildFxChain(ctx,t);let last=s;fxNodes.forEach(n=>{last.connect(n);last=n;});
-      last.connect(g);g.connect(p);
-      p.connect(splitter);
-      splitter.connect(analyserL, 0);
-      splitter.connect(analyserR, 1);
-      p.connect(masterGainRef.current);
-      buildSends(ctx,t,p,masterGainRef.current);
-      s.start(0,playOffsetRef.current);trackSourcesRef.current[i]=s;trackGainsRef.current[i]=g;trackPansRef.current[i]=p;
-      trackAnalysersRef.current[i]={ left: analyserL, right: analyserR };
-      if(t.audioBuffer.duration>maxDur)maxDur=t.audioBuffer.duration;
+  // ── Playback ──
+  const startPlayback = (overdub = false) => {
+    const ctx = getCtx();
+    trackSourcesRef.current.forEach(s => { try { s.stop(); } catch (e) { } });
+    trackSourcesRef.current = []; trackGainsRef.current = []; trackPansRef.current = []; trackAnalysersRef.current = [];
+    let maxDur = 0;
+    tracks.forEach((t, i) => {
+      if (!t.audioBuffer) { trackAnalysersRef.current[i] = null; return; }
+      const s = ctx.createBufferSource(); s.buffer = t.audioBuffer;
+      const g = ctx.createGain(); g.gain.value = isAudible(t) ? t.volume : 0;
+      const p = ctx.createStereoPanner(); p.pan.value = t.pan;
+      const splitter = ctx.createChannelSplitter(2);
+      const analyserL = ctx.createAnalyser(); analyserL.fftSize = 256; analyserL.smoothingTimeConstant = 0.7;
+      const analyserR = ctx.createAnalyser(); analyserR.fftSize = 256; analyserR.smoothingTimeConstant = 0.7;
+      const fxNodes = buildFxChain(ctx, t); let last = s; fxNodes.forEach(n => { last.connect(n); last = n; });
+      last.connect(g); g.connect(p);
+      p.connect(splitter); splitter.connect(analyserL, 0); splitter.connect(analyserR, 1);
+      p.connect(masterGainRef.current); buildSends(ctx, t, p, masterGainRef.current);
+      s.start(0, playOffsetRef.current); trackSourcesRef.current[i] = s; trackGainsRef.current[i] = g; trackPansRef.current[i] = p;
+      trackAnalysersRef.current[i] = { left: analyserL, right: analyserR };
+      if (t.audioBuffer.duration > maxDur) maxDur = t.audioBuffer.duration;
     });
-    setDuration(maxDur);playStartRef.current=ctx.currentTime;setIsPlaying(true);
-    if(metronomeOn)startMetronome(ctx);
+    setDuration(maxDur); playStartRef.current = ctx.currentTime; setIsPlaying(true);
+    if (metronomeOn) startMetronome(ctx);
     startMeterAnimation();
-    timeRef.current=setInterval(()=>{if(audioCtxRef.current){const el=audioCtxRef.current.currentTime-playStartRef.current+playOffsetRef.current;setCurrentTime(el);if(el>=maxDur&&maxDur>0&&!overdub)stopPlayback();}},50);
-    if(!overdub)setStatus('▶ Playing');
+    timeRef.current = setInterval(() => { if (audioCtxRef.current) { const el = audioCtxRef.current.currentTime - playStartRef.current + playOffsetRef.current; setCurrentTime(el); if (el >= maxDur && maxDur > 0 && !overdub) stopPlayback(); } }, 50);
+    if (!overdub) setStatus('▶ Playing');
   };
 
   const stopPlayback = () => {
-    trackSourcesRef.current.forEach(s=>{try{s.stop();}catch(e){}});trackSourcesRef.current=[];
-    if(metroRef.current)clearInterval(metroRef.current);if(timeRef.current)clearInterval(timeRef.current);
-    stopMeterAnimation();
-    trackAnalysersRef.current=[];
-    setIsPlaying(false);if(!isRecording){playOffsetRef.current=currentTime;setStatus('■ Stopped');}
+    trackSourcesRef.current.forEach(s => { try { s.stop(); } catch (e) { } }); trackSourcesRef.current = [];
+    if (metroRef.current) clearInterval(metroRef.current); if (timeRef.current) clearInterval(timeRef.current);
+    stopMeterAnimation(); trackAnalysersRef.current = [];
+    setIsPlaying(false); if (!isRecording) { playOffsetRef.current = currentTime; setStatus('■ Stopped'); }
   };
 
-  const stopEverything = () => { stopRecording(); stopPlayback(); playOffsetRef.current=0; setCurrentTime(0); };
-  const rewind = () => { if(isPlaying)stopPlayback(); playOffsetRef.current=0; setCurrentTime(0); };
+  const stopEverything = () => { stopRecording(); stopPlayback(); playOffsetRef.current = 0; setCurrentTime(0); };
+  const rewind = () => { if (isPlaying) stopPlayback(); playOffsetRef.current = 0; setCurrentTime(0); };
 
-  // ── Metronome ──
   const startMetronome = (ctx) => {
-    const iv=(60/bpm)*1000;let beat=0;
-    const click=(down)=>{const o=ctx.createOscillator();const g=ctx.createGain();o.frequency.value=down?1000:800;g.gain.value=0.3;g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.05);o.connect(g);g.connect(ctx.destination);o.start(ctx.currentTime);o.stop(ctx.currentTime+0.05);};
-    click(true);metroRef.current=setInterval(()=>{beat=(beat+1)%4;click(beat===0);},iv);
+    const iv = (60 / bpm) * 1000; let beat = 0;
+    const click = (down) => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.frequency.value = down ? 1000 : 800; g.gain.value = 0.3; g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05); o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.05); };
+    click(true); metroRef.current = setInterval(() => { beat = (beat + 1) % 4; click(beat === 0); }, iv);
   };
 
-  const playCountIn = (ctx) => new Promise(res=>{
-    const iv=(60/bpm)*1000;let c=0;
-    const click=()=>{const o=ctx.createOscillator();const g=ctx.createGain();o.frequency.value=c===0?1200:1000;g.gain.value=0.5;g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.06);o.connect(g);g.connect(ctx.destination);o.start(ctx.currentTime);o.stop(ctx.currentTime+0.06);};
-    click();const id=setInterval(()=>{c++;if(c>=4){clearInterval(id);res();}else click();},iv);
+  const playCountIn = (ctx) => new Promise(res => {
+    const iv = (60 / bpm) * 1000; let c = 0;
+    const click = () => { const o = ctx.createOscillator(); const g = ctx.createGain(); o.frequency.value = c === 0 ? 1200 : 1000; g.gain.value = 0.5; g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06); o.connect(g); g.connect(ctx.destination); o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.06); };
+    click(); const id = setInterval(() => { c++; if (c >= 4) { clearInterval(id); res(); } else click(); }, iv);
   });
 
-  // ── File import ──
   const handleImport = async (ti) => {
-    const inp=document.createElement('input');inp.type='file';inp.accept='audio/*';
-    inp.onchange=async(e)=>{const f=e.target.files[0];if(!f)return;setStatus(`Importing...`);
-      try{const ctx=getCtx();const ab=await f.arrayBuffer();const buf=await ctx.decodeAudioData(ab);
-        const name = f.name.replace(/\.[^/.]+$/,'').substring(0,20);
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'audio/*';
+    inp.onchange = async (e) => {
+      const f = e.target.files[0]; if (!f) return; setStatus(`Importing...`);
+      try {
+        const ctx = getCtx(); const ab = await f.arrayBuffer(); const buf = await ctx.decodeAudioData(ab);
+        const name = f.name.replace(/\.[^/.]+$/, '').substring(0, 20);
         const audioUrl = URL.createObjectURL(f);
-        updateTrack(ti,{audioBuffer:buf,audio_url:audioUrl,name});
+        updateTrack(ti, { audioBuffer: buf, audio_url: audioUrl, name });
         createRegionFromImport(ti, buf, name, audioUrl);
-        if(projectId){const fd=new FormData();fd.append('file',f);fd.append('project_id',projectId);fd.append('track_index',ti);
-          const tok=localStorage.getItem('token')||sessionStorage.getItem('token');const bu=process.env.REACT_APP_BACKEND_URL||'';
-          await fetch(`${bu}/api/studio/tracks/import`,{method:'POST',headers:{'Authorization':`Bearer ${tok}`},body:fd});}
-        setStatus(`✓ Track ${ti+1}`);
-      }catch(err){setStatus(`✗ ${err.message}`);}
-    };inp.click();
+        if (projectId) { const fd = new FormData(); fd.append('file', f); fd.append('project_id', projectId); fd.append('track_index', ti); const tok = localStorage.getItem('token') || sessionStorage.getItem('token'); const bu = process.env.REACT_APP_BACKEND_URL || ''; await fetch(`${bu}/api/studio/tracks/import`, { method: 'POST', headers: { 'Authorization': `Bearer ${tok}` }, body: fd }); }
+        setStatus(`✓ Track ${ti + 1}`);
+      } catch (err) { setStatus(`✗ ${err.message}`); }
+    }; inp.click();
   };
 
   const uploadTrack = async (blob, ti) => {
-    if(!projectId)return;try{const tok=localStorage.getItem('token')||sessionStorage.getItem('token');const bu=process.env.REACT_APP_BACKEND_URL||'';
-      const fd=new FormData();fd.append('file',blob,`track_${ti}.webm`);fd.append('project_id',projectId);fd.append('track_index',ti);
-      await fetch(`${bu}/api/studio/tracks/upload`,{method:'POST',headers:{'Authorization':`Bearer ${tok}`},body:fd});
-    }catch(e){console.error(e);}
+    if (!projectId) return;
+    try { const tok = localStorage.getItem('token') || sessionStorage.getItem('token'); const bu = process.env.REACT_APP_BACKEND_URL || ''; const fd = new FormData(); fd.append('file', blob, `track_${ti}.webm`); fd.append('project_id', projectId); fd.append('track_index', ti); await fetch(`${bu}/api/studio/tracks/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${tok}` }, body: fd }); }
+    catch (e) { console.error(e); }
   };
 
-  const clearTrack = (ti) => {
-    updateTrack(ti,{audioBuffer:null,audio_url:null,armed:false,regions:[]});
-    setStatus(`Track ${ti+1} cleared`);
-  };
+  const clearTrack = (ti) => { updateTrack(ti, { audioBuffer: null, audio_url: null, armed: false, regions: [] }); setStatus(`Track ${ti + 1} cleared`); };
 
-  // ── Beat Maker export → DAW track import ──
   const handleBeatExport = useCallback((renderedBuffer, blob) => {
     let targetTrack = tracks.findIndex(t => !t.audioBuffer);
-    if (targetTrack === -1 && tracks.length < maxTracks) {
-      targetTrack = tracks.length;
-      setTracks(prev => [...prev, DEFAULT_TRACK(targetTrack)]);
-    }
-    if (targetTrack === -1) {
-      setStatus('⚠ No empty tracks. Clear a track first.');
-      return;
-    }
-    const ctx = getCtx();
+    if (targetTrack === -1 && tracks.length < maxTracks) { targetTrack = tracks.length; setTracks(prev => [...prev, DEFAULT_TRACK(targetTrack)]); }
+    if (targetTrack === -1) { setStatus('⚠ No empty tracks. Clear a track first.'); return; }
     if (renderedBuffer) {
       const audioUrl = URL.createObjectURL(blob);
-      updateTrack(targetTrack, {
-        audioBuffer: renderedBuffer,
-        audio_url: audioUrl,
-        name: 'Beat Export',
-      });
+      updateTrack(targetTrack, { audioBuffer: renderedBuffer, audio_url: audioUrl, name: 'Beat Export' });
       createRegionFromImport(targetTrack, renderedBuffer, 'Beat Export', audioUrl);
-      setStatus(`✓ Beat → Track ${targetTrack + 1}`);
-      setViewMode('record');
+      setStatus(`✓ Beat → Track ${targetTrack + 1}`); setViewMode('record');
     }
-  }, [tracks, maxTracks]);
+  }, [tracks, maxTracks, updateTrack]);
 
-  // ── Mixdown / Bounce ──
   const handleMixdown = async () => {
-    if(!tracks.some(t=>t.audioBuffer)){setStatus('No tracks');return;}
-    setMixingDown(true);setStatus('Bouncing...');
-    try{
-      const maxLen=Math.max(...tracks.map(t=>t.audioBuffer?t.audioBuffer.length:0));
-      const sr=tracks.find(t=>t.audioBuffer).audioBuffer.sampleRate;
-      const off=new OfflineAudioContext(2,maxLen,sr);
-      tracks.forEach(t=>{if(!t.audioBuffer||!isAudible(t))return;const s=off.createBufferSource();s.buffer=t.audioBuffer;
-        const fxN=buildFxChain(off,t);const g=off.createGain();g.gain.value=t.volume;const p=off.createStereoPanner();p.pan.value=t.pan;
-        let last=s;fxN.forEach(n=>{last.connect(n);last=n;});last.connect(g);g.connect(p);p.connect(off.destination);
-        const fx=t.effects;
-        if(fx.reverb.enabled&&fx.reverb.mix>0){const cv=off.createConvolver();cv.buffer=getReverbBuf(off,fx.reverb.decay);const rg=off.createGain();rg.gain.value=fx.reverb.mix;p.connect(cv);cv.connect(rg);rg.connect(off.destination);}
-        if(fx.delay.enabled&&fx.delay.mix>0){const dl=off.createDelay(5);dl.delayTime.value=fx.delay.time;const fb=off.createGain();fb.gain.value=fx.delay.feedback;const dm=off.createGain();dm.gain.value=fx.delay.mix;p.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(dm);dm.connect(off.destination);}
-        s.start(0);});
-      const rendered=await off.startRendering();const wav=bufToWav(rendered);
-      const url=URL.createObjectURL(wav);const a=document.createElement('a');a.href=url;a.download=`${projectName.replace(/\s+/g,'_')}_mixdown.wav`;a.click();URL.revokeObjectURL(url);
-      if(projectId){const tok=localStorage.getItem('token')||sessionStorage.getItem('token');const bu=process.env.REACT_APP_BACKEND_URL||'';const fd=new FormData();fd.append('file',wav,'mixdown.wav');await fetch(`${bu}/api/studio/projects/${projectId}/mixdown`,{method:'POST',headers:{'Authorization':`Bearer ${tok}`},body:fd});}
+    if (!tracks.some(t => t.audioBuffer)) { setStatus('No tracks'); return; }
+    setMixingDown(true); setStatus('Bouncing...');
+    try {
+      const maxLen = Math.max(...tracks.map(t => t.audioBuffer ? t.audioBuffer.length : 0));
+      const sr = tracks.find(t => t.audioBuffer).audioBuffer.sampleRate;
+      const off = new OfflineAudioContext(2, maxLen, sr);
+      tracks.forEach(t => {
+        if (!t.audioBuffer || !isAudible(t)) return;
+        const s = off.createBufferSource(); s.buffer = t.audioBuffer;
+        const fxN = buildFxChain(off, t); const g = off.createGain(); g.gain.value = t.volume; const p = off.createStereoPanner(); p.pan.value = t.pan;
+        let last = s; fxN.forEach(n => { last.connect(n); last = n; }); last.connect(g); g.connect(p); p.connect(off.destination);
+        const fx = t.effects;
+        if (fx.reverb.enabled && fx.reverb.mix > 0) { const cv = off.createConvolver(); cv.buffer = getReverbBuf(off, fx.reverb.decay); const rg = off.createGain(); rg.gain.value = fx.reverb.mix; p.connect(cv); cv.connect(rg); rg.connect(off.destination); }
+        if (fx.delay.enabled && fx.delay.mix > 0) { const dl = off.createDelay(5); dl.delayTime.value = fx.delay.time; const fb = off.createGain(); fb.gain.value = fx.delay.feedback; const dm = off.createGain(); dm.gain.value = fx.delay.mix; p.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(dm); dm.connect(off.destination); }
+        s.start(0);
+      });
+      const rendered = await off.startRendering(); const wav = bufToWav(rendered);
+      const url = URL.createObjectURL(wav); const a = document.createElement('a'); a.href = url; a.download = `${projectName.replace(/\s+/g, '_')}_mixdown.wav`; a.click(); URL.revokeObjectURL(url);
+      if (projectId) { const tok = localStorage.getItem('token') || sessionStorage.getItem('token'); const bu = process.env.REACT_APP_BACKEND_URL || ''; const fd = new FormData(); fd.append('file', wav, 'mixdown.wav'); await fetch(`${bu}/api/studio/projects/${projectId}/mixdown`, { method: 'POST', headers: { 'Authorization': `Bearer ${tok}` }, body: fd }); }
       setStatus('✓ Bounced');
-    }catch(e){setStatus(`✗ ${e.message}`);}finally{setMixingDown(false);}
+    } catch (e) { setStatus(`✗ ${e.message}`); } finally { setMixingDown(false); }
   };
 
-  // ── WAV encoder ──
   const bufToWav = (buf) => {
-    const nc=buf.numberOfChannels,sr=buf.sampleRate,bps=16,chs=[];for(let i=0;i<nc;i++)chs.push(buf.getChannelData(i));
-    const il=nc===2?interleave(chs[0],chs[1]):chs[0],dl=il.length*(bps/8),ab=new ArrayBuffer(44+dl),v=new DataView(ab);
-    const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
-    ws(0,'RIFF');v.setUint32(4,36+dl,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);
-    v.setUint16(22,nc,true);v.setUint32(24,sr,true);v.setUint32(28,sr*nc*(bps/8),true);v.setUint16(32,nc*(bps/8),true);
-    v.setUint16(34,bps,true);ws(36,'data');v.setUint32(40,dl,true);
-    let off=44;for(let i=0;i<il.length;i++){const s=Math.max(-1,Math.min(1,il[i]));v.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);off+=2;}
-    return new Blob([ab],{type:'audio/wav'});
+    const nc = buf.numberOfChannels, sr = buf.sampleRate, bps = 16, chs = []; for (let i = 0; i < nc; i++) chs.push(buf.getChannelData(i));
+    const il = nc === 2 ? interleave(chs[0], chs[1]) : chs[0], dl = il.length * (bps / 8), ab = new ArrayBuffer(44 + dl), v = new DataView(ab);
+    const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+    ws(0, 'RIFF'); v.setUint32(4, 36 + dl, true); ws(8, 'WAVE'); ws(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true);
+    v.setUint16(22, nc, true); v.setUint32(24, sr, true); v.setUint32(28, sr * nc * (bps / 8), true); v.setUint16(32, nc * (bps / 8), true);
+    v.setUint16(34, bps, true); ws(36, 'data'); v.setUint32(40, dl, true);
+    let off = 44; for (let i = 0; i < il.length; i++) { const s = Math.max(-1, Math.min(1, il[i])); v.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true); off += 2; }
+    return new Blob([ab], { type: 'audio/wav' });
   };
-  const interleave=(l,r)=>{const res=new Float32Array(l.length+r.length);for(let i=0,idx=0;i<l.length;i++){res[idx++]=l[i];res[idx++]=r[i];}return res;};
+  const interleave = (l, r) => { const res = new Float32Array(l.length + r.length); for (let i = 0, idx = 0; i < l.length; i++) { res[idx++] = l[i]; res[idx++] = r[i]; } return res; };
 
-  // ── Project save / load ──
   const saveProject = async () => {
-    setSaving(true);setStatus('Saving...');
-    try{const tok=localStorage.getItem('token')||sessionStorage.getItem('token');const bu=process.env.REACT_APP_BACKEND_URL||'';
-      const td=tracks.map(t=>({name:t.name,volume:t.volume,pan:t.pan,muted:t.muted,solo:t.solo,effects:t.effects,color:t.color,regions:(t.regions||[]).map(r=>({...r, audioUrl: null})),audio_url:typeof t.audio_url==='string'&&!t.audio_url.startsWith('blob:')?t.audio_url:null}));
-      const method=projectId?'PUT':'POST';const url=projectId?`${bu}/api/studio/projects/${projectId}`:`${bu}/api/studio/projects`;
-      const res=await fetch(url,{method,headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},body:JSON.stringify({name:projectName,bpm,time_signature:`${timeSignature[0]}/${timeSignature[1]}`,tracks:td,master_volume:masterVolume,piano_roll_notes:pianoRollNotes,piano_roll_key:pianoRollKey,piano_roll_scale:pianoRollScale})});
-      const data=await res.json();if(data.success){setProjectId(data.project.id);setStatus('✓ Saved');}
-    }catch(e){setStatus('✗ Save failed');}finally{setSaving(false);}
+    setSaving(true); setStatus('Saving...');
+    try {
+      const tok = localStorage.getItem('token') || sessionStorage.getItem('token'); const bu = process.env.REACT_APP_BACKEND_URL || '';
+      const td = tracks.map(t => ({ name: t.name, volume: t.volume, pan: t.pan, muted: t.muted, solo: t.solo, effects: t.effects, color: t.color, regions: (t.regions || []).map(r => ({ ...r, audioUrl: null })), audio_url: typeof t.audio_url === 'string' && !t.audio_url.startsWith('blob:') ? t.audio_url : null }));
+      const method = projectId ? 'PUT' : 'POST'; const url = projectId ? `${bu}/api/studio/projects/${projectId}` : `${bu}/api/studio/projects`;
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tok}` }, body: JSON.stringify({ name: projectName, bpm, time_signature: `${timeSignature[0]}/${timeSignature[1]}`, tracks: td, master_volume: masterVolume, piano_roll_notes: pianoRollNotes, piano_roll_key: pianoRollKey, piano_roll_scale: pianoRollScale }) });
+      const data = await res.json(); if (data.success) { setProjectId(data.project.id); setStatus('✓ Saved'); } else { setStatus('✗ Save failed'); }
+    } catch (e) { setStatus('✗ Save failed'); } finally { setSaving(false); }
   };
 
   const loadProject = async (pid) => {
-    try{const tok=localStorage.getItem('token')||sessionStorage.getItem('token');const bu=process.env.REACT_APP_BACKEND_URL||'';
-      const res=await fetch(`${bu}/api/studio/projects/${pid}`,{headers:{'Authorization':`Bearer ${tok}`}});const data=await res.json();
-      if(data.success){const p=data.project;setProjectId(p.id);setProjectName(p.name);setBpm(p.bpm);setMasterVolume(p.master_volume||0.8);
-        if(p.time_signature){const ts=p.time_signature.split('/').map(Number);if(ts.length===2)setTimeSignature(ts);}
-        // Load piano roll data if saved
-        if(p.piano_roll_notes) setPianoRollNotes(p.piano_roll_notes);
-        if(p.piano_roll_key) setPianoRollKey(p.piano_roll_key);
-        if(p.piano_roll_scale) setPianoRollScale(p.piano_roll_scale);
-        const trackCount=Math.min(Math.max(p.tracks?.length||8, 1), maxTracks);
-        const loaded=Array.from({length:trackCount},(_,i)=>({...DEFAULT_TRACK(i),...(p.tracks[i]||{}),audioBuffer:null,effects:p.tracks[i]?.effects||DEFAULT_EFFECTS(),regions:p.tracks[i]?.regions||[]}));
-        setTracks(loaded);for(let i=0;i<loaded.length;i++){if(loaded[i].audio_url)await loadAudioBuffer(loaded[i].audio_url,i);}
-        setShowProjectList(false);setStatus(`Loaded: ${p.name}`);}
-    }catch(e){setStatus('✗ Load failed');}
+    try {
+      const tok = localStorage.getItem('token') || sessionStorage.getItem('token'); const bu = process.env.REACT_APP_BACKEND_URL || '';
+      const res = await fetch(`${bu}/api/studio/projects/${pid}`, { headers: { 'Authorization': `Bearer ${tok}` } }); const data = await res.json();
+      if (data.success) {
+        const p = data.project; setProjectId(p.id); setProjectName(p.name); setBpm(p.bpm); setMasterVolume(p.master_volume || 0.8);
+        if (p.time_signature) { const ts = p.time_signature.split('/').map(Number); if (ts.length === 2) setTimeSignature(ts); }
+        if (p.piano_roll_notes) setPianoRollNotes(p.piano_roll_notes);
+        if (p.piano_roll_key) setPianoRollKey(p.piano_roll_key);
+        if (p.piano_roll_scale) setPianoRollScale(p.piano_roll_scale);
+        const trackCount = Math.min(Math.max(p.tracks?.length || 8, 1), maxTracks);
+        const loaded = Array.from({ length: trackCount }, (_, i) => ({ ...DEFAULT_TRACK(i), ...(p.tracks[i] || {}), audioBuffer: null, effects: p.tracks[i]?.effects || DEFAULT_EFFECTS(), regions: p.tracks[i]?.regions || [] }));
+        setTracks(loaded); setSelectedTrackIndex(0);
+        for (let i = 0; i < loaded.length; i++) { if (loaded[i].audio_url) await loadAudioBuffer(loaded[i].audio_url, i); }
+        setShowProjectList(false); setStatus(`Loaded: ${p.name}`);
+      }
+    } catch (e) { setStatus('✗ Load failed'); }
   };
 
   const loadProjectList = async () => {
-    try{const tok=localStorage.getItem('token')||sessionStorage.getItem('token');const bu=process.env.REACT_APP_BACKEND_URL||'';
-      const res=await fetch(`${bu}/api/studio/projects`,{headers:{'Authorization':`Bearer ${tok}`}});const data=await res.json();
-      if(data.success){setProjects(data.projects);setShowProjectList(true);}
-    }catch(e){console.error(e);}
+    try { const tok = localStorage.getItem('token') || sessionStorage.getItem('token'); const bu = process.env.REACT_APP_BACKEND_URL || ''; const res = await fetch(`${bu}/api/studio/projects`, { headers: { 'Authorization': `Bearer ${tok}` } }); const data = await res.json(); if (data.success) { setProjects(data.projects); setShowProjectList(true); } }
+    catch (e) { console.error(e); }
   };
 
   const newProject = () => {
-    stopEverything();setProjectId(null);setProjectName('Untitled Project');setBpm(120);
-    setMasterVolume(0.8);setActiveEffectsTrack(null);setTimeSignature([4,4]);
-    setTracks(Array.from({length:Math.min(maxTracks,8)},(_,i)=>DEFAULT_TRACK(i)));
-    setPianoRollNotes([]);setPianoRollKey('C');setPianoRollScale('major');
-    setStatus('New project');
+    stopEverything(); setProjectId(null); setProjectName('Untitled Project'); setBpm(120);
+    setMasterVolume(0.8); setActiveEffectsTrack(null); setTimeSignature([4, 4]);
+    setTracks(Array.from({ length: Math.min(maxTracks, 8) }, (_, i) => DEFAULT_TRACK(i)));
+    setSelectedTrackIndex(0); setPianoRollNotes([]); setPianoRollKey('C'); setPianoRollScale('major'); setStatus('New project');
   };
 
-  // ── Add / Remove tracks (tier-gated) ──
   const addTrack = () => {
-    if (tracks.length >= maxTracks) {
-      setStatus(`⚠ ${userTier} tier limit: ${maxTracks} tracks. Upgrade for more.`);
-      return;
-    }
-    const i = tracks.length;
-    setTracks(prev => [...prev, DEFAULT_TRACK(i)]);
-    setStatus(`Track ${i + 1} added (${tracks.length + 1}/${maxTracks})`);
+    if (tracks.length >= maxTracks) { setStatus(`⚠ ${userTier} tier limit: ${maxTracks} tracks. Upgrade for more.`); return; }
+    const i = tracks.length; setTracks(prev => [...prev, DEFAULT_TRACK(i)]); setStatus(`Track ${i + 1} added (${tracks.length + 1}/${maxTracks})`);
   };
 
   const removeTrack = (idx) => {
@@ -661,111 +647,200 @@ const RecordingStudio = ({ user }) => {
     setTracks(prev => prev.filter((_, i) => i !== idx));
     if (activeEffectsTrack === idx) setActiveEffectsTrack(null);
     else if (activeEffectsTrack > idx) setActiveEffectsTrack(activeEffectsTrack - 1);
+    setSelectedTrackIndex(prev => { if (prev === idx) return Math.max(0, idx - 1); if (prev > idx) return prev - 1; return prev; });
     setStatus(`Track ${idx + 1} removed`);
   };
 
-  // ── Seek ──
-  const seekTo = (t) => {
-    if (isPlaying) stopPlayback();
-    playOffsetRef.current = t;
-    setCurrentTime(t);
-  };
+  const seekToBeat = useCallback((beat) => { const secs = beatToSeconds(beat, bpm); if (isPlaying) stopPlayback(); playOffsetRef.current = secs; setCurrentTime(secs); }, [bpm, isPlaying]);
 
-  const seekToBeat = useCallback((beat) => {
-    const secs = beatToSeconds(beat, bpm);
-    if (isPlaying) stopPlayback();
-    playOffsetRef.current = secs;
-    setCurrentTime(secs);
-  }, [bpm, isPlaying]);
-
-  // ── Region creation ──
   const createRegionFromRecording = (trackIndex, audioBuffer, audioUrl) => {
     const regionId = `rgn_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const startBeat = secondsToBeat(playOffsetRef.current, bpm);
     const duration = secondsToBeat(audioBuffer.duration, bpm);
-    const newRegion = {
-      id: regionId,
-      name: tracks[trackIndex]?.name || `Track ${trackIndex + 1}`,
-      startBeat,
-      duration,
-      audioUrl,
-      color: tracks[trackIndex]?.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length],
-      loopEnabled: false,
-      loopCount: 1,
-    };
-    setTracks(prev => prev.map((t, i) =>
-      i === trackIndex ? { ...t, regions: [...(t.regions || []), newRegion] } : t
-    ));
+    const newRegion = { id: regionId, name: tracks[trackIndex]?.name || `Track ${trackIndex + 1}`, startBeat, duration, audioUrl, color: tracks[trackIndex]?.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 };
+    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), newRegion] } : t));
   };
 
   const createRegionFromImport = (trackIndex, audioBuffer, name, audioUrl) => {
     const regionId = `rgn_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const duration = secondsToBeat(audioBuffer.duration, bpm);
-    setTracks(prev => prev.map((t, i) =>
-      i === trackIndex ? { ...t, regions: [...(t.regions || []), {
-        id: regionId,
-        name: name || `Import ${trackIndex + 1}`,
-        startBeat: 0,
-        duration,
-        audioUrl,
-        color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length],
-        loopEnabled: false,
-        loopCount: 1,
-      }] } : t
-    ));
+    setTracks(prev => prev.map((t, i) => i === trackIndex ? { ...t, regions: [...(t.regions || []), { id: regionId, name: name || `Import ${trackIndex + 1}`, startBeat: 0, duration, audioUrl, color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length], loopEnabled: false, loopCount: 1 }] } : t));
   };
 
-  const fmt = (s) => { const m=Math.floor(s/60),sec=Math.floor(s%60),ms=Math.floor((s%1)*100); return `${m}:${String(sec).padStart(2,'0')}.${String(ms).padStart(2,'0')}`; };
+  const fmt = (s) => { const m = Math.floor(s / 60), sec = Math.floor(s % 60), ms = Math.floor((s % 1) * 100); return `${m}:${String(sec).padStart(2, '0')}.${String(ms).padStart(2, '0')}`; };
 
-  // ── AI Mix Assistant apply callbacks ──
-  const handleAIApplyVolume = useCallback((trackIndex, value) => {
-    updateTrack(trackIndex, { volume: value });
-    if (trackGainsRef.current[trackIndex]) trackGainsRef.current[trackIndex].gain.value = value;
-    setStatus(`AI: Track ${trackIndex + 1} vol → ${Math.round(value * 100)}%`);
-  }, [updateTrack]);
+  const handleAIApplyVolume = useCallback((trackIndex, value) => { updateTrack(trackIndex, { volume: value }); if (trackGainsRef.current[trackIndex]) trackGainsRef.current[trackIndex].gain.value = value; setStatus(`AI: Track ${trackIndex + 1} vol → ${Math.round(value * 100)}%`); }, [updateTrack]);
+  const handleAIApplyPan = useCallback((trackIndex, value) => { updateTrack(trackIndex, { pan: value }); if (trackPansRef.current[trackIndex]) trackPansRef.current[trackIndex].pan.value = value; const label = value === 0 ? 'C' : value < 0 ? `L${Math.abs(Math.round(value * 50))}` : `R${Math.round(value * 50)}`; setStatus(`AI: Track ${trackIndex + 1} pan → ${label}`); }, [updateTrack]);
+  const handleAIApplyEQ = useCallback((trackIndex, eqSuggestion) => { const updates = {}; if (eqSuggestion.frequency < 400) updates.lowGain = eqSuggestion.gain_db; else if (eqSuggestion.frequency < 3000) { updates.midGain = eqSuggestion.gain_db; updates.midFreq = eqSuggestion.frequency; } else updates.highGain = eqSuggestion.gain_db; setTracks(prev => prev.map((t, i) => i !== trackIndex ? t : { ...t, effects: { ...t.effects, eq: { ...t.effects.eq, ...updates, enabled: true } } })); setStatus(`AI: Track ${trackIndex + 1} EQ adjusted`); }, []);
+  const handleAIApplyCompression = useCallback((trackIndex, comp) => { setTracks(prev => prev.map((t, i) => i !== trackIndex ? t : { ...t, effects: { ...t.effects, compressor: { threshold: comp.suggested_threshold || -20, ratio: comp.suggested_ratio || 4, attack: (comp.suggested_attack_ms || 10) / 1000, release: (comp.suggested_release_ms || 100) / 1000, enabled: true } } })); setStatus(`AI: Track ${trackIndex + 1} compressor applied`); }, []);
 
-  const handleAIApplyPan = useCallback((trackIndex, value) => {
-    updateTrack(trackIndex, { pan: value });
-    if (trackPansRef.current[trackIndex]) trackPansRef.current[trackIndex].pan.value = value;
-    const label = value === 0 ? 'C' : value < 0 ? `L${Math.abs(Math.round(value*50))}` : `R${Math.round(value*50)}`;
-    setStatus(`AI: Track ${trackIndex + 1} pan → ${label}`);
-  }, [updateTrack]);
-
-  const handleAIApplyEQ = useCallback((trackIndex, eqSuggestion) => {
-    const updates = {};
-    if (eqSuggestion.frequency < 400) updates.lowGain = eqSuggestion.gain_db;
-    else if (eqSuggestion.frequency < 3000) { updates.midGain = eqSuggestion.gain_db; updates.midFreq = eqSuggestion.frequency; }
-    else updates.highGain = eqSuggestion.gain_db;
-    setTracks(prev => prev.map((t, i) => i !== trackIndex ? t : { ...t, effects: { ...t.effects, eq: { ...t.effects.eq, ...updates, enabled: true } } }));
-    setStatus(`AI: Track ${trackIndex + 1} EQ adjusted`);
-  }, []);
-
-  const handleAIApplyCompression = useCallback((trackIndex, comp) => {
-    setTracks(prev => prev.map((t, i) => i !== trackIndex ? t : { ...t, effects: { ...t.effects, compressor: { threshold: comp.suggested_threshold || -20, ratio: comp.suggested_ratio || 4, attack: (comp.suggested_attack_ms || 10) / 1000, release: (comp.suggested_release_ms || 100) / 1000, enabled: true } } }));
-    setStatus(`AI: Track ${trackIndex + 1} compressor applied`);
-  }, []);
-
-  // ── ArrangerView callbacks ──
   const handleArrangerPlay = useCallback(() => { if (!isPlaying) startPlayback(); }, [isPlaying]);
   const handleArrangerStop = useCallback(() => { if (isPlaying) stopPlayback(); }, [isPlaying]);
   const handleArrangerRecord = useCallback(() => { isRecording ? stopRecording() : startRecording(); }, [isRecording]);
   const handleBpmChange = useCallback((newBpm) => setBpm(newBpm), []);
   const handleTimeSignatureChange = useCallback((top, bottom) => setTimeSignature([top, bottom]), []);
   const handleToggleFx = useCallback((trackIndex) => setActiveEffectsTrack(prev => prev === trackIndex ? null : trackIndex), []);
+  const handleEQGraphChange = useCallback((updatedEQ) => { if (activeEffectsTrack === null) return; setTracks(p => p.map((t, i) => i !== activeEffectsTrack ? t : { ...t, effects: { ...t.effects, eq: { ...t.effects.eq, ...updatedEQ } } })); }, [activeEffectsTrack]);
 
-  // ── EQ Graph onChange handler ──
-  const handleEQGraphChange = useCallback((updatedEQ) => {
-    if (activeEffectsTrack === null) return;
-    setTracks(p => p.map((t, i) => i !== activeEffectsTrack ? t : {
-      ...t, effects: { ...t.effects, eq: { ...t.effects.eq, ...updatedEQ } }
-    }));
-  }, [activeEffectsTrack]);
+  // ── MIDI Export ──
+  const exportMidiFile = useCallback(() => {
+    if (!pianoRollNotes || pianoRollNotes.length === 0) { setStatus('⚠ No piano roll notes to export'); return; }
+    try {
+      const bytes = midiFromNotes({ notes: pianoRollNotes, bpm, ppq: 480 });
+      const blob = new Blob([bytes], { type: 'audio/midi' });
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
+      a.download = `${projectName.replace(/\s+/g, '_') || 'project'}_pianoroll.mid`; a.click(); URL.revokeObjectURL(url);
+      setStatus('✓ MIDI exported');
+    } catch (e) { console.error(e); setStatus('✗ MIDI export failed'); }
+  }, [pianoRollNotes, bpm, projectName]);
+
+  // ── Tap tempo ──
+  const tapTempo = useCallback(() => {
+    const now = performance.now();
+    tapTimesRef.current = [...tapTimesRef.current, now].slice(-6);
+    if (tapTimesRef.current.length < 2) { setStatus('Tap tempo…'); return; }
+    const diffs = [];
+    for (let i = 1; i < tapTimesRef.current.length; i++) diffs.push(tapTimesRef.current[i] - tapTimesRef.current[i - 1]);
+    const avgMs = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+    const newBpm = clamp(Math.round(60000 / avgMs), 40, 240);
+    setBpm(newBpm); setStatus(`✓ BPM set by tap: ${newBpm}`);
+  }, []);
+
+  // ── MenuBar action router ──
+  const handleMenuAction = useCallback((action) => {
+    const sel = clamp(selectedTrackIndex, 0, Math.max(0, tracks.length - 1));
+
+    const toggleArmSelected = () => {
+      setTracks(p => p.map((t, idx) => ({ ...t, armed: idx === sel ? !t.armed : false })));
+      setSelectedTrackIndex(sel);
+      setStatus(`Track ${sel + 1} ${tracks[sel]?.armed ? 'disarmed' : 'armed'}`);
+    };
+
+    const toggleMuteSelected = () => {
+      const wasMuted = !!tracks[sel]?.muted;
+      updateTrack(sel, { muted: !wasMuted });
+      if (trackGainsRef.current[sel]) trackGainsRef.current[sel].gain.value = !wasMuted ? 0 : tracks[sel].volume;
+      setStatus(`Track ${sel + 1} ${!wasMuted ? 'muted' : 'unmuted'}`);
+    };
+
+    const toggleSoloSelected = () => {
+      updateTrack(sel, { solo: !tracks[sel]?.solo });
+      setStatus(`Track ${sel + 1} solo ${tracks[sel]?.solo ? 'off' : 'on'}`);
+    };
+
+    const toggleFxPanel = () => {
+      setActiveEffectsTrack(prev => (prev === sel ? null : sel));
+      setStatus(`FX ${activeEffectsTrack === sel ? 'closed' : 'opened'} for Track ${sel + 1}`);
+    };
+
+    switch (action) {
+      // File
+      case 'file:new': newProject(); break;
+      case 'file:open': loadProjectList(); break;
+      case 'file:save': saveProject(); break;
+      case 'file:saveAs': setProjectId(null); saveProject(); break;
+      case 'file:importAudio': setViewMode('record'); handleImport(sel); break;
+      case 'file:importMidi': case 'midi:import': setViewMode('midi'); setStatus('MIDI: Use the MIDI Import panel to select a file'); break;
+      case 'file:exportMidi': case 'midi:export': exportMidiFile(); break;
+      case 'file:bounce': handleMixdown(); break;
+
+      // View
+      case 'view:record': setViewMode('record'); break;
+      case 'view:arrange': setViewMode('arrange'); break;
+      case 'view:console': setViewMode('console'); break;
+      case 'view:beatmaker': setViewMode('beatmaker'); break;
+      case 'view:pianoroll': setViewMode('pianoroll'); break;
+      case 'view:piano': setViewMode('piano'); break;
+      case 'view:sounds': setViewMode('sounds'); break;
+      case 'view:split': setViewMode('split'); break;
+      case 'view:keyfinder': setViewMode('keyfinder'); break;
+      case 'view:aibeat': setViewMode('aibeat'); break;
+      case 'view:kits': setViewMode('kits'); break;
+      case 'view:micsim': setViewMode('micsim'); break;
+      case 'view:aimix': setViewMode('aimix'); break;
+      case 'view:midi': setViewMode('midi'); break;
+      case 'view:chords': setViewMode('chords'); break;
+      case 'view:toggleFx': toggleFxPanel(); break;
+
+      // Transport
+      case 'transport:playPause': if (isPlaying) stopPlayback(); else startPlayback(); break;
+      case 'transport:stop': stopEverything(); break;
+      case 'transport:record': isRecording ? stopRecording() : startRecording(); break;
+      case 'transport:rewind': rewind(); break;
+      case 'transport:metronome': setMetronomeOn(v => !v); setStatus(`Metronome ${!metronomeOn ? 'ON' : 'OFF'}`); break;
+      case 'transport:countIn': setCountIn(v => !v); setStatus(`Count-In ${!countIn ? 'ON' : 'OFF'}`); break;
+      case 'transport:tapTempo': tapTempo(); break;
+      case 'transport:setBpm': {
+        const val = window.prompt('Set BPM:', String(bpm));
+        const n = Number(val);
+        if (Number.isFinite(n) && n >= 40 && n <= 300) { setBpm(Math.round(n)); setStatus(`✓ BPM → ${Math.round(n)}`); }
+        else setStatus('⚠ Invalid BPM');
+        break;
+      }
+      case 'transport:timeSignature': {
+        const val = window.prompt('Time Signature (e.g. 4/4):', `${timeSignature[0]}/${timeSignature[1]}`);
+        if (!val) break;
+        const parts = val.split('/').map(x => parseInt(x, 10));
+        if (parts.length === 2 && parts.every(Number.isFinite) && parts[0] > 0 && [1, 2, 4, 8, 16].includes(parts[1])) {
+          setTimeSignature([parts[0], parts[1]]); setStatus(`✓ Time Signature → ${parts[0]}/${parts[1]}`);
+        } else { setStatus('⚠ Invalid time signature'); }
+        break;
+      }
+
+      // Track
+      case 'track:add': addTrack(); break;
+      case 'track:duplicate': {
+        if (tracks.length >= maxTracks) { setStatus(`⚠ ${userTier} tier limit: ${maxTracks} tracks.`); break; }
+        const src = tracks[sel];
+        const copy = { ...DEFAULT_TRACK(tracks.length), ...src, name: `${src.name} Copy`, audioBuffer: src.audioBuffer, audio_url: src.audio_url, regions: [...(src.regions || [])].map(r => ({ ...r, id: `rgn_${Date.now()}_${Math.random().toString(36).slice(2, 6)}` })), armed: false, solo: false, muted: false, color: TRACK_COLORS[tracks.length % TRACK_COLORS.length] };
+        setTracks(prev => [...prev, copy]); setSelectedTrackIndex(tracks.length); setStatus(`✓ Duplicated Track ${sel + 1}`);
+        break;
+      }
+      case 'track:remove': removeTrack(sel); break;
+      case 'track:arm': toggleArmSelected(); break;
+      case 'track:mute': toggleMuteSelected(); break;
+      case 'track:solo': toggleSoloSelected(); break;
+      case 'track:clear': clearTrack(sel); break;
+      case 'track:muteAll': setTracks(p => p.map(t => ({ ...t, muted: true }))); setStatus('✓ All muted'); break;
+      case 'track:unmuteAll': setTracks(p => p.map(t => ({ ...t, muted: false }))); setStatus('✓ All unmuted'); break;
+      case 'track:unsoloAll': setTracks(p => p.map(t => ({ ...t, solo: false }))); setStatus('✓ All unsoloed'); break;
+      case 'track:rename': { const val = window.prompt(`Rename Track ${sel + 1}:`, tracks[sel]?.name || `Track ${sel + 1}`); if (val) updateTrack(sel, { name: val }); break; }
+
+      // Edit
+      case 'edit:undo': case 'edit:redo': case 'edit:cut': case 'edit:copy': case 'edit:paste': case 'edit:delete': case 'edit:selectAll': case 'edit:deselectAll':
+        setStatus(`ℹ ${action} not wired yet (add Undo/Clipboard selection state)`); break;
+      case 'edit:quantize': case 'midi:quantize': setViewMode('midi'); setStatus('Quantize: use the Quantize panel in MIDI view'); break;
+
+      // MIDI tools
+      case 'midi:chords': setViewMode('chords'); break;
+      case 'midi:clearAll': setPianoRollNotes([]); setStatus('✓ Piano roll cleared'); break;
+
+      default: setStatus(`ℹ Unhandled action: ${action}`); break;
+    }
+  }, [selectedTrackIndex, tracks, maxTracks, userTier, activeEffectsTrack, isPlaying, isRecording, metronomeOn, countIn, bpm, timeSignature, projectName, newProject, loadProjectList, saveProject, exportMidiFile, tapTempo]);
 
   // ===================== RENDER =====================
   const afx = activeEffectsTrack !== null ? tracks[activeEffectsTrack] : null;
 
   return (
     <div className="daw">
+      {/* ═══════════════════ DAW MENU BAR ═══════════════════ */}
+      <DAWMenuBar
+        viewMode={viewMode}
+        isPlaying={isPlaying}
+        isRecording={isRecording}
+        metronomeOn={metronomeOn}
+        countIn={countIn}
+        tracks={tracks}
+        maxTracks={maxTracks}
+        saving={saving}
+        mixingDown={mixingDown}
+        pianoRollNotes={pianoRollNotes}
+        bpm={bpm}
+        projectName={projectName}
+        onAction={handleMenuAction}
+      />
+
       {/* ═══════════════════ TOP BAR ═══════════════════ */}
       <div className="daw-topbar">
         <div className="daw-topbar-left">
@@ -827,7 +902,6 @@ const RecordingStudio = ({ user }) => {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/></svg>
             Beat Maker
           </button>
-          {/* ── NEW: Piano Roll tab ── */}
           <button className={`daw-view-tab ${viewMode==='pianoroll'?'active':''}`} onClick={()=>setViewMode('pianoroll')} title="Piano Roll / MIDI Editor">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="3" width="22" height="18" rx="2"/><line x1="1" y1="9" x2="23" y2="9"/><line x1="1" y1="15" x2="23" y2="15"/><line x1="8" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="16" y2="21"/></svg>
             Piano Roll
@@ -856,12 +930,10 @@ const RecordingStudio = ({ user }) => {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 9h20"/><path d="M9 21V9"/></svg>
             Kits
           </button>
-          {/* ── NEW: MIDI tab ── */}
           <button className={`daw-view-tab ${viewMode==='midi'?'active':''}`} onClick={()=>setViewMode('midi')} title="MIDI Import & Hardware">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="8" cy="10" r="1.5" fill="currentColor"/><circle cx="16" cy="10" r="1.5" fill="currentColor"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg>
             MIDI
           </button>
-          {/* ── NEW: Chords tab ── */}
           <button className={`daw-view-tab ai-tab ${viewMode==='chords'?'active':''}`} onClick={()=>setViewMode('chords')} title="AI Chord Progression Generator">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="M3 3l18 18" strokeWidth="1.5"/></svg>
             Chords
@@ -925,14 +997,15 @@ const RecordingStudio = ({ user }) => {
                 </div>
               </div>
               {tracks.map((track,i)=>(
-                <div key={i} className={`daw-track-row ${track.armed?'armed':''} ${track.muted?'muted':''} ${track.solo?'soloed':''} ${activeEffectsTrack===i?'fx-open':''}`}>
+                <div key={i} className={`daw-track-row ${track.armed?'armed':''} ${track.muted?'muted':''} ${track.solo?'soloed':''} ${activeEffectsTrack===i?'fx-open':''} ${selectedTrackIndex===i?'selected':''}`}
+                  onClick={() => setSelectedTrackIndex(i)}>
                   <div className="daw-track-strip">
                     <div className="daw-track-color-bar" style={{background:track.color}}></div>
-                    <input className="daw-track-name-input" value={track.name} onChange={e=>updateTrack(i,{name:e.target.value})} />
+                    <input className="daw-track-name-input" value={track.name} onChange={e=>updateTrack(i,{name:e.target.value})} onClick={e=>e.stopPropagation()} />
                     <div className="daw-track-btns">
-                      <button className={`daw-badge r ${track.armed?'on':''}`} onClick={()=>setTracks(p=>p.map((t,idx)=>({...t,armed:idx===i?!t.armed:false})))}>R</button>
-                      <button className={`daw-badge m ${track.muted?'on':''}`} onClick={()=>{updateTrack(i,{muted:!track.muted});if(trackGainsRef.current[i])trackGainsRef.current[i].gain.value=!track.muted?0:track.volume;}}>M</button>
-                      <button className={`daw-badge s ${track.solo?'on':''}`} onClick={()=>updateTrack(i,{solo:!track.solo})}>S</button>
+                      <button className={`daw-badge r ${track.armed?'on':''}`} onClick={(e)=>{e.stopPropagation();setTracks(p=>p.map((t,idx)=>({...t,armed:idx===i?!t.armed:false})))}}>R</button>
+                      <button className={`daw-badge m ${track.muted?'on':''}`} onClick={(e)=>{e.stopPropagation();updateTrack(i,{muted:!track.muted});if(trackGainsRef.current[i])trackGainsRef.current[i].gain.value=!track.muted?0:track.volume;}}>M</button>
+                      <button className={`daw-badge s ${track.solo?'on':''}`} onClick={(e)=>{e.stopPropagation();updateTrack(i,{solo:!track.solo})}}>S</button>
                     </div>
                     <div className="daw-track-vol">
                       <input type="range" min="0" max="1" step="0.01" value={track.volume} onChange={e=>{const v=parseFloat(e.target.value);updateTrack(i,{volume:v});if(trackGainsRef.current[i])trackGainsRef.current[i].gain.value=v;}} className="daw-knob-slider" />
@@ -1004,7 +1077,8 @@ const RecordingStudio = ({ user }) => {
                 const meterR = level.right * 100;
 
                 return (
-                  <div key={i} className={`daw-channel ${activeEffectsTrack === i ? 'selected' : ''}`}>
+                  <div key={i} className={`daw-channel ${activeEffectsTrack === i ? 'selected' : ''} ${selectedTrackIndex === i ? 'selected-track' : ''}`}
+                    onClick={() => setSelectedTrackIndex(i)}>
                     <div className="daw-ch-routing">
                       <span className="daw-ch-routing-label">Routing</span>
                       <span className="daw-ch-routing-value">Mono In 2 (Mic)</span>
@@ -1138,9 +1212,7 @@ const RecordingStudio = ({ user }) => {
           />
         )}
 
-        {/* ══════════════════════════════════════════════════════ */}
-        {/* ──────── NEW: PIANO ROLL VIEW ──────── */}
-        {/* ══════════════════════════════════════════════════════ */}
+        {/* ──────── PIANO ROLL VIEW ──────── */}
         {viewMode === 'pianoroll' && (
           <div className="daw-pianoroll-view">
             <PianoRoll
@@ -1160,9 +1232,7 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════ */}
-        {/* ──────── NEW: MIDI IMPORT & HARDWARE VIEW ──────── */}
-        {/* ══════════════════════════════════════════════════════ */}
+        {/* ──────── MIDI IMPORT & HARDWARE VIEW ──────── */}
         {viewMode === 'midi' && (
           <div className="daw-midi-view" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px', height: '100%', overflow: 'auto' }}>
             <MidiImporter
@@ -1186,9 +1256,7 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════ */}
-        {/* ──────── NEW: CHORD PROGRESSION GENERATOR VIEW ──── */}
-        {/* ══════════════════════════════════════════════════════ */}
+        {/* ──────── CHORD PROGRESSION GENERATOR VIEW ──────── */}
         {viewMode === 'chords' && (
           <div className="daw-chords-view">
             <ChordProgressionGenerator
@@ -1276,6 +1344,32 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
+        {/* ──────── MIC SIMULATOR VIEW ──────── */}
+        {viewMode === 'micsim' && (
+          <div className="daw-micsim-view">
+            <MicSimulator
+              audioContext={audioCtxRef.current}
+              inputStream={micSimStream}
+              onRecordingComplete={handleMicSimRecordingComplete}
+              embedded={true}
+              defaultMic="sm7b"
+              showRecordButton={true}
+            />
+          </div>
+        )}
+
+        {/* ──────── AI MIX ASSISTANT VIEW ──────── */}
+        {viewMode === 'aimix' && (
+          <div className="daw-aimix-view">
+            <AIMixAssistant
+              tracks={tracks} projectId={projectId}
+              onApplyVolume={handleAIApplyVolume} onApplyPan={handleAIApplyPan}
+              onApplyEQ={handleAIApplyEQ} onApplyCompression={handleAIApplyCompression}
+              onClose={() => setViewMode('record')}
+            />
+          </div>
+        )}
+
         {/* ──────── FX PANEL (with Parametric EQ Graph) ──────── */}
         {(viewMode === 'record' || viewMode === 'console') && afx && (
           <div className="daw-fx-panel">
@@ -1319,32 +1413,6 @@ const RecordingStudio = ({ user }) => {
                 </div>
               </div>
             ))}
-          </div>
-        )}
-
-        {/* ──────── MIC SIMULATOR VIEW ──────── */}
-        {viewMode === 'micsim' && (
-          <div className="daw-micsim-view">
-            <MicSimulator
-              audioContext={audioCtxRef.current}
-              inputStream={micSimStream}
-              onRecordingComplete={handleMicSimRecordingComplete}
-              embedded={true}
-              defaultMic="sm7b"
-              showRecordButton={true}
-            />
-          </div>
-        )}
-
-        {/* ──────── AI MIX ASSISTANT VIEW ──────── */}
-        {viewMode === 'aimix' && (
-          <div className="daw-aimix-view">
-            <AIMixAssistant
-              tracks={tracks} projectId={projectId}
-              onApplyVolume={handleAIApplyVolume} onApplyPan={handleAIApplyPan}
-              onApplyEQ={handleAIApplyEQ} onApplyCompression={handleAIApplyCompression}
-              onClose={() => setViewMode('record')}
-            />
           </div>
         )}
       </div>

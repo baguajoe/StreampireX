@@ -1,0 +1,215 @@
+/* =============================================================================
+   DAWMenuBar.css — Professional DAW Menu Bar Styles
+   =============================================================================
+   Location: src/front/styles/DAWMenuBar.css
+   Dark theme, compact 28px bar, Cubase/Logic-style dropdowns
+   Uses StreamPireX teal (#00ffc8) for active states
+   ============================================================================= */
+
+/* ── Bar container ── */
+.daw-menubar {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  background: linear-gradient(180deg, #2a2a2e 0%, #1e1e22 100%);
+  border-bottom: 1px solid #111;
+  border-top: 1px solid #3a3a3e;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 12px;
+  color: #ccc;
+  user-select: none;
+  z-index: 1000;
+  position: relative;
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+/* ── Top-level menu items ── */
+.daw-menubar-item {
+  position: relative;
+  padding: 0 10px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  border-radius: 3px;
+  margin: 0 1px;
+  transition: background 0.1s;
+}
+
+.daw-menubar-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.daw-menubar-item.open {
+  background: rgba(0, 255, 200, 0.12);
+  color: #00ffc8;
+}
+
+.daw-menubar-label {
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+/* ── Dropdown panel ── */
+.daw-menubar-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 240px;
+  background: #1e1e22;
+  border: 1px solid #3a3a3e;
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+  padding: 4px 0;
+  z-index: 2000;
+  animation: dawMenuFadeIn 0.1s ease-out;
+}
+
+@keyframes dawMenuFadeIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Dropdown items ── */
+.daw-menubar-dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 0.08s;
+  gap: 8px;
+}
+
+.daw-menubar-dropdown-item:hover {
+  background: rgba(0, 255, 200, 0.1);
+  color: #fff;
+}
+
+.daw-menubar-dropdown-item.active {
+  color: #00ffc8;
+}
+
+.daw-menubar-dropdown-item.active:hover {
+  background: rgba(0, 255, 200, 0.15);
+}
+
+.daw-menubar-dropdown-item.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.daw-menubar-dropdown-item.disabled:hover {
+  background: transparent;
+  color: #ccc;
+}
+
+/* ── Item parts ── */
+.daw-menubar-item-icon {
+  width: 18px;
+  text-align: center;
+  font-size: 11px;
+  flex-shrink: 0;
+  color: #00ffc8;
+}
+
+.daw-menubar-dropdown-item.disabled .daw-menubar-item-icon {
+  color: inherit;
+}
+
+.daw-menubar-item-label {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.daw-menubar-item-shortcut {
+  font-size: 10px;
+  color: #666;
+  margin-left: 16px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.daw-menubar-dropdown-item:hover .daw-menubar-item-shortcut {
+  color: #888;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Separator ── */
+.daw-menubar-separator {
+  height: 1px;
+  background: #333;
+  margin: 4px 12px;
+}
+
+/* ── Right side info ── */
+.daw-menubar-spacer {
+  flex: 1;
+}
+
+.daw-menubar-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 12px;
+  font-size: 11px;
+  color: #777;
+}
+
+.daw-menubar-project {
+  color: #00ffc8;
+  font-weight: 600;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.daw-menubar-divider {
+  color: #444;
+}
+
+.daw-menubar-bpm {
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  color: #FF6600;
+  font-weight: 600;
+}
+
+.daw-menubar-tracks {
+  color: #888;
+}
+
+/* ── Responsive: hide info on small screens ── */
+@media (max-width: 768px) {
+  .daw-menubar-info {
+    display: none;
+  }
+
+  .daw-menubar-item {
+    padding: 0 6px;
+  }
+
+  .daw-menubar-label {
+    font-size: 11px;
+  }
+
+  .daw-menubar-dropdown {
+    min-width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .daw-menubar {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .daw-menubar::-webkit-scrollbar {
+    display: none;
+  }
+}
