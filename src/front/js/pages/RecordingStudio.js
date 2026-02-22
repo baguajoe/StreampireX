@@ -5,7 +5,7 @@
 // Route: /recording-studio
 // Pure Web Audio API — zero external audio libraries
 // Effects: EQ, Compressor, Reverb, Delay, Distortion, Filter per track
-// Views: Record | Arrange | Console | Beat Maker | Piano | Sounds | Split | Key Finder | AI Beats | Kits | Mic Sim | AI Mix
+// Views: Record | Arrange | Console | Beat Maker | Piano Roll | Piano | Sounds | Split | Key Finder | AI Beats | Kits | Mic Sim | AI Mix | MIDI | Chords
 // Track limits: Free=4, Starter=8, Creator=16, Pro=32
 // =============================================================================
 
@@ -21,6 +21,12 @@ import AIBeatAssistant from '../component/AIBeatAssistant';
 import PianoDrumSplit from '../component/PianoDrumSplit';
 import SoundKitManager from '../component/SoundKitManager';
 import ParametricEQGraph from '../component/ParametricEQGraph';
+// ── NEW: Piano Roll / MIDI / Chord / Quantize imports ──
+import PianoRoll from '../component/PianoRoll';
+import MidiImporter from '../component/MidiImporter';
+import MidiHardwareInput from '../component/MidiHardwareInput';
+import ChordProgressionGenerator from '../component/ChordProgressionGenerator';
+import { QuantizePanel } from '../component/QuantizeEngine';
 import '../../styles/RecordingStudio.css';
 import '../../styles/ArrangerView.css';
 import '../../styles/AIMixAssistant.css';
@@ -32,6 +38,9 @@ import '../../styles/KeyFinder.css';
 import '../../styles/AIBeatAssistant.css';
 import '../../styles/PianoDrumSplit.css';
 import '../../styles/SoundKitManager.css';
+// ── NEW: Piano Roll / Chord CSS ──
+import '../../styles/PianoRoll.css';
+import '../../styles/ChordProgressionGenerator.css';
 
 const TRACK_COLORS = ['#34c759','#ff9500','#007aff','#af52de','#ff3b30','#5ac8fa','#ff2d55','#ffcc00',
   '#30d158','#ff6b35','#0a84ff','#bf5af2','#ff453a','#64d2ff','#ff375f','#ffd60a',
@@ -62,7 +71,7 @@ const RecordingStudio = ({ user }) => {
   const userTier = (user?.subscription_tier || user?.tier || 'free').toLowerCase();
   const maxTracks = TIER_TRACK_LIMITS[userTier] || DEFAULT_MAX;
 
-  // ── View mode: record | arrange | console | beatmaker | piano | split | sounds | keyfinder | aibeat | kits | micsim | aimix ──
+  // ── View mode: record | arrange | console | beatmaker | pianoroll | piano | split | sounds | keyfinder | aibeat | kits | micsim | aimix | midi | chords ──
   const [viewMode, setViewMode] = useState('record');
 
   // ── Project state ──
@@ -97,6 +106,11 @@ const RecordingStudio = ({ user }) => {
 
   // ── Real-time meter levels for Console (FIX: was static) ──
   const [meterLevels, setMeterLevels] = useState([]);
+
+  // ── NEW: Piano Roll shared state ──
+  const [pianoRollNotes, setPianoRollNotes] = useState([]);
+  const [pianoRollKey, setPianoRollKey] = useState('C');
+  const [pianoRollScale, setPianoRollScale] = useState('major');
 
   const audioCtxRef = useRef(null);
   const masterGainRef = useRef(null);
@@ -203,7 +217,6 @@ const RecordingStudio = ({ user }) => {
   // ══════════════════════════════════════════════════════
   // FIX: Real-time meter animation (for Console VU meters)
   // ══════════════════════════════════════════════════════
-  // FIX: Read from separate L/R AnalyserNodes (ChannelSplitter-based, true stereo)
   const startMeterAnimation = useCallback(() => {
     if (meterAnimRef.current) cancelAnimationFrame(meterAnimRef.current);
     const animate = () => {
@@ -211,13 +224,11 @@ const RecordingStudio = ({ user }) => {
       if (!analysers || analysers.length === 0) { setMeterLevels([]); return; }
       const levels = analysers.map(pair => {
         if (!pair || !pair.left || !pair.right) return { left: 0, right: 0, peak: 0 };
-        // Read left channel
         const dataL = new Uint8Array(pair.left.frequencyBinCount);
         pair.left.getByteFrequencyData(dataL);
         let sumL = 0;
         for (let i = 0; i < dataL.length; i++) sumL += dataL[i];
         const left = sumL / (dataL.length * 255);
-        // Read right channel
         const dataR = new Uint8Array(pair.right.frequencyBinCount);
         pair.right.getByteFrequencyData(dataR);
         let sumR = 0;
@@ -252,7 +263,6 @@ const RecordingStudio = ({ user }) => {
       const mime=MediaRecorder.isTypeSupported('audio/webm;codecs=opus')?'audio/webm;codecs=opus':'audio/webm';
       const rec=new MediaRecorder(stream,{mimeType:mime});chunksRef.current=[];
       rec.ondataavailable=e=>{if(e.data.size>0)chunksRef.current.push(e.data);};
-      // FIX: Create audioUrl and pass to region creator for ArrangerView waveforms
       rec.onstop=async()=>{
         const blob=new Blob(chunksRef.current,{type:mime});
         const ab=await blob.arrayBuffer();
@@ -335,22 +345,107 @@ const RecordingStudio = ({ user }) => {
     }).catch(e => setStatus(`✗ ${e.message}`));
   }, [tracks]);
 
-  // ── AI Beat pattern apply callback (log for now; Beat Maker integration future) ──
+  // ── AI Beat pattern apply callback ──
   const handleAIBeatApply = useCallback((patternData) => {
     setStatus(`✓ AI Beat pattern generated: ${patternData.genre} @ ${patternData.bpm} BPM — Switch to Beat Maker to use`);
-    // Future: auto-load patternData into SamplerBeatMaker step sequencer
   }, []);
 
   // ── Sound Kit: load full kit into Beat Maker ──
   const handleLoadKit = useCallback((samples) => {
     if (!samples || samples.length === 0) { setStatus('⚠ Kit has no samples'); return; }
     setStatus(`✓ Kit loaded — ${samples.length} samples available. Switch to Beat Maker to play.`);
-    // Future: auto-populate SamplerBeatMaker pads with kit samples
   }, []);
 
   // ── Sound Kit: load single sample to a pad ──
   const handleLoadKitSample = useCallback((audioBuffer, name, url, padNum) => {
     setStatus(`✓ "${name}" loaded → Pad ${padNum >= 0 ? padNum + 1 : '(unassigned)'}`);
+  }, []);
+
+  // ══════════════════════════════════════════════════════
+  // NEW: Piano Roll callbacks
+  // ══════════════════════════════════════════════════════
+
+  // ── Piano Roll note change handler ──
+  const handlePianoRollNotesChange = useCallback((notes) => {
+    setPianoRollNotes(notes);
+  }, []);
+
+  // ── Piano Roll export to DAW track (renders MIDI notes to audio) ──
+  const handlePianoRollExport = useCallback((renderedBuffer, blob) => {
+    let targetTrack = tracks.findIndex(t => !t.audioBuffer);
+    if (targetTrack === -1 && tracks.length < maxTracks) {
+      targetTrack = tracks.length;
+      setTracks(prev => [...prev, DEFAULT_TRACK(targetTrack)]);
+    }
+    if (targetTrack === -1) {
+      setStatus('⚠ No empty tracks. Clear a track first.');
+      return;
+    }
+    if (renderedBuffer) {
+      const audioUrl = URL.createObjectURL(blob);
+      updateTrack(targetTrack, {
+        audioBuffer: renderedBuffer,
+        audio_url: audioUrl,
+        name: 'Piano Roll Export',
+      });
+      createRegionFromImport(targetTrack, renderedBuffer, 'Piano Roll Export', audioUrl);
+      setStatus(`✓ Piano Roll → Track ${targetTrack + 1}`);
+      setViewMode('record');
+    }
+  }, [tracks, maxTracks]);
+
+  // ── MIDI Import: load imported MIDI notes into Piano Roll ──
+  const handleMidiImport = useCallback((midiData) => {
+    if (midiData && midiData.notes) {
+      setPianoRollNotes(midiData.notes);
+      if (midiData.bpm) setBpm(midiData.bpm);
+      if (midiData.key) setPianoRollKey(midiData.key);
+      setStatus(`✓ MIDI imported — ${midiData.notes.length} notes loaded`);
+      setViewMode('pianoroll');
+    }
+  }, []);
+
+  // ── MIDI Hardware Input: receive live MIDI note ──
+  const handleMidiNoteOn = useCallback((note) => {
+    // If in Piano Roll view, add note to the roll in real-time
+    if (viewMode === 'pianoroll') {
+      const newNote = {
+        id: `midi_${Date.now()}_${note.note}`,
+        note: note.note,
+        velocity: note.velocity,
+        startBeat: secondsToBeat(currentTime, bpm),
+        duration: 0.25, // Default 16th note, will be extended on noteOff
+        channel: note.channel || 0,
+      };
+      setPianoRollNotes(prev => [...prev, newNote]);
+    }
+    setStatus(`MIDI In: ${note.noteName || note.note} vel:${note.velocity}`);
+  }, [viewMode, currentTime, bpm]);
+
+  // ── MIDI Hardware: note off (extend duration) ──
+  const handleMidiNoteOff = useCallback((note) => {
+    const currentBeat = secondsToBeat(currentTime, bpm);
+    setPianoRollNotes(prev => prev.map(n => {
+      if (n.note === note.note && n.id && n.id.startsWith('midi_')) {
+        const dur = Math.max(currentBeat - n.startBeat, 0.125);
+        return { ...n, duration: dur };
+      }
+      return n;
+    }));
+  }, [currentTime, bpm]);
+
+  // ── Chord Progression Generator: insert chords into Piano Roll ──
+  const handleChordInsert = useCallback((chordNotes) => {
+    if (chordNotes && chordNotes.length > 0) {
+      setPianoRollNotes(prev => [...prev, ...chordNotes]);
+      setStatus(`✓ ${chordNotes.length} chord notes inserted into Piano Roll`);
+    }
+  }, []);
+
+  // ── Chord Progression: update key/scale context ──
+  const handleChordKeyChange = useCallback((key, scale) => {
+    setPianoRollKey(key);
+    setPianoRollScale(scale);
   }, []);
 
   // ── Playback — FIX: now creates AnalyserNode per track for real-time metering ──
@@ -369,7 +464,6 @@ const RecordingStudio = ({ user }) => {
       const g=ctx.createGain();g.gain.value=isAudible(t)?t.volume:0;
       const p=ctx.createStereoPanner();p.pan.value=t.pan;
 
-      // FIX: ChannelSplitter → separate L/R AnalyserNodes for true stereo metering
       const splitter=ctx.createChannelSplitter(2);
       const analyserL=ctx.createAnalyser();
       analyserL.fftSize=256;
@@ -380,10 +474,9 @@ const RecordingStudio = ({ user }) => {
 
       const fxNodes=buildFxChain(ctx,t);let last=s;fxNodes.forEach(n=>{last.connect(n);last=n;});
       last.connect(g);g.connect(p);
-      // FIX: Post-fader metering with true stereo split
       p.connect(splitter);
-      splitter.connect(analyserL, 0);  // left channel
-      splitter.connect(analyserR, 1);  // right channel
+      splitter.connect(analyserL, 0);
+      splitter.connect(analyserR, 1);
       p.connect(masterGainRef.current);
       buildSends(ctx,t,p,masterGainRef.current);
       s.start(0,playOffsetRef.current);trackSourcesRef.current[i]=s;trackGainsRef.current[i]=g;trackPansRef.current[i]=p;
@@ -392,7 +485,6 @@ const RecordingStudio = ({ user }) => {
     });
     setDuration(maxDur);playStartRef.current=ctx.currentTime;setIsPlaying(true);
     if(metronomeOn)startMetronome(ctx);
-    // FIX: Start real-time meter animation
     startMeterAnimation();
     timeRef.current=setInterval(()=>{if(audioCtxRef.current){const el=audioCtxRef.current.currentTime-playStartRef.current+playOffsetRef.current;setCurrentTime(el);if(el>=maxDur&&maxDur>0&&!overdub)stopPlayback();}},50);
     if(!overdub)setStatus('▶ Playing');
@@ -401,7 +493,6 @@ const RecordingStudio = ({ user }) => {
   const stopPlayback = () => {
     trackSourcesRef.current.forEach(s=>{try{s.stop();}catch(e){}});trackSourcesRef.current=[];
     if(metroRef.current)clearInterval(metroRef.current);if(timeRef.current)clearInterval(timeRef.current);
-    // FIX: Stop meter animation and clear analyser refs
     stopMeterAnimation();
     trackAnalysersRef.current=[];
     setIsPlaying(false);if(!isRecording){playOffsetRef.current=currentTime;setStatus('■ Stopped');}
@@ -423,7 +514,7 @@ const RecordingStudio = ({ user }) => {
     click();const id=setInterval(()=>{c++;if(c>=4){clearInterval(id);res();}else click();},iv);
   });
 
-  // ── File import — FIX: now passes audioUrl to region creator ──
+  // ── File import ──
   const handleImport = async (ti) => {
     const inp=document.createElement('input');inp.type='file';inp.accept='audio/*';
     inp.onchange=async(e)=>{const f=e.target.files[0];if(!f)return;setStatus(`Importing...`);
@@ -452,7 +543,7 @@ const RecordingStudio = ({ user }) => {
     setStatus(`Track ${ti+1} cleared`);
   };
 
-  // ── Beat Maker export → DAW track import — FIX: passes audioUrl ──
+  // ── Beat Maker export → DAW track import ──
   const handleBeatExport = useCallback((renderedBuffer, blob) => {
     let targetTrack = tracks.findIndex(t => !t.audioBuffer);
     if (targetTrack === -1 && tracks.length < maxTracks) {
@@ -518,7 +609,7 @@ const RecordingStudio = ({ user }) => {
     try{const tok=localStorage.getItem('token')||sessionStorage.getItem('token');const bu=process.env.REACT_APP_BACKEND_URL||'';
       const td=tracks.map(t=>({name:t.name,volume:t.volume,pan:t.pan,muted:t.muted,solo:t.solo,effects:t.effects,color:t.color,regions:(t.regions||[]).map(r=>({...r, audioUrl: null})),audio_url:typeof t.audio_url==='string'&&!t.audio_url.startsWith('blob:')?t.audio_url:null}));
       const method=projectId?'PUT':'POST';const url=projectId?`${bu}/api/studio/projects/${projectId}`:`${bu}/api/studio/projects`;
-      const res=await fetch(url,{method,headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},body:JSON.stringify({name:projectName,bpm,time_signature:`${timeSignature[0]}/${timeSignature[1]}`,tracks:td,master_volume:masterVolume})});
+      const res=await fetch(url,{method,headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},body:JSON.stringify({name:projectName,bpm,time_signature:`${timeSignature[0]}/${timeSignature[1]}`,tracks:td,master_volume:masterVolume,piano_roll_notes:pianoRollNotes,piano_roll_key:pianoRollKey,piano_roll_scale:pianoRollScale})});
       const data=await res.json();if(data.success){setProjectId(data.project.id);setStatus('✓ Saved');}
     }catch(e){setStatus('✗ Save failed');}finally{setSaving(false);}
   };
@@ -528,6 +619,10 @@ const RecordingStudio = ({ user }) => {
       const res=await fetch(`${bu}/api/studio/projects/${pid}`,{headers:{'Authorization':`Bearer ${tok}`}});const data=await res.json();
       if(data.success){const p=data.project;setProjectId(p.id);setProjectName(p.name);setBpm(p.bpm);setMasterVolume(p.master_volume||0.8);
         if(p.time_signature){const ts=p.time_signature.split('/').map(Number);if(ts.length===2)setTimeSignature(ts);}
+        // Load piano roll data if saved
+        if(p.piano_roll_notes) setPianoRollNotes(p.piano_roll_notes);
+        if(p.piano_roll_key) setPianoRollKey(p.piano_roll_key);
+        if(p.piano_roll_scale) setPianoRollScale(p.piano_roll_scale);
         const trackCount=Math.min(Math.max(p.tracks?.length||8, 1), maxTracks);
         const loaded=Array.from({length:trackCount},(_,i)=>({...DEFAULT_TRACK(i),...(p.tracks[i]||{}),audioBuffer:null,effects:p.tracks[i]?.effects||DEFAULT_EFFECTS(),regions:p.tracks[i]?.regions||[]}));
         setTracks(loaded);for(let i=0;i<loaded.length;i++){if(loaded[i].audio_url)await loadAudioBuffer(loaded[i].audio_url,i);}
@@ -546,6 +641,7 @@ const RecordingStudio = ({ user }) => {
     stopEverything();setProjectId(null);setProjectName('Untitled Project');setBpm(120);
     setMasterVolume(0.8);setActiveEffectsTrack(null);setTimeSignature([4,4]);
     setTracks(Array.from({length:Math.min(maxTracks,8)},(_,i)=>DEFAULT_TRACK(i)));
+    setPianoRollNotes([]);setPianoRollKey('C');setPianoRollScale('major');
     setStatus('New project');
   };
 
@@ -568,14 +664,13 @@ const RecordingStudio = ({ user }) => {
     setStatus(`Track ${idx + 1} removed`);
   };
 
-  // ── Seek (seconds-based for Record view, beat-converted for Arranger) ──
+  // ── Seek ──
   const seekTo = (t) => {
     if (isPlaying) stopPlayback();
     playOffsetRef.current = t;
     setCurrentTime(t);
   };
 
-  // ── Seek handler from ArrangerView (beat-based → seconds) ──
   const seekToBeat = useCallback((beat) => {
     const secs = beatToSeconds(beat, bpm);
     if (isPlaying) stopPlayback();
@@ -583,12 +678,7 @@ const RecordingStudio = ({ user }) => {
     setCurrentTime(secs);
   }, [bpm, isPlaying]);
 
-  // ══════════════════════════════════════════════════════════
-  // FIX: Region creation — uses "duration" (not "durationBeats")
-  //       + includes "audioUrl" for ArrangerView waveform rendering
-  // ══════════════════════════════════════════════════════════
-
-  // ── Auto-create region when recording stops ──
+  // ── Region creation ──
   const createRegionFromRecording = (trackIndex, audioBuffer, audioUrl) => {
     const regionId = `rgn_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const startBeat = secondsToBeat(playOffsetRef.current, bpm);
@@ -597,8 +687,8 @@ const RecordingStudio = ({ user }) => {
       id: regionId,
       name: tracks[trackIndex]?.name || `Track ${trackIndex + 1}`,
       startBeat,
-      duration,        // FIX: was "durationBeats" — ArrangerView reads "region.duration"
-      audioUrl,         // FIX: was missing — needed for waveform rendering in ArrangerView
+      duration,
+      audioUrl,
       color: tracks[trackIndex]?.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length],
       loopEnabled: false,
       loopCount: 1,
@@ -608,7 +698,6 @@ const RecordingStudio = ({ user }) => {
     ));
   };
 
-  // ── Auto-create region when importing audio ──
   const createRegionFromImport = (trackIndex, audioBuffer, name, audioUrl) => {
     const regionId = `rgn_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const duration = secondsToBeat(audioBuffer.duration, bpm);
@@ -617,8 +706,8 @@ const RecordingStudio = ({ user }) => {
         id: regionId,
         name: name || `Import ${trackIndex + 1}`,
         startBeat: 0,
-        duration,        // FIX: was "durationBeats"
-        audioUrl,         // FIX: was missing
+        duration,
+        audioUrl,
         color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length],
         loopEnabled: false,
         loopCount: 1,
@@ -664,7 +753,7 @@ const RecordingStudio = ({ user }) => {
   const handleTimeSignatureChange = useCallback((top, bottom) => setTimeSignature([top, bottom]), []);
   const handleToggleFx = useCallback((trackIndex) => setActiveEffectsTrack(prev => prev === trackIndex ? null : trackIndex), []);
 
-  // ── EQ Graph onChange handler — updates track EQ state from draggable nodes ──
+  // ── EQ Graph onChange handler ──
   const handleEQGraphChange = useCallback((updatedEQ) => {
     if (activeEffectsTrack === null) return;
     setTracks(p => p.map((t, i) => i !== activeEffectsTrack ? t : {
@@ -738,6 +827,11 @@ const RecordingStudio = ({ user }) => {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="8" height="8" rx="1"/><rect x="14" y="2" width="8" height="8" rx="1"/><rect x="2" y="14" width="8" height="8" rx="1"/><rect x="14" y="14" width="8" height="8" rx="1"/></svg>
             Beat Maker
           </button>
+          {/* ── NEW: Piano Roll tab ── */}
+          <button className={`daw-view-tab ${viewMode==='pianoroll'?'active':''}`} onClick={()=>setViewMode('pianoroll')} title="Piano Roll / MIDI Editor">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="3" width="22" height="18" rx="2"/><line x1="1" y1="9" x2="23" y2="9"/><line x1="1" y1="15" x2="23" y2="15"/><line x1="8" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="16" y2="21"/></svg>
+            Piano Roll
+          </button>
           <button className={`daw-view-tab ${viewMode==='piano'?'active':''}`} onClick={()=>setViewMode('piano')} title="Virtual Piano">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="4" x2="6" y2="14"/><line x1="10" y1="4" x2="10" y2="14"/><line x1="14" y1="4" x2="14" y2="14"/><line x1="18" y1="4" x2="18" y2="14"/></svg>
             Piano
@@ -761,6 +855,16 @@ const RecordingStudio = ({ user }) => {
           <button className={`daw-view-tab ${viewMode==='kits'?'active':''}`} onClick={()=>setViewMode('kits')} title="Sound Kit Manager">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 9h20"/><path d="M9 21V9"/></svg>
             Kits
+          </button>
+          {/* ── NEW: MIDI tab ── */}
+          <button className={`daw-view-tab ${viewMode==='midi'?'active':''}`} onClick={()=>setViewMode('midi')} title="MIDI Import & Hardware">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="8" cy="10" r="1.5" fill="currentColor"/><circle cx="16" cy="10" r="1.5" fill="currentColor"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><circle cx="8" cy="16" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg>
+            MIDI
+          </button>
+          {/* ── NEW: Chords tab ── */}
+          <button className={`daw-view-tab ai-tab ${viewMode==='chords'?'active':''}`} onClick={()=>setViewMode('chords')} title="AI Chord Progression Generator">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="M3 3l18 18" strokeWidth="1.5"/></svg>
+            Chords
           </button>
           <button className={`daw-view-tab ${viewMode==='micsim'?'active':''}`} onClick={()=>setViewMode('micsim')} title="Mic Simulator">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -879,8 +983,7 @@ const RecordingStudio = ({ user }) => {
           />
         )}
 
-        {/* ──────── CONSOLE / MIXER VIEW (Cubase MixConsole) ──────── */}
-        {/* FIX: Meters now use real-time AnalyserNode levels instead of static track.volume */}
+        {/* ──────── CONSOLE / MIXER VIEW ──────── */}
         {viewMode === 'console' && (
           <div className="daw-console">
             <div className="daw-console-scroll">
@@ -896,22 +999,17 @@ const RecordingStudio = ({ user }) => {
                 ];
                 const panLabel = track.pan === 0 ? 'C' : track.pan < 0 ? `L${Math.abs(Math.round(track.pan * 50))}` : `R${Math.round(track.pan * 50)}`;
                 const volDb = track.volume > 0 ? (20 * Math.log10(track.volume)).toFixed(1) : '-∞';
-
-                // FIX: Real-time meter levels from AnalyserNodes
                 const level = meterLevels[i] || { left: 0, right: 0, peak: 0 };
                 const meterL = level.left * 100;
                 const meterR = level.right * 100;
 
                 return (
                   <div key={i} className={`daw-channel ${activeEffectsTrack === i ? 'selected' : ''}`}>
-                    {/* Routing */}
                     <div className="daw-ch-routing">
                       <span className="daw-ch-routing-label">Routing</span>
                       <span className="daw-ch-routing-value">Mono In 2 (Mic)</span>
                       <span className="daw-ch-routing-value">{track.solo ? 'Solo Bus' : 'Stereo Out'}</span>
                     </div>
-
-                    {/* Inserts */}
                     <div className="daw-ch-inserts">
                       <span className="daw-ch-inserts-label">Inserts</span>
                       {insertSlots.map(slot => (
@@ -928,19 +1026,15 @@ const RecordingStudio = ({ user }) => {
                         </div>
                       ))}
                     </div>
-
-                    {/* M S L e */}
                     <div className="daw-ch-controls">
                       <div className={`daw-ch-badge ${track.muted ? 'm-on' : ''}`}
                         onClick={() => { updateTrack(i, { muted: !track.muted }); if (trackGainsRef.current[i]) trackGainsRef.current[i].gain.value = !track.muted ? 0 : track.volume; }}>M</div>
                       <div className={`daw-ch-badge ${track.solo ? 's-on' : ''}`}
                         onClick={() => updateTrack(i, { solo: !track.solo })}>S</div>
-                      <div className="daw-ch-badge" onClick={() => { /* listen/monitor placeholder */ }}>L</div>
+                      <div className="daw-ch-badge" onClick={() => { }}>L</div>
                       <div className={`daw-ch-badge ${activeEffectsTrack === i ? 'e-on' : ''}`}
                         onClick={() => setActiveEffectsTrack(activeEffectsTrack === i ? null : i)}>e</div>
                     </div>
-
-                    {/* Pan */}
                     <div className="daw-ch-pan">
                       <input
                         type="range" min="-1" max="1" step="0.02" value={track.pan}
@@ -953,8 +1047,6 @@ const RecordingStudio = ({ user }) => {
                     <div style={{ textAlign: 'center', fontSize: '0.58rem', color: '#5a7088', fontFamily: "'JetBrains Mono', monospace", padding: '1px 0' }}>
                       {panLabel}
                     </div>
-
-                    {/* Fader + Meter — FIX: Real-time AnalyserNode levels */}
                     <div className="daw-ch-fader-area">
                       <div className="daw-ch-meter">
                         <div className="daw-ch-meter-bar">
@@ -973,20 +1065,14 @@ const RecordingStudio = ({ user }) => {
                         <span className="daw-ch-vol-val">{volDb}</span>
                       </div>
                     </div>
-
-                    {/* R/W Automation */}
                     <div className="daw-ch-automation">
                       <div className="daw-ch-rw">R</div>
                       <div className="daw-ch-rw">W</div>
                     </div>
-
-                    {/* Record Enable */}
                     <div className="daw-ch-rec">
                       <div className={`daw-ch-rec-btn ${track.armed ? 'armed' : ''}`}
                         onClick={() => setTracks(p => p.map((t, idx) => ({ ...t, armed: idx === i ? !t.armed : false })))} />
                     </div>
-
-                    {/* Channel Name */}
                     <div className="daw-ch-name">
                       <div className="daw-ch-number"><span className="daw-ch-type-icon">🎵</span> {i + 1}</div>
                       <input className="daw-ch-name-input" value={track.name} onChange={e => updateTrack(i, { name: e.target.value })} />
@@ -995,7 +1081,7 @@ const RecordingStudio = ({ user }) => {
                 );
               })}
 
-              {/* ── Master Channel — FIX: Real-time meter levels ── */}
+              {/* ── Master Channel ── */}
               <div className="daw-channel master-channel">
                 <div className="daw-ch-routing">
                   <span className="daw-ch-routing-label">Routing</span>
@@ -1050,6 +1136,73 @@ const RecordingStudio = ({ user }) => {
             onClose={() => setViewMode('record')}
             isEmbedded={true}
           />
+        )}
+
+        {/* ══════════════════════════════════════════════════════ */}
+        {/* ──────── NEW: PIANO ROLL VIEW ──────── */}
+        {/* ══════════════════════════════════════════════════════ */}
+        {viewMode === 'pianoroll' && (
+          <div className="daw-pianoroll-view">
+            <PianoRoll
+              notes={pianoRollNotes}
+              onNotesChange={handlePianoRollNotesChange}
+              bpm={bpm}
+              timeSignature={timeSignature}
+              musicalKey={pianoRollKey}
+              scale={pianoRollScale}
+              isPlaying={isPlaying}
+              currentBeat={playheadBeat}
+              audioContext={audioCtxRef.current}
+              onExport={handlePianoRollExport}
+              onClose={() => setViewMode('beatmaker')}
+              isEmbedded={true}
+            />
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════ */}
+        {/* ──────── NEW: MIDI IMPORT & HARDWARE VIEW ──────── */}
+        {/* ══════════════════════════════════════════════════════ */}
+        {viewMode === 'midi' && (
+          <div className="daw-midi-view" style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px', height: '100%', overflow: 'auto' }}>
+            <MidiImporter
+              onImport={handleMidiImport}
+              onClose={() => setViewMode('pianoroll')}
+              isEmbedded={true}
+            />
+            <MidiHardwareInput
+              onNoteOn={handleMidiNoteOn}
+              onNoteOff={handleMidiNoteOff}
+              isEmbedded={true}
+            />
+            {/* Quick-access Quantize panel for piano roll notes */}
+            <QuantizePanel
+              notes={pianoRollNotes}
+              onQuantize={(quantizedNotes) => setPianoRollNotes(quantizedNotes)}
+              bpm={bpm}
+              timeSignature={timeSignature}
+              isEmbedded={true}
+            />
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════ */}
+        {/* ──────── NEW: CHORD PROGRESSION GENERATOR VIEW ──── */}
+        {/* ══════════════════════════════════════════════════════ */}
+        {viewMode === 'chords' && (
+          <div className="daw-chords-view">
+            <ChordProgressionGenerator
+              musicalKey={pianoRollKey}
+              scale={pianoRollScale}
+              bpm={bpm}
+              timeSignature={timeSignature}
+              onInsertChords={handleChordInsert}
+              onKeyChange={handleChordKeyChange}
+              audioContext={audioCtxRef.current}
+              onClose={() => setViewMode('pianoroll')}
+              isEmbedded={true}
+            />
+          </div>
         )}
 
         {/* ──────── VIRTUAL PIANO VIEW ──────── */}
@@ -1146,7 +1299,6 @@ const RecordingStudio = ({ user }) => {
                   <button className="daw-fx-toggle" onClick={()=>updateEffect(activeEffectsTrack,key,'enabled',!afx.effects[key].enabled)}>{afx.effects[key].enabled?'◉':'○'}</button>
                   <span>{label}</span>
                 </div>
-                {/* ══ PARAMETRIC EQ GRAPH — only renders inside the EQ block ══ */}
                 {key === 'eq' && afx.effects.eq.enabled && (
                   <div style={{ padding: '4px 6px 2px' }}>
                     <ParametricEQGraph
