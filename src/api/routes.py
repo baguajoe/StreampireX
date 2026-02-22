@@ -74,7 +74,10 @@ import soundfile as sf
 from mutagen.mp3 import MP3  # Add this line for MP3 support
 from mutagen.mp4 import MP4  # Add this for MP4/M4A support
 from mutagen.wave import WAVE  # Add this for WAV support
-from src.api.cloudinary_setup import uploadFile
+try:
+    from src.api.r2_storage_setup import uploadFile
+except ImportError:
+    from src.api.cloudinary_setup import uploadFile
 from functools import wraps
 
 from pedalboard import (

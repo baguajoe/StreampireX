@@ -35,7 +35,10 @@ from collections import defaultdict
 
 # Internal imports
 from src.api.models import db, Audio, RadioStation, User
-from src.api.cloudinary_setup import uploadFile
+try:
+    from src.api.r2_storage_setup import uploadFile
+except ImportError:
+    from src.api.cloudinary_setup import uploadFile
 
 ai_radio_dj_bp = Blueprint('ai_radio_dj', __name__)
 

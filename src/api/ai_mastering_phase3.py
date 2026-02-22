@@ -28,7 +28,10 @@ import soundfile as sf
 
 # Internal imports
 from src.api.models import db, Audio, User
-from src.api.cloudinary_setup import uploadFile
+try:
+    from src.api.r2_storage_setup import uploadFile
+except ImportError:
+    from src.api.cloudinary_setup import uploadFile
 
 ai_mastering_phase3_bp = Blueprint('ai_mastering_phase3', __name__)
 
