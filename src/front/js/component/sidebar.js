@@ -435,6 +435,12 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/video-editor" className={isActive("/video-editor") ? "active" : ""}>
         🎬 <span className="sidebar-label">Video Editor</span>
       </MenuItem>
+      <MenuItem to="/reels" className={isActive("/reels") ? "active" : ""}>
+        🎞️ <span className="sidebar-label">Reels</span>
+      </MenuItem>
+      <MenuItem to="/upload-reel" className={isActive("/upload-reel") ? "active" : ""}>
+        ⬆️ <span className="sidebar-label">Upload Reel</span>
+      </MenuItem>
 
       {/* ============================== */}
       {/* 🎤 MUSIC — Only for artists    */}
@@ -569,7 +575,7 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/beats" className={isActive("/beats") ? "active" : ""}>
         🎹 <span className="sidebar-label">Beat Store</span>
       </MenuItem>
-      
+
 
       {/* ============================== */}
       {/* ⚙️ ACCOUNT                     */}

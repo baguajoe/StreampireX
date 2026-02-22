@@ -44,6 +44,8 @@ import AIStemSeparation from "./pages/AIStemSeparation";
 
 import VideoUpload from "./pages/VideoUpload";
 import VideoDetails from "./component/VideoDetails";
+import ReelsFeed from './pages/ReelsFeed';
+import UploadReel from './pages/UploadReel';
 import RadioStationDashboard from "./pages/RadioStationDashboard";
 import RadioStationPage from "./pages/RadioStations";
 import CreateRadioStation from "./pages/CreateRadioStation";
@@ -205,6 +207,9 @@ const Layout = () => {
               <Route path="/create-clip" element={<CreateClipPage />} />
               <Route path="/stories/create" element={<StoryUpload />} />
               <Route path="/stories/:userId" element={<StoryViewer />} />
+              <Route path="/reels" element={<ReelsFeed />} />
+              <Route path="/reels/:id" element={<ReelsFeed />} />
+              <Route path="/upload-reel" element={<UploadReel />} />
 
               {/* 💿 Releases */}
               <Route path="/create-release" element={<CreateReleasePage />} />
