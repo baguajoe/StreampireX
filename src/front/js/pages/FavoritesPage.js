@@ -19,8 +19,9 @@ const FavoritesPage = () => {
   const [videos, setVideos] = useState([]);
   const [images, setImages] = useState([]);
 
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev";
+
   useEffect(() => {
-    // ✅ Use same token key as ProfilePage
     const token = localStorage.getItem("token");
     
     console.log("Token check:", token ? "Token found" : "No token found");
@@ -28,12 +29,11 @@ const FavoritesPage = () => {
     
     if (!token) {
       console.warn("No token found - user may need to log in");
-      // Don't immediately alert - let the component render with empty state
       return;
     }
 
     console.log("Making API call to fetch profile...");
-    fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/profile`, {
+    fetch(`${BACKEND_URL}/api/user/profile`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -46,10 +46,9 @@ const FavoritesPage = () => {
           const errorText = await res.text();
           console.error("API Error:", res.status, errorText);
           
-          // If 401/403, it's likely an auth issue
           if (res.status === 401 || res.status === 403) {
             console.warn("Authentication failed - token may be expired");
-            localStorage.removeItem("token"); // Clear invalid token
+            localStorage.removeItem("token");
           }
           
           throw new Error(`API Error: ${res.status}`);
@@ -59,17 +58,14 @@ const FavoritesPage = () => {
       .then((data) => {
         console.log("Profile data received:", data);
         
-        // ✅ Handle both response formats
-        const userData = data.user || data; // Handle {user: ...} or direct user data
+        const userData = data.user || data;
         
         setUser(userData);
         setVideos(userData.videos || []);
-        // ✅ Use images if available, otherwise fall back to gallery
         setImages(userData.images || userData.gallery || []);
       })
       .catch((error) => {
         console.error("Error fetching profile:", error);
-        // Don't alert immediately - let user see the page
         console.warn("Profile fetch failed, user may need to log in");
       });
   }, []);
@@ -107,18 +103,18 @@ const FavoritesPage = () => {
     const file = e.target.files[0];
     if (!file) return;
     
-    // Add loading state
     const fileInput = e.target;
     fileInput.disabled = true;
     
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "your_unsigned_preset");
 
     try {
       console.log("Uploading video...");
-      const res = await fetch("https://api.cloudinary.com/v1_1/dli7r0d7s/video/upload", {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${BACKEND_URL}/api/upload/cloudinary`, {
         method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       
@@ -129,13 +125,11 @@ const FavoritesPage = () => {
       const data = await res.json();
       console.log("Video uploaded successfully:", data);
       
-      const newVideo = { file_url: data.secure_url, title: file.name };
+      const newVideo = { file_url: data.secure_url || data.url, title: file.name };
       setVideos(prev => [...prev, newVideo]);
       
-      // ✅ Save to backend
       await updateUserMedia('videos', [...videos, newVideo]);
       
-      // Reset file input
       fileInput.value = '';
     } catch (err) {
       console.error("Video upload error:", err);
@@ -149,18 +143,18 @@ const FavoritesPage = () => {
     const file = e.target.files[0];
     if (!file) return;
     
-    // Add loading state
     const fileInput = e.target;
     fileInput.disabled = true;
     
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "your_unsigned_preset");
 
     try {
       console.log("Uploading image...");
-      const res = await fetch("https://api.cloudinary.com/v1_1/dli7r0d7s/image/upload", {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${BACKEND_URL}/api/upload/cloudinary`, {
         method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       
@@ -171,13 +165,11 @@ const FavoritesPage = () => {
       const data = await res.json();
       console.log("Image uploaded successfully:", data);
       
-      const newImage = { file_url: data.secure_url, title: file.name };
+      const newImage = { file_url: data.secure_url || data.url, title: file.name };
       setImages(prev => [...prev, newImage]);
       
-      // ✅ Save to backend
       await updateUserMedia('images', [...images, newImage]);
       
-      // Reset file input
       fileInput.value = '';
     } catch (err) {
       console.error("Image upload error:", err);
@@ -187,7 +179,6 @@ const FavoritesPage = () => {
     }
   };
 
-  // ✅ Helper function to update backend
   const updateUserMedia = async (mediaType, mediaArray) => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -197,7 +188,7 @@ const FavoritesPage = () => {
 
     try {
       console.log(`Updating ${mediaType} in backend...`);
-      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'https://studious-space-goggles-r4rp7v96jgr62x5j-3001.app.github.dev'}/api/user/profile`, {
+      const response = await fetch(`${BACKEND_URL}/api/user/profile`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -217,7 +208,7 @@ const FavoritesPage = () => {
       console.log(`${mediaType} updated successfully in backend`);
     } catch (err) {
       console.error(`Failed to update ${mediaType}:`, err);
-      alert(`Warning: File uploaded to cloud but failed to save to profile: ${err.message}`);
+      alert(`Warning: File uploaded but failed to save to profile: ${err.message}`);
     }
   };
 
