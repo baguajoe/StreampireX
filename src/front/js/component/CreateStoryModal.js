@@ -6,6 +6,7 @@
 // =============================================================================
 
 import React, { useState, useRef } from 'react';
+import { checkVideoDuration, MAX_STORY_DURATION, formatDuration } from '../utils/videoDurationCheck';
 import '../../styles/CreateStoryModal.css';
 
 const CreateStoryModal = ({ isOpen, onClose, onStoryCreated }) => {
@@ -18,6 +19,7 @@ const CreateStoryModal = ({ isOpen, onClose, onStoryCreated }) => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState(null);
+  const [videoDuration, setVideoDuration] = useState(null);
   
   const fileInputRef = useRef(null);
   const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
@@ -26,7 +28,7 @@ const CreateStoryModal = ({ isOpen, onClose, onStoryCreated }) => {
   const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
   const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = async (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
 
@@ -50,6 +52,18 @@ const CreateStoryModal = ({ isOpen, onClose, onStoryCreated }) => {
     if (isVideo && selectedFile.size > MAX_VIDEO_SIZE) {
       setError('Video must be less than 50MB');
       return;
+    }
+
+    // Check video duration cap
+    if (isVideo) {
+      const result = await checkVideoDuration(selectedFile, MAX_STORY_DURATION);
+      setVideoDuration(result.duration);
+      if (!result.valid) {
+        setError(result.message);
+        return;
+      }
+    } else {
+      setVideoDuration(null);
     }
 
     setFile(selectedFile);
@@ -83,6 +97,7 @@ const CreateStoryModal = ({ isOpen, onClose, onStoryCreated }) => {
     setFile(null);
     setPreview(null);
     setMediaType(null);
+    setVideoDuration(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -163,6 +178,7 @@ const CreateStoryModal = ({ isOpen, onClose, onStoryCreated }) => {
     setUploading(false);
     setUploadProgress(0);
     setError(null);
+    setVideoDuration(null);
     onClose();
   };
 
@@ -199,7 +215,7 @@ const CreateStoryModal = ({ isOpen, onClose, onStoryCreated }) => {
               <div className="upload-icon">📸</div>
               <h3>Add to Your Story</h3>
               <p>Drag and drop or click to upload</p>
-              <p className="file-types">Images (max 10MB) or Videos (max 50MB)</p>
+              <p className="file-types">Images (max 10MB) or Videos (max 50MB, 60s limit)</p>
             </div>
           ) : (
             <div className="preview-area">
@@ -211,6 +227,20 @@ const CreateStoryModal = ({ isOpen, onClose, onStoryCreated }) => {
               ) : (
                 <img src={preview} alt="Preview" className="preview-media" />
               )}
+            </div>
+          )}
+
+          {/* Video Duration Badge */}
+          {mediaType === 'video' && videoDuration && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '8px 12px', borderRadius: '8px', fontSize: '13px',
+              margin: '8px 0',
+              background: videoDuration > MAX_STORY_DURATION ? 'rgba(255,71,87,0.15)' : 'rgba(0,255,200,0.1)',
+              border: `1px solid ${videoDuration > MAX_STORY_DURATION ? 'rgba(255,71,87,0.3)' : 'rgba(0,255,200,0.3)'}`,
+              color: videoDuration > MAX_STORY_DURATION ? '#ff4757' : '#00ffc8'
+            }}>
+              ⏱️ {formatDuration(videoDuration)} / {formatDuration(MAX_STORY_DURATION)} max
             </div>
           )}
 

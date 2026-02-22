@@ -20,6 +20,7 @@ import KeyFinder from '../component/KeyFinder';
 import AIBeatAssistant from '../component/AIBeatAssistant';
 import PianoDrumSplit from '../component/PianoDrumSplit';
 import SoundKitManager from '../component/SoundKitManager';
+import ParametricEQGraph from '../component/ParametricEQGraph';
 import '../../styles/RecordingStudio.css';
 import '../../styles/ArrangerView.css';
 import '../../styles/AIMixAssistant.css';
@@ -663,6 +664,14 @@ const RecordingStudio = ({ user }) => {
   const handleTimeSignatureChange = useCallback((top, bottom) => setTimeSignature([top, bottom]), []);
   const handleToggleFx = useCallback((trackIndex) => setActiveEffectsTrack(prev => prev === trackIndex ? null : trackIndex), []);
 
+  // ── EQ Graph onChange handler — updates track EQ state from draggable nodes ──
+  const handleEQGraphChange = useCallback((updatedEQ) => {
+    if (activeEffectsTrack === null) return;
+    setTracks(p => p.map((t, i) => i !== activeEffectsTrack ? t : {
+      ...t, effects: { ...t.effects, eq: { ...t.effects.eq, ...updatedEQ } }
+    }));
+  }, [activeEffectsTrack]);
+
   // ===================== RENDER =====================
   const afx = activeEffectsTrack !== null ? tracks[activeEffectsTrack] : null;
 
@@ -1114,7 +1123,7 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {/* ──────── FX PANEL ──────── */}
+        {/* ──────── FX PANEL (with Parametric EQ Graph) ──────── */}
         {(viewMode === 'record' || viewMode === 'console') && afx && (
           <div className="daw-fx-panel">
             <div className="daw-fx-header">
@@ -1137,6 +1146,19 @@ const RecordingStudio = ({ user }) => {
                   <button className="daw-fx-toggle" onClick={()=>updateEffect(activeEffectsTrack,key,'enabled',!afx.effects[key].enabled)}>{afx.effects[key].enabled?'◉':'○'}</button>
                   <span>{label}</span>
                 </div>
+                {/* ══ PARAMETRIC EQ GRAPH — only renders inside the EQ block ══ */}
+                {key === 'eq' && afx.effects.eq.enabled && (
+                  <div style={{ padding: '4px 6px 2px' }}>
+                    <ParametricEQGraph
+                      eq={afx.effects.eq}
+                      onChange={handleEQGraphChange}
+                      width={260}
+                      height={140}
+                      compact={true}
+                      showLabels={true}
+                    />
+                  </div>
+                )}
                 <div className="daw-fx-controls">
                   {extra}
                   {params.map(({p,l,min,max,step,fmt})=>(
