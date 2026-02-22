@@ -1,0 +1,701 @@
+/* =============================================================================
+   VoiceCloneServices.css — AI Voice Clone Services Hub
+   StreamPireX Dark Theme: #0d1117 bg, #00ffc8 teal, #FF6600 orange
+   ============================================================================= */
+
+/* ==================== PAGE LAYOUT ==================== */
+
+.vcs-page {
+  min-height: 100vh;
+  background: #0d1117;
+  color: #e5e7eb;
+  padding: 24px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.vcs-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 16px;
+  color: #8b949e;
+}
+
+.vcs-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(0, 255, 200, 0.15);
+  border-top-color: #00ffc8;
+  border-radius: 50%;
+  animation: vcsSpin 0.8s linear infinite;
+}
+
+@keyframes vcsSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ==================== HEADER ==================== */
+
+.vcs-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.vcs-header h1 {
+  font-size: 28px;
+  margin: 0 0 8px;
+  color: #fff;
+}
+
+.vcs-subtitle {
+  color: #8b949e;
+  font-size: 15px;
+  margin: 0 0 14px;
+}
+
+.vcs-voice-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(0, 255, 200, 0.08);
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  border-radius: 20px;
+  font-size: 13px;
+  color: #b0b8c1;
+}
+
+.vcs-voice-badge strong {
+  color: #00ffc8;
+}
+
+.vcs-voice-dot {
+  width: 8px;
+  height: 8px;
+  background: #00ffc8;
+  border-radius: 50%;
+  animation: vcsDotPulse 2s ease-in-out infinite;
+}
+
+@keyframes vcsDotPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 200, 0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(0, 255, 200, 0); }
+}
+
+/* ==================== NO VOICE WARNING ==================== */
+
+.vcs-no-voice {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(255, 102, 0, 0.06);
+  border: 1px solid rgba(255, 102, 0, 0.2);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.vcs-no-voice-icon {
+  font-size: 36px;
+  flex-shrink: 0;
+}
+
+.vcs-no-voice h3 {
+  margin: 0 0 6px;
+  color: #FF6600;
+  font-size: 16px;
+}
+
+.vcs-no-voice p {
+  margin: 0 0 12px;
+  color: #b0b8c1;
+  font-size: 14px;
+}
+
+.vcs-go-clone-btn {
+  padding: 8px 18px;
+  background: #FF6600;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.vcs-go-clone-btn:hover {
+  background: #e55b00;
+}
+
+/* ==================== VOICE USAGE DASHBOARD ==================== */
+
+.vcs-usage-dashboard {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+}
+
+.vcs-usage-title {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #e5e7eb;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vcs-usage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.vcs-usage-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 10px;
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.vcs-usage-card.active {
+  background: rgba(0, 255, 200, 0.06);
+  border: 1px solid rgba(0, 255, 200, 0.2);
+}
+
+.vcs-usage-card.inactive {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.vcs-usage-card.inactive:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.vcs-usage-card.active:hover {
+  background: rgba(0, 255, 200, 0.1);
+}
+
+.vcs-usage-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vcs-usage-icon {
+  font-size: 22px;
+}
+
+.vcs-usage-status {
+  font-size: 14px;
+}
+
+.vcs-usage-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e5e7eb;
+}
+
+.vcs-usage-card.inactive .vcs-usage-label {
+  color: #8b949e;
+}
+
+.vcs-usage-desc {
+  font-size: 10px;
+  color: #6e7681;
+  line-height: 1.2;
+}
+
+.vcs-usage-cta {
+  font-size: 10px;
+  font-weight: 700;
+  color: #FF6600;
+  margin-top: 2px;
+}
+
+.vcs-usage-last {
+  font-size: 9px;
+  color: rgba(0, 255, 200, 0.5);
+  margin-top: 2px;
+}
+
+.vcs-usage-summary {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.vcs-usage-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #00ffc8;
+  padding: 4px 14px;
+  background: rgba(0, 255, 200, 0.06);
+  border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+  .vcs-usage-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .vcs-usage-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ==================== SERVICE TABS ==================== */
+
+.vcs-service-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-bottom: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 6px;
+}
+
+.vcs-service-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 6px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #8b949e;
+}
+
+.vcs-service-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e5e7eb;
+}
+
+.vcs-service-tab.active {
+  background: rgba(0, 255, 200, 0.1);
+  color: #00ffc8;
+}
+
+.vcs-tab-icon {
+  font-size: 22px;
+}
+
+.vcs-tab-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.vcs-tab-desc {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+/* ==================== SERVICE PANELS ==================== */
+
+.vcs-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.vcs-service-panel {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.vcs-service-panel h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  color: #fff;
+}
+
+.vcs-panel-desc {
+  margin: 0 0 20px;
+  color: #8b949e;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ==================== FORM ELEMENTS ==================== */
+
+.vcs-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.vcs-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.vcs-field.full {
+  grid-column: 1 / -1;
+}
+
+.vcs-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #b0b8c1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vcs-field input,
+.vcs-field select,
+.vcs-field textarea {
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #e5e7eb;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  resize: vertical;
+}
+
+.vcs-field input:focus,
+.vcs-field select:focus,
+.vcs-field textarea:focus {
+  border-color: #00ffc8;
+}
+
+.vcs-field select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238b949e' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.vcs-field select option {
+  background: #161b22;
+  color: #e5e7eb;
+}
+
+.vcs-char-count {
+  font-size: 11px;
+  color: #6e7681;
+  text-align: right;
+}
+
+/* Toggle Row */
+.vcs-toggle-row {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 16px;
+}
+
+.vcs-toggle-btn {
+  flex: 1;
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  color: #8b949e;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.vcs-toggle-btn.active {
+  background: rgba(0, 255, 200, 0.12);
+  color: #00ffc8;
+}
+
+/* Custom toggle checkbox */
+.vcs-custom-toggle {
+  margin-bottom: 12px;
+}
+
+.vcs-custom-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #b0b8c1;
+  cursor: pointer;
+}
+
+.vcs-custom-toggle input[type="checkbox"] {
+  accent-color: #00ffc8;
+  width: 16px;
+  height: 16px;
+}
+
+/* ==================== BUTTONS ==================== */
+
+.vcs-generate-btn {
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #00ffc8, #00d4a8);
+  border: none;
+  border-radius: 10px;
+  color: #000;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.vcs-generate-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0, 255, 200, 0.3);
+}
+
+.vcs-generate-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.vcs-btn-row {
+  display: flex;
+  gap: 10px;
+}
+
+.vcs-btn-row .vcs-generate-btn {
+  flex: 1;
+}
+
+.vcs-secondary-btn {
+  padding: 14px 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #e5e7eb;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.vcs-secondary-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.vcs-secondary-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ==================== PRE-GENERATED ALERTS GRID ==================== */
+
+.vcs-pregen-grid {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.vcs-pregen-grid h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #e5e7eb;
+}
+
+.vcs-pregen-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.vcs-pregen-item:last-child {
+  border-bottom: none;
+}
+
+.vcs-pregen-type {
+  font-size: 13px;
+  font-weight: 600;
+  color: #b0b8c1;
+  min-width: 100px;
+  text-transform: capitalize;
+}
+
+.vcs-pregen-audio {
+  flex: 1;
+  height: 32px;
+}
+
+/* ==================== RESULTS ==================== */
+
+.vcs-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vcs-error {
+  padding: 12px 16px;
+  background: rgba(255, 71, 87, 0.1);
+  border: 1px solid rgba(255, 71, 87, 0.25);
+  border-radius: 10px;
+  color: #ff4757;
+  font-size: 14px;
+}
+
+.vcs-success {
+  padding: 12px 16px;
+  background: rgba(0, 255, 200, 0.08);
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  border-radius: 10px;
+  color: #00ffc8;
+  font-size: 14px;
+}
+
+.vcs-audio-result {
+  padding: 16px;
+  background: rgba(0, 255, 200, 0.04);
+  border: 1px solid rgba(0, 255, 200, 0.12);
+  border-radius: 12px;
+}
+
+.vcs-audio-result audio {
+  width: 100%;
+  height: 40px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.vcs-result-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.vcs-download-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background: rgba(0, 255, 200, 0.12);
+  border: 1px solid rgba(0, 255, 200, 0.25);
+  border-radius: 8px;
+  color: #00ffc8;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+  transition: background 0.2s;
+}
+
+.vcs-download-btn:hover {
+  background: rgba(0, 255, 200, 0.2);
+}
+
+.vcs-copy-btn {
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #e5e7eb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.vcs-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.vcs-script-details {
+  margin-top: 4px;
+}
+
+.vcs-script-details summary {
+  font-size: 13px;
+  color: #8b949e;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.vcs-script-details p {
+  font-size: 13px;
+  color: #b0b8c1;
+  line-height: 1.5;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 768px) {
+  .vcs-page {
+    padding: 16px;
+  }
+
+  .vcs-service-tabs {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .vcs-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vcs-btn-row {
+    flex-direction: column;
+  }
+
+  .vcs-result-actions {
+    flex-direction: column;
+  }
+
+  .vcs-pregen-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .vcs-pregen-audio {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .vcs-service-tabs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .vcs-header h1 {
+    font-size: 22px;
+  }
+}

@@ -544,6 +544,7 @@ const Sidebar = ({ user }) => {
       <AIMenuItem to="/ai-stems" className={isActive("/ai-stems") ? "active" : ""}>
         🎵 <span className="sidebar-label">AI Stem Separation</span>
       </AIMenuItem>
+      <MenuItem to="/voice-services">🎤 <span className="sidebar-label">Voice Clone Studio</span></MenuItem>
 
       {/* ============================== */}
       {/* 🎥 LIVE STREAMING              */}
