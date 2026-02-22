@@ -79,6 +79,7 @@ import OrderHistoryPage from "./pages/OrderHistoryPage";
 import SalesDashboard from "./pages/SalesDashboard";
 import Marketplace from "./pages/Marketplace";
 import StorefrontPage from "./pages/StorefrontPage";
+import BeatStorePage from "./pages/BeatStorePage";
 
 import LiveStreamPage from "./pages/LiveStreams";
 import LiveConcerts from "./pages/LiveConcerts";
@@ -162,7 +163,7 @@ const Layout = () => {
               <Route path="/ai-writer" element={<AIContentWriter />} />
               <Route path="/recording-studio" element={<RecordingStudio />} />
               <Route path="/ai-stems" element={<AIStemSeparation />} />
-              
+
 
               {/* Video Channel Routes */}
               <Route path="/profile/video" element={<VideoChannelProfile />} />
@@ -221,6 +222,8 @@ const Layout = () => {
               <Route path="/user/u/:username" element={<UserSearchProfilePage />} />
               <Route path="/artist/:id" element={<ArtistProfilePage />} />
               <Route path="/artist-profile/:id" element={<ArtistProfilePage />} />
+
+              <Route path="/beats" element={<BeatStorePage />} />
 
               {/* 📺 Live Streaming */}
               <Route path="/live-streams" element={<LiveStreamPage />} />

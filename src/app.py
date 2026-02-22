@@ -40,6 +40,7 @@ from src.api.ai_mastering_phase3 import ai_mastering_phase3_bp
 from src.api.ai_radio_dj import ai_radio_dj_bp
 from src.api.ai_content_routes import ai_content_bp
 from src.api.recording_studio_routes import recording_studio_bp
+from src.api.beat_store_routes import beat_store_bp
 
 # Import your blueprints - use src prefix
 from src.api.routes import api
@@ -298,6 +299,7 @@ app.register_blueprint(mic_simulator_bp)  # 🎙️ Mic Simulator
 app.register_blueprint(freesound_bp)  # 🔊 Freesound.org Sample Browser
 app.register_blueprint(sound_kit_bp)  # 🎛️ Sound Kit Management
 app.register_blueprint(playlist_bp)
+app.register_blueprint(beat_store_bp)
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)

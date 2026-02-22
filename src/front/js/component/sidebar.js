@@ -566,6 +566,10 @@ const Sidebar = ({ user }) => {
       <MenuItem to="/orders" className={isActive("/orders") ? "active" : ""}>
         📦 <span className="sidebar-label">Orders</span>
       </MenuItem>
+      <MenuItem to="/beats" className={isActive("/beats") ? "active" : ""}>
+        🎹 <span className="sidebar-label">Beat Store</span>
+      </MenuItem>
+      
 
       {/* ============================== */}
       {/* ⚙️ ACCOUNT                     */}
