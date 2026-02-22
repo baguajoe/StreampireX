@@ -3,6 +3,7 @@ import { Context } from "../store/appContext";
 import { Link, useParams } from "react-router-dom";
 import UploadTrackModal from "../component/UploadTrackModal";
 import TipJar from "../component/TipJar";
+import BeatsTab from "../component/BeatsTab";
 import "../../styles/ArtistProfile.css";
 
 const ArtistProfilePage = () => {
@@ -75,7 +76,7 @@ const ArtistProfilePage = () => {
 
   const [recentActivity, setRecentActivity] = useState([]);
   const { id } = useParams();
-  
+
   // Check if this is the current user's own profile
   // Try multiple possible localStorage keys and ensure string comparison
   const getCurrentUserId = () => {
@@ -97,10 +98,10 @@ const ArtistProfilePage = () => {
     }
     return "";
   };
-  
+
   const currentUserId = getCurrentUserId();
   const isOwnProfile = currentUserId && id && String(currentUserId) === String(id);
-  
+
   // Debug log (remove in production)
   console.log("Profile Debug:", { currentUserId, id, isOwnProfile });
 
@@ -151,11 +152,11 @@ const ArtistProfilePage = () => {
   useEffect(() => {
     const checkFollowAndBlockStatus = async () => {
       if (!id || isOwnProfile) return;
-      
+
       try {
         const token = localStorage.getItem("token");
         const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
-        
+
         // Check follow status
         const followResponse = await fetch(`${BACKEND_URL}/api/follow/status/${id}`, {
           headers: {
@@ -163,13 +164,13 @@ const ArtistProfilePage = () => {
             'Content-Type': 'application/json'
           }
         });
-        
+
         if (followResponse.ok) {
           const data = await followResponse.json();
           setIsFollowing(data.is_following || false);
           setIsBlocked(data.is_blocked || false);
         }
-        
+
         // Check block status separately for more detail
         const blockResponse = await fetch(`${BACKEND_URL}/api/block/status/${id}`, {
           headers: {
@@ -177,7 +178,7 @@ const ArtistProfilePage = () => {
             'Content-Type': 'application/json'
           }
         });
-        
+
         if (blockResponse.ok) {
           const blockData = await blockResponse.json();
           setIsBlocked(blockData.you_blocked_them || blockData.they_blocked_you || false);
@@ -186,7 +187,7 @@ const ArtistProfilePage = () => {
         console.log("Could not check follow/block status:", err);
       }
     };
-    
+
     checkFollowAndBlockStatus();
   }, [id, isOwnProfile]);
 
@@ -475,7 +476,7 @@ const ArtistProfilePage = () => {
         return;
       }
 
-      const endpoint = isFollowing 
+      const endpoint = isFollowing
         ? `${BACKEND_URL}/api/unfollow/${id}`
         : `${BACKEND_URL}/api/follow/${id}`;
 
@@ -1226,13 +1227,13 @@ const ArtistProfilePage = () => {
               <li>They won't be notified that you blocked them</li>
             </ul>
             <div className="modal-actions">
-              <button 
+              <button
                 className="cancel-btn"
                 onClick={() => setShowBlockModal(false)}
               >
                 Cancel
               </button>
-              <button 
+              <button
                 className="block-confirm-btn"
                 onClick={handleBlock}
               >
@@ -1441,8 +1442,8 @@ const ArtistProfilePage = () => {
               )}
               {!isOwnProfile && (
                 <div className="more-menu-container">
-                  <button 
-                    className="more-btn" 
+                  <button
+                    className="more-btn"
                     onClick={() => setShowMoreMenu(!showMoreMenu)}
                   >
                     ⋯
@@ -1450,7 +1451,7 @@ const ArtistProfilePage = () => {
                   {showMoreMenu && (
                     <div className="more-menu-dropdown">
                       {!isBlocked ? (
-                        <button 
+                        <button
                           className="menu-item danger"
                           onClick={() => {
                             setShowBlockModal(true);
@@ -1460,7 +1461,7 @@ const ArtistProfilePage = () => {
                           🚫 Block {artistInfo.artistName}
                         </button>
                       ) : (
-                        <button 
+                        <button
                           className="menu-item"
                           onClick={handleUnblock}
                         >
@@ -1470,7 +1471,7 @@ const ArtistProfilePage = () => {
                       <button className="menu-item">
                         🚩 Report
                       </button>
-                      <button 
+                      <button
                         className="menu-item"
                         onClick={() => setShowMoreMenu(false)}
                       >
@@ -1515,6 +1516,13 @@ const ArtistProfilePage = () => {
           className={`tab-btn ${activeTab === "about" ? "active" : ""}`}
           onClick={() => setActiveTab("about")}
         >
+          <button
+            className={`tab-btn ${activeTab === "beats" ? "active" : ""}`}
+            onClick={() => setActiveTab("beats")}
+          >
+            🎹 Beats
+          </button>
+
           ℹ️ About
         </button>
         {isOwnProfile && (

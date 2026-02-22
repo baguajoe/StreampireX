@@ -1,0 +1,132 @@
+/* ===== Beats Tab (add to ArtistProfile.css) ===== */
+
+.beats-profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 18px;
+}
+
+.beat-profile-card {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(0,255,200,0.12);
+    transition: all 0.3s ease;
+}
+
+.beat-profile-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,255,200,0.15);
+}
+
+.beat-card-artwork-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+}
+
+.beat-card-artwork {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: rgba(0,255,200,0.1);
+}
+
+.beat-card-play {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.7);
+    border: 2px solid #00ffc8;
+    color: #00ffc8;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.beat-profile-card:hover .beat-card-play { opacity: 1; }
+
+.beat-card-free {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: #10b981;
+    color: white;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.beat-card-info { padding: 14px; }
+
+.beat-card-title {
+    margin: 0 0 8px 0;
+    color: #fff;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.beat-card-title:hover { color: #00ffc8; }
+
+.beat-card-meta {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.beat-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.beat-card-plays {
+    font-size: 0.78rem;
+    color: #888;
+}
+
+.beat-card-license-btn {
+    width: 100%;
+    padding: 8px;
+    background: linear-gradient(135deg, #FF6600, #e55a00);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.beat-card-license-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255,102,0,0.3);
+}
+
+.upload-first-btn {
+    padding: 10px 24px;
+    background: linear-gradient(135deg, #FF6600, #e55a00);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.upload-first-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255,102,0,0.3);
+}
