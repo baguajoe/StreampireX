@@ -63,6 +63,7 @@ from src.api.mic_simulator_routes import mic_simulator_bp  # 🎙️ Mic Simulat
 from src.api.freesound_api import freesound_bp  # 🔊 Freesound.org Sample Browser
 from src.api.sound_kit_routes import sound_kit_bp  # 🎛️ Sound Kit Management
 from src.api.playlist_routes import playlist_bp
+from src.api.voice_clone_services import voice_clone_services_bp
 
 
 # Rest of your code stays the same...
@@ -300,6 +301,7 @@ app.register_blueprint(freesound_bp)  # 🔊 Freesound.org Sample Browser
 app.register_blueprint(sound_kit_bp)  # 🎛️ Sound Kit Management
 app.register_blueprint(playlist_bp)
 app.register_blueprint(beat_store_bp)
+app.register_blueprint(voice_clone_services_bp)
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)

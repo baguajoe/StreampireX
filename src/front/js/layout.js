@@ -41,6 +41,7 @@ import AIRadioDJPage from "./pages/AIRadioDJPage";
 import AIRadioDJ from "./component/AIRadioDJ";
 import AIContentWriter from "./pages/AIContentWriter";
 import AIStemSeparation from "./pages/AIStemSeparation";
+import VoiceCloneServices from './pages/VoiceCloneServices';
 
 import VideoUpload from "./pages/VideoUpload";
 import VideoDetails from "./component/VideoDetails";
@@ -210,6 +211,7 @@ const Layout = () => {
               <Route path="/reels" element={<ReelsFeed />} />
               <Route path="/reels/:id" element={<ReelsFeed />} />
               <Route path="/upload-reel" element={<UploadReel />} />
+              <Route path="/voice-services" element={<VoiceCloneServices />} />
 
               {/* 💿 Releases */}
               <Route path="/create-release" element={<CreateReleasePage />} />
