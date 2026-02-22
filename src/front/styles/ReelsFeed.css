@@ -1,0 +1,767 @@
+/* =============================================================================
+   ReelsFeed.css — TikTok-Style Vertical Reels Feed
+   StreamPireX Dark Theme: #0d1117 bg, #00ffc8 teal, #FF6600 orange
+   ============================================================================= */
+
+/* ==================== PAGE LAYOUT ==================== */
+
+.reels-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.reels-container {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ==================== INDIVIDUAL REEL ==================== */
+
+.reel-item {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  overflow: hidden;
+}
+
+.reel-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+/* ==================== PROGRESS BAR ==================== */
+
+.reel-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  z-index: 20;
+}
+
+.reel-progress-fill {
+  height: 100%;
+  background: #00ffc8;
+  transition: width 0.1s linear;
+  border-radius: 0 2px 2px 0;
+}
+
+/* ==================== FEED TYPE TABS ==================== */
+
+.reels-feed-tabs {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 110;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 4px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.reels-tab {
+  padding: 8px 20px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+}
+
+.reels-tab.active {
+  background: rgba(0, 255, 200, 0.15);
+  color: #00ffc8;
+}
+
+.reels-tab:hover:not(.active) {
+  color: #fff;
+}
+
+/* ==================== UPLOAD FAB ==================== */
+
+.reels-upload-fab {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  border: none;
+  background: linear-gradient(135deg, #FF6600, #00ffc8);
+  color: #000;
+  font-size: 28px;
+  font-weight: 700;
+  cursor: pointer;
+  z-index: 110;
+  box-shadow: 0 4px 20px rgba(0, 255, 200, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reels-upload-fab:hover {
+  transform: translateX(-50%) scale(1.08);
+  box-shadow: 0 6px 28px rgba(0, 255, 200, 0.4);
+}
+
+/* ==================== MUTE BUTTON ==================== */
+
+.reels-mute-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.reels-mute-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ==================== RIGHT SIDE ACTIONS ==================== */
+
+.reel-actions {
+  position: absolute;
+  right: 12px;
+  bottom: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  z-index: 15;
+}
+
+.reel-action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.reel-action-item:active {
+  transform: scale(0.9);
+}
+
+.reel-action-item.liked .action-icon {
+  animation: likePopReel 0.3s ease;
+}
+
+@keyframes likePopReel {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+.action-icon {
+  font-size: 28px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.action-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* Creator Avatar */
+.avatar-action {
+  margin-bottom: 8px;
+}
+
+.reel-creator-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #00ffc8;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* ==================== BOTTOM INFO OVERLAY ==================== */
+
+.reel-info-overlay {
+  position: absolute;
+  bottom: 24px;
+  left: 12px;
+  right: 80px;
+  z-index: 15;
+  pointer-events: auto;
+}
+
+.reel-creator-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.reel-creator-name {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.reel-follow-btn {
+  padding: 4px 14px;
+  border: 1px solid #fff;
+  background: transparent;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reel-follow-btn:hover {
+  background: #00ffc8;
+  border-color: #00ffc8;
+  color: #000;
+}
+
+.reel-title {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 4px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.reel-description {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  margin: 0 0 6px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  line-height: 1.3;
+}
+
+.reel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.reel-tag {
+  color: #00ffc8;
+  font-size: 13px;
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+}
+
+.reel-tag:hover {
+  text-decoration: underline;
+}
+
+.reel-meta {
+  display: flex;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+/* ==================== LOADING & EMPTY STATES ==================== */
+
+.reels-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #0d1117;
+  color: #e5e7eb;
+  gap: 16px;
+}
+
+.reels-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 255, 200, 0.2);
+  border-top-color: #00ffc8;
+  border-radius: 50%;
+  animation: spinReel 0.8s linear infinite;
+}
+
+@keyframes spinReel {
+  to { transform: rotate(360deg); }
+}
+
+.reels-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #0d1117;
+  color: #e5e7eb;
+  gap: 12px;
+  text-align: center;
+  padding: 20px;
+}
+
+.reels-empty-icon {
+  font-size: 64px;
+  margin-bottom: 8px;
+}
+
+.reels-empty h2 {
+  margin: 0;
+  color: #fff;
+}
+
+.reels-empty p {
+  color: #8b949e;
+  margin: 0;
+}
+
+.upload-reel-btn,
+.reels-empty .upload-reel-btn {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, #00ffc8, #00d4a8);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: transform 0.2s;
+}
+
+.upload-reel-btn:hover {
+  transform: scale(1.04);
+}
+
+/* ==================== UPLOAD REEL PAGE ==================== */
+
+.upload-reel-page {
+  min-height: 100vh;
+  background: #0d1117;
+  color: #e5e7eb;
+}
+
+.upload-reel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.upload-reel-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.upload-reel-header .back-btn {
+  background: none;
+  border: none;
+  color: #00ffc8;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.upload-reel-header .header-spacer {
+  width: 60px;
+}
+
+.upload-reel-content {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Upload Area */
+.reel-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 30px;
+  border: 2px dashed rgba(0, 255, 200, 0.3);
+  border-radius: 16px;
+  background: rgba(0, 255, 200, 0.03);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.reel-upload-area:hover {
+  border-color: #00ffc8;
+  background: rgba(0, 255, 200, 0.06);
+}
+
+.upload-icon-large {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+
+.reel-upload-area h3 {
+  color: #fff;
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.reel-upload-area p {
+  color: #8b949e;
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.upload-limits {
+  color: #00ffc8 !important;
+  font-weight: 600;
+}
+
+.upload-formats {
+  font-size: 12px !important;
+  color: #6e7681 !important;
+}
+
+/* Preview Area */
+.reel-preview-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.reel-preview-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 9/16;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.reel-preview-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-preview-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.remove-preview-btn:hover {
+  background: rgba(255, 71, 87, 0.8);
+}
+
+/* Duration Badge */
+.duration-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.duration-badge.within-limit {
+  background: rgba(0, 255, 200, 0.1);
+  border: 1px solid rgba(0, 255, 200, 0.3);
+  color: #00ffc8;
+}
+
+.duration-badge.over-limit {
+  background: rgba(255, 71, 87, 0.15);
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  color: #ff4757;
+}
+
+/* ==================== REEL FORM ==================== */
+
+.reel-form {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.reel-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reel-form label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #b0b8c1;
+}
+
+.reel-form input[type="text"],
+.reel-form textarea {
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #e5e7eb;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.reel-form input[type="text"]:focus,
+.reel-form textarea:focus {
+  border-color: #00ffc8;
+}
+
+.reel-form .char-count {
+  font-size: 11px;
+  color: #6e7681;
+  text-align: right;
+}
+
+/* Tags */
+.tags-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(0, 255, 200, 0.12);
+  border: 1px solid rgba(0, 255, 200, 0.25);
+  border-radius: 16px;
+  color: #00ffc8;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tag-chip button {
+  background: none;
+  border: none;
+  color: #00ffc8;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 2px;
+  opacity: 0.6;
+}
+
+.tag-chip button:hover {
+  opacity: 1;
+}
+
+/* Toggle */
+.toggle-label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.toggle-label input[type="checkbox"] {
+  accent-color: #00ffc8;
+  width: 18px;
+  height: 18px;
+}
+
+/* Error */
+.reel-upload-error {
+  padding: 12px 16px;
+  background: rgba(255, 71, 87, 0.12);
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  border-radius: 10px;
+  color: #ff4757;
+  font-size: 14px;
+}
+
+/* Progress */
+.reel-upload-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reel-upload-progress .progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.reel-upload-progress .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00ffc8, #00d4a8);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.reel-upload-progress span {
+  font-size: 13px;
+  color: #8b949e;
+  text-align: center;
+}
+
+/* Actions */
+.reel-form-actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.reel-form-actions .secondary-btn {
+  flex: 1;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: #e5e7eb;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reel-form-actions .secondary-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.reel-form-actions .primary-btn {
+  flex: 2;
+  padding: 14px;
+  background: linear-gradient(135deg, #00ffc8, #00d4a8);
+  border: none;
+  border-radius: 10px;
+  color: #000;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reel-form-actions .primary-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 255, 200, 0.3);
+}
+
+.reel-form-actions .primary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 768px) {
+  .reels-feed-tabs {
+    top: 10px;
+  }
+  
+  .reels-tab {
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+  
+  .reel-actions {
+    right: 8px;
+    bottom: 100px;
+    gap: 16px;
+  }
+  
+  .action-icon {
+    font-size: 24px;
+  }
+  
+  .reel-creator-avatar {
+    width: 38px;
+    height: 38px;
+  }
+  
+  .reel-info-overlay {
+    bottom: 20px;
+    right: 70px;
+  }
+  
+  .upload-reel-content {
+    padding: 16px;
+  }
+  
+  .reel-preview-wrapper {
+    max-width: 280px;
+  }
+}

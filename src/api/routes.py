@@ -135,6 +135,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CLIP_FOLDER, exist_ok=True)
 
 MAX_STORY_DURATION = 60  # seconds
+MAX_REEL_DURATION = 180  # 3 minutes
 
 def apply_noise_gate(audio_data, intensity):
     """Apply noise gate using pedalboard"""
@@ -23368,6 +23369,339 @@ def cleanup_expired_stories():
     except Exception as e:
         db.session.rollback()
         print(f"❌ Story cleanup error: {e}")
+
+@api.route('/reels/upload', methods=['POST'])
+@jwt_required()
+def upload_reel():
+    """Upload a standalone reel (short-form video, max 3 minutes)"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        video_url = data.get('video_url')
+        if not video_url:
+            return jsonify({'error': 'Video URL is required'}), 400
+
+        title = data.get('title', '').strip()
+        if not title:
+            return jsonify({'error': 'Title is required'}), 400
+
+        duration = int(data.get('duration', 0))
+        if duration > MAX_REEL_DURATION:
+            return jsonify({
+                'error': f'Reels cannot exceed {MAX_REEL_DURATION} seconds ({MAX_REEL_DURATION // 60} minutes). Your video is {duration}s.'
+            }), 400
+
+        # Create VideoClip with content_type='reel' (no source_video_id)
+        reel = VideoClip(
+            user_id=user_id,
+            source_video_id=None,  # Direct upload, not clipped
+            title=title,
+            description=data.get('description', '').strip(),
+            video_url=video_url,
+            thumbnail_url=data.get('thumbnail_url'),
+            duration=min(duration, MAX_REEL_DURATION),
+            content_type='reel',
+            tags=data.get('tags', []),
+            is_public=data.get('is_public', True),
+            start_time=None,
+            end_time=None
+        )
+
+        db.session.add(reel)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Reel uploaded!',
+            'reel': reel.serialize()
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Upload reel error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to upload reel: {str(e)}'}), 500
+
+
+# =============================================================================
+# REELS DISCOVERY FEED (For You / Following / Trending)
+# =============================================================================
+
+@api.route('/reels/feed', methods=['GET'])
+@jwt_required(optional=True)
+def get_reels_feed():
+    """Get reels feed — supports foryou, following, and trending types"""
+    try:
+        user_id = get_jwt_identity()
+        feed_type = request.args.get('type', 'foryou')
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+
+        # Base query: all public reels + clips (both show in feed)
+        base_query = VideoClip.query.filter(
+            VideoClip.is_public == True,
+            VideoClip.content_type.in_(['reel', 'clip'])
+        )
+
+        if feed_type == 'following' and user_id:
+            # Only from users the current user follows
+            following_ids = [f.following_id for f in Follow.query.filter_by(follower_id=user_id).all()]
+            if not following_ids:
+                return jsonify({'reels': [], 'has_next': False, 'page': page, 'total': 0}), 200
+            query = base_query.filter(VideoClip.user_id.in_(following_ids))
+            query = query.order_by(VideoClip.created_at.desc())
+
+        elif feed_type == 'trending':
+            # Trending: weighted by views, likes, recency
+            # Score = (views * 1) + (likes * 3) + (shares * 5), boosted if recent
+            query = base_query.order_by(
+                desc(
+                    (VideoClip.views * 1) +
+                    (VideoClip.likes * 3) +
+                    (VideoClip.shares * 5)
+                )
+            ).filter(
+                VideoClip.created_at >= datetime.utcnow() - timedelta(days=7)
+            )
+
+        else:
+            # For You: mix of trending + recent + some randomness
+            # Get trending IDs from last 14 days
+            trending_cutoff = datetime.utcnow() - timedelta(days=14)
+
+            query = base_query.filter(
+                VideoClip.created_at >= trending_cutoff
+            ).order_by(
+                desc(
+                    (VideoClip.views * 1) +
+                    (VideoClip.likes * 3) +
+                    (VideoClip.shares * 5) +
+                    # Recency boost: newer content gets higher score
+                    func.extract('epoch', VideoClip.created_at - trending_cutoff) / 86400
+                )
+            )
+
+        total = query.count()
+        reels = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        reels_data = []
+        for reel in reels:
+            creator = User.query.get(reel.user_id)
+
+            # Check if current user liked this reel
+            is_liked = False
+            if user_id:
+                is_liked = ClipLike.query.filter_by(
+                    clip_id=reel.id, user_id=user_id
+                ).first() is not None
+
+            reels_data.append({
+                'id': reel.id,
+                'title': reel.title,
+                'description': reel.description,
+                'video_url': reel.video_url,
+                'thumbnail_url': reel.thumbnail_url,
+                'duration': reel.duration,
+                'content_type': reel.content_type,
+                'views': reel.views or 0,
+                'likes': reel.likes or 0,
+                'comments': reel.comments or 0,
+                'shares': reel.shares or 0,
+                'tags': reel.tags or [],
+                'is_liked': is_liked,
+                'is_public': reel.is_public,
+                'created_at': reel.created_at.isoformat() if reel.created_at else None,
+                'user_id': reel.user_id,
+                'creator': {
+                    'id': creator.id,
+                    'username': creator.username,
+                    'display_name': getattr(creator, 'display_name', None) or creator.username,
+                    'profile_picture': getattr(creator, 'profile_picture', None) or getattr(creator, 'avatar_url', None)
+                } if creator else None
+            })
+
+        return jsonify({
+            'reels': reels_data,
+            'has_next': page * per_page < total,
+            'has_prev': page > 1,
+            'page': page,
+            'total': total
+        }), 200
+
+    except Exception as e:
+        print(f"Reels feed error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to fetch reels feed'}), 500
+
+
+# =============================================================================
+# TRENDING REELS (Standalone endpoint)
+# =============================================================================
+
+@api.route('/reels/trending', methods=['GET'])
+def get_trending_reels():
+    """Get trending reels from the past 7 days"""
+    try:
+        limit = request.args.get('limit', 20, type=int)
+
+        cutoff = datetime.utcnow() - timedelta(days=7)
+
+        reels = VideoClip.query.filter(
+            VideoClip.is_public == True,
+            VideoClip.content_type.in_(['reel', 'clip']),
+            VideoClip.created_at >= cutoff
+        ).order_by(
+            desc(
+                (VideoClip.views * 1) +
+                (VideoClip.likes * 3) +
+                (VideoClip.shares * 5)
+            )
+        ).limit(limit).all()
+
+        return jsonify({
+            'trending': [reel.serialize() for reel in reels],
+            'count': len(reels)
+        }), 200
+
+    except Exception as e:
+        print(f"Trending reels error: {e}")
+        return jsonify({'error': 'Failed to fetch trending reels'}), 500
+
+
+# =============================================================================
+# SINGLE REEL DETAIL
+# =============================================================================
+
+@api.route('/reels/<int:reel_id>', methods=['GET'])
+@jwt_required(optional=True)
+def get_single_reel(reel_id):
+    """Get a single reel by ID"""
+    try:
+        user_id = get_jwt_identity()
+
+        reel = VideoClip.query.get(reel_id)
+        if not reel:
+            return jsonify({'error': 'Reel not found'}), 404
+
+        if not reel.is_public and reel.user_id != user_id:
+            return jsonify({'error': 'Reel not found'}), 404
+
+        creator = User.query.get(reel.user_id)
+
+        is_liked = False
+        if user_id:
+            is_liked = ClipLike.query.filter_by(
+                clip_id=reel.id, user_id=user_id
+            ).first() is not None
+
+        reel_data = {
+            'id': reel.id,
+            'title': reel.title,
+            'description': reel.description,
+            'video_url': reel.video_url,
+            'thumbnail_url': reel.thumbnail_url,
+            'duration': reel.duration,
+            'content_type': reel.content_type,
+            'views': reel.views or 0,
+            'likes': reel.likes or 0,
+            'comments': reel.comments or 0,
+            'shares': reel.shares or 0,
+            'tags': reel.tags or [],
+            'is_liked': is_liked,
+            'created_at': reel.created_at.isoformat() if reel.created_at else None,
+            'user_id': reel.user_id,
+            'creator': {
+                'id': creator.id,
+                'username': creator.username,
+                'display_name': getattr(creator, 'display_name', None) or creator.username,
+                'profile_picture': getattr(creator, 'profile_picture', None) or getattr(creator, 'avatar_url', None)
+            } if creator else None
+        }
+
+        return jsonify({'reel': reel_data}), 200
+
+    except Exception as e:
+        print(f"Get reel error: {e}")
+        return jsonify({'error': 'Failed to fetch reel'}), 500
+
+
+# =============================================================================
+# VIEW A CLIP/REEL (if you don't already have this endpoint)
+# =============================================================================
+# NOTE: You may already have a clips view endpoint. If so, skip this.
+# This works for both clips AND reels since they share the VideoClip model.
+# =============================================================================
+
+@api.route('/clips/<int:clip_id>/view', methods=['POST'])
+@jwt_required(optional=True)
+def view_clip(clip_id):
+    """Record a view on a clip/reel"""
+    try:
+        clip = VideoClip.query.get(clip_id)
+        if not clip:
+            return jsonify({'error': 'Not found'}), 404
+
+        clip.views = (clip.views or 0) + 1
+        db.session.commit()
+
+        return jsonify({'success': True, 'views': clip.views}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to record view'}), 500
+
+
+# =============================================================================
+# LIKE/UNLIKE A CLIP/REEL (if you don't already have this endpoint)
+# =============================================================================
+# NOTE: You may already have a clips like endpoint. If so, skip this.
+# =============================================================================
+
+@api.route('/clips/<int:clip_id>/like', methods=['POST'])
+@jwt_required()
+def toggle_clip_like(clip_id):
+    """Like or unlike a clip/reel"""
+    try:
+        user_id = get_jwt_identity()
+
+        clip = VideoClip.query.get(clip_id)
+        if not clip:
+            return jsonify({'error': 'Not found'}), 404
+
+        existing_like = ClipLike.query.filter_by(
+            clip_id=clip_id, user_id=user_id
+        ).first()
+
+        if existing_like:
+            db.session.delete(existing_like)
+            clip.likes = max(0, (clip.likes or 0) - 1)
+            is_liked = False
+        else:
+            new_like = ClipLike(clip_id=clip_id, user_id=user_id)
+            db.session.add(new_like)
+            clip.likes = (clip.likes or 0) + 1
+            is_liked = True
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'is_liked': is_liked,
+            'likes': clip.likes
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Like clip error: {e}")
+        return jsonify({'error': 'Failed to toggle like'}), 500
+
+
 
 # ==================== UPDATE: MODIFY CREATE STORY ====================
 # Update the create_story route to include comment_mode:
