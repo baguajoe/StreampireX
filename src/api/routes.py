@@ -134,6 +134,7 @@ os.makedirs(COVER_UPLOAD_DIR, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CLIP_FOLDER, exist_ok=True)
 
+MAX_STORY_DURATION = 60  # seconds
 
 def apply_noise_gate(audio_data, intensity):
     """Apply noise gate using pedalboard"""
@@ -22872,13 +22873,26 @@ def create_story():
                 if not media_url:
                     return jsonify({'error': 'Media URL required'}), 400
                 
+                # Get duration and media type
+                duration = float(data.get('duration', 5))
+                media_type = data.get('media_type', 'image')
+                
+                # Enforce 60-second cap for video stories
+                if media_type == 'video' and duration > MAX_STORY_DURATION:
+                    return jsonify({
+                        'error': f'Video stories cannot exceed {MAX_STORY_DURATION} seconds. Your video is {int(duration)}s. Please trim it before uploading.'
+                    }), 400
+                
                 story = Story(
                     user_id=user_id,
                     media_url=media_url,
-                    media_type=data.get('media_type', 'image'),
+                    media_type=media_type,
                     caption=data.get('caption', ''),
+                    duration=min(int(duration), MAX_STORY_DURATION),
+                    thumbnail_url=data.get('thumbnail_url'),
                     allow_reshare=data.get('allow_reshare', True),
-                    allow_comments=data.get('allow_comments', True)
+                    allow_comments=data.get('allow_comments', True),
+                    comment_mode=data.get('comment_mode', 'both')
                 )
         
         db.session.add(story)
@@ -22896,7 +22910,6 @@ def create_story():
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Failed to create story: {str(e)}'}), 500
-
 
 # =============================================================================
 # VIEW A STORY (Mark as viewed)

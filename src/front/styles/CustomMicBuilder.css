@@ -1,0 +1,456 @@
+/* =============================================================================
+   CustomMicBuilder.css — Mic Profile Builder Styles
+   ============================================================================= */
+
+.cmb-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.cmb-modal {
+  background: #111827;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  width: 90vw;
+  max-width: 860px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Header ── */
+.cmb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cmb-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e1e4e8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmb-close {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #888;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cmb-close:hover { color: #fff; border-color: rgba(255, 255, 255, 0.2); }
+
+/* ── Body Layout ── */
+.cmb-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.cmb-left {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cmb-right {
+  width: 420px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+
+/* ── Sections ── */
+.cmb-section {
+  margin-bottom: 16px;
+}
+
+.cmb-section h4 {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #00ffc8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cmb-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.cmb-section-header h4 { margin: 0; }
+
+/* ── Inputs ── */
+.cmb-row { margin-bottom: 8px; }
+
+.cmb-name-input,
+.cmb-desc-input {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #e1e4e8;
+  font-size: 0.85rem;
+  outline: none;
+}
+.cmb-name-input:focus,
+.cmb-desc-input:focus {
+  border-color: rgba(0, 255, 200, 0.3);
+}
+
+.cmb-label {
+  font-size: 0.72rem;
+  color: #888;
+  min-width: 40px;
+}
+
+/* ── Icon Picker ── */
+.cmb-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmb-icon-picker {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.cmb-icon-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cmb-icon-btn:hover { border-color: rgba(255, 255, 255, 0.2); }
+.cmb-icon-btn.active { border-color: #00ffc8; background: rgba(0, 255, 200, 0.1); }
+
+/* ── Color Picker ── */
+.cmb-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cmb-color-picker {
+  display: flex;
+  gap: 4px;
+}
+
+.cmb-color-btn {
+  width: 22px;
+  height: 22px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.cmb-color-btn:hover { transform: scale(1.15); }
+.cmb-color-btn.active { border-color: #fff; box-shadow: 0 0 8px rgba(255, 255, 255, 0.3); }
+
+/* ── Templates ── */
+.cmb-templates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cmb-template-btn {
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cmb-template-btn:hover { border-color: rgba(0, 255, 200, 0.3); color: #fff; }
+
+/* ── Add Button ── */
+.cmb-add-btn {
+  padding: 5px 12px;
+  background: rgba(0, 255, 200, 0.1);
+  border: 1px solid rgba(0, 255, 200, 0.2);
+  border-radius: 6px;
+  color: #00ffc8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cmb-add-btn:hover:not(:disabled) { background: rgba(0, 255, 200, 0.15); }
+.cmb-add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Filter Stages ── */
+.cmb-filters-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cmb-filter-stage {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.cmb-filter-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.cmb-filter-icon { font-size: 14px; }
+
+.cmb-filter-type-select {
+  flex: 1;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  color: #e1e4e8;
+  font-size: 0.75rem;
+  outline: none;
+}
+
+.cmb-filter-num {
+  font-size: 0.65rem;
+  color: #666;
+  font-family: 'Courier New', monospace;
+}
+
+.cmb-filter-remove {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+.cmb-filter-remove:hover { color: #ff6b6b; }
+
+.cmb-filter-params {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Parameter Controls ── */
+.cmb-param {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cmb-param label {
+  font-size: 0.68rem;
+  color: #888;
+  min-width: 55px;
+}
+
+.cmb-param input[type="range"] {
+  flex: 1;
+  height: 3px;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+}
+
+.cmb-param input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #00ffc8;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #111;
+}
+
+.cmb-param-val {
+  font-size: 0.68rem;
+  color: #00ffc8;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  min-width: 55px;
+  text-align: right;
+}
+
+/* ── Toggle ── */
+.cmb-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  color: #888;
+}
+
+.cmb-toggle input { accent-color: #00ffc8; }
+.cmb-toggle span { font-weight: 600; }
+
+/* ── Empty State ── */
+.cmb-empty {
+  padding: 20px;
+  text-align: center;
+  color: #555;
+  font-size: 0.8rem;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  border: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+/* ── Right Panel: Preview ── */
+.cmb-preview-section h4,
+.cmb-profile-preview h4 {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #00ffc8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cmb-summary {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.cmb-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.cmb-summary-name {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.cmb-summary-type {
+  font-size: 0.7rem;
+  color: #888;
+}
+
+.cmb-summary-desc {
+  font-size: 0.78rem;
+  color: #aaa;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.cmb-summary-stats {
+  display: flex;
+  gap: 12px;
+}
+
+.cmb-summary-stats span {
+  padding: 3px 8px;
+  background: rgba(0, 255, 200, 0.08);
+  border: 1px solid rgba(0, 255, 200, 0.12);
+  border-radius: 4px;
+  font-size: 0.68rem;
+  color: #00ffc8;
+  font-family: 'Courier New', monospace;
+}
+
+/* ── Actions ── */
+.cmb-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cmb-cancel-btn {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #ccc;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.cmb-cancel-btn:hover { background: rgba(255, 255, 255, 0.08); }
+
+.cmb-save-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  color: #000;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cmb-save-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+.cmb-save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Compressor Params ── */
+.cmb-comp-params {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .cmb-body {
+    flex-direction: column;
+  }
+  .cmb-right {
+    width: 100%;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .cmb-left {
+    border-right: none;
+  }
+}

@@ -3,6 +3,7 @@
 import React, { useState, useContext, useRef } from "react";
 import { Context } from "../store/appContext";
 import { useNavigate } from "react-router-dom";
+import { checkVideoDuration, MAX_STORY_DURATION, formatDuration } from '../utils/videoDurationCheck';
 import "../../styles/Stories.css";
 
 const StoryUpload = () => {
@@ -19,6 +20,7 @@ const StoryUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState(null);
+  const [videoDuration, setVideoDuration] = useState(null);
   
   // Camera mode
   const [showCamera, setShowCamera] = useState(false);
@@ -36,7 +38,7 @@ const StoryUpload = () => {
   ];
 
   // Handle file selection
-  const handleFileSelect = (e) => {
+  const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -52,6 +54,18 @@ const StoryUpload = () => {
     if (file.size > maxSize) {
       setError(`File too large. Maximum ${isVideo ? '50MB' : '10MB'}`);
       return;
+    }
+
+    // Check video duration cap
+    if (isVideo) {
+      const result = await checkVideoDuration(file, MAX_STORY_DURATION);
+      setVideoDuration(result.duration);
+      if (!result.valid) {
+        setError(result.message);
+        return;
+      }
+    } else {
+      setVideoDuration(null);
     }
     
     setSelectedFile(file);
@@ -203,7 +217,7 @@ const StoryUpload = () => {
           thumbnail_url: mediaType === 'video' 
             ? uploadData.secure_url.replace(/\.[^.]+$/, '.jpg') 
             : uploadData.secure_url,
-          duration: mediaType === 'video' ? Math.ceil(uploadData.duration || 15) : 5,
+          duration: mediaType === 'video' ? Math.min(Math.ceil(uploadData.duration || 15), MAX_STORY_DURATION) : 5,
           caption: caption.trim() || null,
           comment_mode: commentMode  // NEW: Send comment mode
         })
@@ -234,6 +248,7 @@ const StoryUpload = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
     setCaption("");
+    setVideoDuration(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -356,6 +371,20 @@ const StoryUpload = () => {
               />
               <span className="char-count">{caption.length}/200</span>
             </div>
+
+            {/* Video Duration Badge */}
+            {mediaType === 'video' && videoDuration && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '8px 12px', borderRadius: '8px', fontSize: '13px',
+                marginBottom: '12px',
+                background: videoDuration > MAX_STORY_DURATION ? 'rgba(255,71,87,0.15)' : 'rgba(0,255,200,0.1)',
+                border: `1px solid ${videoDuration > MAX_STORY_DURATION ? 'rgba(255,71,87,0.3)' : 'rgba(0,255,200,0.3)'}`,
+                color: videoDuration > MAX_STORY_DURATION ? '#ff4757' : '#00ffc8'
+              }}>
+                ⏱️ {formatDuration(videoDuration)} / {formatDuration(MAX_STORY_DURATION)} max
+              </div>
+            )}
             
             {/* Comment Mode Selector - NEW */}
             <div className="comment-mode-selector">
