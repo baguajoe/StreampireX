@@ -1,0 +1,290 @@
+/* =============================================================================
+   ChordProgressionGenerator.css — StreamPireX Theme
+   ============================================================================= */
+
+.chord-gen {
+  background: #0d1520;
+  border: 1px solid rgba(0, 255, 200, 0.12);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chord-gen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chord-gen-title {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.chord-gen-badge {
+  background: rgba(167, 139, 250, 0.15);
+  color: #a78bfa;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Settings Grid */
+.chord-gen-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.chord-gen-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.chord-gen-field label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chord-gen-field select {
+  background: #111a2e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  padding: 5px 8px;
+  border-radius: 5px;
+  font-size: 0.8rem;
+  min-width: 80px;
+  cursor: pointer;
+}
+
+.chord-gen-field select:focus {
+  outline: none;
+  border-color: #00ffc8;
+}
+
+.chord-gen-field.checkbox label {
+  flex-direction: row;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.8rem;
+  text-transform: none;
+}
+
+.chord-gen-field.checkbox input[type="checkbox"] {
+  accent-color: #00ffc8;
+}
+
+/* Actions */
+.chord-gen-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chord-gen-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.chord-gen-btn.primary {
+  background: rgba(0, 255, 200, 0.12);
+  border-color: rgba(0, 255, 200, 0.3);
+  color: #00ffc8;
+}
+
+.chord-gen-btn.primary:hover {
+  background: rgba(0, 255, 200, 0.2);
+  border-color: #00ffc8;
+}
+
+.chord-gen-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chord-gen-btn.insert {
+  background: rgba(255, 102, 0, 0.12);
+  border-color: rgba(255, 102, 0, 0.3);
+  color: #FF6600;
+}
+
+.chord-gen-btn.insert:hover {
+  background: rgba(255, 102, 0, 0.2);
+  border-color: #FF6600;
+}
+
+.chord-gen-error {
+  color: #ff4757;
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  background: rgba(255, 71, 87, 0.1);
+  border-radius: 4px;
+}
+
+/* Generated Chords */
+.chord-gen-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chord-gen-progression-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.82rem;
+}
+
+.chord-gen-progression-label strong {
+  color: #00ffc8;
+}
+
+.chord-gen-chords {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chord-card {
+  background: rgba(0, 255, 200, 0.06);
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  min-width: 70px;
+}
+
+.chord-card:hover {
+  background: rgba(0, 255, 200, 0.12);
+  border-color: #00ffc8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 255, 200, 0.15);
+}
+
+.chord-card-roman {
+  color: #00ffc8;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.chord-card-name {
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.chord-card-notes {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.65rem;
+  font-family: monospace;
+  margin-top: 4px;
+}
+
+.chord-card-beats {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.6rem;
+  margin-top: 2px;
+}
+
+/* Suggestions */
+.chord-gen-suggestions {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 10px;
+}
+
+.chord-gen-suggest-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  margin-bottom: 8px;
+}
+
+.chord-gen-suggest-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chord-suggest-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: rgba(167, 139, 250, 0.08);
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 60px;
+}
+
+.chord-suggest-btn:hover {
+  background: rgba(167, 139, 250, 0.18);
+  border-color: #a78bfa;
+  transform: translateY(-1px);
+}
+
+.suggest-roman {
+  color: #a78bfa;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.suggest-name {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.72rem;
+}
+
+.suggest-bar {
+  width: 40px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.suggest-bar-fill {
+  height: 100%;
+  background: #a78bfa;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .chord-gen-settings {
+    gap: 6px;
+  }
+  .chord-gen-field select {
+    min-width: 60px;
+    font-size: 0.75rem;
+  }
+  .chord-gen-chords {
+    gap: 6px;
+  }
+  .chord-card {
+    padding: 8px 10px;
+    min-width: 55px;
+  }
+}

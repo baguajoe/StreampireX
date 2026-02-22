@@ -1,0 +1,225 @@
+/* =============================================================================
+   PianoRoll.css — FL Studio-Style Piano Roll
+   StreamPireX Theme: Teal #00ffc8 | Orange #FF6600 | Dark #0a1628
+   ============================================================================= */
+
+.piano-roll {
+  display: flex;
+  flex-direction: column;
+  background: #0a0f1a;
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+  height: 100%;
+  min-height: 400px;
+  position: relative;
+}
+
+.piano-roll.embedded {
+  border: none;
+  border-radius: 0;
+}
+
+/* =============================================================================
+   TOOLBAR
+   ============================================================================= */
+
+.pr-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: linear-gradient(180deg, #111a2e 0%, #0d1520 100%);
+  border-bottom: 1px solid rgba(0, 255, 200, 0.12);
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  min-height: 40px;
+}
+
+.pr-toolbar-left,
+.pr-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pr-tool-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pr-divider {
+  width: 1px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 4px;
+}
+
+.pr-tool-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.pr-tool-btn:hover {
+  background: rgba(0, 255, 200, 0.12);
+  border-color: rgba(0, 255, 200, 0.3);
+  color: #00ffc8;
+}
+
+.pr-tool-btn.active {
+  background: rgba(0, 255, 200, 0.18);
+  border-color: #00ffc8;
+  color: #00ffc8;
+  box-shadow: 0 0 8px rgba(0, 255, 200, 0.2);
+}
+
+.pr-tool-btn.small {
+  padding: 3px 7px;
+  font-size: 0.75rem;
+}
+
+.pr-transport-btn {
+  background: rgba(0, 255, 200, 0.1);
+  border: 1px solid rgba(0, 255, 200, 0.25);
+  color: #00ffc8;
+  padding: 5px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.15s ease;
+}
+
+.pr-transport-btn:hover {
+  background: rgba(0, 255, 200, 0.2);
+}
+
+.pr-transport-btn.playing {
+  background: rgba(255, 71, 87, 0.2);
+  border-color: #ff4757;
+  color: #ff4757;
+}
+
+.pr-snap-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.75rem;
+  margin-right: 2px;
+}
+
+.pr-select {
+  background: #111a2e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.pr-select:focus {
+  outline: none;
+  border-color: #00ffc8;
+}
+
+.pr-key-display {
+  color: #00ffc8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(0, 255, 200, 0.08);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 255, 200, 0.15);
+}
+
+.pr-zoom-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pr-zoom-label {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.72rem;
+  min-width: 36px;
+  text-align: center;
+}
+
+.pr-note-count {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.72rem;
+}
+
+/* =============================================================================
+   CANVAS
+   ============================================================================= */
+
+.pr-canvas {
+  flex: 1;
+  cursor: crosshair;
+  display: block;
+  min-height: 300px;
+}
+
+.pr-canvas:active {
+  cursor: grabbing;
+}
+
+.pr-vel-canvas {
+  height: 80px;
+  cursor: pointer;
+  display: block;
+  border-top: 1px solid rgba(0, 255, 200, 0.1);
+  flex-shrink: 0;
+}
+
+/* =============================================================================
+   STATUS BAR
+   ============================================================================= */
+
+.pr-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: #080c16;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.68rem;
+  font-family: monospace;
+  flex-shrink: 0;
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  .pr-toolbar {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
+  .pr-tool-btn {
+    padding: 4px 7px;
+    font-size: 0.78rem;
+  }
+
+  .pr-toolbar-right {
+    display: none;
+  }
+
+  .pr-statusbar {
+    display: none;
+  }
+
+  .piano-roll {
+    min-height: 300px;
+  }
+}
