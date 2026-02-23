@@ -1,0 +1,523 @@
+/* =============================================================================
+   SamplerInstrument.css — Track-level Sampler for StreamPireX DAW
+   ============================================================================= */
+
+.sampler-instrument {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: linear-gradient(180deg, #111820 0%, #0d1318 100%);
+  color: #c0d0e0;
+  font-family: 'Outfit', -apple-system, sans-serif;
+  font-size: 0.75rem;
+  overflow-y: auto;
+}
+
+/* ── Header ── */
+.si-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: linear-gradient(180deg, #1a2535 0%, #141e2c 100%);
+  border-bottom: 1px solid rgba(0, 255, 200, 0.08);
+}
+
+.si-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.si-logo {
+  color: #00ffc8;
+  font-size: 1rem;
+}
+
+.si-title {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #00ffc8;
+  text-transform: uppercase;
+}
+
+.si-sample-name {
+  color: #8aa0b8;
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  background: rgba(0, 255, 200, 0.05);
+  border: 1px solid rgba(0, 255, 200, 0.1);
+  border-radius: 3px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.si-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.si-btn {
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #8aa0b8;
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.si-btn:hover:not(:disabled) {
+  background: rgba(0, 255, 200, 0.08);
+  color: #00ffc8;
+  border-color: rgba(0, 255, 200, 0.2);
+}
+.si-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.si-select {
+  padding: 3px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  background: #141e2c;
+  color: #8aa0b8;
+  font-size: 0.65rem;
+  cursor: pointer;
+  outline: none;
+}
+.si-select:hover { border-color: rgba(0, 255, 200, 0.2); }
+
+/* ── Tabs ── */
+.si-tabs {
+  display: flex;
+  gap: 0;
+  background: #0d1318;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.si-tab {
+  padding: 5px 14px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #556;
+  font-size: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.5px;
+}
+.si-tab:hover { color: #8aa0b8; }
+.si-tab.active {
+  color: #00ffc8;
+  border-bottom-color: #00ffc8;
+  background: rgba(0, 255, 200, 0.03);
+}
+
+/* ── Waveform ── */
+.si-waveform-wrap {
+  position: relative;
+  background: #0a1018;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  min-height: 180px;
+}
+
+.si-waveform {
+  display: block;
+  width: 100%;
+  height: 180px;
+}
+
+.si-drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 180px;
+  border: 2px dashed rgba(0, 255, 200, 0.15);
+  border-radius: 8px;
+  margin: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.si-drop-zone:hover {
+  border-color: rgba(0, 255, 200, 0.3);
+  background: rgba(0, 255, 200, 0.02);
+}
+.si-drop-icon {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+.si-drop-text {
+  color: #6a8098;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.si-drop-hint {
+  color: #3a4a58;
+  font-size: 0.6rem;
+  margin-top: 4px;
+}
+
+.si-waveform-info {
+  display: flex;
+  gap: 16px;
+  padding: 3px 10px;
+  font-size: 0.55rem;
+  color: #4a6278;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ── Content ── */
+.si-content {
+  flex: 1;
+  padding: 10px 12px;
+  overflow-y: auto;
+}
+
+.si-main-controls,
+.si-adsr-controls,
+.si-filter-controls,
+.si-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.si-control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.si-control-group label {
+  min-width: 80px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #6a8098;
+}
+
+.si-val {
+  color: #00ffc8;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  margin-left: 4px;
+}
+
+/* Slider */
+.si-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  background: #1a2838;
+  border-radius: 2px;
+  outline: none;
+}
+.si-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #00ffc8;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #0a1018;
+  box-shadow: 0 0 4px rgba(0, 255, 200, 0.3);
+}
+.si-slider::-webkit-slider-thumb:hover {
+  background: #33ffd6;
+  box-shadow: 0 0 8px rgba(0, 255, 200, 0.5);
+}
+.si-slider:disabled { opacity: 0.3; }
+
+.si-slider-orange::-webkit-slider-thumb {
+  background: #FF6600;
+  box-shadow: 0 0 4px rgba(255, 102, 0, 0.3);
+}
+
+/* Root note */
+.si-root-select {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.si-root-display {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  padding: 2px 8px;
+  background: rgba(0, 255, 200, 0.06);
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  border-radius: 3px;
+  color: #00ffc8;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+}
+.si-tiny-btn {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #8aa0b8;
+  font-weight: 700;
+  cursor: pointer;
+}
+.si-tiny-btn:hover { background: rgba(0, 255, 200, 0.08); color: #00ffc8; }
+
+/* Loop toggle */
+.si-loop-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.si-loop-range {
+  display: flex;
+  gap: 12px;
+  font-size: 0.55rem;
+  color: #00ffc8;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── ADSR Visual ── */
+.si-adsr-visual {
+  margin-bottom: 6px;
+}
+.si-adsr-svg {
+  width: 100%;
+  max-width: 400px;
+  height: 60px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+.si-adsr-sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Filter ── */
+.si-filter-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: #8aa0b8;
+}
+
+/* ── Settings ── */
+.si-play-modes {
+  display: flex;
+  gap: 4px;
+}
+.si-mode-btn {
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #556;
+  font-size: 0.6rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.si-mode-btn.active {
+  background: rgba(0, 255, 200, 0.1);
+  color: #00ffc8;
+  border-color: rgba(0, 255, 200, 0.25);
+}
+.si-mode-btn:hover:not(.active) { color: #8aa0b8; background: rgba(255,255,255,0.05); }
+
+.si-keyboard-hint {
+  padding: 6px 10px;
+  background: rgba(0, 255, 200, 0.03);
+  border: 1px solid rgba(0, 255, 200, 0.06);
+  border-radius: 4px;
+  color: #4a6278;
+  font-size: 0.6rem;
+}
+
+/* ── Mini Keyboard ── */
+.si-keyboard {
+  border-top: 1px solid rgba(0, 255, 200, 0.08);
+  background: linear-gradient(180deg, #0d1318 0%, #0a1018 100%);
+  padding: 6px 8px 8px;
+}
+
+.si-keyboard-keys {
+  position: relative;
+  display: flex;
+  height: 60px;
+}
+
+.si-key {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.08s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  user-select: none;
+}
+
+.si-key.white {
+  flex: 1;
+  height: 60px;
+  background: linear-gradient(180deg, #e8e8e8 0%, #d0d0d0 100%);
+  border: 1px solid #999;
+  border-radius: 0 0 3px 3px;
+  margin: 0 1px;
+  z-index: 1;
+}
+.si-key.white:hover { background: linear-gradient(180deg, #f0f0f0 0%, #e0e0e0 100%); }
+.si-key.white.active { background: linear-gradient(180deg, #00ffc8 0%, #00dda8 100%); }
+.si-key.white.root { border-bottom: 3px solid #FF6600; }
+
+.si-key.black {
+  position: absolute;
+  width: 4.5%;
+  height: 38px;
+  background: linear-gradient(180deg, #333 0%, #111 100%);
+  border: 1px solid #000;
+  border-radius: 0 0 2px 2px;
+  z-index: 2;
+}
+.si-key.black:hover { background: linear-gradient(180deg, #444 0%, #222 100%); }
+.si-key.black.active { background: linear-gradient(180deg, #00cc99 0%, #009977 100%); }
+
+.si-key-label {
+  font-size: 0.45rem;
+  color: #666;
+  padding-bottom: 2px;
+}
+.si-key.black .si-key-label { color: #888; padding-bottom: 0; }
+
+.si-key-shortcut {
+  font-size: 0.45rem;
+  color: #999;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+}
+.si-key.black .si-key-shortcut { color: #555; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .si-header { flex-direction: column; gap: 6px; }
+  .si-waveform { height: 120px; }
+  .si-keyboard-keys { height: 48px; }
+}
+
+/* =============================================================================
+   Chop View
+   ============================================================================= */
+.si-chop-panel {
+  background: #080e14;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.si-chop-canvas-wrap {
+  position: relative;
+}
+
+.si-chop-canvas {
+  display: block;
+  width: 100%;
+  height: 180px;
+}
+
+.si-chop-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(255, 102, 0, 0.1);
+  flex-wrap: wrap;
+}
+
+.si-chop-modes {
+  display: flex;
+  gap: 3px;
+}
+
+.si-chop-params {
+  flex: 1;
+  min-width: 150px;
+}
+
+.si-chop-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.si-chop-count {
+  font-size: 0.6rem;
+  color: #FF6600;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.si-chop-hint {
+  font-size: 0.6rem;
+  color: #4a6278;
+  font-style: italic;
+}
+
+.si-chop-slices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.si-slice-btn {
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 102, 0, 0.15);
+  border-radius: 3px;
+  background: rgba(255, 102, 0, 0.05);
+  color: #8aa0b8;
+  font-size: 0.55rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.si-slice-btn:hover {
+  background: rgba(255, 102, 0, 0.1);
+  color: #FF6600;
+}
+.si-slice-btn.playing {
+  background: rgba(0, 255, 200, 0.15);
+  color: #00ffc8;
+  border-color: rgba(0, 255, 200, 0.3);
+}
+
+/* Send buttons */
+.si-send-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.si-btn-send {
+  background: rgba(0, 255, 200, 0.06) !important;
+  border-color: rgba(0, 255, 200, 0.15) !important;
+  color: #00ffc8 !important;
+}
+.si-btn-send:hover:not(:disabled) {
+  background: rgba(0, 255, 200, 0.12) !important;
+}

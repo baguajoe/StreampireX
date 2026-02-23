@@ -19,6 +19,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import ArrangerView from '../component/ArrangerView';
 import AIMixAssistant from '../component/AIMixAssistant';
 import SamplerBeatMaker from '../component/SamplerBeatMaker';
+import SamplerInstrument from '../component/SamplerInstrument';
 import MicSimulator from '../component/MicSimulator';
 import VirtualPiano from '../component/VirtualPiano';
 import FreesoundBrowser from '../component/FreesoundBrowser';
@@ -40,6 +41,7 @@ import '../../styles/RecordingStudio.css';
 import '../../styles/ArrangerView.css';
 import '../../styles/AIMixAssistant.css';
 import '../../styles/SamplerBeatMaker.css';
+import '../../styles/SamplerInstrument.css';
 import '../../styles/MicSimulator.css';
 import '../../styles/VirtualPiano.css';
 import '../../styles/FreesoundBrowser.css';
@@ -1090,6 +1092,10 @@ const RecordingStudio = ({ user }) => {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><circle cx="16" cy="8" r="1.5" fill="currentColor"/></svg>
             AI Mix
           </button>
+          <button className={`daw-view-tab ${viewMode==='sampler'?'active':''}`} onClick={()=>setViewMode('sampler')} title="Sampler Instrument">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="14" rx="2"/><line x1="6" y1="6" x2="6" y2="20"/><line x1="10" y1="6" x2="10" y2="20"/><line x1="14" y1="6" x2="14" y2="20"/><line x1="18" y1="6" x2="18" y2="20"/><rect x="7" y="6" width="2" height="9" fill="currentColor" rx="0.5"/><rect x="15" y="6" width="2" height="9" fill="currentColor" rx="0.5"/></svg>
+            Sampler
+          </button>
         </div>
 
         {/* I/O & Status */}
@@ -1540,6 +1546,29 @@ const RecordingStudio = ({ user }) => {
               onApplyVolume={handleAIApplyVolume} onApplyPan={handleAIApplyPan}
               onApplyEQ={handleAIApplyEQ} onApplyCompression={handleAIApplyCompression}
               onClose={() => setViewMode('record')}
+            />
+          </div>
+        )}
+
+        {viewMode === 'sampler' && (
+          <div className="daw-sampler-view" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <SamplerInstrument
+              track={tracks[selectedTrackIndex]}
+              trackIndex={selectedTrackIndex}
+              onUpdate={(idx, props) => updateTrack(idx, props)}
+              audioCtx={audioCtxRef.current}
+              onSendToBeatMaker={(buffer, name) => {
+                // Store in a ref that Beat Maker can pick up
+                window.__spx_sampler_export = { buffer, name, timestamp: Date.now() };
+                setViewMode('beatmaker');
+                setStatus(`Sample "${name}" sent to Beat Maker — load onto a pad`);
+              }}
+              onSendToTrack={(buffer, name) => {
+                const idx = selectedTrackIndex;
+                updateTrack(idx, { audioBuffer: buffer, name: name || tracks[idx].name });
+                setViewMode('record');
+                setStatus(`Sample "${name}" placed on Track ${idx + 1}`);
+              }}
             />
           </div>
         )}
