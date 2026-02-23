@@ -9,7 +9,7 @@
 
 import React, { useState, useCallback, useEffect, useContext } from 'react';
 import { Context } from '../store/appContext';
-import './ChordProgressionGenerator.css';
+import '../../styles/ChordProgressionGenerator.css';
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 

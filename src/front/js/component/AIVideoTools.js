@@ -8,7 +8,7 @@
 
 import React, { useState, useCallback, useContext } from 'react';
 import { Context } from '../store/appContext';
-import './AIVideoTools.css';
+import '../../styles/AIVideoTools.css';
 
 const AIVideoTools = ({ videoUrl, onVideoUpdate, onCaptionsGenerated }) => {
   const { store } = useContext(Context);

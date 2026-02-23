@@ -8,7 +8,7 @@
 // =============================================================================
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import './PianoRoll.css';
+import '../../styles/PianoRoll.css';
 
 // =============================================================================
 // CONSTANTS

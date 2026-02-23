@@ -51,8 +51,7 @@ import '../../styles/SoundKitManager.css';
 import '../../styles/PianoRoll.css';
 import '../../styles/ChordProgressionGenerator.css';
 
-// Optional (recommended) - add a menu bar css if you have one
-// import '../../styles/DAWMenuBar.css';
+import '../../styles/DAWMenuBar.css';
 
 const TRACK_COLORS = [
   '#34c759', '#ff9500', '#007aff', '#af52de', '#ff3b30', '#5ac8fa', '#ff2d55', '#ffcc00',
@@ -65,7 +64,7 @@ const TIER_TRACK_LIMITS = { free: 4, starter: 8, creator: 16, pro: 32 };
 const DEFAULT_MAX = 4;
 
 const DEFAULT_EFFECTS = () => ({
-  eq: { lowGain: 0, midGain: 0, midFreq: 1000, highGain: 0, enabled: true },
+  eq: { lowGain: 0, midGain: 0, midFreq: 1000, highGain: 0, enabled: false },
   compressor: { threshold: -24, ratio: 4, attack: 0.003, release: 0.25, enabled: false },
   reverb: { mix: 0.2, decay: 2.0, enabled: false },
   delay: { time: 0.3, feedback: 0.3, mix: 0.2, enabled: false },
@@ -707,7 +706,8 @@ const RecordingStudio = ({ user }) => {
   }, []);
 
   // ── MenuBar action router ──
-  const handleMenuAction = useCallback((action) => {
+  // ── MenuBar action router (plain function — no useCallback to avoid stale closures) ──
+  const handleMenuAction = async (action) => {
     const sel = clamp(selectedTrackIndex, 0, Math.max(0, tracks.length - 1));
 
     const toggleArmSelected = () => {
@@ -737,8 +737,113 @@ const RecordingStudio = ({ user }) => {
       // File
       case 'file:new': newProject(); break;
       case 'file:open': loadProjectList(); break;
+      case 'file:openLocal': {
+        // Open From Desktop — import a .spx project file
+        const inp = document.createElement('input');
+        inp.type = 'file';
+        inp.accept = '.spx,.json';
+        inp.onchange = async (e) => {
+          const f = e.target.files[0];
+          if (!f) return;
+          try {
+            const text = await f.text();
+            const data = JSON.parse(text);
+            if (data.format !== 'streampirex-daw') {
+              setStatus('⚠ Not a valid StreamPireX project file');
+              return;
+            }
+            stopEverything();
+            setProjectId(null);
+            setProjectName(data.name || 'Imported Project');
+            setBpm(data.bpm || 120);
+            setMasterVolume(data.master_volume || 0.8);
+            if (data.time_signature) {
+              const ts = data.time_signature.split('/').map(Number);
+              if (ts.length === 2) setTimeSignature(ts);
+            }
+            if (data.piano_roll_notes) setPianoRollNotes(data.piano_roll_notes);
+            if (data.piano_roll_key) setPianoRollKey(data.piano_roll_key);
+            if (data.piano_roll_scale) setPianoRollScale(data.piano_roll_scale);
+            const trackCount = Math.min(Math.max(data.tracks?.length || 8, 1), maxTracks);
+            const loaded = Array.from({ length: trackCount }, (_, i) => ({
+              ...DEFAULT_TRACK(i),
+              ...(data.tracks[i] || {}),
+              audioBuffer: null,
+              effects: data.tracks[i]?.effects || DEFAULT_EFFECTS(),
+              regions: data.tracks[i]?.regions || []
+            }));
+            setTracks(loaded);
+            setSelectedTrackIndex(0);
+            // Load audio buffers from URLs if they exist
+            for (let i = 0; i < loaded.length; i++) {
+              if (loaded[i].audio_url && !loaded[i].audio_url.startsWith('blob:')) {
+                await loadAudioBuffer(loaded[i].audio_url, i);
+              }
+            }
+            setStatus(`✓ Opened: ${data.name}`);
+          } catch (err) {
+            setStatus(`✗ Failed to open project: ${err.message}`);
+          }
+        };
+        inp.click();
+        break;
+      }
       case 'file:save': saveProject(); break;
-      case 'file:saveAs': setProjectId(null); saveProject(); break;
+      case 'file:saveAs': {
+        // Save As — native OS file picker dialog (name + location)
+        const saveData = {
+          name: projectName,
+          bpm,
+          time_signature: `${timeSignature[0]}/${timeSignature[1]}`,
+          master_volume: masterVolume,
+          tracks: tracks.map(t => ({
+            name: t.name, volume: t.volume, pan: t.pan,
+            muted: t.muted, solo: t.solo, effects: t.effects,
+            color: t.color, regions: (t.regions || []).map(r => ({ ...r, audioUrl: null })),
+            audio_url: typeof t.audio_url === 'string' && !t.audio_url.startsWith('blob:') ? t.audio_url : null
+          })),
+          piano_roll_notes: pianoRollNotes,
+          piano_roll_key: pianoRollKey,
+          piano_roll_scale: pianoRollScale,
+          created_at: new Date().toISOString(),
+          format: 'streampirex-daw',
+          version: '1.0'
+        };
+        const jsonStr = JSON.stringify(saveData, null, 2);
+
+        if (window.showSaveFilePicker) {
+          // Modern browsers — native OS save dialog
+          try {
+            const handle = await window.showSaveFilePicker({
+              suggestedName: `${projectName.replace(/\s+/g, '_')}.spx`,
+              types: [{
+                description: 'StreamPireX Project',
+                accept: { 'application/json': ['.spx'] }
+              }]
+            });
+            const writable = await handle.createWritable();
+            await writable.write(jsonStr);
+            await writable.close();
+            setStatus(`✓ Saved: ${handle.name}`);
+          } catch (err) {
+            if (err.name !== 'AbortError') setStatus(`✗ Save failed: ${err.message}`);
+          }
+        } else {
+          // Fallback for Firefox/Safari — prompt for name then download
+          const fileName = window.prompt('Save project as:', `${projectName.replace(/\s+/g, '_')}.spx`);
+          if (fileName && fileName.trim()) {
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName.trim().endsWith('.spx') ? fileName.trim() : `${fileName.trim()}.spx`;
+            a.click();
+            URL.revokeObjectURL(url);
+            setStatus(`✓ Saved: ${fileName.trim()}`);
+          }
+        }
+        break;
+      }
       case 'file:importAudio': setViewMode('record'); handleImport(sel); break;
       case 'file:importMidi': case 'midi:import': setViewMode('midi'); setStatus('MIDI: Use the MIDI Import panel to select a file'); break;
       case 'file:exportMidi': case 'midi:export': exportMidiFile(); break;
@@ -767,6 +872,28 @@ const RecordingStudio = ({ user }) => {
       case 'transport:stop': stopEverything(); break;
       case 'transport:record': isRecording ? stopRecording() : startRecording(); break;
       case 'transport:rewind': rewind(); break;
+      case 'transport:goToEnd': {
+        const maxDur = Math.max(duration, 30);
+        if (isPlaying) stopPlayback();
+        playOffsetRef.current = maxDur;
+        setCurrentTime(maxDur);
+        break;
+      }
+      case 'transport:forward': {
+        const maxDur2 = Math.max(duration, 30);
+        const t2 = Math.min(maxDur2, currentTime + 5);
+        if (isPlaying) stopPlayback();
+        playOffsetRef.current = t2;
+        setCurrentTime(t2);
+        break;
+      }
+      case 'transport:rewindSkip': {
+        const t3 = Math.max(0, currentTime - 5);
+        if (isPlaying) stopPlayback();
+        playOffsetRef.current = t3;
+        setCurrentTime(t3);
+        break;
+      }
       case 'transport:metronome': setMetronomeOn(v => !v); setStatus(`Metronome ${!metronomeOn ? 'ON' : 'OFF'}`); break;
       case 'transport:countIn': setCountIn(v => !v); setStatus(`Count-In ${!countIn ? 'ON' : 'OFF'}`); break;
       case 'transport:tapTempo': tapTempo(); break;
@@ -817,7 +944,7 @@ const RecordingStudio = ({ user }) => {
 
       default: setStatus(`ℹ Unhandled action: ${action}`); break;
     }
-  }, [selectedTrackIndex, tracks, maxTracks, userTier, activeEffectsTrack, isPlaying, isRecording, metronomeOn, countIn, bpm, timeSignature, projectName, newProject, loadProjectList, saveProject, exportMidiFile, tapTempo]);
+  };
 
   // ===================== RENDER =====================
   const afx = activeEffectsTrack !== null ? tracks[activeEffectsTrack] : null;
@@ -859,18 +986,27 @@ const RecordingStudio = ({ user }) => {
 
         {/* Transport — always visible */}
         <div className="daw-transport">
-          <button className="daw-transport-btn" onClick={rewind} disabled={isRecording}>
+          <button className="daw-transport-btn" onClick={rewind} disabled={isRecording} title="Return to Zero">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 20L9 12l10-8v16zM7 19V5H5v14h2z"/></svg>
           </button>
-          <button className="daw-transport-btn" onClick={stopEverything}>
+          <button className="daw-transport-btn" onClick={() => { const t = Math.max(0, currentTime - 5); if (isPlaying) stopPlayback(); playOffsetRef.current = t; setCurrentTime(t); }} disabled={isRecording} title="Rewind 5s">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 18L10 12l8-6v12z"/><path d="M11 18L3 12l8-6v12z"/></svg>
+          </button>
+          <button className="daw-transport-btn" onClick={stopEverything} title="Stop">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
           </button>
-          <button className={`daw-transport-btn daw-play-btn ${isPlaying&&!isRecording?'active':''}`} onClick={()=>isPlaying?stopPlayback():startPlayback()} disabled={isRecording}>
+          <button className={`daw-transport-btn daw-play-btn ${isPlaying&&!isRecording?'active':''}`} onClick={()=>isPlaying?stopPlayback():startPlayback()} disabled={isRecording} title={isPlaying ? 'Pause' : 'Play'}>
             {isPlaying&&!isRecording
               ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>
               : <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>}
           </button>
-          <button className={`daw-transport-btn daw-rec-btn ${isRecording?'active':''}`} onClick={()=>isRecording?stopRecording():startRecording()}>
+          <button className="daw-transport-btn" onClick={() => { const maxDur = Math.max(duration, 30); const t = Math.min(maxDur, currentTime + 5); if (isPlaying) stopPlayback(); playOffsetRef.current = t; setCurrentTime(t); }} disabled={isRecording} title="Forward 5s">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6l8 6-8 6V6z"/><path d="M13 6l8 6-8 6V6z"/></svg>
+          </button>
+          <button className="daw-transport-btn" onClick={() => { const maxDur = Math.max(duration, 30); if (isPlaying) stopPlayback(); playOffsetRef.current = maxDur; setCurrentTime(maxDur); }} disabled={isRecording} title="Go to End">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4l10 8-10 8V4zM17 5h2v14h-2z"/></svg>
+          </button>
+          <button className={`daw-transport-btn daw-rec-btn ${isRecording?'active':''}`} onClick={()=>isRecording?stopRecording():startRecording()} title={isRecording ? 'Stop Recording' : 'Record'}>
             <span className="daw-rec-dot"></span>
           </button>
           <div className="daw-lcd">
@@ -1062,13 +1198,19 @@ const RecordingStudio = ({ user }) => {
             <div className="daw-console-scroll">
               {tracks.map((track, i) => {
                 const fx = track.effects;
-                const insertSlots = [
+                const allInserts = [
                   { key: 'eq',         label: 'EQ',          on: fx.eq.enabled,         cls: 'eq' },
                   { key: 'compressor', label: 'Compressor',  on: fx.compressor.enabled, cls: 'comp' },
                   { key: 'reverb',     label: 'Reverb',      on: fx.reverb.enabled,     cls: 'reverb' },
                   { key: 'delay',      label: 'Delay',       on: fx.delay.enabled,      cls: 'delay' },
                   { key: 'distortion', label: 'Distortion',  on: fx.distortion.enabled, cls: 'distortion' },
                   { key: 'filter',     label: `Filter ${fx.filter.type === 'lowpass' ? 'LP' : fx.filter.type === 'highpass' ? 'HP' : fx.filter.type === 'bandpass' ? 'BP' : 'N'}`, on: fx.filter.enabled, cls: 'filter' },
+                ];
+                const activeInserts = allInserts.filter(s => s.on);
+                const emptyCount = 6 - activeInserts.length;
+                const insertSlots = [
+                  ...activeInserts,
+                  ...Array.from({ length: emptyCount }, (_, j) => ({ key: `empty-${j}`, label: '', on: false, cls: 'empty', isEmpty: true })),
                 ];
                 const panLabel = track.pan === 0 ? 'C' : track.pan < 0 ? `L${Math.abs(Math.round(track.pan * 50))}` : `R${Math.round(track.pan * 50)}`;
                 const volDb = track.volume > 0 ? (20 * Math.log10(track.volume)).toFixed(1) : '-∞';
@@ -1089,14 +1231,18 @@ const RecordingStudio = ({ user }) => {
                       {insertSlots.map(slot => (
                         <div
                           key={slot.key}
-                          className={`daw-ch-insert-slot ${slot.on ? `active ${slot.cls}` : 'inactive'}`}
+                          className={`daw-ch-insert-slot ${slot.on ? `active ${slot.cls}` : slot.isEmpty ? 'empty' : 'inactive'}`}
                           onClick={() => {
-                            setActiveEffectsTrack(i);
-                            updateEffect(i, slot.key, 'enabled', !slot.on);
+                            if (slot.isEmpty) {
+                              setActiveEffectsTrack(i);
+                            } else {
+                              setActiveEffectsTrack(i);
+                              updateEffect(i, slot.key, 'enabled', !slot.on);
+                            }
                           }}
-                          title={`${slot.label} — click to toggle`}
+                          title={slot.isEmpty ? 'Empty slot — open FX panel to add' : `${slot.label} — click to toggle`}
                         >
-                          {slot.label}
+                          {slot.isEmpty ? '—' : slot.label}
                         </div>
                       ))}
                     </div>
@@ -1163,6 +1309,9 @@ const RecordingStudio = ({ user }) => {
                 </div>
                 <div className="daw-ch-inserts">
                   <span className="daw-ch-inserts-label">Inserts</span>
+                  {Array.from({ length: 6 }, (_, j) => (
+                    <div key={`master-empty-${j}`} className="daw-ch-insert-slot empty" title="Empty slot">—</div>
+                  ))}
                 </div>
                 <div className="daw-ch-controls">
                   <div className="daw-ch-badge">M</div>
