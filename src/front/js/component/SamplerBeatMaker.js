@@ -126,7 +126,14 @@ const CHOP_MODES = ['transient', 'bpmgrid', 'equal', 'manual'];
 // COMPONENT
 // =============================================================================
 
-const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparatorOutput = null }) => {
+const SamplerBeatMaker = ({
+  onExport, onClose, isEmbedded = false, stemSeparatorOutput = null,
+  // ── SPX Flow Integration ──
+  onSendToArrange,     // (audioBuffer, name) => place bounced pattern on arrange track
+  onOpenSampler,       // () => switch to Sampler view
+  incomingSample,      // { buffer, name, timestamp } from Sampler
+  incomingSlices,      // [{ buffer, name }] from Sampler auto-chop
+}) => {
 
   // ==== AUDIO ENGINE REFS ====
   const ctxRef = useRef(null);
@@ -432,6 +439,57 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   useEffect(() => {
     if (stemSeparatorOutput?.length > 0) stemSeparatorOutput.forEach((s, i) => { if (i < 16 && s.url) loadSample(i, s.url); });
   }, [stemSeparatorOutput, loadSample]);
+
+  // ── SPX Flow: Receive sample from Sampler ──
+  const lastIncomingRef = useRef(null);
+  useEffect(() => {
+    if (incomingSample && incomingSample.timestamp !== lastIncomingRef.current) {
+      lastIncomingRef.current = incomingSample.timestamp;
+      const pi = selPad;
+      if (incomingSample.buffer) {
+        setPads(p => {
+          const u = [...p];
+          u[pi] = { ...u[pi], buffer: incomingSample.buffer, name: incomingSample.name || `Sample ${pi + 1}`, trimEnd: incomingSample.buffer.duration };
+          return u;
+        });
+      }
+    }
+  }, [incomingSample, selPad]);
+
+  // ── SPX Flow: Receive slices from Sampler chop ──
+  const lastSlicesRef = useRef(null);
+  useEffect(() => {
+    // Check window global for slices from Sampler
+    const slices = window.__spx_sampler_slices;
+    if (slices && slices !== lastSlicesRef.current) {
+      lastSlicesRef.current = slices;
+      setPads(p => {
+        const u = [...p];
+        slices.forEach((slice, i) => {
+          if (i < 16 && slice.buffer) {
+            u[i] = { ...u[i], buffer: slice.buffer, name: slice.name || `Slice ${i + 1}`, trimEnd: slice.buffer.duration };
+          }
+        });
+        return u;
+      });
+      window.__spx_sampler_slices = null; // clear
+    }
+  });
+
+  // ── SPX Flow: Bounce to Arrange track ──
+  const bounceToArrange = useCallback(async () => {
+    if (!onSendToArrange) return;
+    try {
+      let rendered;
+      if (songMode && songSeq.length > 0) { rendered = await renderSong(); }
+      else { rendered = await renderPat(steps, stepVel, stepCount); }
+      if (!rendered) return;
+      const name = songMode && songSeq.length > 0
+        ? `Beat (Song ${songSeq.length} patterns)`
+        : `Beat (${patterns[curPatIdx]?.name || 'Pattern'})`;
+      onSendToArrange(rendered, name);
+    } catch (e) { console.error('Bounce to arrange failed:', e); }
+  }, [onSendToArrange, songMode, songSeq, steps, stepVel, stepCount, renderPat, renderSong, patterns, curPatIdx]);
 
   // =========================================================================
   // MIC / LINE-IN RECORDING
@@ -2200,6 +2258,10 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
           <button className={`transport-btn ${showLib ? 'active' : ''}`} onClick={() => setShowLib(p => !p)} title="Library">📚</button>
           <button className={`transport-btn ${songMode ? 'active' : ''}`} onClick={() => setSongMode(p => !p)} title="Song Mode">🎼</button>
           <button className={`transport-btn ${showClipLauncher ? 'active' : ''}`} onClick={() => setShowClipLauncher(p => !p)} title="Clip Launcher">🚀</button>
+
+          {/* SPX Flow Integration */}
+          {onOpenSampler && <button className="transport-btn" onClick={onOpenSampler} title="Open Sampler — load/chop samples">〰 Sampler</button>}
+          {onSendToArrange && <button className="transport-btn" onClick={bounceToArrange} title="Bounce pattern/song to Arrange track">→🎚 Arrange</button>}
 
           <div className="view-toggle">
             <button className={view === 'pads' ? 'active' : ''} onClick={() => setView('pads')}>Pads</button>

@@ -1389,6 +1389,14 @@ const RecordingStudio = ({ user }) => {
             onExport={handleBeatExport}
             onClose={() => setViewMode('record')}
             isEmbedded={true}
+            onSendToArrange={(audioBuffer, name) => {
+              const idx = selectedTrackIndex;
+              updateTrack(idx, { audioBuffer, name: name || tracks[idx].name });
+              setViewMode('arrange');
+              setStatus(`Beat bounced to Track ${idx + 1}`);
+            }}
+            onOpenSampler={() => setViewMode('sampler')}
+            incomingSample={window.__spx_sampler_export || null}
           />
         )}
 
@@ -1558,7 +1566,6 @@ const RecordingStudio = ({ user }) => {
               onUpdate={(idx, props) => updateTrack(idx, props)}
               audioCtx={audioCtxRef.current}
               onSendToBeatMaker={(buffer, name) => {
-                // Store in a ref that Beat Maker can pick up
                 window.__spx_sampler_export = { buffer, name, timestamp: Date.now() };
                 setViewMode('beatmaker');
                 setStatus(`Sample "${name}" sent to Beat Maker — load onto a pad`);
