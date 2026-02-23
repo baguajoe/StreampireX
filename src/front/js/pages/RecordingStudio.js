@@ -36,6 +36,8 @@ import ChordProgressionGenerator from '../component/ChordProgressionGenerator';
 import { QuantizePanel } from '../component/QuantizeEngine';
 // ── NEW: DAW Menu Bar ──
 import DAWMenuBar from '../component/DAWMenuBar';
+// ── NEW: Vocal Processor ──
+import VocalProcessor from '../component/VocalProcessor';
 
 import '../../styles/RecordingStudio.css';
 import '../../styles/ArrangerView.css';
@@ -54,6 +56,8 @@ import '../../styles/PianoRoll.css';
 import '../../styles/ChordProgressionGenerator.css';
 
 import '../../styles/DAWMenuBar.css';
+import '../../styles/VocalProcessor.css';
+import '../../styles/VocalTools.css';
 
 const TRACK_COLORS = [
   '#34c759', '#ff9500', '#007aff', '#af52de', '#ff3b30', '#5ac8fa', '#ff2d55', '#ffcc00',
@@ -72,6 +76,7 @@ const DEFAULT_EFFECTS = () => ({
   delay: { time: 0.3, feedback: 0.3, mix: 0.2, enabled: false },
   distortion: { amount: 0, enabled: false },
   filter: { type: 'lowpass', frequency: 20000, Q: 1, enabled: false },
+  limiter: { threshold: -1, knee: 0, ratio: 20, attack: 0.001, release: 0.05, enabled: false },
 });
 
 const DEFAULT_TRACK = (i, type = 'audio') => ({
@@ -299,6 +304,15 @@ const RecordingStudio = ({ user }) => {
       const ws = ctx.createWaveShaper(); const amt = fx.distortion.amount; const s = 44100; const curve = new Float32Array(s);
       for (let i = 0; i < s; i++) { const x = i * 2 / s - 1; curve[i] = (3 + amt) * x * 20 * (Math.PI / 180) / (Math.PI + amt * Math.abs(x)); }
       ws.curve = curve; ws.oversample = '4x'; nodes.push(ws);
+    }
+    if (fx.limiter?.enabled) {
+      const lim = ctx.createDynamicsCompressor();
+      lim.threshold.value = fx.limiter.threshold;
+      lim.knee.value = fx.limiter.knee;
+      lim.ratio.value = fx.limiter.ratio;
+      lim.attack.value = fx.limiter.attack;
+      lim.release.value = fx.limiter.release;
+      nodes.push(lim);
     }
     return nodes;
   };
@@ -1096,6 +1110,10 @@ const RecordingStudio = ({ user }) => {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="6" width="20" height="14" rx="2"/><line x1="6" y1="6" x2="6" y2="20"/><line x1="10" y1="6" x2="10" y2="20"/><line x1="14" y1="6" x2="14" y2="20"/><line x1="18" y1="6" x2="18" y2="20"/><rect x="7" y="6" width="2" height="9" fill="currentColor" rx="0.5"/><rect x="15" y="6" width="2" height="9" fill="currentColor" rx="0.5"/></svg>
             Sampler
           </button>
+          <button className={`daw-view-tab ${viewMode==='vocal'?'active':''}`} onClick={()=>setViewMode('vocal')} title="Vocal Processor — FX chain, analyzer, AI coach">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            Vocal
+          </button>
         </div>
 
         {/* I/O & Status */}
@@ -1580,6 +1598,27 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
+        {viewMode === 'vocal' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <VocalProcessor
+              audioContext={audioCtxRef.current}
+              isEmbedded={true}
+              tracks={tracks}
+              selectedTrackIndex={selectedTrackIndex}
+              bpm={bpm}
+              onSendToTrack={(buffer, name) => {
+                const idx = selectedTrackIndex;
+                updateTrack(idx, { audioBuffer: buffer, name: name || tracks[idx].name });
+                setViewMode('record');
+                setStatus(`Vocal "${name}" placed on Track ${idx + 1}`);
+              }}
+              onRecordingComplete={(blob) => {
+                setStatus('Vocal recording saved');
+              }}
+            />
+          </div>
+        )}
+
         {/* ──────── FX PANEL (with Parametric EQ Graph) ──────── */}
         {(viewMode === 'record' || viewMode === 'console') && afx && (
           <div className="daw-fx-panel">
@@ -1596,7 +1635,8 @@ const RecordingStudio = ({ user }) => {
               {key:'distortion',label:'Distortion',params:[{p:'amount',l:'Amount',min:0,max:100,step:1,fmt:v=>v}]},
               {key:'filter',label:'Filter',params:[{p:'frequency',l:'Freq',min:20,max:20000,step:1,fmt:v=>v>=1000?(v/1000).toFixed(1)+'k':v},{p:'Q',l:'Q',min:0.1,max:18,step:0.1,fmt:v=>v.toFixed(1)}],extra:(
                 <div className="daw-fx-param"><label>Type</label><select value={afx.effects.filter.type} onChange={e=>updateEffect(activeEffectsTrack,'filter','type',e.target.value)} className="daw-fx-select"><option value="lowpass">Low Pass</option><option value="highpass">High Pass</option><option value="bandpass">Band Pass</option><option value="notch">Notch</option></select></div>
-              )}
+              )},
+              {key:'limiter',label:'Limiter',params:[{p:'threshold',l:'Ceiling',min:-12,max:0,step:0.1,fmt:v=>`${v.toFixed(1)}dB`},{p:'release',l:'Release',min:0.001,max:0.5,step:0.001,fmt:v=>`${(v*1000).toFixed(0)}ms`}]},
             ].map(({key,label,params,extra})=>(
               <div key={key} className={`daw-fx-block ${afx.effects[key].enabled?'enabled':''}`}>
                 <div className="daw-fx-block-header">
