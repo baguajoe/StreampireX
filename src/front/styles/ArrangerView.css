@@ -357,41 +357,46 @@
   display: flex;
   min-height: 0;
   overflow: hidden;
+  background: var(--daw-bg, #151d28);
 }
 
 /* ── Track headers (left sidebar) ──────────────────────────── */
 .arr-headers {
   width: 210px;
   min-width: 210px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: #222;
-  border-right: 1px solid #1a1a1a;
+  background: var(--daw-bg, #151d28);
   z-index: 10;
+  overflow: hidden;
 }
 
 .arr-ruler-spacer {
   height: 32px;
   min-height: 32px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 10px;
-  background: linear-gradient(180deg, #333 0%, #2a2a2a 100%);
-  border-bottom: 1px solid #1a1a1a;
+  background: linear-gradient(180deg, #283040 0%, #1e2838 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-right: 1px solid rgba(255,255,255,0.04);
 }
 
 .arr-ruler-spacer-label {
   font-size: 0.6rem;
   font-weight: 800;
-  color: #444;
+  color: #556;
   letter-spacing: 1.5px;
   text-transform: uppercase;
 }
 
 .arr-headers-list {
-  flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  flex-shrink: 0;
 }
 
 .arr-headers-list::-webkit-scrollbar { width: 4px; }
@@ -403,19 +408,19 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 3px;
-  padding: 4px 8px;
-  background: linear-gradient(180deg, #2a2a2a 0%, #242424 100%);
-  border-bottom: 1px solid #1a1a1a;
+  justify-content: flex-start;
+  gap: 1px;
+  padding: 4px 6px 4px 10px;
+  background: linear-gradient(180deg, #1a2535 0%, #162030 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-right: 1px solid rgba(255,255,255,0.04);
   cursor: pointer;
   transition: background 0.15s;
   position: relative;
-  overflow: hidden;
 }
 
-.arr-track-header:hover { background: rgba(255, 255, 255, 0.02); }
-.arr-track-header.active { background: rgba(52, 199, 89, 0.04); }
+.arr-track-header:hover { background: rgba(0, 255, 200, 0.02); }
+.arr-track-header.active { background: linear-gradient(180deg, #1e2d40 0%, #1a2838 100%); }
 .arr-track-header.muted { opacity: 0.4; }
 .arr-track-header.soloed { background: rgba(255, 204, 0, 0.03); }
 
@@ -637,8 +642,8 @@
   z-index: 15;
   height: 32px;
   min-height: 32px;
-  background: linear-gradient(180deg, #333 0%, #2a2a2a 100%);
-  border-bottom: 1px solid #1a1a1a;
+  background: linear-gradient(180deg, #283040 0%, #1e2838 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 .arr-ruler-canvas {
@@ -654,14 +659,14 @@
 
 .arr-lane {
   position: relative;
-  border-bottom: 1px solid #1a1a1a;
-  background: #1c1c1c;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  background: rgba(0,0,0,0.15);
   transition: background 0.15s;
   overflow: hidden;
 }
 
-.arr-lane:hover { background: rgba(255, 255, 255, 0.008); }
-.arr-lane.active { background: rgba(52, 199, 89, 0.015); }
+.arr-lane:hover { background: rgba(0, 255, 200, 0.01); }
+.arr-lane.active { background: rgba(0, 255, 200, 0.02); }
 .arr-lane.muted { opacity: 0.35; }
 .arr-lane.soloed { background: rgba(255, 204, 0, 0.012); }
 
@@ -1003,4 +1008,120 @@
   .arr-track-badges { display: none; }
   .arr-bpm-group { display: none; }
   .arr-ts-group { display: none; }
+}
+
+/* =============================================================================
+   Track Number, Delete Button, +/- Controls
+   ============================================================================= */
+
+/* Track number badge */
+.arr-track-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #5a7088;
+  font-size: 0.55rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  flex-shrink: 0;
+}
+
+/* Delete button in track header */
+.arr-track-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: #3a4a58;
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: all 0.12s;
+  flex-shrink: 0;
+  opacity: 0;
+}
+.arr-track-header:hover .arr-track-delete-btn {
+  opacity: 1;
+}
+.arr-track-delete-btn:hover {
+  background: rgba(255, 59, 48, 0.15);
+  color: #ff3b30;
+}
+
+/* Move badges row outside of info row for better layout */
+.arr-track-header .arr-track-badges {
+  display: flex;
+  gap: 2px;
+  padding-left: 6px;
+}
+
+/* +/- controls in TRACKS header */
+
+.arr-ruler-spacer-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.arr-track-ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #444;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #999;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s;
+  line-height: 1;
+}
+.arr-track-ctrl-btn:hover:not(:disabled) {
+  background: rgba(0, 255, 200, 0.08);
+  color: #00ffc8;
+  border-color: #00ffc8;
+}
+.arr-track-ctrl-btn.remove:hover:not(:disabled) {
+  background: rgba(255, 59, 48, 0.08);
+  color: #ff3b30;
+  border-color: #ff3b30;
+}
+.arr-track-ctrl-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.arr-track-ctrl-count {
+  font-size: 0.55rem;
+  font-weight: 600;
+  color: #3a4a58;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  margin-left: 2px;
+}
+
+/* Make track name more visible */
+.arr-track-name {
+  color: #d0dde8 !important;
+  font-size: 0.7rem !important;
+}
+.arr-track-name:focus {
+  background: rgba(0, 255, 200, 0.05) !important;
+  border: 1px solid rgba(0, 255, 200, 0.2) !important;
+}
+
+/* Grid fill lane — extends grid lines below tracks to fill viewport */
+.arr-lane-fill {
+  border-bottom: none;
+  background: transparent;
+  cursor: default;
 }

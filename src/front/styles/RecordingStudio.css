@@ -1806,3 +1806,102 @@
   color: rgba(0, 255, 200, 0.4);
   background: rgba(0, 255, 200, 0.03);
 }
+/* =============================================================================
+   Track Controls Toolbar (+/- buttons, track type selector)
+   ============================================================================= */
+
+.daw-tracks-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: #0d1a26;
+  border-bottom: 1px solid #1a2838;
+  min-height: 28px;
+}
+
+.daw-tracks-toolbar-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #4a6278;
+  text-transform: uppercase;
+}
+
+.daw-tracks-toolbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.daw-track-type-select {
+  background: #131f2e;
+  color: #a0b8d0;
+  border: 1px solid #1a2838;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+.daw-track-type-select:hover {
+  border-color: #00ffc8;
+}
+.daw-track-type-select:focus {
+  border-color: #00ffc8;
+  box-shadow: 0 0 0 1px rgba(0, 255, 200, 0.2);
+}
+
+.daw-tracks-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #1a2838;
+  border-radius: 3px;
+  background: #131f2e;
+  color: #8aa0b8;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.daw-tracks-toolbar-btn:hover:not(:disabled) {
+  background: #1a2838;
+  color: #00ffc8;
+  border-color: #00ffc8;
+}
+.daw-tracks-toolbar-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.daw-tracks-toolbar-btn.add:hover:not(:disabled) {
+  color: #00ffc8;
+  border-color: #00ffc8;
+}
+.daw-tracks-toolbar-btn.remove:hover:not(:disabled) {
+  color: #ff4444;
+  border-color: #ff4444;
+}
+
+.daw-tracks-toolbar-count {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #4a6278;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  margin-left: 4px;
+}
+
+/* Tier limit notice (replaces old add-track-row when at max) */
+.daw-tier-limit-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  background: rgba(255, 102, 0, 0.05);
+  border: 1px dashed rgba(255, 102, 0, 0.2);
+  border-radius: 4px;
+  margin: 4px 8px;
+  font-size: 0.65rem;
+  color: #ff6600;
+}

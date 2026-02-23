@@ -72,8 +72,9 @@ const DEFAULT_EFFECTS = () => ({
   filter: { type: 'lowpass', frequency: 20000, Q: 1, enabled: false },
 });
 
-const DEFAULT_TRACK = (i) => ({
-  name: `Track ${i + 1}`,
+const DEFAULT_TRACK = (i, type = 'audio') => ({
+  name: `${type === 'midi' ? 'MIDI' : type === 'bus' ? 'Bus' : type === 'aux' ? 'Aux' : 'Audio'} ${i + 1}`,
+  trackType: type,
   volume: 0.8,
   pan: 0,
   muted: false,
@@ -171,10 +172,11 @@ const RecordingStudio = ({ user }) => {
   const [bpm, setBpm] = useState(120);
   const [timeSignature, setTimeSignature] = useState([4, 4]);
   const [masterVolume, setMasterVolume] = useState(0.8);
-  const [tracks, setTracks] = useState(Array.from({ length: Math.min(maxTracks, 8) }, (_, i) => DEFAULT_TRACK(i)));
+  const [tracks, setTracks] = useState(Array.from({ length: 1 }, (_, i) => DEFAULT_TRACK(i)));
 
   // ── Selected track (for DAWMenuBar Track/Edit actions) ──
   const [selectedTrackIndex, setSelectedTrackIndex] = useState(0);
+  const [newTrackType, setNewTrackType] = useState('audio');
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -615,7 +617,7 @@ const RecordingStudio = ({ user }) => {
         if (p.piano_roll_notes) setPianoRollNotes(p.piano_roll_notes);
         if (p.piano_roll_key) setPianoRollKey(p.piano_roll_key);
         if (p.piano_roll_scale) setPianoRollScale(p.piano_roll_scale);
-        const trackCount = Math.min(Math.max(p.tracks?.length || 8, 1), maxTracks);
+        const trackCount = Math.min(Math.max(p.tracks?.length || 1, 1), maxTracks);
         const loaded = Array.from({ length: trackCount }, (_, i) => ({ ...DEFAULT_TRACK(i), ...(p.tracks[i] || {}), audioBuffer: null, effects: p.tracks[i]?.effects || DEFAULT_EFFECTS(), regions: p.tracks[i]?.regions || [] }));
         setTracks(loaded); setSelectedTrackIndex(0);
         for (let i = 0; i < loaded.length; i++) { if (loaded[i].audio_url) await loadAudioBuffer(loaded[i].audio_url, i); }
@@ -632,20 +634,26 @@ const RecordingStudio = ({ user }) => {
   const newProject = () => {
     stopEverything(); setProjectId(null); setProjectName('Untitled Project'); setBpm(120);
     setMasterVolume(0.8); setActiveEffectsTrack(null); setTimeSignature([4, 4]);
-    setTracks(Array.from({ length: Math.min(maxTracks, 8) }, (_, i) => DEFAULT_TRACK(i)));
+    setTracks(Array.from({ length: 1 }, (_, i) => DEFAULT_TRACK(i)));
     setSelectedTrackIndex(0); setPianoRollNotes([]); setPianoRollKey('C'); setPianoRollScale('major'); setStatus('New project');
   };
 
   const addTrack = () => {
     if (tracks.length >= maxTracks) { setStatus(`⚠ ${userTier} tier limit: ${maxTracks} tracks. Upgrade for more.`); return; }
-    const i = tracks.length; setTracks(prev => [...prev, DEFAULT_TRACK(i)]); setStatus(`Track ${i + 1} added (${tracks.length + 1}/${maxTracks})`);
+    const i = tracks.length;
+    const typeName = newTrackType === 'midi' ? 'MIDI' : newTrackType === 'bus' ? 'Bus' : newTrackType === 'aux' ? 'Aux' : 'Audio';
+    setTracks(prev => [...prev, DEFAULT_TRACK(i, newTrackType)]);
+    setSelectedTrackIndex(i);
+    setStatus(`${typeName} Track ${i + 1} added (${tracks.length + 1}/${maxTracks})`);
   };
 
   const removeTrack = (idx) => {
-    if (tracks.length <= 1) return;
+    if (tracks.length <= 1) { setStatus('⚠ Must have at least 1 track'); return; }
     setTracks(prev => prev.filter((_, i) => i !== idx));
     if (activeEffectsTrack === idx) setActiveEffectsTrack(null);
     else if (activeEffectsTrack > idx) setActiveEffectsTrack(activeEffectsTrack - 1);
+    if (selectedTrackIndex >= tracks.length - 1) setSelectedTrackIndex(Math.max(0, tracks.length - 2));
+    setStatus(`Track ${idx + 1} removed`);
     setSelectedTrackIndex(prev => { if (prev === idx) return Math.max(0, idx - 1); if (prev > idx) return prev - 1; return prev; });
     setStatus(`Track ${idx + 1} removed`);
   };
@@ -764,7 +772,7 @@ const RecordingStudio = ({ user }) => {
             if (data.piano_roll_notes) setPianoRollNotes(data.piano_roll_notes);
             if (data.piano_roll_key) setPianoRollKey(data.piano_roll_key);
             if (data.piano_roll_scale) setPianoRollScale(data.piano_roll_scale);
-            const trackCount = Math.min(Math.max(data.tracks?.length || 8, 1), maxTracks);
+            const trackCount = Math.min(Math.max(data.tracks?.length || 1, 1), maxTracks);
             const loaded = Array.from({ length: trackCount }, (_, i) => ({
               ...DEFAULT_TRACK(i),
               ...(data.tracks[i] || {}),
@@ -1121,6 +1129,25 @@ const RecordingStudio = ({ user }) => {
         {viewMode === 'record' && (
           <>
             <div className="daw-tracks-area">
+              {/* ── Track Controls Toolbar ── */}
+              <div className="daw-tracks-toolbar">
+                <span className="daw-tracks-toolbar-label">TRACKS</span>
+                <div className="daw-tracks-toolbar-controls">
+                  <select className="daw-track-type-select" value={newTrackType} onChange={e => setNewTrackType(e.target.value)}>
+                    <option value="audio">Audio</option>
+                    <option value="midi">MIDI</option>
+                    <option value="bus">Bus</option>
+                    <option value="aux">Aux</option>
+                  </select>
+                  <button className="daw-tracks-toolbar-btn add" onClick={addTrack} disabled={tracks.length >= maxTracks} title="Add Track">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </button>
+                  <button className="daw-tracks-toolbar-btn remove" onClick={() => removeTrack(selectedTrackIndex)} disabled={tracks.length <= 1} title="Remove Selected Track">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </button>
+                  <span className="daw-tracks-toolbar-count">{tracks.length}/{maxTracks}</span>
+                </div>
+              </div>
               <div className="daw-ruler">
                 <div className="daw-ruler-header"></div>
                 <div className="daw-ruler-timeline">
@@ -1166,13 +1193,11 @@ const RecordingStudio = ({ user }) => {
                   </div>
                 </div>
               ))}
-              <div className="daw-add-track-row">
-                <button className="daw-add-track-btn" onClick={addTrack} disabled={tracks.length >= maxTracks}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  Add Track ({tracks.length}/{maxTracks})
-                </button>
-                <span className="daw-tier-label">{userTier.charAt(0).toUpperCase() + userTier.slice(1)} tier</span>
-              </div>
+              {tracks.length >= maxTracks && (
+                <div className="daw-tier-limit-notice">
+                  <span>🔒 {userTier.charAt(0).toUpperCase() + userTier.slice(1)} plan: {maxTracks} tracks max</span>
+                </div>
+              )}
             </div>
           </>
         )}
