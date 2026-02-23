@@ -1955,6 +1955,7 @@ class PricingPlan(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
+
 class RecordingProject(db.Model):
     __tablename__ = "recording_projects"
 
@@ -1983,6 +1984,11 @@ class RecordingProject(db.Model):
     # ── Tracks Data (JSON) ──
     tracks_json = db.Column(db.Text, default="[]")
     track_audio_urls = db.Column(db.Text, default="[]")
+
+    # ── Piano Roll / MIDI State (NEW — requires migration) ──
+    piano_roll_notes_json = db.Column(db.Text, default="[]")
+    piano_roll_key = db.Column(db.String(5), default="C")
+    piano_roll_scale = db.Column(db.String(20), default="major")
 
     # ── Mixdown / Bounce ──
     mixdown_url = db.Column(db.String(500), nullable=True)
@@ -2029,6 +2035,9 @@ class RecordingProject(db.Model):
             "tracks_json": self.tracks_json,
             "track_audio_urls": self.track_audio_urls,
             "track_count": self.track_count,
+            "piano_roll_notes_json": self.piano_roll_notes_json,
+            "piano_roll_key": self.piano_roll_key,
+            "piano_roll_scale": self.piano_roll_scale,
             "mixdown_url": self.mixdown_url,
             "mixdown_format": self.mixdown_format,
             "mixdown_bit_depth": self.mixdown_bit_depth,

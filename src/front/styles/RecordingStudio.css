@@ -971,6 +971,7 @@
   cursor: pointer;
   transition: all 0.12s;
   line-height: 1.3;
+  color: rgba(160, 185, 210, 0.6);
 }
 
 .daw-ch-insert-slot.active {
@@ -1007,8 +1008,9 @@
 }
 
 .daw-ch-insert-slot.inactive {
-  color: var(--daw-text-dim);
-  opacity: 0.3;
+  color: rgba(160, 185, 210, 0.75);
+  background: rgba(255, 255, 255, 0.04);
+  opacity: 1;
 }
 
 .daw-ch-insert-slot:hover {
@@ -1792,3 +1794,15 @@
 .daw-fx-panel::-webkit-scrollbar { width: 4px; }
 .daw-fx-panel::-webkit-scrollbar-track { background: transparent; }
 .daw-fx-panel::-webkit-scrollbar-thumb { background: #1a2838; border-radius: 2px; }
+/* ── Empty Insert Slots (Cubase-style) ── */
+.daw-ch-insert-slot.empty {
+  color: rgba(100, 120, 140, 0.3);
+  background: transparent;
+  font-style: italic;
+  opacity: 1;
+}
+
+.daw-ch-insert-slot.empty:hover {
+  color: rgba(0, 255, 200, 0.4);
+  background: rgba(0, 255, 200, 0.03);
+}

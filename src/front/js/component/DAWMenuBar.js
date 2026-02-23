@@ -8,6 +8,7 @@
 // =============================================================================
 
 import React, { useState, useRef, useEffect } from 'react';
+import '../../styles/DAWMenuBar.css';
 
 // ── Menu definitions ──
 const buildMenus = ({
@@ -19,9 +20,10 @@ const buildMenus = ({
     items: [
       { label: 'New Project', shortcut: 'Ctrl+N', action: 'file:new', icon: '📄' },
       { label: 'Open Project…', shortcut: 'Ctrl+O', action: 'file:open', icon: '📂' },
+      { label: 'Open From Desktop…', action: 'file:openLocal', icon: '💻' },
       { type: 'separator' },
       { label: 'Save', shortcut: 'Ctrl+S', action: 'file:save', icon: '💾', disabled: saving },
-      { label: 'Save As…', shortcut: 'Ctrl+Shift+S', action: 'file:saveAs', icon: '💾' },
+      { label: 'Save As…', shortcut: 'Ctrl+Shift+S', action: 'file:saveAs', icon: '📁' },
       { type: 'separator' },
       { label: 'Import Audio…', shortcut: 'Ctrl+I', action: 'file:importAudio', icon: '📥' },
       { label: 'Import MIDI…', action: 'file:importMidi', icon: '🎹' },
@@ -255,7 +257,8 @@ const DAWMenuBar = ({
     if (openMenu !== null) setOpenMenu(idx);
   };
 
-  const handleItemClick = (item) => {
+  const handleItemClick = (e, item) => {
+    e.stopPropagation();
     if (item.disabled) return;
     if (item.type === 'separator') return;
     onAction(item.action);
@@ -273,7 +276,7 @@ const DAWMenuBar = ({
         >
           <span className="daw-menubar-label">{menu.label}</span>
           {openMenu === idx && (
-            <div className="daw-menubar-dropdown">
+            <div className="daw-menubar-dropdown" onMouseDown={(e) => e.stopPropagation()}>
               {menu.items.map((item, iIdx) => {
                 if (item.type === 'separator') {
                   return <div key={`sep-${iIdx}`} className="daw-menubar-separator" />;
@@ -282,7 +285,7 @@ const DAWMenuBar = ({
                   <div
                     key={item.action || iIdx}
                     className={`daw-menubar-dropdown-item ${item.disabled ? 'disabled' : ''} ${item.active ? 'active' : ''}`}
-                    onClick={() => handleItemClick(item)}
+                    onMouseDown={(e) => handleItemClick(e, item)}
                   >
                     <span className="daw-menubar-item-icon">
                       {item.active ? '●' : (item.icon || '')}
