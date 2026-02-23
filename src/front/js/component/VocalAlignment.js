@@ -1,17 +1,13 @@
 // =============================================================================
 // VocalAlignment.js — Vocal Timing Alignment for StreamPireX DAW
 // =============================================================================
+// Uses PhaseVocoder timeStretch for artifact-free segment stretching.
+// =============================================================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { alignTiming, detectPitch } from './PhaseVocoder';
 
-const VocalAlignment = ({
-  audioContext,
-  audioBuffer,
-  referenceBuffer,
-  bpm = 120,
-  onProcessed,
-  isEmbedded = false,
-}) => {
+const VocalAlignment = ({ audioContext, audioBuffer, referenceBuffer, bpm = 120, onProcessed, isEmbedded = false }) => {
   const [onsets, setOnsets] = useState([]);
   const [refOnsets, setRefOnsets] = useState([]);
   const [alignedOnsets, setAlignedOnsets] = useState([]);
@@ -39,16 +35,12 @@ const VocalAlignment = ({
   const beatDuration = 60 / bpm;
   const gridSize = beatDuration / (gridResolution / 4);
 
-  // ── Onset detection ──
+  // ── Onset detection via spectral flux ──
   const detectOnsets = useCallback((buffer) => {
     if (!buffer) return [];
-    const sr = buffer.sampleRate;
-    const data = buffer.getChannelData(0);
-    const windowSize = 1024;
-    const hopSize = 256;
-    let prevEnergy = 0;
-    const flux = [];
-
+    const sr = buffer.sampleRate; const data = buffer.getChannelData(0);
+    const windowSize = 1024; const hopSize = 256;
+    let prevEnergy = 0; const flux = [];
     for (let i = 0; i + windowSize < data.length; i += hopSize) {
       let energy = 0;
       for (let j = 0; j < windowSize; j++) energy += data[i + j] * data[i + j];
@@ -56,14 +48,10 @@ const VocalAlignment = ({
       flux.push({ time: i / sr, value: Math.max(0, energy - prevEnergy) });
       prevEnergy = energy;
     }
-
     const threshold = sensitivity / 100;
     const maxFlux = Math.max(...flux.map(f => f.value));
     const adaptiveThresh = maxFlux * threshold * 0.3;
-    const minGap = 0.05;
-    const results = [];
-    let lastOnset = -1;
-
+    const minGap = 0.05; const results = []; let lastOnset = -1;
     for (let i = 1; i < flux.length - 1; i++) {
       if (flux[i].value > flux[i-1].value && flux[i].value > flux[i+1].value && flux[i].value > adaptiveThresh) {
         if (flux[i].time - lastOnset > minGap) {
@@ -80,12 +68,8 @@ const VocalAlignment = ({
     setIsAnalyzing(true);
     const detected = detectOnsets(audioBuffer);
     setOnsets(detected);
-
     let refDet = [];
-    if (referenceBuffer && mode === 'reference') {
-      refDet = detectOnsets(referenceBuffer);
-      setRefOnsets(refDet);
-    }
+    if (referenceBuffer && mode === 'reference') { refDet = detectOnsets(referenceBuffer); setRefOnsets(refDet); }
 
     const aligned = detected.map(onset => {
       let targetTime = onset.time;
@@ -93,25 +77,18 @@ const VocalAlignment = ({
         const nearest = Math.round(onset.time / gridSize) * gridSize;
         targetTime = onset.time + (nearest - onset.time) * (strength / 100);
       } else if (mode === 'reference' && refDet.length > 0) {
-        let nearestRef = refDet[0].time;
-        let minDist = Math.abs(onset.time - nearestRef);
-        for (const ro of refDet) {
-          const dist = Math.abs(onset.time - ro.time);
-          if (dist < minDist) { minDist = dist; nearestRef = ro.time; }
-        }
-        if (minDist < beatDuration) {
-          targetTime = onset.time + (nearestRef - onset.time) * (strength / 100);
-        }
+        let nearestRef = refDet[0].time, minDist = Math.abs(onset.time - nearestRef);
+        for (const ro of refDet) { const d = Math.abs(onset.time - ro.time); if (d < minDist) { minDist = d; nearestRef = ro.time; } }
+        if (minDist < beatDuration) targetTime = onset.time + (nearestRef - onset.time) * (strength / 100);
       }
       return { original: onset.time, target: targetTime, strength: onset.strength };
     });
 
-    setAlignedOnsets(aligned);
-    setIsAnalyzing(false);
+    setAlignedOnsets(aligned); setIsAnalyzing(false);
     drawAlignment(detected, aligned);
   }, [audioBuffer, referenceBuffer, mode, gridSize, strength, beatDuration, detectOnsets]);
 
-  // ── Process ──
+  // ── Process using phase vocoder time stretching ──
   const processAlignment = useCallback(async () => {
     if (!audioBuffer || alignedOnsets.length === 0) return;
     setIsProcessing(true);
@@ -122,47 +99,17 @@ const VocalAlignment = ({
     const len = audioBuffer.length;
     const output = ctx.createBuffer(nc, len, sr);
 
+    // Build alignment map
+    const alignments = alignedOnsets.map(a => ({ originalTime: a.original, targetTime: a.target }));
+
     for (let ch = 0; ch < nc; ch++) {
       const src = audioBuffer.getChannelData(ch);
+      const aligned = alignTiming(src, sr, alignments);
       const out = output.getChannelData(ch);
-
-      // Copy audio before first onset
-      if (alignedOnsets.length > 0) {
-        const firstSamp = Math.min(
-          Math.floor(alignedOnsets[0].original * sr),
-          Math.floor(alignedOnsets[0].target * sr)
-        );
-        for (let j = 0; j < firstSamp && j < len; j++) out[j] = src[j];
-      }
-
-      // Time-stretch between onsets
-      for (let i = 0; i < alignedOnsets.length; i++) {
-        const cur = alignedOnsets[i];
-        const nxt = i < alignedOnsets.length - 1 ? alignedOnsets[i + 1] : null;
-
-        const srcStart = Math.floor(cur.original * sr);
-        const srcEnd = nxt ? Math.floor(nxt.original * sr) : len;
-        const dstStart = Math.floor(cur.target * sr);
-        const dstEnd = nxt ? Math.floor(nxt.target * sr) : len;
-        const srcLen = srcEnd - srcStart;
-        const dstLen = dstEnd - dstStart;
-
-        if (srcLen <= 0 || dstLen <= 0) continue;
-
-        const ratio = srcLen / dstLen;
-        for (let j = 0; j < dstLen && (dstStart + j) < len; j++) {
-          const srcIdx = srcStart + j * ratio;
-          const srcInt = Math.floor(srcIdx);
-          const frac = srcIdx - srcInt;
-          if (srcInt >= 0 && srcInt + 1 < len) {
-            out[dstStart + j] = src[srcInt] * (1 - frac) + src[srcInt + 1] * frac;
-          }
-        }
-      }
+      for (let i = 0; i < len && i < aligned.length; i++) out[i] = aligned[i];
     }
 
-    setProcessedBuffer(output);
-    setIsProcessing(false);
+    setProcessedBuffer(output); setIsProcessing(false);
     if (onProcessed) onProcessed(output);
   }, [audioBuffer, alignedOnsets, getCtx, onProcessed]);
 
@@ -170,191 +117,108 @@ const VocalAlignment = ({
   const drawAlignment = useCallback((detectedOnsets, aligned) => {
     const cv = canvasRef.current;
     if (!cv || !audioBuffer) return;
-    const c = cv.getContext('2d');
-    const w = cv.width, h = cv.height;
-    const dur = audioBuffer.duration;
-    const data = audioBuffer.getChannelData(0);
-
-    c.clearRect(0, 0, w, h);
-    c.fillStyle = '#060c12';
-    c.fillRect(0, 0, w, h);
+    const c = cv.getContext('2d'); const w = cv.width, h = cv.height;
+    const dur = audioBuffer.duration; const data = audioBuffer.getChannelData(0);
+    c.clearRect(0, 0, w, h); c.fillStyle = '#060c12'; c.fillRect(0, 0, w, h);
 
     // Beat grid
     const totalBeats = Math.ceil(dur / gridSize);
     for (let b = 0; b <= totalBeats; b++) {
       const x = (b * gridSize / dur) * w;
-      const isDownbeat = (b * gridResolution / 4) % 4 === 0;
-      c.strokeStyle = isDownbeat ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)';
-      c.lineWidth = 1;
-      c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke();
+      const isDown = (b * gridResolution / 4) % 4 === 0;
+      c.strokeStyle = isDown ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)';
+      c.lineWidth = 1; c.beginPath(); c.moveTo(x, 0); c.lineTo(x, h); c.stroke();
     }
 
     // Waveform (top half)
-    const step = Math.floor(data.length / w);
-    const halfH = h / 2;
-    c.beginPath();
-    c.strokeStyle = 'rgba(200,214,229,0.35)';
-    c.lineWidth = 1;
+    const step = Math.floor(data.length / w); const halfH = h / 2;
+    c.beginPath(); c.strokeStyle = 'rgba(200,214,229,0.35)'; c.lineWidth = 1;
     for (let px = 0; px < w; px++) {
       let min = 1, max = -1;
-      for (let j = 0; j < step; j++) {
-        const d = data[px * step + j] || 0;
-        if (d < min) min = d;
-        if (d > max) max = d;
-      }
-      c.moveTo(px, halfH * 0.1 + ((1 + min) / 2) * halfH * 0.8);
-      c.lineTo(px, halfH * 0.1 + ((1 + max) / 2) * halfH * 0.8);
+      for (let j = 0; j < step; j++) { const d = data[px * step + j] || 0; if (d < min) min = d; if (d > max) max = d; }
+      c.moveTo(px, halfH * 0.1 + ((1 + min) / 2) * halfH * 0.8); c.lineTo(px, halfH * 0.1 + ((1 + max) / 2) * halfH * 0.8);
     }
     c.stroke();
 
-    // Onset markers + alignment arrows (bottom half)
+    // Alignment arrows
     if (aligned && aligned.length > 0) {
       aligned.forEach(a => {
-        const origX = (a.original / dur) * w;
-        const targX = (a.target / dur) * w;
-
-        // Original position (orange)
-        c.strokeStyle = 'rgba(255,102,0,0.5)';
-        c.lineWidth = 1;
+        const origX = (a.original / dur) * w; const targX = (a.target / dur) * w;
+        c.strokeStyle = 'rgba(255,102,0,0.5)'; c.lineWidth = 1;
         c.beginPath(); c.moveTo(origX, 0); c.lineTo(origX, halfH); c.stroke();
-
-        // Target position (teal)
-        c.strokeStyle = '#00ffc8';
-        c.lineWidth = 2;
+        c.strokeStyle = '#00ffc8'; c.lineWidth = 2;
         c.beginPath(); c.moveTo(targX, halfH); c.lineTo(targX, h); c.stroke();
-
-        // Arrow from original to target
         if (Math.abs(origX - targX) > 2) {
-          c.strokeStyle = 'rgba(255,255,255,0.2)';
-          c.lineWidth = 1;
+          c.strokeStyle = 'rgba(255,255,255,0.2)'; c.lineWidth = 1;
           c.beginPath(); c.moveTo(origX, halfH - 5); c.lineTo(targX, halfH + 5); c.stroke();
-
-          // Arrowhead
-          const dir = targX > origX ? 1 : -1;
-          c.fillStyle = 'rgba(255,255,255,0.3)';
-          c.beginPath();
-          c.moveTo(targX, halfH + 5);
-          c.lineTo(targX - dir * 4, halfH + 1);
-          c.lineTo(targX - dir * 4, halfH + 9);
-          c.fill();
+          const dir = targX > origX ? 1 : -1; c.fillStyle = 'rgba(255,255,255,0.3)';
+          c.beginPath(); c.moveTo(targX, halfH + 5); c.lineTo(targX - dir * 4, halfH + 1); c.lineTo(targX - dir * 4, halfH + 9); c.fill();
         }
-
-        // Dot at onset
         c.fillStyle = `rgba(${a.strength > 0.5 ? '0,255,200' : '200,214,229'},0.6)`;
         c.beginPath(); c.arc(origX, halfH, 3, 0, Math.PI * 2); c.fill();
       });
     }
-
-    // Labels
-    c.fillStyle = 'rgba(255,255,255,0.15)';
-    c.font = '8px monospace';
-    c.fillText('ORIGINAL', 4, 10);
-    c.fillText('ALIGNED', 4, halfH + 10);
+    c.fillStyle = 'rgba(255,255,255,0.15)'; c.font = '8px monospace';
+    c.fillText('ORIGINAL', 4, 10); c.fillText('ALIGNED', 4, halfH + 10);
   }, [audioBuffer, gridSize, gridResolution]);
 
-  useEffect(() => {
-    if (onsets.length > 0) drawAlignment(onsets, alignedOnsets);
-  }, [onsets, alignedOnsets, drawAlignment]);
+  useEffect(() => { if (onsets.length > 0) drawAlignment(onsets, alignedOnsets); }, [onsets, alignedOnsets, drawAlignment]);
 
   // ── Preview ──
-  const preview = useCallback((useProcessed) => {
-    const buf = useProcessed ? processedBuffer : audioBuffer;
-    if (!buf) return;
+  const preview = useCallback((useProcesed) => {
+    const buf = useProcesed ? processedBuffer : audioBuffer; if (!buf) return;
     const ctx = getCtx();
     if (sourceRef.current) try { sourceRef.current.stop(); } catch(e){}
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    src.start();
-    sourceRef.current = src;
-    setPreviewPlaying(true);
-    src.onended = () => setPreviewPlaying(false);
+    const s = ctx.createBufferSource(); s.buffer = buf; s.connect(ctx.destination); s.start();
+    sourceRef.current = s; setPreviewPlaying(true); s.onended = () => setPreviewPlaying(false);
   }, [audioBuffer, processedBuffer, getCtx]);
+  const stopPreview = useCallback(() => { if (sourceRef.current) try { sourceRef.current.stop(); } catch(e){} setPreviewPlaying(false); }, []);
 
-  const stopPreview = useCallback(() => {
-    if (sourceRef.current) try { sourceRef.current.stop(); } catch(e){}
-    setPreviewPlaying(false);
-  }, []);
-
-  useEffect(() => {
-    return () => { if (sourceRef.current) try { sourceRef.current.stop(); } catch(e){} };
-  }, []);
+  useEffect(() => () => { if (sourceRef.current) try { sourceRef.current.stop(); } catch(e){} }, []);
 
   return (
     <div className="vocal-align">
       <div className="va-header">
         <span className="va-logo">⏱</span>
         <span className="va-title">VOCAL ALIGNMENT</span>
-        <span className="va-bpm">{bpm} BPM</span>
+        <span className="va-bpm">{bpm} BPM — Phase Vocoder Engine</span>
       </div>
-
       <div className="va-body">
         <div className="va-controls">
           <div className="va-section">
             <div className="va-section-label">Mode</div>
             <div className="va-mode-row">
-              <button className={`va-mode-btn ${mode === 'grid' ? 'active' : ''}`}
-                onClick={() => setMode('grid')}>
-                <span>📐 Grid</span>
-                <span className="va-mode-desc">Snap to beat grid</span>
+              <button className={`va-mode-btn ${mode === 'grid' ? 'active' : ''}`} onClick={() => setMode('grid')}>
+                <span>📐 Grid</span><span className="va-mode-desc">Snap to beat grid</span>
               </button>
-              <button className={`va-mode-btn ${mode === 'reference' ? 'active' : ''}`}
-                onClick={() => setMode('reference')} disabled={!referenceBuffer}>
-                <span>🎯 Reference</span>
-                <span className="va-mode-desc">{referenceBuffer ? 'Align to ref track' : 'No ref loaded'}</span>
+              <button className={`va-mode-btn ${mode === 'reference' ? 'active' : ''}`} onClick={() => setMode('reference')} disabled={!referenceBuffer}>
+                <span>🎯 Reference</span><span className="va-mode-desc">{referenceBuffer ? 'Align to ref track' : 'No ref loaded'}</span>
               </button>
             </div>
           </div>
-
           {mode === 'grid' && (
             <div className="va-section">
-              <div className="va-section-label">Grid</div>
+              <div className="va-section-label">Grid Resolution</div>
               <div className="va-grid-btns">
                 {[{v:1,l:'1/16'},{v:2,l:'1/8'},{v:4,l:'1/4'},{v:8,l:'1/2'},{v:16,l:'1 bar'}].map(g => (
-                  <button key={g.v} className={`va-grid-btn ${gridResolution === g.v ? 'active' : ''}`}
-                    onClick={() => setGridResolution(g.v)}>
-                    {g.l}
-                  </button>
+                  <button key={g.v} className={`va-grid-btn ${gridResolution === g.v ? 'active' : ''}`} onClick={() => setGridResolution(g.v)}>{g.l}</button>
                 ))}
               </div>
             </div>
           )}
-
           <div className="va-section">
             <div className="va-section-label">Settings</div>
-            <div className="va-param">
-              <label>Strength</label>
-              <input type="range" min={0} max={100} value={strength}
-                onChange={e => setStrength(+e.target.value)} className="va-slider" />
-              <span>{strength}%</span>
-            </div>
-            <div className="va-param">
-              <label>Sensitivity</label>
-              <input type="range" min={10} max={100} value={sensitivity}
-                onChange={e => setSensitivity(+e.target.value)} className="va-slider" />
-              <span>{sensitivity}%</span>
-            </div>
+            <div className="va-param"><label>Strength</label><input type="range" min={0} max={100} value={strength} onChange={e => setStrength(+e.target.value)} className="va-slider" /><span>{strength}%</span></div>
+            <div className="va-param"><label>Sensitivity</label><input type="range" min={10} max={100} value={sensitivity} onChange={e => setSensitivity(+e.target.value)} className="va-slider" /><span>{sensitivity}%</span></div>
           </div>
-
           <div className="va-actions">
-            <button className="va-btn va-btn-analyze" onClick={analyze}
-              disabled={!audioBuffer || isAnalyzing}>
-              {isAnalyzing ? '⏳ Analyzing...' : `📊 Detect Onsets (${onsets.length})`}
-            </button>
-            <button className="va-btn va-btn-process" onClick={processAlignment}
-              disabled={alignedOnsets.length === 0 || isProcessing}>
-              {isProcessing ? '⏳ Aligning...' : '⏱ Align Timing'}
-            </button>
-            <button className="va-btn" onClick={() => preview(false)} disabled={!audioBuffer || previewPlaying}>
-              ▶ Original
-            </button>
-            <button className="va-btn" onClick={() => preview(true)} disabled={!processedBuffer || previewPlaying}>
-              ▶ Aligned
-            </button>
+            <button className="va-btn va-btn-analyze" onClick={analyze} disabled={!audioBuffer || isAnalyzing}>{isAnalyzing ? '⏳ Analyzing...' : `📊 Detect Onsets (${onsets.length})`}</button>
+            <button className="va-btn va-btn-process" onClick={processAlignment} disabled={alignedOnsets.length === 0 || isProcessing}>{isProcessing ? '⏳ Aligning...' : '⏱ Align Timing'}</button>
+            <button className="va-btn" onClick={() => preview(false)} disabled={!audioBuffer || previewPlaying}>▶ Original</button>
+            <button className="va-btn" onClick={() => preview(true)} disabled={!processedBuffer || previewPlaying}>▶ Aligned</button>
             {previewPlaying && <button className="va-btn" onClick={stopPreview}>⏹ Stop</button>}
           </div>
         </div>
-
         <div className="va-display">
           <div className="va-display-header">
             <span>Timing Analysis</span>
@@ -365,14 +229,9 @@ const VocalAlignment = ({
           </div>
           <canvas ref={canvasRef} className="va-canvas" width={800} height={250} />
           {!audioBuffer && <div className="va-empty-overlay">No audio loaded</div>}
-
           {onsets.length > 0 && (
             <div className="va-onset-info">
-              {onsets.length} onsets detected — max shift: {
-                alignedOnsets.length > 0
-                  ? `${(Math.max(...alignedOnsets.map(a => Math.abs(a.target - a.original))) * 1000).toFixed(0)}ms`
-                  : '—'
-              }
+              {onsets.length} onsets detected — max shift: {alignedOnsets.length > 0 ? `${(Math.max(...alignedOnsets.map(a => Math.abs(a.target - a.original))) * 1000).toFixed(0)}ms` : '—'}
             </div>
           )}
         </div>
