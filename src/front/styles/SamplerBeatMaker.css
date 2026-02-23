@@ -3370,3 +3370,100 @@
   from { opacity: 0.4; }
   to { opacity: 1; }
 }
+
+/* =============================================================================
+   Bar Ruler + Loop Range
+   ============================================================================= */
+
+/* ── Bar Ruler Row ── */
+.seq-bar-ruler {
+  display: flex;
+  align-items: stretch;
+  height: 26px;
+  background: #0d1a26;
+  border-bottom: 1px solid #1a2838;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.seq-bar-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-right: 1px solid #1a2838;
+  transition: background 0.12s;
+  position: relative;
+  user-select: none;
+}
+
+.seq-bar-marker .bar-number {
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: #5a7088;
+  letter-spacing: 0.5px;
+}
+
+/* Current playing bar */
+.seq-bar-marker.current {
+  background: rgba(0, 255, 200, 0.08);
+}
+.seq-bar-marker.current .bar-number {
+  color: #00ffc8;
+}
+
+/* In-loop bars */
+.seq-bar-marker.in-loop {
+  background: rgba(0, 140, 255, 0.06);
+}
+.seq-bar-marker.in-loop .bar-number {
+  color: #7ab8e8;
+}
+
+/* Out-of-loop bars (dimmed) */
+.seq-bar-marker.out-loop {
+  background: rgba(0, 0, 0, 0.2);
+}
+.seq-bar-marker.out-loop .bar-number {
+  color: #2a3a48;
+}
+
+/* Loop start/end markers */
+.seq-bar-marker.loop-start {
+  border-left: 2px solid #00ffc8;
+}
+.seq-bar-marker.loop-end {
+  border-right: 2px solid #ff6600;
+}
+
+/* Hover */
+.seq-bar-marker:hover {
+  background: rgba(0, 255, 200, 0.12);
+}
+.seq-bar-marker:hover .bar-number {
+  color: #00ffc8;
+}
+
+/* Current + in loop */
+.seq-bar-marker.current.in-loop {
+  background: rgba(0, 255, 200, 0.12);
+}
+
+/* ── Step header outside loop ── */
+.seq-header-cell.out-of-loop {
+  opacity: 0.25;
+}
+
+/* ── Grid cells outside loop range ── */
+.seq-cell.out-of-loop {
+  opacity: 0.2;
+  pointer-events: all;
+}
+.seq-cell.out-of-loop:hover {
+  opacity: 0.4;
+}
+.seq-cell.out-of-loop.on {
+  opacity: 0.35;
+}

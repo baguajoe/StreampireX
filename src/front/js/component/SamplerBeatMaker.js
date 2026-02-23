@@ -171,6 +171,10 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   const [looping, setLooping] = useState(true);
   const [curStep, setCurStep] = useState(-1);
 
+  // ==== LOOP RANGE (bar selection for partial loop) ====
+  const [loopStartStep, setLoopStartStep] = useState(0);
+  const [loopEndStep, setLoopEndStep] = useState(null); // null = loop entire pattern
+
   // ==== LIVE RECORDING (Phase 2) ====
   const [liveRec, setLiveRec] = useState(false);
   const [overdub, setOverdub] = useState(false);
@@ -260,6 +264,8 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   const scRef = useRef(stepCount);
   const metRef = useRef(metOn);
   const loopRef = useRef(looping);
+  const loopStartRef = useRef(0);
+  const loopEndRef = useRef(null);
   const liveRef = useRef(liveRec);
   const songRef = useRef(songMode);
   const songSeqRef = useRef(songSeq);
@@ -273,6 +279,10 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
   useEffect(() => { scRef.current = stepCount; }, [stepCount]);
   useEffect(() => { metRef.current = metOn; }, [metOn]);
   useEffect(() => { loopRef.current = looping; }, [looping]);
+  useEffect(() => { loopStartRef.current = loopStartStep; }, [loopStartStep]);
+  useEffect(() => { loopEndRef.current = loopEndStep; }, [loopEndStep]);
+  // Reset loop range when step count changes
+  useEffect(() => { setLoopStartStep(0); setLoopEndStep(null); }, [stepCount]);
   useEffect(() => { liveRef.current = liveRec; }, [liveRec]);
   useEffect(() => { songRef.current = songMode; }, [songMode]);
   useEffect(() => { songSeqRef.current = songSeq; }, [songSeq]);
@@ -1072,14 +1082,22 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
       if (!playingRef.current) return;
       const sd = 60.0 / bpmRef.current / 4;
       while (nextStepT.current < c.currentTime + 0.1) {
-        const ns = (curStepRef.current + 1) % scRef.current;
+        // Loop range boundaries
+        const loopS = loopStartRef.current || 0;
+        const loopE = loopEndRef.current != null ? loopEndRef.current : scRef.current;
+        let ns;
+        if (curStepRef.current < loopS || curStepRef.current >= loopE - 1) {
+          ns = loopS; // wrap to loop start
+        } else {
+          ns = curStepRef.current + 1;
+        }
         let so = 0;
         if (ns % 2 === 1 && swingRef.current > 0) so = sd * (swingRef.current / 100) * 0.5;
         schedStep(ns, nextStepT.current + so);
         curStepRef.current = ns; nextStepT.current += sd;
 
-        // Song mode: advance pattern at end
-        if (ns === scRef.current - 1 && songRef.current && songSeqRef.current.length > 0) {
+        // Song mode: advance pattern at end of loop range
+        if (ns === loopE - 1 && songRef.current && songSeqRef.current.length > 0) {
           const curSongIdx = songSeqRef.current.findIndex(b => b.patternIndex === patIdxRef.current);
           const nextSongIdx = curSongIdx + 1;
           if (nextSongIdx < songSeqRef.current.length) {
@@ -1093,7 +1111,7 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
           }
         }
 
-        if (ns === scRef.current - 1 && !loopRef.current && !songRef.current) {
+        if (ns === loopE - 1 && !loopRef.current && !songRef.current) {
           playingRef.current = false; setIsPlaying(false); setCurStep(-1); return;
         }
       }
@@ -2300,12 +2318,56 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
         {/* STEP SEQUENCER */}
         {(view === 'sequencer' || view === 'split') && (
           <div className="sequencer-section">
+            {/* ── Bar Ruler ── */}
+            <div className="seq-bar-ruler">
+              <div className="seq-label-cell" style={{ minWidth: 100, fontSize: '0.6rem', color: '#5a7088', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+                {loopEndStep != null ? `Loop ${Math.floor(loopStartStep / 4) + 1}–${Math.floor((loopEndStep - 1) / 4) + 1}` : 'All'}
+              </div>
+              {Array.from({ length: Math.ceil(stepCount / 4) }, (_, bar) => {
+                const barStart = bar * 4;
+                const barEnd = Math.min(barStart + 4, stepCount);
+                const barWidth = barEnd - barStart;
+                const isInLoop = loopEndStep == null || (barStart < loopEndStep && barEnd > loopStartStep);
+                const isLoopStart = barStart === loopStartStep && loopEndStep != null;
+                const isLoopEnd = barEnd === loopEndStep;
+                const currentBar = curStep >= barStart && curStep < barEnd;
+                return (
+                  <div
+                    key={bar}
+                    className={`seq-bar-marker ${currentBar ? 'current' : ''} ${isInLoop ? 'in-loop' : 'out-loop'} ${isLoopStart ? 'loop-start' : ''} ${isLoopEnd ? 'loop-end' : ''}`}
+                    style={{ flex: `0 0 ${barWidth * (100 / stepCount)}%`, minWidth: 0 }}
+                    onClick={(e) => {
+                      if (e.shiftKey) {
+                        setLoopEndStep(barEnd);
+                      } else if (e.altKey || e.ctrlKey) {
+                        setLoopStartStep(0);
+                        setLoopEndStep(null);
+                      } else {
+                        setLoopStartStep(barStart);
+                        if (loopEndStep != null && barStart >= loopEndStep) {
+                          setLoopEndStep(null);
+                        }
+                      }
+                    }}
+                    title={`Bar ${bar + 1} | Click = loop start | Shift+Click = loop end | Ctrl+Click = clear`}
+                  >
+                    <span className="bar-number">{bar + 1}</span>
+                  </div>
+                );
+              })}
+            </div>
+
             <div className="sequencer-grid">
               <div className="seq-header-row">
                 <div className="seq-label-cell"></div>
-                {Array.from({ length: stepCount }, (_, i) => (
-                  <div key={i} className={`seq-header-cell ${curStep === i ? 'current' : ''} ${i % 4 === 0 ? 'downbeat' : ''}`}>{i + 1}</div>
-                ))}
+                {Array.from({ length: stepCount }, (_, i) => {
+                  const inLoop = loopEndStep == null || (i >= loopStartStep && i < loopEndStep);
+                  return (
+                    <div key={i} className={`seq-header-cell ${curStep === i ? 'current' : ''} ${i % 4 === 0 ? 'downbeat' : ''} ${!inLoop ? 'out-of-loop' : ''}`}>
+                      {i % 4 === 0 ? `${Math.floor(i / 4) + 1}.1` : `.${(i % 4) + 1}`}
+                    </div>
+                  );
+                })}
               </div>
               {pads.map((pad, pi) => (
                 <div key={pi} className={`seq-row ${!pad.buffer ? 'empty-row' : ''}`}>
@@ -2314,16 +2376,19 @@ const SamplerBeatMaker = ({ onExport, onClose, isEmbedded = false, stemSeparator
                     <span className="seq-pad-name">{pad.name}</span>
                     <span className="seq-pad-key">{PAD_KEY_LABELS[pi]}</span>
                   </div>
-                  {Array.from({ length: stepCount }, (_, si) => (
-                    <div key={si}
-                      className={`seq-cell ${steps[pi]?.[si] ? 'on' : ''} ${curStep === si ? 'current' : ''} ${si % 4 === 0 ? 'downbeat' : ''} ${si % 8 < 4 ? 'even-group' : 'odd-group'}`}
-                      style={{ '--cell-color': pad.color, '--cell-opacity': steps[pi]?.[si] ? (stepVel[pi]?.[si] ?? 0.8) : 0 }}
-                      onClick={(e) => toggleStep(pi, si, e)} />
-                  ))}
+                  {Array.from({ length: stepCount }, (_, si) => {
+                    const inLoop = loopEndStep == null || (si >= loopStartStep && si < loopEndStep);
+                    return (
+                      <div key={si}
+                        className={`seq-cell ${steps[pi]?.[si] ? 'on' : ''} ${curStep === si ? 'current' : ''} ${si % 4 === 0 ? 'downbeat' : ''} ${si % 8 < 4 ? 'even-group' : 'odd-group'} ${!inLoop ? 'out-of-loop' : ''}`}
+                        style={{ '--cell-color': pad.color, '--cell-opacity': steps[pi]?.[si] ? (stepVel[pi]?.[si] ?? 0.8) : 0 }}
+                        onClick={(e) => toggleStep(pi, si, e)} />
+                    );
+                  })}
                 </div>
               ))}
             </div>
-            <div className="sequencer-hint">Click = normal | Shift = soft | Ctrl = hard</div>
+            <div className="sequencer-hint">Click = normal | Shift = soft | Ctrl = hard · Bar ruler: Click = loop start | Shift+Click = loop end | Ctrl+Click = clear</div>
           </div>
         )}
       </div>

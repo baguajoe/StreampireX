@@ -254,34 +254,48 @@ const TrackHeader = React.memo(({
       {/* Color indicator */}
       <div className="arr-track-color" style={{ background: track.color }} />
 
-      {/* Track info */}
+      {/* Track number + name row */}
       <div className="arr-track-info">
+        <span className="arr-track-number">{index + 1}</span>
         <input
           className="arr-track-name"
           value={track.name}
           onChange={(e) => onUpdate(index, { name: e.target.value })}
           onClick={(e) => e.stopPropagation()}
           spellCheck={false}
+          title="Double-click to rename"
         />
+        {canDelete && (
+          <button
+            className="arr-track-delete-btn"
+            onClick={(e) => { e.stopPropagation(); onDelete(index); }}
+            title="Delete Track"
+          >✕</button>
+        )}
+      </div>
 
-        {/* R M S buttons */}
-        <div className="arr-track-badges">
-          <button
-            className={`arr-badge r ${track.armed ? 'on' : ''}`}
-            onClick={(e) => { e.stopPropagation(); onUpdate(index, { armed: !track.armed }); }}
-            title="Record Arm"
-          >R</button>
-          <button
-            className={`arr-badge m ${track.muted ? 'on' : ''}`}
-            onClick={(e) => { e.stopPropagation(); onUpdate(index, { muted: !track.muted }); }}
-            title="Mute"
-          >M</button>
-          <button
-            className={`arr-badge s ${track.solo ? 'on' : ''}`}
-            onClick={(e) => { e.stopPropagation(); onUpdate(index, { solo: !track.solo }); }}
-            title="Solo"
-          >S</button>
-        </div>
+      {/* R M S buttons */}
+      <div className="arr-track-badges">
+        <button
+          className={`arr-badge r ${track.armed ? 'on' : ''}`}
+          onClick={(e) => { e.stopPropagation(); onUpdate(index, { armed: !track.armed }); }}
+          title="Record Arm"
+        >R</button>
+        <button
+          className={`arr-badge m ${track.muted ? 'on' : ''}`}
+          onClick={(e) => { e.stopPropagation(); onUpdate(index, { muted: !track.muted }); }}
+          title="Mute"
+        >M</button>
+        <button
+          className={`arr-badge s ${track.solo ? 'on' : ''}`}
+          onClick={(e) => { e.stopPropagation(); onUpdate(index, { solo: !track.solo }); }}
+          title="Solo"
+        >S</button>
+        <button
+          className="arr-badge fx"
+          onClick={(e) => { e.stopPropagation(); onToggleFx(index); }}
+          title="Effects"
+        >FX</button>
       </div>
 
       {/* Volume */}
@@ -316,22 +330,6 @@ const TrackHeader = React.memo(({
         <span className="arr-pan-val">
           {track.pan === 0 ? 'C' : track.pan < 0 ? `L${Math.round(Math.abs(track.pan) * 100)}` : `R${Math.round(track.pan * 100)}`}
         </span>
-      </div>
-
-      {/* Bottom actions */}
-      <div className="arr-track-actions">
-        <button
-          className="arr-action-btn"
-          onClick={(e) => { e.stopPropagation(); onToggleFx(index); }}
-          title="Effects"
-        >FX</button>
-        {canDelete && (
-          <button
-            className="arr-action-btn delete"
-            onClick={(e) => { e.stopPropagation(); onDelete(index); }}
-            title="Delete Track"
-          >✕</button>
-        )}
       </div>
     </div>
   );
@@ -547,7 +545,7 @@ const ArrangerView = ({
   const [activeTrack, setActiveTrack] = useState(0);
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
-  const [trackHeight, setTrackHeight] = useState(72);
+  const [trackHeight, setTrackHeight] = useState(110);
 
   const timelineRef = useRef(null);
   const scrollContainerRef = useRef(null);
@@ -806,12 +804,18 @@ const ArrangerView = ({
             <button className="arr-transport-btn" onClick={() => onSeek?.(0)} title="Return to Start">
               ⏮
             </button>
+            <button className="arr-transport-btn" onClick={() => onSeek?.(Math.max(0, playheadBeat - timeSignatureTop * 2))} title="Rewind 2 bars">
+              ⏪
+            </button>
             <button
               className={`arr-transport-btn play ${isPlaying ? 'active' : ''}`}
               onClick={() => isPlaying ? onStop?.() : onPlay?.()}
               title={isPlaying ? 'Stop' : 'Play'}
             >
               {isPlaying ? '⏹' : '▶'}
+            </button>
+            <button className="arr-transport-btn" onClick={() => onSeek?.(playheadBeat + timeSignatureTop * 2)} title="Forward 2 bars">
+              ⏩
             </button>
             <button
               className={`arr-transport-btn rec ${isRecording ? 'active' : ''}`}
@@ -894,13 +898,13 @@ const ArrangerView = ({
               title="Small tracks"
             >S</button>
             <button
-              className={`arr-height-btn ${trackHeight === 72 ? 'active' : ''}`}
-              onClick={() => setTrackHeight(72)}
+              className={`arr-height-btn ${trackHeight === 110 ? 'active' : ''}`}
+              onClick={() => setTrackHeight(110)}
               title="Medium tracks"
             >M</button>
             <button
-              className={`arr-height-btn ${trackHeight === 110 ? 'active' : ''}`}
-              onClick={() => setTrackHeight(110)}
+              className={`arr-height-btn ${trackHeight === 140 ? 'active' : ''}`}
+              onClick={() => setTrackHeight(140)}
               title="Large tracks"
             >L</button>
           </div>
@@ -916,6 +920,17 @@ const ArrangerView = ({
           >
             {saving ? '⏳' : '💾'} {saving ? 'Saving...' : 'Save'}
           </button>
+
+          {/* Bounce */}
+          <button
+            className="arr-save-btn"
+            onClick={onBounce}
+            disabled={isPlaying || isRecording}
+            title="Bounce / Mixdown"
+            style={{ background: 'rgba(0,255,200,0.08)', borderColor: 'rgba(0,255,200,0.2)' }}
+          >
+            ⏏ Bounce
+          </button>
         </div>
       </div>
 
@@ -923,9 +938,24 @@ const ArrangerView = ({
       <div className="arr-body">
         {/* Track Headers (left sidebar) */}
         <div className="arr-headers">
-          {/* Ruler header spacer */}
+          {/* Ruler header spacer — now with +/- controls */}
           <div className="arr-ruler-spacer">
             <span className="arr-ruler-spacer-label">TRACKS</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button
+                style={{ width: 24, height: 22, border: '1px solid #555', borderRadius: 3, background: 'rgba(0,255,200,0.08)', color: '#00ffc8', fontSize: '1rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={addTrack}
+                disabled={!canAddTrack}
+                title="Add Track"
+              >+</button>
+              <button
+                style={{ width: 24, height: 22, border: '1px solid #555', borderRadius: 3, background: 'rgba(255,68,68,0.08)', color: '#ff4444', fontSize: '1rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: tracks.length <= 1 ? 0.3 : 1 }}
+                onClick={() => deleteTrack(activeTrack)}
+                disabled={tracks.length <= 1}
+                title="Remove Selected Track"
+              >−</button>
+              <span style={{ fontSize: '0.6rem', fontWeight: 600, color: '#666', fontFamily: 'monospace' }}>{tracks.length}/{maxTracks}</span>
+            </div>
           </div>
 
           {/* Track header list */}
@@ -944,26 +974,6 @@ const ArrangerView = ({
                 />
               </div>
             ))}
-
-            {/* Add Track button */}
-            <div className="arr-add-track-row">
-              <button
-                className={`arr-add-track-btn ${!canAddTrack ? 'disabled' : ''}`}
-                onClick={addTrack}
-                disabled={!canAddTrack}
-              >
-                {canAddTrack ? (
-                  <>＋ Add Track</>
-                ) : (
-                  <>🔒 Upgrade for more tracks</>
-                )}
-              </button>
-              {!canAddTrack && (
-                <span className="arr-upgrade-hint">
-                  {tierConfig.label} plan: max {maxTracks} tracks
-                </span>
-              )}
-            </div>
           </div>
         </div>
 
@@ -976,7 +986,7 @@ const ArrangerView = ({
               bpm={bpm}
               timeSignatureTop={timeSignatureTop}
               scrollLeft={scrollLeft}
-              width={scrollContainerRef.current?.clientWidth || 1000}
+              width={timelineWidth}
               playheadBeat={playheadBeat}
               onSeek={(beat) => onSeek?.(beat)}
             />
@@ -1025,53 +1035,21 @@ const ArrangerView = ({
               </div>
             ))}
 
-            {/* Empty area below tracks for add-track zone */}
-            {canAddTrack && (
-              <div
-                className="arr-lane arr-lane-ghost"
-                style={{ height: 48 }}
-                onDoubleClick={() => addTrack()}
-              >
-                <div className="arr-lane-ghost-label">Double-click to add track</div>
-              </div>
-            )}
+            {/* Grid fill — extends grid lines to bottom of viewport */}
+            <div
+              className="arr-lane arr-lane-fill"
+              style={{ minHeight: 'calc(100vh - 300px)', '--track-color': 'transparent' }}
+              onDoubleClick={() => canAddTrack && addTrack()}
+            >
+              <GridOverlay
+                zoom={zoom}
+                timeSignatureTop={timeSignatureTop}
+                scrollLeft={scrollLeft}
+                width={timelineWidth}
+                height={800}
+              />
+            </div>
           </div>
-        </div>
-      </div>
-
-      {/* ─── MASTER BAR ──────────────────────────────────── */}
-      <div className="arr-master-bar">
-        <div className="arr-master-left">
-          <span className="arr-master-label">MASTER</span>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-            value={masterVolume}
-            onChange={(e) => onMasterVolumeChange?.(parseFloat(e.target.value))}
-            className="arr-master-slider"
-          />
-          <span className="arr-master-val">{Math.round(masterVolume * 100)}%</span>
-        </div>
-
-        <div className="arr-master-center">
-          <span className="arr-track-count">
-            {tracks.length} track{tracks.length !== 1 ? 's' : ''}
-            {tracks.filter(t => t.armed).length > 0 && (
-              <span className="arr-armed-count"> • {tracks.filter(t => t.armed).length} armed</span>
-            )}
-          </span>
-        </div>
-
-        <div className="arr-master-right">
-          <button
-            className="arr-bounce-btn"
-            onClick={onBounce}
-            disabled={isPlaying || isRecording}
-          >
-            ⏏ Bounce
-          </button>
         </div>
       </div>
 
