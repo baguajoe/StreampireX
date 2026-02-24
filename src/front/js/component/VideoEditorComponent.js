@@ -21,6 +21,36 @@ import {
   Loader
 } from 'lucide-react';
 
+// ── NEW: Motion Graphics & Keyframes ──
+import {
+  EASING, ANIMATABLE_PROPS, createKeyframe, interpolateKeyframes,
+  keyframesToCSS, KeyframeEditor, TEXT_PRESETS, LOWER_THIRD_TEMPLATES,
+} from '../component/VideoEditorMotion';
+
+// ── NEW: Overlays, Captions, Stickers, Watermark, PIP ──
+import {
+  createTextOverlay, TextOverlayRenderer,
+  CAPTION_STYLES, createCaptionSegment, CaptionRenderer,
+  STICKER_LIBRARY, createStickerOverlay,
+  createWatermark, WatermarkRenderer,
+  createPIP, PIPRenderer, PIP_POSITIONS,
+  SOCIAL_TEMPLATES,
+} from '../component/VideoEditorOverlays';
+
+// ── NEW: Chroma Key, Speed Ramp, Multi-Cam, etc. ──
+import {
+  applyChromaKey, createChromaKeySettings, ChromaKeyPanel, CHROMA_PRESETS,
+  SPEED_RAMP_PRESETS, getSpeedAtPosition, SpeedRampPanel,
+  createFreezeFrame,
+  createAdjustmentLayer, AdjustmentLayerPanel, BLEND_MODES,
+  autoReframeAnalyze, calculateReframeCrop,
+  VideoStabilizer,
+  createNoiseProfile, applyNoiseReduction,
+  createMultiCamSession, addMultiCamCut, MultiCamPanel,
+  detectBeats, snapToBeat,
+  ASPECT_RATIOS, EXPORT_PRESETS,
+} from '../component/VideoEditorEffectsPlus';
+
 // Video Editor State Management Hooks
 import {
   useUndoRedo,
