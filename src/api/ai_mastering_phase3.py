@@ -1330,3 +1330,46 @@ def api_profile_reference_master():
             shutil.rmtree(temp_dir, ignore_errors=True)
         except Exception:
             pass
+
+@ai_mastering_phase3_bp.route("/api/ai/mastering/phase3/process", methods=["POST"])
+@jwt_required()
+def phase3_process():
+    """
+    Phase 3 will eventually run a neural mastering model.
+    For now it safely falls back to Phase 1 DSP via master_audio().
+    """
+    temp_dir = None
+    try:
+        if not (request.content_type and "multipart/form-data" in request.content_type):
+            return jsonify({"error": "Use multipart/form-data with a file"}), 400
+
+        file = request.files.get("file")
+        preset = request.form.get("preset", "radio_ready")
+
+        if not file:
+            return jsonify({"error": "No file provided"}), 400
+        if preset not in MASTERING_PRESETS:
+            return jsonify({"error": f"Unknown preset: {preset}"}), 400
+
+        temp_dir = tempfile.mkdtemp()
+        input_path = os.path.join(temp_dir, "input.wav")
+        output_path = os.path.join(temp_dir, "output.wav")
+        file.save(input_path)
+
+        stats = master_audio(input_path, output_path, preset)
+
+        # NOTE: In Phase 3 you will typically upload output_path and return the URL.
+        # For now, just confirm processing completed:
+        return jsonify({
+            "message": "Phase 3 fallback mastering complete (DSP).",
+            "preset": preset,
+            "stats": stats
+        }), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+    finally:
+        if temp_dir:
+            shutil.rmtree(temp_dir, ignore_errors=True)
