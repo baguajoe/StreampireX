@@ -22071,11 +22071,17 @@ def handle_checkout_completed(session):
         # TIP PAYMENT
         if metadata.get('type') == 'tip':
             handle_tip_payment_success(session)
+        # AI Video Credit Pack Purchase
+        if metadata.get('type') == 'credit_pack_purchase':
+            from src.api.ai_video_credits_routes import handle_credit_pack_payment
+            handle_credit_pack_payment(session)
+            return
             return
         
         # WALLET DEPOSIT
         if metadata.get('type') == 'wallet_deposit':
             handle_wallet_deposit_success(session)
+        # AI Video Credit Pack Purchase
             return
         
         # ... your existing marketplace/podcast handling ...

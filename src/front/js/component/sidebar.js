@@ -496,6 +496,10 @@ const Sidebar = ({ user }) => {
       <AIMenuItem to="/ai-stems" className={isActive("/ai-stems") ? "active" : ""}>
         🎵 <span className="sidebar-label">AI Stem Separation</span>
       </AIMenuItem>
+      <AIMenuItem to="/ai-video-studio" className={isActive("/ai-video-studio") ? "active" : ""}>
+        🎬 <span className="sidebar-label">AI Video Studio</span>
+        <MenuHint className="sidebar-hint">NEW</MenuHint>
+      </AIMenuItem>
 
       {/* ============================== */}
       {/* 🛍️ STORE & MARKETPLACE         */}

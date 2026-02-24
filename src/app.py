@@ -61,6 +61,8 @@ from src.api.video_tier_routes import video_tier_bp  # ADD THIS
 from src.api.notifications import notifications_bp
 from src.api.ai_mix_assistant import ai_mix_assistant_bp
 from src.api.ai_stem_separation import ai_stem_separation_bp
+from src.api.ai_video_credits_routes import ai_video_credits_bp
+from src.api.ai_video_generation_routes import ai_video_gen_bp
 from src.api.mic_simulator_routes import mic_simulator_bp  # 🎙️ Mic Simulator
 from src.api.freesound_api import freesound_bp  # 🔊 Freesound.org Sample Browser
 from src.api.sound_kit_routes import sound_kit_bp  # 🎛️ Sound Kit Management
@@ -298,6 +300,8 @@ app.register_blueprint(ai_content_bp)
 app.register_blueprint(recording_studio_bp)
 app.register_blueprint(ai_mix_assistant_bp)
 app.register_blueprint(ai_stem_separation_bp)
+app.register_blueprint(ai_video_credits_bp)
+app.register_blueprint(ai_video_gen_bp)
 app.register_blueprint(mic_simulator_bp)  # 🎙️ Mic Simulator
 app.register_blueprint(freesound_bp)  # 🔊 Freesound.org Sample Browser
 app.register_blueprint(sound_kit_bp)  # 🎛️ Sound Kit Management

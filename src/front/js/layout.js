@@ -41,6 +41,7 @@ import AIRadioDJPage from "./pages/AIRadioDJPage";
 import AIRadioDJ from "./component/AIRadioDJ";
 import AIContentWriter from "./pages/AIContentWriter";
 import AIStemSeparation from "./pages/AIStemSeparation";
+import AIVideoStudio from "./pages/AIVideoStudio";
 import VoiceCloneServices from './pages/VoiceCloneServices';
 import PluginRackDemo from './pages/PluginRackDemo.js';
 
@@ -167,6 +168,7 @@ const Layout = () => {
               <Route path="/ai-writer" element={<AIContentWriter />} />
               <Route path="/recording-studio" element={<RecordingStudio />} />
               <Route path="/ai-stems" element={<AIStemSeparation />} />
+              <Route path="/ai-video-studio" element={<AIVideoStudio />} />
               <Route path="/plugin-demo" element={<PluginRackDemo />} />
 
 
