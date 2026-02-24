@@ -38,6 +38,14 @@ import { QuantizePanel } from '../component/QuantizeEngine';
 import DAWMenuBar from '../component/DAWMenuBar';
 // ── NEW: Vocal Processor ──
 import VocalProcessor from '../component/VocalProcessor';
+// ── NEW: Plugin Rack System ──
+import { getEngine } from '../component/audio/engine/AudioEngine';
+import TrackGraph from '../component/audio/engine/TrackGraph';
+import PluginRackPanel from '../component/audio/components/plugins/PluginRackPanel';
+// ── NEW: Voice-to-MIDI (Dubler-style) ──
+import VoiceToMIDI from '../component/VoiceToMIDI';
+// ── NEW: Drum Kit Connector ──
+import DrumKitConnector from '../component/DrumKitConnector';
 
 import '../../styles/RecordingStudio.css';
 import '../../styles/ArrangerView.css';
@@ -889,6 +897,9 @@ const RecordingStudio = ({ user }) => {
       case 'view:aimix': setViewMode('aimix'); break;
       case 'view:midi': setViewMode('midi'); break;
       case 'view:chords': setViewMode('chords'); break;
+      case 'view:plugins': setViewMode('plugins'); break;
+      case 'view:voicemidi': setViewMode('voicemidi'); break;
+      case 'view:drumkits': setViewMode('drumkits'); break;
       case 'view:toggleFx': toggleFxPanel(); break;
 
       // Transport
@@ -1113,6 +1124,18 @@ const RecordingStudio = ({ user }) => {
           <button className={`daw-view-tab ${viewMode==='vocal'?'active':''}`} onClick={()=>setViewMode('vocal')} title="Vocal Processor — FX chain, analyzer, AI coach">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
             Vocal
+          </button>
+          <button className={`daw-view-tab ${viewMode==='plugins'?'active':''}`} onClick={()=>setViewMode('plugins')} title="Plugin Rack — VST-style effects chain">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 9h20"/><path d="M9 21V9"/></svg>
+            Plugins
+          </button>
+          <button className={`daw-view-tab ${viewMode==='voicemidi'?'active':''}`} onClick={()=>setViewMode('voicemidi')} title="Voice-to-MIDI — Sing or beatbox to control instruments">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><circle cx="12" cy="21" r="2"/></svg>
+            Voice MIDI
+          </button>
+          <button className={`daw-view-tab ${viewMode==='drumkits'?'active':''}`} onClick={()=>setViewMode('drumkits')} title="Drum Kit Connector — Load kits into Beat Maker pads">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="22"/></svg>
+            Drum Kits
           </button>
         </div>
 
@@ -1614,6 +1637,50 @@ const RecordingStudio = ({ user }) => {
               }}
               onRecordingComplete={(blob) => {
                 setStatus('Vocal recording saved');
+              }}
+            />
+          </div>
+        )}
+
+        {/* ──────── PLUGIN RACK VIEW ──────── */}
+        {viewMode === 'plugins' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', padding: '12px' }}>
+            <PluginRackPanel trackId={selectedTrackIndex} />
+          </div>
+        )}
+
+        {/* ──────── VOICE-TO-MIDI VIEW ──────── */}
+        {viewMode === 'voicemidi' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <VoiceToMIDI
+              audioContext={audioCtxRef.current}
+              bpm={bpm}
+              musicalKey={pianoRollKey}
+              scale={pianoRollScale}
+              isEmbedded={true}
+              onNoteOn={handleMidiNoteOn}
+              onNoteOff={handleMidiNoteOff}
+              onNotesGenerated={(notes) => {
+                if (notes && notes.length > 0) {
+                  setPianoRollNotes(prev => [...prev, ...notes]);
+                  setStatus(`✓ Voice MIDI: ${notes.length} notes captured`);
+                }
+              }}
+            />
+          </div>
+        )}
+
+        {/* ──────── DRUM KIT CONNECTOR VIEW ──────── */}
+        {viewMode === 'drumkits' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <DrumKitConnector
+              audioContext={audioCtxRef.current}
+              isEmbedded={true}
+              onLoadKit={(samples) => {
+                setStatus(`✓ Kit loaded — ${samples.length} samples. Switch to Beat Maker to play.`);
+              }}
+              onLoadSample={(buffer, name, url, padNum) => {
+                setStatus(`✓ "${name}" → Pad ${padNum >= 0 ? padNum + 1 : '?'}`);
               }}
             />
           </div>

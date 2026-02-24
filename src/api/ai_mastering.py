@@ -14,9 +14,10 @@
 # Register: app.register_blueprint(ai_mastering_bp)
 # =====================================================
 
-from flask import Blueprint, request, jsonify, send_file
+from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
+from werkzeug.utils import secure_filename
 import os
 import tempfile
 import traceback
@@ -29,8 +30,7 @@ import librosa
 import soundfile as sf
 from pedalboard import (
     Pedalboard, NoiseGate, Compressor, Limiter, Gain,
-    HighpassFilter, LowpassFilter, HighShelfFilter, LowShelfFilter,
-    PeakFilter
+    HighpassFilter, HighShelfFilter, LowShelfFilter, PeakFilter
 )
 
 # Phase 2: Matchering — adaptive reference-based mastering
@@ -134,18 +134,16 @@ REFERENCE_PROFILES = {
 }
 
 
-def get_reference_path(profile_key):
+def get_reference_path(profile_key: str):
     """Get the full path to a reference track file."""
     if profile_key not in REFERENCE_PROFILES:
         return None
     filename = REFERENCE_PROFILES[profile_key]["filename"]
     path = os.path.join(REFERENCE_TRACKS_DIR, filename)
-    if os.path.exists(path):
-        return path
-    return None
+    return path if os.path.exists(path) else None
 
 
-def is_reference_available(profile_key):
+def is_reference_available(profile_key: str) -> bool:
     """Check if a reference track file exists for this profile."""
     return get_reference_path(profile_key) is not None
 
@@ -155,11 +153,9 @@ def is_reference_available(profile_key):
 # =====================================================
 
 MASTERING_PRESETS = {
-
     # =============================================================
     #  HIP-HOP STYLES
     # =============================================================
-
     "hip_hop_trap": {
         "name": "Hip-Hop / Trap",
         "description": "Heavy 808s, punchy kicks, crisp hi-hats. Modern trap loudness.",
@@ -332,7 +328,6 @@ MASTERING_PRESETS = {
     # =============================================================
     #  POP & R&B
     # =============================================================
-
     "pop": {
         "name": "Pop / Top 40",
         "description": "Bright, polished, radio-friendly. Balanced with controlled dynamics.",
@@ -433,7 +428,6 @@ MASTERING_PRESETS = {
     # =============================================================
     #  ROCK & ALTERNATIVE
     # =============================================================
-
     "rock": {
         "name": "Rock / Alternative",
         "description": "Driving guitars, punchy drums, raw energy. Classic rock loudness.",
@@ -462,7 +456,6 @@ MASTERING_PRESETS = {
     # =============================================================
     #  ELECTRONIC
     # =============================================================
-
     "edm": {
         "name": "EDM / Electronic",
         "description": "Maximum loudness, tight bass, wide stereo. Festival-ready.",
@@ -491,7 +484,6 @@ MASTERING_PRESETS = {
     # =============================================================
     #  LATIN
     # =============================================================
-
     "latin": {
         "name": "Latin / Reggaeton",
         "description": "Powerful low-end, rhythmic punch, bright vocals. Dancefloor energy.",
@@ -520,7 +512,6 @@ MASTERING_PRESETS = {
     # =============================================================
     #  ACOUSTIC & JAZZ
     # =============================================================
-
     "acoustic": {
         "name": "Acoustic / Folk",
         "description": "Natural dynamics, warm body, airy presence. Transparent and intimate.",
@@ -573,7 +564,6 @@ MASTERING_PRESETS = {
     # =============================================================
     #  LO-FI & CHILL
     # =============================================================
-
     "lo_fi": {
         "name": "Lo-Fi Chill",
         "description": "Relaxed, vintage vibe with gentle warmth. Ideal for lo-fi beats and ambient.",
@@ -602,7 +592,6 @@ MASTERING_PRESETS = {
     # =============================================================
     #  SPOKEN WORD
     # =============================================================
-
     "podcast_pro": {
         "name": "Podcast Pro",
         "description": "Optimized for spoken word — clear vocals, reduced noise, broadcast loudness.",
@@ -631,7 +620,6 @@ MASTERING_PRESETS = {
     # =============================================================
     #  GENERAL STYLES
     # =============================================================
-
     "radio_ready": {
         "name": "Radio Ready",
         "description": "Loud, punchy, and broadcast-ready. Ideal for singles and radio submissions.",
@@ -735,14 +723,14 @@ MASTERING_PRESETS = {
 # AUDIO PROCESSING ENGINE
 # =====================================================
 
-def build_mastering_chain(preset_key):
+def build_mastering_chain(preset_key: str) -> Pedalboard:
     """Build a pedalboard mastering chain from a preset configuration."""
     if preset_key not in MASTERING_PRESETS:
         raise ValueError(f"Unknown preset: {preset_key}")
 
     config = MASTERING_PRESETS[preset_key]["chain"]
 
-    board = Pedalboard([
+    return Pedalboard([
         HighpassFilter(cutoff_frequency_hz=config["highpass_freq"]),
         NoiseGate(
             threshold_db=config["noise_gate_threshold"],
@@ -774,56 +762,66 @@ def build_mastering_chain(preset_key):
         Gain(gain_db=config["output_gain"]),
     ])
 
-    return board
 
-
-def process_audio_file(input_path, output_path, preset_key):
-    """Process an audio file through the mastering chain."""
-    audio_data, sample_rate = librosa.load(input_path, sr=None, mono=False)
-
+def _ensure_2d_channels_first(audio_data: np.ndarray) -> np.ndarray:
+    """
+    Ensure audio is float32 and shaped (channels, samples).
+    librosa.load(mono=False) returns (channels, samples) already.
+    """
     if audio_data.ndim == 1:
         audio_data = audio_data.reshape(1, -1)
+    return audio_data.astype(np.float32, copy=False)
 
-    audio_data = audio_data.astype(np.float32)
 
-    peak_before = float(np.max(np.abs(audio_data)))
-    rms_before = float(np.sqrt(np.mean(audio_data ** 2)))
-    duration = audio_data.shape[1] / sample_rate
+def process_audio_file(input_path: str, output_path: str, preset_key: str):
+    """Process an audio file through the mastering chain."""
+    audio_data, sample_rate = librosa.load(input_path, sr=None, mono=False)
+    audio_data = _ensure_2d_channels_first(audio_data)
+
+    peak_before = float(np.max(np.abs(audio_data))) if audio_data.size else 0.0
+    rms_before = float(np.sqrt(np.mean(audio_data ** 2))) if audio_data.size else 0.0
+    duration = (audio_data.shape[1] / sample_rate) if sample_rate else 0.0
 
     board = build_mastering_chain(preset_key)
     mastered_audio = board(audio_data, sample_rate)
 
-    peak_after = float(np.max(np.abs(mastered_audio)))
-    rms_after = float(np.sqrt(np.mean(mastered_audio ** 2)))
+    peak_after = float(np.max(np.abs(mastered_audio))) if mastered_audio.size else 0.0
+    rms_after = float(np.sqrt(np.mean(mastered_audio ** 2))) if mastered_audio.size else 0.0
 
+    # Safety normalization (prevent clipping)
     if peak_after > 1.0:
         mastered_audio = mastered_audio / peak_after * 0.99
         peak_after = 0.99
 
-    mastered_audio_transposed = mastered_audio.T
-    sf.write(output_path, mastered_audio_transposed, sample_rate, subtype='PCM_24')
+    # soundfile expects (samples, channels)
+    sf.write(output_path, mastered_audio.T, sample_rate, subtype='PCM_24')
+
+    loudness_increase_db = 0.0
+    if rms_before > 1e-10 and rms_after > 1e-10:
+        loudness_increase_db = round(20 * np.log10(rms_after / rms_before), 2)
 
     return {
         "duration_seconds": round(duration, 2),
-        "sample_rate": sample_rate,
-        "channels": audio_data.shape[0],
+        "sample_rate": int(sample_rate),
+        "channels": int(audio_data.shape[0]),
         "peak_before": round(peak_before, 4),
         "peak_after": round(peak_after, 4),
         "rms_before": round(rms_before, 6),
         "rms_after": round(rms_after, 6),
-        "loudness_increase_db": round(20 * np.log10(rms_after / max(rms_before, 1e-10)), 2),
+        "loudness_increase_db": loudness_increase_db,
+        "method": "dsp",
+        "preset": preset_key,
     }
 
 
-def download_audio_from_url(url, output_path):
-    """Download an audio file from a URL (e.g., Cloudinary) to a local path."""
+def download_audio_from_url(url: str, output_path: str):
+    """Download an audio file from a URL (e.g., Cloudinary/R2) to a local path."""
     response = requests.get(url, stream=True, timeout=120)
     response.raise_for_status()
-
     with open(output_path, 'wb') as f:
         for chunk in response.iter_content(chunk_size=8192):
-            f.write(chunk)
-
+            if chunk:
+                f.write(chunk)
     return output_path
 
 
@@ -831,7 +829,7 @@ def download_audio_from_url(url, output_path):
 # PHASE 2: MATCHERING ENGINE
 # =====================================================
 
-def ensure_wav_format(input_path, temp_dir):
+def ensure_wav_format(input_path: str, temp_dir: str) -> str:
     """Matchering requires WAV input. Convert if necessary."""
     ext = os.path.splitext(input_path)[1].lower()
     if ext == '.wav':
@@ -839,59 +837,58 @@ def ensure_wav_format(input_path, temp_dir):
 
     wav_path = os.path.join(temp_dir, "converted_input.wav")
     audio_data, sr = librosa.load(input_path, sr=None, mono=False)
-    if audio_data.ndim == 1:
-        audio_data = audio_data.reshape(1, -1)
+    audio_data = _ensure_2d_channels_first(audio_data)
     sf.write(wav_path, audio_data.T, sr, subtype='PCM_24')
     return wav_path
 
 
-def process_with_matchering(input_path, reference_path, output_path):
+def process_with_matchering(input_path: str, reference_path: str, output_path: str):
     """Process audio using Matchering's adaptive algorithm."""
     if not MATCHERING_AVAILABLE:
         raise RuntimeError("Matchering is not installed. Run: pip install matchering")
 
     audio_before, sr = librosa.load(input_path, sr=None, mono=False)
-    if audio_before.ndim == 1:
-        audio_before = audio_before.reshape(1, -1)
+    audio_before = _ensure_2d_channels_first(audio_before)
 
-    peak_before = float(np.max(np.abs(audio_before)))
-    rms_before = float(np.sqrt(np.mean(audio_before ** 2)))
-    duration = audio_before.shape[1] / sr
-    channels = audio_before.shape[0]
+    peak_before = float(np.max(np.abs(audio_before))) if audio_before.size else 0.0
+    rms_before = float(np.sqrt(np.mean(audio_before ** 2))) if audio_before.size else 0.0
+    duration = (audio_before.shape[1] / sr) if sr else 0.0
+    channels = int(audio_before.shape[0])
 
-    print(f"🧠 Matchering: Analyzing reference track...")
+    print("🧠 Matchering: processing...")
     print(f"🎯 Target: {input_path}")
     print(f"📀 Reference: {reference_path}")
 
     mg.process(
         target=input_path,
         reference=reference_path,
-        results=[
-            mg.pcm24(output_path),
-        ]
+        results=[mg.pcm24(output_path)]
     )
 
     audio_after, sr_after = librosa.load(output_path, sr=None, mono=False)
-    if audio_after.ndim == 1:
-        audio_after = audio_after.reshape(1, -1)
+    audio_after = _ensure_2d_channels_first(audio_after)
 
-    peak_after = float(np.max(np.abs(audio_after)))
-    rms_after = float(np.sqrt(np.mean(audio_after ** 2)))
+    peak_after = float(np.max(np.abs(audio_after))) if audio_after.size else 0.0
+    rms_after = float(np.sqrt(np.mean(audio_after ** 2))) if audio_after.size else 0.0
+
+    loudness_increase_db = 0.0
+    if rms_before > 1e-10 and rms_after > 1e-10:
+        loudness_increase_db = round(20 * np.log10(rms_after / rms_before), 2)
 
     return {
         "duration_seconds": round(duration, 2),
-        "sample_rate": sr,
+        "sample_rate": int(sr),
         "channels": channels,
         "peak_before": round(peak_before, 4),
         "peak_after": round(peak_after, 4),
         "rms_before": round(rms_before, 6),
         "rms_after": round(rms_after, 6),
-        "loudness_increase_db": round(20 * np.log10(rms_after / max(rms_before, 1e-10)), 2),
+        "loudness_increase_db": loudness_increase_db,
         "method": "matchering",
     }
 
 
-def process_hybrid(input_path, reference_path, output_path, polish_preset="radio_ready"):
+def process_hybrid(input_path: str, reference_path: str, output_path: str, polish_preset: str = "radio_ready"):
     """HYBRID MODE: Matchering first → DSP polish after."""
     temp_dir = os.path.dirname(output_path)
     intermediate_path = os.path.join(temp_dir, "matchered_intermediate.wav")
@@ -907,6 +904,12 @@ def process_hybrid(input_path, reference_path, output_path, polish_preset="radio
     except Exception:
         pass
 
+    loudness_increase_db = 0.0
+    if matchering_stats["rms_before"] > 1e-10 and dsp_stats["rms_after"] > 1e-10:
+        loudness_increase_db = round(
+            20 * np.log10(dsp_stats["rms_after"] / max(matchering_stats["rms_before"], 1e-10)), 2
+        )
+
     return {
         "duration_seconds": matchering_stats["duration_seconds"],
         "sample_rate": matchering_stats["sample_rate"],
@@ -915,25 +918,11 @@ def process_hybrid(input_path, reference_path, output_path, polish_preset="radio
         "peak_after": dsp_stats["peak_after"],
         "rms_before": matchering_stats["rms_before"],
         "rms_after": dsp_stats["rms_after"],
-        "loudness_increase_db": round(
-            20 * np.log10(dsp_stats["rms_after"] / max(matchering_stats["rms_before"], 1e-10)), 2
-        ),
+        "loudness_increase_db": loudness_increase_db,
         "method": "hybrid",
         "stages": ["matchering_adaptive", f"dsp_polish_{polish_preset}"],
+        "polish_preset": polish_preset,
     }
-
-
-def process_with_custom_reference(input_path, reference_path, output_path, polish_preset=None):
-    """Smart processing: uses Matchering if available, falls back to DSP."""
-    if reference_path and MATCHERING_AVAILABLE:
-        if polish_preset:
-            return process_hybrid(input_path, reference_path, output_path, polish_preset)
-        else:
-            return process_with_matchering(input_path, reference_path, output_path)
-    elif polish_preset:
-        return process_audio_file(input_path, output_path, polish_preset)
-    else:
-        return process_audio_file(input_path, output_path, "radio_ready")
 
 
 # =====================================================
@@ -943,14 +932,12 @@ def process_with_custom_reference(input_path, reference_path, output_path, polis
 @ai_mastering_bp.route('/api/ai/mastering/presets', methods=['GET'])
 def get_mastering_presets():
     """Get all available mastering presets. Public endpoint."""
-    presets = []
-    for key, preset in MASTERING_PRESETS.items():
-        presets.append({
-            "id": key,
-            "name": preset["name"],
-            "description": preset["description"],
-            "icon": preset["icon"],
-        })
+    presets = [{
+        "id": key,
+        "name": preset["name"],
+        "description": preset["description"],
+        "icon": preset["icon"],
+    } for key, preset in MASTERING_PRESETS.items()]
 
     return jsonify({"presets": presets}), 200
 
@@ -960,14 +947,19 @@ def get_mastering_presets():
 def master_track():
     """
     Master an audio track using DSP processing.
-    
+
     JSON body: { "audio_id": 123, "preset": "hip_hop_boom_bap" }
     Or multipart form with file upload.
     """
     user_id = get_jwt_identity()
     audio_id = None
+    audio = None  # ✅ FIX: ensure defined for both multipart + json flows
 
+    temp_dir = None
     try:
+        # -----------------------------
+        # Multipart flow (upload a file)
+        # -----------------------------
         if request.content_type and 'multipart/form-data' in request.content_type:
             file = request.files.get('file')
             preset_key = request.form.get('preset', 'radio_ready')
@@ -976,13 +968,33 @@ def master_track():
             if not file:
                 return jsonify({"error": "No audio file provided"}), 400
 
+            if preset_key not in MASTERING_PRESETS:
+                return jsonify({
+                    "error": f"Unknown preset: {preset_key}",
+                    "available_presets": list(MASTERING_PRESETS.keys())
+                }), 400
+
             temp_dir = tempfile.mkdtemp()
-            input_ext = os.path.splitext(file.filename)[1] or '.wav'
+            safe_name = secure_filename(file.filename or "upload.wav")
+            input_ext = os.path.splitext(safe_name)[1] or '.wav'
             input_path = os.path.join(temp_dir, f"input{input_ext}")
             file.save(input_path)
 
+            # If audio_id provided, validate ownership and mark processing
+            if audio_id:
+                audio = Audio.query.get(audio_id)
+                if not audio:
+                    return jsonify({"error": "Track not found"}), 404
+                if str(audio.user_id) != str(user_id):
+                    return jsonify({"error": "Unauthorized — you can only master your own tracks"}), 403
+                audio.processing_status = 'processing'
+                db.session.commit()
+
+        # -----------------------------
+        # JSON flow (master existing Audio by URL)
+        # -----------------------------
         else:
-            data = request.get_json()
+            data = request.get_json(silent=True)
             if not data:
                 return jsonify({"error": "No data provided"}), 400
 
@@ -992,12 +1004,16 @@ def master_track():
             if not audio_id:
                 return jsonify({"error": "audio_id is required"}), 400
 
-            # Fetch the audio record
+            if preset_key not in MASTERING_PRESETS:
+                return jsonify({
+                    "error": f"Unknown preset: {preset_key}",
+                    "available_presets": list(MASTERING_PRESETS.keys())
+                }), 400
+
             audio = Audio.query.get(audio_id)
             if not audio:
                 return jsonify({"error": "Track not found"}), 404
 
-            # ✅ FIX: str() comparison to avoid int/string mismatch
             if str(audio.user_id) != str(user_id):
                 return jsonify({"error": "Unauthorized — you can only master your own tracks"}), 403
 
@@ -1015,41 +1031,26 @@ def master_track():
             print(f"🎚️ Downloading audio from: {audio.file_url}")
             download_audio_from_url(audio.file_url, input_path)
 
-        # Validate preset
-        if preset_key not in MASTERING_PRESETS:
-            return jsonify({
-                "error": f"Unknown preset: {preset_key}",
-                "available_presets": list(MASTERING_PRESETS.keys())
-            }), 400
-
+        # DSP process
         output_path = os.path.join(temp_dir, "mastered_output.wav")
-
         print(f"🎚️ Processing with preset: {preset_key}")
         stats = process_audio_file(input_path, output_path, preset_key)
         print(f"✅ Mastering complete! Stats: {stats}")
 
-        # Upload mastered file to Cloudinary
+        # Upload mastered file to Cloudinary/R2
         mastered_filename = f"mastered_{preset_key}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.wav"
-
         with open(output_path, 'rb') as f:
             mastered_url = uploadFile(f, mastered_filename)
 
         print(f"☁️ Uploaded mastered file: {mastered_url}")
 
-        # Update the Audio record
-        if audio_id:
-            audio = Audio.query.get(audio_id)
-            if audio:
-                audio.processed_file_url = mastered_url
-                audio.processing_status = 'mastered'
-                audio.last_processed_at = datetime.utcnow()
-                db.session.commit()
-
-        # Clean up temp files
-        try:
-            shutil.rmtree(temp_dir, ignore_errors=True)
-        except Exception:
-            pass
+        # Update Audio record if we have one
+        if audio is not None:
+            audio.processed_file_url = mastered_url
+            audio.processing_status = 'mastered'
+            audio.last_processed_at = datetime.utcnow()
+            # Optional: store which preset was used somewhere if you have a column for it
+            db.session.commit()
 
         return jsonify({
             "message": "🎚️ Track mastered successfully!",
@@ -1068,16 +1069,22 @@ def master_track():
         print(f"❌ Mastering error: {str(e)}")
         traceback.print_exc()
 
-        if audio_id:
+        if audio is not None:
             try:
-                audio = Audio.query.get(audio_id)
-                if audio:
-                    audio.processing_status = 'error'
-                    db.session.commit()
+                audio.processing_status = 'error'
+                db.session.commit()
             except Exception:
                 pass
 
         return jsonify({"error": f"Mastering failed: {str(e)}"}), 500
+
+    finally:
+        # Clean up temp files
+        if temp_dir:
+            try:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            except Exception:
+                pass
 
 
 @ai_mastering_bp.route('/api/ai/mastering/status/<int:audio_id>', methods=['GET'])
@@ -1090,7 +1097,6 @@ def get_mastering_status(audio_id):
     if not audio:
         return jsonify({"error": "Track not found"}), 404
 
-    # ✅ FIX: str() comparison
     if str(audio.user_id) != str(user_id):
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -1109,7 +1115,6 @@ def get_mastering_status(audio_id):
 def get_user_tracks_for_mastering():
     """Get all of the current user's audio tracks with mastering status."""
     user_id = get_jwt_identity()
-
     tracks = Audio.query.filter_by(user_id=user_id).order_by(Audio.uploaded_at.desc()).all()
 
     return jsonify({
@@ -1137,7 +1142,6 @@ def get_comparison_urls(audio_id):
     if not audio:
         return jsonify({"error": "Track not found"}), 404
 
-    # ✅ FIX: str() comparison
     if str(audio.user_id) != str(user_id):
         return jsonify({"error": "Unauthorized"}), 403
 
@@ -1147,7 +1151,6 @@ def get_comparison_urls(audio_id):
         "original_url": audio.file_url,
         "mastered_url": audio.processed_file_url,
         "has_mastered": audio.processed_file_url is not None,
-        "preset_used": audio.processing_status if audio.processing_status not in ['original', 'processing', 'error'] else None
     }), 200
 
 
@@ -1156,6 +1159,7 @@ def get_comparison_urls(audio_id):
 def upload_and_master():
     """One-stop endpoint: upload a new track AND master it in one request."""
     user_id = get_jwt_identity()
+    temp_dir = None
 
     try:
         file = request.files.get('file')
@@ -1169,13 +1173,14 @@ def upload_and_master():
         if preset_key not in MASTERING_PRESETS:
             return jsonify({"error": f"Unknown preset: {preset_key}"}), 400
 
-        from werkzeug.utils import secure_filename
-        filename = secure_filename(file.filename)
-        original_url = uploadFile(file, filename)
+        # Upload original first
+        safe_name = secure_filename(file.filename or "upload.wav")
+        original_url = uploadFile(file, safe_name)
 
-        file.seek(0)
+        # Save locally for processing
+        file.stream.seek(0)
         temp_dir = tempfile.mkdtemp()
-        input_ext = os.path.splitext(filename)[1] or '.wav'
+        input_ext = os.path.splitext(safe_name)[1] or '.wav'
         input_path = os.path.join(temp_dir, f"input{input_ext}")
         file.save(input_path)
 
@@ -1202,11 +1207,6 @@ def upload_and_master():
         new_audio.last_processed_at = datetime.utcnow()
         db.session.commit()
 
-        try:
-            shutil.rmtree(temp_dir, ignore_errors=True)
-        except Exception:
-            pass
-
         return jsonify({
             "message": "🎚️ Track uploaded and mastered!",
             "audio_id": new_audio.id,
@@ -1223,6 +1223,13 @@ def upload_and_master():
         print(f"❌ Upload & master error: {str(e)}")
         traceback.print_exc()
         return jsonify({"error": f"Failed: {str(e)}"}), 500
+
+    finally:
+        if temp_dir:
+            try:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            except Exception:
+                pass
 
 
 # =====================================================
@@ -1262,7 +1269,8 @@ def get_reference_profiles():
             "name": profile["name"],
             "description": profile["description"],
             "icon": profile["icon"],
-            "available": has_file or True,
+            # ✅ FIX: don't force True (that made every profile look available even if missing)
+            "available": bool(has_file),
             "method": "adaptive" if has_file and MATCHERING_AVAILABLE else "dsp_preset",
             "fallback_preset": profile["fallback_preset"],
         })
@@ -1279,15 +1287,17 @@ def reference_master_track():
     """Master a track using a reference profile (Phase 2)."""
     user_id = get_jwt_identity()
     audio_id = None
+    audio = None
+    temp_dir = None
 
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
         if not data:
             return jsonify({"error": "No data provided"}), 400
 
         audio_id = data.get('audio_id')
         reference_key = data.get('reference', 'pop')
-        mode = data.get('mode', 'hybrid')
+        mode = data.get('mode', 'hybrid')  # adaptive | hybrid | dsp
         polish_preset = data.get('polish_preset')
 
         if not audio_id:
@@ -1303,7 +1313,6 @@ def reference_master_track():
         if not audio:
             return jsonify({"error": "Track not found"}), 404
 
-        # ✅ FIX: str() comparison
         if str(audio.user_id) != str(user_id):
             return jsonify({"error": "Unauthorized"}), 403
 
@@ -1314,7 +1323,6 @@ def reference_master_track():
         db.session.commit()
 
         temp_dir = tempfile.mkdtemp()
-
         url_path = audio.file_url.split('?')[0]
         input_ext = os.path.splitext(url_path)[1] or '.wav'
         input_path = os.path.join(temp_dir, f"input{input_ext}")
@@ -1334,11 +1342,11 @@ def reference_master_track():
         actual_method = mode
 
         if mode == "adaptive" and reference_path and MATCHERING_AVAILABLE:
-            print(f"🧠 Mode: Adaptive (pure Matchering) → Reference: {reference_key}")
+            print(f"🧠 Mode: Adaptive → Reference: {reference_key}")
             stats = process_with_matchering(wav_input_path, reference_path, output_path)
 
         elif mode == "hybrid" and reference_path and MATCHERING_AVAILABLE:
-            print(f"🧠 Mode: Hybrid (Matchering + DSP) → Reference: {reference_key}, Polish: {polish_preset}")
+            print(f"🧠 Mode: Hybrid → Reference: {reference_key}, Polish: {polish_preset}")
             stats = process_hybrid(wav_input_path, reference_path, output_path, polish_preset)
 
         else:
@@ -1346,7 +1354,7 @@ def reference_master_track():
             stats = process_audio_file(wav_input_path, output_path, polish_preset)
             actual_method = "dsp_fallback"
 
-        mastered_filename = f"mastered_{reference_key}_{mode}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.wav"
+        mastered_filename = f"mastered_{reference_key}_{actual_method}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.wav"
         with open(output_path, 'rb') as f:
             mastered_url = uploadFile(f, mastered_filename)
 
@@ -1356,11 +1364,6 @@ def reference_master_track():
         audio.processing_status = 'mastered'
         audio.last_processed_at = datetime.utcnow()
         db.session.commit()
-
-        try:
-            shutil.rmtree(temp_dir, ignore_errors=True)
-        except Exception:
-            pass
 
         return jsonify({
             "message": f"🧠 Track mastered with {reference_profile['name']} reference!",
@@ -1379,16 +1382,21 @@ def reference_master_track():
         print(f"❌ Reference mastering error: {str(e)}")
         traceback.print_exc()
 
-        if audio_id:
+        if audio is not None:
             try:
-                audio = Audio.query.get(audio_id)
-                if audio:
-                    audio.processing_status = 'error'
-                    db.session.commit()
+                audio.processing_status = 'error'
+                db.session.commit()
             except Exception:
                 pass
 
         return jsonify({"error": f"Mastering failed: {str(e)}"}), 500
+
+    finally:
+        if temp_dir:
+            try:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            except Exception:
+                pass
 
 
 @ai_mastering_bp.route('/api/ai/mastering/custom-reference', methods=['POST'])
@@ -1403,6 +1411,7 @@ def custom_reference_master():
             "install": "pip install matchering"
         }), 503
 
+    temp_dir = None
     try:
         reference_file = request.files.get('reference')
         if not reference_file:
@@ -1421,7 +1430,6 @@ def custom_reference_master():
         ref_ext = os.path.splitext(reference_file.filename)[1] or '.wav'
         ref_path = os.path.join(temp_dir, f"reference{ref_ext}")
         reference_file.save(ref_path)
-
         ref_wav_path = ensure_wav_format(ref_path, temp_dir)
 
         if track_file:
@@ -1432,8 +1440,6 @@ def custom_reference_master():
             audio = Audio.query.get(audio_id)
             if not audio:
                 return jsonify({"error": "Track not found"}), 404
-
-            # ✅ FIX: str() comparison
             if str(audio.user_id) != str(user_id):
                 return jsonify({"error": "Unauthorized"}), 403
 
@@ -1465,11 +1471,6 @@ def custom_reference_master():
                 audio.last_processed_at = datetime.utcnow()
                 db.session.commit()
 
-        try:
-            shutil.rmtree(temp_dir, ignore_errors=True)
-        except Exception:
-            pass
-
         return jsonify({
             "message": "🧠 Track mastered with your custom reference!",
             "mastered_url": mastered_url,
@@ -1483,13 +1484,21 @@ def custom_reference_master():
         traceback.print_exc()
         return jsonify({"error": f"Mastering failed: {str(e)}"}), 500
 
+    finally:
+        if temp_dir:
+            try:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            except Exception:
+                pass
+
 
 @ai_mastering_bp.route('/api/ai/mastering/upload-reference', methods=['POST'])
 @jwt_required()
 def upload_reference_track():
     """Admin/creator endpoint to upload a reference track for a genre profile."""
-    user_id = get_jwt_identity()
+    _user_id = get_jwt_identity()  # keep for future role-checking
 
+    temp_dir = None
     try:
         file = request.files.get('file')
         profile_key = request.form.get('profile')
@@ -1500,22 +1509,19 @@ def upload_reference_track():
             return jsonify({"error": "Invalid profile key"}), 400
 
         os.makedirs(REFERENCE_TRACKS_DIR, exist_ok=True)
-
         filename = REFERENCE_PROFILES[profile_key]["filename"]
         filepath = os.path.join(REFERENCE_TRACKS_DIR, filename)
 
         temp_dir = tempfile.mkdtemp()
-        temp_path = os.path.join(temp_dir, file.filename)
+        temp_path = os.path.join(temp_dir, secure_filename(file.filename or "reference.wav"))
         file.save(temp_path)
 
-        ext = os.path.splitext(file.filename)[1].lower()
+        ext = os.path.splitext(temp_path)[1].lower()
         if ext != '.wav':
             wav_path = ensure_wav_format(temp_path, temp_dir)
             shutil.copy2(wav_path, filepath)
         else:
             shutil.copy2(temp_path, filepath)
-
-        shutil.rmtree(temp_dir, ignore_errors=True)
 
         return jsonify({
             "message": f"✅ Reference track uploaded for {REFERENCE_PROFILES[profile_key]['name']}",
@@ -1527,12 +1533,18 @@ def upload_reference_track():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+    finally:
+        if temp_dir:
+            try:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+            except Exception:
+                pass
+
 
 # =============================================================================
 # EXPORT ALIAS — ai_mastering_phase3.py imports this name
 # =============================================================================
 master_audio = process_audio_file
-
 
 # Phase 3 (Neural Network) — coming soon.
 # See ai_mastering_nn.py for the trained model integration.

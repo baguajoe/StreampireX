@@ -114,44 +114,44 @@ class User(db.Model):
     
     # ✅ Basic Gamer Features (existing)
     is_gamer = db.Column(db.Boolean, default=False)
-    gamer_tags = db.Column(db.JSON, default={})  # e.g., {"psn": "ShadowWolf", "xbox": "NoScopeKing"}
-    favorite_games = db.Column(db.ARRAY(db.String), default=[])
+    gamer_tags = db.Column(db.JSON, default=dict)  # e.g., {"psn": "ShadowWolf", "xbox": "NoScopeKing"}
+    favorite_games = db.Column(db.ARRAY(db.String), default=list)
     gamer_rank = db.Column(db.String(50), default="Casual")
     squad_id = db.Column(db.Integer, db.ForeignKey("squad.id"))
     
     # 🆕 NEW GAMER PROFILE FIELDS
     # Essential Information
     gamertag = db.Column(db.String(100), nullable=True)  # Main gaming identity
-    gaming_platforms = db.Column(db.JSON, default={})  # {"pc": True, "playstation": False, ...}
-    current_games = db.Column(db.ARRAY(db.String), default=[])  # Currently playing
+    gaming_platforms = db.Column(db.JSON, default=dict)  # {"pc": True, "playstation": False, ...}
+    current_games = db.Column(db.ARRAY(db.String), default=list)  # Currently playing
     gaming_schedule = db.Column(db.Text, nullable=True)  # When they're online
     skill_level = db.Column(db.String(50), default="intermediate")  # beginner, intermediate, advanced, competitive, pro
     
     # Social & Team Elements
-    looking_for = db.Column(db.ARRAY(db.String), default=[])  # ["Casual Friends", "Competitive Teammates", ...]
-    communication_prefs = db.Column(db.ARRAY(db.String), default=[])  # ["Voice Chat", "Discord", ...]
+    looking_for = db.Column(db.ARRAY(db.String), default=list)  # ["Casual Friends", "Competitive Teammates", ...]
+    communication_prefs = db.Column(db.ARRAY(db.String), default=list)  # ["Voice Chat", "Discord", ...]
     age_range = db.Column(db.String(20), nullable=True)  # "18-24", "25-34", etc.
     timezone = db.Column(db.String(50), nullable=True)  # "EST", "PST", "GMT", etc.
     region = db.Column(db.String(100), nullable=True)  # "North America", "EU West", etc.
     
     # Gaming Preferences
-    favorite_genres = db.Column(db.ARRAY(db.String), default=[])  # ["FPS", "RPG", "Strategy", ...]
+    favorite_genres = db.Column(db.ARRAY(db.String), default=list)  # ["FPS", "RPG", "Strategy", ...]
     playstyle = db.Column(db.String(50), nullable=True)  # "aggressive", "strategic", "supportive", etc.
-    game_modes = db.Column(db.ARRAY(db.String), default=[])  # ["Solo", "Co-op", "PvP", ...]
+    game_modes = db.Column(db.ARRAY(db.String), default=list)  # ["Solo", "Co-op", "PvP", ...]
     
     # Setup & Equipment
-    gaming_setup = db.Column(db.JSON, default={})  # {"headset": "SteelSeries", "controller": "Xbox", ...}
+    gaming_setup = db.Column(db.JSON, default=dict)  # {"headset": "SteelSeries", "controller": "Xbox", ...}
     
     # Streaming & Content
     is_streamer = db.Column(db.Boolean, default=False)
-    streaming_platforms = db.Column(db.ARRAY(db.String), default=[])  # ["Twitch", "YouTube", ...]
+    streaming_platforms = db.Column(db.ARRAY(db.String), default=list)  # ["Twitch", "YouTube", ...]
     streaming_schedule = db.Column(db.Text, nullable=True)
     
     # Languages & Communication
-    languages_spoken = db.Column(db.ARRAY(db.String), default=[])  # ["English", "Spanish", ...]
+    languages_spoken = db.Column(db.ARRAY(db.String), default=list)  # ["English", "Spanish", ...]
     
     # Gaming Stats & Achievements
-    gaming_stats = db.Column(db.JSON, default={})  # {"hours_played": 1500, "games_owned": 45, ...}
+    gaming_stats = db.Column(db.JSON, default=dict)  # {"hours_played": 1500, "games_owned": 45, ...}
     
     # Gamer Bio (separate from regular bio)
     gamer_bio = db.Column(db.Text, nullable=True)
@@ -187,8 +187,8 @@ class User(db.Model):
     radio_station = db.Column(db.String(500), nullable=True)
     podcast = db.Column(db.String(500), nullable=True)
     social_links = db.Column(db.JSON, nullable=True)
-    gallery = db.Column(db.JSON, default=[])
-    videos = db.Column(db.JSON, default=[])
+    gallery = db.Column(db.JSON, default=list)
+    videos = db.Column(db.JSON, default=list)
     
     # 🛂 Role (existing)
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
@@ -209,7 +209,7 @@ class User(db.Model):
     artist_genre = db.Column(db.String(50), nullable=True)
     artist_location = db.Column(db.String(100), nullable=True)
     artist_website = db.Column(db.String(200), nullable=True)
-    artist_social_links = db.Column(db.JSON, default={})
+    artist_social_links = db.Column(db.JSON, default=dict)
     is_verified_artist = db.Column(db.Boolean, default=False)
     monthly_listeners = db.Column(db.Integer, default=0)
     total_plays = db.Column(db.Integer, default=0)
@@ -1964,90 +1964,208 @@ class RecordingProject(db.Model):
     # ✅ MUST match User.__tablename__ exactly
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
-    # ── Project Info ──
+    # ── Project Info ─────────────────────────────────────────
     name = db.Column(db.String(200), nullable=False, default="Untitled Project")
     description = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(20), default="draft")
+    status = db.Column(db.String(20), nullable=False, default="draft")  # draft|active|archived
     genre = db.Column(db.String(100), nullable=True)
-    tags = db.Column(db.Text, nullable=True)
 
-    # ── Transport / Session Settings ──
-    bpm = db.Column(db.Integer, default=120)
-    time_signature_top = db.Column(db.Integer, default=4)
-    time_signature_bottom = db.Column(db.Integer, default=4)
-    master_volume = db.Column(db.Float, default=80.0)
-    metronome_enabled = db.Column(db.Boolean, default=False)
-    count_in_enabled = db.Column(db.Boolean, default=False)
-    duration_seconds = db.Column(db.Float, default=0.0)
-    sample_rate = db.Column(db.Integer, default=44100)
+    # Store tags as JSON string (Text) for easy front-end list usage
+    tags = db.Column(db.Text, nullable=False, default="[]")  # JSON string list
 
-    # ── Tracks Data (JSON) ──
-    tracks_json = db.Column(db.Text, default="[]")
-    track_audio_urls = db.Column(db.Text, default="[]")
+    # ── Transport / Session Settings ─────────────────────────
+    bpm = db.Column(db.Integer, nullable=False, default=120)
+    time_signature_top = db.Column(db.Integer, nullable=False, default=4)
+    time_signature_bottom = db.Column(db.Integer, nullable=False, default=4)
 
-    # ── Piano Roll / MIDI State (NEW — requires migration) ──
-    piano_roll_notes_json = db.Column(db.Text, default="[]")
-    piano_roll_key = db.Column(db.String(5), default="C")
-    piano_roll_scale = db.Column(db.String(20), default="major")
+    # ✅ Store master_volume as 0..1 float (WebAudio-native)
+    master_volume = db.Column(db.Float, nullable=False, default=0.8)
 
-    # ── Mixdown / Bounce ──
+    metronome_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    count_in_enabled = db.Column(db.Boolean, nullable=False, default=False)
+
+    # Total duration of the session (you can update via sync helpers)
+    duration_seconds = db.Column(db.Float, nullable=False, default=0.0)
+    sample_rate = db.Column(db.Integer, nullable=False, default=44100)
+
+    # ── Tracks Data (JSON strings in Text columns) ───────────
+    tracks_json = db.Column(db.Text, nullable=False, default="[]")
+    track_audio_urls = db.Column(db.Text, nullable=False, default="[]")
+
+    # ── Piano Roll / MIDI State ──────────────────────────────
+    piano_roll_notes_json = db.Column(db.Text, nullable=False, default="[]")
+    piano_roll_key = db.Column(db.String(5), nullable=False, default="C")
+    piano_roll_scale = db.Column(db.String(20), nullable=False, default="major")
+
+    # ── Mixdown / Bounce ─────────────────────────────────────
     mixdown_url = db.Column(db.String(500), nullable=True)
     mixdown_format = db.Column(db.String(10), nullable=True)
-    mixdown_bit_depth = db.Column(db.Integer, default=16)
-    mixdown_channels = db.Column(db.Integer, default=2)
+    mixdown_bit_depth = db.Column(db.Integer, nullable=False, default=16)
+    mixdown_channels = db.Column(db.Integer, nullable=False, default=2)
     mixdown_created_at = db.Column(db.DateTime, nullable=True)
 
-    # ── Cover Art ──
+    # ── Cover Art ────────────────────────────────────────────
     cover_art_url = db.Column(db.String(500), nullable=True)
 
-    # ── Publishing ──
-    is_published = db.Column(db.Boolean, default=False)
+    # ── Publishing ───────────────────────────────────────────
+    is_published = db.Column(db.Boolean, nullable=False, default=False)
     published_at = db.Column(db.DateTime, nullable=True)
-    distribution_id = db.Column(db.Integer, db.ForeignKey("music_distribution.id"), nullable=True)
 
-    # ── Storage ──
-    total_size_bytes = db.Column(db.BigInteger, default=0)
-    track_count = db.Column(db.Integer, default=0)
+    # ⚠️ Ensure your MusicDistribution __tablename__ is "music_distribution"
+    distribution_id = db.Column(
+        db.Integer,
+        db.ForeignKey("music_distribution.id"),
+        nullable=True,
+    )
 
-    # ── Timestamps ──
-    created_at = db.Column(db.DateTime, default=db.func.now())
-    updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
+    # ── Storage / Stats ──────────────────────────────────────
+    total_size_bytes = db.Column(db.BigInteger, nullable=False, default=0)
+    track_count = db.Column(db.Integer, nullable=False, default=0)
 
-    # ✅ Cleaner than backref for large apps + avoids admin reflection edge cases
+    # ── Timestamps ───────────────────────────────────────────
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
     user = db.relationship("User", back_populates="recording_projects")
 
+    # =============================================================================
+    # JSON PROPERTY HELPERS (use these everywhere else in your app)
+    # =============================================================================
+    def get_tracks(self):
+        return _json_loads_safe(self.tracks_json, default=[])
+
+    def set_tracks(self, tracks):
+        self.tracks_json = _json_dumps_safe(tracks, default=[])
+        self.track_count = len(tracks or [])
+
+    def get_track_audio_urls(self):
+        return _json_loads_safe(self.track_audio_urls, default=[])
+
+    def set_track_audio_urls(self, urls):
+        self.track_audio_urls = _json_dumps_safe(urls, default=[])
+
+    def get_tags(self):
+        # If old rows stored plain string tags, return as [string]
+        tags = _json_loads_safe(self.tags, default=None)
+        if tags is None:
+            raw = self.tags or ""
+            return [raw] if raw.strip() else []
+        if isinstance(tags, list):
+            return tags
+        return []
+
+    def set_tags(self, tags):
+        # Accept list or comma string
+        if isinstance(tags, str):
+            tags = [t.strip() for t in tags.split(",") if t.strip()]
+        self.tags = _json_dumps_safe(tags, default=[])
+
+    def get_piano_roll_notes(self):
+        return _json_loads_safe(self.piano_roll_notes_json, default=[])
+
+    def set_piano_roll_notes(self, notes):
+        self.piano_roll_notes_json = _json_dumps_safe(notes, default=[])
+
+    # =============================================================================
+    # STAT SYNC HELPERS
+    # =============================================================================
+    def sync_stats_from_tracks(self):
+        """
+        Computes:
+          - track_count
+          - total_size_bytes (best-effort if regions/tracks contain file sizes)
+          - duration_seconds (best-effort from regions end time using bpm)
+        Expected track schema (frontend):
+          track = { audio_url, regions: [{startBeat, duration, audioUrl?...}] }
+        """
+        tracks = self.get_tracks()
+
+        self.track_count = len(tracks)
+
+        # total_size_bytes best-effort
+        size = 0
+        for t in tracks:
+            if not isinstance(t, dict):
+                continue
+            # if you store per-track file sizes:
+            if isinstance(t.get("size_bytes"), (int, float)):
+                size += int(t["size_bytes"])
+            # if regions store sizes:
+            for r in (t.get("regions") or []):
+                if isinstance(r, dict) and isinstance(r.get("size_bytes"), (int, float)):
+                    size += int(r["size_bytes"])
+        self.total_size_bytes = max(0, int(size))
+
+        # duration_seconds best-effort from max endBeat
+        max_end_beat = 0.0
+        for t in tracks:
+            if not isinstance(t, dict):
+                continue
+            for r in (t.get("regions") or []):
+                if not isinstance(r, dict):
+                    continue
+                try:
+                    sb = float(r.get("startBeat", 0))
+                    dur = float(r.get("duration", 0))
+                    max_end_beat = max(max_end_beat, sb + dur)
+                except Exception:
+                    pass
+
+        # Convert beats to seconds: seconds = (beats / bpm) * 60
+        try:
+            bpm = float(self.bpm or 120)
+            self.duration_seconds = (max_end_beat / bpm) * 60.0 if bpm > 0 else 0.0
+        except Exception:
+            self.duration_seconds = 0.0
+
+    # =============================================================================
+    # SERIALIZERS
+    # =============================================================================
     def serialize(self):
         return {
             "id": self.id,
             "user_id": self.user_id,
+
             "name": self.name,
             "description": self.description,
             "status": self.status,
             "genre": self.genre,
-            "tags": self.tags,
+            "tags": self.get_tags(),
+
             "bpm": self.bpm,
             "time_signature": f"{self.time_signature_top}/{self.time_signature_bottom}",
-            "master_volume": self.master_volume,
+
+            # ✅ always 0..1
+            "master_volume": float(self.master_volume or 0.8),
+
             "metronome_enabled": self.metronome_enabled,
             "count_in_enabled": self.count_in_enabled,
             "duration_seconds": self.duration_seconds,
             "sample_rate": self.sample_rate,
-            "tracks_json": self.tracks_json,
-            "track_audio_urls": self.track_audio_urls,
+
+            "tracks": self.get_tracks(),
+            "track_audio_urls": self.get_track_audio_urls(),
             "track_count": self.track_count,
-            "piano_roll_notes_json": self.piano_roll_notes_json,
+
+            "piano_roll_notes": self.get_piano_roll_notes(),
             "piano_roll_key": self.piano_roll_key,
             "piano_roll_scale": self.piano_roll_scale,
+
             "mixdown_url": self.mixdown_url,
             "mixdown_format": self.mixdown_format,
             "mixdown_bit_depth": self.mixdown_bit_depth,
             "mixdown_channels": self.mixdown_channels,
             "mixdown_created_at": self.mixdown_created_at.isoformat() if self.mixdown_created_at else None,
+
             "cover_art_url": self.cover_art_url,
+
             "is_published": self.is_published,
             "published_at": self.published_at.isoformat() if self.published_at else None,
             "distribution_id": self.distribution_id,
+
             "total_size_bytes": self.total_size_bytes,
+
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -2070,43 +2188,42 @@ class RecordingProject(db.Model):
 
 
 # =============================================================================
-# MasteringJob Model — Tracks AI mastering usage for tier limits
+# MASTERING JOB MODEL — Tracks AI mastering usage for tier limits
 # =============================================================================
-# Tracks every mastering request so we can:
-#   1. Enforce monthly limits per tier (Starter=3, Creator=15, Pro=unlimited)
-#   2. Show creators their mastering history
-#   3. Let them re-download past masters
-#   4. Show investors "X tracks mastered this month"
-# =============================================================================
-
 class MasteringJob(db.Model):
-    __tablename__ = 'mastering_jobs'
-    __table_args__ = {'extend_existing': True}
+    __tablename__ = "mastering_jobs"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=True)
+
+    # ✅ MUST match User.__tablename__
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+    # If you have an Audio table, ensure __tablename__ = "audio"
+    audio_id = db.Column(db.Integer, db.ForeignKey("audio.id"), nullable=True)
 
     # What was done
-    preset_used = db.Column(db.String(50), nullable=False)           # "trap", "boom_bap", etc.
-    was_auto_detected = db.Column(db.Boolean, default=False)         # True = AI picked the preset
-    confidence = db.Column(db.Float, nullable=True)                  # Auto-detect confidence 0-100
-    reference_profile = db.Column(db.String(50), nullable=True)      # If reference mastering was used
+    preset_used = db.Column(db.String(50), nullable=False)          # "trap", "boom_bap", etc.
+    was_auto_detected = db.Column(db.Boolean, nullable=False, default=False)
+    confidence = db.Column(db.Float, nullable=True)                 # 0..100
+    reference_profile = db.Column(db.String(50), nullable=True)
 
     # Results
-    original_url = db.Column(db.String(500), nullable=True)          # Original upload URL
-    mastered_url = db.Column(db.String(500), nullable=True)          # Mastered output URL
-    analysis = db.Column(db.JSON, nullable=True)                     # Full analysis data (BPM, key, etc.)
+    original_url = db.Column(db.String(500), nullable=True)
+    mastered_url = db.Column(db.String(500), nullable=True)
+    analysis = db.Column(db.JSON, nullable=True)
 
     # Status
-    status = db.Column(db.String(20), default='completed')           # pending, processing, completed, failed
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), nullable=False, default="completed")  # pending|processing|completed|failed
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    user = db.relationship('User', backref=db.backref('mastering_jobs', lazy=True))
+    user = db.relationship("User", back_populates="mastering_jobs")
 
     def __repr__(self):
-        return f'<MasteringJob {self.id} user={self.user_id} preset={self.preset_used}>'
+        return f"<MasteringJob {self.id} user={self.user_id} preset={self.preset_used} status={self.status}>"
 
     def serialize(self):
         return {
@@ -2122,6 +2239,7 @@ class MasteringJob(db.Model):
             "analysis": self.analysis,
             "status": self.status,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -2250,6 +2368,296 @@ def check_ai_dj_access(user_id):
 
     return allowed, can_clone, personas
 
+def utcnow():
+    return datetime.utcnow()
+
+
+def safe_json(value, fallback):
+    return value if value is not None else fallback
+
+
+# -----------------------------------------------------------------------------
+# IMPORTANT:
+# This assumes you already have a User model with:
+#   - id (primary key)
+# and optionally:
+#   - subscription_tier (string) OR tier (string)
+# If your User table name is different, adjust the ForeignKey.
+# -----------------------------------------------------------------------------
+
+class StudioProject(db.Model):
+    __tablename__ = "studio_projects"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    name = db.Column(db.String(160), nullable=False, default="Untitled Project")
+
+    bpm = db.Column(db.Integer, nullable=False, default=120)
+    time_signature = db.Column(db.String(16), nullable=False, default="4/4")  # "4/4", "3/4", "6/8", etc.
+    master_volume = db.Column(db.Float, nullable=False, default=0.8)
+
+    # Piano roll / MIDI editor state saved from your frontend:
+    piano_roll_notes = db.Column(db.JSON, nullable=True)   # list of notes (dicts)
+    piano_roll_key = db.Column(db.String(8), nullable=True, default="C")
+    piano_roll_scale = db.Column(db.String(16), nullable=True, default="major")
+
+    # Optional: store extra UI state for later (view mode, selection, etc.)
+    ui_state = db.Column(db.JSON, nullable=True)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utcnow, onupdate=utcnow)
+
+    # Relationships
+    tracks = db.relationship(
+        "StudioTrack",
+        backref="project",
+        lazy=True,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="StudioTrack.track_index.asc()",
+    )
+
+    mixdowns = db.relationship(
+        "StudioMixdown",
+        backref="project",
+        lazy=True,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="StudioMixdown.created_at.desc()",
+    )
+
+    def to_dict(self, include_tracks=True, include_regions=True):
+        data = {
+            "id": self.id,
+            "user_id": self.user_id,
+            "name": self.name,
+            "bpm": self.bpm,
+            "time_signature": self.time_signature,
+            "master_volume": self.master_volume,
+            "piano_roll_notes": self.piano_roll_notes or [],
+            "piano_roll_key": self.piano_roll_key or "C",
+            "piano_roll_scale": self.piano_roll_scale or "major",
+            "ui_state": self.ui_state or {},
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+        if include_tracks:
+            data["tracks"] = [
+                t.to_dict(include_regions=include_regions)
+                for t in (self.tracks or [])
+            ]
+        return data
+
+
+class StudioTrack(db.Model):
+    __tablename__ = "studio_tracks"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    project_id = db.Column(
+        db.Integer,
+        db.ForeignKey("studio_projects.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # IMPORTANT: your frontend uses array index as track_index in uploads/imports.
+    track_index = db.Column(db.Integer, nullable=False, default=0)
+
+    name = db.Column(db.String(160), nullable=False, default="Audio 1")
+
+    # "audio" | "midi" | "bus" | "aux"
+    track_type = db.Column(db.String(16), nullable=False, default="audio")
+
+    volume = db.Column(db.Float, nullable=False, default=0.8)
+    pan = db.Column(db.Float, nullable=False, default=0.0)
+
+    muted = db.Column(db.Boolean, nullable=False, default=False)
+    solo = db.Column(db.Boolean, nullable=False, default=False)
+
+    color = db.Column(db.String(16), nullable=True)  # "#34c759", etc.
+
+    # Effects object from frontend (eq/compressor/reverb/delay/distortion/filter/limiter)
+    effects = db.Column(db.JSON, nullable=True)
+
+    # Persisted audio URL/path (NOT the blob: URL). This is what you load on open.
+    # You can store a public URL or a server path depending on your file hosting.
+    audio_url = db.Column(db.Text, nullable=True)
+
+    # Optional: if you want to store a reference to an uploaded asset row
+    asset_id = db.Column(db.Integer, db.ForeignKey("studio_assets.id", ondelete="SET NULL"), nullable=True)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utcnow, onupdate=utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint("project_id", "track_index", name="uq_studio_tracks_project_track_index"),
+        db.Index("ix_studio_tracks_project_id_track_index", "project_id", "track_index"),
+    )
+
+    regions = db.relationship(
+        "StudioRegion",
+        backref="track",
+        lazy=True,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="StudioRegion.start_beat.asc()",
+    )
+
+    def to_dict(self, include_regions=True):
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "track_index": self.track_index,
+            "name": self.name,
+            "trackType": self.track_type,  # <-- matches your frontend property name (track.trackType)
+            "volume": self.volume,
+            "pan": self.pan,
+            "muted": self.muted,
+            "solo": self.solo,
+            "color": self.color,
+            "effects": safe_json(self.effects, {}),
+            "audio_url": self.audio_url,
+            "asset_id": self.asset_id,
+            "regions": [r.to_dict() for r in (self.regions or [])] if include_regions else [],
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class StudioRegion(db.Model):
+    __tablename__ = "studio_regions"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    track_id = db.Column(
+        db.Integer,
+        db.ForeignKey("studio_tracks.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Frontend-generated region id (e.g. "rgn_...")
+    region_uid = db.Column(db.String(80), nullable=False, index=True)
+
+    name = db.Column(db.String(160), nullable=True)
+
+    # Your arranger uses beats:
+    start_beat = db.Column(db.Float, nullable=False, default=0.0)
+    duration = db.Column(db.Float, nullable=False, default=0.0)  # duration in beats
+
+    color = db.Column(db.String(16), nullable=True)
+
+    loop_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    loop_count = db.Column(db.Integer, nullable=False, default=1)
+
+    # Region can point to track audio or a separate rendered clip.
+    # If you keep it simple, you can just store the same audio_url as the track.
+    audio_url = db.Column(db.Text, nullable=True)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+    __table_args__ = (
+        db.Index("ix_studio_regions_track_start", "track_id", "start_beat"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "track_id": self.track_id,
+            "id_uid": self.region_uid,  # optional alias
+            "id": self.region_uid,      # <-- IMPORTANT: your frontend expects region.id to be the string id
+            "name": self.name,
+            "startBeat": self.start_beat,
+            "duration": self.duration,
+            "color": self.color,
+            "loopEnabled": self.loop_enabled,
+            "loopCount": self.loop_count,
+            "audioUrl": self.audio_url,  # matches your frontend property name
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+# -----------------------------------------------------------------------------
+# Optional: store uploaded audio assets cleanly
+# (tracks can reference this via StudioTrack.asset_id)
+# -----------------------------------------------------------------------------
+class StudioAsset(db.Model):
+    __tablename__ = "studio_assets"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # "track" | "mixdown" | "sample" | "import" | etc.
+    kind = db.Column(db.String(32), nullable=False, default="track")
+
+    filename = db.Column(db.String(255), nullable=True)
+    mime_type = db.Column(db.String(128), nullable=True)
+
+    # Store either:
+    # - a filesystem path (e.g. "/static/uploads/studio/...")
+    # - or a full CDN URL
+    url = db.Column(db.Text, nullable=False)
+
+    size_bytes = db.Column(db.Integer, nullable=True)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "kind": self.kind,
+            "filename": self.filename,
+            "mime_type": self.mime_type,
+            "url": self.url,
+            "size_bytes": self.size_bytes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+# -----------------------------------------------------------------------------
+# Optional: mixdown history (your /mixdown endpoint can save here)
+# -----------------------------------------------------------------------------
+class StudioMixdown(db.Model):
+    __tablename__ = "studio_mixdowns"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    project_id = db.Column(
+        db.Integer,
+        db.ForeignKey("studio_projects.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # If you want a direct asset link:
+    asset_id = db.Column(db.Integer, db.ForeignKey("studio_assets.id", ondelete="SET NULL"), nullable=True)
+
+    # Store final file URL/path
+    url = db.Column(db.Text, nullable=False)
+
+    filename = db.Column(db.String(255), nullable=True)
+    mime_type = db.Column(db.String(128), nullable=True, default="audio/wav")
+    size_bytes = db.Column(db.Integer, nullable=True)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "asset_id": self.asset_id,
+            "url": self.url,
+            "filename": self.filename,
+            "mime_type": self.mime_type,
+            "size_bytes": self.size_bytes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
 
 # =============================================================================
 # MIGRATION SQL — Run on Railway PostgreSQL
