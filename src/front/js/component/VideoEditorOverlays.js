@@ -300,6 +300,179 @@ export const SOCIAL_TEMPLATES = [
   },
 ];
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 7. ANIMATED MASKS (SVG Path Masking with Keyframes)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const MASK_SHAPES = [
+  { id:'rectangle', name:'Rectangle', build:(x=0,y=0,w=100,h=100)=>`M${x},${y} L${x+w},${y} L${x+w},${y+h} L${x},${y+h} Z` },
+  { id:'ellipse', name:'Ellipse', build:(cx=50,cy=50,rx=50,ry=50)=>{
+    return `M${cx-rx},${cy} A${rx},${ry} 0 1,0 ${cx+rx},${cy} A${rx},${ry} 0 1,0 ${cx-rx},${cy} Z`;
+  }},
+  { id:'triangle', name:'Triangle', build:(cx=50,cy=0,w=100,h=100)=>`M${cx},${cy} L${cx+w/2},${cy+h} L${cx-w/2},${cy+h} Z` },
+  { id:'star', name:'Star', build:(cx=50,cy=50,r=50,points=5)=>{
+    let d='';
+    for(let i=0;i<points*2;i++){
+      const a=(Math.PI*2*i)/(points*2)-Math.PI/2;
+      const rad=i%2===0?r:r*0.4;
+      d+=(i===0?'M':'L')+(cx+Math.cos(a)*rad)+','+(cy+Math.sin(a)*rad);
+    }
+    return d+'Z';
+  }},
+  { id:'diamond', name:'Diamond', build:(cx=50,cy=50,w=50,h=70)=>`M${cx},${cy-h} L${cx+w},${cy} L${cx},${cy+h} L${cx-w},${cy} Z` },
+  { id:'heart', name:'Heart', build:(cx=50,cy=50,s=40)=>{
+    return `M${cx},${cy+s*0.6} C${cx-s*0.8},${cy-s*0.2} ${cx-s*0.5},${cy-s*0.8} ${cx},${cy-s*0.3} C${cx+s*0.5},${cy-s*0.8} ${cx+s*0.8},${cy-s*0.2} ${cx},${cy+s*0.6} Z`;
+  }},
+];
+
+/**
+ * Create an animated mask
+ */
+export const createAnimatedMask = ({
+  shape = 'rectangle',
+  path = null, // custom SVG path string, or null to use shape
+  x = 0, y = 0, width = 100, height = 100,
+  feather = 0, // edge softness in px
+  invert = false,
+  expansion = 0, // grow/shrink mask
+  opacity = 1,
+  startTime = 0,
+  duration = 10,
+} = {}) => ({
+  id: `mask_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+  type: 'animated_mask',
+  shape,
+  path: path || MASK_SHAPES.find(s=>s.id===shape)?.build(x,y,width,height) || '',
+  x, y, width, height,
+  feather, invert, expansion, opacity,
+  startTime, duration,
+  keyframes: [], // [{time, path, x, y, width, height, feather, opacity}]
+});
+
+/**
+ * Interpolate mask keyframes at a given time.
+ * For path morphing, we interpolate individual path numbers.
+ */
+export const interpolateMaskPath = (path1, path2, t) => {
+  // Extract all numbers from both paths
+  const nums1 = path1.match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  const nums2 = path2.match(/-?\d+\.?\d*/g)?.map(Number) || [];
+  const letters1 = path1.match(/[A-Za-z]/g) || [];
+
+  if (nums1.length !== nums2.length) return t < 0.5 ? path1 : path2;
+
+  // Interpolate numbers
+  const interp = nums1.map((n, i) => n + (nums2[i] - n) * t);
+
+  // Reconstruct path
+  let result = '', numIdx = 0;
+  for (let i = 0; i < path1.length; i++) {
+    if (/[A-Za-z]/.test(path1[i])) {
+      result += path1[i];
+    } else if (/[-\d.]/.test(path1[i])) {
+      // Find the full number
+      const match = path1.slice(i).match(/^-?\d+\.?\d*/);
+      if (match) {
+        result += interp[numIdx]?.toFixed(1) ?? match[0];
+        numIdx++;
+        i += match[0].length - 1;
+      }
+    } else {
+      result += path1[i];
+    }
+  }
+  return result;
+};
+
+/**
+ * Evaluate mask at time → returns CSS clip-path + filter
+ */
+export const evaluateMask = (mask, currentTime) => {
+  if (!mask || currentTime < mask.startTime || currentTime > mask.startTime + mask.duration) return null;
+
+  const elapsed = currentTime - mask.startTime;
+  let currentPath = mask.path;
+  let currentFeather = mask.feather;
+  let currentOpacity = mask.opacity;
+  let currentX = mask.x, currentY = mask.y;
+
+  // Apply keyframes
+  if (mask.keyframes && mask.keyframes.length > 0) {
+    const sorted = [...mask.keyframes].sort((a,b) => a.time - b.time);
+
+    for (let i = 0; i < sorted.length - 1; i++) {
+      if (elapsed >= sorted[i].time && elapsed <= sorted[i+1].time) {
+        const t = (elapsed - sorted[i].time) / (sorted[i+1].time - sorted[i].time);
+        if (sorted[i].path && sorted[i+1].path) {
+          currentPath = interpolateMaskPath(sorted[i].path, sorted[i+1].path, t);
+        }
+        if (sorted[i].feather !== undefined) currentFeather = sorted[i].feather + (sorted[i+1].feather - sorted[i].feather) * t;
+        if (sorted[i].opacity !== undefined) currentOpacity = sorted[i].opacity + (sorted[i+1].opacity - sorted[i].opacity) * t;
+        if (sorted[i].x !== undefined) currentX = sorted[i].x + (sorted[i+1].x - sorted[i].x) * t;
+        if (sorted[i].y !== undefined) currentY = sorted[i].y + (sorted[i+1].y - sorted[i].y) * t;
+        break;
+      }
+    }
+  }
+
+  // Build SVG clip-path URL or CSS
+  return {
+    clipPath: `path('${currentPath}')`,
+    filter: currentFeather > 0 ? `blur(${currentFeather}px)` : 'none',
+    opacity: currentOpacity,
+    transform: `translate(${currentX}px, ${currentY}px)`,
+    WebkitClipPath: `path('${currentPath}')`,
+  };
+};
+
+// ── Mask Renderer Component ──
+export const MaskRenderer = ({ mask, currentTime, children }) => {
+  if (!mask) return children || null;
+  const styles = evaluateMask(mask, currentTime);
+  if (!styles) return children || null;
+
+  return React.createElement('div', {
+    style: {
+      position: 'relative',
+      width: '100%',
+      height: '100%',
+      ...styles,
+    }
+  }, children);
+};
+
+// ── Mask Transition Presets ──
+export const MASK_TRANSITIONS = [
+  { id:'circle_reveal', name:'Circle Reveal', build:(cx=50,cy=50,duration=1)=>({
+    shape:'ellipse', startTime:0, duration,
+    keyframes:[
+      {time:0, path:MASK_SHAPES[1].build(cx,cy,0,0)},
+      {time:duration, path:MASK_SHAPES[1].build(cx,cy,120,120)},
+    ],
+  })},
+  { id:'wipe_left', name:'Wipe Left', build:(w=100,h=100,duration=1)=>({
+    shape:'rectangle', startTime:0, duration,
+    keyframes:[
+      {time:0, path:`M0,0 L0,0 L0,${h} L0,${h} Z`},
+      {time:duration, path:`M0,0 L${w},0 L${w},${h} L0,${h} Z`},
+    ],
+  })},
+  { id:'wipe_down', name:'Wipe Down', build:(w=100,h=100,duration=1)=>({
+    shape:'rectangle', startTime:0, duration,
+    keyframes:[
+      {time:0, path:`M0,0 L${w},0 L${w},0 L0,0 Z`},
+      {time:duration, path:`M0,0 L${w},0 L${w},${h} L0,${h} Z`},
+    ],
+  })},
+  { id:'star_reveal', name:'Star Reveal', build:(cx=50,cy=50,duration=1)=>({
+    shape:'star', startTime:0, duration,
+    keyframes:[
+      {time:0, path:MASK_SHAPES[3].build(cx,cy,0,5)},
+      {time:duration, path:MASK_SHAPES[3].build(cx,cy,120,5)},
+    ],
+  })},
+];
+
 export default {
   createTextOverlay, TextOverlayRenderer,
   CAPTION_STYLES, createCaptionSegment, CaptionRenderer,
@@ -307,4 +480,7 @@ export default {
   createWatermark, WatermarkRenderer, WATERMARK_POSITIONS,
   createPIP, PIPRenderer, PIP_POSITIONS, PIP_SHAPES,
   SOCIAL_TEMPLATES,
+  // Animated Masks
+  MASK_SHAPES, createAnimatedMask, interpolateMaskPath, evaluateMask,
+  MaskRenderer, MASK_TRANSITIONS,
 };

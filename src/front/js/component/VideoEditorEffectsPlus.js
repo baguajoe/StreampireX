@@ -677,6 +677,415 @@ export const EXPORT_PRESETS = [
   { id:'podcast_vid', platform:'Podcast', label:'Podcast Video', width:1920,height:1080,fps:24,bitrate:'4M',codec:'h264' },
 ];
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// 11. PARTICLE SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * GPU-friendly canvas particle emitter for motion graphics.
+ * Supports: point/area/ring emitters, gravity, wind, turbulence,
+ * size/opacity/color over lifetime, burst + continuous emission.
+ */
+export class ParticleEmitter {
+  constructor({
+    // Emitter shape
+    emitterType = 'point', // 'point' | 'area' | 'ring' | 'line'
+    emitterX = 0, emitterY = 0,
+    emitterWidth = 100, emitterHeight = 100, emitterRadius = 50,
+
+    // Emission rate
+    rate = 50,          // particles per second (continuous)
+    burstCount = 0,     // one-shot burst count (0 = continuous)
+    maxParticles = 500,
+
+    // Particle life
+    lifetime = [1, 3],  // [min, max] seconds
+
+    // Initial velocity
+    speed = [50, 150],  // [min, max] pixels/sec
+    angle = [0, 360],   // emission angle range in degrees
+    spread = 360,       // cone spread
+
+    // Physics
+    gravity = { x: 0, y: 98 },  // px/sec²
+    wind = { x: 0, y: 0 },
+    friction = 0.98,     // velocity damping per frame
+    turbulence = 0,      // random force magnitude
+    bounce = 0,          // 0 = no bounce, 1 = perfect bounce (off bottom edge)
+    floorY = null,       // y position of floor for bounce
+
+    // Size over lifetime
+    sizeStart = [4, 8],
+    sizeEnd = [0, 2],
+
+    // Opacity over lifetime
+    opacityStart = 1,
+    opacityEnd = 0,
+
+    // Color
+    colors = ['#00ffc8', '#ff9500', '#ff3b30', '#007aff'], // random from array
+    colorOverLife = false, // if true, interpolate from colors[0] → colors[last]
+
+    // Rotation
+    rotationSpeed = [0, 180], // degrees/sec [min, max]
+
+    // Shape
+    shape = 'circle', // 'circle' | 'square' | 'star' | 'triangle' | 'image'
+    imageUrl = null,   // for shape='image'
+
+    // Blend
+    blendMode = 'screen', // canvas globalCompositeOperation
+  } = {}) {
+    this.config = {
+      emitterType, emitterX, emitterY, emitterWidth, emitterHeight, emitterRadius,
+      rate, burstCount, maxParticles, lifetime, speed, angle, spread,
+      gravity, wind, friction, turbulence, bounce, floorY,
+      sizeStart, sizeEnd, opacityStart, opacityEnd,
+      colors, colorOverLife, rotationSpeed, shape, imageUrl, blendMode,
+    };
+
+    this.particles = [];
+    this.elapsed = 0;
+    this.emitAccum = 0;
+    this.burstFired = false;
+    this.active = true;
+  }
+
+  // Random in range
+  _rand(range) {
+    if (Array.isArray(range)) return range[0] + Math.random() * (range[1] - range[0]);
+    return range;
+  }
+
+  // Get emit position based on emitter shape
+  _getEmitPosition() {
+    const c = this.config;
+    switch (c.emitterType) {
+      case 'area':
+        return {
+          x: c.emitterX + (Math.random() - 0.5) * c.emitterWidth,
+          y: c.emitterY + (Math.random() - 0.5) * c.emitterHeight,
+        };
+      case 'ring': {
+        const a = Math.random() * Math.PI * 2;
+        return {
+          x: c.emitterX + Math.cos(a) * c.emitterRadius,
+          y: c.emitterY + Math.sin(a) * c.emitterRadius,
+        };
+      }
+      case 'line':
+        return {
+          x: c.emitterX + (Math.random() - 0.5) * c.emitterWidth,
+          y: c.emitterY,
+        };
+      default: // point
+        return { x: c.emitterX, y: c.emitterY };
+    }
+  }
+
+  /**
+   * Spawn a single particle
+   */
+  _spawn() {
+    const c = this.config;
+    if (this.particles.length >= c.maxParticles) return;
+
+    const pos = this._getEmitPosition();
+    const angleDeg = this._rand(c.angle);
+    const angleRad = angleDeg * Math.PI / 180;
+    const speed = this._rand(c.speed);
+
+    this.particles.push({
+      x: pos.x,
+      y: pos.y,
+      vx: Math.cos(angleRad) * speed,
+      vy: Math.sin(angleRad) * speed,
+      life: this._rand(c.lifetime),
+      age: 0,
+      size: this._rand(c.sizeStart),
+      sizeStart: this._rand(c.sizeStart),
+      sizeEnd: this._rand(c.sizeEnd),
+      rotation: Math.random() * 360,
+      rotationSpeed: this._rand(c.rotationSpeed),
+      color: c.colors[Math.floor(Math.random() * c.colors.length)],
+      colorIndex: Math.random(), // for color-over-life
+    });
+  }
+
+  /**
+   * Update all particles by dt seconds
+   */
+  update(dt) {
+    if (!this.active) return;
+
+    const c = this.config;
+    this.elapsed += dt;
+
+    // Emit new particles
+    if (c.burstCount > 0 && !this.burstFired) {
+      for (let i = 0; i < c.burstCount; i++) this._spawn();
+      this.burstFired = true;
+    } else if (c.burstCount === 0) {
+      this.emitAccum += c.rate * dt;
+      while (this.emitAccum >= 1) {
+        this._spawn();
+        this.emitAccum -= 1;
+      }
+    }
+
+    // Update particles
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      p.age += dt;
+
+      // Remove dead particles
+      if (p.age >= p.life) {
+        this.particles.splice(i, 1);
+        continue;
+      }
+
+      const lifeRatio = p.age / p.life; // 0→1
+
+      // Physics
+      p.vx += (c.gravity.x + c.wind.x) * dt;
+      p.vy += (c.gravity.y + c.wind.y) * dt;
+
+      // Turbulence
+      if (c.turbulence > 0) {
+        p.vx += (Math.random() - 0.5) * c.turbulence * dt;
+        p.vy += (Math.random() - 0.5) * c.turbulence * dt;
+      }
+
+      // Friction
+      p.vx *= c.friction;
+      p.vy *= c.friction;
+
+      // Move
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+
+      // Bounce
+      if (c.bounce > 0 && c.floorY !== null && p.y >= c.floorY) {
+        p.y = c.floorY;
+        p.vy *= -c.bounce;
+      }
+
+      // Size over life
+      p.size = p.sizeStart + (p.sizeEnd - p.sizeStart) * lifeRatio;
+
+      // Rotation
+      p.rotation += p.rotationSpeed * dt;
+    }
+  }
+
+  /**
+   * Render particles to a 2D canvas context
+   */
+  render(ctx, width, height) {
+    const c = this.config;
+    const prevComposite = ctx.globalCompositeOperation;
+    ctx.globalCompositeOperation = c.blendMode;
+
+    for (const p of this.particles) {
+      const lifeRatio = p.age / p.life;
+      const opacity = c.opacityStart + (c.opacityEnd - c.opacityStart) * lifeRatio;
+
+      if (opacity <= 0 || p.size <= 0) continue;
+
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
+
+      // Color over life
+      let color = p.color;
+      if (c.colorOverLife && c.colors.length > 1) {
+        const ci = lifeRatio * (c.colors.length - 1);
+        const idx = Math.floor(ci);
+        const frac = ci - idx;
+        color = c.colors[Math.min(idx, c.colors.length - 1)];
+        // Simple: just pick nearest color (full interpolation would need hex parsing)
+        if (frac > 0.5 && idx + 1 < c.colors.length) color = c.colors[idx + 1];
+      }
+
+      ctx.fillStyle = color;
+
+      const s = p.size;
+      switch (c.shape) {
+        case 'square':
+          ctx.fillRect(-s/2, -s/2, s, s);
+          break;
+        case 'triangle':
+          ctx.beginPath();
+          ctx.moveTo(0, -s); ctx.lineTo(s*0.87, s*0.5); ctx.lineTo(-s*0.87, s*0.5);
+          ctx.closePath(); ctx.fill();
+          break;
+        case 'star': {
+          ctx.beginPath();
+          for (let i = 0; i < 10; i++) {
+            const a = (Math.PI * 2 * i) / 10 - Math.PI / 2;
+            const r = i % 2 === 0 ? s : s * 0.4;
+            if (i === 0) ctx.moveTo(Math.cos(a)*r, Math.sin(a)*r);
+            else ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+          }
+          ctx.closePath(); ctx.fill();
+          break;
+        }
+        default: // circle
+          ctx.beginPath();
+          ctx.arc(0, 0, s, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+      }
+
+      ctx.restore();
+    }
+
+    ctx.globalCompositeOperation = prevComposite;
+  }
+
+  /**
+   * Reset emitter
+   */
+  reset() {
+    this.particles = [];
+    this.elapsed = 0;
+    this.emitAccum = 0;
+    this.burstFired = false;
+  }
+
+  /**
+   * Get particle count
+   */
+  get count() { return this.particles.length; }
+}
+
+// ── Particle Presets ──
+export const PARTICLE_PRESETS = [
+  {
+    id: 'fire', name: '🔥 Fire', config: {
+      emitterType:'area', emitterWidth:60, emitterHeight:10,
+      rate:80, lifetime:[0.5,1.5], speed:[30,80], angle:[250,290],
+      gravity:{x:0,y:-120}, turbulence:80, friction:0.97,
+      sizeStart:[8,16], sizeEnd:[2,4], opacityEnd:0,
+      colors:['#ff4500','#ff6600','#ffcc00','#ff2200'], colorOverLife:true,
+      shape:'circle', blendMode:'screen',
+    },
+  },
+  {
+    id: 'snow', name: '❄️ Snow', config: {
+      emitterType:'line', emitterWidth:500,
+      rate:30, lifetime:[3,6], speed:[10,40], angle:[80,100],
+      gravity:{x:0,y:30}, wind:{x:15,y:0}, turbulence:20, friction:0.99,
+      sizeStart:[3,8], sizeEnd:[2,6], opacityStart:0.8, opacityEnd:0.2,
+      colors:['#ffffff','#e0e8ff','#c8d8ff'],
+      shape:'circle', blendMode:'screen',
+    },
+  },
+  {
+    id: 'sparkle', name: '✨ Sparkle', config: {
+      emitterType:'area', emitterWidth:200, emitterHeight:200,
+      rate:20, lifetime:[0.5,1.5], speed:[5,20], angle:[0,360],
+      gravity:{x:0,y:0}, turbulence:30, friction:0.95,
+      sizeStart:[2,6], sizeEnd:[0,1], opacityEnd:0,
+      colors:['#00ffc8','#ffffff','#ffcc00','#ff69b4'],
+      shape:'star', blendMode:'screen',
+    },
+  },
+  {
+    id: 'confetti', name: '🎊 Confetti', config: {
+      emitterType:'line', emitterWidth:400,
+      burstCount:100, lifetime:[2,5], speed:[80,200], angle:[240,300],
+      gravity:{x:0,y:150}, wind:{x:20,y:0}, turbulence:40, friction:0.98,
+      sizeStart:[4,10], sizeEnd:[4,10], opacityEnd:0.3,
+      colors:['#ff3b30','#ffcc00','#34c759','#007aff','#af52de','#ff9500'],
+      rotationSpeed:[90,360], shape:'square', blendMode:'source-over',
+    },
+  },
+  {
+    id: 'smoke', name: '💨 Smoke', config: {
+      emitterType:'point',
+      rate:15, lifetime:[2,4], speed:[20,50], angle:[250,290],
+      gravity:{x:0,y:-40}, turbulence:60, friction:0.96,
+      sizeStart:[10,20], sizeEnd:[40,80], opacityStart:0.4, opacityEnd:0,
+      colors:['#444444','#666666','#888888'],
+      shape:'circle', blendMode:'source-over',
+    },
+  },
+  {
+    id: 'rain', name: '🌧 Rain', config: {
+      emitterType:'line', emitterWidth:600,
+      rate:100, lifetime:[0.5,1.2], speed:[200,400], angle:[85,95],
+      gravity:{x:0,y:300}, wind:{x:-30,y:0}, friction:1,
+      sizeStart:[1,3], sizeEnd:[1,2], opacityStart:0.6, opacityEnd:0.1,
+      colors:['#6699cc','#88aadd','#aaccee'],
+      shape:'circle', blendMode:'screen',
+    },
+  },
+  {
+    id: 'explosion', name: '💥 Explosion', config: {
+      emitterType:'point',
+      burstCount:150, lifetime:[0.5,2], speed:[100,400], angle:[0,360],
+      gravity:{x:0,y:200}, friction:0.95, turbulence:50,
+      sizeStart:[4,12], sizeEnd:[1,3], opacityEnd:0,
+      colors:['#ff4500','#ff6600','#ffcc00','#ffffff'], colorOverLife:true,
+      shape:'circle', blendMode:'screen',
+    },
+  },
+  {
+    id: 'bubbles', name: '🫧 Bubbles', config: {
+      emitterType:'area', emitterWidth:300, emitterHeight:20,
+      rate:10, lifetime:[2,5], speed:[20,60], angle:[250,290],
+      gravity:{x:0,y:-50}, turbulence:30, friction:0.99,
+      sizeStart:[6,18], sizeEnd:[8,22], opacityStart:0.5, opacityEnd:0,
+      colors:['#00bfff44','#87ceeb44','#add8e644'],
+      shape:'circle', blendMode:'screen',
+    },
+  },
+  {
+    id: 'magic_dust', name: '🪄 Magic Dust', config: {
+      emitterType:'ring', emitterRadius:30,
+      rate:40, lifetime:[0.8,2], speed:[10,40], angle:[0,360],
+      gravity:{x:0,y:-20}, turbulence:50, friction:0.96,
+      sizeStart:[2,5], sizeEnd:[0,1], opacityEnd:0,
+      colors:['#af52de','#ff69b4','#00ffc8','#ffcc00','#ffffff'],
+      shape:'star', blendMode:'screen',
+    },
+  },
+  {
+    id: 'firefly', name: '🪲 Fireflies', config: {
+      emitterType:'area', emitterWidth:400, emitterHeight:300,
+      rate:8, lifetime:[2,5], speed:[5,20], angle:[0,360],
+      gravity:{x:0,y:-5}, turbulence:40, friction:0.98,
+      sizeStart:[2,5], sizeEnd:[1,3], opacityStart:0.8, opacityEnd:0,
+      colors:['#ffcc00','#aaff00','#ccff66'],
+      shape:'circle', blendMode:'screen',
+    },
+  },
+];
+
+// ── Particle Layer ──
+export const createParticleLayer = ({
+  presetId = 'sparkle',
+  config = null,
+  x = 0, y = 0,
+  startTime = 0,
+  duration = 10,
+} = {}) => {
+  const preset = PARTICLE_PRESETS.find(p => p.id === presetId);
+  const finalConfig = config || preset?.config || PARTICLE_PRESETS[0].config;
+
+  return {
+    id: `particles_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+    type: 'particle_layer',
+    presetId,
+    config: { ...finalConfig, emitterX: x, emitterY: y },
+    startTime,
+    duration,
+    emitter: null, // Created at runtime: new ParticleEmitter(finalConfig)
+  };
+};
+
 export default {
   CHROMA_PRESETS, applyChromaKey, createChromaKeySettings, ChromaKeyPanel,
   SPEED_RAMP_PRESETS, getSpeedAtPosition, SpeedRampPanel,
@@ -688,4 +1097,6 @@ export default {
   createMultiCamSession, addMultiCamCut, getActiveAngle, MultiCamPanel,
   detectBeats, snapToBeat,
   ASPECT_RATIOS, EXPORT_PRESETS,
+  // Particle System
+  ParticleEmitter, PARTICLE_PRESETS, createParticleLayer,
 };
