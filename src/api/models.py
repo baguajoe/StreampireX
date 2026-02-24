@@ -7073,3 +7073,103 @@ ALTER TABLE video ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0;
 --     FOR VALUES FROM ('2025-01-01') TO ('2025-02-01');
 """
 
+
+# =============================================================================
+# AI VIDEO CREDITS SYSTEM
+# =============================================================================
+
+CREDIT_PACKS = {
+    'starter': {
+        'id': 'starter', 'name': 'Starter Pack', 'credits': 15,
+        'price': 7.99, 'price_per_video': 0.53, 'savings': None,
+        'popular': False, 'icon': '🎬',
+    },
+    'creator': {
+        'id': 'creator', 'name': 'Creator Pack', 'credits': 35,
+        'price': 14.99, 'price_per_video': 0.43, 'savings': '19% savings',
+        'popular': True, 'icon': '🎥',
+    },
+    'studio': {
+        'id': 'studio', 'name': 'Studio Pack', 'credits': 80,
+        'price': 29.99, 'price_per_video': 0.37, 'savings': '30% savings',
+        'popular': False, 'icon': '🎞️',
+    },
+}
+
+TIER_FREE_CREDITS = {
+    'free': 0, 'starter': 5, 'creator': 15, 'pro': 30,
+}
+
+class VideoCredit(db.Model):
+    __tablename__ = 'video_credits'
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    balance = db.Column(db.Integer, default=0, nullable=False)
+    monthly_free_credits = db.Column(db.Integer, default=0)
+    monthly_credits_used = db.Column(db.Integer, default=0)
+    monthly_reset_date = db.Column(db.DateTime)
+    total_purchased = db.Column(db.Integer, default=0)
+    total_used = db.Column(db.Integer, default=0)
+    total_spent = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def has_credits(self, amount=1):
+        return self.balance >= amount
+
+    def deduct(self, amount=1):
+        if self.balance >= amount:
+            self.balance -= amount
+            self.total_used += amount
+            return True
+        return False
+
+    def add(self, amount):
+        self.balance += amount
+        self.total_purchased += amount
+
+    def refund(self, amount=1):
+        self.balance += amount
+        self.total_used = max(0, self.total_used - amount)
+
+class CreditPackPurchase(db.Model):
+    __tablename__ = 'credit_pack_purchases'
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    pack_id = db.Column(db.String(50), nullable=False)
+    pack_name = db.Column(db.String(100), nullable=False)
+    credits_amount = db.Column(db.Integer, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    stripe_checkout_session_id = db.Column(db.String(255), unique=True)
+    stripe_payment_intent_id = db.Column(db.String(255))
+    status = db.Column(db.String(20), default='pending')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+
+class AIVideoGeneration(db.Model):
+    __tablename__ = 'ai_video_generations'
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    generation_type = db.Column(db.String(20), nullable=False)
+    prompt = db.Column(db.Text)
+    source_image_url = db.Column(db.String(500))
+    duration = db.Column(db.Integer, default=5)
+    aspect_ratio = db.Column(db.String(10), default='16:9')
+    resolution = db.Column(db.String(20), default='720p')
+    api_provider = db.Column(db.String(50), default='replicate')
+    api_model = db.Column(db.String(100))
+    api_prediction_id = db.Column(db.String(255))
+    api_cost = db.Column(db.Float, default=0.0)
+    video_url = db.Column(db.String(500))
+    thumbnail_url = db.Column(db.String(500))
+    file_size = db.Column(db.Integer)
+    status = db.Column(db.String(20), default='pending')
+    error_message = db.Column(db.Text)
+    credits_charged = db.Column(db.Integer, default=1)
+    credits_refunded = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    started_at = db.Column(db.DateTime)
+    completed_at = db.Column(db.DateTime)
