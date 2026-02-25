@@ -44,6 +44,11 @@ import AIStemSeparation from "./pages/AIStemSeparation";
 import AIVideoStudio from "./pages/AIVideoStudio";
 import VoiceCloneServices from './pages/VoiceCloneServices';
 import PluginRackDemo from './pages/PluginRackDemo.js';
+import PodcastStudio from "./pages/PodcastStudio";
+import PodcastGuestJoin from "./pages/PodcastGuestJoin";
+// Phase 2: Async guest recording page (standalone, no auth)
+import { AsyncGuestRecordPage } from "./pages/PodcastStudioPhase2";
+
 
 import VideoUpload from "./pages/VideoUpload";
 import VideoDetails from "./component/VideoDetails";
@@ -178,6 +183,9 @@ const Layout = () => {
               <Route path="/producer/:id" element={<ProducerProfilePage />} />
               <Route path="/producers" element={<BrowseProducersPage />} />
               <Route path="/sell-beats" element={<SellBeatsPage />} />
+              <Route path="/podcast-studio" element={<PodcastStudio />} />
+              <Route path="/podcast-join/:sessionId" element={<PodcastGuestJoin />} />
+              <Route path="/podcast-async/:linkId" element={<AsyncGuestRecordPage />} />
 
 
               {/* Video Channel Routes */}
