@@ -1,0 +1,432 @@
+/* ═══════════════════════════════════════════
+BEAT LICENSE AGREEMENT — BeatStars Style
+═══════════════════════════════════════════ */
+
+/* ── Overlay / Modal ── */
+.bla-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13,17,23,0.7);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.bla-modal {
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.bla-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+
+.bla-modal-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #e6edf3;
+}
+
+.bla-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.bla-print-btn {
+  padding: 6px 16px;
+  background: rgba(0,255,200,0.1);
+  border: 1px solid rgba(0,255,200,0.25);
+  color: #00ffc8;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.bla-print-btn:hover {
+  background: rgba(0,255,200,0.2);
+}
+
+.bla-close-btn {
+  width: 34px;
+  height: 34px;
+  background: #161b22;
+  border: none;
+  color: #5a7088;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bla-close-btn:hover {
+  background: #30363d;
+  color: #e6edf3;
+}
+
+/* ── Agreement body ── */
+.bla-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px;
+  color: #c9d1d9;
+  line-height: 1.7;
+  font-size: 0.88rem;
+}
+
+.bla-body h1 {
+  text-align: center;
+  font-size: 1.4rem;
+  color: #e6edf3;
+  margin: 0 0 8px;
+  letter-spacing: 1px;
+}
+
+.bla-subtitle {
+  text-align: center;
+  margin: 0 0 24px;
+  font-size: 1rem;
+}
+
+.bla-body h2 {
+  font-size: 1rem;
+  color: #00ffc8;
+  margin: 24px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(0,255,200,0.15);
+}
+
+.bla-body p {
+  margin: 0 0 10px;
+}
+
+.bla-body ul {
+  padding-left: 20px;
+  margin: 0 0 12px;
+}
+
+.bla-body li {
+  margin-bottom: 4px;
+}
+
+/* Meta grid */
+.bla-meta-grid {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 4px 16px;
+  margin: 12px 0 16px;
+  font-size: 0.85rem;
+}
+
+.bla-meta-grid dt {
+  color: #5a7088;
+  font-weight: 600;
+}
+
+.bla-meta-grid dd {
+  color: #c9d1d9;
+  margin: 0;
+}
+
+/* Rights table */
+.bla-rights-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 16px;
+}
+
+.bla-rights-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.85rem;
+}
+
+.bla-rights-table tr td:first-child {
+  color: #5a7088;
+  font-weight: 500;
+  width: 200px;
+}
+
+.bla-rights-table tr td:last-child {
+  color: #c9d1d9;
+}
+
+/* Terms list */
+.bla-terms-list {
+  list-style: none;
+  padding: 0;
+}
+
+.bla-terms-list li {
+  padding: 6px 0 6px 20px;
+  position: relative;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.bla-terms-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #00ffc8;
+  font-weight: 700;
+}
+
+/* Signature grid */
+.bla-sig-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-top: 36px;
+}
+
+.bla-sig-box {
+  border-top: 2px solid #30363d;
+  padding-top: 12px;
+}
+
+.bla-sig-label {
+  font-size: 0.75rem;
+  color: #5a7088;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.bla-sig-name {
+  font-size: 1rem;
+  color: #e6edf3;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.bla-sig-date {
+  font-size: 0.8rem;
+  color: #5a7088;
+}
+
+/* Document footer */
+.bla-doc-footer {
+  text-align: center;
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #21262d;
+}
+
+.bla-doc-footer p {
+  font-size: 0.75rem;
+  color: #484f58;
+  margin: 0 0 4px;
+}
+
+/* ═══════════════════════════════════════════
+LICENSE TIER SELECTOR (SellBeatsPage / BeatDetailPage)
+═══════════════════════════════════════════ */
+.bla-tier-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bla-tier-card {
+  position: relative;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.03);
+  border: 2px solid #21262d;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bla-tier-card:hover {
+  border-color: #30363d;
+  background: rgba(255,255,255,0.04);
+}
+
+.bla-tier-card.selected {
+  border-color: var(--tier-color);
+  background: color-mix(in srgb, var(--tier-color) 6%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--tier-color) 15%, transparent);
+}
+
+.bla-tier-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bla-tier-icon {
+  font-size: 1.5rem;
+}
+
+.bla-tier-name {
+  flex: 1;
+}
+
+.bla-tier-name h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #e6edf3;
+}
+
+.bla-tier-format {
+  font-size: 0.72rem;
+  color: #5a7088;
+}
+
+.bla-tier-price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--tier-color);
+}
+
+.bla-tier-price-edit {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.bla-dollar {
+  color: var(--tier-color);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.bla-tier-price-input {
+  width: 80px;
+  padding: 5px 8px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: var(--tier-color);
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-align: right;
+  outline: none;
+}
+
+.bla-tier-price-input:focus {
+  border-color: var(--tier-color);
+}
+
+.bla-tier-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.bla-tier-features span {
+  font-size: 0.72rem;
+  color: #5a7088;
+  padding: 2px 8px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 4px;
+}
+
+.bla-exclusive-badge {
+  color: #ef4444 !important;
+  font-weight: 600;
+  background: rgba(239,68,68,0.1) !important;
+}
+
+.bla-tier-check {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--tier-color);
+}
+
+/* ═══════════════════════════════════════════
+LICENSE PREVIEW (Cart / Checkout compact)
+═══════════════════════════════════════════ */
+.bla-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.03);
+  border-left: 3px solid var(--tier-color);
+  border-radius: 0 8px 8px 0;
+}
+
+.bla-preview-icon {
+  font-size: 1.3rem;
+}
+
+.bla-preview-info {
+  flex: 1;
+}
+
+.bla-preview-info strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #e6edf3;
+}
+
+.bla-preview-beat {
+  display: block;
+  font-size: 0.78rem;
+  color: #8b949e;
+}
+
+.bla-preview-prod {
+  display: block;
+  font-size: 0.72rem;
+  color: #484f58;
+}
+
+.bla-preview-rights {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.72rem;
+  color: #5a7088;
+  text-align: right;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+.bla-modal {
+  max-width: 100%;
+  border-radius: 10px 12px 0 0;
+  max-height: 95vh;
+}
+
+.bla-body {
+  padding: 20px 16px;
+}
+
+.bla-meta-grid {
+  grid-template-columns: 1fr;
+}
+
+.bla-sig-grid {
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.bla-tier-features {
+  flex-direction: column;
+  gap: 4px;
+}
+
+}

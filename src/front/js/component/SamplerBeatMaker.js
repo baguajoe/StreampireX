@@ -445,7 +445,7 @@ const SamplerBeatMaker = ({
   useEffect(() => {
     if (incomingSample && incomingSample.timestamp !== lastIncomingRef.current) {
       lastIncomingRef.current = incomingSample.timestamp;
-      const pi = selPad;
+      const pi = selectedPad ?? 0;
       if (incomingSample.buffer) {
         setPads(p => {
           const u = [...p];
@@ -454,7 +454,7 @@ const SamplerBeatMaker = ({
         });
       }
     }
-  }, [incomingSample, selPad]);
+  }, [incomingSample, selectedPad]);
 
   // ── SPX Flow: Receive slices from Sampler chop ──
   const lastSlicesRef = useRef(null);

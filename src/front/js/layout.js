@@ -85,6 +85,10 @@ import SalesDashboard from "./pages/SalesDashboard";
 import Marketplace from "./pages/Marketplace";
 import StorefrontPage from "./pages/StorefrontPage";
 import BeatStorePage from "./pages/BeatStorePage";
+import BeatDetailPage from "./pages/BeatDetailPage";
+import ProducerProfilePage from "./pages/ProducerProfilePage";
+import BrowseProducersPage from "./pages/BrowseProducersPage";
+import SellBeatsPage from "./pages/SellBeatsPage";
 
 import LiveStreamPage from "./pages/LiveStreams";
 import LiveConcerts from "./pages/LiveConcerts";
@@ -170,6 +174,10 @@ const Layout = () => {
               <Route path="/ai-stems" element={<AIStemSeparation />} />
               <Route path="/ai-video-studio" element={<AIVideoStudio />} />
               <Route path="/plugin-demo" element={<PluginRackDemo />} />
+              <Route path="/beats/:beatId" element={<BeatDetailPage />} />
+              <Route path="/producer/:id" element={<ProducerProfilePage />} />
+              <Route path="/producers" element={<BrowseProducersPage />} />
+              <Route path="/sell-beats" element={<SellBeatsPage />} />
 
 
               {/* Video Channel Routes */}

@@ -1,0 +1,615 @@
+/* ═══════════════════════════════════════════
+   BEAT DETAIL PAGE
+   Theme: Cubase dark navy
+   ═══════════════════════════════════════════ */
+
+.bd-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+  color: #c9d1d9;
+  font-family: 'Segoe UI', -apple-system, sans-serif;
+}
+
+.bd-loading,
+.bd-not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 16px;
+}
+
+.bd-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #21262d;
+  border-top-color: #FF6600;
+  border-radius: 50%;
+  animation: bd-spin 0.8s linear infinite;
+}
+
+@keyframes bd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bd-not-found a {
+  color: #FF6600;
+  text-decoration: none;
+}
+
+.bd-not-found a:hover {
+  text-decoration: underline;
+}
+
+/* ── Hero ── */
+
+.bd-hero {
+  display: flex;
+  gap: 28px;
+  margin-bottom: 36px;
+  padding: 28px;
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 10px;
+}
+
+.bd-hero-art {
+  position: relative;
+  flex-shrink: 0;
+  width: 240px;
+  height: 240px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bd-hero-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bd-play-btn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  background: rgba(13, 17, 23, 0.5);
+  color: #e6edf3;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.bd-hero-art:hover .bd-play-btn {
+  opacity: 1;
+}
+
+.bd-hero-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bd-hero-info h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #e6edf3;
+  margin: 0;
+}
+
+.bd-producer-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #FF6600;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.bd-producer-link:hover {
+  text-decoration: underline;
+}
+
+.bd-tiny-av {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.bd-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bd-tag {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid #30363d;
+}
+
+.bd-tag.bpm {
+  background: rgba(255, 69, 58, 0.08);
+  border-color: rgba(255, 69, 58, 0.2);
+  color: #ff453a;
+}
+
+.bd-tag.key {
+  background: rgba(168, 85, 247, 0.08);
+  border-color: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+
+.bd-tag.genre {
+  background: rgba(255, 102, 0, 0.08);
+  border-color: rgba(255, 102, 0, 0.2);
+  color: #FF6600;
+}
+
+.bd-tag.mood {
+  background: rgba(0, 255, 200, 0.08);
+  border-color: rgba(0, 255, 200, 0.2);
+  color: #00ffc8;
+}
+
+/* ── Progress ── */
+
+.bd-progress-wrap {
+  position: relative;
+  height: 4px;
+  background: #21262d;
+  border-radius: 2px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.bd-progress-fill {
+  height: 100%;
+  background: #FF6600;
+  border-radius: 2px;
+  transition: width 0.1s;
+}
+
+.bd-progress-knob {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  background: #FF6600;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px rgba(255, 102, 0, 0.4);
+}
+
+.bd-time {
+  font-size: 0.72rem;
+  color: #484f58;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.bd-stats {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 0.82rem;
+  color: #8b949e;
+}
+
+.bd-share {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  padding: 4px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition: all 0.15s;
+}
+
+.bd-share:hover {
+  border-color: #58a6ff;
+  color: #58a6ff;
+}
+
+.bd-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.bd-hashtag {
+  color: #484f58;
+  font-size: 0.75rem;
+}
+
+/* ── Body layout ── */
+
+.bd-body {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 28px;
+}
+
+.bd-main {
+  min-width: 0;
+}
+
+.bd-sec-title {
+  font-size: 0.72rem;
+  color: #5a7088;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  margin: 0 0 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #21262d;
+}
+
+/* ── Free download ── */
+
+.bd-free-box {
+  background: rgba(0, 255, 200, 0.05);
+  border: 1px solid rgba(0, 255, 200, 0.15);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+}
+
+.bd-free-dl-btn {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 24px;
+  background: rgba(0, 255, 200, 0.08);
+  border: 1px solid #00ffc8;
+  color: #00ffc8;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+
+.bd-free-dl-btn:hover {
+  background: rgba(0, 255, 200, 0.18);
+  box-shadow: 0 0 12px rgba(0, 255, 200, 0.15);
+}
+
+/* ── License grid ── */
+
+.bd-lic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.bd-lic-card {
+  background: #0d1117;
+  border: 2px solid #21262d;
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.bd-lic-card:hover {
+  border-color: #30363d;
+  background: #161b22;
+}
+
+.bd-lic-card.sel {
+  border-color: var(--tc, #FF6600);
+  background: rgba(255, 102, 0, 0.05);
+  box-shadow: 0 0 12px rgba(255, 102, 0, 0.1);
+}
+
+.bd-lic-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.bd-lic-icon {
+  font-size: 1.5rem;
+}
+
+.bd-lic-title-wrap {
+  flex: 1;
+}
+
+.bd-lic-title-wrap h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #e6edf3;
+}
+
+.bd-lic-type {
+  font-size: 0.6rem;
+  color: var(--tc, #FF6600);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.bd-lic-price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--tc, #FF6600);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.bd-lic-feats {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.75rem;
+  color: #8b949e;
+}
+
+.bd-lic-feats li {
+  padding: 3px 0;
+  border-bottom: 1px solid #21262d;
+}
+
+.bd-excl {
+  color: #ff453a;
+  font-weight: 700;
+}
+
+.bd-lic-check {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  color: var(--tc, #FF6600);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* ── Purchase bar ── */
+
+.bd-purchase-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+
+.bd-pb-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bd-pb-name {
+  color: #8b949e;
+  font-size: 0.85rem;
+}
+
+.bd-pb-price {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #FF6600;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.bd-pb-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.bd-cart-btn {
+  padding: 10px 20px;
+  background: rgba(0, 255, 200, 0.08);
+  border: 1px solid rgba(0, 255, 200, 0.25);
+  color: #00ffc8;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+
+.bd-cart-btn:hover {
+  background: rgba(0, 255, 200, 0.18);
+  box-shadow: 0 0 12px rgba(0, 255, 200, 0.15);
+}
+
+.bd-cart-btn.flash {
+  background: #00ffc8 !important;
+  color: #0d1117 !important;
+}
+
+.bd-buy-btn {
+  padding: 10px 24px;
+  background: rgba(255, 102, 0, 0.08);
+  border: 1px solid #FF6600;
+  color: #FF6600;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+
+.bd-buy-btn:hover {
+  background: rgba(255, 102, 0, 0.18);
+  box-shadow: 0 0 12px rgba(255, 102, 0, 0.15);
+}
+
+/* ── Description ── */
+
+.bd-desc {
+  padding: 20px;
+  background: #161b22;
+  border-radius: 10px;
+  border: 1px solid #21262d;
+}
+
+.bd-desc h3 {
+  margin: 0 0 8px;
+  color: #e6edf3;
+  font-size: 0.95rem;
+}
+
+.bd-desc p {
+  color: #8b949e;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── Sidebar ── */
+
+.bd-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.bd-producer-card {
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+}
+
+.bd-producer-card a {
+  text-decoration: none;
+  color: #e6edf3;
+}
+
+.bd-pc-av {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 10px;
+  border: 2px solid #30363d;
+}
+
+.bd-producer-card h3 {
+  margin: 0 0 8px;
+}
+
+.bd-pc-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: #FF6600;
+  font-size: 0.82rem;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.bd-pc-link:hover {
+  text-decoration: underline;
+}
+
+.bd-related {
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.bd-related h3 {
+  margin: 0 0 12px;
+  font-size: 0.72rem;
+  color: #5a7088;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.bd-rel-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #c9d1d9;
+  transition: background 0.15s;
+}
+
+.bd-rel-card:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.bd-rel-art {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.bd-rel-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.bd-rel-title {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #e6edf3;
+}
+
+.bd-rel-prod {
+  font-size: 0.72rem;
+  color: #484f58;
+}
+
+.bd-rel-price {
+  color: #FF6600;
+  font-weight: 700;
+  font-size: 0.82rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+  .bd-hero {
+    flex-direction: column;
+  }
+
+  .bd-hero-art {
+    width: 100%;
+    height: 200px;
+  }
+
+  .bd-body {
+    grid-template-columns: 1fr;
+  }
+
+  .bd-lic-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bd-purchase-bar {
+    flex-direction: column;
+    gap: 12px;
+  }
+}

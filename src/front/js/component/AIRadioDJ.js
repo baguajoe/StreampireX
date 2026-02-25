@@ -76,12 +76,13 @@ const AIRadioDJ = () => {
 
   const fetchStations = useCallback(async () => {
     try {
-      const res = await fetch(BACKEND_URL + "/api/radio/my-stations", {
+      const res = await fetch(BACKEND_URL + "/api/radio/dashboard", {
         headers: { Authorization: "Bearer " + token },
       });
       if (res.ok) {
         const data = await res.json();
-        setStations(data.stations || data || []);
+        // /api/radio/dashboard returns an array directly (not {stations: [...]})
+        setStations(Array.isArray(data) ? data : data.stations || []);
       }
     } catch (err) {
       console.error("Failed to fetch stations:", err);
@@ -467,8 +468,8 @@ const AIRadioDJ = () => {
                         <div className="ai-dj-persona-genres">
                           {persona.genres.length > 0
                             ? persona.genres.slice(0, 3).map(g => (
-                                <span key={g} className="ai-dj-genre-tag">{g}</span>
-                              ))
+                              <span key={g} className="ai-dj-genre-tag">{g}</span>
+                            ))
                             : <span className="ai-dj-genre-tag all">All Genres</span>
                           }
                         </div>
