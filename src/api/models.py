@@ -7173,3 +7173,137 @@ class AIVideoGeneration(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     started_at = db.Column(db.DateTime)
     completed_at = db.Column(db.DateTime)
+
+class PodcastRecordingSession(db.Model):
+    __tablename__ = 'podcast_recording_session'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(255), default='Recording Session')
+    status = db.Column(db.String(50), default='recording')  # recording | completed | published
+    episode_id = db.Column(db.Integer, db.ForeignKey('podcast_episode.id'), nullable=True)
+    duration = db.Column(db.Integer, default=0)  # seconds
+    invite_code = db.Column(db.String(20), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', backref='podcast_recording_sessions')
+    tracks = db.relationship('PodcastRecordingTrack', backref='session', lazy=True,
+                             cascade='all, delete-orphan')
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'session_id': self.session_id,
+            'user_id': self.user_id,
+            'title': self.title,
+            'status': self.status,
+            'episode_id': self.episode_id,
+            'duration': self.duration,
+            'invite_code': self.invite_code,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'tracks': [t.serialize() for t in (self.tracks or [])],
+        }
+
+
+class PodcastRecordingTrack(db.Model):
+    __tablename__ = 'podcast_recording_track'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_record_id = db.Column(db.Integer, db.ForeignKey('podcast_recording_session.id'), nullable=False)
+    track_id = db.Column(db.String(100), nullable=False)  # 'host', 'guest_xxx', 'soundboard'
+    track_type = db.Column(db.String(50), default='stem')  # stem | guest_recording | soundboard
+    guest_name = db.Column(db.String(100), nullable=True)
+    audio_url = db.Column(db.String(500), nullable=True)
+    duration = db.Column(db.Integer, default=0)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def serialize(self):
+        return {
+            'id': self.id,
+            'track_id': self.track_id,
+            'track_type': self.track_type,
+            'guest_name': self.guest_name,
+            'audio_url': self.audio_url,
+            'duration': self.duration,
+            'uploaded_at': self.uploaded_at.isoformat() if self.uploaded_at else None,
+        }
+
+class AsyncRecordingLink(db.Model):
+    """Async recording link — guest records on their own time."""
+    __tablename__ = 'async_recording_links'
+
+    id = db.Column(db.String(12), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    guest_name = db.Column(db.String(100), nullable=False)
+    prompt = db.Column(db.Text, default='')
+    show_name = db.Column(db.String(200), default='')
+    max_duration_seconds = db.Column(db.Integer, default=300)
+    deadline = db.Column(db.DateTime, nullable=True)
+    status = db.Column(db.String(20), default='pending')  # pending, viewed, completed, expired
+    audio_url = db.Column(db.String(500), nullable=True)
+    duration = db.Column(db.Float, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime, nullable=True)
+
+    user = db.relationship('User', backref=db.backref('async_recording_links', lazy='dynamic'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'guest_name': self.guest_name,
+            'prompt': self.prompt,
+            'show_name': self.show_name,
+            'max_duration_seconds': self.max_duration_seconds,
+            'deadline': self.deadline.isoformat() if self.deadline else None,
+            'status': self.status,
+            'audio_url': self.audio_url,
+            'duration': self.duration,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None
+        }
+
+
+class StudioBranding(db.Model):
+    """Per-user studio branding settings."""
+    __tablename__ = 'studio_brandings'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    logo_url = db.Column(db.String(500), nullable=True)
+    primary_color = db.Column(db.String(10), default='#00ffc8')
+    secondary_color = db.Column(db.String(10), default='#FF6600')
+    intro_audio_url = db.Column(db.String(500), nullable=True)
+    outro_audio_url = db.Column(db.String(500), nullable=True)
+    background_url = db.Column(db.String(500), nullable=True)
+    show_name = db.Column(db.String(200), default='')
+    watermark_position = db.Column(db.String(20), default='bottom-right')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', backref=db.backref('studio_branding', uselist=False))
+
+    def to_dict(self):
+        return {
+            'logo_url': self.logo_url,
+            'primary_color': self.primary_color,
+            'secondary_color': self.secondary_color,
+            'intro_audio_url': self.intro_audio_url,
+            'outro_audio_url': self.outro_audio_url,
+            'background_url': self.background_url,
+            'show_name': self.show_name,
+            'watermark_position': self.watermark_position
+        }
+
+
+
+
+
+
+

@@ -311,6 +311,46 @@ const PodcastCreate = () => {
     <div className="podcast-create-container">
       <h1>🎙️ Create Your Podcast</h1>
 
+      {/* 🎙️ Record in Studio Banner */}
+      <div
+        className="record-studio-banner"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '16px 20px',
+          background: 'linear-gradient(135deg, rgba(0, 255, 200, 0.08), rgba(0, 136, 255, 0.08))',
+          border: '1px solid rgba(0, 255, 200, 0.2)',
+          borderRadius: '12px',
+          marginBottom: '24px'
+        }}
+      >
+        <div>
+          <strong style={{ color: '#fff', fontSize: '15px' }}>🎙️ Want to record instead of upload?</strong>
+          <p style={{ color: '#aaa', fontSize: '13px', margin: '4px 0 0' }}>
+            Record with guests, add soundboard effects, chapters, and publish — all in one place.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/podcast-studio')}
+          style={{
+            padding: '10px 22px',
+            background: '#00ffc8',
+            color: '#000',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: 700,
+            fontSize: '14px',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            flexShrink: 0
+          }}
+        >
+          Open Podcast Studio
+        </button>
+      </div>
+
       {/* Status Messages */}
       {message && (
         <div className={`message ${messageType}`}>

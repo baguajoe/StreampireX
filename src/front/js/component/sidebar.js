@@ -347,7 +347,7 @@ const Sidebar = ({ user }) => {
       if (saved.ai !== undefined) setShowAI(saved.ai);
       if (saved.store !== undefined) setShowStore(saved.store);
       if (saved.account !== undefined) setShowAccount(saved.account);
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   useEffect(() => {
@@ -531,6 +531,9 @@ const Sidebar = ({ user }) => {
           </MenuItem>
           <MenuItem to="/browse-podcast-categories" className={isActive("/browse-podcast-categories") ? "active" : ""}>
             🎧 <span className="sidebar-label">Browse Podcasts</span>
+          </MenuItem>
+          <MenuItem to="/podcast-studio" className={isActive("/podcast-studio") ? "active" : ""}>
+            🎙️ <span className="sidebar-label">Podcast Studio</span>
           </MenuItem>
           <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
             📡 <span className="sidebar-label">Live Streams</span>

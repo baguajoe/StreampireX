@@ -1,4 +1,4 @@
- import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import TipJar from "../component/TipJar";
 import UniversalSocialShare from "../component/UniversalSocialShare";
@@ -341,6 +341,20 @@ const PodcastDetailPage = () => {
 
               <button onClick={handleSubscribe} className="action-btn subscribe-btn">
                 ➕ Subscribe
+              </button>
+
+              {/* 🎙️ Record New Episode — opens Podcast Studio */}
+              <button
+                onClick={() => navigate('/podcast-studio')}
+                className="action-btn record-btn"
+                style={{
+                  background: 'linear-gradient(135deg, #00ffc8, #0088ff)',
+                  color: '#000',
+                  fontWeight: 700,
+                  border: 'none'
+                }}
+              >
+                🎙️ Record Episode
               </button>
 
               <TipJar

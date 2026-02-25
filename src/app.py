@@ -68,10 +68,11 @@ from src.api.freesound_api import freesound_bp  # 🔊 Freesound.org Sample Brow
 from src.api.sound_kit_routes import sound_kit_bp  # 🎛️ Sound Kit Management
 from src.api.playlist_routes import playlist_bp
 from src.api.voice_clone_services import voice_clone_services_bp
-from src.api.beat_store_routes import beat_store_bp
+from src.api.podcast_studio_routes import podcast_studio_bp
+from src.api.podcast_studio_ai_routes import podcast_ai_bp
+from src.api.podcast_studio_phase2_routes import podcast_phase2_bp
+from src.api.podcast_socket_events import register_podcast_socket_events
 
-
-# Rest of your code stays the same...
 
 # ✅ Environment setup
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
@@ -311,11 +312,16 @@ app.register_blueprint(beat_store_bp)
 app.register_blueprint(voice_clone_services_bp)
 app.register_blueprint(ai_chord_generator_bp)
 app.register_blueprint(ai_video_tools_bp)
-app.register_blueprint(beat_store_bp)
+app.register_blueprint(podcast_studio_bp)
+app.register_blueprint(podcast_ai_bp)
+app.register_blueprint(podcast_phase2_bp)
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)
 app.socketio = socketio
+
+# ✅ Register podcast socket events AFTER socketio is created
+register_podcast_socket_events(socketio)
 
 # ✅ Global variables for socket management
 connected_users = {}
