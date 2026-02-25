@@ -2,7 +2,7 @@
 // PluginBrowserModal.jsx — Plugin Browser / Add Plugin Modal
 // =============================================================================
 import React, { useState, useMemo } from 'react';
-import { getAllPlugins, getCategories } from '../../audio/plugins/registry';
+import { getAllPlugins, getCategories } from '../../plugins/registry';
 
 const CAT_LABELS = { utility: '🔧 Utility', eq: '📊 EQ', dynamics: '🎚️ Dynamics', spatial: '🌊 Spatial', distortion: '🔥 Distortion' };
 const CAT_COLORS = { utility: '#5ac8fa', eq: '#34c759', dynamics: '#ff9500', spatial: '#af52de', distortion: '#ff3b30' };

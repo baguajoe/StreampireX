@@ -6,7 +6,7 @@
 // =============================================================================
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { getPresetStore } from '../../audio/plugins/presets/presetStore';
+import { getPresetStore } from '../../plugins/presets/presetStore';
 
 const PluginSlot = ({
   instance,      // { instanceId, pluginId, def, params, bypassed }

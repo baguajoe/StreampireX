@@ -1,0 +1,252 @@
+/* ═══════════════════════════════════════════
+BROWSE PRODUCERS PAGE
+═══════════════════════════════════════════ */
+.bp-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+  color: #c9d1d9;
+}
+
+.bp-hero {
+  text-align: center;
+  padding: 48px 20px 32px;
+}
+
+.bp-hero h1 {
+  font-size: 2rem;
+  color: #e6edf3;
+  margin: 0 0 8px;
+}
+
+.bp-hero p {
+  color: #5a7088;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Controls */
+.bp-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.bp-search {
+  flex: 1;
+  padding: 12px 16px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  color: #c9d1d9;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.bp-search:focus {
+  border-color: #00ffc8;
+}
+
+.bp-search::placeholder {
+  color: #484f58;
+}
+
+.bp-sort {
+  padding: 10px 14px;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  color: #c9d1d9;
+  font-size: 0.9rem;
+}
+
+/* Loading / Empty */
+.bp-loading, .bp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  gap: 12px;
+}
+
+.bp-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(0,255,200,0.2);
+  border-top-color: #00ffc8;
+  border-radius: 50%;
+  animation: bp-spin 0.8s linear infinite;
+}
+
+@keyframes bp-spin {
+  to { transform: rotate(360deg);
+  };
+}
+
+.bp-back-link {
+  color: #00ffc8;
+  text-decoration: none;
+}
+
+/* Producer grid */
+.bp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.bp-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid #21262d;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.bp-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(0,255,200,0.2);
+  box-shadow: 0 8px 30px #161b22;
+}
+
+.bp-card-banner {
+  height: 100px;
+  background: linear-gradient(135deg, #0a1628, #1a0a28, #0a2818);
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.bp-card-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent, rgba(10,10,15,0.9));
+}
+
+.bp-card-body {
+  padding: 0 18px 18px;
+  margin-top: -36px;
+  position: relative;
+  z-index: 1;
+}
+
+.bp-card-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3px solid #0a0a0f;
+  object-fit: cover;
+  margin-bottom: 8px;
+}
+
+.bp-card-name {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  color: #e6edf3;
+}
+
+.bp-card-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.bp-genre-tag {
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: rgba(0,255,200,0.08);
+  color: #00ffc8;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.bp-card-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.bp-card-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.bp-cs-num {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e6edf3;
+}
+
+.bp-cs-lbl {
+  font-size: 0.68rem;
+  color: #5a7088;
+  text-transform: uppercase;
+}
+
+.bp-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #161b22;
+}
+
+.bp-card-price {
+  font-size: 0.85rem;
+  color: #8b949e;
+}
+
+.bp-card-cta {
+  color: #00ffc8;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Sell CTA */
+.bp-sell-cta {
+  text-align: center;
+  margin-top: 60px;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, rgba(0,255,200,0.05), rgba(255,102,0,0.05));
+  border: 1px solid rgba(0,255,200,0.12);
+  border-radius: 10px;
+}
+
+.bp-sell-cta h2 {
+  color: #e6edf3;
+  margin: 0 0 8px;
+}
+
+.bp-sell-cta p {
+  color: #8b949e;
+  margin: 0 0 20px;
+}
+
+.bp-sell-btn {
+  display: inline-block;
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #FF6600, #ff8533);
+  color: #e6edf3;
+  border-radius: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+.bp-sell-btn:hover {
+  box-shadow: 0 4px 16px rgba(255,102,0,0.3);
+}
+
+@media (max-width: 600px) {
+.bp-grid {
+  grid-template-columns: 1fr;
+}
+
+.bp-controls {
+  flex-direction: column;
+}
+
+}

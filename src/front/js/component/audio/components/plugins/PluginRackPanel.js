@@ -6,7 +6,7 @@
 // =============================================================================
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getPluginHost } from '../../audio/plugins/PluginHost';
+import { getPluginHost } from '../../plugins/PluginHost';
 import PluginSlot from './PluginSlot';
 import PluginBrowserModal from './PluginBrowserModal';
 

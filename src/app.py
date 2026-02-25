@@ -68,6 +68,7 @@ from src.api.freesound_api import freesound_bp  # 🔊 Freesound.org Sample Brow
 from src.api.sound_kit_routes import sound_kit_bp  # 🎛️ Sound Kit Management
 from src.api.playlist_routes import playlist_bp
 from src.api.voice_clone_services import voice_clone_services_bp
+from src.api.beat_store_routes import beat_store_bp
 
 
 # Rest of your code stays the same...
@@ -310,6 +311,7 @@ app.register_blueprint(beat_store_bp)
 app.register_blueprint(voice_clone_services_bp)
 app.register_blueprint(ai_chord_generator_bp)
 app.register_blueprint(ai_video_tools_bp)
+app.register_blueprint(beat_store_bp)
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)
