@@ -7,9 +7,9 @@
 // =============================================================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { getEngine } from '../audio/engine/AudioEngine';
-import TrackGraph from '../audio/engine/TrackGraph';
-import PluginRackPanel from '../components/plugins/PluginRackPanel';
+import { getEngine } from '../component/audio/engine/AudioEngine';
+import TrackGraph from '../component/audio/engine/TrackGraph';
+import PluginRackPanel from '../component/audio/components/plugins/PluginRackPanel';
 
 const PluginRackDemo = () => {
   const [ready, setReady] = useState(false);
