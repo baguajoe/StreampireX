@@ -13,6 +13,7 @@
 // - onAction handler wired to RecordingStudio functions
 // - selectedTrackIndex for Track/Edit actions
 // - Simple MIDI export (pianoRollNotes -> .mid download)
+// - InstrumentTrackEngine integration (GM Synth, Samples, External MIDI, Beat Maker → Arrange)
 // =============================================================================
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
@@ -51,6 +52,12 @@ import VoiceToMIDI from "../component/VoiceToMIDI";
 
 // ── Drum Kit Connector ──
 import DrumKitConnector from "../component/DrumKitConnector";
+
+// ── Instrument Track Engine (STEP 1) ──
+import useInstrumentTrackEngine, {
+  InstrumentSelector, KeyboardOctaveIndicator, MidiDeviceIndicator,
+  createMidiRegion, createMidiRegionFromNotes, SOURCE_TYPES,
+} from '../component/InstrumentTrackEngine';
 
 import "../../styles/RecordingStudio.css";
 import "../../styles/ArrangerView.css";
@@ -117,9 +124,11 @@ const DEFAULT_EFFECTS = () => ({
   limiter: { threshold: -1, knee: 0, ratio: 20, attack: 0.001, release: 0.05, enabled: false },
 });
 
+// ── STEP 10: DEFAULT_TRACK updated for instrument support ──
 const DEFAULT_TRACK = (i, type = "audio") => ({
   name: `${type === "midi" ? "MIDI" : type === "bus" ? "Bus" : type === "aux" ? "Aux" : "Audio"} ${i + 1}`,
   trackType: type,
+  instrument: type === "midi" ? { program: 0, name: 'Acoustic Grand' } : null,
   volume: 0.8,
   pan: 0,
   muted: false,
@@ -138,6 +147,37 @@ const beatToSeconds = (beat, bpm) => (beat / bpm) * 60;
 
 // ── Small helpers ──
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+
+// ── STEP 8: MidiRegionPreview — mini piano-roll inside region ──
+const MidiRegionPreview = React.memo(({ notes = [], duration, height, color }) => {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !notes.length) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const noteNums = notes.map(n => n.note);
+    const minNote = Math.min(...noteNums) - 1;
+    const maxNote = Math.max(...noteNums) + 1;
+    const range = Math.max(maxNote - minNote, 12);
+
+    ctx.fillStyle = color || '#7c3aed';
+    ctx.globalAlpha = 0.8;
+    notes.forEach(n => {
+      const x = (n.startBeat / duration) * w;
+      const noteW = Math.max((n.duration / duration) * w, 2);
+      const y = h - ((n.note - minNote) / range) * h;
+      const noteH = Math.max(h / range, 2);
+      ctx.fillRect(x, y - noteH, noteW, noteH);
+    });
+  }, [notes, duration, height, color]);
+
+  return <canvas ref={canvasRef} width={300} height={height}
+    style={{ width: '100%', height, display: 'block', opacity: 0.9 }} />;
+});
 
 /**
  * Minimal MIDI writer (SMF format 0 / single track).
@@ -256,6 +296,10 @@ const RecordingStudio = ({ user }) => {
   const [pianoRollKey, setPianoRollKey] = useState("C");
   const [pianoRollScale, setPianoRollScale] = useState("major");
 
+  // ── STEP 13: Track active region being edited in Piano Roll ──
+  const [editingRegion, setEditingRegion] = useState(null);
+  // { trackIndex: number, regionId: string }
+
   const audioCtxRef = useRef(null);
   const masterGainRef = useRef(null);
   const trackSourcesRef = useRef([]);
@@ -278,6 +322,22 @@ const RecordingStudio = ({ user }) => {
   const tapTimesRef = useRef([]);
 
   const playheadBeat = useMemo(() => secondsToBeat(currentTime, bpm), [currentTime, bpm]);
+
+  // ── STEP 1: Instrument Track Engine ──
+  const instrumentEngine = useInstrumentTrackEngine(audioCtxRef, tracks, {
+    bpm, isPlaying, isRecording, playheadBeat, masterGainRef,
+    onNotesRecorded: (notes) => {
+      const armedIdx = tracks.findIndex(t =>
+        t.armed && (t.trackType === 'midi' || t.trackType === 'instrument')
+      );
+      if (armedIdx === -1 || !notes.length) return;
+      const region = createMidiRegionFromNotes(notes, 'MIDI Recording');
+      setTracks(prev => prev.map((t, i) =>
+        i === armedIdx ? { ...t, regions: [...(t.regions || []), region] } : t
+      ));
+      setStatus(`✓ Recorded ${notes.length} MIDI notes → Track ${armedIdx + 1}`);
+    },
+  });
 
   useEffect(() => {
     navigator.mediaDevices
@@ -325,6 +385,53 @@ const RecordingStudio = ({ user }) => {
 
   const hasSolo = tracks.some((t) => t.solo);
   const isAudible = (t) => !t.muted && (!hasSolo || t.solo);
+
+  // ── STEP 13: Save Piano Roll edits back to region ──
+  const savePianoRollToRegion = useCallback(() => {
+    if (!editingRegion) return;
+    const { trackIndex, regionId } = editingRegion;
+
+    setTracks(prev => prev.map((t, i) => {
+      if (i !== trackIndex) return t;
+      return {
+        ...t,
+        regions: (t.regions || []).map(r => {
+          if (r.id !== regionId) return r;
+          // Convert absolute beats back to relative
+          const relativeNotes = pianoRollNotes.map(n => ({
+            ...n,
+            startBeat: n.startBeat - r.startBeat,
+          }));
+          // Recalculate duration
+          const maxEnd = Math.max(...relativeNotes.map(n => n.startBeat + n.duration), 0);
+          return { ...r, notes: relativeNotes, duration: Math.max(maxEnd, r.duration) };
+        }),
+      };
+    }));
+
+    setEditingRegion(null);
+    setStatus('✓ Piano Roll edits saved to region');
+  }, [editingRegion, pianoRollNotes]);
+
+  // Auto-save piano roll edits when switching away from pianoroll view (STEP 13)
+  useEffect(() => {
+    if (viewMode !== 'pianoroll' && editingRegion) {
+      savePianoRollToRegion();
+    }
+  }, [viewMode, editingRegion, savePianoRollToRegion]);
+
+  // ── STEP 7 / STEP 13: Open Piano Roll from a MIDI region ──
+  const onOpenPianoRoll = useCallback((trackIdx, regionId) => {
+    const track = tracks[trackIdx];
+    const region = (track?.regions || []).find(r => r.id === regionId);
+    if (!region) return;
+
+    setEditingRegion({ trackIndex: trackIdx, regionId });
+    setPianoRollNotes(region.notes.map(n => ({
+      ...n, startBeat: n.startBeat + region.startBeat,
+    })));
+    setViewMode('pianoroll');
+  }, [tracks]);
 
   // ── Waveform drawing ──
   const drawWaveform = useCallback((el, buf, color) => {
@@ -1073,6 +1180,23 @@ const RecordingStudio = ({ user }) => {
     [bpm, isPlaying]
   );
 
+  // ── STEP 6: Double-click Arrange lane → create MIDI region ──
+  const handleTimelineDoubleClick = useCallback((e, trackIndex) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const track = tracks[trackIndex];
+
+    if (track.trackType === 'midi' || track.trackType === 'instrument') {
+      const newRegion = createMidiRegion(playheadBeat, timeSignature[0], `MIDI ${trackIndex + 1}`);
+      const next = [...tracks];
+      next[trackIndex] = {
+        ...next[trackIndex],
+        regions: [...(next[trackIndex].regions || []), newRegion],
+      };
+      setTracks(next);
+    }
+  }, [tracks, playheadBeat, timeSignature, setTracks]);
+
   // ── Project save/load stubs (keep your existing endpoints if already working) ──
   const saveProject = async () => {
     setSaving(true);
@@ -1089,6 +1213,8 @@ const RecordingStudio = ({ user }) => {
         solo: t.solo,
         effects: t.effects,
         color: t.color,
+        trackType: t.trackType,
+        instrument: t.instrument,
         regions: (t.regions || []).map((r) => ({ ...r, audioUrl: null })),
         audio_url: typeof t.audio_url === "string" && !t.audio_url.startsWith("blob:") ? t.audio_url : null,
       }));
@@ -1199,6 +1325,7 @@ const RecordingStudio = ({ user }) => {
     setPianoRollNotes([]);
     setPianoRollKey("C");
     setPianoRollScale("major");
+    setEditingRegion(null);
     setStatus("New project");
     setViewMode("arrange");
   };
@@ -1587,6 +1714,19 @@ const RecordingStudio = ({ user }) => {
           <button className={`daw-transport-btn ${countIn ? "active" : ""}`} onClick={() => setCountIn(!countIn)} title="Count-in" style={{ fontSize: "0.7rem", fontWeight: 800 }}>
             1234
           </button>
+
+          {/* ── STEP 5: MIDI device + keyboard octave in toolbar ── */}
+          <MidiDeviceIndicator
+            devices={instrumentEngine.midiDevices}
+            activeDevice={instrumentEngine.activeMidiDevice}
+            midiActivity={instrumentEngine.midiActivity}
+            onConnect={instrumentEngine.connectMidiDevice}
+            onDisconnect={instrumentEngine.disconnectMidiDevice}
+          />
+          <KeyboardOctaveIndicator
+            octave={instrumentEngine.keyboardOctave}
+            onOctaveChange={instrumentEngine.setKeyboardOctave}
+          />
         </div>
 
         {/* ═══ View Tabs (✅ Record removed, ✅ Kits removed, ✅ Drum Kits after Beat Maker) ═══ */}
@@ -1820,7 +1960,7 @@ const RecordingStudio = ({ user }) => {
 
       {/* ═══════════════════ MAIN VIEW AREA ═══════════════════ */}
       <div className="daw-main">
-        {/* ──────── ARRANGE VIEW ──────── */}
+        {/* ──────── ARRANGE VIEW (STEP 11: pass instrumentEngine + onOpenPianoRoll) ──────── */}
         {viewMode === "arrange" && (
           <ArrangerView
             tracks={tracks}
@@ -1845,6 +1985,10 @@ const RecordingStudio = ({ user }) => {
             onBounce={() => setStatus("ℹ Bounce handler not included in this paste")}
             onSave={saveProject}
             saving={saving}
+            instrumentEngine={instrumentEngine}
+            onOpenPianoRoll={onOpenPianoRoll}
+            onTimelineDoubleClick={handleTimelineDoubleClick}
+            MidiRegionPreview={MidiRegionPreview}
           />
         )}
 
@@ -1891,6 +2035,28 @@ const RecordingStudio = ({ user }) => {
                 <div className="daw-track-strip">
                   <div className="daw-track-color-bar" style={{ background: track.color }} />
                   <input className="daw-track-name-input" value={track.name} onChange={(e) => updateTrack(i, { name: e.target.value })} onClick={(e) => e.stopPropagation()} />
+
+                  {/* ── STEP 4: Instrument selector on MIDI track headers ── */}
+                  {(track.trackType === 'midi' || track.trackType === 'instrument') && (
+                    <InstrumentSelector
+                      trackIndex={i}
+                      currentInstrument={instrumentEngine.getTrackInstrument(i)}
+                      onSelectGM={(idx, program, name) =>
+                        instrumentEngine.setTrackInstrument(idx, { source: SOURCE_TYPES.GM_SYNTH, program, name })
+                      }
+                      onSelectDrumKit={(idx) =>
+                        instrumentEngine.setTrackInstrument(idx, { source: SOURCE_TYPES.DRUM_KIT })
+                      }
+                      onSelectSampler={(idx) => {
+                        updateTrack(idx, { armed: true });
+                        setViewMode('sounds');   // opens Sound Browser
+                      }}
+                      onSelectSampleKit={(idx) =>
+                        instrumentEngine.setTrackInstrument(idx, { source: SOURCE_TYPES.SAMPLE_KIT })
+                      }
+                      compact
+                    />
+                  )}
 
                   <div className="daw-track-btns">
                     <button
@@ -1994,7 +2160,7 @@ const RecordingStudio = ({ user }) => {
         {/* ──────── CONSOLE VIEW ──────── */}
         {viewMode === "console" && <div className="daw-console"> {/* keep your existing console markup here if you want */}</div>}
 
-        {/* ──────── BEAT MAKER VIEW ──────── */}
+        {/* ──────── BEAT MAKER VIEW (STEP 9: onExportToArrange) ──────── */}
         {viewMode === "beatmaker" && (
           <SamplerBeatMaker
             onExport={handleBeatExport}
@@ -2008,6 +2174,49 @@ const RecordingStudio = ({ user }) => {
             }}
             onOpenSampler={() => setViewMode("sampler")}
             incomingSample={window.__spx_sampler_export || null}
+            onExportToArrange={(midiNotes) => {
+              // STEP 9B: Beat Maker → Arrange (export patterns as MIDI regions)
+              // Find or create a drum kit track
+              let drumTrackIdx = tracks.findIndex(t =>
+                (t.trackType === 'midi' || t.trackType === 'instrument') &&
+                instrumentEngine.getTrackInstrument(tracks.indexOf(t))?.isDrum
+              );
+
+              if (drumTrackIdx === -1) {
+                // Auto-create a drum track
+                const newTrack = {
+                  name: 'Drums',
+                  trackType: 'midi',
+                  instrument: { program: 0, name: 'Drum Kit' },
+                  volume: 0.8, pan: 0, muted: false, solo: false, armed: false,
+                  color: '#e8652b', regions: [],
+                  effects: DEFAULT_EFFECTS(),
+                };
+                setTracks(prev => {
+                  drumTrackIdx = prev.length;
+                  return [...prev, newTrack];
+                });
+                // Assign drum kit instrument
+                setTimeout(() => {
+                  instrumentEngine.setTrackInstrument(drumTrackIdx, { source: SOURCE_TYPES.DRUM_KIT });
+                }, 100);
+              }
+
+              // Create MIDI region from beat pattern (1 bar in 4/4 = 4 beats)
+              const region = createMidiRegionFromNotes(midiNotes, 'Beat Pattern');
+
+              // Place at playhead position (or start if stopped)
+              region.startBeat = isPlaying ? playheadBeat : 0;
+
+              setTracks(prev => prev.map((t, i) =>
+                i === drumTrackIdx
+                  ? { ...t, regions: [...(t.regions || []), region] }
+                  : t
+              ));
+
+              setStatus(`🥁 Beat pattern exported to Arrange → Track ${drumTrackIdx + 1}`);
+              setViewMode('arrange');
+            }}
           />
         )}
 
@@ -2041,6 +2250,8 @@ const RecordingStudio = ({ user }) => {
               onExport={handlePianoRollExport}
               onClose={() => setViewMode("beatmaker")}
               isEmbedded={true}
+              editingRegion={editingRegion}
+              onSaveToRegion={savePianoRollToRegion}
             />
           </div>
         )}
@@ -2078,20 +2289,34 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {/* ──────── SOUNDS VIEW ──────── */}
+        {/* ──────── SOUNDS VIEW (STEP 2: Sound Browser → instrument track) ──────── */}
         {viewMode === "sounds" && (
           <div className="daw-freesound-view">
             <FreesoundBrowser
               audioContext={audioCtxRef.current}
               onSoundSelect={(audioBuffer, name, audioUrl) => {
-                const ai = tracks.findIndex((t) => t.armed);
-                if (ai === -1) {
-                  setStatus("⚠ Arm a track first to load sound");
-                  return;
+                // STEP 2: Check if an armed MIDI/instrument track exists
+                const armedMidi = tracks.findIndex(t =>
+                  t.armed && (t.trackType === 'midi' || t.trackType === 'instrument')
+                );
+                if (armedMidi !== -1) {
+                  // Load as instrument sample onto the armed MIDI track
+                  instrumentEngine.loadSampleOntoTrack(armedMidi, audioBuffer, name, 60);
+                  setStatus(`🎵 "${name}" → Track ${armedMidi + 1} — play keys to hear`);
+                } else {
+                  // Fallback: original behavior — load onto armed audio track or send to Beat Maker
+                  const ai = tracks.findIndex((t) => t.armed);
+                  if (ai !== -1) {
+                    updateTrack(ai, { audioBuffer, audio_url: audioUrl, name: name || "Freesound Sample" });
+                    createRegionFromImport(ai, audioBuffer, name || "Freesound Sample", audioUrl);
+                    setStatus(`✓ "${name}" loaded → Track ${ai + 1}`);
+                  } else {
+                    // Send to Beat Maker
+                    window.__spx_sampler_export = { buffer: audioBuffer, name, timestamp: Date.now() };
+                    setViewMode('beatmaker');
+                    setStatus(`Sample "${name}" sent to Beat Maker`);
+                  }
                 }
-                updateTrack(ai, { audioBuffer, audio_url: audioUrl, name: name || "Freesound Sample" });
-                createRegionFromImport(ai, audioBuffer, name || "Freesound Sample", audioUrl);
-                setStatus(`✓ "${name}" loaded → Track ${ai + 1}`);
               }}
               onClose={() => setViewMode("arrange")} // ✅ was record
               isEmbedded={true}
@@ -2200,11 +2425,76 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {/* ──────── VOICE MIDI VIEW ──────── */}
+        {/* ──────── VOICE MIDI VIEW (STEP 12: Voice → MIDI → Arrange) ──────── */}
         {viewMode === "voicemidi" && (
           <div className="daw-voicemidi-view">
             <VoiceToMIDI
               audioContext={audioCtxRef.current}
+              bpm={bpm}
+              isEmbedded={true}
+
+              // STEP 12A: Route live notes through instrumentEngine for real-time monitoring
+              onNoteOn={({ note, velocity, channel }) => {
+                const armedIdx = tracks.findIndex(t =>
+                  t.armed && (t.trackType === 'midi' || t.trackType === 'instrument')
+                );
+                if (armedIdx !== -1) {
+                  instrumentEngine.playNoteOnTrack(armedIdx, note, velocity);
+                }
+              }}
+              onNoteOff={({ note, channel }) => {
+                const armedIdx = tracks.findIndex(t =>
+                  t.armed && (t.trackType === 'midi' || t.trackType === 'instrument')
+                );
+                if (armedIdx !== -1) {
+                  instrumentEngine.stopNoteOnTrack(armedIdx, note);
+                }
+              }}
+
+              // STEP 12: When recording stops, convert recorded events → MIDI region
+              onNotesGenerated={(notes) => {
+                if (!notes?.length) return;
+
+                const armedIdx = tracks.findIndex(t =>
+                  t.armed && (t.trackType === 'midi' || t.trackType === 'instrument')
+                );
+                if (armedIdx === -1) return;
+
+                // VoiceToMIDI gives us notes with time in seconds.
+                // Convert to beats: beat = time * (bpm / 60)
+                const beatsPerSec = bpm / 60;
+                const midiNotes = notes.map((n, i) => ({
+                  id: `voice_${Date.now()}_${i}`,
+                  note: n.note,
+                  velocity: n.velocity || 80,
+                  startBeat: (n.startTime || n.time || 0) * beatsPerSec,
+                  duration: Math.max((n.duration || 0.25) * beatsPerSec, 0.125),
+                }));
+
+                // Determine region name from voice mode
+                const inst = instrumentEngine.getTrackInstrument(armedIdx);
+                const regionName = inst?.isDrum ? 'Beatbox Pattern' : 'Voice Melody';
+
+                const region = createMidiRegionFromNotes(midiNotes, regionName);
+                // Place at playhead or start
+                if (playheadBeat > 0) {
+                  const offset = region.startBeat;
+                  region.startBeat = playheadBeat;
+                  region.notes = region.notes.map(n => ({
+                    ...n,
+                    startBeat: n.startBeat - offset,
+                  }));
+                }
+
+                setTracks(prev => prev.map((t, i) =>
+                  i === armedIdx
+                    ? { ...t, regions: [...(t.regions || []), region] }
+                    : t
+                ));
+
+                setStatus(`🎤 ${midiNotes.length} notes from voice → Track ${armedIdx + 1}`);
+              }}
+
               onSendToTrack={(audioBuffer, name) => {
                 const idx = selectedTrackIndex;
                 updateTrack(idx, { audioBuffer, name: name || tracks[idx].name });
@@ -2212,7 +2502,6 @@ const RecordingStudio = ({ user }) => {
                 setStatus(`Vocal MIDI render → Track ${idx + 1}`);
               }}
               onClose={() => setViewMode("arrange")}
-              isEmbedded={true}
             />
           </div>
         )}
