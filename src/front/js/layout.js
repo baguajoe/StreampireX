@@ -95,7 +95,7 @@ import BeatDetailPage from "./pages/BeatDetailPage";
 import ProducerProfilePage from "./pages/ProducerProfilePage";
 import BrowseProducersPage from "./pages/BrowseProducersPage";
 import SellBeatsPage from "./pages/SellBeatsPage";
-<Route path="/podcast/collab/:roomId" element={<PodcastCollabRoom />} />
+import TechSupportPage from "./pages/TechSupportPage";
 
 import LiveStreamPage from "./pages/LiveStreams";
 import LiveConcerts from "./pages/LiveConcerts";
@@ -188,6 +188,7 @@ const Layout = () => {
               <Route path="/podcast-studio" element={<PodcastStudio />} />
               <Route path="/podcast-join/:sessionId" element={<PodcastGuestJoin />} />
               <Route path="/podcast-async/:linkId" element={<AsyncGuestRecordPage />} />
+              <Route path="/support" element={<TechSupportPage />} />
 
 
               {/* Video Channel Routes */}

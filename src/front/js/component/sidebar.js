@@ -706,9 +706,14 @@ const Sidebar = ({ user }) => {
       </SectionHeader>
 
       {showAccount && (
-        <MenuItem to="/settings" className={isActive("/settings") ? "active" : ""}>
-          ⚙️ <span className="sidebar-label">Settings</span>
-        </MenuItem>
+        <>
+          <MenuItem to="/settings" className={isActive("/settings") ? "active" : ""}>
+            ⚙️ <span className="sidebar-label">Settings</span>
+          </MenuItem>
+          <MenuItem to="/support" className={isActive("/support") ? "active" : ""}>
+            🛠️ <span className="sidebar-label">Tech Support</span>
+          </MenuItem>
+        </>
       )}
 
       {/* ============================== */}

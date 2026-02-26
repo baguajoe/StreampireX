@@ -72,6 +72,7 @@ from src.api.podcast_studio_routes import podcast_studio_bp
 from src.api.podcast_studio_ai_routes import podcast_ai_bp
 from src.api.podcast_studio_phase2_routes import podcast_phase2_bp
 from src.api.podcast_socket_events import register_podcast_socket_events
+from src.api.support_routes import support_bp
 
 
 # ✅ Environment setup
@@ -315,6 +316,7 @@ app.register_blueprint(ai_video_tools_bp)
 app.register_blueprint(podcast_studio_bp)
 app.register_blueprint(podcast_ai_bp)
 app.register_blueprint(podcast_phase2_bp)
+app.register_blueprint(support_bp)
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)

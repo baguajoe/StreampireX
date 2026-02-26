@@ -7323,7 +7323,103 @@ class StudioBranding(db.Model):
         }
 
 
+class SupportTicket(db.Model):
+    """Tech support tickets submitted by users"""
+    __tablename__ = 'support_tickets'
+    __table_args__ = {'extend_existing': True}
 
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Ticket info
+    ticket_number = db.Column(db.String(20), unique=True, nullable=False)  # SPX-00001
+    subject = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(50), nullable=False, default='general')
+    # Categories: general, billing, streaming, recording-studio, video-editor, 
+    #             podcasting, radio, gaming, distribution, account, bug-report, feature-request
+    
+    priority = db.Column(db.String(20), default='normal')  # low, normal, high, urgent
+    status = db.Column(db.String(20), default='open')  # open, in-progress, awaiting-reply, resolved, closed
+    
+    # Optional attachment
+    attachment_url = db.Column(db.String(500), nullable=True)
+    attachment_name = db.Column(db.String(255), nullable=True)
+    
+    # Screenshot URL
+    screenshot_url = db.Column(db.String(500), nullable=True)
+    
+    # Device/browser info (auto-captured)
+    browser_info = db.Column(db.String(255), nullable=True)
+    platform_info = db.Column(db.String(100), nullable=True)  # web, pwa, mobile
+    user_tier = db.Column(db.String(50), nullable=True)  # free, starter, creator, pro
+    
+    # Admin response
+    admin_response = db.Column(db.Text, nullable=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    responded_at = db.Column(db.DateTime, nullable=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('support_tickets', lazy='dynamic'))
+    admin = db.relationship('User', foreign_keys=[admin_id])
+    replies = db.relationship('SupportTicketReply', backref='ticket', lazy='dynamic', order_by='SupportTicketReply.created_at')
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "ticket_number": self.ticket_number,
+            "user_id": self.user_id,
+            "subject": self.subject,
+            "description": self.description,
+            "category": self.category,
+            "priority": self.priority,
+            "status": self.status,
+            "attachment_url": self.attachment_url,
+            "attachment_name": self.attachment_name,
+            "screenshot_url": self.screenshot_url,
+            "browser_info": self.browser_info,
+            "platform_info": self.platform_info,
+            "user_tier": self.user_tier,
+            "admin_response": self.admin_response,
+            "responded_at": self.responded_at.isoformat() if self.responded_at else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "resolved_at": self.resolved_at.isoformat() if self.resolved_at else None,
+            "replies": [reply.serialize() for reply in self.replies] if self.replies else [],
+        }
+
+
+class SupportTicketReply(db.Model):
+    """Replies on support tickets — from user or admin"""
+    __tablename__ = 'support_ticket_replies'
+    __table_args__ = {'extend_existing': True}
+
+    id = db.Column(db.Integer, primary_key=True)
+    ticket_id = db.Column(db.Integer, db.ForeignKey('support_tickets.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
+    attachment_url = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('ticket_replies', lazy='dynamic'))
+    
+    def serialize(self):
+        return {
+            "id": self.id,
+            "ticket_id": self.ticket_id,
+            "user_id": self.user_id,
+            "username": self.user.username if self.user else "Unknown",
+            "message": self.message,
+            "is_admin": self.is_admin,
+            "attachment_url": self.attachment_url,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
 
 
 
