@@ -534,6 +534,10 @@ const Sidebar = ({ user }) => {
         🎙️ <span className="sidebar-label">Podcast Collab Room</span>
         <MenuHint className="sidebar-hint">NEW</MenuHint>
       </MenuItem>
+      <MenuItem to="/podcast/collab/new" className={isActive("/podcast/collab/new") ? "active" : ""}>
+        🎙️ <span className="sidebar-label">Podcast Collab Room</span>
+        <MenuHint className="sidebar-hint">NEW</MenuHint>
+      </MenuItem>
           <MenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>
             🎙️ <span className="sidebar-label">Create Podcast</span>
           </MenuItem>
