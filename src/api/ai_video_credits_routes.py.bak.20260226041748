@@ -49,39 +49,22 @@ def get_user_tier(user_id):
 
 
 def check_and_reset_monthly_credits(credit, user_id):
-    """Check if monthly credits need to be reset, with rollover support"""
+    """Check if monthly credits need to be reset and do so"""
     now = datetime.utcnow()
     
-    # Grant one-time free credits for free tier users (first time only)
-    tier = get_user_tier(user_id)
-    onetime = TIER_FREE_CREDITS.get('free', 3) if tier == 'free' else 0
-    if tier == 'free' and onetime > 0 and not getattr(credit, 'onetime_granted', False):
-        credit.balance += onetime
-        credit.onetime_granted = True
-        db.session.commit()
-        print(f"🎁 Granted {onetime} one-time credits to free user {user_id}")
-    
-    # Monthly reset for paid tiers
+    # If never reset, or last reset was more than 30 days ago
     needs_reset = False
     if not credit.monthly_reset_date:
         needs_reset = True
     elif (now - credit.monthly_reset_date).days >= 30:
         needs_reset = True
     
-    if needs_reset and tier != 'free':
+    if needs_reset:
+        tier = get_user_tier(user_id)
         free_credits = TIER_FREE_CREDITS.get(tier, 0)
         if free_credits > 0:
-            # Rollover: carry unused monthly credits (capped at 1 month)
-            unused_monthly = max(0, credit.monthly_free_credits - credit.monthly_credits_used)
-            rollover = min(unused_monthly, free_credits)  # Cap at 1 month allotment
-            
-            credit.last_rollover_amount = rollover
-            credit.balance = credit.balance + free_credits  # Add new month credits
-            credit.monthly_free_credits = free_credits + rollover
-            credit.monthly_credits_used = 0
-            credit.monthly_reset_date = now
+            credit.reset_monthly(free_credits)
             db.session.commit()
-            print(f"🔄 Reset monthly credits for user {user_id}: {free_credits} new + {rollover} rollover")
     
     return credit
 
