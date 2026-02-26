@@ -48,6 +48,7 @@ import PodcastStudio from "./pages/PodcastStudio";
 import PodcastGuestJoin from "./pages/PodcastGuestJoin";
 // Phase 2: Async guest recording page (standalone, no auth)
 import { AsyncGuestRecordPage } from "./pages/PodcastStudioPhase2";
+import PodcastCollabRoom from "./pages/PodcastCollabRoom";
 
 
 import VideoUpload from "./pages/VideoUpload";
@@ -94,6 +95,7 @@ import BeatDetailPage from "./pages/BeatDetailPage";
 import ProducerProfilePage from "./pages/ProducerProfilePage";
 import BrowseProducersPage from "./pages/BrowseProducersPage";
 import SellBeatsPage from "./pages/SellBeatsPage";
+<Route path="/podcast/collab/:roomId" element={<PodcastCollabRoom />} />
 
 import LiveStreamPage from "./pages/LiveStreams";
 import LiveConcerts from "./pages/LiveConcerts";

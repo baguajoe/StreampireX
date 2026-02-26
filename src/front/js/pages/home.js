@@ -3,8 +3,11 @@
 // =============================================================================
 // Prices: Free $0 | Starter $12.99 | Creator $22.99 | Pro $31.99
 // Features: Recording Studio, AI Mix Assistant, AI Mastering, AI Stem Separation,
-//           AI Radio DJ, Voice Cloning, Video Editor, Live Streaming, Podcasts,
-//           Radio, Gaming Hub, Social Network, Music Distribution, Marketplace
+//           AI Radio DJ, Voice Cloning, Voice to MIDI, Video Editor, AI Video Studio,
+//           Live Streaming, Podcasts, Podcast Studio, Radio, Gaming Hub,
+//           Social Network, Music Distribution, Beat Store, Marketplace,
+//           Short-Form Clips, Cross-Platform Posting, Collab Rooms,
+//           Creator Courses, Event Ticketing, Fan Tipping, Voice Chat
 // AI Stem Separation: FREE on all tiers, unlimited, all models
 // =============================================================================
 
@@ -27,9 +30,9 @@ const Home = () => {
 					<h1>🔥 Welcome to StreamPireX</h1>
 					<p className="hero-tagline">The AI-Powered All-In-One Creator Platform</p>
 					<p>
-						Replace 15+ tools with one platform. AI mastering, AI mix assistant, recording studio,
-						music distribution, video editing, live streaming, podcasts, gaming communities, and
-						monetization — keep 90% of your earnings.
+						Replace 15+ tools with one platform. Recording studio, AI mastering, AI mix
+						assistant, voice-to-MIDI, beat store, podcast studio, music distribution, video
+						editing, live streaming, gaming communities, and monetization — keep 90% of your earnings.
 					</p>
 
 					{!user ? (
@@ -65,13 +68,21 @@ const Home = () => {
 						<span className="stat-number">24/7</span>
 						<span className="stat-label">AI Radio DJ</span>
 					</div>
+					<div className="stat-item">
+						<span className="stat-number">🎹</span>
+						<span className="stat-label">Beat Store</span>
+					</div>
+					<div className="stat-item">
+						<span className="stat-number">🎙️</span>
+						<span className="stat-label">Podcast Studio</span>
+					</div>
 				</div>
 
 				<div className="hero-image-placeholder">🎸</div>
 			</header>
 
 			{/* ================================================================
-			    AI FEATURES (7-card grid)
+			    AI FEATURES (9-card grid — expanded)
 			    ================================================================ */}
 			<section className="ai-features-section">
 				<h2>🤖 AI-Powered Creator Tools</h2>
@@ -172,6 +183,22 @@ const Home = () => {
 					</div>
 
 					<div className="ai-feature-card">
+						<div className="ai-feature-icon">🎬</div>
+						<div className="ai-badge">NEW</div>
+						<h4>AI Video Studio</h4>
+						<p>
+							AI-assisted video editing with smart cuts, auto-captions, scene detection,
+							and one-click resizing for TikTok, Reels, and Shorts. AI generates thumbnails
+							and suggests edits based on your content style.
+						</p>
+						<div className="ai-feature-stats">
+							<span>Smart Cuts</span>
+							<span>Auto-Captions</span>
+							<span>AI Thumbnails</span>
+						</div>
+					</div>
+
+					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🌍</div>
 						<div className="ai-badge">AI</div>
 						<h4>Smart Distribution</h4>
@@ -185,17 +212,135 @@ const Home = () => {
 							<span>90% Revenue</span>
 						</div>
 					</div>
+
+					<div className="ai-feature-card">
+						<div className="ai-feature-icon">🎤</div>
+						<div className="ai-badge">NEW</div>
+						<h4>Voice to MIDI</h4>
+						<p>
+							Sing, hum, or beatbox — and watch it become MIDI notes in real time. Dubler-style
+							pitch detection with scale quantization, chord triggering, polyphonic mode,
+							vibrato-to-pitch-bend, and drum trigger training. Export as .mid files.
+						</p>
+						<div className="ai-feature-stats">
+							<span>Pitch + Drums</span>
+							<span>14 Scales</span>
+							<span>MIDI Export</span>
+						</div>
+					</div>
+
+					<div className="ai-feature-card">
+						<div className="ai-feature-icon">📝</div>
+						<div className="ai-badge">AI</div>
+						<h4>AI Content Writer</h4>
+						<p>
+							Generate social media posts, podcast descriptions, beat tags, SEO metadata,
+							and email newsletters. AI writes in your voice and optimizes for each platform.
+						</p>
+						<div className="ai-feature-stats">
+							<span>Social Posts</span>
+							<span>SEO Metadata</span>
+							<span>Your Voice</span>
+						</div>
+					</div>
 				</div>
 
 				<div className="ai-coming-soon">
 					<h4>🚀 More AI Features Coming Soon</h4>
 					<div className="coming-soon-items">
-						<span className="coming-soon-tag">AI Video Editing</span>
-						<span className="coming-soon-tag">AI Thumbnail Generator</span>
 						<span className="coming-soon-tag">AI Podcast Transcription</span>
-						<span className="coming-soon-tag">AI Social Post Writer</span>
 						<span className="coming-soon-tag">AI Analytics Insights</span>
+						<span className="coming-soon-tag">AI Collaboration Matchmaker</span>
+						<span className="coming-soon-tag">AI Lyrics Generator</span>
+						<span className="coming-soon-tag">AI Sample Finder</span>
 					</div>
+				</div>
+			</section>
+
+			{/* ================================================================
+			    BEAT STORE SPOTLIGHT
+			    ================================================================ */}
+			<section className="beat-store-spotlight">
+				<h2>🎹 Beat Store — Buy, Sell & License Beats</h2>
+				<p className="section-subtitle">
+					A full marketplace for producers and artists. License beats with instant delivery,
+					or sell your own and keep 90% of every sale.
+				</p>
+
+				<div className="beat-store-features-grid">
+					<div className="beat-store-feature">
+						<span className="bs-icon">🎧</span>
+						<h4>Preview & License</h4>
+						<p>Stream watermarked previews free. Buy Basic, Premium, Exclusive, or Stems licenses with instant download.</p>
+					</div>
+					<div className="beat-store-feature">
+						<span className="bs-icon">📜</span>
+						<h4>Auto License Agreements</h4>
+						<p>Every purchase generates a full license agreement — distribution limits, streaming caps, credit terms, and usage rights.</p>
+					</div>
+					<div className="beat-store-feature">
+						<span className="bs-icon">🔍</span>
+						<h4>Smart Search</h4>
+						<p>Filter by genre, BPM, key, mood, and price. Find the perfect beat in seconds with AI-powered recommendations.</p>
+					</div>
+					<div className="beat-store-feature">
+						<span className="bs-icon">💰</span>
+						<h4>Producer Dashboard</h4>
+						<p>Track plays, sales, and revenue. Manage licenses, set custom pricing, and offer exclusive deals — keep 90%.</p>
+					</div>
+				</div>
+
+				<div className="beat-store-cta">
+					<Link to="/beats" className="btn btn-primary">Browse Beat Store</Link>
+					<Link to="/beats/upload" className="btn btn-outline-light">Sell Your Beats</Link>
+				</div>
+			</section>
+
+			{/* ================================================================
+			    PODCAST STUDIO SPOTLIGHT
+			    ================================================================ */}
+			<section className="podcast-studio-spotlight">
+				<h2>🎙️ Podcast Studio — Record, Host & Monetize</h2>
+				<p className="section-subtitle">
+					Everything you need to launch, grow, and earn from your podcast — all in one place.
+				</p>
+
+				<div className="podcast-features-grid">
+					<div className="podcast-feature">
+						<span className="pod-icon">🎤</span>
+						<h4>Record & Upload</h4>
+						<p>Record episodes directly in-browser or upload audio/video files. Support for MP3, WAV, MP4, MOV, and more.</p>
+					</div>
+					<div className="podcast-feature">
+						<span className="pod-icon">📡</span>
+						<h4>RSS & Directory Distribution</h4>
+						<p>Auto-generate RSS feeds and distribute to Apple Podcasts, Spotify, Google Podcasts, and every major directory.</p>
+					</div>
+					<div className="podcast-feature">
+						<span className="pod-icon">💵</span>
+						<h4>Monetize Your Show</h4>
+						<p>Offer free, paid, or subscription-based episodes. Accept tips, sell premium content, and keep 90% of earnings.</p>
+					</div>
+					<div className="podcast-feature">
+						<span className="pod-icon">📊</span>
+						<h4>Analytics & Growth</h4>
+						<p>Track downloads, listener retention, geographic data, and episode performance. Know your audience.</p>
+					</div>
+					<div className="podcast-feature">
+						<span className="pod-icon">🎬</span>
+						<h4>Video Podcasts</h4>
+						<p>Upload video episodes alongside audio. Create clips for social media. Cross-post to YouTube and TikTok.</p>
+					</div>
+					<div className="podcast-feature">
+						<span className="pod-icon">📅</span>
+						<h4>Schedule & Automate</h4>
+						<p>Schedule episode releases in advance. Set up recurring series. Automate cross-posting on publish.</p>
+					</div>
+				</div>
+
+				<div className="podcast-studio-cta">
+					<Link to="/podcast-dashboard" className="btn btn-primary">Launch Your Podcast</Link>
+					<Link to="/podcast/create" className="btn btn-outline-light">Create Episode</Link>
 				</div>
 			</section>
 
@@ -208,17 +353,17 @@ const Home = () => {
 					<div className="step-card">
 						<div className="step-number">1</div>
 						<h4>Sign Up Free</h4>
-						<p>Create your account in seconds. No credit card required. Get instant access to the video editor, recording studio, gaming hub, and social features.</p>
+						<p>Create your account in seconds. No credit card required. Get instant access to the video editor, recording studio, beat store, gaming hub, and social features.</p>
 					</div>
 					<div className="step-card">
 						<div className="step-number">2</div>
 						<h4>Create & Upload</h4>
-						<p>Record tracks in the DAW, edit videos, start a podcast, launch a radio station, or go live. AI tools help you mix, master, and polish like a pro.</p>
+						<p>Record tracks in the DAW, sell beats, edit videos, start a podcast, launch a radio station, or go live. AI tools help you mix, master, and polish like a pro.</p>
 					</div>
 					<div className="step-card">
 						<div className="step-number">3</div>
 						<h4>Distribute & Earn</h4>
-						<p>Push music to 150+ platforms, sell in your marketplace, accept tips, and grow your audience. Keep 90% of everything you earn.</p>
+						<p>Push music to 150+ platforms, sell beats and merch in your marketplace, accept tips, and grow your audience. Keep 90% of everything you earn.</p>
 					</div>
 				</div>
 			</section>
@@ -233,13 +378,14 @@ const Home = () => {
 						Juggling 15+ apps for distribution, editing, streaming, analytics, and payments.
 						Losing 30–50% of earnings to platform fees. No ownership of your audience.
 						Paying $100+/month across separate tools. No simple way to mix or master without
-						expensive software.
+						expensive software. Separate platforms for beat sales, podcast hosting, and merch.
 					</p>
 				</div>
 				<div className="solution">
 					<h3>✨ The StreamPireX Solution</h3>
 					<p>
 						One AI-powered platform for everything. Record, mix, and master with AI help.
+						Sell beats with auto-generated license agreements. Host and monetize podcasts.
 						Distribute to 150+ platforms. Stream live. Run 24/7 radio with an AI DJ.
 						Edit video. Build gaming communities. Keep 90% of your earnings — all starting
 						at $12.99/month.
@@ -248,7 +394,7 @@ const Home = () => {
 			</section>
 
 			{/* ================================================================
-			    CORE FEATURES GRID
+			    CORE FEATURES GRID (expanded)
 			    ================================================================ */}
 			<section className="features">
 				<h2>🎯 Everything You Need to Create & Earn</h2>
@@ -284,7 +430,14 @@ const Home = () => {
 						<span className="feature-tag ai-tag">AI</span>
 					</div>
 
-					{/* Row 2 — Distribution & Streaming */}
+					{/* Row 2 — Beat Store, Distribution, Streaming */}
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎹</div>
+						<h4>Beat Store</h4>
+						<p>Buy, sell, and license beats with auto-generated agreements. Basic to exclusive tiers.</p>
+						<span className="feature-tag new">NEW</span>
+					</div>
+
 					<div className="feature-card highlight">
 						<div className="feature-icon">🎵</div>
 						<h4>Music Distribution</h4>
@@ -305,23 +458,24 @@ const Home = () => {
 						<span className="feature-tag ai-tag">AI</span>
 					</div>
 
-					<div className="feature-card">
+					{/* Row 3 — Podcast, Clips, Cross-post, Gaming */}
+					<div className="feature-card highlight">
 						<div className="feature-icon">🎙️</div>
-						<h4>Podcast Hosting</h4>
-						<p>Unlimited episodes, RSS feeds, directory distribution, built-in analytics.</p>
+						<h4>Podcast Studio</h4>
+						<p>Record, host, distribute to all directories. Video podcasts, monetization, RSS feeds.</p>
+						<span className="feature-tag new">NEW</span>
 					</div>
 
-					{/* Row 3 — Social, Gaming, Cross-post */}
 					<div className="feature-card">
 						<div className="feature-icon">📱</div>
 						<h4>Short-Form Clips</h4>
-						<p>Auto-resize for TikTok, Reels, and Shorts with captions and templates.</p>
+						<p>Auto-resize for TikTok, Reels, and Shorts with AI captions and templates.</p>
 					</div>
 
 					<div className="feature-card">
 						<div className="feature-icon">📤</div>
 						<h4>Cross-Platform Posting</h4>
-						<p>Schedule and publish to YouTube, Instagram, TikTok, X, Facebook, and more.</p>
+						<p>Schedule and publish to YouTube, Instagram, TikTok, X, Facebook, LinkedIn, and more.</p>
 					</div>
 
 					<div className="feature-card">
@@ -330,24 +484,32 @@ const Home = () => {
 						<p>Squad finder, team rooms, tournaments, game streaming, and community tools.</p>
 					</div>
 
+					{/* Row 4 — Social, Collab, AI Video */}
 					<div className="feature-card">
 						<div className="feature-icon">👥</div>
 						<h4>Social Network</h4>
 						<p>Feed, stories, follows, DMs, group chats — build your audience on your platform.</p>
 					</div>
 
-					{/* Row 4 — Monetization */}
 					<div className="feature-card highlight">
-						<div className="feature-icon">🛍️</div>
-						<h4>Creator Marketplace</h4>
-						<p>Sell beats, merch, presets, courses, and digital products with Stripe payments.</p>
-						<span className="feature-tag">90%</span>
+						<div className="feature-icon">🤝</div>
+						<h4>Collab Rooms</h4>
+						<p>Real-time collaboration spaces for co-producing, co-writing, and joint projects with other creators.</p>
+						<span className="feature-tag new">NEW</span>
 					</div>
 
-					<div className="feature-card">
-						<div className="feature-icon">💳</div>
-						<h4>Fan Tipping</h4>
-						<p>Accept tips on any content — streams, music, videos, radio. Keep 90%.</p>
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎬</div>
+						<h4>AI Video Studio</h4>
+						<p>Smart cuts, auto-captions, scene detection, AI thumbnails, and platform-optimized exports.</p>
+						<span className="feature-tag ai-tag">AI</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎤</div>
+						<h4>Voice to MIDI</h4>
+						<p>Sing or beatbox into MIDI. Pitch mode, drum triggers, chord mode, 14 scales, and .mid export.</p>
+						<span className="feature-tag new">NEW</span>
 					</div>
 
 					<div className="feature-card">
@@ -356,16 +518,49 @@ const Home = () => {
 						<p>Noise suppression, push-to-talk, and private channels for your community.</p>
 					</div>
 
+					{/* Row 5 — Monetization & Business */}
+					<div className="feature-card highlight">
+						<div className="feature-icon">🛍️</div>
+						<h4>Creator Marketplace</h4>
+						<p>Sell beats, merch, presets, courses, and digital products with Stripe payments.</p>
+						<span className="feature-tag">90%</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">📚</div>
+						<h4>Creator Courses</h4>
+						<p>Build and sell courses, tutorials, and workshops. Drip content to subscribers.</p>
+						<span className="feature-tag new">NEW</span>
+					</div>
+
+					<div className="feature-card">
+						<div className="feature-icon">🎟️</div>
+						<h4>Event Ticketing</h4>
+						<p>Sell tickets to live streams, virtual concerts, workshops, and meetups. Stripe-powered.</p>
+					</div>
+
+					<div className="feature-card">
+						<div className="feature-icon">💳</div>
+						<h4>Fan Tipping</h4>
+						<p>Accept tips on any content — streams, music, videos, radio, beats. Keep 90%.</p>
+					</div>
+
+					<div className="feature-card">
+						<div className="feature-icon">🏪</div>
+						<h4>Creator Storefront</h4>
+						<p>Your own branded storefront page with products, beats, courses, and subscription tiers.</p>
+					</div>
+
 					<div className="feature-card">
 						<div className="feature-icon">📊</div>
 						<h4>Creator Analytics</h4>
-						<p>Track plays, views, revenue, audience growth, and content performance.</p>
+						<p>Track plays, views, revenue, beat sales, podcast downloads, audience growth, and content performance.</p>
 					</div>
 				</div>
 			</section>
 
 			{/* ================================================================
-			    COST COMPARISON
+			    COST COMPARISON (updated)
 			    ================================================================ */}
 			<section className="comparison-section">
 				<h2>💸 Stop Paying for 15 Separate Tools</h2>
@@ -377,28 +572,32 @@ const Home = () => {
 							<li>🎚️ DAW Software — $10–30/mo</li>
 							<li>🎛️ Mastering Service — $10–50/track</li>
 							<li>🎵 Stem Splitter — $10–20/mo</li>
+							<li>🎹 Beat Store Platform — $20/mo</li>
 							<li>📡 Streaming Platform — $15/mo</li>
 							<li>🎙️ Podcast Hosting — $12/mo</li>
 							<li>📻 Radio Hosting — $20/mo</li>
 							<li>🎵 Distribution — $20–50/yr</li>
-							<li>🛍️ Merch Platform — $15/mo</li>
+							<li>🛍️ Merch / Course Platform — $15–39/mo</li>
 							<li>📊 Analytics Tools — $10/mo</li>
+							<li>📤 Social Scheduler — $15–25/mo</li>
 						</ul>
-						<p className="comparison-total">Total: $120–$250+/month</p>
+						<p className="comparison-total">Total: $150–$300+/month</p>
 					</div>
 					<div className="comparison-card new">
 						<h4>✅ StreamPireX All-in-One</h4>
 						<ul>
-							<li>🎬 Video Editor — Full Tools + Templates</li>
+							<li>🎬 Video Editor + AI Video Studio</li>
 							<li>🎚️ Recording Studio — Multi-Track DAW</li>
 							<li>🤖 AI Mix Assistant + AI Mastering</li>
 							<li>🎵 AI Stem Separation — FREE All Tiers</li>
-							<li>📡 Live Streaming — Up to 4K</li>
-							<li>🎙️ Podcast Hosting — Unlimited</li>
+							<li>🎹 Beat Store — Buy, Sell & License</li>
+							<li>📡 Live Streaming — Up to 4K + Simulcast</li>
+							<li>🎙️ Podcast Studio — Record, Host & Monetize</li>
 							<li>📻 24/7 Radio + AI DJ</li>
 							<li>🎵 150+ Platform Distribution</li>
-							<li>🛍️ Marketplace + Merch</li>
-							<li>🎮 Gaming Hub + Social</li>
+							<li>🛍️ Marketplace + Courses + Storefront</li>
+							<li>🎮 Gaming Hub + Social Network</li>
+							<li>📤 Cross-Platform Posting + Clips</li>
 						</ul>
 						<p className="comparison-total">Starting at $12.99/month — Keep 90%</p>
 					</div>
@@ -406,7 +605,7 @@ const Home = () => {
 			</section>
 
 			{/* ================================================================
-			    CREATOR TYPES
+			    CREATOR TYPES (expanded)
 			    ================================================================ */}
 			<section className="creator-types">
 				<h2>🎨 Built for Every Creator</h2>
@@ -414,38 +613,48 @@ const Home = () => {
 					<div className="creator-card">
 						<span className="creator-emoji">🎤</span>
 						<h4>Musicians</h4>
-						<p>Record, mix with AI, master, distribute, and collect royalties</p>
+						<p>Record, mix with AI, master, distribute, and collect royalties — all in-browser</p>
+					</div>
+					<div className="creator-card">
+						<span className="creator-emoji">🎹</span>
+						<h4>Beat Producers</h4>
+						<p>Upload beats, set license tiers, auto-generate agreements, and keep 90% of sales</p>
 					</div>
 					<div className="creator-card">
 						<span className="creator-emoji">🎬</span>
 						<h4>Video Creators</h4>
-						<p>Edit, publish, monetize, and grow your audience</p>
+						<p>Edit with AI assistance, export for every platform, monetize, and grow your audience</p>
 					</div>
 					<div className="creator-card">
 						<span className="creator-emoji">🎙️</span>
 						<h4>Podcasters</h4>
-						<p>Host, distribute, analyze, and monetize your podcast</p>
+						<p>Record, host, distribute to all directories, monetize with subscriptions and tips</p>
 					</div>
 					<div className="creator-card">
 						<span className="creator-emoji">🎮</span>
 						<h4>Gamers</h4>
-						<p>Stream, find squads, run tournaments, build community</p>
+						<p>Stream, find squads, run tournaments, build community, and monetize your gameplay</p>
 					</div>
 					<div className="creator-card">
 						<span className="creator-emoji">📻</span>
 						<h4>Radio Hosts</h4>
-						<p>Run 24/7 stations with AI DJ, accept submissions, build audiences</p>
+						<p>Run 24/7 stations with AI DJ, accept submissions, and build loyal audiences</p>
+					</div>
+					<div className="creator-card">
+						<span className="creator-emoji">📚</span>
+						<h4>Educators</h4>
+						<p>Build and sell courses, tutorials, and workshops with drip content and analytics</p>
 					</div>
 					<div className="creator-card">
 						<span className="creator-emoji">🛍️</span>
 						<h4>Entrepreneurs</h4>
-						<p>Sell merch, beats, presets, courses, and digital products</p>
+						<p>Sell merch, beats, presets, courses, and digital products from your own storefront</p>
 					</div>
 				</div>
 			</section>
 
 			{/* ================================================================
-			    WHY CHOOSE STREAMPIREX
+			    WHY CHOOSE STREAMPIREX (expanded)
 			    ================================================================ */}
 			<section className="why-choose-streampirex">
 				<h2>Why StreamPireX?</h2>
@@ -454,12 +663,12 @@ const Home = () => {
 					<div className="value-prop-card">
 						<span className="value-icon">💰</span>
 						<h4>90% Revenue Share</h4>
-						<p>Keep 90% of everything you earn. YouTube takes 45%, Twitch takes 50%. We believe creators should own their income.</p>
+						<p>Keep 90% of everything you earn — music, beats, tips, courses, merch. YouTube takes 45%, Twitch takes 50%. We believe creators should own their income.</p>
 					</div>
 					<div className="value-prop-card">
 						<span className="value-icon">🤖</span>
 						<h4>AI-Powered Tools</h4>
-						<p>AI mastering, AI mix assistant, free AI stem separation, AI radio DJ, and voice cloning. Pro results without the learning curve or expensive plugins.</p>
+						<p>AI mastering, AI mix assistant, free AI stem separation, voice-to-MIDI, AI radio DJ, AI video studio, voice cloning, and AI content writer. Pro results without the learning curve.</p>
 					</div>
 					<div className="value-prop-card">
 						<span className="value-icon">🎚️</span>
@@ -467,9 +676,19 @@ const Home = () => {
 						<p>Multi-track DAW with arranger view, per-track effects chain, and AI mix analysis — all in your browser. No downloads.</p>
 					</div>
 					<div className="value-prop-card">
+						<span className="value-icon">🎹</span>
+						<h4>Built-In Beat Store</h4>
+						<p>Buy and sell beats with auto-generated license agreements. Basic, Premium, Exclusive, and Stems tiers with instant delivery.</p>
+					</div>
+					<div className="value-prop-card">
+						<span className="value-icon">🎙️</span>
+						<h4>Full Podcast Studio</h4>
+						<p>Record, host, distribute, and monetize podcasts. Video podcast support, RSS feeds, and directory distribution included.</p>
+					</div>
+					<div className="value-prop-card">
 						<span className="value-icon">🌍</span>
 						<h4>All-in-One Platform</h4>
-						<p>Video editing, streaming, podcasting, radio, gaming, distribution, social, and monetization. One login, one subscription.</p>
+						<p>Video editing, streaming, podcasting, beat sales, radio, gaming, distribution, social, courses, storefront, and monetization. One login, one subscription.</p>
 					</div>
 				</div>
 			</section>
@@ -484,23 +703,23 @@ const Home = () => {
 					<div className="pricing-preview-card">
 						<h4>Free</h4>
 						<div className="preview-price">$0</div>
-						<p>Full video editor, 4 studio tracks, AI stem separation, gaming hub, social feed, 5GB storage</p>
+						<p>Full video editor, 4 studio tracks, AI stem separation, beat store browsing, gaming hub, social feed, 5GB storage</p>
 					</div>
 					<div className="pricing-preview-card starter">
 						<h4>Starter</h4>
 						<div className="preview-price">$12.99<span>/mo</span></div>
-						<p>8 studio tracks, AI mastering (3/mo), AI mix assistant, AI stems, live streaming, podcasts, radio, 25GB</p>
+						<p>8 studio tracks, AI mastering (3/mo), AI mix assistant, beat selling, 5 podcast episodes, live streaming, radio, 25GB</p>
 					</div>
 					<div className="pricing-preview-card creator popular">
 						<div className="preview-popular">Most Popular</div>
 						<h4>Creator</h4>
 						<div className="preview-price">$22.99<span>/mo</span></div>
-						<p>16 tracks, AI mastering (15/mo), AI Radio DJ, AI stems, 4K export, 100GB, game streaming</p>
+						<p>16 tracks, AI mastering (15/mo), AI Radio DJ, unlimited podcasts, 4K export, beat store + courses, 100GB</p>
 					</div>
 					<div className="pricing-preview-card pro">
 						<h4>Pro</h4>
 						<div className="preview-price">$31.99<span>/mo</span></div>
-						<p>32 tracks, unlimited AI mastering, voice cloning, AI stems, 8K, music distribution, unlimited storage</p>
+						<p>32 tracks, unlimited AI mastering, voice cloning, 8K, music distribution, unlimited everything, storefront</p>
 					</div>
 				</div>
 				<div className="pricing-preview-cta">
@@ -513,6 +732,9 @@ const Home = () => {
 			    ================================================================ */}
 			<section className="earnings">
 				<h2>💰 Keep More of What You Earn</h2>
+				<p className="section-subtitle">
+					Whether it's music royalties, beat sales, podcast subscriptions, tips, or merch — you keep 90%.
+				</p>
 				<div className="earnings-bars">
 					<div className="earnings-row">
 						<span className="platform-name">YouTube</span>
@@ -532,6 +754,12 @@ const Home = () => {
 							<div className="bar spotify-bar" style={{ width: "30%" }}>~30%</div>
 						</div>
 					</div>
+					<div className="earnings-row">
+						<span className="platform-name">BeatStars</span>
+						<div className="bar-container">
+							<div className="bar beatstars-bar" style={{ width: "70%" }}>70%</div>
+						</div>
+					</div>
 					<div className="earnings-row highlight-row">
 						<span className="platform-name">StreamPireX</span>
 						<div className="bar-container">
@@ -542,17 +770,51 @@ const Home = () => {
 			</section>
 
 			{/* ================================================================
+			    TESTIMONIALS / SOCIAL PROOF PLACEHOLDER
+			    ================================================================ */}
+			<section className="social-proof">
+				<h2>🌟 Trusted by Creators</h2>
+				<p className="section-subtitle">
+					Musicians, producers, podcasters, gamers, and video creators are building their empires on StreamPireX.
+				</p>
+				<div className="social-proof-grid">
+					<div className="proof-card">
+						<div className="proof-quote">"I replaced 8 separate apps with StreamPireX. The beat store alone pays for my subscription."</div>
+						<div className="proof-author">— Independent Producer</div>
+					</div>
+					<div className="proof-card">
+						<div className="proof-quote">"AI mastering saved me hundreds per month. My tracks sound professional and I keep 90%."</div>
+						<div className="proof-author">— Hip-Hop Artist</div>
+					</div>
+					<div className="proof-card">
+						<div className="proof-quote">"Podcast studio + video editor + distribution in one platform? No brainer. And the AI DJ is incredible."</div>
+						<div className="proof-author">— Podcast Creator</div>
+					</div>
+				</div>
+			</section>
+
+			{/* ================================================================
 			    FINAL CTA
 			    ================================================================ */}
 			<section className="final-cta">
 				<h2>Ready to Create Without Limits?</h2>
 				<p>
-					Join StreamPireX and get an AI-powered recording studio, mix assistant, mastering,
-					music distribution, video editing, live streaming, and more — all in one platform.
+					Join StreamPireX and get an AI-powered recording studio, voice-to-MIDI, beat store,
+					podcast studio, mix assistant, mastering, music distribution, video editing, live
+					streaming, and more — all in one platform. Keep 90% of everything you earn.
 				</p>
 				<div className="cta-buttons">
 					<Link to="/signup" className="btn btn-primary btn-lg">Start Creating for Free</Link>
 					<Link to="/pricing" className="btn btn-outline-light btn-lg">View Pricing</Link>
+				</div>
+				<div className="cta-secondary-links">
+					<Link to="/beats" className="cta-link">Browse Beat Store</Link>
+					<span className="cta-divider">•</span>
+					<Link to="/podcast-dashboard" className="cta-link">Start a Podcast</Link>
+					<span className="cta-divider">•</span>
+					<Link to="/recording-studio" className="cta-link">Open Recording Studio</Link>
+					<span className="cta-divider">•</span>
+					<Link to="/marketplace" className="cta-link">Explore Marketplace</Link>
 				</div>
 			</section>
 
@@ -561,12 +823,34 @@ const Home = () => {
 			    ================================================================ */}
 			<footer className="home-footer">
 				<div className="footer-content">
-					<p>© {new Date().getFullYear()} Eye Forge Studios LLC. StreamPireX — The AI-Powered Creator Platform.</p>
-					<div className="footer-links">
-						<Link to="/terms">Terms</Link>
-						<Link to="/privacy">Privacy</Link>
-						<Link to="/pricing">Pricing</Link>
-						<Link to="/contact">Contact</Link>
+					<div className="footer-brand">
+						<h3>StreamPireX</h3>
+						<p>© {new Date().getFullYear()} Eye Forge Studios LLC. The AI-Powered Creator Platform.</p>
+					</div>
+					<div className="footer-columns">
+						<div className="footer-col">
+							<h5>Platform</h5>
+							<Link to="/recording-studio">Recording Studio</Link>
+							<Link to="/beats">Beat Store</Link>
+							<Link to="/podcast-dashboard">Podcast Studio</Link>
+							<Link to="/video-editor">Video Editor</Link>
+							<Link to="/marketplace">Marketplace</Link>
+						</div>
+						<div className="footer-col">
+							<h5>Features</h5>
+							<Link to="/ai-mastering">AI Mastering</Link>
+							<Link to="/stem-separator">AI Stem Separation</Link>
+							<Link to="/radio">Radio Stations</Link>
+							<Link to="/streaming">Live Streaming</Link>
+							<Link to="/gaming">Gaming Hub</Link>
+						</div>
+						<div className="footer-col">
+							<h5>Company</h5>
+							<Link to="/pricing">Pricing</Link>
+							<Link to="/terms">Terms</Link>
+							<Link to="/privacy">Privacy</Link>
+							<Link to="/contact">Contact</Link>
+						</div>
 					</div>
 				</div>
 			</footer>
