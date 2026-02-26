@@ -23,9 +23,9 @@
 #   - Pro: 8 participants max
 # =============================================================================
 
-from src.api.models import db, PricingPlan
+from api.models import db, PricingPlan
 from datetime import datetime
-from src.app import app
+from app import app
 
 # File size constants
 MB = 1024 * 1024
