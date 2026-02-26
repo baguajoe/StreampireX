@@ -51,6 +51,11 @@ import {
   ASPECT_RATIOS, EXPORT_PRESETS,
 } from '../component/VideoEditorEffectsPlus';
 
+import { BackgroundRemovalPanel, MotionTrackingPanel, AudioDuckingPanel, 
+         TemplateLibraryPanel, SceneDetectionPanel } from './VideoEditorAdvancedFeatures';
+
+
+
 // Video Editor State Management Hooks
 import {
   useUndoRedo,

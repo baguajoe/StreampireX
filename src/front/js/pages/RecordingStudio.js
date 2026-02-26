@@ -28,6 +28,8 @@ import KeyFinder from "../component/KeyFinder";
 import AIBeatAssistant from "../component/AIBeatAssistant";
 import PianoDrumSplit from "../component/PianoDrumSplit";
 import ParametricEQGraph from "../component/ParametricEQGraph";
+import { InlineStemSeparation, AudioToMIDIPanel, 
+         PitchCorrectionPanel } from './DAWAdvancedFeatures';
 
 // ── Piano Roll / MIDI / Chord / Quantize imports ──
 import PianoRoll from "../component/PianoRoll";
