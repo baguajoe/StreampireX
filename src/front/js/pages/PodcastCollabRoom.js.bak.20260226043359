@@ -242,12 +242,6 @@ const PodcastCollabRoom = () => {
   // Error
   const [error, setError] = useState("");
 
-  // Screen Share
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [screenStream, setScreenStream] = useState(null);
-  const [screenShareUser, setScreenShareUser] = useState(null);
-  const [remoteScreenStream, setRemoteScreenStream] = useState(null);
-
   // ---------------------------------------------------------------------------
   // REFS
   // ---------------------------------------------------------------------------
@@ -259,9 +253,6 @@ const PodcastCollabRoom = () => {
   const recordingTimerRef = useRef(null);
   const canvasRef = useRef(null);
   const chatEndRef = useRef(null);
-  const screenStreamRef = useRef(null);
-  const screenPcRef = useRef(null);
-  const screenVideoRef = useRef(null);
 
   // ---------------------------------------------------------------------------
   // TIER CHECK
@@ -456,54 +447,6 @@ const PodcastCollabRoom = () => {
         if (data.orientation) setOrientation(data.orientation);
         if (data.spotlight !== undefined) setSpotlightUser(data.spotlight);
       });
-
-      // Screen share events
-      socket.on("screen-share-start", (data) => {
-        setScreenShareUser({ userId: data.userId, userName: data.userName, sid: data.sid });
-      });
-
-      socket.on("screen-share-stop", () => {
-        setScreenShareUser(null);
-        setRemoteScreenStream(null);
-        if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
-        if (screenPcRef.current) { screenPcRef.current.close(); screenPcRef.current = null; }
-      });
-
-      socket.on("screen-share-offer", async (data) => {
-        try {
-          const pc = new RTCPeerConnection(ICE_SERVERS);
-          screenPcRef.current = pc;
-          pc.ontrack = (event) => {
-            setRemoteScreenStream(event.streams[0]);
-            if (screenVideoRef.current) screenVideoRef.current.srcObject = event.streams[0];
-          };
-          pc.onicecandidate = (event) => {
-            if (event.candidate) {
-              socket.emit("screen-share-ice", { roomId, candidate: event.candidate, targetSid: data.from });
-            }
-          };
-          await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-          const answer = await pc.createAnswer();
-          await pc.setLocalDescription(answer);
-          socket.emit("screen-share-answer", { roomId, answer, targetSid: data.from });
-        } catch (err) { console.error("Screen share offer error:", err); }
-      });
-
-      socket.on("screen-share-answer", async (data) => {
-        try {
-          if (screenPcRef.current && screenPcRef.current.signalingState !== "stable") {
-            await screenPcRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
-          }
-        } catch (err) { console.error("Screen share answer error:", err); }
-      });
-
-      socket.on("screen-share-ice", async (data) => {
-        try {
-          if (screenPcRef.current) {
-            await screenPcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
-          }
-        } catch (err) { console.error("Screen share ICE error:", err); }
-      });
     };
 
     setup();
@@ -511,8 +454,6 @@ const PodcastCollabRoom = () => {
     return () => {
       // Cleanup
       localStream?.getTracks().forEach((t) => t.stop());
-      screenStreamRef.current?.getTracks().forEach((t) => t.stop());
-      if (screenPcRef.current) { screenPcRef.current.close(); screenPcRef.current = null; }
       Object.values(peerConnectionsRef.current).forEach((pc) => pc.close());
       socketRef.current?.emit("leave-podcast-room", { roomId, userId: user.id });
       socketRef.current?.disconnect();
@@ -601,66 +542,6 @@ const PodcastCollabRoom = () => {
         });
       }
     }
-  };
-
-  // ---------------------------------------------------------------------------
-  // SCREEN SHARING
-  // ---------------------------------------------------------------------------
-  const startScreenShare = async () => {
-    if (screenShareUser) {
-      setError(`${screenShareUser.userName} is already sharing their screen.`);
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
-        audio: true,
-      });
-      setScreenStream(stream);
-      screenStreamRef.current = stream;
-      setIsScreenSharing(true);
-
-      socketRef.current?.emit("screen-share-start", {
-        roomId,
-        userId: user.id,
-        userName: user.username || user.display_name,
-      });
-
-      const pc = new RTCPeerConnection(ICE_SERVERS);
-      screenPcRef.current = pc;
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-
-      pc.onicecandidate = (event) => {
-        if (event.candidate) {
-          socketRef.current?.emit("screen-share-ice", { roomId, candidate: event.candidate });
-        }
-      };
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      socketRef.current?.emit("screen-share-offer", { roomId, offer });
-
-      stream.getVideoTracks()[0].addEventListener("ended", () => stopScreenShare());
-    } catch (err) {
-      if (err.name !== "NotAllowedError") {
-        setError("Failed to start screen share: " + err.message);
-      }
-    }
-  };
-
-  const stopScreenShare = () => {
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach((t) => t.stop());
-      screenStreamRef.current = null;
-    }
-    setScreenStream(null);
-    setIsScreenSharing(false);
-    setScreenShareUser(null);
-    if (screenPcRef.current) {
-      screenPcRef.current.close();
-      screenPcRef.current = null;
-    }
-    socketRef.current?.emit("screen-share-stop", { roomId, userId: user.id });
   };
 
   // ---------------------------------------------------------------------------
@@ -895,20 +776,6 @@ const PodcastCollabRoom = () => {
               REC {formatTime(recordingTime)}
             </div>
           )}
-          {(isScreenSharing || screenShareUser) && (
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "rgba(0,255,200,0.15)",
-              padding: "4px 12px",
-              borderRadius: "6px",
-              fontSize: "0.8rem",
-              color: "#00ffc8",
-            }}>
-              🖥️ {isScreenSharing ? "Sharing" : `${screenShareUser?.userName} sharing`}
-            </div>
-          )}
         </div>
 
         <div className="pcr-header-right">
@@ -960,68 +827,6 @@ const PodcastCollabRoom = () => {
         {/* ============================================================ */}
         {/* VIDEO CANVAS                                                  */}
         {/* ============================================================ */}
-        {/* Screen Share Display */}
-        {(remoteScreenStream || isScreenSharing) && (
-          <div className="pcr-screen-share-container" style={{
-            width: "100%",
-            background: "#000",
-            borderRadius: "12px",
-            marginBottom: "12px",
-            position: "relative",
-            border: "2px solid #00ffc8",
-          }}>
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "8px 16px",
-              background: "rgba(0,255,200,0.1)",
-              borderRadius: "10px 10px 0 0",
-            }}>
-              <span style={{ color: "#00ffc8", fontSize: "0.85rem", fontWeight: 600 }}>
-                🖥️ {isScreenSharing ? "You are sharing your screen" : `${screenShareUser?.userName} is sharing`}
-              </span>
-              {isScreenSharing && (
-                <button
-                  onClick={stopScreenShare}
-                  style={{
-                    background: "#ff4757",
-                    color: "#fff",
-                    border: "none",
-                    padding: "4px 12px",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontSize: "0.8rem",
-                  }}
-                >
-                  Stop Sharing
-                </button>
-              )}
-            </div>
-            <video
-              autoPlay
-              playsInline
-              muted={isScreenSharing}
-              style={{
-                width: "100%",
-                maxHeight: "400px",
-                objectFit: "contain",
-                borderRadius: "0 0 10px 10px",
-              }}
-              ref={(el) => {
-                screenVideoRef.current = el;
-                if (el) {
-                  if (isScreenSharing && screenStream) {
-                    el.srcObject = screenStream;
-                  } else if (remoteScreenStream) {
-                    el.srcObject = remoteScreenStream;
-                  }
-                }
-              }}
-            />
-          </div>
-        )}
-
         <div
           className="pcr-video-canvas"
           style={{
@@ -1140,15 +945,6 @@ const PodcastCollabRoom = () => {
               title={noiseSuppression ? "Noise suppression ON" : "Noise suppression OFF"}
             >
               {noiseSuppression ? "🔇" : "🔊"}
-            </button>
-
-            {/* Screen Share */}
-            <button
-              className={`pcr-control-btn ${isScreenSharing ? "active screen-sharing" : ""}`}
-              onClick={isScreenSharing ? stopScreenShare : startScreenShare}
-              title={isScreenSharing ? "Stop sharing" : "Share screen"}
-            >
-              {isScreenSharing ? "🖥️❌" : "🖥️"}
             </button>
           </div>
 
