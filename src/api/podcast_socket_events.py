@@ -176,3 +176,5 @@ def register_podcast_events(socketio):
     """
     socketio.on_namespace(PodcastNamespace("/podcast"))
     print("[Podcast] Socket.IO namespace /podcast registered")
+# Alias for app.py import compatibility
+register_podcast_socket_events = register_podcast_events
