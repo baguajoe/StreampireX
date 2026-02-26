@@ -9,12 +9,6 @@ Endpoints:
   POST /api/podcast-studio/publish-episode  — Publish episode to podcast feed
   GET  /api/podcast-studio/sessions         — List user's recording sessions
   GET  /api/podcast-studio/session/<id>     — Get session details + tracks
-
-Publishing creates a PodcastEpisode linked to the user's podcast,
-so the episode appears in:
-  - PodcastDetailPage (their show page)
-  - Browse Podcasts (discovery feed)
-  - PodcastPlayer (playback)
 =============================================================================
 """
 
@@ -24,7 +18,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-podcast_studio = Blueprint("podcast_studio", __name__)
+podcast_studio_bp = Blueprint("podcast_studio", __name__)
 
 
 def get_upload_service():
@@ -91,7 +85,7 @@ def upload_file(file_obj, filename, folder="podcast-studio"):
 # =============================================================================
 # UPLOAD TRACK (stem or guest recording)
 # =============================================================================
-@podcast_studio.route("/api/podcast-studio/upload-track", methods=["POST"])
+@podcast_studio_bp.route("/api/podcast-studio/upload-track", methods=["POST"])
 @jwt_required(optional=True)
 def upload_track():
     """
@@ -158,7 +152,7 @@ def upload_track():
 # =============================================================================
 # PUBLISH EPISODE — Creates PodcastEpisode so it appears everywhere
 # =============================================================================
-@podcast_studio.route("/api/podcast-studio/publish-episode", methods=["POST"])
+@podcast_studio_bp.route("/api/podcast-studio/publish-episode", methods=["POST"])
 @jwt_required()
 def publish_episode():
     """
@@ -280,15 +274,20 @@ def publish_episode():
 # =============================================================================
 # LIST SESSIONS
 # =============================================================================
-@podcast_studio.route("/api/podcast-studio/sessions", methods=["GET"])
+@podcast_studio_bp.route("/api/podcast-studio/sessions", methods=["GET"])
 @jwt_required()
 def list_sessions():
     """List user's recording sessions."""
     from .models import PodcastRecordingSession
 
     user_id = get_jwt_identity()
-    sessions = PodcastRecordingSession.query.filter_by(user_id=user_id)\
-        .order_by(PodcastRecordingSession.created_at.desc()).limit(50).all()
+    sessions = (
+        PodcastRecordingSession.query
+        .filter_by(user_id=user_id)
+        .order_by(PodcastRecordingSession.created_at.desc())
+        .limit(50)
+        .all()
+    )
 
     return jsonify({
         "success": True,
@@ -299,7 +298,7 @@ def list_sessions():
 # =============================================================================
 # GET SESSION DETAIL
 # =============================================================================
-@podcast_studio.route("/api/podcast-studio/session/<session_id>", methods=["GET"])
+@podcast_studio_bp.route("/api/podcast-studio/session/<session_id>", methods=["GET"])
 @jwt_required()
 def get_session(session_id):
     """Get session details with all tracks."""
