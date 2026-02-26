@@ -1725,21 +1725,7 @@ class PricingPlan(db.Model):
     ai_mastering_limit = db.Column(db.Integer, default=0)         # Monthly limit (-1 = unlimited)
     includes_ai_radio_dj = db.Column(db.Boolean, default=False)
     includes_ai_voice_clone = db.Column(db.Boolean, default=False)
-    ai_dj_personas = db.Column(db.Integer, default=0)
-
-    # ==========================================================================
-    # AI VIDEO STUDIO (credits are ADD-ON, not replacing subscription)
-    # ==========================================================================
-    includes_ai_video_studio = db.Column(db.Boolean, default=False)
-    ai_video_monthly_credits = db.Column(db.Integer, default=0)
-    ai_video_onetime_credits = db.Column(db.Integer, default=0)
-    
-    # ==========================================================================
-    # PODCAST COLLAB ROOM
-    # ==========================================================================
-    includes_podcast_collab = db.Column(db.Boolean, default=False)
-    max_collab_participants = db.Column(db.Integer, default=0)
-             # How many personas available (-1 = all)
+    ai_dj_personas = db.Column(db.Integer, default=0)             # How many personas available (-1 = all)
     
     # ==========================================================================
     # GAMING FEATURES
@@ -7108,15 +7094,10 @@ CREDIT_PACKS = {
         'price': 29.99, 'price_per_video': 0.37, 'savings': '30% savings',
         'popular': False, 'icon': '🎞️',
     },
-    'power': {
-        'id': 'power', 'name': 'Power Pack', 'credits': 200,
-        'price': 59.99, 'price_per_video': 0.30, 'savings': '43% savings',
-        'popular': False, 'icon': '⚡',
-    },
 }
 
 TIER_FREE_CREDITS = {
-    'free': 3, 'starter': 10, 'creator': 30, 'pro': 50,
+    'free': 0, 'starter': 5, 'creator': 15, 'pro': 30,
 }
 
 class VideoCredit(db.Model):
@@ -7133,8 +7114,6 @@ class VideoCredit(db.Model):
     total_spent = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    onetime_granted = db.Column(db.Boolean, default=False)
-    last_rollover_amount = db.Column(db.Integer, default=0)
 
     def has_credits(self, amount=1):
         return self.balance >= amount

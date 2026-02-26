@@ -566,15 +566,15 @@ const AIVideoStudio = () => {
             <div className="aivs-tier-grid">
               <div className={`aivs-tier-card ${studioStatus?.tier === 'starter' ? 'current' : ''}`}>
                 <span className="aivs-tier-name">Starter</span>
-                <span className="aivs-tier-credits">5/month</span>
+                <span className="aivs-tier-credits">10/month</span>
               </div>
               <div className={`aivs-tier-card ${studioStatus?.tier === 'creator' ? 'current' : ''}`}>
                 <span className="aivs-tier-name">Creator</span>
-                <span className="aivs-tier-credits">15/month</span>
+                <span className="aivs-tier-credits">50/month</span>
               </div>
               <div className={`aivs-tier-card ${studioStatus?.tier === 'pro' ? 'current' : ''}`}>
                 <span className="aivs-tier-name">Pro</span>
-                <span className="aivs-tier-credits">30/month</span>
+                <span className="aivs-tier-credits">50/month</span>
               </div>
             </div>
           </div>
