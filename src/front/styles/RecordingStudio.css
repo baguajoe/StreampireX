@@ -891,8 +891,8 @@
 
 /* ── Channel Strip ── */
 .daw-channel {
-  min-width: 90px;
-  width: 90px;
+  min-width: 100px;
+  width: 100px;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--daw-border);
@@ -906,6 +906,7 @@
   border-color: rgba(90, 200, 250, 0.15);
 }
 
+/* ── Master channel: SAME width as track channels ── */
 .daw-channel.master-channel {
   min-width: 100px;
   width: 100px;
@@ -979,33 +980,13 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.daw-ch-insert-slot.active.eq {
-  background: var(--insert-eq);
-}
-
-.daw-ch-insert-slot.active.comp {
-  background: var(--insert-comp);
-}
-
-.daw-ch-insert-slot.active.limit {
-  background: var(--insert-limit);
-}
-
-.daw-ch-insert-slot.active.reverb {
-  background: var(--insert-reverb);
-}
-
-.daw-ch-insert-slot.active.delay {
-  background: var(--insert-delay);
-}
-
-.daw-ch-insert-slot.active.distortion {
-  background: var(--insert-distort);
-}
-
-.daw-ch-insert-slot.active.filter {
-  background: var(--insert-filter);
-}
+.daw-ch-insert-slot.active.eq { background: var(--insert-eq); }
+.daw-ch-insert-slot.active.comp { background: var(--insert-comp); }
+.daw-ch-insert-slot.active.limit { background: var(--insert-limit); }
+.daw-ch-insert-slot.active.reverb { background: var(--insert-reverb); }
+.daw-ch-insert-slot.active.delay { background: var(--insert-delay); }
+.daw-ch-insert-slot.active.distortion { background: var(--insert-distort); }
+.daw-ch-insert-slot.active.filter { background: var(--insert-filter); }
 
 .daw-ch-insert-slot.inactive {
   color: rgba(160, 185, 210, 0.75);
@@ -1016,6 +997,19 @@
 .daw-ch-insert-slot:hover {
   opacity: 1;
   filter: brightness(1.2);
+}
+
+/* ── Empty Insert Slots (Cubase-style) ── */
+.daw-ch-insert-slot.empty {
+  color: rgba(100, 120, 140, 0.3);
+  background: transparent;
+  font-style: italic;
+  opacity: 1;
+}
+
+.daw-ch-insert-slot.empty:hover {
+  color: rgba(0, 255, 200, 0.4);
+  background: rgba(0, 255, 200, 0.03);
 }
 
 /* ── Channel Controls: M/S/L/e ── */
@@ -1092,23 +1086,36 @@
   border-color: rgba(90, 200, 250, 0.2);
 }
 
-/* ── Fader + Meter Container ── */
+/* ═════════════════════════════════════════════════════════════════════════════
+   FADER AREA — Cubase Layout: Meter + Fader SIDE BY SIDE, same height
+   ═════════════════════════════════════════════════════════════════════════════ */
+
 .daw-ch-fader-area {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
   padding: 6px 4px 4px;
-  min-height: 180px;
   position: relative;
 }
 
-/* ── VU Meter (vertical, Cubase blue) ── */
+/* Inner row: meter on left, fader on right — FIXED height, side by side */
+.daw-ch-fader-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 180px;
+  max-height: 180px;
+}
+
+/* ── VU Meter (vertical, Cubase blue) — sits LEFT of fader ── */
 .daw-ch-meter {
-  width: 30px;
-  height: 140px;
-  background: #080e16;
+  width: 52px;
+  min-width: 52px;
+  height: 100%;
+  background: #080e14;
   border: 1px solid #152030;
   border-radius: 2px;
   position: relative;
@@ -1118,38 +1125,14 @@
   padding: 1px;
 }
 
-.daw-ch-meter-bar {
-  flex: 1;
-  display: flex;
-  flex-direction: column-reverse;
-  position: relative;
-}
+/* Meter scale is drawn by CubaseMeter canvas component */
 
-.daw-ch-meter-fill {
-  background: linear-gradient(0deg, var(--daw-meter-low) 0%, var(--daw-meter-mid) 60%, var(--daw-meter-high) 85%, var(--daw-meter-clip) 100%);
-  transition: height 0.06s linear;
-  border-radius: 1px;
-}
-
-/* ── Meter scale marks ── */
-.daw-ch-meter::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    180deg,
-    transparent 0px,
-    transparent 4px,
-    rgba(0, 0, 0, 0.3) 4px,
-    rgba(0, 0, 0, 0.3) 5px
-  );
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* ── Volume Fader (vertical) ── */
+/* ── Volume Fader (vertical) — sits RIGHT of meter, SAME height ── */
 .daw-ch-fader {
-  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 }
 
 .daw-ch-fader input[type="range"] {
@@ -1157,49 +1140,62 @@
   appearance: slider-vertical;
   writing-mode: vertical-lr;
   direction: rtl;
-  width: 24px;
-  height: 100px;
+  width: 28px;
+  height: 170px;
   background: transparent;
   outline: none;
 }
 
 .daw-ch-fader input[type="range"]::-webkit-slider-runnable-track {
   width: 4px;
-  background: linear-gradient(180deg, #3a5570, #1a2838);
+  background: linear-gradient(180deg, #4a6a8a 0%, #2a4060 40%, #1a2838 100%);
   border-radius: 2px;
+  border: 1px solid #0a1018;
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.5);
 }
 
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 22px;
-  height: 10px;
-  background: linear-gradient(180deg, #8899aa, #556677);
+  width: 28px;
+  height: 12px;
+  background: linear-gradient(180deg, #c8d4e0 0%, #8899aa 30%, #6677888 50%, #8899aa 70%, #c8d4e0 100%);
   border: 1px solid #3a4a5a;
   border-radius: 2px;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb:hover {
-  background: linear-gradient(180deg, #99aacc, #6688aa);
+  background: linear-gradient(180deg, #ddeeff 0%, #99aacc 30%, #7799bb 50%, #99aacc 70%, #ddeeff 100%);
+  box-shadow: 0 1px 6px rgba(90, 200, 250, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Center line on fader thumb (Cubase detail) */
+.daw-ch-fader input[type="range"]::-webkit-slider-thumb:active {
+  background: linear-gradient(180deg, #eef4ff 0%, #aabbdd 30%, #88aacc 50%, #aabbdd 70%, #eef4ff 100%);
 }
 
 /* ── Volume Value Display ── */
 .daw-ch-vol-display {
   display: flex;
   gap: 4px;
-  margin-top: 4px;
-  padding: 2px;
+  margin-top: 6px;
+  padding: 2px 4px;
+  justify-content: center;
+  width: 100%;
 }
 
 .daw-ch-vol-val {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.52rem;
-  color: var(--daw-text-dim);
-  background: rgba(0, 0, 0, 0.3);
-  padding: 1px 3px;
-  border-radius: 1px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--daw-text);
+  background: rgba(0, 0, 0, 0.4);
+  padding: 2px 6px;
+  border-radius: 2px;
+  border: 1px solid rgba(90, 200, 250, 0.08);
   text-align: center;
+  min-width: 36px;
 }
 
 /* ── R/W Automation buttons ── */
@@ -1304,7 +1300,7 @@
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
-   MIC SIMULATOR — Full View (replaces side panel overlay)
+   MIC SIMULATOR — Full View
    ═════════════════════════════════════════════════════════════════════════════ */
 
 .daw-micsim-view {
@@ -1519,25 +1515,10 @@
   letter-spacing: 0.05em;
 }
 
-.daw-tier-badge[data-tier="free"] {
-  background: rgba(90, 200, 250, 0.1);
-  color: var(--daw-cyan);
-}
-
-.daw-tier-badge[data-tier="starter"] {
-  background: rgba(76, 175, 80, 0.1);
-  color: var(--daw-green);
-}
-
-.daw-tier-badge[data-tier="creator"] {
-  background: rgba(255, 152, 0, 0.1);
-  color: var(--daw-orange);
-}
-
-.daw-tier-badge[data-tier="pro"] {
-  background: rgba(175, 82, 222, 0.1);
-  color: #af52de;
-}
+.daw-tier-badge[data-tier="free"] { background: rgba(90, 200, 250, 0.1); color: var(--daw-cyan); }
+.daw-tier-badge[data-tier="starter"] { background: rgba(76, 175, 80, 0.1); color: var(--daw-green); }
+.daw-tier-badge[data-tier="creator"] { background: rgba(255, 152, 0, 0.1); color: var(--daw-orange); }
+.daw-tier-badge[data-tier="pro"] { background: rgba(175, 82, 222, 0.1); color: #af52de; }
 
 .daw-track-count {
   font-size: 0.65rem;
@@ -1662,7 +1643,6 @@
 
 /* ═════════════════════════════════════════════════════════════════════════════
    BEAT MAKER THEME OVERRIDE (Navy Match)
-   When embedded inside the DAW, force navy theme on Beat Maker components
    ═════════════════════════════════════════════════════════════════════════════ */
 
 .daw-main .sampler-beat-maker {
@@ -1756,7 +1736,8 @@
   }
 
   .daw-fx-panel { width: 240px; min-width: 240px; }
-  .daw-channel { min-width: 76px; width: 76px; }
+  .daw-channel { min-width: 86px; width: 86px; }
+  .daw-channel.master-channel { min-width: 86px; width: 86px; }
 }
 
 @media (max-width: 768px) {
@@ -1775,7 +1756,8 @@
   .daw-ruler { display: none; }
   .daw-track-color-bar { display: none; }
   .daw-track-name-input { width: 100px; }
-  .daw-channel { min-width: 70px; width: 70px; }
+  .daw-channel { min-width: 80px; width: 80px; }
+  .daw-channel.master-channel { min-width: 80px; width: 80px; }
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
@@ -1794,18 +1776,7 @@
 .daw-fx-panel::-webkit-scrollbar { width: 4px; }
 .daw-fx-panel::-webkit-scrollbar-track { background: transparent; }
 .daw-fx-panel::-webkit-scrollbar-thumb { background: #1a2838; border-radius: 2px; }
-/* ── Empty Insert Slots (Cubase-style) ── */
-.daw-ch-insert-slot.empty {
-  color: rgba(100, 120, 140, 0.3);
-  background: transparent;
-  font-style: italic;
-  opacity: 1;
-}
 
-.daw-ch-insert-slot.empty:hover {
-  color: rgba(0, 255, 200, 0.4);
-  background: rgba(0, 255, 200, 0.03);
-}
 /* =============================================================================
    Track Controls Toolbar (+/- buttons, track type selector)
    ============================================================================= */
@@ -1845,13 +1816,8 @@
   cursor: pointer;
   outline: none;
 }
-.daw-track-type-select:hover {
-  border-color: #00ffc8;
-}
-.daw-track-type-select:focus {
-  border-color: #00ffc8;
-  box-shadow: 0 0 0 1px rgba(0, 255, 200, 0.2);
-}
+.daw-track-type-select:hover { border-color: #00ffc8; }
+.daw-track-type-select:focus { border-color: #00ffc8; box-shadow: 0 0 0 1px rgba(0, 255, 200, 0.2); }
 
 .daw-tracks-toolbar-btn {
   display: flex;
@@ -1866,23 +1832,10 @@
   cursor: pointer;
   transition: all 0.12s;
 }
-.daw-tracks-toolbar-btn:hover:not(:disabled) {
-  background: #1a2838;
-  color: #00ffc8;
-  border-color: #00ffc8;
-}
-.daw-tracks-toolbar-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-.daw-tracks-toolbar-btn.add:hover:not(:disabled) {
-  color: #00ffc8;
-  border-color: #00ffc8;
-}
-.daw-tracks-toolbar-btn.remove:hover:not(:disabled) {
-  color: #ff4444;
-  border-color: #ff4444;
-}
+.daw-tracks-toolbar-btn:hover:not(:disabled) { background: #1a2838; color: #00ffc8; border-color: #00ffc8; }
+.daw-tracks-toolbar-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.daw-tracks-toolbar-btn.add:hover:not(:disabled) { color: #00ffc8; border-color: #00ffc8; }
+.daw-tracks-toolbar-btn.remove:hover:not(:disabled) { color: #ff4444; border-color: #ff4444; }
 
 .daw-tracks-toolbar-count {
   font-size: 0.6rem;
@@ -1892,7 +1845,6 @@
   margin-left: 4px;
 }
 
-/* Tier limit notice (replaces old add-track-row when at max) */
 .daw-tier-limit-notice {
   display: flex;
   align-items: center;
