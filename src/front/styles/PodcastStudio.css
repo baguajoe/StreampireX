@@ -1220,3 +1220,93 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* ── Soundboard Hotbar (on Video tab) ── */
+.ps-soundboard-hotbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #141422;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow-x: auto;
+}
+.ps-hotbar-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #00ffc8;
+  white-space: nowrap;
+  padding-right: 4px;
+}
+.ps-hotbar-pad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 72px;
+  height: 52px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: #666;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  flex-shrink: 0;
+}
+.ps-hotbar-pad:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #aaa;
+}
+.ps-hotbar-pad.loaded {
+  border-color: var(--pad-color, #00ffc8);
+  color: #ddd;
+  background: rgba(0, 255, 200, 0.05);
+}
+.ps-hotbar-pad.loaded:hover {
+  background: rgba(0, 255, 200, 0.12);
+  transform: scale(1.03);
+}
+.ps-hotbar-pad.loaded:active {
+  transform: scale(0.95);
+  background: rgba(0, 255, 200, 0.2);
+}
+.ps-hotbar-pad-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 64px;
+}
+.ps-hotbar-pad-key {
+  font-size: 0.6rem;
+  color: #555;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0 4px;
+  border-radius: 3px;
+  line-height: 1.4;
+}
+.ps-hotbar-load {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(0, 255, 200, 0.2);
+  color: #00ffc8;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  line-height: 1;
+}
+.ps-hotbar-load:hover {
+  background: rgba(0, 255, 200, 0.4);
+}
