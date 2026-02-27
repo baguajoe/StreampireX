@@ -356,8 +356,8 @@ class MidiSoundEngine {
   }
 
   // ── Note On ──
-  noteOn(channel, noteNum, velocity = 100) {
-    if (velocity === 0) { this.noteOff(channel, noteNum); return; }
+  noteOn(channel, noteNum, velocity = 100, timeSec = null) {
+    if (velocity === 0) { this.noteOff(channel, noteNum, timeSec); return; }
     const ch = this.channels[channel];
     if (!ch) return;
 
@@ -376,7 +376,7 @@ class MidiSoundEngine {
 
     const family = this._getFamily(ch.program);
     const freq = 440 * Math.pow(2, (noteNum - 69) / 12);
-    const now = this.ctx.currentTime;
+    const now = timeSec ?? this.ctx.currentTime;
 
     // Voice gain
     const voiceGain = this.ctx.createGain();
@@ -423,7 +423,7 @@ class MidiSoundEngine {
   }
 
   // ── Note Off ──
-  noteOff(channel, noteNum) {
+  noteOff(channel, noteNum, timeSec = null) {
     const ch = this.channels[channel];
     if (!ch || !ch.voices[noteNum]) return;
 
@@ -432,16 +432,16 @@ class MidiSoundEngine {
       return;
     }
 
-    this._releaseVoice(channel, noteNum);
+    this._releaseVoice(channel, noteNum, timeSec);
   }
 
   // ── Internal: release voice with ADSR release ──
-  _releaseVoice(channel, noteNum) {
+  _releaseVoice(channel, noteNum, timeSec = null) {
     const ch = this.channels[channel];
     const voice = ch.voices[noteNum];
     if (!voice) return;
 
-    const now = this.ctx.currentTime;
+    const now = timeSec ?? this.ctx.currentTime;
     const release = voice.envelope.release;
 
     voice.voiceGain.gain.cancelScheduledValues(now);

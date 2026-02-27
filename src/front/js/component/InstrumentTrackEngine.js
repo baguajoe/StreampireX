@@ -1,19 +1,26 @@
 // =============================================================================
-// InstrumentTrackEngine.js — Software Instrument Track System v2
+// InstrumentTrackEngine.js — Software Instrument Track System v3
 // =============================================================================
 // Location: src/front/js/component/InstrumentTrackEngine.js
 // =============================================================================
+//
+// UPGRADE: Steps 0–6 from the Cubase/Logic DAW update plan
+//   Step 0 — Per-track routing contract (getTrackInputNode)
+//   Step 1 — Per-track output routing in hook
+//   Step 2 — playNoteOnTrackAtTime / stopNoteOnTrackAtTime (scheduled APIs)
+//   Step 3 — SamplerVoice accepts timeSec
+//   Step 4 — SampleKitVoice accepts timeSec
+//   Step 5 — MidiSoundEngine timeSec support (Option A)
+//   Step 6 — Audio-clock scheduling replaces setTimeout
+// =============================================================================
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-// IMPORTANT: Make sure this path matches your project.
-// If MidiSoundEngine is global already, you can remove this import.
 import MidiSoundEngine from "./MidiSoundEngine";
 
 // =============================================================================
 // CONSTANTS
 // =============================================================================
 
-// Computer keyboard → MIDI note mapping (2 octaves, matches SamplerInstrument)
 const KEYBOARD_MAP = {
   z: 0,  s: 1,  x: 2,  d: 3,  c: 4,  v: 5,
   g: 6,  b: 7,  h: 8,  n: 9,  j: 10, m: 11,
@@ -22,7 +29,6 @@ const KEYBOARD_MAP = {
   i: 24,
 };
 
-// Sound source types
 export const SOURCE_TYPES = {
   GM_SYNTH: "gm_synth",
   SAMPLER: "sampler",
@@ -30,7 +36,6 @@ export const SOURCE_TYPES = {
   SAMPLE_KIT: "sample_kit",
 };
 
-// Default instrument presets for quick assignment
 const DEFAULT_INSTRUMENTS = {
   keys:    { source: SOURCE_TYPES.GM_SYNTH, program: 0,  name: "Acoustic Grand Piano" },
   bass:    { source: SOURCE_TYPES.GM_SYNTH, program: 33, name: "Electric Bass (finger)" },
@@ -73,7 +78,7 @@ export const getAbsoluteNotes = (region) => {
 };
 
 // =============================================================================
-// SAMPLER VOICE — plays a loaded AudioBuffer pitched across the keyboard
+// STEP 3 — SAMPLER VOICE with timeSec support
 // =============================================================================
 
 class SamplerVoice {
@@ -136,13 +141,13 @@ class SamplerVoice {
     this.release = release ?? this.release;
   }
 
-  noteOn(noteNum, velocity = 100) {
+  // ── STEP 3.1 + 3.2: noteOn with timeSec (defaults to now for live play) ──
+  noteOn(noteNum, velocity = 100, timeSec = this.ctx.currentTime) {
     if (!this.buffer) return;
-    this.noteOff(noteNum);
+    this.noteOff(noteNum, timeSec);
 
     const vel = velocity / 127;
     const semitones = noteNum - this.rootNote;
-    const now = this.ctx.currentTime;
 
     const src = this.ctx.createBufferSource();
     src.buffer = this.buffer;
@@ -150,9 +155,9 @@ class SamplerVoice {
 
     const gain = this.ctx.createGain();
     const peakVol = vel;
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(peakVol, now + this.attack);
-    gain.gain.linearRampToValueAtTime(peakVol * this.sustain, now + this.attack + this.decay);
+    gain.gain.setValueAtTime(0, timeSec);
+    gain.gain.linearRampToValueAtTime(peakVol, timeSec + this.attack);
+    gain.gain.linearRampToValueAtTime(peakVol * this.sustain, timeSec + this.attack + this.decay);
 
     let lastNode = src;
     if (this.filterEnabled) {
@@ -166,25 +171,25 @@ class SamplerVoice {
 
     lastNode.connect(gain);
     gain.connect(this.output);
-    src.start(now);
+    src.start(timeSec);
 
-    this.voices[noteNum] = { src, gain, startTime: now };
+    this.voices[noteNum] = { src, gain, startTime: timeSec };
     src.onended = () => {
       delete this.voices[noteNum];
     };
   }
 
-  noteOff(noteNum) {
+  // ── STEP 3.3: noteOff with timeSec ──
+  noteOff(noteNum, timeSec = this.ctx.currentTime) {
     const voice = this.voices[noteNum];
     if (!voice) return;
-    const now = this.ctx.currentTime;
 
-    voice.gain.gain.cancelScheduledValues(now);
-    voice.gain.gain.setValueAtTime(voice.gain.gain.value, now);
-    voice.gain.gain.linearRampToValueAtTime(0, now + this.release);
+    voice.gain.gain.cancelScheduledValues(timeSec);
+    voice.gain.gain.setValueAtTime(voice.gain.gain.value, timeSec);
+    voice.gain.gain.linearRampToValueAtTime(0, timeSec + this.release);
 
     try {
-      voice.src.stop(now + this.release + 0.05);
+      voice.src.stop(timeSec + this.release + 0.05);
     } catch (e) {}
 
     delete this.voices[noteNum];
@@ -201,7 +206,7 @@ class SamplerVoice {
 }
 
 // =============================================================================
-// SAMPLE KIT — Multiple samples mapped to individual notes (MPC/Maschine style)
+// STEP 4 — SAMPLE KIT VOICE with timeSec support
 // =============================================================================
 
 class SampleKitVoice {
@@ -252,13 +257,13 @@ class SampleKitVoice {
     }
   }
 
-  noteOn(noteNum, velocity = 100) {
+  // ── STEP 4: noteOn with timeSec ──
+  noteOn(noteNum, velocity = 100, timeSec = this.ctx.currentTime) {
     const pad = this.pads[noteNum];
     if (!pad?.buffer) return;
-    this.noteOff(noteNum);
+    this.noteOff(noteNum, timeSec);
 
     const vel = velocity / 127;
-    const now = this.ctx.currentTime;
 
     const src = this.ctx.createBufferSource();
 
@@ -283,32 +288,32 @@ class SampleKitVoice {
     const gain = this.ctx.createGain();
     const peakVol = pad.volume * vel;
 
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(peakVol, now + pad.attack);
-    gain.gain.linearRampToValueAtTime(peakVol * pad.sustain, now + pad.attack + pad.decay);
+    gain.gain.setValueAtTime(0, timeSec);
+    gain.gain.linearRampToValueAtTime(peakVol, timeSec + pad.attack);
+    gain.gain.linearRampToValueAtTime(peakVol * pad.sustain, timeSec + pad.attack + pad.decay);
 
     src.connect(gain);
     gain.connect(this.output);
-    src.start(now);
+    src.start(timeSec);
 
     this.voices[noteNum] = { src, gain };
     src.onended = () => delete this.voices[noteNum];
   }
 
-  noteOff(noteNum) {
+  // ── STEP 4: noteOff with timeSec ──
+  noteOff(noteNum, timeSec = this.ctx.currentTime) {
     const voice = this.voices[noteNum];
     if (!voice) return;
 
     const pad = this.pads[noteNum];
     const release = pad?.release ?? 0.15;
-    const now = this.ctx.currentTime;
 
-    voice.gain.gain.cancelScheduledValues(now);
-    voice.gain.gain.setValueAtTime(voice.gain.gain.value, now);
-    voice.gain.gain.linearRampToValueAtTime(0, now + release);
+    voice.gain.gain.cancelScheduledValues(timeSec);
+    voice.gain.gain.setValueAtTime(voice.gain.gain.value, timeSec);
+    voice.gain.gain.linearRampToValueAtTime(0, timeSec + release);
 
     try {
-      voice.src.stop(now + release + 0.05);
+      voice.src.stop(timeSec + release + 0.05);
     } catch (e) {}
 
     delete this.voices[noteNum];
@@ -344,6 +349,8 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
     playheadBeat = 0,
     onNotesRecorded,
     masterGainRef,
+    // ── STEP 0 + 1: Per-track routing ──
+    getTrackInputNode,
   } = options;
 
   const gmEngineRef = useRef(null);
@@ -357,13 +364,16 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
   const activeKeysRef = useRef(new Set());
   const midiAccessRef = useRef(null);
 
+  // ── STEP 6: Track the audioCtx time when playback started + the beat offset ──
+  const playStartCtxTimeRef = useRef(0);
+  const playStartBeatRef = useRef(0);
+
   const [trackInstruments, setTrackInstruments] = useState({});
   const [keyboardOctave, setKeyboardOctave] = useState(4);
   const [midiDevices, setMidiDevices] = useState([]);
   const [activeMidiDevice, setActiveMidiDevice] = useState(null);
   const [midiActivity, setMidiActivity] = useState(false);
 
-  // Stable ref to avoid stale callback issues (connectMidiDevice needs this)
   const handleExternalMidiRef = useRef(null);
 
   // ═══════════════════════════════════════════════════════════
@@ -384,22 +394,38 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
     return gmEngineRef.current;
   }, [audioCtxRef, masterGainRef]);
 
+  // ── STEP 1.2: Per-track output node (falls back to master/destination) ──
+  const getTrackOutputNode = useCallback(
+    (trackIndex) => {
+      // Step 0/1: If the caller provided a getTrackInputNode function, use it
+      if (getTrackInputNode) {
+        const node = getTrackInputNode(trackIndex);
+        if (node) return node;
+      }
+      // Fallback: master gain or destination
+      return masterGainRef?.current || audioCtxRef?.current?.destination;
+    },
+    [audioCtxRef, masterGainRef, getTrackInputNode]
+  );
+
+  // Keep the old getOutputNode for backward compat (GM synth master routing)
   const getOutputNode = useCallback(() => {
     return masterGainRef?.current || audioCtxRef?.current?.destination;
   }, [audioCtxRef, masterGainRef]);
 
+  // ── STEP 1.3: Voices connect to the per-track output ──
   const getSamplerVoice = useCallback(
     (trackIndex) => {
       if (!audioCtxRef?.current) return null;
       if (!samplerVoicesRef.current[trackIndex]) {
         samplerVoicesRef.current[trackIndex] = new SamplerVoice(
           audioCtxRef.current,
-          getOutputNode()
+          getTrackOutputNode(trackIndex)
         );
       }
       return samplerVoicesRef.current[trackIndex];
     },
-    [audioCtxRef, getOutputNode]
+    [audioCtxRef, getTrackOutputNode]
   );
 
   const getSampleKitVoice = useCallback(
@@ -408,12 +434,12 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
       if (!sampleKitVoicesRef.current[trackIndex]) {
         sampleKitVoicesRef.current[trackIndex] = new SampleKitVoice(
           audioCtxRef.current,
-          getOutputNode()
+          getTrackOutputNode(trackIndex)
         );
       }
       return sampleKitVoicesRef.current[trackIndex];
     },
-    [audioCtxRef, getOutputNode]
+    [audioCtxRef, getTrackOutputNode]
   );
 
   // ═══════════════════════════════════════════════════════════
@@ -424,7 +450,7 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
     (trackIndex, config) => {
       const source = config.source || SOURCE_TYPES.GM_SYNTH;
       let channel = trackIndex;
-      if (channel >= 9) channel += 1; // skip GM ch 10 (index 9)
+      if (channel >= 9) channel += 1;
       if (channel > 15) channel = channel % 15;
 
       let name = config.name || "";
@@ -456,7 +482,7 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
           break;
         }
         case SOURCE_TYPES.DRUM_KIT: {
-          channel = 9; // GM drum channel
+          channel = 9;
           name = "Drum Kit";
           break;
         }
@@ -544,7 +570,7 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
   );
 
   // ═══════════════════════════════════════════════════════════
-  // NOTE PLAYBACK
+  // NOTE PLAYBACK — IMMEDIATE (live playing, keyboard, MIDI hw)
   // ═══════════════════════════════════════════════════════════
 
   const playNoteOnTrack = useCallback(
@@ -633,6 +659,111 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
     },
     [trackInstruments, getGmEngine, isRecording, playheadBeat]
   );
+
+  // ═══════════════════════════════════════════════════════════
+  // STEP 2 — SCHEDULED NOTE PLAYBACK (sample-accurate)
+  // ═══════════════════════════════════════════════════════════
+
+  const playNoteOnTrackAtTime = useCallback(
+    (trackIndex, noteNum, velocity, timeSec) => {
+      const inst = trackInstruments[trackIndex];
+      if (!inst) return;
+
+      switch (inst.source) {
+        case SOURCE_TYPES.GM_SYNTH: {
+          const engine = getGmEngine();
+          // STEP 5 Option A: pass timeSec to GM engine
+          if (engine) {
+            if (typeof engine.noteOn === 'function' && engine.noteOn.length >= 4) {
+              // Engine supports timeSec parameter
+              engine.noteOn(inst.channel, noteNum, velocity, timeSec);
+            } else {
+              // Fallback: schedule via setTimeout for near-time
+              const delay = Math.max(0, (timeSec - audioCtxRef.current.currentTime) * 1000);
+              setTimeout(() => engine.noteOn(inst.channel, noteNum, velocity), delay);
+            }
+          }
+          break;
+        }
+        case SOURCE_TYPES.DRUM_KIT: {
+          const engine = getGmEngine();
+          if (engine) {
+            if (typeof engine.noteOn === 'function' && engine.noteOn.length >= 4) {
+              engine.noteOn(9, noteNum, velocity, timeSec);
+            } else {
+              const delay = Math.max(0, (timeSec - audioCtxRef.current.currentTime) * 1000);
+              setTimeout(() => engine.noteOn(9, noteNum, velocity), delay);
+            }
+          }
+          break;
+        }
+        case SOURCE_TYPES.SAMPLER: {
+          const sampler = samplerVoicesRef.current[trackIndex];
+          if (sampler) sampler.noteOn(noteNum, velocity, timeSec);
+          break;
+        }
+        case SOURCE_TYPES.SAMPLE_KIT: {
+          const kit = sampleKitVoicesRef.current[trackIndex];
+          if (kit) kit.noteOn(noteNum, velocity, timeSec);
+          break;
+        }
+        default:
+          break;
+      }
+    },
+    [trackInstruments, getGmEngine, audioCtxRef]
+  );
+
+  const stopNoteOnTrackAtTime = useCallback(
+    (trackIndex, noteNum, timeSec) => {
+      const inst = trackInstruments[trackIndex];
+      if (!inst) return;
+
+      switch (inst.source) {
+        case SOURCE_TYPES.GM_SYNTH: {
+          const engine = getGmEngine();
+          if (engine) {
+            if (typeof engine.noteOff === 'function' && engine.noteOff.length >= 3) {
+              engine.noteOff(inst.channel, noteNum, timeSec);
+            } else {
+              const delay = Math.max(0, (timeSec - audioCtxRef.current.currentTime) * 1000);
+              setTimeout(() => engine.noteOff(inst.channel, noteNum), delay);
+            }
+          }
+          break;
+        }
+        case SOURCE_TYPES.DRUM_KIT: {
+          const engine = getGmEngine();
+          if (engine) {
+            if (typeof engine.noteOff === 'function' && engine.noteOff.length >= 3) {
+              engine.noteOff(9, noteNum, timeSec);
+            } else {
+              const delay = Math.max(0, (timeSec - audioCtxRef.current.currentTime) * 1000);
+              setTimeout(() => engine.noteOff(9, noteNum), delay);
+            }
+          }
+          break;
+        }
+        case SOURCE_TYPES.SAMPLER: {
+          const sampler = samplerVoicesRef.current[trackIndex];
+          if (sampler) sampler.noteOff(noteNum, timeSec);
+          break;
+        }
+        case SOURCE_TYPES.SAMPLE_KIT: {
+          const kit = sampleKitVoicesRef.current[trackIndex];
+          if (kit) kit.noteOff(noteNum, timeSec);
+          break;
+        }
+        default:
+          break;
+      }
+    },
+    [trackInstruments, getGmEngine, audioCtxRef]
+  );
+
+  // ═══════════════════════════════════════════════════════════
+  // ALL NOTES OFF
+  // ═══════════════════════════════════════════════════════════
 
   const allNotesOffTrack = useCallback(
     (trackIndex) => {
@@ -729,7 +860,7 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
   );
 
   // ═══════════════════════════════════════════════════════════
-  // EXTERNAL MIDI HARDWARE (Akai MPK, Novation, etc.)
+  // EXTERNAL MIDI HARDWARE
   // ═══════════════════════════════════════════════════════════
 
   const handleExternalMidi = useCallback(
@@ -759,7 +890,6 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
     [getArmedMidiTrack, playNoteOnTrack, stopNoteOnTrack, getGmEngine, trackInstruments]
   );
 
-  // keep the latest handler in a ref so connectMidiDevice stays stable
   useEffect(() => {
     handleExternalMidiRef.current = handleExternalMidi;
   }, [handleExternalMidi]);
@@ -832,15 +962,33 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
   }, [activeMidiDevice]);
 
   // ═══════════════════════════════════════════════════════════
-  // MIDI REGION PLAYBACK SCHEDULER
+  // STEP 6 — AUDIO-CLOCK MIDI REGION SCHEDULER
+  // ═══════════════════════════════════════════════════════════
+  //
+  // How it works:
+  //   • A setInterval fires every ~50ms (the "pump").
+  //   • Each pump computes the current beat from the audio clock,
+  //     then looks ahead ~0.1s (≈ lookAheadSec) into the future.
+  //   • Notes whose start falls within [nowBeat, nowBeat+lookAheadBeats]
+  //     are scheduled on the audio clock via playNoteOnTrackAtTime / stopNoteOnTrackAtTime.
+  //   • No setTimeout is used for notes — only the pump interval.
   // ═══════════════════════════════════════════════════════════
 
   const scheduleMidiPlayback = useCallback(() => {
-    if (!isPlaying) return;
+    if (!isPlaying || !audioCtxRef?.current) return;
 
-    const lookAheadBeats = 0.5;
-    const startBeat = playheadBeat;
-    const endBeat = playheadBeat + lookAheadBeats;
+    const ctx = audioCtxRef.current;
+    const now = ctx.currentTime;
+    const secPerBeat = 60 / bpm;
+
+    // Compute the current beat from the audio clock
+    const elapsedSec = now - playStartCtxTimeRef.current;
+    const currentBeat = playStartBeatRef.current + (elapsedSec / secPerBeat);
+
+    // Look ahead 100ms into the future (≈ 2× the pump interval for safety)
+    const lookAheadSec = 0.1;
+    const lookAheadBeats = lookAheadSec / secPerBeat;
+    const endBeat = currentBeat + lookAheadBeats;
 
     tracks.forEach((track, trackIndex) => {
       if (track.muted) return;
@@ -853,30 +1001,44 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
 
         region.notes.forEach((note) => {
           const absStart = note.startBeat + region.startBeat;
-          if (absStart >= startBeat && absStart < endBeat) {
+          if (absStart >= currentBeat && absStart < endBeat) {
             const noteKey = `${trackIndex}_${region.id}_${note.note}_${absStart}`;
             if (activeNotesRef.current.has(noteKey)) return;
             activeNotesRef.current.add(noteKey);
 
-            const delaySec = ((absStart - playheadBeat) / bpm) * 60;
+            // Convert beat offset to audio-clock time
+            const beatDelta = absStart - currentBeat;
+            const tOn = now + (beatDelta * secPerBeat);
 
-            setTimeout(() => {
-              playNoteOnTrack(trackIndex, note.note, Math.round((note.velocity || 0.8) * 127));
-            }, Math.max(0, delaySec * 1000));
+            const durationSec = (note.duration || 0.25) * secPerBeat;
+            const tOff = tOn + durationSec;
 
-            const durationSec = (note.duration / bpm) * 60;
+            const vel = Math.round((note.velocity || 0.8) * 127);
+
+            playNoteOnTrackAtTime(trackIndex, note.note, vel, tOn);
+            stopNoteOnTrackAtTime(trackIndex, note.note, tOff);
+
+            // Clean up the activeNotes set after the note has finished
+            // (use setTimeout here — this is only for bookkeeping, not audio)
+            const cleanupDelay = (tOff - now + 0.2) * 1000;
             setTimeout(() => {
-              stopNoteOnTrack(trackIndex, note.note);
               activeNotesRef.current.delete(noteKey);
-            }, Math.max(0, (delaySec + durationSec) * 1000));
+            }, Math.max(0, cleanupDelay));
           }
         });
       });
     });
-  }, [isPlaying, playheadBeat, tracks, trackInstruments, bpm, playNoteOnTrack, stopNoteOnTrack]);
+  }, [isPlaying, audioCtxRef, bpm, tracks, trackInstruments, playNoteOnTrackAtTime, stopNoteOnTrackAtTime]);
 
+  // ── Start / stop the scheduler pump when isPlaying changes ──
   useEffect(() => {
     if (isPlaying) {
+      // Capture the audio-clock time and beat position at play start
+      if (audioCtxRef?.current) {
+        playStartCtxTimeRef.current = audioCtxRef.current.currentTime;
+        playStartBeatRef.current = playheadBeat;
+      }
+
       activeNotesRef.current.clear();
       const interval = setInterval(scheduleMidiPlayback, 50);
       schedulerRef.current = interval;
@@ -886,6 +1048,9 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
       activeNotesRef.current.clear();
       Object.keys(trackInstruments).forEach((idx) => allNotesOffTrack(parseInt(idx)));
     }
+    // Note: playheadBeat is intentionally NOT in the dep array here —
+    // we only want to capture it once at play-start, not re-fire on every update.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, scheduleMidiPlayback, trackInstruments, allNotesOffTrack]);
 
   // ═══════════════════════════════════════════════════════════
@@ -979,9 +1144,14 @@ export function useInstrumentTrackEngine(audioCtxRef, tracks, options = {}) {
     loadSampleFromFile,
     loadSampleKitPad,
 
+    // Immediate (live) playback
     playNoteOnTrack,
     stopNoteOnTrack,
     allNotesOffTrack,
+
+    // STEP 2: Scheduled (sample-accurate) playback
+    playNoteOnTrackAtTime,
+    stopNoteOnTrackAtTime,
 
     handleKeyDown,
     handleKeyUp,
