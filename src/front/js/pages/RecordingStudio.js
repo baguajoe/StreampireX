@@ -1160,7 +1160,7 @@ const RecordingStudio = ({ user }) => {
     trackSourcesRef.current.forEach((s) => {
       try {
         s.stop();
-      } catch {}
+      } catch { }
     });
     trackSourcesRef.current = [];
     trackGainsRef.current = [];
@@ -1241,7 +1241,7 @@ const RecordingStudio = ({ user }) => {
     trackSourcesRef.current.forEach((s) => {
       try {
         s.stop();
-      } catch {}
+      } catch { }
     });
     trackSourcesRef.current = [];
 
@@ -1288,21 +1288,21 @@ const RecordingStudio = ({ user }) => {
       prev.map((t, i) =>
         i === trackIndex
           ? {
-              ...t,
-              regions: [
-                ...(t.regions || []),
-                {
-                  id: regionId,
-                  name: name || `Import ${trackIndex + 1}`,
-                  startBeat: 0,
-                  duration: durationBeat,
-                  audioUrl,
-                  color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length],
-                  loopEnabled: false,
-                  loopCount: 1,
-                },
-              ],
-            }
+            ...t,
+            regions: [
+              ...(t.regions || []),
+              {
+                id: regionId,
+                name: name || `Import ${trackIndex + 1}`,
+                startBeat: 0,
+                duration: durationBeat,
+                audioUrl,
+                color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length],
+                loopEnabled: false,
+                loopCount: 1,
+              },
+            ],
+          }
           : t,
       ),
     );
@@ -1868,23 +1868,79 @@ const RecordingStudio = ({ user }) => {
         i !== trackIndex
           ? t
           : {
-              ...t,
-              effects: {
-                ...t.effects,
-                compressor: {
-                  threshold: comp.suggested_threshold || -20,
-                  ratio: comp.suggested_ratio || 4,
-                  attack: (comp.suggested_attack_ms || 10) / 1000,
-                  release: (comp.suggested_release_ms || 100) / 1000,
-                  enabled: true,
-                },
+            ...t,
+            effects: {
+              ...t.effects,
+              compressor: {
+                threshold: comp.suggested_threshold || -20,
+                ratio: comp.suggested_ratio || 4,
+                attack: (comp.suggested_attack_ms || 10) / 1000,
+                release: (comp.suggested_release_ms || 100) / 1000,
+                enabled: true,
               },
             },
+          },
       ),
     );
     setStatus(`AI: Track ${trackIndex + 1} compressor applied`);
   }, []);
+  // ── Vocal Processor → Console FX bridge ──
+  const handleApplyVocalFx = useCallback((fxSettings) => {
+    const idx = tracks.findIndex(t => t.armed);
+    const targetIdx = idx !== -1 ? idx : selectedTrackIndex;
+    setTracks(prev => prev.map((t, i) => {
+      if (i !== targetIdx) return t;
+      return {
+        ...t,
+        effects: {
+          ...t.effects,
+          eq: { ...t.effects.eq, ...(fxSettings.eq || {}), enabled: fxSettings.eq?.enabled ?? t.effects.eq.enabled },
+          compressor: { ...t.effects.compressor, ...(fxSettings.compressor || {}), enabled: fxSettings.compressor?.enabled ?? t.effects.compressor.enabled },
+          reverb: { ...t.effects.reverb, ...(fxSettings.reverb || {}), enabled: fxSettings.reverb?.enabled ?? t.effects.reverb.enabled },
+          gate: { ...t.effects.gate, ...(fxSettings.gate || {}), enabled: fxSettings.gate?.enabled ?? t.effects.gate.enabled },
+          deesser: { ...t.effects.deesser, ...(fxSettings.deesser || {}), enabled: fxSettings.deesser?.enabled ?? t.effects.deesser.enabled },
+          limiter: { ...t.effects.limiter, ...(fxSettings.limiter || {}), enabled: fxSettings.limiter?.enabled ?? t.effects.limiter.enabled },
+          filter: { ...t.effects.filter, ...(fxSettings.filter || {}), enabled: fxSettings.filter?.enabled ?? t.effects.filter.enabled },
+          distortion: { ...t.effects.distortion, ...(fxSettings.distortion || {}), enabled: fxSettings.distortion?.enabled ?? t.effects.distortion.enabled },
+          chorus: { ...t.effects.chorus, ...(fxSettings.chorus || {}), enabled: fxSettings.chorus?.enabled ?? t.effects.chorus.enabled },
+        },
+      };
+    }));
+    setActiveEffectsTrack(targetIdx);
+    setStatus(`✓ Vocal FX chain applied to Track ${targetIdx + 1} — visible in Console`);
+  }, [tracks, selectedTrackIndex]);
 
+  // ── Mic Simulator → Console EQ bridge ──
+  const handleApplyMicProfile = useCallback((micProfile) => {
+    const idx = tracks.findIndex(t => t.armed);
+    const targetIdx = idx !== -1 ? idx : selectedTrackIndex;
+    if (!micProfile?.eqCurve) return;
+    setTracks(prev => prev.map((t, i) => {
+      if (i !== targetIdx) return t;
+      return {
+        ...t,
+        effects: {
+          ...t.effects,
+          eq: {
+            ...t.effects.eq,
+            lowGain: micProfile.eqCurve.lowGain || 0,
+            midGain: micProfile.eqCurve.midGain || 0,
+            midFreq: micProfile.eqCurve.midFreq || 1000,
+            highGain: micProfile.eqCurve.highGain || 0,
+            enabled: true,
+          },
+          filter: micProfile.rolloff ? {
+            ...t.effects.filter,
+            type: 'highpass',
+            frequency: micProfile.rolloff,
+            Q: 0.707,
+            enabled: true,
+          } : t.effects.filter,
+        },
+      };
+    }));
+    setStatus(`✓ Mic profile "${micProfile.name}" EQ applied to Track ${targetIdx + 1}`);
+  }, [tracks, selectedTrackIndex]);
   const handleAIBeatApply = useCallback((patternData) => {
     setStatus(
       `✓ AI Beat pattern generated: ${patternData.genre} @ ${patternData.bpm} BPM — Switch to Beat Maker to use`,
@@ -3108,7 +3164,7 @@ const RecordingStudio = ({ user }) => {
 
         {viewMode === "piano" && (
           <div className="daw-piano-view">
-            <VirtualPiano audioContext={audioCtxRef.current} onRecordingComplete={() => {}} embedded={true} />
+            <VirtualPiano audioContext={audioCtxRef.current} onRecordingComplete={() => { }} embedded={true} />
           </div>
         )}
 
@@ -3136,6 +3192,7 @@ const RecordingStudio = ({ user }) => {
                   }
                 }
               }}
+              onApplyMicProfile={handleApplyMicProfile}
               onClose={() => setViewMode("arrange")}
               isEmbedded={true}
             />
@@ -3144,7 +3201,7 @@ const RecordingStudio = ({ user }) => {
 
         {viewMode === "split" && (
           <div className="daw-split-view">
-            <PianoDrumSplit audioContext={audioCtxRef.current} onRecordingComplete={() => {}} isEmbedded={true} />
+            <PianoDrumSplit audioContext={audioCtxRef.current} onRecordingComplete={() => { }} isEmbedded={true} />
           </div>
         )}
         {viewMode === "keyfinder" && (
@@ -3192,6 +3249,7 @@ const RecordingStudio = ({ user }) => {
                   })
                   .catch((e) => setStatus(`✗ ${e.message}`));
               }}
+              onApplyMicProfile={handleApplyMicProfile}
               onClose={() => setViewMode("arrange")}
               isEmbedded={true}
             />
@@ -3236,16 +3294,23 @@ const RecordingStudio = ({ user }) => {
               audioContext={audioCtxRef.current}
               onClose={() => setViewMode("arrange")}
               isEmbedded={true}
-            />
-          </div>
-        )}
-        {viewMode === "plugins" && (
-          <div className="daw-plugins-view" style={{ height: "100%" }}>
-            <PluginRackPanel
-              engine={getEngine?.()}
-              TrackGraph={TrackGraph}
-              onClose={() => setViewMode("arrange")}
-              isEmbedded={true}
+              tracks={tracks}
+              selectedTrackIndex={selectedTrackIndex}
+              bpm={bpm}
+              onApplyToConsole={handleApplyVocalFx}
+              onSendToTrack={(buf, name) => {
+                const ai = tracks.findIndex(t => t.armed);
+                const idx = ai !== -1 ? ai : selectedTrackIndex;
+                const audioUrl = URL.createObjectURL(new Blob([]));
+                updateTrack(idx, { audioBuffer: buf, audio_url: audioUrl, name: name || tracks[idx].name });
+                createRegionFromImport(idx, buf, name || "Vocal Take", audioUrl);
+                setStatus(`✓ Vocal take → Track ${idx + 1}`);
+                setViewMode("arrange");
+              }}
+              onRecordingComplete={(blob) => {
+                const ai = tracks.findIndex(t => t.armed);
+                if (ai !== -1) uploadTrack(blob, ai);
+              }}
             />
           </div>
         )}
