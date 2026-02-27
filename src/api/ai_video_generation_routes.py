@@ -25,7 +25,7 @@ from datetime import datetime
 from .models import (
     db, User, AIVideoGeneration, VideoCredit
 )
-from .ai_video_credits_routes import (
+from .ai_credits_routes import (
     deduct_user_credits, refund_user_credits, get_or_create_credits,
     get_user_tier, check_and_reset_monthly_credits
 )
