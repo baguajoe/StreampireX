@@ -73,6 +73,7 @@ from src.api.podcast_studio_ai_routes import podcast_ai_bp
 from src.api.podcast_studio_phase2_routes import podcast_phase2_bp
 from src.api.podcast_socket_events import register_podcast_socket_events
 from src.api.support_routes import support_bp
+from api.ai_credits_routes import ai_credits_bp
 
 
 # ✅ Environment setup
@@ -303,7 +304,7 @@ app.register_blueprint(ai_content_bp)
 app.register_blueprint(recording_studio_bp)
 app.register_blueprint(ai_mix_assistant_bp)
 app.register_blueprint(ai_stem_separation_bp)
-app.register_blueprint(ai_video_credits_bp)
+# OLD: app.register_blueprint(ai_video_credits_bp)  # Replaced by ai_credits_bp
 app.register_blueprint(ai_video_gen_bp)
 app.register_blueprint(mic_simulator_bp)  # 🎙️ Mic Simulator
 app.register_blueprint(freesound_bp)  # 🔊 Freesound.org Sample Browser
@@ -317,6 +318,7 @@ app.register_blueprint(podcast_studio_bp)
 app.register_blueprint(podcast_ai_bp)
 app.register_blueprint(podcast_phase2_bp)
 app.register_blueprint(support_bp)
+app.register_blueprint(ai_credits_bp)
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)

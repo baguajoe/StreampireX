@@ -1,0 +1,429 @@
+# =============================================================================
+# AI VIDEO CREDITS ROUTES - Credit System + Stripe Purchases
+# =============================================================================
+# Save as: src/api/ai_video_credits_routes.py
+# Register in app.py: from api.ai_video_credits_routes import ai_video_credits_bp
+#                      app.register_blueprint(ai_video_credits_bp)
+# =============================================================================
+
+import os
+import stripe
+from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import datetime, timedelta
+
+from .models import (
+    db, User, Subscription, PricingPlan,
+    VideoCredit, CreditPackPurchase, AIVideoGeneration,
+    CREDIT_PACKS, TIER_FREE_CREDITS
+)
+
+ai_video_credits_bp = Blueprint('ai_video_credits', __name__)
+
+# Initialize Stripe
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+
+
+# =============================================================================
+# HELPER: Get or create user's credit record
+# =============================================================================
+
+def get_or_create_credits(user_id):
+    """Get user's credit record, creating one if it doesn't exist"""
+    credit = VideoCredit.query.filter_by(user_id=user_id).first()
+    if not credit:
+        credit = VideoCredit(user_id=user_id, balance=0)
+        db.session.add(credit)
+        db.session.commit()
+    return credit
+
+
+def get_user_tier(user_id):
+    """Get user's subscription tier"""
+    subscription = Subscription.query.filter_by(
+        user_id=user_id, status='active'
+    ).first()
+    if subscription and subscription.plan:
+        return subscription.plan.name.lower()
+    return 'free'
+
+
+def check_and_reset_monthly_credits(credit, user_id):
+    """Check if monthly credits need to be reset, with rollover support"""
+    now = datetime.utcnow()
+    
+    # Grant one-time free credits for free tier users (first time only)
+    tier = get_user_tier(user_id)
+    onetime = TIER_FREE_CREDITS.get('free', 3) if tier == 'free' else 0
+    if tier == 'free' and onetime > 0 and not getattr(credit, 'onetime_granted', False):
+        credit.balance += onetime
+        credit.onetime_granted = True
+        db.session.commit()
+        print(f"🎁 Granted {onetime} one-time credits to free user {user_id}")
+    
+    # Monthly reset for paid tiers
+    needs_reset = False
+    if not credit.monthly_reset_date:
+        needs_reset = True
+    elif (now - credit.monthly_reset_date).days >= 30:
+        needs_reset = True
+    
+    if needs_reset and tier != 'free':
+        free_credits = TIER_FREE_CREDITS.get(tier, 0)
+        if free_credits > 0:
+            # Rollover: carry unused monthly credits (capped at 1 month)
+            unused_monthly = max(0, credit.monthly_free_credits - credit.monthly_credits_used)
+            rollover = min(unused_monthly, free_credits)  # Cap at 1 month allotment
+            
+            credit.last_rollover_amount = rollover
+            credit.balance = credit.balance + free_credits  # Add new month credits
+            credit.monthly_free_credits = free_credits + rollover
+            credit.monthly_credits_used = 0
+            credit.monthly_reset_date = now
+            db.session.commit()
+            print(f"🔄 Reset monthly credits for user {user_id}: {free_credits} new + {rollover} rollover")
+    
+    return credit
+
+
+# =============================================================================
+# GET CREDIT BALANCE
+# =============================================================================
+
+@ai_video_credits_bp.route('/api/ai-video/credits', methods=['GET'])
+@jwt_required()
+def get_credit_balance():
+    """Get user's current credit balance and tier info"""
+    try:
+        user_id = get_jwt_identity()
+        credit = get_or_create_credits(user_id)
+        credit = check_and_reset_monthly_credits(credit, user_id)
+        tier = get_user_tier(user_id)
+        
+        return jsonify({
+            'success': True,
+            'credits': credit.serialize(),
+            'tier': tier,
+            'tier_free_credits': TIER_FREE_CREDITS.get(tier, 0),
+            'can_purchase': tier != 'free',  # Free users must upgrade first
+            'packs': list(CREDIT_PACKS.values()),
+        }), 200
+        
+    except Exception as e:
+        print(f"Error getting credits: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# =============================================================================
+# GET AVAILABLE CREDIT PACKS
+# =============================================================================
+
+@ai_video_credits_bp.route('/api/ai-video/credit-packs', methods=['GET'])
+@jwt_required()
+def get_credit_packs():
+    """Get available credit packs for purchase"""
+    try:
+        user_id = get_jwt_identity()
+        tier = get_user_tier(user_id)
+        
+        return jsonify({
+            'success': True,
+            'packs': list(CREDIT_PACKS.values()),
+            'tier': tier,
+            'can_purchase': tier != 'free',
+            'upgrade_message': 'Upgrade to a paid plan to purchase AI video credits' if tier == 'free' else None,
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# =============================================================================
+# PURCHASE CREDIT PACK (Stripe Checkout)
+# =============================================================================
+
+@ai_video_credits_bp.route('/api/ai-video/purchase-credits', methods=['POST'])
+@jwt_required()
+def purchase_credit_pack():
+    """Create Stripe checkout session for credit pack purchase"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Check tier — free users can't buy credits
+        tier = get_user_tier(user_id)
+        if tier == 'free':
+            return jsonify({
+                'error': 'Please upgrade to a paid plan to purchase AI video credits',
+                'upgrade_required': True
+            }), 403
+        
+        data = request.get_json()
+        pack_id = data.get('pack_id')
+        
+        if not pack_id or pack_id not in CREDIT_PACKS:
+            return jsonify({'error': 'Invalid credit pack'}), 400
+        
+        pack = CREDIT_PACKS[pack_id]
+        
+        # Create Stripe Checkout Session
+        frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
+        
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': f'AI Video {pack["name"]}',
+                        'description': f'{pack["credits"]} AI video generation credits',
+                    },
+                    'unit_amount': int(pack['price'] * 100),  # Convert to cents
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=f'{frontend_url}/ai-video-studio?purchase=success&pack={pack_id}&session_id={{CHECKOUT_SESSION_ID}}',
+            cancel_url=f'{frontend_url}/ai-video-studio?purchase=cancelled',
+            metadata={
+                'type': 'credit_pack_purchase',
+                'user_id': str(user_id),
+                'pack_id': pack_id,
+                'credits_amount': str(pack['credits']),
+            },
+            customer_email=user.email,
+        )
+        
+        # Record the pending purchase
+        purchase = CreditPackPurchase(
+            user_id=user_id,
+            pack_id=pack_id,
+            pack_name=pack['name'],
+            credits_amount=pack['credits'],
+            price=pack['price'],
+            stripe_checkout_session_id=checkout_session.id,
+            status='pending',
+        )
+        db.session.add(purchase)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'checkout_url': checkout_session.url,
+            'session_id': checkout_session.id,
+        }), 200
+        
+    except stripe.error.StripeError as e:
+        print(f"Stripe error: {e}")
+        return jsonify({'error': f'Payment error: {str(e)}'}), 500
+    except Exception as e:
+        print(f"Error creating checkout: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# =============================================================================
+# STRIPE WEBHOOK HANDLER FOR CREDIT PURCHASES
+# =============================================================================
+# Add this to your EXISTING webhook handler in routes.py
+# In your handle_checkout_completed function, add:
+#
+#   elif session.get('metadata', {}).get('type') == 'credit_pack_purchase':
+#       handle_credit_pack_payment(session)
+# =============================================================================
+
+def handle_credit_pack_payment(session):
+    """Handle successful credit pack payment from Stripe webhook"""
+    try:
+        metadata = session.get('metadata', {})
+        user_id = int(metadata.get('user_id'))
+        pack_id = metadata.get('pack_id')
+        credits_amount = int(metadata.get('credits_amount'))
+        
+        # Update purchase record
+        purchase = CreditPackPurchase.query.filter_by(
+            stripe_checkout_session_id=session['id']
+        ).first()
+        
+        if purchase:
+            purchase.status = 'completed'
+            purchase.completed_at = datetime.utcnow()
+            if session.get('payment_intent'):
+                purchase.stripe_payment_intent_id = session['payment_intent']
+        
+        # Add credits to user's balance
+        credit = get_or_create_credits(user_id)
+        credit.add(credits_amount, source='purchase')
+        credit.total_spent += CREDIT_PACKS.get(pack_id, {}).get('price', 0)
+        
+        db.session.commit()
+        
+        current_app.logger.info(
+            f"✅ Credits added: {credits_amount} credits to user {user_id} "
+            f"(pack: {pack_id})"
+        )
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Error handling credit payment: {e}")
+        db.session.rollback()
+        raise
+
+
+# =============================================================================
+# VERIFY PURCHASE (Called from frontend after Stripe redirect)
+# =============================================================================
+
+@ai_video_credits_bp.route('/api/ai-video/verify-purchase', methods=['POST'])
+@jwt_required()
+def verify_credit_purchase():
+    """Verify a credit pack purchase after Stripe redirect"""
+    try:
+        user_id = get_jwt_identity()
+        data = request.get_json()
+        session_id = data.get('session_id')
+        
+        if not session_id:
+            return jsonify({'error': 'Missing session_id'}), 400
+        
+        # Check Stripe session status
+        session = stripe.checkout.Session.retrieve(session_id)
+        
+        if session.payment_status == 'paid':
+            # Check if already processed
+            purchase = CreditPackPurchase.query.filter_by(
+                stripe_checkout_session_id=session_id
+            ).first()
+            
+            if purchase and purchase.status == 'pending':
+                # Process it now (webhook may not have fired yet)
+                handle_credit_pack_payment({
+                    'id': session_id,
+                    'payment_intent': session.payment_intent,
+                    'metadata': session.metadata,
+                })
+            
+            credit = get_or_create_credits(user_id)
+            
+            return jsonify({
+                'success': True,
+                'status': 'completed',
+                'credits': credit.serialize(),
+                'message': f'Successfully added {purchase.credits_amount} credits!',
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'status': session.payment_status,
+                'message': 'Payment not completed',
+            }), 200
+            
+    except Exception as e:
+        print(f"Error verifying purchase: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+# =============================================================================
+# CREDIT USAGE HISTORY
+# =============================================================================
+
+@ai_video_credits_bp.route('/api/ai-video/credit-history', methods=['GET'])
+@jwt_required()
+def get_credit_history():
+    """Get user's credit purchase and usage history"""
+    try:
+        user_id = get_jwt_identity()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        
+        # Get purchases
+        purchases = CreditPackPurchase.query.filter_by(
+            user_id=user_id, status='completed'
+        ).order_by(CreditPackPurchase.created_at.desc()).limit(per_page).all()
+        
+        # Get generations
+        generations = AIVideoGeneration.query.filter_by(
+            user_id=user_id
+        ).order_by(AIVideoGeneration.created_at.desc()).limit(per_page).all()
+        
+        return jsonify({
+            'success': True,
+            'purchases': [p.serialize() for p in purchases],
+            'generations': [g.serialize() for g in generations],
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# =============================================================================
+# ADMIN: GRANT FREE CREDITS (For promotions, refunds, etc.)
+# =============================================================================
+
+@ai_video_credits_bp.route('/api/ai-video/grant-credits', methods=['POST'])
+@jwt_required()
+def grant_credits():
+    """Admin route to grant free credits to a user"""
+    try:
+        admin_id = get_jwt_identity()
+        admin = User.query.get(admin_id)
+        
+        # Check if admin (you can customize this check)
+        if not admin or not getattr(admin, 'is_admin', False):
+            return jsonify({'error': 'Unauthorized'}), 403
+        
+        data = request.get_json()
+        target_user_id = data.get('user_id')
+        amount = data.get('amount', 0)
+        reason = data.get('reason', 'admin_grant')
+        
+        if not target_user_id or amount <= 0:
+            return jsonify({'error': 'Invalid user_id or amount'}), 400
+        
+        credit = get_or_create_credits(target_user_id)
+        credit.add(amount, source='grant')
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Granted {amount} credits to user {target_user_id}',
+            'new_balance': credit.balance,
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# =============================================================================
+# DEDUCT CREDITS (Internal helper — used by video generation routes)
+# =============================================================================
+
+def deduct_user_credits(user_id, amount=1):
+    """
+    Deduct credits from user. Returns (success, credit_record, error_message)
+    """
+    credit = get_or_create_credits(user_id)
+    credit = check_and_reset_monthly_credits(credit, user_id)
+    
+    if not credit.has_credits(amount):
+        tier = get_user_tier(user_id)
+        return False, credit, {
+            'error': 'Insufficient credits',
+            'balance': credit.balance,
+            'needed': amount,
+            'can_purchase': tier != 'free',
+            'upgrade_required': tier == 'free',
+        }
+    
+    credit.deduct(amount)
+    db.session.commit()
+    return True, credit, None
+
+
+def refund_user_credits(user_id, amount=1):
+    """Refund credits back to user (on generation failure)"""
+    credit = get_or_create_credits(user_id)
+    credit.refund(amount)
+    db.session.commit()
+    return credit

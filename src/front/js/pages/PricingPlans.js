@@ -104,7 +104,6 @@ const PricingPlans = () => {
       setProcessing(tier);
       const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
-      // Map tier names to database plan names (capitalized)
       const planNameMap = {
         'free': 'Free',
         'starter': 'Starter',
@@ -268,10 +267,24 @@ const PricingPlans = () => {
                 <span><strong>Recording Studio</strong> (4 tracks)</span>
               </li>
 
-              {/* AI Stem Separation — FREE */}
+              {/* Free AI Tools */}
               <li className="feature included highlight">
                 <span className="icon">🎵</span>
                 <span><strong>AI Stem Separation</strong> — Free!</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">🎯</span>
+                <span>Pitch Correction, Key Finder, Audio-to-MIDI</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">🖼️</span>
+                <span>Background Removal, Scene Detection</span>
+              </li>
+
+              {/* AI Credits */}
+              <li className="feature excluded">
+                <span className="icon">✗</span>
+                <span>0 AI credits/month</span>
               </li>
 
               {/* Clips */}
@@ -302,21 +315,11 @@ const PricingPlans = () => {
                 <span>Receive tips (keep 90%)</span>
               </li>
 
-              {/* AI Features - Free */}
-              <li className="feature excluded">
-                <span className="icon">✗</span>
-                <span>AI Mastering</span>
-              </li>
-              <li className="feature excluded">
-                <span className="icon">✗</span>
-                <span>AI Mix Assistant</span>
-              </li>
-              <li className="feature excluded">
-                <span className="icon">✗</span>
-                <span>AI Radio DJ</span>
-              </li>
-
               {/* Excluded */}
+              <li className="feature excluded">
+                <span className="icon">✗</span>
+                <span>AI Mastering, Voice Clone, Radio DJ</span>
+              </li>
               <li className="feature excluded">
                 <span className="icon">✗</span>
                 <span>Live streaming</span>
@@ -394,6 +397,16 @@ const PricingPlans = () => {
                 <span><strong>AI Stem Separation</strong> — Free!</span>
               </li>
 
+              {/* AI Credits */}
+              <li className="feature included special">
+                <span className="icon">⚡</span>
+                <span><strong>50 AI Credits/month</strong></span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>AI Captions, Content Gen, Narration</span>
+              </li>
+
               {/* Clips */}
               <li className="feature included">
                 <span className="icon">📱</span>
@@ -446,7 +459,7 @@ const PricingPlans = () => {
 
               <li className="feature excluded">
                 <span className="icon">✗</span>
-                <span>AI Radio DJ</span>
+                <span>AI Radio DJ, Voice Cloning</span>
               </li>
             </ul>
 
@@ -520,6 +533,16 @@ const PricingPlans = () => {
               <li className="feature included highlight">
                 <span className="icon">🎵</span>
                 <span><strong>AI Stem Separation</strong> — Free!</span>
+              </li>
+
+              {/* AI Credits */}
+              <li className="feature included special">
+                <span className="icon">⚡</span>
+                <span><strong>200 AI Credits/month</strong></span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>AI Video Gen, Captions, Content, Images</span>
               </li>
 
               {/* Clips */}
@@ -657,6 +680,20 @@ const PricingPlans = () => {
                 <span><strong>AI Stem Separation</strong> — Free!</span>
               </li>
 
+              {/* AI Credits */}
+              <li className="feature included special">
+                <span className="icon">⚡</span>
+                <span><strong>1,000 AI Credits/month</strong></span>
+              </li>
+              <li className="feature included">
+                <span className="icon">✓</span>
+                <span>ALL AI features unlocked</span>
+              </li>
+              <li className="feature included">
+                <span className="icon">🛒</span>
+                <span>Buy extra credit packs anytime</span>
+              </li>
+
               {/* Streaming */}
               <li className="feature included highlight">
                 <span className="icon">📺</span>
@@ -736,6 +773,76 @@ const PricingPlans = () => {
       </div>
 
       {/* ================================================================== */}
+      {/* AI CREDITS EXPLANATION SECTION */}
+      {/* ================================================================== */}
+      <div className="pricing-section ai-credits-section">
+        <h2 className="section-title">⚡ AI Credits — How They Work</h2>
+        <p className="section-subtitle">Credits power premium AI features that use paid APIs. Many AI tools run locally and are completely free — no credits needed!</p>
+
+        <div className="pricing-cards three-col">
+
+          {/* Free AI Column */}
+          <div className="pricing-card ai-info-card">
+            <div className="card-header">
+              <h2>🆓 Always Free</h2>
+              <p className="card-subtitle">No credits needed — ever</p>
+            </div>
+            <ul className="features-list">
+              <li className="feature included"><span className="icon">🎵</span><span>AI Stem Separation</span></li>
+              <li className="feature included"><span className="icon">🎯</span><span>Pitch Correction / Auto-Tune</span></li>
+              <li className="feature included"><span className="icon">🔑</span><span>Key Finder</span></li>
+              <li className="feature included"><span className="icon">🎼</span><span>Audio-to-MIDI</span></li>
+              <li className="feature included"><span className="icon">🥁</span><span>Beat Detection</span></li>
+              <li className="feature included"><span className="icon">🎤</span><span>Vocal Tuner</span></li>
+              <li className="feature included"><span className="icon">🔊</span><span>Audio Ducking</span></li>
+              <li className="feature included"><span className="icon">🖼️</span><span>Background Removal</span></li>
+              <li className="feature included"><span className="icon">🎬</span><span>Scene Detection</span></li>
+              <li className="feature included"><span className="icon">📍</span><span>Motion Tracking</span></li>
+              <li className="feature included"><span className="icon">🔇</span><span>Silence Detection</span></li>
+              <li className="feature included"><span className="icon">📷</span><span>Thumbnail Extract</span></li>
+            </ul>
+          </div>
+
+          {/* Paid AI Column */}
+          <div className="pricing-card ai-info-card">
+            <div className="card-header">
+              <h2>⚡ Uses Credits</h2>
+              <p className="card-subtitle">Powered by premium AI APIs</p>
+            </div>
+            <ul className="features-list">
+              <li className="feature included"><span className="icon">🎬</span><span>AI Video Generation — <strong>10 cr</strong></span></li>
+              <li className="feature included"><span className="icon">🎤</span><span>Voice Clone (create) — <strong>5 cr</strong></span></li>
+              <li className="feature included"><span className="icon">🗣️</span><span>Voice Clone TTS — <strong>2 cr</strong></span></li>
+              <li className="feature included"><span className="icon">🎞️</span><span>Video Narration — <strong>3 cr</strong></span></li>
+              <li className="feature included"><span className="icon">📻</span><span>AI Radio DJ TTS — <strong>1 cr</strong></span></li>
+              <li className="feature included"><span className="icon">🎙️</span><span>Podcast Intro/Outro — <strong>2 cr</strong></span></li>
+              <li className="feature included"><span className="icon">💬</span><span>Auto Captions — <strong>2 cr</strong></span></li>
+              <li className="feature included"><span className="icon">🖼️</span><span>AI Image Generation — <strong>3 cr</strong></span></li>
+              <li className="feature included"><span className="icon">✍️</span><span>AI Content/Lyrics — <strong>1 cr</strong></span></li>
+              <li className="feature included"><span className="icon">📷</span><span>AI Thumbnail Enhance — <strong>1 cr</strong></span></li>
+            </ul>
+          </div>
+
+          {/* Credit Packs Column */}
+          <div className="pricing-card ai-info-card">
+            <div className="card-header">
+              <h2>🛒 Buy More Anytime</h2>
+              <p className="card-subtitle">Credit packs for paid subscribers</p>
+            </div>
+            <ul className="features-list">
+              <li className="feature included special"><span className="icon">⚡</span><span><strong>Starter Pack</strong> — 25 credits / $4.99</span></li>
+              <li className="feature included special"><span className="icon">🎥</span><span><strong>Creator Pack</strong> — 75 credits / $11.99</span></li>
+              <li className="feature included special"><span className="icon">🎬</span><span><strong>Studio Pack</strong> — 200 credits / $24.99</span></li>
+              <li className="feature included special"><span className="icon">🚀</span><span><strong>Unlimited Pack</strong> — 500 credits / $49.99</span></li>
+            </ul>
+            <div style={{ padding: '0 20px 15px', fontSize: '13px', color: '#aaa' }}>
+              <p>Credits never expire. Available to Starter, Creator, and Pro subscribers. Purchased credits stack on top of your monthly allotment.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ================================================================== */}
       {/* MUSIC DISTRIBUTION PLANS */}
       {/* ================================================================== */}
       <div className="pricing-section distribution-section">
@@ -744,9 +851,7 @@ const PricingPlans = () => {
 
         <div className="distribution-cards">
 
-          {/* ============================================================ */}
           {/* ARTIST DISTRIBUTION */}
-          {/* ============================================================ */}
           <div className={`pricing-card distribution artist ${isCurrentPlan('artist-distribution') ? 'current' : ''}`}>
             {isCurrentPlan('artist-distribution') && <div className="current-badge">Current Plan</div>}
 
@@ -810,9 +915,7 @@ const PricingPlans = () => {
             </button>
           </div>
 
-          {/* ============================================================ */}
           {/* LABEL DISTRIBUTION */}
-          {/* ============================================================ */}
           <div className={`pricing-card distribution label ${isCurrentPlan('label-distribution') ? 'current' : ''}`}>
             <div className="label-badge">🏆 For Labels</div>
             {isCurrentPlan('label-distribution') && <div className="current-badge">Current Plan</div>}
@@ -950,6 +1053,128 @@ const PricingPlans = () => {
                 <td>$319.99</td>
               </tr>
 
+              {/* AI Credits */}
+              <tr className="category-header">
+                <td colSpan="5">⚡ AI Credits</td>
+              </tr>
+              <tr>
+                <td>Monthly AI Credits</td>
+                <td>0</td>
+                <td>50</td>
+                <td className="highlight">200</td>
+                <td>1,000</td>
+              </tr>
+              <tr>
+                <td>Buy Extra Credit Packs</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+                <td>✓</td>
+              </tr>
+              <tr>
+                <td>AI Video Generation (10 cr)</td>
+                <td>✗</td>
+                <td>3/day</td>
+                <td className="highlight">10/day</td>
+                <td>50/day</td>
+              </tr>
+              <tr>
+                <td>AI Content/Lyrics Gen (1 cr)</td>
+                <td>✗</td>
+                <td>10/day</td>
+                <td className="highlight">50/day</td>
+                <td>200/day</td>
+              </tr>
+              <tr>
+                <td>Auto Captions (2 cr)</td>
+                <td>✗</td>
+                <td>3/day</td>
+                <td className="highlight">10/day</td>
+                <td>50/day</td>
+              </tr>
+              <tr>
+                <td>AI Image Gen (3 cr)</td>
+                <td>✗</td>
+                <td>5/day</td>
+                <td className="highlight">20/day</td>
+                <td>100/day</td>
+              </tr>
+
+              {/* Free AI Tools */}
+              <tr className="category-header">
+                <td colSpan="5">🆓 Free AI Tools (No Credits)</td>
+              </tr>
+              <tr>
+                <td>AI Stem Separation</td>
+                <td>✓ Free</td>
+                <td>✓ Free</td>
+                <td className="highlight">✓ Free</td>
+                <td>✓ Free</td>
+              </tr>
+              <tr>
+                <td>Pitch Correction / Auto-Tune</td>
+                <td>✓ Free</td>
+                <td>✓ Free</td>
+                <td className="highlight">✓ Free</td>
+                <td>✓ Free</td>
+              </tr>
+              <tr>
+                <td>Key Finder</td>
+                <td>✓ Free</td>
+                <td>✓ Free</td>
+                <td className="highlight">✓ Free</td>
+                <td>✓ Free</td>
+              </tr>
+              <tr>
+                <td>Audio-to-MIDI</td>
+                <td>✓ Free</td>
+                <td>✓ Free</td>
+                <td className="highlight">✓ Free</td>
+                <td>✓ Free</td>
+              </tr>
+              <tr>
+                <td>Beat Detection</td>
+                <td>✓ Free</td>
+                <td>✓ Free</td>
+                <td className="highlight">✓ Free</td>
+                <td>✓ Free</td>
+              </tr>
+              <tr>
+                <td>Background Removal</td>
+                <td>✓ Free</td>
+                <td>✓ Free</td>
+                <td className="highlight">✓ Free</td>
+                <td>✓ Free</td>
+              </tr>
+              <tr>
+                <td>Scene Detection</td>
+                <td>✓ Free</td>
+                <td>✓ Free</td>
+                <td className="highlight">✓ Free</td>
+                <td>✓ Free</td>
+              </tr>
+              <tr>
+                <td>Motion Tracking</td>
+                <td>✓ Free</td>
+                <td>✓ Free</td>
+                <td className="highlight">✓ Free</td>
+                <td>✓ Free</td>
+              </tr>
+              <tr>
+                <td>Audio Ducking</td>
+                <td>✓ Free</td>
+                <td>✓ Free</td>
+                <td className="highlight">✓ Free</td>
+                <td>✓ Free</td>
+              </tr>
+              <tr>
+                <td>Silence Detection</td>
+                <td>✓ Free</td>
+                <td>✓ Free</td>
+                <td className="highlight">✓ Free</td>
+                <td>✓ Free</td>
+              </tr>
+
               {/* Video Editing */}
               <tr className="category-header">
                 <td colSpan="5">🎬 Video Editing</td>
@@ -1027,6 +1252,53 @@ const PricingPlans = () => {
                 <td>✓</td>
                 <td>✓</td>
                 <td className="highlight">✓</td>
+                <td>✓</td>
+              </tr>
+
+              {/* Premium AI Features */}
+              <tr className="category-header">
+                <td colSpan="5">🤖 Premium AI Features</td>
+              </tr>
+              <tr>
+                <td>AI Mastering</td>
+                <td>✗</td>
+                <td>3/month</td>
+                <td className="highlight">15/month</td>
+                <td>Unlimited</td>
+              </tr>
+              <tr>
+                <td>Smart Auto-Detect</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+                <td>✓</td>
+              </tr>
+              <tr>
+                <td>50 Genre Profiles</td>
+                <td>✗</td>
+                <td>✓</td>
+                <td className="highlight">✓</td>
+                <td>✓</td>
+              </tr>
+              <tr>
+                <td>AI Mix Assistant</td>
+                <td>✗</td>
+                <td>✓ (Browser)</td>
+                <td className="highlight">✓ (Browser)</td>
+                <td>✓ (Browser + Server)</td>
+              </tr>
+              <tr>
+                <td>AI Radio DJ</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td className="highlight">7 personas</td>
+                <td>Unlimited</td>
+              </tr>
+              <tr>
+                <td>AI Voice Cloning</td>
+                <td>✗</td>
+                <td>✗</td>
+                <td className="highlight">✗</td>
                 <td>✓</td>
               </tr>
 
@@ -1112,60 +1384,6 @@ const PricingPlans = () => {
                 <td>✗</td>
                 <td>✗</td>
                 <td className="highlight">✓</td>
-                <td>✓</td>
-              </tr>
-
-              {/* AI Features */}
-              <tr className="category-header">
-                <td colSpan="5">🤖 AI Features</td>
-              </tr>
-              <tr>
-                <td>AI Stem Separation</td>
-                <td>✓ Free</td>
-                <td>✓ Free</td>
-                <td className="highlight">✓ Free</td>
-                <td>✓ Free</td>
-              </tr>
-              <tr>
-                <td>AI Mastering</td>
-                <td>✗</td>
-                <td>3/month</td>
-                <td className="highlight">15/month</td>
-                <td>Unlimited</td>
-              </tr>
-              <tr>
-                <td>Smart Auto-Detect</td>
-                <td>✗</td>
-                <td>✓</td>
-                <td className="highlight">✓</td>
-                <td>✓</td>
-              </tr>
-              <tr>
-                <td>50 Genre Profiles</td>
-                <td>✗</td>
-                <td>✓</td>
-                <td className="highlight">✓</td>
-                <td>✓</td>
-              </tr>
-              <tr>
-                <td>AI Mix Assistant</td>
-                <td>✗</td>
-                <td>✓ (Browser)</td>
-                <td className="highlight">✓ (Browser)</td>
-                <td>✓ (Browser + Server)</td>
-              </tr>
-              <tr>
-                <td>AI Radio DJ</td>
-                <td>✗</td>
-                <td>✗</td>
-                <td className="highlight">7 personas</td>
-                <td>Unlimited</td>
-              </tr>
-              <tr>
-                <td>AI Voice Cloning</td>
-                <td>✗</td>
-                <td>✗</td>
-                <td className="highlight">✗</td>
                 <td>✓</td>
               </tr>
 
@@ -1323,6 +1541,21 @@ const PricingPlans = () => {
           <div className="faq-item">
             <h3>Do I need a distribution plan if I'm Pro?</h3>
             <p>No! Pro already includes full music distribution. The Artist/Label plans are for users who only need distribution without other creator features.</p>
+          </div>
+
+          <div className="faq-item">
+            <h3>What are AI Credits?</h3>
+            <p>AI Credits power premium AI features like video generation, voice cloning, auto-captions, and content generation. Each paid plan includes monthly credits that reset every 30 days — Starter gets 50, Creator gets 200, and Pro gets 1,000. Many AI tools like stem separation, pitch correction, key finder, beat detection, audio-to-MIDI, background removal, and motion tracking are completely free and never use credits.</p>
+          </div>
+
+          <div className="faq-item">
+            <h3>Can I buy more AI Credits?</h3>
+            <p>Yes! Paid subscribers can purchase credit packs anytime starting at $4.99 for 25 credits, up to $49.99 for 500 credits. Purchased credits never expire and stack on top of your monthly allotment.</p>
+          </div>
+
+          <div className="faq-item">
+            <h3>Which AI features are free?</h3>
+            <p>AI Stem Separation, Pitch Correction, Key Finder, Audio-to-MIDI, Beat Detection, Vocal Tuner, Background Removal, Scene Detection, Motion Tracking, Audio Ducking, Silence Detection, and Thumbnail Extraction are all completely free on every plan with no limits. These run locally and don't require paid APIs.</p>
           </div>
 
           <div className="faq-item">

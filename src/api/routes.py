@@ -22072,7 +22072,7 @@ def handle_checkout_completed(session):
         if metadata.get('type') == 'tip':
             handle_tip_payment_success(session)
         # AI Video Credit Pack Purchase
-        if metadata.get('type') == 'credit_pack_purchase':
+        if metadata.get('type') in ('credit_pack_purchase', 'ai_credit_purchase'):
             from src.api.ai_video_credits_routes import handle_credit_pack_payment
             handle_credit_pack_payment(session)
             return
