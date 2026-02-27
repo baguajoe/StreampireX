@@ -30,7 +30,6 @@ class Role(db.Model):
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)  # "Admin", "Creator", "Listener", "Radio DJ", "Podcaster"
-    __table_args__ = {'extend_existing': True}
     def serialize(self):
         return {
             "id": self.id,
@@ -38,7 +37,6 @@ class Role(db.Model):
         }
     
 class Squad(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = "squad"
     __table_args__ = {'extend_existing': True}
 
@@ -98,8 +96,8 @@ class Squad(db.Model):
         }
 
 class User(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'user'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -601,8 +599,8 @@ class PlayHistory(db.Model):
 
 
 class StreamingHistory(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'streaming_history'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -627,8 +625,8 @@ class StreamingHistory(db.Model):
 # Enhanced Video Model Updates for better browsing experience
 
 class Video(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'video'
+    __table_args__ = {'extend_existing': True}
 
     # Primary key
     id = db.Column(db.Integer, primary_key=True)
@@ -829,10 +827,9 @@ class Video(db.Model):
         if not self.file_size:
             return 0
         return round(self.file_size / (1024 * 1024), 2)
-
-
 # 2. Create a VideoLike model for better like tracking
 class VideoLike(db.Model):
+    __table_args__ = {'extend_existing': True}
     __tablename__ = 'video_likes'
     __table_args__ = (
         db.UniqueConstraint('user_id', 'video_id', name='unique_user_video_like'),
@@ -856,8 +853,8 @@ class VideoLike(db.Model):
         }
 # 3. Create a VideoView model for analytics
 class VideoView(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'video_views'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Anonymous views allowed
@@ -888,7 +885,6 @@ class Category(db.Model):
     slug = db.Column(db.String(100), unique=True, nullable=False)  # URL-friendly
     description = db.Column(db.Text, nullable=True)
     icon = db.Column(db.String(50), nullable=True)  # Emoji or icon class
-    __table_args__ = {'extend_existing': True}
     color = db.Column(db.String(7), nullable=True)  # Hex color for UI
     is_active = db.Column(db.Boolean, default=True)
     sort_order = db.Column(db.Integer, default=0)  # For custom ordering
@@ -908,8 +904,8 @@ class Category(db.Model):
 
 # 5. Create VideoTag model for better tagging
 class VideoTag(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'video_tags'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     video_id = db.Column(db.Integer, db.ForeignKey('video.id'), nullable=False)
@@ -1002,8 +998,8 @@ radio_access = db.Table(
 
 
 class RadioFollower(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'radio_followers'
+    __table_args__ = {'extend_existing': True}
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), primary_key=True)
@@ -1022,8 +1018,8 @@ class RadioFollower(db.Model):
 
 
 class RadioStation(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'radio_station'
+    __table_args__ = {'extend_existing': True}
     
     # Core Fields
     id = db.Column(db.Integer, primary_key=True)
@@ -1972,6 +1968,7 @@ class PricingPlan(db.Model):
 
 class RecordingProject(db.Model):
     __tablename__ = "recording_projects"
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -2204,37 +2201,30 @@ class RecordingProject(db.Model):
 # =============================================================================
 # MASTERING JOB MODEL — Tracks AI mastering usage for tier limits
 # =============================================================================
+
 class MasteringJob(db.Model):
     __tablename__ = "mastering_jobs"
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
-
-    # ✅ MUST match User.__tablename__
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-
-    # If you have an Audio table, ensure __tablename__ = "audio"
     audio_id = db.Column(db.Integer, db.ForeignKey("audio.id"), nullable=True)
 
-    # What was done
-    preset_used = db.Column(db.String(50), nullable=False)          # "trap", "boom_bap", etc.
+    preset_used = db.Column(db.String(50), nullable=False)
     was_auto_detected = db.Column(db.Boolean, nullable=False, default=False)
-    confidence = db.Column(db.Float, nullable=True)                 # 0..100
+    confidence = db.Column(db.Float, nullable=True)
     reference_profile = db.Column(db.String(50), nullable=True)
 
-    # Results
     original_url = db.Column(db.String(500), nullable=True)
     mastered_url = db.Column(db.String(500), nullable=True)
     analysis = db.Column(db.JSON, nullable=True)
 
-    # Status
-    status = db.Column(db.String(20), nullable=False, default="completed")  # pending|processing|completed|failed
+    status = db.Column(db.String(20), nullable=False, default="completed")
 
-    # Timestamps
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
-    user = db.relationship("User", back_populates="mastering_jobs")
+    user = db.relationship("User", backref="mastering_jobs")
 
     def __repr__(self):
         return f"<MasteringJob {self.id} user={self.user_id} preset={self.preset_used} status={self.status}>"
@@ -2401,6 +2391,7 @@ def safe_json(value, fallback):
 
 class StudioProject(db.Model):
     __tablename__ = "studio_projects"
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -2464,10 +2455,14 @@ class StudioProject(db.Model):
                 for t in (self.tracks or [])
             ]
         return data
-
-
+    
 class StudioTrack(db.Model):
     __tablename__ = "studio_tracks"
+    __table_args__ = (
+        db.UniqueConstraint("project_id", "track_index", name="uq_studio_tracks_project_track_index"),
+        db.Index("ix_studio_tracks_project_id_track_index", "project_id", "track_index"),
+        {"extend_existing": True},
+    )
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -2478,39 +2473,19 @@ class StudioTrack(db.Model):
         index=True,
     )
 
-    # IMPORTANT: your frontend uses array index as track_index in uploads/imports.
     track_index = db.Column(db.Integer, nullable=False, default=0)
-
     name = db.Column(db.String(160), nullable=False, default="Audio 1")
-
-    # "audio" | "midi" | "bus" | "aux"
     track_type = db.Column(db.String(16), nullable=False, default="audio")
-
     volume = db.Column(db.Float, nullable=False, default=0.8)
     pan = db.Column(db.Float, nullable=False, default=0.0)
-
     muted = db.Column(db.Boolean, nullable=False, default=False)
     solo = db.Column(db.Boolean, nullable=False, default=False)
-
-    color = db.Column(db.String(16), nullable=True)  # "#34c759", etc.
-
-    # Effects object from frontend (eq/compressor/reverb/delay/distortion/filter/limiter)
+    color = db.Column(db.String(16), nullable=True)
     effects = db.Column(db.JSON, nullable=True)
-
-    # Persisted audio URL/path (NOT the blob: URL). This is what you load on open.
-    # You can store a public URL or a server path depending on your file hosting.
     audio_url = db.Column(db.Text, nullable=True)
-
-    # Optional: if you want to store a reference to an uploaded asset row
     asset_id = db.Column(db.Integer, db.ForeignKey("studio_assets.id", ondelete="SET NULL"), nullable=True)
-
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=utcnow, onupdate=utcnow)
-
-    __table_args__ = (
-        db.UniqueConstraint("project_id", "track_index", name="uq_studio_tracks_project_track_index"),
-        db.Index("ix_studio_tracks_project_id_track_index", "project_id", "track_index"),
-    )
 
     regions = db.relationship(
         "StudioRegion",
@@ -2527,7 +2502,7 @@ class StudioTrack(db.Model):
             "project_id": self.project_id,
             "track_index": self.track_index,
             "name": self.name,
-            "trackType": self.track_type,  # <-- matches your frontend property name (track.trackType)
+            "trackType": self.track_type,
             "volume": self.volume,
             "pan": self.pan,
             "muted": self.muted,
@@ -2544,6 +2519,10 @@ class StudioTrack(db.Model):
 
 class StudioRegion(db.Model):
     __tablename__ = "studio_regions"
+    __table_args__ = (
+        db.Index("ix_studio_regions_track_start", "track_id", "start_beat"),
+        {"extend_existing": True},
+    )
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -2554,43 +2533,28 @@ class StudioRegion(db.Model):
         index=True,
     )
 
-    # Frontend-generated region id (e.g. "rgn_...")
     region_uid = db.Column(db.String(80), nullable=False, index=True)
-
     name = db.Column(db.String(160), nullable=True)
-
-    # Your arranger uses beats:
     start_beat = db.Column(db.Float, nullable=False, default=0.0)
-    duration = db.Column(db.Float, nullable=False, default=0.0)  # duration in beats
-
+    duration = db.Column(db.Float, nullable=False, default=0.0)
     color = db.Column(db.String(16), nullable=True)
-
     loop_enabled = db.Column(db.Boolean, nullable=False, default=False)
     loop_count = db.Column(db.Integer, nullable=False, default=1)
-
-    # Region can point to track audio or a separate rendered clip.
-    # If you keep it simple, you can just store the same audio_url as the track.
     audio_url = db.Column(db.Text, nullable=True)
-
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow)
-
-    __table_args__ = (
-        db.Index("ix_studio_regions_track_start", "track_id", "start_beat"),
-    )
 
     def to_dict(self):
         return {
-            "id": self.id,
+            "id": self.region_uid,
             "track_id": self.track_id,
-            "id_uid": self.region_uid,  # optional alias
-            "id": self.region_uid,      # <-- IMPORTANT: your frontend expects region.id to be the string id
+            "id_uid": self.region_uid,
             "name": self.name,
             "startBeat": self.start_beat,
             "duration": self.duration,
             "color": self.color,
             "loopEnabled": self.loop_enabled,
             "loopCount": self.loop_count,
-            "audioUrl": self.audio_url,  # matches your frontend property name
+            "audioUrl": self.audio_url,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -2601,6 +2565,7 @@ class StudioRegion(db.Model):
 # -----------------------------------------------------------------------------
 class StudioAsset(db.Model):
     __tablename__ = "studio_assets"
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -2639,6 +2604,7 @@ class StudioAsset(db.Model):
 # -----------------------------------------------------------------------------
 class StudioMixdown(db.Model):
     __tablename__ = "studio_mixdowns"
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -2747,8 +2713,8 @@ ON mastering_jobs(user_id, created_at);
 """
 
 class AudioEffects(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'audio_effects'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=False)
@@ -2773,8 +2739,8 @@ class AudioEffects(db.Model):
         }
 
 class AudioPresets(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'audio_presets'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)  # 'vocals', 'podcast', 'music'
@@ -3153,8 +3119,8 @@ class UserPodcast(db.Model):
 
 
 class Audio(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'audio'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -3255,8 +3221,8 @@ class Audio(db.Model):
 # Add these to your models.py file
 
 class AudioLike(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'audio_likes'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -3312,8 +3278,8 @@ class PodcastPlayHistory(db.Model):
         }
 
 class ArtistFollow(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'artist_follows'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     follower_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -3595,8 +3561,8 @@ class MusicDistribution(db.Model):
         }
 
 class DistributionSubmission(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'distribution_submission'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -3686,8 +3652,8 @@ class CreatorMembershipTier(db.Model):
             "benefits": self.benefits.split(";") if self.benefits else []
         }
 class Comment(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'comment'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
@@ -3743,6 +3709,7 @@ class PodcastChapter(db.Model):
         }
 
 class ArchivedShow(db.Model):
+    __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     station_id = db.Column(db.Integer, db.ForeignKey('radio_station.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -3786,6 +3753,7 @@ class ArchivedShow(db.Model):
 
 class Notification(db.Model):
     __tablename__ = 'notifications'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
@@ -3914,9 +3882,9 @@ class IndieStationFollower(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
 class LiveEvent(db.Model):
-    __table_args__ = {'extend_existing': True}
     """Represents a live event for concerts, VR shows, and ticketed streams."""
     __tablename__ = "live_event"
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     artist_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # The artist hosting the event
@@ -3959,9 +3927,9 @@ class LiveEvent(db.Model):
 
 
 class EventTicket(db.Model):
-    __table_args__ = {'extend_existing': True}
     """Represents a ticket purchase for live events."""
     __tablename__ = "event_ticket"
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Who bought the ticket
@@ -4078,8 +4046,8 @@ class Revenue(db.Model):
 # models/listening_party.py
 
 class ListeningParty(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'listening_party'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     artist_id = db.Column(db.Integer, db.ForeignKey('artist.id'), nullable=False)
@@ -4095,8 +4063,8 @@ class ListeningParty(db.Model):
     attendees = db.relationship('ListeningPartyAttendee', backref='party', lazy=True)
 
 class ListeningPartyAttendee(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'listening_party_attendee'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -4122,9 +4090,9 @@ class Album(db.Model):
 
 
 class Artist(db.Model):
-    __table_args__ = {'extend_existing': True}
     """If you don't actually need the Artist.albums relationship"""
     __tablename__ = 'artist'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -4376,6 +4344,7 @@ class CreatorPaymentSettings(db.Model):
         }
 
 class ClipSave(db.Model):
+    __table_args__ = {'extend_existing': True}
     """Track saved/bookmarked clips"""
     __tablename__ = 'clip_saves'
     __table_args__ = (
@@ -4442,6 +4411,7 @@ class ClipComment(db.Model):
 
 
 class ClipCommentLike(db.Model):
+    __table_args__ = {'extend_existing': True}
     """Likes on clip comments"""
     __tablename__ = 'clip_comment_likes'
     __table_args__ = (
@@ -4532,61 +4502,6 @@ class WalletTransaction(db.Model):
         }
 
 
-class CreatorPaymentSettings(db.Model):
-    """Creator's external payment methods (CashApp, Venmo, PayPal, Zelle)"""
-    __tablename__ = 'creator_payment_settings'
-    __table_args__ = {'extend_existing': True}
-    
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
-    
-    # CashApp
-    cashapp_username = db.Column(db.String(50), nullable=True)
-    cashapp_enabled = db.Column(db.Boolean, default=False)
-    
-    # Venmo
-    venmo_username = db.Column(db.String(50), nullable=True)
-    venmo_enabled = db.Column(db.Boolean, default=False)
-    
-    # PayPal
-    paypal_username = db.Column(db.String(50), nullable=True)
-    paypal_enabled = db.Column(db.Boolean, default=False)
-    
-    # Zelle (email or phone)
-    zelle_identifier = db.Column(db.String(50), nullable=True)
-    zelle_enabled = db.Column(db.Boolean, default=False)
-    
-    # Platform settings
-    accepts_platform_tips = db.Column(db.Boolean, default=True)
-    tip_minimum = db.Column(db.Numeric(10, 2), default=1.00)
-    tip_message = db.Column(db.String(200), nullable=True)  # Custom thank you message
-    
-    # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relationship
-    user = db.relationship('User', backref=db.backref('creator_payment_settings', uselist=False))
-    
-    def serialize(self):
-        return {
-            'user_id': self.user_id,
-            'cashapp_username': self.cashapp_username,
-            'cashapp_enabled': self.cashapp_enabled,
-            'venmo_username': self.venmo_username,
-            'venmo_enabled': self.venmo_enabled,
-            'paypal_username': self.paypal_username,
-            'paypal_enabled': self.paypal_enabled,
-            'zelle_identifier': self.zelle_identifier,
-            'zelle_enabled': self.zelle_enabled,
-            'accepts_platform_tips': self.accepts_platform_tips,
-            'tip_minimum': float(self.tip_minimum) if self.tip_minimum else 1.00,
-            'tip_message': self.tip_message
-        }
-
-
-
-# Ad Revenue Model
 class AdRevenue(db.Model):
     __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
@@ -4602,8 +4517,8 @@ class AdRevenue(db.Model):
     
 # Stream Model
 class Stream(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = "stream"
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -4694,8 +4609,8 @@ group_members = db.Table('group_members',
 
 # Add to models.py
 class DirectMessage(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'direct_messages'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -4720,8 +4635,8 @@ class DirectMessage(db.Model):
         }
 
 class Conversation(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'conversations'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user1_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -4766,16 +4681,16 @@ class Group(db.Model):
 # models.py
 
 class UserPodcastFollow(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'user_podcast_follow'
+    __table_args__ = {'extend_existing': True}
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     podcast_id = db.Column(db.Integer, db.ForeignKey('podcast.id'))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
 class TrackRelease(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'track_releases'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -4925,6 +4840,7 @@ class Post(db.Model):
             return self.created_at.strftime("%b %d, %Y")
         
 class PostLike(db.Model):
+    __table_args__ = {'extend_existing': True}
     """Track likes on posts"""
     __tablename__ = 'post_likes'
     __table_args__ = (
@@ -4993,6 +4909,7 @@ class PostComment(db.Model):
 class Follow(db.Model):
     """Tracks follow relationships between users"""
     __tablename__ = 'follows'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     follower_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
@@ -5003,6 +4920,7 @@ class Follow(db.Model):
         db.UniqueConstraint('follower_id', 'following_id', name='unique_follow'),
         db.Index('idx_follower', 'follower_id'),
         db.Index('idx_following', 'following_id'),
+        {"extend_existing": True},
     )
     
     follower = db.relationship('User', foreign_keys=[follower_id], backref=db.backref('following_rel', lazy='dynamic'))
@@ -5023,6 +4941,7 @@ class Follow(db.Model):
 class Block(db.Model):
     """Tracks block relationships between users"""
     __tablename__ = 'blocks'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     blocker_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
@@ -5034,6 +4953,7 @@ class Block(db.Model):
         db.UniqueConstraint('blocker_id', 'blocked_id', name='unique_block'),
         db.Index('idx_blocker', 'blocker_id'),
         db.Index('idx_blocked', 'blocked_id'),
+        {"extend_existing": True},
     )
     
     blocker = db.relationship('User', foreign_keys=[blocker_id], backref=db.backref('blocked_users_rel', lazy='dynamic'))
@@ -5127,9 +5047,9 @@ class Game(db.Model):
 
 
 class UserGameStat(db.Model):
-    __table_args__ = {'extend_existing': True}
     """Track individual user statistics for specific games"""
     __tablename__ = 'user_game_stat'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, nullable=False)  # No FK to match your pattern
@@ -5197,8 +5117,8 @@ class UserGameStat(db.Model):
         }
 
 class FriendRequest(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'friend_request'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -5229,8 +5149,8 @@ class FriendRequest(db.Model):
 
 
 class GameStream(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'game_stream'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -5279,8 +5199,8 @@ class GameStream(db.Model):
 
 
 class GameMatch(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'game_match'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     game = db.Column(db.String(100), nullable=False)
@@ -5320,8 +5240,8 @@ class GameMatch(db.Model):
 
 
 class MatchParticipant(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'match_participant'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('game_match.id'), nullable=False)
@@ -5348,6 +5268,7 @@ class MatchParticipant(db.Model):
 # Add this to your models.py file
 
 class InnerCircle(db.Model):
+    __table_args__ = {'extend_existing': True}
     """User's Inner Circle - Top 10 featured friends (like MySpace Top 8 but expanded)"""
     __tablename__ = 'inner_circle'
     __table_args__ = (
@@ -5517,8 +5438,8 @@ Add these fields to your existing Audio model if they don't exist:
 # ADD THESE NEW MODELS TO YOUR models.py - NO CONFLICTS
 
 class VideoChannel(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'video_channels'
+    __table_args__ = {'extend_existing': True}
     
     # Basic Channel Info
     id = db.Column(db.Integer, primary_key=True)
@@ -5628,8 +5549,8 @@ class VideoChannel(db.Model):
         }
 
 class VideoClip(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'video_clips'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -5688,6 +5609,7 @@ class VideoClip(db.Model):
         }
 
 class ChannelSubscription(db.Model):
+    __table_args__ = {'extend_existing': True}
     __tablename__ = 'channel_subscriptions'
     __table_args__ = (
         db.UniqueConstraint('subscriber_id', 'channel_id', name='unique_channel_subscription'),
@@ -5714,8 +5636,8 @@ class ChannelSubscription(db.Model):
         }
     
 class ClipLike(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'clip_likes'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -5727,11 +5649,11 @@ class ClipLike(db.Model):
     clip = db.relationship('VideoClip', backref='clip_likes')
     
     # Unique constraint
-    __table_args__ = (db.UniqueConstraint('user_id', 'clip_id', name='unique_clip_like'),)
+    __table_args__ = (db.UniqueConstraint('user_id', 'clip_id', name='unique_clip_like'), {'extend_existing': True})
 
 class SocialAccount(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'social_accounts'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -5771,8 +5693,8 @@ class SocialAccount(db.Model):
         }
 
 class SocialPost(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'social_posts'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -5817,8 +5739,8 @@ class SocialPost(db.Model):
         }
 
 class SocialAnalytics(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'social_analytics'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -5860,8 +5782,8 @@ class SocialAnalytics(db.Model):
         }
 
 class VideoRoom(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'video_rooms'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     room_id = db.Column(db.String(100), unique=True, nullable=False)
@@ -5903,8 +5825,8 @@ class VideoRoom(db.Model):
 
 # User presence and video chat status
 class UserPresence(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'user_presence'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -5939,8 +5861,8 @@ class UserPresence(db.Model):
 
 # Video chat session tracking
 class VideoChatSession(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'video_chat_sessions'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     room_id = db.Column(db.String(100), nullable=False)
@@ -5972,8 +5894,8 @@ class VideoChatSession(db.Model):
 
 # Communication preferences (extends existing user model)
 class CommunicationPreferences(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'communication_preferences'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
@@ -6007,8 +5929,8 @@ class CommunicationPreferences(db.Model):
 # Add this to your models.py if you want more advanced effect tracking
 
 class VideoEffects(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'video_effects'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     clip_id = db.Column(db.Integer, db.ForeignKey('video_clips.id'), nullable=False)
@@ -6041,8 +5963,8 @@ class VideoEffects(db.Model):
 
 # Also add this model for effect presets/templates
 class EffectPreset(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'effect_presets'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -6075,8 +5997,8 @@ class EffectPreset(db.Model):
         }
     
 class PodcastAccess(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'podcast_access'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -6105,8 +6027,8 @@ class PodcastPurchase(db.Model):
     episode = db.relationship('PodcastEpisode', backref='purchases')
 
 class StationFollow(db.Model):
-    __table_args__ = {'extend_existing': True}
     __tablename__ = 'station_follows'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -6118,7 +6040,7 @@ class StationFollow(db.Model):
     station = db.relationship('RadioStation', backref='followers')
     
     # Unique constraint to prevent duplicate follows
-    __table_args__ = (db.UniqueConstraint('user_id', 'station_id'),)
+    __table_args__ = (db.UniqueConstraint('user_id', 'station_id'), {'extend_existing': True})
 
 # =============================================================================
 # ADD THIS MODEL TO YOUR src/api/models.py
@@ -6213,6 +6135,7 @@ class TranscodeJob(db.Model):
 
 class Concert(db.Model):
     __tablename__ = 'concerts'
+    __table_args__ = {'extend_existing': True}
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -6246,6 +6169,7 @@ class Concert(db.Model):
         }
 
 class VideoQuality(db.Model):
+    __table_args__ = {'extend_existing': True}
     '''Track available quality versions for each video'''
     __tablename__ = 'video_qualities'
     __table_args__ = (
@@ -6606,6 +6530,7 @@ class Story(db.Model):
 
 
 class StoryView(db.Model):
+    __table_args__ = {'extend_existing': True}
     """Track who viewed each story"""
     __tablename__ = 'story_views'
     __table_args__ = (
@@ -6883,242 +6808,6 @@ class MicSimRecording(db.Model):
 # Add this class anywhere in models.py after the Audio model
 # =============================================================================
 
-class MasteringJob(db.Model):
-    __tablename__ = 'mastering_jobs'
-    __table_args__ = {'extend_existing': True}
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    audio_id = db.Column(db.Integer, db.ForeignKey('audio.id'), nullable=True)
-
-    # What was done
-    preset_used = db.Column(db.String(50), nullable=False)           # "trap", "boom_bap", etc.
-    was_auto_detected = db.Column(db.Boolean, default=False)         # True = AI picked the preset
-    confidence = db.Column(db.Float, nullable=True)                  # Auto-detect confidence 0-100
-    reference_profile = db.Column(db.String(50), nullable=True)      # If reference mastering was used
-
-    # Results
-    original_url = db.Column(db.String(500), nullable=True)          # Original upload URL
-    mastered_url = db.Column(db.String(500), nullable=True)          # Mastered output URL
-    analysis = db.Column(db.JSON, nullable=True)                     # Full analysis data (BPM, key, etc.)
-
-    # Status
-    status = db.Column(db.String(20), default='completed')           # pending, processing, completed, failed
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Relationships
-    user = db.relationship('User', backref=db.backref('mastering_jobs', lazy=True))
-
-    def serialize(self):
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "audio_id": self.audio_id,
-            "preset_used": self.preset_used,
-            "was_auto_detected": self.was_auto_detected,
-            "confidence": self.confidence,
-            "reference_profile": self.reference_profile,
-            "original_url": self.original_url,
-            "mastered_url": self.mastered_url,
-            "analysis": self.analysis,
-            "status": self.status,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-        }
-
-
-# =============================================================================
-# HELPER: Check if user has mastering credits left this month
-# =============================================================================
-# Call this before processing a mastering request:
-#
-#   allowed, remaining = check_mastering_limit(user_id)
-#   if not allowed:
-#       return jsonify({"error": "Monthly mastering limit reached. Upgrade your plan!"}), 403
-# =============================================================================
-
-def check_mastering_limit(user_id):
-    """
-    Check if a user can master another track this month.
-    
-    Returns: (allowed: bool, remaining: int)
-        - allowed: True if they can master, False if limit reached
-        - remaining: How many masters left this month (-1 = unlimited)
-    """
-    from datetime import datetime
-    
-    user = User.query.get(user_id)
-    if not user:
-        return False, 0
-
-    # Get user's plan
-    plan = None
-    if hasattr(user, 'subscription') and user.subscription:
-        plan_name = user.subscription.plan_id if hasattr(user.subscription, 'plan_id') else None
-        if plan_name:
-            plan = PricingPlan.query.filter_by(name=plan_name).first()
-    
-    # Default to free tier if no plan found
-    if not plan:
-        plan = PricingPlan.query.filter_by(name='Free').first()
-
-    # Check if plan includes AI mastering
-    limit = getattr(plan, 'ai_mastering_limit', 0) if plan else 0
-    
-    if limit == 0:
-        return False, 0                     # Free tier — no mastering
-    
-    if limit == -1:
-        return True, -1                     # Pro tier — unlimited
-
-    # Count masters this month
-    first_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    
-    used_this_month = MasteringJob.query.filter(
-        MasteringJob.user_id == user_id,
-        MasteringJob.created_at >= first_of_month,
-        MasteringJob.status == 'completed',
-    ).count()
-
-    remaining = limit - used_this_month
-    return remaining > 0, remaining
-
-
-# =============================================================================
-# MIGRATION SQL — Run on your Railway database
-# =============================================================================
-
-MASTERING_JOB_SQL = """
-CREATE TABLE IF NOT EXISTS mastering_jobs (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES "user"(id),
-    audio_id INTEGER REFERENCES audio(id),
-    preset_used VARCHAR(50) NOT NULL,
-    was_auto_detected BOOLEAN DEFAULT FALSE,
-    confidence FLOAT,
-    reference_profile VARCHAR(50),
-    original_url VARCHAR(500),
-    mastered_url VARCHAR(500),
-    analysis JSON,
-    status VARCHAR(20) DEFAULT 'completed',
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_mastering_user_date 
-ON mastering_jobs(user_id, created_at);
-"""
-
-
-# =============================================================================
-# ADD TO IMPORTS IN models.py:
-# from datetime import datetime, timedelta
-# 
-# ADD TO EXPORTS:
-# Story, StoryView, StoryComment, StoryHighlight
-# =============================================================================
-# =============================================================================
-# DATABASE MIGRATION SQL
-# =============================================================================
-
-MIGRATION_SQL = """
--- Bandwidth Logs Table
-CREATE TABLE IF NOT EXISTS bandwidth_logs (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES "user"(id),
-    bytes_transferred BIGINT NOT NULL,
-    transfer_type VARCHAR(20) NOT NULL,
-    content_type VARCHAR(20),
-    content_id INTEGER,
-    quality VARCHAR(10),
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    duration_seconds INTEGER,
-    client_ip VARCHAR(45),
-    user_agent VARCHAR(255),
-    country_code VARCHAR(2)
-);
-
--- Indexes for bandwidth queries
-CREATE INDEX IF NOT EXISTS idx_bandwidth_user_timestamp ON bandwidth_logs(user_id, timestamp);
-CREATE INDEX IF NOT EXISTS idx_bandwidth_user_type ON bandwidth_logs(user_id, transfer_type);
-CREATE INDEX IF NOT EXISTS idx_bandwidth_timestamp ON bandwidth_logs(timestamp);
-
--- Transcode Jobs Table
-CREATE TABLE IF NOT EXISTS transcode_jobs (
-    id SERIAL PRIMARY KEY,
-    video_id INTEGER NOT NULL REFERENCES video(id),
-    user_id INTEGER NOT NULL REFERENCES "user"(id),
-    resolution VARCHAR(10) NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending',
-    priority VARCHAR(10) DEFAULT 'normal',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    started_at TIMESTAMP,
-    completed_at TIMESTAMP,
-    output_url VARCHAR(500),
-    output_size_bytes BIGINT,
-    error_message TEXT,
-    deferred_until_views INTEGER
-);
-
-CREATE INDEX IF NOT EXISTS idx_transcode_status ON transcode_jobs(status);
-CREATE INDEX IF NOT EXISTS idx_transcode_video ON transcode_jobs(video_id);
-CREATE INDEX IF NOT EXISTS idx_transcode_priority ON transcode_jobs(priority, status);
-
--- Video Qualities Table
-CREATE TABLE IF NOT EXISTS video_qualities (
-    id SERIAL PRIMARY KEY,
-    video_id INTEGER NOT NULL REFERENCES video(id),
-    resolution VARCHAR(10) NOT NULL,
-    url VARCHAR(500) NOT NULL,
-    file_size_bytes BIGINT,
-    bitrate_kbps INTEGER,
-    is_ready BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(video_id, resolution)
-);
-
-CREATE INDEX IF NOT EXISTS idx_video_quality_video ON video_qualities(video_id);
-CREATE INDEX IF NOT EXISTS idx_video_quality_ready ON video_qualities(video_id, is_ready);
-
--- Add view_count to Video if not exists (for lazy transcoding)
-ALTER TABLE video ADD COLUMN IF NOT EXISTS view_count INTEGER DEFAULT 0;
-
--- Partition bandwidth_logs by month (optional, for scale)
--- This is PostgreSQL specific; skip for other databases
--- CREATE TABLE bandwidth_logs_y2025m01 PARTITION OF bandwidth_logs
---     FOR VALUES FROM ('2025-01-01') TO ('2025-02-01');
-"""
-
-
-# =============================================================================
-# AI VIDEO CREDITS SYSTEM
-# =============================================================================
-
-CREDIT_PACKS = {
-    'starter': {
-        'id': 'starter', 'name': 'Starter Pack', 'credits': 15,
-        'price': 7.99, 'price_per_video': 0.53, 'savings': None,
-        'popular': False, 'icon': '🎬',
-    },
-    'creator': {
-        'id': 'creator', 'name': 'Creator Pack', 'credits': 35,
-        'price': 14.99, 'price_per_video': 0.43, 'savings': '19% savings',
-        'popular': True, 'icon': '🎥',
-    },
-    'studio': {
-        'id': 'studio', 'name': 'Studio Pack', 'credits': 80,
-        'price': 29.99, 'price_per_video': 0.37, 'savings': '30% savings',
-        'popular': False, 'icon': '🎞️',
-    },
-    'power': {
-        'id': 'power', 'name': 'Power Pack', 'credits': 200,
-        'price': 59.99, 'price_per_video': 0.30, 'savings': '43% savings',
-        'popular': False, 'icon': '⚡',
-    },
-}
-
-TIER_FREE_CREDITS = {
-    'free': 3, 'starter': 10, 'creator': 30, 'pro': 50,
-}
-
 class VideoCredit(db.Model):
     __tablename__ = 'video_credits'
     __table_args__ = {'extend_existing': True}
@@ -7154,20 +6843,6 @@ class VideoCredit(db.Model):
         self.balance += amount
         self.total_used = max(0, self.total_used - amount)
 
-class CreditPackPurchase(db.Model):
-    __tablename__ = 'credit_pack_purchases'
-    __table_args__ = {'extend_existing': True}
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    pack_id = db.Column(db.String(50), nullable=False)
-    pack_name = db.Column(db.String(100), nullable=False)
-    credits_amount = db.Column(db.Integer, nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    stripe_checkout_session_id = db.Column(db.String(255), unique=True)
-    stripe_payment_intent_id = db.Column(db.String(255))
-    status = db.Column(db.String(20), default='pending')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    completed_at = db.Column(db.DateTime)
 
 class AIVideoGeneration(db.Model):
     __tablename__ = 'ai_video_generations'
@@ -7258,6 +6933,7 @@ class PodcastRecordingTrack(db.Model):
 class AsyncRecordingLink(db.Model):
     """Async recording link — guest records on their own time."""
     __tablename__ = 'async_recording_links'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.String(12), primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -7294,6 +6970,7 @@ class AsyncRecordingLink(db.Model):
 class StudioBranding(db.Model):
     """Per-user studio branding settings."""
     __tablename__ = 'studio_brandings'
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
@@ -7424,3 +7101,101 @@ class SupportTicketReply(db.Model):
 
 
 
+
+
+# =============================================================================
+# AI CREDITS MODELS (Universal Credit System)
+# =============================================================================
+class AICredit(db.Model):
+    """Universal AI credit balance — replaces VideoCredit"""
+    __tablename__ = 'ai_credits'
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    balance = db.Column(db.Integer, default=0, nullable=False)
+    monthly_free_credits = db.Column(db.Integer, default=0)
+    monthly_credits_used = db.Column(db.Integer, default=0)
+    monthly_reset_date = db.Column(db.DateTime)
+    total_purchased = db.Column(db.Integer, default=0)
+    total_used = db.Column(db.Integer, default=0)
+    total_spent = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    def has_credits(self, amount=1):
+        return self.balance >= amount
+    def deduct(self, amount=1):
+        if self.balance >= amount:
+            self.balance -= amount
+            self.monthly_credits_used += amount
+            self.total_used += amount
+            self.updated_at = datetime.utcnow()
+            return True
+        return False
+    def add(self, amount):
+        self.balance += amount
+        self.total_purchased += amount
+        self.updated_at = datetime.utcnow()
+    def refund(self, amount=1):
+        self.balance += amount
+        self.total_used = max(0, self.total_used - amount)
+        self.monthly_credits_used = max(0, self.monthly_credits_used - amount)
+    def reset_monthly(self, free_credits):
+        self.monthly_free_credits = free_credits
+        self.monthly_credits_used = 0
+        self.balance += free_credits
+        self.monthly_reset_date = datetime.utcnow()
+    def serialize(self):
+        return {
+            'balance': self.balance,
+            'monthly_free_credits': self.monthly_free_credits,
+            'monthly_credits_used': self.monthly_credits_used,
+            'monthly_reset_date': self.monthly_reset_date.isoformat() if self.monthly_reset_date else None,
+            'total_purchased': self.total_purchased,
+            'total_used': self.total_used,
+            'total_spent': round(self.total_spent, 2),
+        }
+
+class AICreditUsage(db.Model):
+    """Track every AI credit deduction for analytics"""
+    __tablename__ = 'ai_credit_usage'
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    feature = db.Column(db.String(50), nullable=False)
+    credits_used = db.Column(db.Integer, nullable=False)
+    metadata_json = db.Column(db.Text)
+    storage_provider = db.Column(db.String(20))
+    storage_url = db.Column(db.String(500))
+    storage_size_bytes = db.Column(db.BigInteger)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    def serialize(self):
+        return {
+            'id': self.id, 'feature': self.feature,
+            'credits_used': self.credits_used,
+            'storage_provider': self.storage_provider,
+            'storage_url': self.storage_url,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+class CreditPackPurchase(db.Model):
+    """Track Stripe credit pack purchases"""
+    __tablename__ = 'credit_pack_purchases'
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    pack_id = db.Column(db.String(20), nullable=False)
+    pack_name = db.Column(db.String(50))
+    credits_amount = db.Column(db.Integer, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    stripe_checkout_session_id = db.Column(db.String(200))
+    stripe_payment_intent_id = db.Column(db.String(200))
+    status = db.Column(db.String(20), default='pending')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    def serialize(self):
+        return {
+            'id': self.id, 'pack_id': self.pack_id,
+            'pack_name': self.pack_name, 'credits': self.credits_amount,
+            'price': self.price, 'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }

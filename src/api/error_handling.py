@@ -16,7 +16,7 @@ sonosuite_logger = logging.getLogger('sonosuite_integration')
 from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from api.routes import api  # Make sure `api` is your Blueprint
-from api.models import db, User, Subscription, SonoSuiteUser, DistributionSubmission, Audio
+from src.api.models import db, User, Subscription, SonoSuiteUser, DistributionSubmission, Audio
 from api.utils import generate_sonosuite_jwt, plan_required, check_upload_limit
 import jwt  # If you're using PyJWT for token error classes
 import re

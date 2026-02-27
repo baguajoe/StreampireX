@@ -28,8 +28,7 @@ import KeyFinder from "../component/KeyFinder";
 import AIBeatAssistant from "../component/AIBeatAssistant";
 import PianoDrumSplit from "../component/PianoDrumSplit";
 import ParametricEQGraph from "../component/ParametricEQGraph";
-import { InlineStemSeparation, AudioToMIDIPanel, 
-         PitchCorrectionPanel } from './DAWAdvancedFeatures';
+import { InlineStemSeparation, AudioToMIDIPanel, PitchCorrectionPanel } from "../component/DAWAdvancedFeatures";
 
 // ── Piano Roll / MIDI / Chord / Quantize imports ──
 import PianoRoll from "../component/PianoRoll";
@@ -126,8 +125,16 @@ const DEFAULT_EFFECTS = () => ({
   limiter: { threshold: -1, knee: 0, ratio: 20, attack: 0.001, release: 0.05, enabled: false },
 });
 
+// =============================================================================
+// Stable ID Generator (for tracks)
+// =============================================================================
+const uid = () =>
+  globalThis.crypto?.randomUUID?.()
+    ?? `id_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+
 // ── STEP 10: DEFAULT_TRACK updated for instrument support ──
 const DEFAULT_TRACK = (i, type = "audio") => ({
+  id: uid(),
   name: `${type === "midi" ? "MIDI" : type === "bus" ? "Bus" : type === "aux" ? "Aux" : "Audio"} ${i + 1}`,
   trackType: type,
   instrument: type === "midi" ? { program: 0, name: 'Acoustic Grand' } : null,
@@ -297,6 +304,7 @@ const RecordingStudio = ({ user }) => {
   const [pianoRollNotes, setPianoRollNotes] = useState([]);
   const [pianoRollKey, setPianoRollKey] = useState("C");
   const [pianoRollScale, setPianoRollScale] = useState("major");
+  const [selectedTrack, setSelectedTrack] = useState(0);
 
   // ── STEP 13: Track active region being edited in Piano Roll ──
   const [editingRegion, setEditingRegion] = useState(null);
@@ -319,6 +327,81 @@ const RecordingStudio = ({ user }) => {
   const canvasRefs = useRef([]);
   const inputAnalyserRef = useRef(null);
   const inputAnimRef = useRef(null);
+  // =============================================================================
+  // Cubase-Style Per-Track Audio Graph System
+  // =============================================================================
+
+  const trackNodesRef = useRef(new Map()); // trackId -> audio nodes
+
+  const dbToGain = (db) => Math.pow(10, db / 20);
+
+  const setStereoPan = (panNode, pan) => {
+    if (!audioCtxRef.current) return;
+    try {
+      panNode.pan.setTargetAtTime(
+        pan,
+        audioCtxRef.current.currentTime,
+        0.01
+      );
+    } catch {
+      panNode.pan.value = pan;
+    }
+  };
+
+  const ensureTrackGraph = (track) => {
+    const ctx = audioCtxRef.current;
+    if (!ctx || !masterGainRef.current) return null;
+
+    if (trackNodesRef.current.has(track.id)) {
+      return trackNodesRef.current.get(track.id);
+    }
+
+    // Create nodes
+    const input = ctx.createGain();
+    const preGain = ctx.createGain();
+    const panNode = ctx.createStereoPanner();
+    const fader = ctx.createGain();
+    const meter = ctx.createAnalyser();
+    meter.fftSize = 2048;
+
+    // Routing
+    input.connect(preGain);
+    preGain.connect(panNode);
+    panNode.connect(fader);
+    fader.connect(meter);
+    meter.connect(masterGainRef.current);
+
+    const nodes = { input, preGain, panNode, fader, meter };
+    trackNodesRef.current.set(track.id, nodes);
+
+    applyTrackToNodes(track, nodes);
+
+    return nodes;
+  };
+
+  const applyTrackToNodes = (track, nodes) => {
+    if (!audioCtxRef.current) return;
+
+    const volDb = track.volumeDb ?? 0;
+    const pan = track.pan ?? 0;
+
+    // Mute logic
+    nodes.preGain.gain.setTargetAtTime(
+      track.muted ? 0 : 1,
+      audioCtxRef.current.currentTime,
+      0.01
+    );
+
+    // Fader
+    nodes.fader.gain.setTargetAtTime(
+      dbToGain(volDb),
+      audioCtxRef.current.currentTime,
+      0.01
+    );
+
+    // Pan
+    setStereoPan(nodes.panNode, pan);
+  };
 
   // Tap tempo tracking
   const tapTimesRef = useRef([]);
@@ -369,6 +452,14 @@ const RecordingStudio = ({ user }) => {
     if (masterGainRef.current) masterGainRef.current.gain.value = masterVolume;
   }, [masterVolume]);
 
+  // Initialize per-track audio graphs
+  useEffect(() => {
+    if (!audioCtxRef.current || !masterGainRef.current) return;
+
+    tracks.forEach((t) => {
+      ensureTrackGraph(t);
+    });
+  }, [tracks]);
   const getReverbBuf = useCallback((ctx, decay = 2) => {
     const len = ctx.sampleRate * decay;
     const buf = ctx.createBuffer(2, len, ctx.sampleRate);
@@ -379,6 +470,7 @@ const RecordingStudio = ({ user }) => {
     return buf;
   }, []);
 
+  const masterMeter = { peak: 0 };
   const updateTrack = useCallback((i, u) => setTracks((p) => p.map((t, idx) => (idx === i ? { ...t, ...u } : t))), []);
   const updateEffect = (ti, fx, param, val) =>
     setTracks((p) =>
@@ -387,6 +479,18 @@ const RecordingStudio = ({ user }) => {
 
   const hasSolo = tracks.some((t) => t.solo);
   const isAudible = (t) => !t.muted && (!hasSolo || t.solo);
+  const applyAudibilityToAllGains = useCallback((overrideTracks = null) => {
+    const list = overrideTracks || tracks;
+    const anySolo = list.some(t => t.solo);
+
+    list.forEach((t, idx) => {
+      const gainNode = trackGainsRef.current[idx];
+      if (!gainNode) return;
+
+      const audible = !t.muted && (!anySolo || t.solo);
+      gainNode.gain.value = audible ? (t.volume ?? 0.8) : 0;
+    });
+  }, [tracks]);
 
   // ── STEP 13: Save Piano Roll edits back to region ──
   const savePianoRollToRegion = useCallback(() => {
@@ -711,7 +815,7 @@ const RecordingStudio = ({ user }) => {
     trackSourcesRef.current.forEach((s) => {
       try {
         s.stop();
-      } catch {}
+      } catch { }
     });
     trackSourcesRef.current = [];
     trackGainsRef.current = [];
@@ -792,7 +896,7 @@ const RecordingStudio = ({ user }) => {
     trackSourcesRef.current.forEach((s) => {
       try {
         s.stop();
-      } catch {}
+      } catch { }
     });
     trackSourcesRef.current = [];
 
@@ -837,21 +941,21 @@ const RecordingStudio = ({ user }) => {
       prev.map((t, i) =>
         i === trackIndex
           ? {
-              ...t,
-              regions: [
-                ...(t.regions || []),
-                {
-                  id: regionId,
-                  name: name || `Import ${trackIndex + 1}`,
-                  startBeat: 0,
-                  duration: durationBeat,
-                  audioUrl,
-                  color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length],
-                  loopEnabled: false,
-                  loopCount: 1,
-                },
-              ],
-            }
+            ...t,
+            regions: [
+              ...(t.regions || []),
+              {
+                id: regionId,
+                name: name || `Import ${trackIndex + 1}`,
+                startBeat: 0,
+                duration: durationBeat,
+                audioUrl,
+                color: t.color || TRACK_COLORS[trackIndex % TRACK_COLORS.length],
+                loopEnabled: false,
+                loopCount: 1,
+              },
+            ],
+          }
           : t
       )
     );
@@ -1403,18 +1507,18 @@ const RecordingStudio = ({ user }) => {
         i !== trackIndex
           ? t
           : {
-              ...t,
-              effects: {
-                ...t.effects,
-                compressor: {
-                  threshold: comp.suggested_threshold || -20,
-                  ratio: comp.suggested_ratio || 4,
-                  attack: (comp.suggested_attack_ms || 10) / 1000,
-                  release: (comp.suggested_release_ms || 100) / 1000,
-                  enabled: true,
-                },
+            ...t,
+            effects: {
+              ...t.effects,
+              compressor: {
+                threshold: comp.suggested_threshold || -20,
+                ratio: comp.suggested_ratio || 4,
+                attack: (comp.suggested_attack_ms || 10) / 1000,
+                release: (comp.suggested_release_ms || 100) / 1000,
+                enabled: true,
               },
-            }
+            },
+          }
       )
     );
     setStatus(`AI: Track ${trackIndex + 1} compressor applied`);
@@ -2028,10 +2132,9 @@ const RecordingStudio = ({ user }) => {
 
             {tracks.map((track, i) => (
               <div
-                key={i}
-                className={`daw-track-row ${track.armed ? "armed" : ""} ${track.muted ? "muted" : ""} ${track.solo ? "soloed" : ""} ${
-                  activeEffectsTrack === i ? "fx-open" : ""
-                } ${selectedTrackIndex === i ? "selected" : ""}`}
+                key={track.id}
+                className={`daw-track-row ${track.armed ? "armed" : ""} ${track.muted ? "muted" : ""} ${track.solo ? "soloed" : ""} ${activeEffectsTrack === i ? "fx-open" : ""
+                  } ${selectedTrackIndex === i ? "selected" : ""}`}
                 onClick={() => setSelectedTrackIndex(i)}
               >
                 <div className="daw-track-strip">
@@ -2159,9 +2262,265 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {/* ──────── CONSOLE VIEW ──────── */}
-        {viewMode === "console" && <div className="daw-console"> {/* keep your existing console markup here if you want */}</div>}
+        {viewMode === "console" && (
+          <div className="daw-console">
+            <div className="daw-console-scroll">
+              {tracks.map((t, i) => {
+                const meter = meterLevels[i] || { peak: 0 };
+                const isAudible = !t.muted && (!hasSolo || t.solo);
 
+                return (
+                  <div
+                    key={track.id}
+                    className={`daw-channel ${selectedTrack === i ? "selected" : ""}`}
+                    onClick={() => setSelectedTrack(i)}
+                  >
+                    {/* Routing */}
+                    <div className="daw-ch-routing">
+                      <span className="daw-ch-routing-label">Routing</span>
+                      <span className="daw-ch-routing-value">
+                        {t.input || "Default In"} → {t.output || "Stereo Out"}
+                      </span>
+                    </div>
+
+                    {/* Inserts */}
+                    <div className="daw-ch-inserts">
+                      <div className="daw-ch-inserts-label">Inserts</div>
+
+                      {Array.from({ length: 5 }).map((_, idx) => {
+                        const ins = (t.inserts || [])[idx] || null;
+
+                        return (
+                          <div
+                            key={idx}
+                            className={`daw-ch-insert-slot ${ins?.enabled ? "active" : "inactive"} ${ins?.type || ""} ${!ins ? "empty" : ""}`}
+                            title={ins?.name ? ins.name : `Insert ${idx + 1} (click to add)`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+
+                              // Select this track in console + globally
+                              setSelectedTrack(i);
+                              setSelectedTrackIndex(i);
+
+                              // Option A (quick): open your FX panel for that track
+                              setActiveEffectsTrack(i);
+
+                              // Option B (recommended): jump to the Plugin Rack view
+                              // setViewMode("plugins");
+
+                              setStatus(ins ? `Insert ${idx + 1}: ${ins.name}` : `Add plugin to Insert ${idx + 1} on Track ${i + 1}`);
+                            }}
+                          >
+                            {ins?.name || "empty"}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* M / S / e */}
+                    <div className="daw-ch-controls">
+                      <div
+                        className={`daw-ch-badge ${t.muted ? "m-on" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const nextMuted = !t.muted;
+                          updateTrack(i, { muted: nextMuted });
+
+                          const audible = !nextMuted && (!hasSolo || t.solo);
+                          if (trackGainsRef.current[i]) {
+                            trackGainsRef.current[i].gain.value = audible ? t.volume : 0;
+                          }
+                        }}
+                      >
+                        M
+                      </div>
+
+                      <div
+                        className={`daw-ch-badge ${t.solo ? "s-on" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const nextSolo = !t.solo;
+                          updateTrack(i, { solo: nextSolo });
+
+                          // recompute solo state after toggle
+                          const willHaveSolo = tracks.some((x, idx) => (idx === i ? nextSolo : x.solo));
+
+                          // apply solo/mute gains to ALL tracks
+                          tracks.forEach((x, idx) => {
+                            const gainNode = trackGainsRef.current[idx];
+                            if (!gainNode) return;
+
+                            const muted = idx === i ? x.muted : x.muted; // same
+                            const solo = idx === i ? nextSolo : x.solo;
+
+                            const audible = !muted && (!willHaveSolo || solo);
+                            gainNode.gain.value = audible ? x.volume : 0;
+                          });
+                        }}
+                      >
+                        S
+                      </div>
+
+                      <div
+                        className={`daw-ch-badge ${selectedTrack === i ? "e-on" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // optional: toggle FX panel for this track
+                          setSelectedTrack(i);
+                        }}
+                      >
+                        e
+                      </div>
+                    </div>
+
+                    {/* Pan */}
+                    <div className="daw-ch-pan">
+                      <div
+                        className="daw-ch-pan-display"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // optional: could open a pan knob modal
+                        }}
+                        title="Pan"
+                      >
+                        {t.pan >= 0 ? `R ${(t.pan * 100).toFixed(0)}` : `L ${Math.abs(t.pan * 100).toFixed(0)}`}
+                      </div>
+                    </div>
+
+                    {/* Meter + Fader */}
+                    <div className="daw-ch-fader-area">
+                      <div className="daw-ch-meter" title="Level">
+                        <div className="daw-ch-meter-bar">
+                          <div
+                            className="daw-ch-meter-fill"
+                            style={{ height: `${Math.max(0, Math.min(1, meter.peak)) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="daw-ch-fader">
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          value={t.volume}
+                          onChange={(e) => {
+                            const v = parseFloat(e.target.value);
+                            updateTrack(i, { volume: v });
+
+                            // only write to gain if track is audible in solo/mute logic
+                            const audible = !t.muted && (!hasSolo || t.solo);
+                            if (trackGainsRef.current[i]) {
+                              trackGainsRef.current[i].gain.value = audible ? v : 0;
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <div className="daw-ch-vol-display">
+                        <div className="daw-ch-vol-val">{(t.volume * 100).toFixed(0)}</div>
+                      </div>
+                    </div>
+
+                    {/* Automation */}
+                    <div className="daw-ch-automation">
+                      <div className={`daw-ch-rw ${t.readAutomation ? "active" : ""}`}>R</div>
+                      <div className={`daw-ch-rw ${t.writeAutomation ? "active" : ""}`}>W</div>
+                    </div>
+
+                    {/* Record arm */}
+                    <div className="daw-ch-rec">
+                      <button
+                        className={`daw-ch-rec-btn ${t.armed ? "armed" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateTrack(i, { armed: !t.armed });
+                        }}
+                        title="Record Enable"
+                      />
+                    </div>
+
+                    {/* Name */}
+                    <div className="daw-ch-name">
+                      <input
+                        className="daw-ch-name-input"
+                        value={t.name}
+                        onChange={(e) => updateTrack(i, { name: e.target.value })}
+                      />
+                      <div className="daw-ch-number">
+                        <span className="daw-ch-type-icon">{t.trackType === "midi" ? "🎹" : "🎙️"}</span>
+                        <span>{i + 1}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* MASTER CHANNEL */}
+              <div className="daw-channel master-channel">
+                <div className="daw-ch-routing">
+                  <span className="daw-ch-routing-label">Routing</span>
+                  <span className="daw-ch-routing-value">Stereo Out</span>
+                </div>
+
+                <div className="daw-ch-inserts">
+                  <div className="daw-ch-inserts-label">Inserts</div>
+                  {Array.from({ length: 5 }).map((_, k) => (
+                    <div key={k} className="daw-ch-insert-slot empty">
+                      empty
+                    </div>
+                  ))}
+                </div>
+
+                <div className="daw-ch-controls">
+                  <div className="daw-ch-badge">M</div>
+                  <div className="daw-ch-badge">S</div>
+                  <div className="daw-ch-badge">e</div>
+                </div>
+
+                <div className="daw-ch-pan">
+                  <div className="daw-ch-pan-display">C</div>
+                </div>
+
+                <div className="daw-ch-fader-area">
+                  <div className="daw-ch-meter">
+                    <div className="daw-ch-meter-bar">
+                      <div
+                        className="daw-ch-meter-fill"
+                        style={{ height: `${Math.max(0, Math.min(1, masterMeter?.peak || 0)) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="daw-ch-fader">
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={masterVolume}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        setMasterVolume(v);
+                        if (masterGainRef.current) masterGainRef.current.gain.value = v;
+                      }}
+                    />
+                  </div>
+
+                  <div className="daw-ch-vol-display">
+                    <div className="daw-ch-vol-val">{(masterVolume * 100).toFixed(0)}</div>
+                  </div>
+                </div>
+
+                <div className="daw-ch-name">
+                  <div style={{ fontWeight: 700, fontSize: "0.62rem", color: "#ddeeff" }}>MASTER</div>
+                  <div className="daw-ch-number">Stereo Out</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* ──────── BEAT MAKER VIEW (STEP 9: onExportToArrange) ──────── */}
         {viewMode === "beatmaker" && (
           <SamplerBeatMaker
@@ -2179,9 +2538,9 @@ const RecordingStudio = ({ user }) => {
             onExportToArrange={(midiNotes) => {
               // STEP 9B: Beat Maker → Arrange (export patterns as MIDI regions)
               // Find or create a drum kit track
-              let drumTrackIdx = tracks.findIndex(t =>
-                (t.trackType === 'midi' || t.trackType === 'instrument') &&
-                instrumentEngine.getTrackInstrument(tracks.indexOf(t))?.isDrum
+              let drumTrackIdx = tracks.findIndex((t, idx) =>
+                (t.trackType === "midi" || t.trackType === "instrument") &&
+                instrumentEngine.getTrackInstrument(idx)?.isDrum
               );
 
               if (drumTrackIdx === -1) {
@@ -2287,7 +2646,7 @@ const RecordingStudio = ({ user }) => {
         {/* ──────── PIANO VIEW ──────── */}
         {viewMode === "piano" && (
           <div className="daw-piano-view">
-            <VirtualPiano audioContext={audioCtxRef.current} onRecordingComplete={() => {}} embedded={true} />
+            <VirtualPiano audioContext={audioCtxRef.current} onRecordingComplete={() => { }} embedded={true} />
           </div>
         )}
 
@@ -2329,7 +2688,7 @@ const RecordingStudio = ({ user }) => {
         {/* ──────── SPLIT VIEW ──────── */}
         {viewMode === "split" && (
           <div className="daw-split-view">
-            <PianoDrumSplit audioContext={audioCtxRef.current} onRecordingComplete={() => {}} isEmbedded={true} />
+            <PianoDrumSplit audioContext={audioCtxRef.current} onRecordingComplete={() => { }} isEmbedded={true} />
           </div>
         )}
 
