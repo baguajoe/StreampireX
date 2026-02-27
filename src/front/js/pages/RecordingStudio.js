@@ -2100,22 +2100,22 @@ const RecordingStudio = ({ user }) => {
     setStatus(`✓ Mic profile "${micProfile.name}" EQ applied to Track ${targetIdx + 1}`);
   }, [tracks, selectedTrackIndex]);
 
-const handleConsoleMicModel = useCallback((trackIndex, modelKey) => {
-  setTrackMicModels(prev => ({ ...prev, [trackIndex]: modelKey }));
-  if (modelKey === "none" || !MIC_MODELS[modelKey]?.eqCurve) {
-    setStatus(`Mic model cleared — Track ${trackIndex + 1}`);
-    return;
-  }
-  const mic = MIC_MODELS[modelKey];
-  handleApplyMicProfile({
-    name: mic.name,
-    eqCurve: mic.eqCurve,
-    rolloff: mic.rolloff,
-  });
-  setStatus(`🎙 ${mic.name} applied to Track ${trackIndex + 1}`);
-}, [handleApplyMicProfile]);
+  const handleConsoleMicModel = useCallback((trackIndex, modelKey) => {
+    setTrackMicModels(prev => ({ ...prev, [trackIndex]: modelKey }));
+    if (modelKey === "none" || !MIC_MODELS[modelKey]?.eqCurve) {
+      setStatus(`Mic model cleared — Track ${trackIndex + 1}`);
+      return;
+    }
+    const mic = MIC_MODELS[modelKey];
+    handleApplyMicProfile({
+      name: mic.name,
+      eqCurve: mic.eqCurve,
+      rolloff: mic.rolloff,
+    });
+    setStatus(`🎙 ${mic.name} applied to Track ${trackIndex + 1}`);
+  }, [handleApplyMicProfile]);
 
-const handleAIBeatApply = useCallback((patternData) => {
+  const handleAIBeatApply = useCallback((patternData) => {
     setStatus(
       `✓ AI Beat pattern generated: ${patternData.genre} @ ${patternData.bpm} BPM — Switch to Beat Maker to use`,
     );
@@ -2138,6 +2138,17 @@ const handleAIBeatApply = useCallback((patternData) => {
   const handleToggleFx = useCallback(
     (trackIndex) => setActiveEffectsTrack((prev) => (prev === trackIndex ? null : trackIndex)),
     [],
+  );
+  const handleBrowseSounds = useCallback(
+    (trackIndex) => {
+      setSelectedTrackIndex(trackIndex);
+      updateTrack(trackIndex, { armed: true });
+      // Disarm all other tracks
+      setTracks((prev) => prev.map((t, i) => ({ ...t, armed: i === trackIndex })));
+      setViewMode("sounds");
+      setStatus(`Browse sounds for Track ${trackIndex + 1}`);
+    },
+    [updateTrack],
   );
   const handleEQGraphChange = useCallback(
     (updatedEQ) => {
@@ -2746,6 +2757,7 @@ const handleAIBeatApply = useCallback((patternData) => {
             onSave={saveProject}
             saving={saving}
             instrumentEngine={instrumentEngine}
+            onBrowseSounds={handleBrowseSounds}
             onOpenPianoRoll={onOpenPianoRoll}
             onTimelineDoubleClick={handleTimelineDoubleClick}
             MidiRegionPreview={MidiRegionPreview}
@@ -3490,6 +3502,52 @@ const handleAIBeatApply = useCallback((patternData) => {
                 if (ai !== -1) uploadTrack(blob, ai);
               }}
             />
+          </div>
+        )}
+        {/* ──────── PLUGIN RACK VIEW ──────── */}
+        {viewMode === "plugins" && (
+          <div style={{ flex: 1, minHeight: 0, overflow: "hidden", padding: "12px" }}>
+            {(() => {
+              const selTrack = tracks[selectedTrackIndex];
+              if (!selTrack) {
+                return (
+                  <div style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    height: "100%", color: "#5a7088", fontSize: "0.85rem"
+                  }}>
+                    No track selected
+                  </div>
+                );
+              }
+
+              // Try to get or create a TrackGraph for the selected track
+              const engine = getEngine();
+              if (!engine.context && audioCtxRef.current) {
+                try { engine.init(audioCtxRef.current); } catch (e) { /* already init */ }
+              }
+
+              let trackGraph = engine.getTrack?.(selTrack.id);
+              if (!trackGraph && engine.context) {
+                try {
+                  trackGraph = new TrackGraph(selTrack.id, engine.context, {
+                    name: selTrack.name,
+                    color: selTrack.color,
+                  });
+                  engine.registerTrack?.(trackGraph);
+                } catch (e) {
+                  console.warn("[Plugins] Could not create TrackGraph:", e);
+                }
+              }
+
+              return (
+                <PluginRackPanel
+                  trackGraph={trackGraph}
+                  trackName={selTrack.name}
+                  trackColor={selTrack.color}
+                  onClose={() => setViewMode("arrange")}
+                />
+              );
+            })()}
           </div>
         )}
 
