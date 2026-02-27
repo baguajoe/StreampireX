@@ -140,7 +140,57 @@ const DEFAULT_EFFECTS = () => ({
   tapeSaturation: { drive: 0.3, warmth: 0.5, enabled: false },
   gainUtility: { gain: 0, phaseInvert: false, monoSum: false, enabled: false },
 });
-
+const MIC_MODELS = {
+  none: { name: "No Mic Model", eqCurve: null, rolloff: 0 },
+  sm7b: {
+    name: "SM7B (Dynamic)",
+    desc: "Warm, smooth midrange — podcasts, vocals, rap",
+    eqCurve: { lowGain: 2, midGain: 3, midFreq: 3000, highGain: -2 },
+    rolloff: 80,
+  },
+  sm58: {
+    name: "SM58 (Dynamic)",
+    desc: "Bright presence peak — live vocals, spoken word",
+    eqCurve: { lowGain: -1, midGain: 4, midFreq: 5000, highGain: 1 },
+    rolloff: 100,
+  },
+  u87: {
+    name: "U87 (Condenser)",
+    desc: "Detailed, airy top — studio vocals, acoustic",
+    eqCurve: { lowGain: 1, midGain: 1, midFreq: 4000, highGain: 4 },
+    rolloff: 40,
+  },
+  c414: {
+    name: "C414 (Condenser)",
+    desc: "Flat, transparent — versatile studio mic",
+    eqCurve: { lowGain: 0, midGain: 1, midFreq: 3500, highGain: 2 },
+    rolloff: 40,
+  },
+  re20: {
+    name: "RE20 (Dynamic)",
+    desc: "Deep, full low end — broadcast, bass vocals",
+    eqCurve: { lowGain: 4, midGain: 1, midFreq: 2500, highGain: -1 },
+    rolloff: 50,
+  },
+  tlm103: {
+    name: "TLM 103 (Condenser)",
+    desc: "Wide presence boost — bright vocals, voiceover",
+    eqCurve: { lowGain: 0, midGain: 2, midFreq: 6000, highGain: 5 },
+    rolloff: 40,
+  },
+  md421: {
+    name: "MD 421 (Dynamic)",
+    desc: "Aggressive midrange — rock vocals, instruments",
+    eqCurve: { lowGain: 1, midGain: 5, midFreq: 2000, highGain: 0 },
+    rolloff: 80,
+  },
+  ribbon: {
+    name: "Ribbon (Figure-8)",
+    desc: "Dark, vintage warmth — smooth jazz, crooners",
+    eqCurve: { lowGain: 3, midGain: -1, midFreq: 3000, highGain: -4 },
+    rolloff: 60,
+  },
+};
 // =============================================================================
 // Stable ID Generator (for tracks)
 // =============================================================================
@@ -294,7 +344,114 @@ const CubaseMeter = React.memo(({ leftLevel = 0, rightLevel = 0, height = 200, s
 
   return <canvas ref={canvasRef} style={{ display: "block" }} />;
 });
+const MicModelSelector = React.memo(({ trackIndex, currentModel, onApply }) => {
+  const [isOpen, setIsOpen] = useState(false);
 
+  return (
+    <div style={{ position: "relative" }}>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          padding: "2px 6px",
+          fontSize: "0.55rem",
+          color: currentModel && currentModel !== "none" ? "#ff6b9d" : "#5a7088",
+          background: currentModel && currentModel !== "none" ? "rgba(255,107,157,0.1)" : "transparent",
+          border: "1px solid",
+          borderColor: currentModel && currentModel !== "none" ? "rgba(255,107,157,0.3)" : "#1a2636",
+          borderRadius: 3,
+          cursor: "pointer",
+          textAlign: "center",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          maxWidth: 90,
+          transition: "all 0.15s",
+        }}
+        title={currentModel && currentModel !== "none" ? MIC_MODELS[currentModel]?.desc : "Select mic model"}
+      >
+        {currentModel && currentModel !== "none"
+          ? MIC_MODELS[currentModel]?.name?.split(" (")[0] || "Mic"
+          : "🎙 Mic Model"}
+      </div>
+
+      {isOpen && (
+        <div
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            zIndex: 9999,
+            background: "#1a2636",
+            border: "1px solid #3a5570",
+            borderRadius: 6,
+            padding: "4px 0",
+            minWidth: 200,
+            maxHeight: 320,
+            overflowY: "auto",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div
+            style={{
+              padding: "4px 10px",
+              fontSize: "0.55rem",
+              color: "#ff6b9d",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            Mic Model
+          </div>
+
+          {Object.entries(MIC_MODELS).map(([key, mic]) => (
+            <div
+              key={key}
+              style={{
+                padding: "5px 12px",
+                fontSize: "0.65rem",
+                color: currentModel === key ? "#ff6b9d" : key === "none" ? "#8899aa" : "#ddeeff",
+                cursor: "pointer",
+                background: currentModel === key ? "rgba(255,107,157,0.08)" : "transparent",
+                transition: "background 0.1s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background =
+                  currentModel === key ? "rgba(255,107,157,0.12)" : "rgba(90,200,250,0.08)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background =
+                  currentModel === key ? "rgba(255,107,157,0.08)" : "transparent";
+              }}
+              onClick={() => {
+                onApply(trackIndex, key);
+                setIsOpen(false);
+              }}
+            >
+              <div style={{ fontWeight: currentModel === key ? 700 : 400 }}>
+                {currentModel === key ? "✓ " : ""}
+                {mic.name}
+              </div>
+              {mic.desc && (
+                <div style={{ fontSize: "0.5rem", color: "#5a7088", marginTop: 1 }}>
+                  {mic.desc}
+                </div>
+              )}
+            </div>
+          ))}
+
+          <div style={{ borderTop: "1px solid #0f1820", margin: "4px 0" }} />
+          <div
+            style={{ padding: "4px 12px", fontSize: "0.6rem", color: "#5a7088", fontStyle: "italic" }}
+          >
+            Applies EQ curve to track
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
 // ── STEP 8: MidiRegionPreview — mini piano-roll inside region ──
 const MidiRegionPreview = React.memo(({ notes = [], duration, height, color }) => {
   const canvasRef = useRef(null);
@@ -425,6 +582,7 @@ const RecordingStudio = ({ user }) => {
   const [masterVolume, setMasterVolume] = useState(0.8);
   const [masterPan, setMasterPan] = useState(0); // NEW: master pan state
   const [tracks, setTracks] = useState(Array.from({ length: 1 }, (_, i) => DEFAULT_TRACK(i)));
+  const [trackMicModels, setTrackMicModels] = useState({});
 
   // ── Selected track (for DAWMenuBar Track/Edit actions) ──
   const [selectedTrackIndex, setSelectedTrackIndex] = useState(0);
@@ -1941,7 +2099,23 @@ const RecordingStudio = ({ user }) => {
     }));
     setStatus(`✓ Mic profile "${micProfile.name}" EQ applied to Track ${targetIdx + 1}`);
   }, [tracks, selectedTrackIndex]);
-  const handleAIBeatApply = useCallback((patternData) => {
+
+const handleConsoleMicModel = useCallback((trackIndex, modelKey) => {
+  setTrackMicModels(prev => ({ ...prev, [trackIndex]: modelKey }));
+  if (modelKey === "none" || !MIC_MODELS[modelKey]?.eqCurve) {
+    setStatus(`Mic model cleared — Track ${trackIndex + 1}`);
+    return;
+  }
+  const mic = MIC_MODELS[modelKey];
+  handleApplyMicProfile({
+    name: mic.name,
+    eqCurve: mic.eqCurve,
+    rolloff: mic.rolloff,
+  });
+  setStatus(`🎙 ${mic.name} applied to Track ${trackIndex + 1}`);
+}, [handleApplyMicProfile]);
+
+const handleAIBeatApply = useCallback((patternData) => {
     setStatus(
       `✓ AI Beat pattern generated: ${patternData.genre} @ ${patternData.bpm} BPM — Switch to Beat Maker to use`,
     );
@@ -2596,8 +2770,12 @@ const RecordingStudio = ({ user }) => {
                       <span className="daw-ch-routing-value">
                         {t.input || "Default In"} → {t.output || "Stereo Out"}
                       </span>
+                      <MicModelSelector
+                        trackIndex={i}
+                        currentModel={trackMicModels[i] || "none"}
+                        onApply={handleConsoleMicModel}
+                      />
                     </div>
-
                     <div className="daw-ch-inserts">
                       <div className="daw-ch-inserts-label">Inserts</div>
                       {(() => {
@@ -3405,6 +3583,13 @@ const RecordingStudio = ({ user }) => {
             </div>
             {[
               {
+                cat: "Vocal Tools",
+                items: [
+                  { key: "__vocal_processor", name: "Vocal Processor" },
+                  { key: "__mic_simulator", name: "Mic Simulator" },
+                ],
+              },
+              {
                 cat: "Dynamics",
                 items: [
                   { key: "eq", name: "EQ" },
@@ -3453,7 +3638,7 @@ const RecordingStudio = ({ user }) => {
                   style={{
                     padding: "6px 10px 2px",
                     fontSize: "0.55rem",
-                    color: "#5ac8fa",
+                    color: group.cat === "Vocal Tools" ? "#ff6b9d" : "#5ac8fa",
                     fontWeight: 700,
                     textTransform: "uppercase",
                     letterSpacing: 0.5,
@@ -3462,24 +3647,38 @@ const RecordingStudio = ({ user }) => {
                   {group.cat}
                 </div>
                 {group.items.map((fx) => {
-                  const already = tracks[insertPickerState.trackIndex]?.effects?.[fx.key]?.enabled;
+                  const isVocalTool = fx.key.startsWith("__");
+                  const already = !isVocalTool && tracks[insertPickerState.trackIndex]?.effects?.[fx.key]?.enabled;
                   return (
                     <div
                       key={fx.key}
                       style={{
                         padding: "4px 14px",
                         fontSize: "0.7rem",
-                        color: already ? "#5a7088" : "#ddeeff",
+                        color: already ? "#5a7088" : isVocalTool ? "#ff6b9d" : "#ddeeff",
                         cursor: already ? "default" : "pointer",
                         transition: "background 0.1s",
+                        fontStyle: isVocalTool ? "italic" : "normal",
                       }}
                       onMouseEnter={(e) => {
-                        if (!already) e.currentTarget.style.background = "rgba(90,200,250,0.1)";
+                        if (!already) e.currentTarget.style.background = isVocalTool ? "rgba(255,107,157,0.1)" : "rgba(90,200,250,0.1)";
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = "transparent";
                       }}
                       onClick={() => {
+                        if (fx.key === "__vocal_processor") {
+                          setInsertPickerState(null);
+                          setViewMode("vocal");
+                          setStatus("Vocal Processor — dial FX, then Apply to Console");
+                          return;
+                        }
+                        if (fx.key === "__mic_simulator") {
+                          setInsertPickerState(null);
+                          setViewMode("micsim");
+                          setStatus("Mic Simulator — choose a mic model, then apply profile");
+                          return;
+                        }
                         if (already) return;
                         updateEffect(insertPickerState.trackIndex, fx.key, "enabled", true);
                         setActiveEffectsTrack(insertPickerState.trackIndex);
@@ -3488,7 +3687,7 @@ const RecordingStudio = ({ user }) => {
                         setStatus(`${fx.name} added — Track ${insertPickerState.trackIndex + 1}`);
                       }}
                     >
-                      {already ? `✓ ${fx.name}` : fx.name}
+                      {isVocalTool ? `⤴ ${fx.name}` : already ? `✓ ${fx.name}` : fx.name}
                     </div>
                   );
                 })}
