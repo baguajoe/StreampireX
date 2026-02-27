@@ -267,7 +267,7 @@ const Region = React.memo(({
 // TRACK HEADER — Left-side strip with controls + track type & instrument selector
 // =============================================================================
 const TrackHeader = React.memo(({
-  track, index, onUpdate, onDelete, onToggleFx, isActive, onSelect, canDelete
+  track, index, onUpdate, onDelete, onToggleFx, onBrowseSounds, isActive, onSelect, canDelete
 }) => {
   const isInstrument = track.trackType === 'instrument';
 
@@ -339,6 +339,7 @@ const TrackHeader = React.memo(({
         <button className={`arr-badge m ${track.muted ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); onUpdate(index, { muted: !track.muted }); }} title="Mute">M</button>
         <button className={`arr-badge s ${track.solo ? 'on' : ''}`} onClick={(e) => { e.stopPropagation(); onUpdate(index, { solo: !track.solo }); }} title="Solo">S</button>
         <button className="arr-badge fx" onClick={(e) => { e.stopPropagation(); onToggleFx(index); }} title="Effects">FX</button>
+        <button className="arr-badge fx" onClick={(e) => { e.stopPropagation(); onBrowseSounds?.(index); }} title="Browse Sounds" style={{ color: '#5ac8fa', fontSize: '0.55rem' }}>🔍</button>
       </div>
 
       {/* Volume */}
@@ -719,6 +720,8 @@ const ArrangerView = ({
   onBounce,
   onSave,
   saving = false,
+  // Browse Sounds callback
+  onBrowseSounds,
   // Cycle/loop callbacks — parent (RecordingStudio) manages the actual loop logic
   cycleStart: cycleStartProp,
   cycleEnd: cycleEndProp,
@@ -1045,8 +1048,8 @@ const ArrangerView = ({
           <div className="arr-headers-list" style={{ overflowY: 'auto' }}>
             {tracks.map((track, i) => (
               <div key={i} style={{ height: trackHeight }}>
-                <TrackHeader track={track} index={i} onUpdate={updateTrack} onDelete={deleteTrack} onToggleFx={onToggleFx} isActive={activeTrack === i} onSelect={setActiveTrack} canDelete={tracks.length > 1} />
-              </div>
+                <TrackHeader track={track} index={i} onUpdate={updateTrack} onDelete={deleteTrack} onToggleFx={onToggleFx} onBrowseSounds={onBrowseSounds} isActive={activeTrack === i} onSelect={setActiveTrack} canDelete={tracks.length > 1} />
+                 </div>
             ))}
           </div>
         </div>
