@@ -1056,6 +1056,28 @@ const PodcastStudio = ({ user }) => {
                 {isRecording && hasVideo && <span className="ps-vstatus-badge rec">{"\u25cf"} Recording Video</span>}
               </div>
             </div>
+
+            {/* ── Soundboard Hotbar (always visible on Video tab) ── */}
+            <div className="ps-soundboard-hotbar">
+              <span className="ps-hotbar-label">{"\u{1f50a}"} SFX</span>
+              {soundboard.map((pad) => (
+                <button key={pad.id}
+                  className={`ps-hotbar-pad ${soundboardBuffers[pad.id] ? "loaded" : ""}`}
+                  style={{ "--pad-color": pad.color }}
+                  onClick={() => playSoundboardPad(pad.id)}
+                  title={`${pad.label} (Key: ${pad.key})${!soundboardBuffers[pad.id] ? " — not loaded" : ""}`}>
+                  <span className="ps-hotbar-pad-label">{pad.label}</span>
+                  <span className="ps-hotbar-pad-key">{pad.key}</span>
+                  {!soundboardBuffers[pad.id] && (
+                    <label className="ps-hotbar-load" onClick={(e) => e.stopPropagation()}>
+                      <input type="file" accept="audio/*" style={{ display: "none" }}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) loadSoundboardFile(pad.id, f); }} />
+                      +
+                    </label>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
