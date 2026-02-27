@@ -41,7 +41,7 @@ def generate_magic_clips():
     episode_id = data.get('episode_id')
 
     if not transcript and episode_id:
-        from api.models import PodcastEpisode
+        from src.api.models import PodcastEpisode
         episode = PodcastEpisode.query.filter_by(id=episode_id, user_id=user_id).first()
         if episode and episode.transcript:
             transcript = episode.transcript
@@ -330,13 +330,13 @@ def create_async_link():
     user_id = get_jwt_identity()
     data = request.get_json()
 
-    from api.models import db, User
+    from src.api.models import db, User
 
     user = User.query.get(user_id)
     link_id = str(uuid.uuid4())[:12]
 
     # Store in database
-    from api.models import AsyncRecordingLink
+    from src.api.models import AsyncRecordingLink
     link = AsyncRecordingLink(
         id=link_id,
         user_id=user_id,
@@ -368,7 +368,7 @@ def create_async_link():
 @podcast_phase2_bp.route('/api/podcast-studio/async-link/<link_id>', methods=['GET'])
 def get_async_link(link_id):
     """Get async recording link details (public — no auth needed for guest)."""
-    from api.models import AsyncRecordingLink, User
+    from src.api.models import AsyncRecordingLink, User
 
     link = AsyncRecordingLink.query.get(link_id)
     if not link:
@@ -401,7 +401,7 @@ def upload_async_recording():
     if 'audio' not in request.files:
         return jsonify({"error": "No audio file"}), 400
 
-    from api.models import db, AsyncRecordingLink
+    from src.api.models import db, AsyncRecordingLink
 
     link = AsyncRecordingLink.query.get(link_id)
     if not link:
@@ -449,7 +449,7 @@ def save_branding():
     user_id = get_jwt_identity()
     data = request.get_json()
 
-    from api.models import db, StudioBranding as StudioBrandingModel
+    from src.api.models import db, StudioBranding as StudioBrandingModel
 
     branding = StudioBrandingModel.query.filter_by(user_id=user_id).first()
     if not branding:
@@ -477,7 +477,7 @@ def get_branding():
     """Get studio branding settings."""
     user_id = get_jwt_identity()
 
-    from api.models import StudioBranding as StudioBrandingModel
+    from src.api.models import StudioBranding as StudioBrandingModel
     branding = StudioBrandingModel.query.filter_by(user_id=user_id).first()
 
     if not branding:
@@ -544,7 +544,7 @@ def upload_video_track():
         os.unlink(temp_path)
 
         # Store track reference in session
-        from api.models import db, PodcastRecordingTrack
+        from src.api.models import db, PodcastRecordingTrack
         track = PodcastRecordingTrack(
             session_record_id=session_id,
             track_id=track_id,

@@ -9,7 +9,7 @@ import os
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
-from api.models import db, User, SupportTicket, SupportTicketReply
+from src.api.models import db, User, SupportTicket, SupportTicketReply
 from src.api.email_service import send_email
 
 support_bp = Blueprint('support', __name__)

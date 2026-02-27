@@ -68,7 +68,7 @@ def transcribe_audio():
 
         # Save transcript to database if episode_id provided
         if episode_id:
-            from api.models import db, PodcastEpisode
+            from src.api.models import db, PodcastEpisode
             episode = PodcastEpisode.query.filter_by(
                 id=episode_id, user_id=user_id
             ).first()
@@ -261,7 +261,7 @@ def apply_text_edits():
 
             # Update transcript in database
             if episode_id:
-                from api.models import db, PodcastEpisode
+                from src.api.models import db, PodcastEpisode
                 episode = PodcastEpisode.query.filter_by(
                     id=episode_id, user_id=user_id
                 ).first()
@@ -480,7 +480,7 @@ def magic_audio():
 
             # Update episode if provided
             if episode_id:
-                from api.models import db, PodcastEpisode
+                from src.api.models import db, PodcastEpisode
                 episode = PodcastEpisode.query.filter_by(
                     id=episode_id, user_id=user_id
                 ).first()
@@ -529,7 +529,7 @@ def generate_show_notes():
 
     # If no transcript provided, fetch from database
     if not transcript and episode_id:
-        from api.models import PodcastEpisode
+        from src.api.models import PodcastEpisode
         episode = PodcastEpisode.query.filter_by(
             id=episode_id, user_id=user_id
         ).first()
@@ -550,7 +550,7 @@ def generate_show_notes():
 
         # Save to database
         if episode_id:
-            from api.models import db, PodcastEpisode, PodcastChapter
+            from src.api.models import db, PodcastEpisode, PodcastChapter
             episode = PodcastEpisode.query.filter_by(
                 id=episode_id, user_id=user_id
             ).first()

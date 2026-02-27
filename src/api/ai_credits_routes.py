@@ -29,7 +29,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 from sqlalchemy import func
 
-from .models import db, User, Subscription, PricingPlan
+from .models import db, User, Subscription, PricingPlan, AICredit, AICreditUsage, CreditPackPurchase
 
 ai_credits_bp = Blueprint('ai_credits', __name__)
 
@@ -149,114 +149,6 @@ TIER_ORDER = {'free': 0, 'starter': 1, 'creator': 2, 'pro': 3}
 # =============================================================================
 # DATABASE MODELS — Add to models.py or keep here
 # =============================================================================
-
-class AICredit(db.Model):
-    """Universal AI credit balance — replaces VideoCredit"""
-    __tablename__ = 'ai_credits'
-    __table_args__ = {'extend_existing': True}
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
-    balance = db.Column(db.Integer, default=0, nullable=False)
-    monthly_free_credits = db.Column(db.Integer, default=0)
-    monthly_credits_used = db.Column(db.Integer, default=0)
-    monthly_reset_date = db.Column(db.DateTime)
-    total_purchased = db.Column(db.Integer, default=0)
-    total_used = db.Column(db.Integer, default=0)
-    total_spent = db.Column(db.Float, default=0.0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    def has_credits(self, amount=1):
-        return self.balance >= amount
-
-    def deduct(self, amount=1):
-        if self.balance >= amount:
-            self.balance -= amount
-            self.monthly_credits_used += amount
-            self.total_used += amount
-            self.updated_at = datetime.utcnow()
-            return True
-        return False
-
-    def add(self, amount):
-        self.balance += amount
-        self.total_purchased += amount
-        self.updated_at = datetime.utcnow()
-
-    def refund(self, amount=1):
-        self.balance += amount
-        self.total_used = max(0, self.total_used - amount)
-        self.monthly_credits_used = max(0, self.monthly_credits_used - amount)
-
-    def reset_monthly(self, free_credits):
-        self.monthly_free_credits = free_credits
-        self.monthly_credits_used = 0
-        self.balance += free_credits
-        self.monthly_reset_date = datetime.utcnow()
-
-    def serialize(self):
-        return {
-            'balance': self.balance,
-            'monthly_free_credits': self.monthly_free_credits,
-            'monthly_credits_used': self.monthly_credits_used,
-            'monthly_reset_date': self.monthly_reset_date.isoformat() if self.monthly_reset_date else None,
-            'total_purchased': self.total_purchased,
-            'total_used': self.total_used,
-            'total_spent': round(self.total_spent, 2),
-        }
-
-
-class AICreditUsage(db.Model):
-    """Track every AI credit deduction for analytics"""
-    __tablename__ = 'ai_credit_usage'
-    __table_args__ = {'extend_existing': True}
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    feature = db.Column(db.String(50), nullable=False)
-    credits_used = db.Column(db.Integer, nullable=False)
-    metadata_json = db.Column(db.Text)
-    storage_provider = db.Column(db.String(20))     # 'r2', 'cloudinary', 'local'
-    storage_url = db.Column(db.String(500))
-    storage_size_bytes = db.Column(db.BigInteger)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    def serialize(self):
-        return {
-            'id': self.id, 'feature': self.feature,
-            'credits_used': self.credits_used,
-            'storage_provider': self.storage_provider,
-            'storage_url': self.storage_url,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-        }
-
-
-class CreditPackPurchase(db.Model):
-    """Track Stripe credit pack purchases"""
-    __tablename__ = 'credit_pack_purchases'
-    __table_args__ = {'extend_existing': True}
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    pack_id = db.Column(db.String(20), nullable=False)
-    pack_name = db.Column(db.String(50))
-    credits_amount = db.Column(db.Integer, nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    stripe_checkout_session_id = db.Column(db.String(200))
-    stripe_payment_intent_id = db.Column(db.String(200))
-    status = db.Column(db.String(20), default='pending')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    completed_at = db.Column(db.DateTime)
-
-    def serialize(self):
-        return {
-            'id': self.id, 'pack_id': self.pack_id,
-            'pack_name': self.pack_name, 'credits': self.credits_amount,
-            'price': self.price, 'status': self.status,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-        }
-
 
 # =============================================================================
 # MIGRATION SQL
