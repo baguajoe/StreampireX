@@ -2384,7 +2384,6 @@ const SamplerBeatMaker = ({
               {onBpmSync && <button className="sync-btn" onClick={syncBpmToProject}>→ Project</button>}
             </div>
           )}
-          )}
 
           {detectedKey && (
             <div className="detection-badge key-badge">
