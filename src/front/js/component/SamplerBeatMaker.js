@@ -13,7 +13,6 @@ import { detectBPM, detectKey, analyzeAudio } from './AudioAnalysis';
 import '../../styles/SamplerBeatMaker.css';
 
 // =============================================================================
-import '../../styles/SamplerIntegration.css';
 // CONSTANTS
 // =============================================================================
 
