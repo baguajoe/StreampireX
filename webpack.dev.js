@@ -20,7 +20,7 @@ if(process.env.CODESPACE_NAME){
 
 module.exports = merge(common, {
     mode: 'development',
-    devtool: 'cheap-module-source-map',
+    devtool: false,
     devServer: {
         port,
         hot: true,
