@@ -1,5 +1,5 @@
 // =============================================================================
-// SamplerBeatMaker.js — Complete Beat Maker / Sampler (Phase 1 + 2 + 3)
+// SamplerBeatMaker.js — Complete Sampler (Beat Maker + Drum Kits + Audio Analysis) (Phase 1 + 2 + 3)
 // =============================================================================
 // 16-pad MPC-style sampler with step sequencer, live recording, chop view,
 // pattern management, mixer, per-pad effects, song mode/sequence builder,
@@ -2316,7 +2316,7 @@ const SamplerBeatMaker = ({
       {/* TOP BAR */}
       <div className="sampler-topbar">
         <div className="sampler-topbar-left">
-          <h2 className="sampler-title"><span className="sampler-title-icon">🥁</span>Beat Maker</h2>
+          <h2 className="sampler-title"><span className="sampler-title-icon">🥁</span>Sampler</h2>
           <div className="pattern-selector">
             {patterns.map((p, i) => (
               <button key={i} className={`pattern-btn ${i === curPatIdx ? 'active' : ''}`} onClick={() => setCurPatIdx(i)}
