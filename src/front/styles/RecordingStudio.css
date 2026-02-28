@@ -294,6 +294,39 @@
   color: #af52de;
 }
 
+.daw-topbar-center-tabs{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:nowrap;
+  overflow-x:auto;
+  padding: 0 6px;
+}
+
+.daw-tab-group{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding-right:10px;
+  margin-right:10px;
+  border-right:1px solid rgba(255,255,255,0.12);
+}
+
+.daw-tab-group:last-child{
+  border-right:none;
+  margin-right:0;
+  padding-right:0;
+}
+
+.daw-tab-group-label{
+  font-size:10px;
+  letter-spacing:0.08em;
+  opacity:0.6;
+  margin-right:6px;
+  user-select:none;
+  white-space:nowrap;
+}
+
 /* ═════════════════════════════════════════════════════════════════════════════
    I/O & STATUS
    ═════════════════════════════════════════════════════════════════════════════ */

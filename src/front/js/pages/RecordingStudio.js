@@ -5,7 +5,7 @@
 // Route: /recording-studio
 // Pure Web Audio API — zero external audio libraries
 // Effects: EQ, Compressor, Reverb, Delay, Distortion, Filter per track
-// Views: Arrange | Console | Beat Maker | Drum Kits | Piano Roll | Piano | Sounds | Split | Key Finder | AI Beats | Mic Sim | AI Mix | MIDI | Chords | Sampler | Vocal | Plugins | Voice MIDI
+// Views: Arrange | Console | Beat Maker | Sampler | Drum Kits | Piano Roll | Piano | Sounds | Split | Key Finder | AI Beats | Mic Sim | AI Mix | MIDI | Chords| Vocal | Plugins | Voice MIDI
 // Track limits: Free=4, Starter=8, Creator=16, Pro=32
 //
 // NEW:
@@ -2222,7 +2222,7 @@ const RecordingStudio = ({ user }) => {
         setViewMode("beatmaker");
         break;
       case "view:drumkits":
-        setViewMode("drumkits");
+        setViewMode("beatmaker");
         break;
       case "view:pianoroll":
         setViewMode("pianoroll");
@@ -2243,7 +2243,7 @@ const RecordingStudio = ({ user }) => {
         setViewMode("aibeat");
         break;
       case "view:kits":
-        setViewMode("drumkits");
+        setViewMode("beatmaker");
         break;
       case "view:micsim":
         setViewMode("micsim");
@@ -2258,7 +2258,7 @@ const RecordingStudio = ({ user }) => {
         setViewMode("chords");
         break;
       case "view:sampler":
-        setViewMode("sampler");
+        setViewMode("beatmaker");
         break;
       case "view:vocal":
         setViewMode("vocal");
@@ -2480,6 +2480,7 @@ const RecordingStudio = ({ user }) => {
           <button
             className={`daw-view-tab ${viewMode === "beatmaker" ? "active" : ""}`}
             onClick={() => setViewMode("beatmaker")}
+            title="Sampler — Pads, Sequencer, Kits, BPM/Key Detection"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="2" y="2" width="8" height="8" rx="1" />
@@ -2487,20 +2488,7 @@ const RecordingStudio = ({ user }) => {
               <rect x="2" y="14" width="8" height="8" rx="1" />
               <rect x="14" y="14" width="8" height="8" rx="1" />
             </svg>{" "}
-            Beat Maker
-          </button>
-          <button
-            className={`daw-view-tab ${viewMode === "drumkits" ? "active" : ""}`}
-            onClick={() => setViewMode("drumkits")}
-            title="Drum Kit Connector"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <circle cx="12" cy="12" r="4" />
-              <line x1="12" y1="2" x2="12" y2="8" />
-              <line x1="12" y1="16" x2="12" y2="22" />
-            </svg>{" "}
-            Drum Kits
+            Sampler
           </button>
           <button
             className={`daw-view-tab ${viewMode === "pianoroll" ? "active" : ""}`}
@@ -2627,22 +2615,6 @@ const RecordingStudio = ({ user }) => {
               <circle cx="16" cy="8" r="1.5" fill="currentColor" />
             </svg>{" "}
             AI Mix
-          </button>
-          <button
-            className={`daw-view-tab ${viewMode === "sampler" ? "active" : ""}`}
-            onClick={() => setViewMode("sampler")}
-            title="Sampler Instrument"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="6" width="20" height="14" rx="2" />
-              <line x1="6" y1="6" x2="6" y2="20" />
-              <line x1="10" y1="6" x2="10" y2="20" />
-              <line x1="14" y1="6" x2="14" y2="20" />
-              <line x1="18" y1="6" x2="18" y2="20" />
-              <rect x="7" y="6" width="2" height="9" fill="currentColor" rx="0.5" />
-              <rect x="15" y="6" width="2" height="9" fill="currentColor" rx="0.5" />
-            </svg>{" "}
-            Sampler
           </button>
           <button
             className={`daw-view-tab ${viewMode === "vocal" ? "active" : ""}`}
@@ -2995,40 +2967,39 @@ const RecordingStudio = ({ user }) => {
                 {/* ── Master Stereo Meter + Fader SIDE BY SIDE ── */}
                 <div className="daw-ch-fader-area">
                   <div className="daw-ch-fader-row">
-                    <div className="daw-ch-meter">
-                      <CubaseMeter
-                        leftLevel={masterMeterLevels.left}
-                        rightLevel={masterMeterLevels.right}
-                        height={180}
-                        showScale={true}
-                      />
-                    </div>
-                    <div className="daw-ch-fader">
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={masterVolume}
-                        onChange={(e) => {
-                          const v = parseFloat(e.target.value);
-                          setMasterVolume(v);
-                          if (masterGainRef.current) masterGainRef.current.gain.value = v;
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div className="daw-ch-vol-display">
-                    <div className="daw-ch-vol-val">
-                      {masterVolume > 0 ? (20 * Math.log10(masterVolume)).toFixed(1) : "-∞"}
-                    </div>
-                  </div>
-                </div>
+                    <CubaseMeter
+                      leftLevel={masterMeterLevels?.left || 0}
+                      rightLevel={masterMeterLevels?.right || 0}
+                      height={180}
+                      showScale={true}
+                    />
 
-                <div className="daw-ch-name">
-                  <div style={{ fontWeight: 700, fontSize: "0.62rem", color: "#ddeeff" }}>MASTER</div>
-                  <div className="daw-ch-number">Stereo Out</div>
+                  </div>
+                  <div className="daw-ch-fader">
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={masterVolume}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        setMasterVolume(v);
+                        if (masterGainRef.current) masterGainRef.current.gain.value = v;
+                      }}
+                    />
+                  </div>
                 </div>
+                <div className="daw-ch-vol-display">
+                  <div className="daw-ch-vol-val">
+                    {masterVolume > 0 ? (20 * Math.log10(masterVolume)).toFixed(1) : "-∞"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="daw-ch-name">
+                <div style={{ fontWeight: 700, fontSize: "0.62rem", color: "#ddeeff" }}>MASTER</div>
+                <div className="daw-ch-number">Stereo Out</div>
               </div>
             </div>
           </div>
@@ -3226,69 +3197,51 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {/* ──────── BEAT MAKER VIEW ──────── */}
-        {viewMode === "beatmaker" && (
+        {viewMode === 'beatmaker' && (
           <SamplerBeatMaker
             onExport={handleBeatExport}
-            onClose={() => setViewMode("arrange")}
+            onClose={() => setViewMode('arrange')}
             isEmbedded={true}
             onSendToArrange={(audioBuffer, name) => {
               const idx = selectedTrackIndex;
               updateTrack(idx, { audioBuffer, name: name || tracks[idx].name });
-              setViewMode("arrange");
+              setViewMode('arrange');
               setStatus(`Beat bounced to Track ${idx + 1}`);
             }}
-            onOpenSampler={() => setViewMode("sampler")}
             incomingSample={window.__spx_sampler_export || null}
+            projectBpm={bpm}
+            projectKey={pianoRollKey}
+            projectScale={pianoRollScale}
+            projectId={projectId}
+            onBpmSync={(newBpm) => {
+              setBpm(newBpm);
+              setStatus(`✓ BPM synced from Sampler: ${newBpm}`);
+            }}
+            onKeySync={(key, scale) => {
+              setPianoRollKey(key);
+              setPianoRollScale(scale);
+              setStatus(`✓ Key synced from Sampler: ${key} ${scale}`);
+            }}
             onExportToArrange={(midiNotes) => {
               let drumTrackIdx = tracks.findIndex(
-                (t, idx) =>
-                  (t.trackType === "midi" || t.trackType === "instrument") &&
+                (t, idx) => (t.trackType === 'midi' || t.trackType === 'instrument') &&
                   instrumentEngine.getTrackInstrument(idx)?.isDrum,
               );
               if (drumTrackIdx === -1) {
-                const newTrack = {
-                  name: "Drums",
-                  trackType: "midi",
-                  instrument: { program: 0, name: "Drum Kit" },
-                  volume: 0.8,
-                  pan: 0,
-                  muted: false,
-                  solo: false,
-                  armed: false,
-                  color: "#e8652b",
-                  regions: [],
-                  effects: DEFAULT_EFFECTS(),
-                };
-                setTracks((prev) => {
+                setTracks(prev => {
                   drumTrackIdx = prev.length;
-                  return [...prev, newTrack];
+                  return [...prev, DEFAULT_TRACK(prev.length, 'midi')];
                 });
-                setTimeout(() => {
-                  instrumentEngine.setTrackInstrument(drumTrackIdx, { source: SOURCE_TYPES.DRUM_KIT });
-                }, 100);
               }
-              const region = createMidiRegionFromNotes(midiNotes, "Beat Pattern");
+              const region = createMidiRegionFromNotes(midiNotes, 'Beat Pattern');
               region.startBeat = isPlaying ? playheadBeat : 0;
-              setTracks((prev) =>
+              setTracks(prev =>
                 prev.map((t, i) => (i === drumTrackIdx ? { ...t, regions: [...(t.regions || []), region] } : t)),
               );
-              setStatus(`🥁 Beat pattern exported to Arrange → Track ${drumTrackIdx + 1}`);
-              setViewMode("arrange");
+              setStatus(`🥁 Beat → Arrange Track ${drumTrackIdx + 1}`);
+              setViewMode('arrange');
             }}
           />
-        )}
-
-        {viewMode === "drumkits" && (
-          <div className="daw-drumkits-view">
-            <DrumKitConnector
-              onClose={() => setViewMode("beatmaker")}
-              isEmbedded={true}
-              onSendToBeatMaker={(kit) => {
-                setStatus(`✓ Drum kit ready — open Beat Maker to load pads`);
-                setViewMode("beatmaker");
-              }}
-            />
-          </div>
         )}
 
         {viewMode === "pianoroll" && (
@@ -3462,21 +3415,7 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {viewMode === "sampler" && (
-          <div className="daw-sampler-view">
-            <SamplerInstrument
-              audioContext={audioCtxRef.current}
-              onClose={() => setViewMode("beatmaker")}
-              onSendToTrack={(audioBuffer, name) => {
-                const idx = selectedTrackIndex;
-                updateTrack(idx, { audioBuffer, name: name || tracks[idx].name });
-                setViewMode("arrange");
-                setStatus(`Sample sent → Track ${idx + 1}`);
-              }}
-              isEmbedded={true}
-            />
-          </div>
-        )}
+
 
         {viewMode === "vocal" && (
           <div className="daw-vocal-view">
@@ -3798,7 +3737,7 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 
