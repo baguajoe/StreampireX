@@ -13,6 +13,7 @@ import { detectBPM, detectKey, analyzeAudio } from './AudioAnalysis';
 import '../../styles/SamplerBeatMaker.css';
 
 // =============================================================================
+import '../../styles/SamplerIntegration.css';
 // CONSTANTS
 // =============================================================================
 
@@ -2376,24 +2377,27 @@ const SamplerBeatMaker = ({
           >{analyzing ? '⏳' : '🔍'} Detect</button>
 
           {detectedBpm > 0 && (
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center', background: '#0a1420', borderRadius: 4, padding: '2px 8px', border: '1px solid #1e2d3d', fontSize: '0.65rem' }}>
-              <span style={{ color: '#FF6600' }}>{detectedBpm} BPM <span style={{ color: '#5a7088', fontSize: '0.55rem' }}>({Math.round(bpmConfidence * 100)}%)</span></span>
-              <button onClick={() => setBpm(detectedBpm)} style={{ background: 'none', border: '1px solid #FF6600', color: '#FF6600', borderRadius: 3, padding: '1px 4px', cursor: 'pointer', fontSize: '0.55rem' }}>Use</button>
-              {onBpmSync && <button onClick={syncBpmToProject} style={{ background: 'none', border: '1px solid #00ffc8', color: '#00ffc8', borderRadius: 3, padding: '1px 4px', cursor: 'pointer', fontSize: '0.55rem' }}>→ Project</button>}
+            <div className="detection-badge bpm-badge">
+              <span className="badge-value">{detectedBpm} BPM</span>
+              <span className="badge-confidence">({Math.round(bpmConfidence * 100)}%)</span>
+              <button className="use-btn" onClick={() => setBpm(detectedBpm)}>Use</button>
+              {onBpmSync && <button className="sync-btn" onClick={syncBpmToProject}>→ Project</button>}
             </div>
+          )}
           )}
 
           {detectedKey && (
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center', background: '#0a1420', borderRadius: 4, padding: '2px 8px', border: '1px solid #1e2d3d', fontSize: '0.65rem' }}>
-              <span style={{ color: '#ff6b9d' }}>{detectedKey.key} {detectedKey.scale} <span style={{ color: '#5a7088', fontSize: '0.55rem' }}>({Math.round(keyConfidence * 100)}%)</span></span>
-              {onKeySync && <button onClick={syncKeyToProject} style={{ background: 'none', border: '1px solid #ff6b9d', color: '#ff6b9d', borderRadius: 3, padding: '1px 4px', cursor: 'pointer', fontSize: '0.55rem' }}>→ Project</button>}
+            <div className="detection-badge key-badge">
+              <span className="badge-value">{detectedKey.key} {detectedKey.scale}</span>
+              <span className="badge-confidence">({Math.round(keyConfidence * 100)}%)</span>
+              {onKeySync && <button className="sync-btn" onClick={syncKeyToProject}>→ Project</button>}
             </div>
           )}
 
           {projectBpm && projectBpm !== bpm && (
-            <div style={{ fontSize: '0.55rem', color: '#5a7088', background: '#0a1420', borderRadius: 3, padding: '2px 6px', border: '1px solid #1e2d3d' }}>
-              Project: {projectBpm} BPM
-              <button onClick={() => setBpm(projectBpm)} style={{ background: 'none', border: 'none', color: '#00ffc8', cursor: 'pointer', fontSize: '0.55rem', marginLeft: 4 }}>Sync ↓</button>
+            <div className="project-bpm-indicator">
+              <span>Project: {projectBpm} BPM</span>
+              <button onClick={() => setBpm(projectBpm)}>Sync ↓</button>
             </div>
           )}
 
