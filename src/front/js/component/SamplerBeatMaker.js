@@ -10,7 +10,8 @@ import useSamplerEngine, {
   PAD_COUNT, PAD_COLORS, PAD_KEY_LABELS, CHROMATIC_KEYS,
   STEP_COUNTS, FORMAT_INFO, CHOP_MODES,
 } from './useSamplerEngine';
-import { SCALES, CHORD_TYPES, NOTE_REPEAT_RATES,
+import {
+  SCALES, CHORD_TYPES, NOTE_REPEAT_RATES,
   snapToScale, getChordNotes, noteRepeatInterval,
   rollEnvelope, applyTapeStop, applyTapeStart, filterSweepParams,
 } from './PerformanceEngine';
@@ -19,6 +20,7 @@ import useSamplerStorage from './useSamplerStorage';
 import SamplerTab from './tabs/SamplerTab';
 import DrumPadTab from './tabs/DrumPadTab';
 import BeatMakerTab from './tabs/BeatMakerTab';
+import ChopView from './ChopView';
 import '../../styles/SamplerBeatMaker.css';
 import '../../styles/SamplerBeatMaker-compat.css';
 
@@ -140,7 +142,7 @@ const SamplerBeatMaker = (props) => {
     const ctx = engine.initCtx();
     if (filterSweepOn) {
       if (sweepNodeRef.current) {
-        try { sweepNodeRef.current.disconnect(); } catch (e) {}
+        try { sweepNodeRef.current.disconnect(); } catch (e) { }
         sweepNodeRef.current = null;
       }
       setFilterSweepOn(false);
@@ -210,7 +212,7 @@ const SamplerBeatMaker = (props) => {
 
   const stopLoop = useCallback(() => {
     if (loopSrcRef.current) {
-      try { loopSrcRef.current.stop(); } catch (e) {}
+      try { loopSrcRef.current.stop(); } catch (e) { }
       loopSrcRef.current = null;
     }
     setLiveLoopState('idle');
@@ -290,7 +292,7 @@ const SamplerBeatMaker = (props) => {
     if (engine.liveRec) engine.handleLiveHit(pi);
     engine.setSelectedPad(pi);
   }, [engine, primaryTab, noteRepeatOn, rollOn, chordModeOn, scaleLockOn,
-      startNoteRepeat, triggerRoll, chordType, chordInversion, scaleLockRoot, scaleLockScale]);
+    startNoteRepeat, triggerRoll, chordType, chordInversion, scaleLockRoot, scaleLockScale]);
 
   const handlePadUp = useCallback((pi) => {
     if (noteRepeatOn) stopNoteRepeat(pi);
@@ -305,8 +307,8 @@ const SamplerBeatMaker = (props) => {
     return () => {
       stopAllNoteRepeats();
       stopVocalBeat();
-      if (sweepNodeRef.current) try { sweepNodeRef.current.disconnect(); } catch (e) {}
-      if (loopSrcRef.current) try { loopSrcRef.current.stop(); } catch (e) {}
+      if (sweepNodeRef.current) try { sweepNodeRef.current.disconnect(); } catch (e) { }
+      if (loopSrcRef.current) try { loopSrcRef.current.stop(); } catch (e) { }
     };
   }, []);
 
@@ -366,8 +368,8 @@ const SamplerBeatMaker = (props) => {
 
   return (
     <div className="sbm-root" onDragOver={(e) => { e.preventDefault(); engine.setDragActive(true); }}
-         onDragLeave={() => engine.setDragActive(false)}
-         onDrop={(e) => { e.preventDefault(); engine.setDragActive(false); }}>
+      onDragLeave={() => engine.setDragActive(false)}
+      onDrop={(e) => { e.preventDefault(); engine.setDragActive(false); }}>
 
       {/* ── Mic Recording Indicator ── */}
       {engine.micRec && (
@@ -663,42 +665,7 @@ const SamplerBeatMaker = (props) => {
 
       {/* Chop View */}
       {engine.showChop && engine.chopIdx !== null && (
-        <div className="sbm-overlay" onClick={() => engine.setShowChop(false)}>
-          <div className="sbm-panel sbm-chop-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="sbm-panel-header">
-              <span>Chop: {engine.pads[engine.chopIdx]?.name || `Pad ${engine.chopIdx + 1}`}</span>
-              <button onClick={() => engine.setShowChop(false)}>✕</button>
-            </div>
-            <div className="sbm-chop-controls">
-              <label>Mode:
-                <select value={engine.chopMode} onChange={(e) => engine.setChopMode(e.target.value)}>
-                  {CHOP_MODES.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </label>
-              <label>Sensitivity:
-                <input type="range" min="0.1" max="1" step="0.05"
-                  value={engine.chopSens} onChange={(e) => engine.setChopSens(+e.target.value)} />
-              </label>
-              <label>Slices:
-                <input type="number" min="2" max="32" value={engine.chopSlices}
-                  onChange={(e) => engine.setChopSlices(+e.target.value)} />
-              </label>
-            </div>
-            <div className="sbm-chop-waveform">
-              <canvas ref={engine.chopCanvas} width="600" height="120" />
-            </div>
-            {engine.chopPts.length > 0 && (
-              <div className="sbm-chop-slices">
-                {engine.chopPts.map((pt, i) => (
-                  <button key={i} className={`sbm-chop-slice ${i === engine.activeSlice ? 'active' : ''}`}
-                    onClick={() => { engine.setActiveSlice(i); engine.playPad(engine.chopIdx); }}>
-                    {i + 1}: {pt.toFixed(3)}s
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <ChopView engine={engine} />
       )}
 
       {/* Pad Settings */}
@@ -832,8 +799,8 @@ const SamplerBeatMaker = (props) => {
                       padding: '8px 10px', borderBottom: '1px solid #1a2030',
                       transition: 'background 0.15s',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,255,200,0.04)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,255,200,0.04)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ color: '#ddeeff', fontSize: 12, fontWeight: 600 }}>{kit.name}</div>
                         <div style={{ color: '#5a7088', fontSize: 10 }}>
@@ -877,9 +844,9 @@ const SamplerBeatMaker = (props) => {
                     padding: '10px 14px', borderBottom: '1px solid #1a2030',
                     cursor: 'pointer', transition: 'background 0.15s',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,255,200,0.04)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                  onClick={() => storage.loadProject(p.id)}>
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,255,200,0.04)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    onClick={() => storage.loadProject(p.id)}>
                     <div style={{ flex: 1 }}>
                       <div style={{ color: '#ddeeff', fontSize: 13, fontWeight: 600 }}>
                         {p.name}
