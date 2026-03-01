@@ -265,9 +265,9 @@ const WaveformEditor = ({
       ctx.fillText(formatTime(px2t(hoverX)), hoverX, 50);
     }
   }, [buffer, waveformCache, viewStart, viewEnd, viewDur, t2px, px2t,
-      trimStart, trimEnd, attack, decay, sustain, release, isLoop,
-      showEnvelope, hoverX, dragging, isPreviewPlaying, playheadTime,
-      activePads, padIndex, sampleRate, duration]);
+    trimStart, trimEnd, attack, decay, sustain, release, isLoop,
+    showEnvelope, hoverX, dragging, isPreviewPlaying, playheadTime,
+    activePads, padIndex, sampleRate, duration]);
 
   // ══════════════════════════════════════════
   // DRAW MINIMAP
@@ -306,7 +306,7 @@ const WaveformEditor = ({
       ctx.beginPath(); ctx.moveTo(phX, 0); ctx.lineTo(phX, h); ctx.stroke();
     }
   }, [buffer, waveformCache, duration, trimStart, trimEnd, viewStart, viewDur,
-      isPreviewPlaying, playheadTime, activePads, padIndex]);
+    isPreviewPlaying, playheadTime, activePads, padIndex]);
 
   useEffect(() => { draw(); drawMinimap(); }, [draw, drawMinimap]);
 
@@ -411,7 +411,7 @@ const WaveformEditor = ({
   // PREVIEW PLAYBACK
   // ══════════════════════════════════════════
   const stopPreview = useCallback(() => {
-    if (previewSrcRef.current) { try { previewSrcRef.current.stop(); } catch (e) {} previewSrcRef.current = null; }
+    if (previewSrcRef.current) { try { previewSrcRef.current.stop(); } catch (e) { } previewSrcRef.current = null; }
     if (animFrameRef.current) { cancelAnimationFrame(animFrameRef.current); animFrameRef.current = null; }
     setIsPreviewPlaying(false);
   }, []);
@@ -448,6 +448,30 @@ const WaveformEditor = ({
   }, [buffer, audioContext, masterGain, pad, trimStart, trimEnd, release, stopPreview]);
 
   useEffect(() => () => stopPreview(), [stopPreview]);
+  // ── Track playhead during external pad playback ──
+  useEffect(() => {
+    if (isPreviewPlaying) return;
+    const isActive = activePads && activePads.has(padIndex);
+    if (!isActive || !audioContext) {
+      setPlayheadTime(trimStart);
+      return;
+    }
+
+    let raf;
+    const startWall = audioContext.currentTime;
+    const animate = () => {
+      const elapsed = audioContext.currentTime - startWall;
+      const t = trimStart + elapsed;
+      if (t >= trimEnd) {
+        setPlayheadTime(trimStart);
+        return;
+      }
+      setPlayheadTime(t);
+      raf = requestAnimationFrame(animate);
+    };
+    raf = requestAnimationFrame(animate);
+    return () => { if (raf) cancelAnimationFrame(raf); };
+  }, [activePads, padIndex, audioContext, isPreviewPlaying, trimStart, trimEnd]);
 
   // ══════════════════════════════════════════
   // RENDER
@@ -501,8 +525,10 @@ const WaveformEditor = ({
         style={{ width: '100%', height: 220, border: '1px solid #1a2a3a', cursor: 'crosshair' }} />
       <canvas ref={minimapRef} width={800} height={40}
         onClick={handleMinimapClick}
-        style={{ width: '100%', height: 40, borderRadius: '0 0 6px 6px',
-          border: '1px solid #1a2a3a', borderTop: 'none', cursor: 'pointer' }} />
+        style={{
+          width: '100%', height: 40, borderRadius: '0 0 6px 6px',
+          border: '1px solid #1a2a3a', borderTop: 'none', cursor: 'pointer'
+        }} />
       <div style={{ display: 'flex', gap: 12, fontSize: '0.65rem', color: '#5a7088', padding: '2px 8px' }}>
         <span>Scroll: mousewheel zoom · Alt+drag pan · Drag markers to trim · Double-click to preview</span>
       </div>
