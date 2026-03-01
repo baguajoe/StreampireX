@@ -7199,3 +7199,81 @@ class CreditPackPurchase(db.Model):
             'price': self.price, 'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
+
+class SamplerProject(db.Model):
+    """A sampler/beat maker project with pad configs, patterns, and R2 sample URLs."""
+    __tablename__ = "sampler_projects"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    name = db.Column(db.String(200), nullable=False, default="Untitled Beat")
+    description = db.Column(db.Text, default="")
+
+    # Musical settings
+    bpm = db.Column(db.Integer, default=120)
+    swing = db.Column(db.Integer, default=0)
+    key_note = db.Column(db.String(10), default="C")       # "key" is reserved in some DBs
+    scale = db.Column(db.String(20), default="major")
+    master_volume = db.Column(db.Float, default=0.8)        # 0..1 like RecordingProject
+    step_count = db.Column(db.Integer, default=16)
+
+    # Genre / tags for discovery
+    genre = db.Column(db.String(50), default="")
+    tags_json = db.Column(db.Text, default="[]")            # JSON array of strings
+
+    # Heavy JSON blobs — pad config, patterns, song arrangement, scenes
+    pads_json = db.Column(db.Text, default="[]")            # [{name, sampleUrl, volume, pitch, ...}]
+    patterns_json = db.Column(db.Text, default="[]")        # [{id, name, steps: [...]}]
+    song_sequence_json = db.Column(db.Text, default="[]")   # [{patternId, repeats}]
+    scenes_json = db.Column(db.Text, default="[]")          # clip launcher scenes
+
+    # Rendered bounce URL (WAV/MP3 stored in R2)
+    bounce_url = db.Column(db.Text, nullable=True)
+
+    # Sharing
+    share_token = db.Column(db.String(32), unique=True, nullable=True, index=True)
+    is_public = db.Column(db.Boolean, default=False)
+    share_permissions = db.Column(db.String(20), default="view")  # view | edit | remix
+
+    # Social / discovery
+    fork_count = db.Column(db.Integer, default=0)
+    play_count = db.Column(db.Integer, default=0)
+    like_count = db.Column(db.Integer, default=0)
+    forked_from_id = db.Column(db.Integer, db.ForeignKey("sampler_projects.id"), nullable=True)
+
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship("User", backref=db.backref("sampler_projects", lazy="dynamic"))
+    forked_from = db.relationship("SamplerProject", remote_side=[id], backref="forks")
+
+    def __repr__(self):
+        return f"<SamplerProject {self.id} '{self.name}' user={self.user_id}>"
+
+
+class SamplerKit(db.Model):
+    """A reusable drum kit preset — pad names, sample URLs, settings."""
+    __tablename__ = "sampler_kits"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
+    name = db.Column(db.String(200), nullable=False, default="My Kit")
+    description = db.Column(db.Text, default="")
+    genre = db.Column(db.String(50), default="")
+    tags_json = db.Column(db.Text, default="[]")
+
+    # Pad definitions with sample URLs pointing to R2
+    pads_json = db.Column(db.Text, default="[]")  # [{name, sampleUrl, volume, pitch, ...}]
+
+    is_public = db.Column(db.Boolean, default=False)
+    download_count = db.Column(db.Integer, default=0)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship("User", backref=db.backref("sampler_kits", lazy="dynamic"))
+
+    def __repr__(self):
+        return f"<SamplerKit {self.id} '{self.name}' user={self.user_id}>"

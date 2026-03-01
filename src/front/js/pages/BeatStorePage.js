@@ -2,6 +2,15 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "../../styles/BeatStore.css";
 
+const CATEGORIES = [
+    { key: "top", icon: "🔥", label: "Top Charts" },
+    { key: "new", icon: "✨", label: "New & Notable" },
+    { key: "free", icon: "🎁", label: "Free Beats" },
+    { key: "exclusive", icon: "👑", label: "Exclusive Only" },
+    { key: "under20", icon: "💰", label: "Under $20" },
+    { key: "trending", icon: "📈", label: "Trending" },
+];
+
 const BeatStorePage = () => {
     const navigate = useNavigate();
     const audioRef = useRef(null);
@@ -18,6 +27,7 @@ const BeatStorePage = () => {
     const [sortBy, setSortBy] = useState("newest");
     const [showFreeOnly, setShowFreeOnly] = useState(false);
     const [genres, setGenres] = useState([]);
+    const [activeCategory, setActiveCategory] = useState("top");
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -32,6 +42,9 @@ const BeatStorePage = () => {
     // License Modal
     const [selectedBeat, setSelectedBeat] = useState(null);
     const [showLicenseModal, setShowLicenseModal] = useState(false);
+
+    // Cart flash (tracks which beat just got added)
+    const [cartFlashId, setCartFlashId] = useState(null);
 
     const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
     const token = localStorage.getItem("token");
@@ -49,17 +62,44 @@ const BeatStorePage = () => {
             if (keyFilter) params.set("key", keyFilter);
             if (showFreeOnly) params.set("free", "true");
 
+            // Category-based params
+            if (activeCategory === "free") params.set("free", "true");
+            if (activeCategory === "exclusive") params.set("exclusive", "true");
+            if (activeCategory === "under20") params.set("max_price", "20");
+            if (activeCategory === "top") params.set("sort", "best_selling");
+            if (activeCategory === "trending") params.set("sort", "popular");
+            if (activeCategory === "new") params.set("sort", "newest");
+
             const res = await fetch(`${backendUrl}/api/beats?${params}`);
             const data = await res.json();
 
-            setBeats(data.beats || []);
-            setTotalPages(data.pages || 1);
-            setTotalBeats(data.total || 0);
+            const fetchedBeats = data.beats || [];
+            
+            // Demo beats for UI preview when store is empty
+            if (fetchedBeats.length === 0 && page === 1) {
+                const DEMO_BEATS = [
+                    { id: "demo-1", title: "PARK BENCH | J Cole Type Beat Hiphop Rap Boombap", producer_name: "GetEmGee", producer_id: "demo-p1", bpm: 96, key: "Am", genre: "Hip-Hop", mood: "Dark", plays: 4521, base_price: 49.00, is_free_download: false, tags: ["rap", "boombap", "j cole"], artwork_url: null, preview_url: "" },
+                    { id: "demo-2", title: "TRUST | 21 Savage x Drake x Trap x Hip Hop", producer_name: "Mr O & JoeSmpte", producer_id: "demo-p2", bpm: 164, key: "Cm", genre: "Trap", mood: "Aggressive", plays: 3890, base_price: 35.00, is_free_download: false, tags: ["21 savage", "trap", "drake"], artwork_url: null, preview_url: "" },
+                    { id: "demo-3", title: "RNB TRAP DRILL AFROBEAT DRAKE TYPE BEAT", producer_name: "Bagua Joe", producer_id: "demo-p3", bpm: 100, key: "Dbm", genre: "RnB", mood: "Melodic", plays: 2344, base_price: 49.99, is_free_download: false, tags: ["rnb", "trap", "drill"], artwork_url: null, preview_url: "" },
+                    { id: "demo-4", title: "I NEED | Lithe x 6LACK Dark RNB Trap Type Beat", producer_name: "Vintage Lee", producer_id: "demo-p4", bpm: 92, key: "Em", genre: "RnB", mood: "Dark", plays: 1756, base_price: 49.95, is_free_download: false, tags: ["lithe", "rnb", "trap"], artwork_url: null, preview_url: "" },
+                    { id: "demo-5", title: "Imperator (trap hip hop drake / Bpm 144 F#min)", producer_name: "Nila Milan", producer_id: "demo-p5", bpm: 144, key: "F#m", genre: "Trap", mood: "Energetic", plays: 1230, base_price: 29.99, is_free_download: false, tags: ["hip hop", "drake", "trap"], artwork_url: null, preview_url: "" },
+                    { id: "demo-6", title: "Cultivate | Spiritual Boom Bap Freestyle", producer_name: "Bagua Joe", producer_id: "demo-p3", bpm: 88, key: "Gm", genre: "Boom Bap", mood: "Chill", plays: 987, base_price: 0, is_free_download: true, tags: ["boombap", "spiritual", "freestyle"], artwork_url: null, preview_url: "" },
+                    { id: "demo-7", title: "Dead Presidents | East Coast Street Grit", producer_name: "GetEmGee", producer_id: "demo-p1", bpm: 90, key: "Bbm", genre: "Hip-Hop", mood: "Dark", plays: 2100, base_price: 39.99, is_free_download: false, tags: ["east coast", "street", "gritty"], artwork_url: null, preview_url: "" },
+                    { id: "demo-8", title: "Smoothie | Soul-Hop Cinematic Instrumental", producer_name: "Mr O & JoeSmpte", producer_id: "demo-p2", bpm: 105, key: "Dm", genre: "Soul", mood: "Chill", plays: 1560, base_price: 24.99, is_free_download: false, tags: ["soul", "cinematic", "smooth"], artwork_url: null, preview_url: "" },
+                ];
+                setBeats(DEMO_BEATS);
+                setTotalBeats(DEMO_BEATS.length);
+                setTotalPages(1);
+            } else {
+                setBeats(fetchedBeats);
+                setTotalPages(data.pages || 1);
+                setTotalBeats(data.total || 0);
+            }
         } catch (err) {
             setError("Failed to load beats");
         }
         setLoading(false);
-    }, [backendUrl, page, searchTerm, genre, mood, bpmRange, keyFilter, sortBy, showFreeOnly]);
+    }, [backendUrl, page, searchTerm, genre, mood, bpmRange, keyFilter, sortBy, showFreeOnly, activeCategory]);
 
     // Fetch genres
     useEffect(() => {
@@ -72,7 +112,7 @@ const BeatStorePage = () => {
     useEffect(() => { fetchBeats(); }, [fetchBeats]);
 
     // Reset page when filters change
-    useEffect(() => { setPage(1); }, [searchTerm, genre, mood, sortBy, showFreeOnly]);
+    useEffect(() => { setPage(1); }, [searchTerm, genre, mood, sortBy, showFreeOnly, activeCategory]);
 
     // Audio player
     const playBeat = (beat) => {
@@ -98,6 +138,18 @@ const BeatStorePage = () => {
         }
     };
 
+    // Category handler
+    const handleCategory = (key) => {
+        setActiveCategory(key);
+        if (key === "free") setShowFreeOnly(true);
+        else setShowFreeOnly(false);
+    };
+
+    // Genre pill handler
+    const handleGenrePill = (g) => {
+        setGenre(genre === g ? "all" : g);
+    };
+
     // License purchase
     const openLicenseModal = (beat) => {
         setSelectedBeat(beat);
@@ -121,6 +173,37 @@ const BeatStorePage = () => {
         }
     };
 
+    // ── Add to Cart ──
+    const addToCart = (beat, e) => {
+        e.stopPropagation();
+        const cart = JSON.parse(localStorage.getItem("spx_cart") || "[]");
+        if (cart.find(c => c.beatId === beat.id)) {
+            // Already in cart — go to detail page to pick license
+            navigate(`/beats/${beat.id}`);
+            return;
+        }
+        cart.push({
+            beatId: beat.id,
+            title: beat.title,
+            producerName: beat.producer_name,
+            artwork: beat.artwork_url,
+            price: beat.base_price || 0,
+            isFree: beat.is_free_download,
+        });
+        localStorage.setItem("spx_cart", JSON.stringify(cart));
+        window.dispatchEvent(new Event("cart-updated"));
+        setCartFlashId(beat.id);
+        setTimeout(() => setCartFlashId(null), 1500);
+    };
+
+    // ── Buy Now (quick checkout) ──
+    const buyNow = (beat, e) => {
+        e.stopPropagation();
+        if (!token) { navigate("/login"); return; }
+        // Navigate to detail page for license selection + checkout
+        navigate(`/beats/${beat.id}`);
+    };
+
     const MUSICAL_KEYS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
     const MOODS = ["Dark", "Energetic", "Chill", "Aggressive", "Sad", "Happy", "Bouncy", "Melodic", "Hard"];
 
@@ -134,13 +217,48 @@ const BeatStorePage = () => {
                 <h1>🎹 Beat Store</h1>
                 <p>License beats from top producers. Keep 100% of your song revenue.</p>
                 <div className="hero-stats">
-                    <span>{totalBeats} Beats Available</span>
+                    <span><strong>{totalBeats}</strong> Beats Available</span>
                     <span>•</span>
-                    <span>Producers Keep 90%</span>
+                    <span>Producers Keep <strong>90%</strong></span>
                     <span>•</span>
                     <span>Instant Download</span>
                 </div>
             </section>
+
+            {/* Category Tabs */}
+            <div className="category-tabs">
+                {CATEGORIES.map(cat => (
+                    <button
+                        key={cat.key}
+                        className={`cat-tab ${activeCategory === cat.key ? "active" : ""}`}
+                        onClick={() => handleCategory(cat.key)}
+                    >
+                        <span className="cat-icon">{cat.icon}</span>
+                        {cat.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Genre Pills */}
+            {genres.length > 0 && (
+                <div className="genre-pills">
+                    <button
+                        className={`genre-pill ${genre === "all" ? "active" : ""}`}
+                        onClick={() => setGenre("all")}
+                    >
+                        All Genres
+                    </button>
+                    {genres.map(g => (
+                        <button
+                            key={g}
+                            className={`genre-pill ${genre === g ? "active" : ""}`}
+                            onClick={() => handleGenrePill(g)}
+                        >
+                            {g}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {/* Search & Filters */}
             <section className="beat-filters">
@@ -155,11 +273,6 @@ const BeatStorePage = () => {
                 </div>
 
                 <div className="filter-row">
-                    <select value={genre} onChange={(e) => setGenre(e.target.value)} className="filter-select">
-                        <option value="all">All Genres</option>
-                        {genres.map(g => <option key={g} value={g}>{g}</option>)}
-                    </select>
-
                     <select value={mood} onChange={(e) => setMood(e.target.value)} className="filter-select">
                         <option value="all">All Moods</option>
                         {MOODS.map(m => <option key={m} value={m}>{m}</option>)}
@@ -175,7 +288,7 @@ const BeatStorePage = () => {
                             type="number" placeholder="BPM min" min="60" max="200"
                             value={bpmRange.min} onChange={(e) => setBpmRange(p => ({ ...p, min: e.target.value }))}
                         />
-                        <span>-</span>
+                        <span>–</span>
                         <input
                             type="number" placeholder="BPM max" min="60" max="200"
                             value={bpmRange.max} onChange={(e) => setBpmRange(p => ({ ...p, max: e.target.value }))}
@@ -197,8 +310,30 @@ const BeatStorePage = () => {
                 </div>
             </section>
 
+            {/* Results Bar */}
+            <div className="results-bar">
+                <span className="results-count">
+                    {totalBeats} beat{totalBeats !== 1 ? "s" : ""} found
+                    {genre !== "all" ? ` in ${genre}` : ""}
+                </span>
+            </div>
+
             {/* Error */}
             {error && <div className="beat-error">{error} <button onClick={() => setError("")}>✕</button></div>}
+
+            {/* Column Headers */}
+            {!loading && beats.length > 0 && (
+                <div className="beat-list-header">
+                    <span className="blh-num">#</span>
+                    <span className="blh-play"></span>
+                    <span className="blh-art"></span>
+                    <span className="blh-info">Title</span>
+                    <span className="blh-tags">Tags</span>
+                    <span className="blh-meta">Details</span>
+                    <span className="blh-plays">Plays</span>
+                    <span className="blh-price">Price</span>
+                </div>
+            )}
 
             {/* Beat List */}
             <section className="beat-list">
@@ -210,11 +345,14 @@ const BeatStorePage = () => {
                         <p>Try adjusting your filters or search term.</p>
                     </div>
                 ) : (
-                    beats.map(beat => (
+                    beats.map((beat, idx) => (
                         <div
                             key={beat.id}
                             className={`beat-row ${currentBeat?.id === beat.id ? "active" : ""}`}
                         >
+                            {/* Row Number */}
+                            <span className="beat-row-num">{(page - 1) * 20 + idx + 1}</span>
+
                             {/* Play Button */}
                             <button className="beat-play-btn" onClick={() => playBeat(beat)}>
                                 {currentBeat?.id === beat.id && isPlaying ? "⏸" : "▶"}
@@ -228,23 +366,20 @@ const BeatStorePage = () => {
                                 onClick={() => navigate(`/beats/${beat.id}`)}
                             />
 
-                            {/* Info */}
+                            {/* Info — Title + Producer link + BPM */}
                             <div className="beat-info" onClick={() => navigate(`/beats/${beat.id}`)}>
                                 <h4 className="beat-title">{beat.title}</h4>
-                                <Link
-                                    to={`/artist/${beat.producer_id}`}
-                                    className="beat-producer"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    {beat.producer_name}
-                                </Link>
-                            </div>
-
-                            {/* Metadata Tags */}
-                            <div className="beat-meta">
-                                {beat.bpm && <span className="meta-tag bpm">{beat.bpm} BPM</span>}
-                                {beat.key && <span className="meta-tag key">{beat.key}</span>}
-                                {beat.genre && <span className="meta-tag genre">{beat.genre}</span>}
+                                <div className="beat-sub">
+                                    <Link
+                                        to={`/producer/${beat.producer_id}`}
+                                        className="beat-producer-link"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        {beat.producer_name}
+                                    </Link>
+                                    {beat.bpm && <span className="beat-bpm-dot">•</span>}
+                                    {beat.bpm && <span className="beat-bpm-val">{beat.bpm} BPM</span>}
+                                </div>
                             </div>
 
                             {/* Tags */}
@@ -252,6 +387,12 @@ const BeatStorePage = () => {
                                 {(beat.tags || []).slice(0, 3).map((tag, i) => (
                                     <span key={i} className="beat-tag">#{tag}</span>
                                 ))}
+                            </div>
+
+                            {/* Metadata Tags */}
+                            <div className="beat-meta">
+                                {beat.key && <span className="meta-tag key">{beat.key}</span>}
+                                {beat.genre && <span className="meta-tag genre">{beat.genre}</span>}
                             </div>
 
                             {/* Play Count */}
@@ -264,11 +405,27 @@ const BeatStorePage = () => {
                                 ) : (
                                     <span className="beat-price">${beat.base_price}</span>
                                 )}
+
+                                {/* Add to Cart */}
+                                <button
+                                    className={`cart-btn ${cartFlashId === beat.id ? "flash" : ""}`}
+                                    onClick={(e) => addToCart(beat, e)}
+                                    title="Add to cart"
+                                >
+                                    {cartFlashId === beat.id ? "✓ Added" : "🛒 Cart"}
+                                </button>
+
+                                {/* Buy Now / License */}
                                 <button
                                     className="license-btn"
-                                    onClick={(e) => { e.stopPropagation(); openLicenseModal(beat); }}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        beat.is_free_download
+                                            ? navigate(`/beats/${beat.id}`)
+                                            : openLicenseModal(beat);
+                                    }}
                                 >
-                                    {beat.is_free_download ? "Download" : "License"}
+                                    {beat.is_free_download ? "⬇ Download" : "Buy Now"}
                                 </button>
                             </div>
 
