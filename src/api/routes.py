@@ -17229,96 +17229,161 @@ def get_media_assets():
         
     except Exception as e:
         return jsonify({'error': f'Failed to fetch media assets: {str(e)}'}), 500
-
-@api.route('/media-assets/upload', methods=['POST'])
+@api.route('/upload/media', methods=['POST'])
 @jwt_required()
-def upload_media_asset():
-    """Upload media file for video editor"""
+def upload_media():
+    """
+    Universal media upload — uploads file to R2 and returns URL.
+    Optional: pass type=video|audio|image and create_record=true to also save a DB record.
+    Used by: reel uploads, profile pictures, general file uploads, video editor assets.
+    """
     user_id = get_jwt_identity()
-    
+
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
-        
+
         file = request.files['file']
-        if file.filename == '':
+        if not file or file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
-        
-        # Check user tier limits
-        tier = get_user_tier(user_id)
-        limits = get_user_limits(user_id)
-        
-        # Determine file type
-        file_type = request.form.get('type', 'video')
-        if file_type not in ['video', 'audio', 'image']:
+
+        filename = secure_filename(file.filename)
+        ext = filename.lower().rsplit('.', 1)[-1] if '.' in filename else ''
+
+        # Determine file type from extension or form field
+        VIDEO_EXT = {'mp4', 'mov', 'webm', 'avi', 'mkv', 'wmv'}
+        AUDIO_EXT = {'mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg'}
+        IMAGE_EXT = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'}
+        ALLOWED = VIDEO_EXT | AUDIO_EXT | IMAGE_EXT
+
+        if ext not in ALLOWED:
+            return jsonify({'error': f'File type .{ext} is not supported'}), 400
+
+        if ext in VIDEO_EXT:
             file_type = 'video'
-        
-        # Check file size limits
-        max_size_key = f'{file_type}_clip_max_size'
-        max_size = limits.get(max_size_key, 500 * 1024 * 1024)
-        
+        elif ext in AUDIO_EXT:
+            file_type = 'audio'
+        elif ext in IMAGE_EXT:
+            file_type = 'image'
+        else:
+            file_type = request.form.get('type', 'video')
+
+        # Override file_type if explicitly passed
+        form_type = request.form.get('type')
+        if form_type in ('video', 'audio', 'image'):
+            file_type = form_type
+
         # Get file size
         file.seek(0, os.SEEK_END)
         file_size = file.tell()
         file.seek(0)
-        
+
+        if file_size == 0:
+            return jsonify({'error': 'File is empty'}), 400
+
+        # Check user tier limits if available
+        try:
+            tier = get_user_tier(user_id)
+            limits = get_user_limits(user_id)
+            max_size_key = f'{file_type}_clip_max_size'
+            max_size = limits.get(max_size_key, 500 * 1024 * 1024)
+        except Exception:
+            # Fallback defaults if tier system not available
+            tier = 'free'
+            max_size = {
+                'video': 500 * 1024 * 1024,   # 500MB
+                'audio': 200 * 1024 * 1024,    # 200MB
+                'image': 20 * 1024 * 1024      # 20MB
+            }.get(file_type, 500 * 1024 * 1024)
+
         if file_size > max_size:
+            max_mb = max_size // (1024 * 1024)
             return jsonify({
-                'error': 'File too large for your current plan',
+                'error': f'File too large. Max {max_mb}MB for {file_type} files on your plan.',
                 'current_size': file_size,
                 'max_size': max_size,
                 'user_tier': tier,
                 'upgrade_required': True
             }), 413
-        
-        # Generate secure filename
-        filename = secure_filename(file.filename)
+
+        # Build unique filename
         timestamp = int(datetime.utcnow().timestamp())
         unique_filename = f"{user_id}_{timestamp}_{filename}"
-        
-        # Upload to storage
+
+        # Determine folder from form or default by type
+        folder = request.form.get('folder', file_type)
+        upload_path = f"{folder}/{unique_filename}"
+
+        # Upload to R2
         try:
-            file_url = uploadFile(file, f"video_editor/{file_type}/{unique_filename}")
+            file_url = uploadFile(file, upload_path)
         except Exception as upload_error:
-            return jsonify({'error': f'Upload failed: {str(upload_error)}'}), 500
-        
-        # Create asset record (using existing Video/Audio models for now)
-        if file_type == 'video':
-            asset_record = Video(
-                user_id=user_id,
-                title=filename,
-                filename=filename,
-                file_url=file_url,
-                file_size=file_size,
-                created_at=datetime.utcnow()
-            )
-        else:
-            asset_record = Audio(
-                user_id=user_id,
-                title=filename,
-                filename=filename,
-                file_url=file_url,
-                file_size=file_size,
-                created_at=datetime.utcnow()
-            )
-        
-        db.session.add(asset_record)
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'File uploaded successfully',
-            'asset': {
-                'id': asset_record.id,
-                'name': filename,
-                'type': file_type,
-                'file_url': file_url,
-                'file_size': file_size,
-                'duration': 60  # Default duration
-            }
-        }), 201
-        
+            return jsonify({'error': f'Storage upload failed: {str(upload_error)}'}), 500
+
+        if not file_url:
+            return jsonify({'error': 'Upload failed — no URL returned'}), 500
+
+        print(f"✅ Upload by user {user_id}: {file_type}/{filename} ({file_size} bytes) → {file_url}")
+
+        # Build response
+        response_data = {
+            'success': True,
+            'url': file_url,
+            'file_url': file_url,  # Alias for backward compatibility
+            'filename': filename,
+            'file_type': file_type,
+            'size': file_size
+        }
+
+        # Optionally create a DB record (for video editor assets, etc.)
+        create_record = request.form.get('create_record', 'false').lower() == 'true'
+
+        if create_record:
+            try:
+                if file_type == 'video':
+                    asset_record = Video(
+                        user_id=user_id,
+                        title=filename,
+                        filename=filename,
+                        file_url=file_url,
+                        file_size=file_size,
+                        created_at=datetime.utcnow()
+                    )
+                elif file_type == 'audio':
+                    asset_record = Audio(
+                        user_id=user_id,
+                        title=filename,
+                        filename=filename,
+                        file_url=file_url,
+                        file_size=file_size,
+                        created_at=datetime.utcnow()
+                    )
+                else:
+                    asset_record = None
+
+                if asset_record:
+                    db.session.add(asset_record)
+                    db.session.commit()
+                    response_data['asset'] = {
+                        'id': asset_record.id,
+                        'name': filename,
+                        'type': file_type,
+                        'file_url': file_url,
+                        'file_size': file_size,
+                        'duration': 60  # Default; frontend can update
+                    }
+            except Exception as db_error:
+                db.session.rollback()
+                print(f"⚠️ DB record failed (upload still succeeded): {str(db_error)}")
+                # Upload succeeded even if DB record failed — still return URL
+
+        return jsonify(response_data), 200 if not create_record else 201
+
     except Exception as e:
         db.session.rollback()
+        print(f"❌ Media upload error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Upload failed: {str(e)}'}), 500
 
 @api.route('/video-editor/projects', methods=['GET'])
