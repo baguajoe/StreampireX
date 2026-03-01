@@ -1,145 +1,254 @@
 // =============================================================================
-// AudioAnalysis.js — BPM & Key Detection for StreamPireX Sampler
+// AudioAnalysis.js — BPM Detection + Musical Key Detection for Sampler
 // =============================================================================
-// Location: src/front/js/component/AudioAnalysis.js
-// Pure Web Audio API — no external libraries
-//
-// Exports:
-//   detectBPM(audioBuffer)   → { bpm, confidence, candidates }
-//   detectKey(audioBuffer)   → { key, scale, confidence, chroma }
-//   analyzeAudio(buffer)     → { bpm: {...}, key: {...} }
+// Named exports: detectBPM, detectKey, analyzeAudio
+// Used by SamplerBeatMaker.js for automatic sample analysis on load
 // =============================================================================
 
-const KEY_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const CHROMATIC = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
+// Krumhansl-Kessler key profiles (perceptual weighting of pitch classes)
 const MAJOR_PROFILE = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
 const MINOR_PROFILE = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
 
-export function detectBPM(buffer, opts = {}) {
-  if (!buffer?.getChannelData) return { bpm: 0, confidence: 0, candidates: [] };
-  const { minBpm = 60, maxBpm = 200 } = opts;
-  const data = buffer.getChannelData(0);
-  const sr = buffer.sampleRate;
-  const hopSize = Math.round(sr * 0.01);
-  const frameSize = hopSize * 2;
-  const numFrames = Math.floor((data.length - frameSize) / hopSize);
-  if (numFrames < 20) return { bpm: 0, confidence: 0, candidates: [] };
-  const onsetEnergy = new Float32Array(numFrames);
-  let prevEnergy = 0;
-  for (let f = 0; f < numFrames; f++) {
-    const offset = f * hopSize;
-    let energy = 0;
-    for (let i = 0; i < frameSize && offset + i < data.length; i++) {
-      energy += data[offset + i] * data[offset + i];
+// ─────────────────────────────────────────────────────────────────────────────
+// BPM DETECTION — Autocorrelation-based tempo estimation
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function detectBPM(audioBuffer) {
+  if (!audioBuffer || audioBuffer.duration < 1) {
+    return { bpm: 0, confidence: 0, candidates: [] };
+  }
+
+  const data = audioBuffer.getChannelData(0);
+  const sr = audioBuffer.sampleRate;
+
+  // Downsample to ~4kHz for faster processing
+  const dsRate = 4000;
+  const dsFactor = Math.max(1, Math.floor(sr / dsRate));
+  const ds = [];
+  for (let i = 0; i < data.length; i += dsFactor) {
+    ds.push(Math.abs(data[i]));
+  }
+
+  // Compute onset detection function (spectral flux approximation)
+  const frameSize = 128;
+  const energy = [];
+  for (let i = 0; i < ds.length - frameSize; i += frameSize) {
+    let e = 0;
+    for (let j = 0; j < frameSize; j++) e += ds[i + j] * ds[i + j];
+    energy.push(e / frameSize);
+  }
+
+  // Half-wave rectified first difference
+  const diff = [0];
+  for (let i = 1; i < energy.length; i++) {
+    diff.push(Math.max(0, energy[i] - energy[i - 1]));
+  }
+
+  // Autocorrelation to find periodicity
+  const minBPM = 50, maxBPM = 200;
+  const effectiveSR = dsRate / frameSize;
+  const minLag = Math.floor(effectiveSR * 60 / maxBPM);
+  const maxLag = Math.floor(effectiveSR * 60 / minBPM);
+  const maxSearch = Math.min(maxLag, Math.floor(diff.length / 2));
+
+  const correlations = [];
+  let bestLag = minLag, bestCorr = -1;
+
+  for (let lag = minLag; lag <= maxSearch; lag++) {
+    let corr = 0;
+    for (let i = 0; i < diff.length - lag; i++) {
+      corr += diff[i] * diff[i + lag];
     }
-    energy /= frameSize;
-    onsetEnergy[f] = Math.max(0, energy - prevEnergy);
-    prevEnergy = energy;
+    // Normalize
+    corr /= (diff.length - lag);
+    correlations.push({ lag, corr });
+    if (corr > bestCorr) {
+      bestCorr = corr;
+      bestLag = lag;
+    }
   }
-  let maxOnset = 0;
-  for (let i = 0; i < onsetEnergy.length; i++) if (onsetEnergy[i] > maxOnset) maxOnset = onsetEnergy[i];
-  if (maxOnset > 0) for (let i = 0; i < onsetEnergy.length; i++) onsetEnergy[i] /= maxOnset;
-  const framesPerSec = sr / hopSize;
-  const minLag = Math.floor(framesPerSec * 60 / maxBpm);
-  const maxLag = Math.min(Math.ceil(framesPerSec * 60 / minBpm), onsetEnergy.length - 1);
-  const acf = new Float32Array(maxLag + 1);
-  const len = onsetEnergy.length;
-  for (let lag = minLag; lag <= maxLag; lag++) {
-    let sum = 0, count = 0;
-    for (let i = 0; i < len - lag; i++) { sum += onsetEnergy[i] * onsetEnergy[i + lag]; count++; }
-    acf[lag] = count > 0 ? sum / count : 0;
+
+  const detectedBPM = Math.round(60 / (bestLag / effectiveSR));
+
+  // Find confidence (ratio of best peak to second-best non-harmonic peak)
+  correlations.sort((a, b) => b.corr - a.corr);
+  let confidence = 0.5;
+  if (correlations.length >= 2) {
+    const best = correlations[0];
+    // Find next peak that isn't a harmonic (within 10% of double/half)
+    const nonHarmonic = correlations.find(c => {
+      const ratio = c.lag / best.lag;
+      return Math.abs(ratio - 1) > 0.1 &&
+             Math.abs(ratio - 2) > 0.15 &&
+             Math.abs(ratio - 0.5) > 0.15;
+    });
+    if (nonHarmonic && nonHarmonic.corr > 0) {
+      confidence = Math.min(0.99, best.corr / (best.corr + nonHarmonic.corr));
+    }
   }
+
+  // Build candidate list (top 5 plausible tempos)
   const candidates = [];
-  for (let lag = minLag + 1; lag < maxLag; lag++) {
-    if (acf[lag] > acf[lag - 1] && acf[lag] > acf[lag + 1] && acf[lag] > 0.01) {
-      const bpm = Math.round((framesPerSec * 60) / lag);
-      if (bpm >= minBpm && bpm <= maxBpm) candidates.push({ bpm, strength: acf[lag], lag });
+  const seen = new Set();
+  for (const c of correlations.slice(0, 20)) {
+    const bpm = Math.round(60 / (c.lag / effectiveSR));
+    if (bpm >= minBPM && bpm <= maxBPM && !seen.has(bpm)) {
+      seen.add(bpm);
+      candidates.push({
+        bpm,
+        confidence: c.corr / (correlations[0]?.corr || 1),
+      });
+      if (candidates.length >= 5) break;
     }
   }
-  candidates.sort((a, b) => b.strength - a.strength);
-  const weighted = candidates.map(c => {
-    let weight = c.strength;
-    if (c.bpm >= 80 && c.bpm <= 160) weight *= 1.5;
-    else if (c.bpm >= 60 && c.bpm <= 200) weight *= 1.2;
-    return { ...c, weight };
-  });
-  weighted.sort((a, b) => b.weight - a.weight);
-  if (weighted.length === 0) return { bpm: 0, confidence: 0, candidates: [] };
-  const best = weighted[0];
+
+  // Prefer tempos in common ranges (double/half correction)
+  let finalBPM = detectedBPM;
+  if (finalBPM > 0 && finalBPM < 60) finalBPM *= 2;
+  if (finalBPM > 180) finalBPM = Math.round(finalBPM / 2);
+
   return {
-    bpm: best.bpm,
-    confidence: Math.round(Math.min(1, best.strength * 3) * 100) / 100,
-    candidates: weighted.slice(0, 5).map(c => ({ bpm: c.bpm, strength: Math.round(c.strength * 100) / 100 })),
+    bpm: (finalBPM >= minBPM && finalBPM <= maxBPM) ? finalBPM : 0,
+    confidence: Math.max(0, Math.min(1, confidence)),
+    candidates,
   };
 }
 
-function pearsonCorrelation(x, y) {
-  const n = x.length;
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
-  for (let i = 0; i < n; i++) {
-    sumX += x[i]; sumY += y[i]; sumXY += x[i] * y[i]; sumX2 += x[i] * x[i]; sumY2 += y[i] * y[i];
-  }
-  const denom = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
-  return denom === 0 ? 0 : (n * sumXY - sumX * sumY) / denom;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// KEY DETECTION — Chroma-based Krumhansl-Schmuckler algorithm
+// ─────────────────────────────────────────────────────────────────────────────
 
-export function detectKey(buffer) {
-  const empty = { key: 'C', scale: 'major', confidence: 0, chroma: Array(12).fill(0), allKeys: [] };
-  if (!buffer?.getChannelData) return empty;
-  const data = buffer.getChannelData(0);
-  const sr = buffer.sampleRate;
+export function detectKey(audioBuffer) {
+  if (!audioBuffer || audioBuffer.duration < 1) {
+    return { key: '', scale: '', confidence: 0, allKeys: [] };
+  }
+
+  const data = audioBuffer.getChannelData(0);
+  const sr = audioBuffer.sampleRate;
+
+  // Compute chroma features using DFT on overlapping frames
   const frameSize = 4096;
   const hopSize = 2048;
-  const numFrames = Math.floor((data.length - frameSize) / hopSize);
-  if (numFrames < 1) return empty;
-  const chroma = new Float64Array(12);
-  const hann = new Float32Array(frameSize);
-  for (let i = 0; i < frameSize; i++) hann[i] = 0.5 * (1 - Math.cos(2 * Math.PI * i / (frameSize - 1)));
-  for (let f = 0; f < numFrames; f++) {
-    const offset = f * hopSize;
+  const chroma = new Float32Array(12).fill(0);
+  let frameCount = 0;
+
+  for (let start = 0; start + frameSize < data.length; start += hopSize) {
+    // Apply Hann window
     const frame = new Float32Array(frameSize);
-    for (let i = 0; i < frameSize; i++) frame[i] = (data[offset + i] || 0) * hann[i];
-    for (let pc = 0; pc < 12; pc++) {
-      let energy = 0;
-      for (let oct = 2; oct <= 7; oct++) {
-        const freq = 440 * Math.pow(2, (pc - 9 + (oct - 4) * 12) / 12);
-        const bin = Math.round(freq * frameSize / sr);
-        if (bin < 1 || bin >= frameSize / 2) continue;
-        const w = 2 * Math.PI * bin / frameSize;
-        const coeff = 2 * Math.cos(w);
-        let s0 = 0, s1 = 0, s2 = 0;
-        for (let i = 0; i < frameSize; i++) { s0 = frame[i] + coeff * s1 - s2; s2 = s1; s1 = s0; }
-        energy += Math.sqrt(s1 * s1 + s2 * s2 - coeff * s1 * s2);
-      }
-      chroma[pc] += energy;
+    for (let i = 0; i < frameSize; i++) {
+      frame[i] = data[start + i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (frameSize - 1)));
     }
+
+    // Simple DFT for pitch class extraction
+    // Map frequency bins to chroma bins
+    for (let bin = 1; bin < frameSize / 2; bin++) {
+      const freq = bin * sr / frameSize;
+      if (freq < 65 || freq > 2000) continue; // C2 to B6 range
+
+      // Compute magnitude for this bin
+      let re = 0, im = 0;
+      for (let n = 0; n < frameSize; n++) {
+        const angle = -2 * Math.PI * bin * n / frameSize;
+        re += frame[n] * Math.cos(angle);
+        im += frame[n] * Math.sin(angle);
+      }
+      const mag = Math.sqrt(re * re + im * im);
+
+      // Map frequency to chroma bin
+      const midiNote = 12 * Math.log2(freq / 440) + 69;
+      const chromaBin = Math.round(midiNote) % 12;
+      if (chromaBin >= 0 && chromaBin < 12) {
+        chroma[chromaBin] += mag * mag; // energy
+      }
+    }
+    frameCount++;
+
+    // Limit processing for long files (process ~10 seconds max)
+    if (frameCount > (sr * 10) / hopSize) break;
   }
-  let maxC = 0;
-  for (let i = 0; i < 12; i++) if (chroma[i] > maxC) maxC = chroma[i];
-  const norm = new Float64Array(12);
-  if (maxC > 0) for (let i = 0; i < 12; i++) norm[i] = chroma[i] / maxC;
+
+  // Normalize chroma
+  let maxChroma = 0;
+  for (let i = 0; i < 12; i++) {
+    if (chroma[i] > maxChroma) maxChroma = chroma[i];
+  }
+  if (maxChroma > 0) {
+    for (let i = 0; i < 12; i++) chroma[i] /= maxChroma;
+  }
+
+  // Correlate with all 24 key profiles (12 major + 12 minor)
   const allKeys = [];
+
   for (let root = 0; root < 12; root++) {
-    const rotated = new Float64Array(12);
-    for (let i = 0; i < 12; i++) rotated[i] = norm[(i + root) % 12];
-    allKeys.push({ key: KEY_NAMES[root], scale: 'major', correlation: pearsonCorrelation(rotated, MAJOR_PROFILE) });
-    allKeys.push({ key: KEY_NAMES[root], scale: 'minor', correlation: pearsonCorrelation(rotated, MINOR_PROFILE) });
+    // Rotate profile to match root
+    const majorCorr = pearsonCorrelation(chroma, rotateArray(MAJOR_PROFILE, root));
+    const minorCorr = pearsonCorrelation(chroma, rotateArray(MINOR_PROFILE, root));
+
+    allKeys.push({ key: CHROMATIC[root], scale: 'major', correlation: majorCorr });
+    allKeys.push({ key: CHROMATIC[root], scale: 'minor', correlation: minorCorr });
   }
+
+  // Sort by correlation (best match first)
   allKeys.sort((a, b) => b.correlation - a.correlation);
+
   const best = allKeys[0];
   const second = allKeys[1];
-  const confidence = Math.min(1, Math.max(0, (best.correlation - second.correlation) * 3 + 0.3));
+
+  // Confidence: difference between best and second-best
+  const confidence = best && second
+    ? Math.min(1, Math.max(0, (best.correlation - second.correlation) * 2 + 0.3))
+    : 0;
+
   return {
-    key: best.key,
-    scale: best.scale,
-    confidence: Math.round(confidence * 100) / 100,
-    chroma: Array.from(norm).map(v => Math.round(v * 100) / 100),
-    allKeys: allKeys.slice(0, 6).map(k => ({ key: k.key, scale: k.scale, correlation: Math.round(k.correlation * 100) / 100 })),
+    key: best?.key || '',
+    scale: best?.scale || '',
+    confidence,
+    allKeys: allKeys.slice(0, 6), // top 6 candidates
   };
 }
 
-export function analyzeAudio(buffer) {
-  return { bpm: detectBPM(buffer), key: detectKey(buffer) };
+// ─────────────────────────────────────────────────────────────────────────────
+// COMBINED ANALYSIS — runs both BPM + Key detection
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function analyzeAudio(audioBuffer) {
+  const bpm = detectBPM(audioBuffer);
+  const key = detectKey(audioBuffer);
+  return { bpm, key };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function rotateArray(arr, n) {
+  const rotated = new Float32Array(arr.length);
+  for (let i = 0; i < arr.length; i++) {
+    rotated[i] = arr[(i + arr.length - n) % arr.length];
+  }
+  return rotated;
+}
+
+function pearsonCorrelation(a, b) {
+  const n = Math.min(a.length, b.length);
+  if (n === 0) return 0;
+
+  let sumA = 0, sumB = 0, sumAB = 0, sumA2 = 0, sumB2 = 0;
+  for (let i = 0; i < n; i++) {
+    sumA += a[i];
+    sumB += b[i];
+    sumAB += a[i] * b[i];
+    sumA2 += a[i] * a[i];
+    sumB2 += b[i] * b[i];
+  }
+
+  const numerator = n * sumAB - sumA * sumB;
+  const denominator = Math.sqrt((n * sumA2 - sumA * sumA) * (n * sumB2 - sumB * sumB));
+
+  return denominator === 0 ? 0 : numerator / denominator;
+}
+
+// Default export for backwards compatibility
 export default { detectBPM, detectKey, analyzeAudio };
