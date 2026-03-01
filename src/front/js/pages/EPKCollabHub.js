@@ -80,6 +80,9 @@ const EPKCollabHub = () => {
   const [searchCollabOnly, setSearchCollabOnly] = useState(true);
   const [viewingEpk, setViewingEpk] = useState(null);
 
+  // ── Platform Content (auto-populated from existing data) ──
+  const [platformContent, setPlatformContent] = useState(null); // { tracks, albums, videos, stats, profile }
+
   // ── Filter state for collab board ──
   const [filterGenre, setFilterGenre] = useState('');
   const [filterRole, setFilterRole] = useState('');
@@ -93,6 +96,13 @@ const EPKCollabHub = () => {
       const res = await fetch(`${BACKEND}/api/epk`, { headers: authHeaders() });
       if (res.ok) { const data = await res.json(); setEpk(data); setEpkDirty(false); }
     } catch (e) { console.error('Load EPK error:', e); }
+  }, []);
+
+  const loadPlatformContent = useCallback(async () => {
+    try {
+      const res = await fetch(`${BACKEND}/api/epk/auto-populate`, { headers: authHeaders() });
+      if (res.ok) { const data = await res.json(); setPlatformContent(data); }
+    } catch (e) { console.error('Auto-populate error:', e); }
   }, []);
 
   const saveEpk = useCallback(async () => {
@@ -151,7 +161,7 @@ const EPKCollabHub = () => {
   }, [searchGenre, searchSkill, searchLocation, searchCollabOnly]);
 
   // Initial load
-  useEffect(() => { loadEpk(); }, [loadEpk]);
+  useEffect(() => { loadEpk(); loadPlatformContent(); }, [loadEpk, loadPlatformContent]);
   useEffect(() => { if (activeTab === 'collab') { loadCollabRequests(); loadMyRequests(); loadMyApplications(); } }, [activeTab, loadCollabRequests, loadMyRequests, loadMyApplications]);
   useEffect(() => { if (activeTab === 'find') searchEpks(); }, [activeTab, searchEpks]);
 
@@ -280,6 +290,7 @@ const EPKCollabHub = () => {
               { id: 'media', label: '📸 Media', desc: 'Photos & press' },
               { id: 'achievements', label: '🏆 Achievements', desc: 'Stats & press quotes' },
               { id: 'collab', label: '🤝 Collab Profile', desc: 'Skills & availability' },
+              { id: 'content', label: '🎵 Content', desc: 'Tracks, albums, videos' },
               { id: 'template', label: '🎨 Template', desc: 'Look & feel' },
             ].map(s => (
               <button key={s.id} className={`ech-section-btn ${epkSection === s.id ? 'active' : ''}`}
@@ -295,6 +306,35 @@ const EPKCollabHub = () => {
 
             {/* ── IDENTITY ── */}
             {epkSection === 'identity' && <>
+              {/* Auto-populate banner for new EPKs */}
+              {!epk.id && platformContent && (
+                <div className="ech-auto-banner">
+                  <span>🚀 We found your existing profile data!</span>
+                  <button onClick={() => {
+                    const p = platformContent.profile;
+                    const stats = platformContent.stats || {};
+                    setEpk(prev => ({
+                      ...prev,
+                      artist_name: prev.artist_name || p.artist_name,
+                      bio_full: prev.bio_full || p.bio,
+                      bio_short: prev.bio_short || (p.bio || '').slice(0, 200),
+                      genre_primary: prev.genre_primary || p.genre,
+                      location: prev.location || p.location,
+                      website: prev.website || p.website,
+                      booking_email: prev.booking_email || p.email,
+                      profile_photo: prev.profile_photo || p.profile_photo,
+                      cover_photo: prev.cover_photo || p.cover_photo,
+                      social_links: Object.keys(prev.social_links || {}).length ? prev.social_links : p.social_links,
+                      stats: Object.keys(prev.stats || {}).length ? prev.stats : stats,
+                      featured_tracks: prev.featured_tracks?.length ? prev.featured_tracks : (platformContent.tracks || []).slice(0, 6).map(t => t.id),
+                      featured_albums: prev.featured_albums?.length ? prev.featured_albums : (platformContent.albums || []).slice(0, 4).map(a => a.id),
+                      featured_videos: prev.featured_videos?.length ? prev.featured_videos : (platformContent.videos || []).slice(0, 4).map(v => v.id),
+                    }));
+                    setEpkDirty(true);
+                    setStatus('✓ Profile data imported — review and customize!');
+                  }}>📥 Import All</button>
+                </div>
+              )}
               <div className="ech-field">
                 <label>Artist / Stage Name</label>
                 <input type="text" value={epk.artist_name || ''} onChange={(e) => updateEpk('artist_name', e.target.value)} placeholder="Your artist name" />
@@ -584,6 +624,115 @@ const EPKCollabHub = () => {
                   <button className="ech-add-btn" onClick={() => updateEpk('equipment', [...(epk.equipment || []), ''])}>+ Add Equipment</button>
                 </div>
               </div>
+            </>}
+
+            {/* ── CONTENT — Pick tracks, albums, videos to feature ── */}
+            {epkSection === 'content' && <>
+              {!platformContent ? (
+                <div className="ech-empty">Loading your content...</div>
+              ) : (
+                <>
+                  {/* Tracks */}
+                  <div className="ech-field">
+                    <label>Featured Tracks ({(epk.featured_tracks || []).length} selected)</label>
+                    {platformContent.tracks?.length > 0 ? (
+                      <div className="ech-content-picker">
+                        {platformContent.tracks.map(t => {
+                          const selected = (epk.featured_tracks || []).includes(t.id);
+                          return (
+                            <div key={t.id} className={`ech-content-item ${selected ? 'selected' : ''}`}
+                              onClick={() => {
+                                const ids = epk.featured_tracks || [];
+                                updateEpk('featured_tracks', selected ? ids.filter(x => x !== t.id) : [...ids, t.id]);
+                              }}>
+                              {t.artwork_url && <img src={t.artwork_url} alt="" className="ech-content-thumb" />}
+                              <div className="ech-content-info">
+                                <span className="ech-content-title">{t.title}</span>
+                                <span className="ech-content-meta">{t.genre} · {t.plays || 0} plays</span>
+                              </div>
+                              <span className="ech-content-check">{selected ? '✅' : '○'}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="ech-empty-small">No tracks uploaded yet. <a href="/upload-music">Upload music</a> to feature it here.</div>
+                    )}
+                  </div>
+
+                  {/* Albums */}
+                  <div className="ech-field">
+                    <label>Featured Albums ({(epk.featured_albums || []).length} selected)</label>
+                    {platformContent.albums?.length > 0 ? (
+                      <div className="ech-content-picker">
+                        {platformContent.albums.map(a => {
+                          const selected = (epk.featured_albums || []).includes(a.id);
+                          return (
+                            <div key={a.id} className={`ech-content-item ${selected ? 'selected' : ''}`}
+                              onClick={() => {
+                                const ids = epk.featured_albums || [];
+                                updateEpk('featured_albums', selected ? ids.filter(x => x !== a.id) : [...ids, a.id]);
+                              }}>
+                              {a.cover_art_url && <img src={a.cover_art_url} alt="" className="ech-content-thumb" />}
+                              <div className="ech-content-info">
+                                <span className="ech-content-title">{a.title}</span>
+                                <span className="ech-content-meta">{a.genre} · {a.release_date}</span>
+                              </div>
+                              <span className="ech-content-check">{selected ? '✅' : '○'}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="ech-empty-small">No albums yet. <a href="/profile/artist">Create an album</a> to feature it.</div>
+                    )}
+                  </div>
+
+                  {/* Videos */}
+                  <div className="ech-field">
+                    <label>Featured Videos ({(epk.featured_videos || []).length} selected)</label>
+                    {platformContent.videos?.length > 0 ? (
+                      <div className="ech-content-picker">
+                        {platformContent.videos.map(v => {
+                          const selected = (epk.featured_videos || []).includes(v.id);
+                          return (
+                            <div key={v.id} className={`ech-content-item ${selected ? 'selected' : ''}`}
+                              onClick={() => {
+                                const ids = epk.featured_videos || [];
+                                updateEpk('featured_videos', selected ? ids.filter(x => x !== v.id) : [...ids, v.id]);
+                              }}>
+                              {v.thumbnail_url && <img src={v.thumbnail_url} alt="" className="ech-content-thumb video" />}
+                              <div className="ech-content-info">
+                                <span className="ech-content-title">{v.title}</span>
+                                <span className="ech-content-meta">🎬 Video</span>
+                              </div>
+                              <span className="ech-content-check">{selected ? '✅' : '○'}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="ech-empty-small">No videos yet. <a href="/upload-video">Upload a video</a> to feature it.</div>
+                    )}
+                  </div>
+
+                  {/* Stats auto-pulled */}
+                  {platformContent.stats && Object.keys(platformContent.stats).length > 0 && (
+                    <div className="ech-auto-stats">
+                      <label>Auto-Detected Stats</label>
+                      <div className="ech-stats-preview">
+                        {platformContent.stats.total_streams && <span>🎵 {platformContent.stats.total_streams} streams</span>}
+                        {platformContent.stats.total_likes && <span>❤️ {platformContent.stats.total_likes} likes</span>}
+                        {platformContent.stats.followers && <span>👥 {platformContent.stats.followers} followers</span>}
+                      </div>
+                      <button className="ech-add-btn" onClick={() => {
+                        updateEpk('stats', { ...(epk.stats || {}), ...platformContent.stats });
+                        setStatus('✓ Stats synced');
+                      }}>🔄 Sync Stats to EPK</button>
+                    </div>
+                  )}
+                </>
+              )}
             </>}
 
             {/* ── TEMPLATE ── */}

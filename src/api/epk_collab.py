@@ -359,6 +359,106 @@ def save_epk():
     }), 201 if is_new else 200
 
 
+@epk_collab_bp.route('/api/epk/auto-populate', methods=['GET'])
+@jwt_required()
+def auto_populate_epk():
+    """
+    Fetch user's existing tracks, albums, videos, and stats to auto-populate EPK.
+    Called when artist opens EPK builder — pulls everything they already have on the platform.
+    """
+    db, User, EPK, _, _ = get_models()
+    uid = get_jwt_identity()
+    user = User.query.get(uid)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    result = {
+        "tracks": [],
+        "albums": [],
+        "videos": [],
+        "stats": {},
+        "profile": {},
+    }
+    
+    # Pull profile data
+    result["profile"] = {
+        "artist_name": user.artist_name or user.username,
+        "bio": user.artist_bio or user.bio or "",
+        "genre": getattr(user, 'artist_genre', '') or "",
+        "location": getattr(user, 'artist_location', '') or "",
+        "website": getattr(user, 'artist_website', '') or "",
+        "email": user.email or "",
+        "profile_photo": user.profile_picture or "",
+        "cover_photo": user.cover_photo or "",
+        "social_links": user.artist_social_links or user.social_links or {},
+    }
+    
+    # Pull tracks (most played first, limit 20)
+    try:
+        from api.models import Audio
+        tracks = Audio.query.filter_by(user_id=uid, is_public=True).order_by(Audio.plays.desc().nullslast()).limit(20).all()
+        total_plays = 0
+        total_likes = 0
+        for t in tracks:
+            total_plays += (t.plays or 0)
+            total_likes += (t.likes or 0)
+            result["tracks"].append({
+                "id": t.id,
+                "title": t.title,
+                "genre": t.genre,
+                "plays": t.plays or 0,
+                "likes": t.likes or 0,
+                "artwork_url": t.artwork_url,
+                "file_url": t.file_url,
+                "duration": t.duration,
+            })
+        result["stats"]["total_streams"] = str(total_plays) if total_plays else ""
+        result["stats"]["total_likes"] = str(total_likes) if total_likes else ""
+    except Exception as e:
+        print(f"EPK auto-populate tracks error: {e}")
+    
+    # Pull albums
+    try:
+        from api.models import Album
+        albums = Album.query.filter_by(user_id=uid).order_by(Album.release_date.desc()).limit(10).all()
+        for a in albums:
+            result["albums"].append({
+                "id": a.id,
+                "title": a.title,
+                "genre": a.genre,
+                "release_date": a.release_date,
+                "cover_art_url": a.cover_art_url,
+            })
+    except Exception as e:
+        print(f"EPK auto-populate albums error: {e}")
+    
+    # Pull videos
+    try:
+        from api.models import Video
+        videos = Video.query.filter_by(user_id=uid).order_by(Video.uploaded_at.desc()).limit(10).all()
+        for v in videos:
+            result["videos"].append({
+                "id": v.id,
+                "title": v.title,
+                "thumbnail_url": v.thumbnail_url,
+                "file_url": v.file_url,
+                "duration": v.duration,
+            })
+    except Exception as e:
+        print(f"EPK auto-populate videos error: {e}")
+    
+    # Count followers if available
+    try:
+        from api.models import Follower
+        follower_count = Follower.query.filter_by(followed_id=uid).count()
+        if follower_count:
+            result["stats"]["followers"] = str(follower_count)
+    except Exception:
+        pass
+    
+    return jsonify(result), 200
+
+
 @epk_collab_bp.route('/api/epk/upload', methods=['POST'])
 @jwt_required()
 def upload_epk_media():

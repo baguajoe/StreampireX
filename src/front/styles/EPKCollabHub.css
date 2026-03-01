@@ -1,559 +1,911 @@
-/* =============================================================================
-   EPKCollabHub.css — EPK Builder + Collab Marketplace (Unified)
-   StreamPireX Dark Theme — Teal (#00ffc8) + Orange (#FF6600)
-   ============================================================================= */
+# =============================================================================
+# epk_collab.py — EPK Builder + Collab Marketplace API
+# =============================================================================
+# Unified system: Artists build EPKs (Electronic Press Kits) which serve as
+# their professional identity. The Collab Marketplace uses EPKs for matching
+# and pitching. EPKs are publicly shareable at /epk/:username
+#
+# Backend: Flask Blueprint
+# Models: EPK, CollabRequest, CollabApplication
+# =============================================================================
 
-.epk-collab-hub {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #030a18 0%, #0a1628 50%, #071020 100%);
-  color: #c0d0e0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  padding: 0 0 40px;
-  position: relative;
-}
+from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import datetime
+import json
 
-/* ═══════════════════════════════════════════════════════════════
-   STATUS BAR
-   ═══════════════════════════════════════════════════════════════ */
+epk_collab_bp = Blueprint('epk_collab', __name__)
 
-.ech-status-bar {
-  position: sticky; top: 0; z-index: 50;
-  padding: 10px 20px; text-align: center;
-  font-size: 0.8rem; font-weight: 600;
-  animation: echSlideDown 0.3s ease;
-}
-.ech-status-bar.success { background: rgba(0,255,200,0.12); color: #00ffc8; border-bottom: 1px solid rgba(0,255,200,0.2); }
-.ech-status-bar.error { background: rgba(255,68,68,0.12); color: #ff4444; border-bottom: 1px solid rgba(255,68,68,0.2); }
+# =============================================================================
+# MODELS — Add to models.py
+# =============================================================================
+# Copy the following model classes into your models.py file:
+"""
+class EPK(db.Model):
+    '''Electronic Press Kit — artist's professional identity card'''
+    __tablename__ = 'epk'
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    
+    # Identity
+    artist_name = db.Column(db.String(100))
+    tagline = db.Column(db.String(200))  # "Grammy-nominated R&B vocalist from Atlanta"
+    bio_short = db.Column(db.Text)  # 2-3 sentence elevator pitch
+    bio_full = db.Column(db.Text)   # Full press bio
+    genre_primary = db.Column(db.String(50))
+    genre_secondary = db.Column(db.String(50))
+    location = db.Column(db.String(100))
+    
+    # Contact & Booking
+    booking_email = db.Column(db.String(200))
+    management_name = db.Column(db.String(100))
+    management_email = db.Column(db.String(200))
+    label_name = db.Column(db.String(100))
+    website = db.Column(db.String(300))
+    
+    # Social Links (JSON)
+    social_links = db.Column(db.JSON, default=dict)  # {spotify, apple, youtube, instagram, tiktok, twitter, soundcloud}
+    
+    # Media
+    profile_photo = db.Column(db.String(500))
+    cover_photo = db.Column(db.String(500))
+    press_photos = db.Column(db.JSON, default=list)  # [{url, caption}]
+    logo_url = db.Column(db.String(500))
+    
+    # Achievements & Stats
+    achievements = db.Column(db.JSON, default=list)  # [{title, description, date, icon}]
+    stats = db.Column(db.JSON, default=dict)  # {monthly_listeners, total_streams, followers, shows_played}
+    press_quotes = db.Column(db.JSON, default=list)  # [{quote, source, url, date}]
+    
+    # Featured Content (pulled from platform)
+    featured_tracks = db.Column(db.JSON, default=list)  # [track_id, ...]
+    featured_videos = db.Column(db.JSON, default=list)  # [video_id, ...]
+    featured_albums = db.Column(db.JSON, default=list)  # [album_id, ...]
+    
+    # Technical Rider (for live bookings)
+    rider = db.Column(db.Text)
+    stage_plot_url = db.Column(db.String(500))
+    
+    # Featured Media (audio demos, music videos, press releases — any file type)
+    featured_media = db.Column(db.JSON, default=list)  # [{url, title, description, type, ext}]
+    
+    # Collab Profile (used for matching)
+    skills = db.Column(db.JSON, default=list)  # ["vocalist", "producer", "songwriter", "engineer", "guitarist"]
+    collab_open = db.Column(db.Boolean, default=True)  # actively looking for collabs
+    collab_rate = db.Column(db.String(100))  # "Negotiable" / "$500/verse" / "Points only"
+    preferred_genres = db.Column(db.JSON, default=list)  # genres they want to collab in
+    equipment = db.Column(db.JSON, default=list)  # ["Pro Tools", "FL Studio", "Neumann U87"]
+    
+    # Template & Appearance
+    template = db.Column(db.String(20), default='modern')  # modern | minimal | bold | elegant
+    accent_color = db.Column(db.String(7), default='#00ffc8')
+    
+    # Visibility
+    is_public = db.Column(db.Boolean, default=True)
+    slug = db.Column(db.String(100), unique=True, index=True)  # URL-friendly name
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    user = db.relationship('User', backref=db.backref('epk', uselist=False, lazy=True))
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "artist_name": self.artist_name,
+            "tagline": self.tagline,
+            "bio_short": self.bio_short,
+            "bio_full": self.bio_full,
+            "genre_primary": self.genre_primary,
+            "genre_secondary": self.genre_secondary,
+            "location": self.location,
+            "booking_email": self.booking_email,
+            "management_name": self.management_name,
+            "management_email": self.management_email,
+            "label_name": self.label_name,
+            "website": self.website,
+            "social_links": self.social_links or {},
+            "profile_photo": self.profile_photo,
+            "cover_photo": self.cover_photo,
+            "press_photos": self.press_photos or [],
+            "logo_url": self.logo_url,
+            "achievements": self.achievements or [],
+            "stats": self.stats or {},
+            "press_quotes": self.press_quotes or [],
+            "featured_tracks": self.featured_tracks or [],
+            "featured_videos": self.featured_videos or [],
+            "featured_albums": self.featured_albums or [],
+            "rider": self.rider,
+            "stage_plot_url": self.stage_plot_url,
+            "featured_media": self.featured_media or [],
+            "skills": self.skills or [],
+            "collab_open": self.collab_open,
+            "collab_rate": self.collab_rate,
+            "preferred_genres": self.preferred_genres or [],
+            "equipment": self.equipment or [],
+            "template": self.template,
+            "accent_color": self.accent_color,
+            "is_public": self.is_public,
+            "slug": self.slug,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
 
-@keyframes echSlideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-/* ═══════════════════════════════════════════════════════════════
-   TAB NAVIGATION
-   ═══════════════════════════════════════════════════════════════ */
+class CollabRequest(db.Model):
+    '''A collab posting — "I need a vocalist for my R&B track"'''
+    __tablename__ = 'collab_request'
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    title = db.Column(db.String(200), nullable=False)  # "Need R&B vocalist for upcoming single"
+    description = db.Column(db.Text)
+    genre = db.Column(db.String(50))
+    roles_needed = db.Column(db.JSON, default=list)  # ["vocalist", "mix engineer"]
+    budget = db.Column(db.String(100))  # "Negotiable" / "$200-500" / "Points/royalty split"
+    deadline = db.Column(db.DateTime)
+    
+    # Reference material
+    reference_track_url = db.Column(db.String(500))
+    reference_notes = db.Column(db.Text)
+    
+    # Visibility & Status
+    status = db.Column(db.String(20), default='open')  # open | filled | closed | draft
+    is_public = db.Column(db.Boolean, default=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('collab_requests', lazy=True))
+    
+    def to_dict(self):
+        user = self.user
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "artist_name": user.artist_name or user.username if user else None,
+            "profile_photo": user.profile_picture if user else None,
+            "title": self.title,
+            "description": self.description,
+            "genre": self.genre,
+            "roles_needed": self.roles_needed or [],
+            "budget": self.budget,
+            "deadline": self.deadline.isoformat() if self.deadline else None,
+            "reference_track_url": self.reference_track_url,
+            "reference_notes": self.reference_notes,
+            "status": self.status,
+            "is_public": self.is_public,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "application_count": len(self.applications) if hasattr(self, 'applications') else 0,
+        }
 
-.ech-tabs {
-  display: flex; align-items: center; gap: 4px;
-  padding: 16px 20px 0;
-  border-bottom: 1px solid rgba(90,200,250,0.08);
-  background: rgba(3,10,24,0.6);
-  position: sticky; top: 0; z-index: 40;
-  backdrop-filter: blur(12px);
-}
-.ech-tabs button {
-  padding: 10px 18px; border: none; background: transparent;
-  color: #5a7088; font-size: 0.85rem; font-weight: 600;
-  cursor: pointer; border-bottom: 2px solid transparent;
-  transition: all 0.2s; display: flex; align-items: center; gap: 6px;
-}
-.ech-tabs button:hover { color: #8aa0b8; }
-.ech-tabs button.active { color: #00ffc8; border-bottom-color: #00ffc8; }
-.ech-tab-icon { font-size: 1rem; }
-.ech-unsaved-dot { color: #FF6600; font-size: 0.6rem; margin-left: 2px; }
-.ech-preview-link {
-  margin-left: auto; padding: 6px 14px;
-  background: rgba(0,255,200,0.06); border: 1px solid rgba(0,255,200,0.15);
-  border-radius: 6px; color: #00ffc8; text-decoration: none;
-  font-size: 0.75rem; font-weight: 600; transition: all 0.2s;
-}
-.ech-preview-link:hover { background: rgba(0,255,200,0.12); }
 
-/* ═══════════════════════════════════════════════════════════════
-   EPK BUILDER
-   ═══════════════════════════════════════════════════════════════ */
+class CollabApplication(db.Model):
+    '''An application/pitch to a collab request — includes EPK link'''
+    __tablename__ = 'collab_application'
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.Integer, db.ForeignKey('collab_request.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    message = db.Column(db.Text)  # pitch message
+    proposed_rate = db.Column(db.String(100))
+    sample_url = db.Column(db.String(500))  # link to relevant work sample
+    
+    status = db.Column(db.String(20), default='pending')  # pending | accepted | declined | withdrawn
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    request = db.relationship('CollabRequest', backref=db.backref('applications', lazy=True))
+    user = db.relationship('User', backref=db.backref('collab_applications', lazy=True))
+    
+    def to_dict(self):
+        user = self.user
+        epk = user.epk if user else None
+        return {
+            "id": self.id,
+            "request_id": self.request_id,
+            "user_id": self.user_id,
+            "artist_name": user.artist_name or user.username if user else None,
+            "profile_photo": user.profile_picture if user else None,
+            "epk_slug": epk.slug if epk else None,
+            "skills": epk.skills if epk else [],
+            "genre": epk.genre_primary if epk else None,
+            "message": self.message,
+            "proposed_rate": self.proposed_rate,
+            "sample_url": self.sample_url,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+"""
 
-.ech-epk-builder {
-  display: grid; grid-template-columns: 200px 1fr;
-  gap: 0; min-height: calc(100vh - 80px);
-}
+# =============================================================================
+# HELPER — Import these in your actual app
+# =============================================================================
+# from models import db, User, EPK, CollabRequest, CollabApplication
 
-.ech-epk-sections {
-  padding: 16px 12px; display: flex; flex-direction: column; gap: 4px;
-  border-right: 1px solid rgba(90,200,250,0.06);
-  background: rgba(6,15,32,0.4);
-}
-.ech-section-btn {
-  padding: 10px 12px; border: none; border-radius: 6px;
-  background: transparent; cursor: pointer;
-  text-align: left; transition: all 0.15s;
-  display: flex; flex-direction: column; gap: 2px;
-}
-.ech-section-btn:hover { background: rgba(90,200,250,0.04); }
-.ech-section-btn.active { background: rgba(0,255,200,0.08); border-left: 3px solid #00ffc8; }
-.ech-section-label { font-size: 0.8rem; font-weight: 600; color: #8aa0b8; }
-.ech-section-btn.active .ech-section-label { color: #00ffc8; }
-.ech-section-desc { font-size: 0.65rem; color: #3d5570; }
+# For standalone development, we'll use lazy imports
+def get_models():
+    from api.models import db, User
+    # Try importing new models, fall back gracefully
+    try:
+        from api.models import EPK, CollabRequest, CollabApplication
+    except ImportError:
+        EPK = None
+        CollabRequest = None
+        CollabApplication = None
+    return db, User, EPK, CollabRequest, CollabApplication
 
-.ech-epk-form { padding: 20px 28px; max-width: 700px; }
 
-/* ── Form Fields ── */
-.ech-field { margin-bottom: 18px; }
-.ech-field label {
-  display: block; font-size: 0.75rem; font-weight: 600;
-  color: #5a7088; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
-}
-.ech-field input[type="text"],
-.ech-field input[type="email"],
-.ech-field input[type="url"],
-.ech-field input[type="date"],
-.ech-field textarea,
-.ech-field select {
-  width: 100%; padding: 10px 14px;
-  background: rgba(10,22,40,0.6); border: 1px solid rgba(90,200,250,0.12);
-  border-radius: 6px; color: #c0d0e0; font-size: 0.85rem;
-  transition: border-color 0.2s;
-}
-.ech-field input:focus, .ech-field textarea:focus, .ech-field select:focus {
-  outline: none; border-color: rgba(0,255,200,0.35);
-}
-.ech-field textarea { resize: vertical; font-family: inherit; }
-.ech-hint { font-size: 0.65rem; color: #3d5570; margin-top: 4px; display: block; }
+# =============================================================================
+# EPK ROUTES
+# =============================================================================
 
-.ech-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@epk_collab_bp.route('/api/epk', methods=['GET'])
+@jwt_required()
+def get_my_epk():
+    """Get current user's EPK (or empty template if none exists)"""
+    db, User, EPK, _, _ = get_models()
+    uid = get_jwt_identity()
+    epk = EPK.query.filter_by(user_id=uid).first() if EPK else None
+    
+    if epk:
+        return jsonify(epk.to_dict()), 200
+    
+    # Return empty template with user's existing data pre-filled
+    user = User.query.get(uid)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    return jsonify({
+        "id": None,
+        "user_id": uid,
+        "artist_name": user.artist_name or user.username,
+        "tagline": "",
+        "bio_short": (user.artist_bio or user.bio or "")[:200],
+        "bio_full": user.artist_bio or user.bio or "",
+        "genre_primary": user.artist_genre or "",
+        "genre_secondary": "",
+        "location": getattr(user, 'artist_location', '') or "",
+        "booking_email": user.email or "",
+        "management_name": "",
+        "management_email": "",
+        "label_name": "",
+        "website": getattr(user, 'artist_website', '') or "",
+        "social_links": user.artist_social_links or user.social_links or {},
+        "profile_photo": user.profile_picture or "",
+        "cover_photo": user.cover_photo or "",
+        "press_photos": [],
+        "logo_url": "",
+        "achievements": [],
+        "stats": {},
+        "press_quotes": [],
+        "featured_tracks": [],
+        "featured_videos": [],
+        "featured_albums": [],
+        "rider": "",
+        "stage_plot_url": "",
+        "featured_media": [],
+        "skills": [],
+        "collab_open": True,
+        "collab_rate": "",
+        "preferred_genres": [],
+        "equipment": [],
+        "template": "modern",
+        "accent_color": "#00ffc8",
+        "is_public": True,
+        "slug": (user.artist_name or user.username or "").lower().replace(" ", "-"),
+        "created_at": None,
+        "updated_at": None,
+    }), 200
 
-/* ── Slug Preview ── */
-.ech-slug-preview { display: flex; align-items: center; gap: 0; }
-.ech-slug-base {
-  padding: 10px 12px; background: rgba(0,255,200,0.06);
-  border: 1px solid rgba(90,200,250,0.12); border-right: none;
-  border-radius: 6px 0 0 6px; color: #5a7088; font-size: 0.8rem; white-space: nowrap;
-}
-.ech-slug-preview input { border-radius: 0 6px 6px 0 !important; }
 
-/* ── Social Grid ── */
-.ech-social-grid { display: flex; flex-direction: column; gap: 8px; }
-.ech-social-row { display: flex; align-items: center; gap: 10px; }
-.ech-social-label {
-  min-width: 100px; font-size: 0.75rem; color: #5a7088;
-  font-weight: 500; text-transform: capitalize;
-}
-.ech-social-row input { flex: 1; }
+@epk_collab_bp.route('/api/epk', methods=['POST', 'PUT'])
+@jwt_required()
+def save_epk():
+    """Create or update EPK"""
+    db, User, EPK, _, _ = get_models()
+    if not EPK:
+        return jsonify({"error": "EPK model not available. Run migrations."}), 500
+    
+    uid = get_jwt_identity()
+    data = request.json
+    
+    epk = EPK.query.filter_by(user_id=uid).first()
+    is_new = epk is None
+    
+    if is_new:
+        epk = EPK(user_id=uid)
+        db.session.add(epk)
+    
+    # Update all fields
+    fields = [
+        'artist_name', 'tagline', 'bio_short', 'bio_full',
+        'genre_primary', 'genre_secondary', 'location',
+        'booking_email', 'management_name', 'management_email', 'label_name', 'website',
+        'social_links', 'profile_photo', 'cover_photo', 'press_photos', 'logo_url',
+        'achievements', 'stats', 'press_quotes',
+        'featured_tracks', 'featured_videos', 'featured_albums',
+        'rider', 'stage_plot_url', 'featured_media',
+        'skills', 'collab_open', 'collab_rate', 'preferred_genres', 'equipment',
+        'template', 'accent_color', 'is_public', 'slug',
+    ]
+    for f in fields:
+        if f in data:
+            setattr(epk, f, data[f])
+    
+    # Auto-generate slug if empty
+    if not epk.slug and epk.artist_name:
+        import re
+        base = re.sub(r'[^a-z0-9]+', '-', epk.artist_name.lower()).strip('-')
+        # Ensure unique
+        slug = base
+        counter = 1
+        while EPK.query.filter(EPK.slug == slug, EPK.id != epk.id).first():
+            slug = f"{base}-{counter}"
+            counter += 1
+        epk.slug = slug
+    
+    epk.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({
+        "message": "EPK created" if is_new else "EPK updated",
+        "epk": epk.to_dict()
+    }), 201 if is_new else 200
 
-/* ── Tag Selector ── */
-.ech-tag-selector { display: flex; flex-wrap: wrap; gap: 6px; }
-.ech-tag-selector.compact { gap: 4px; }
-.ech-tag {
-  padding: 5px 12px; border: 1px solid rgba(90,200,250,0.1);
-  border-radius: 20px; background: rgba(10,22,40,0.4);
-  color: #5a7088; font-size: 0.72rem; cursor: pointer; transition: all 0.15s;
-}
-.ech-tag:hover { border-color: rgba(90,200,250,0.25); color: #8aa0b8; }
-.ech-tag.active {
-  background: rgba(0,255,200,0.1); border-color: rgba(0,255,200,0.3);
-  color: #00ffc8; font-weight: 600;
-}
 
-/* ── Photo Previews ── */
-.ech-photo-preview { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin-top: 8px; border: 2px solid rgba(0,255,200,0.2); }
-.ech-cover-preview { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-top: 8px; border: 1px solid rgba(90,200,250,0.1); }
+@epk_collab_bp.route('/api/epk/auto-populate', methods=['GET'])
+@jwt_required()
+def auto_populate_epk():
+    """
+    Fetch user's existing tracks, albums, videos, and stats to auto-populate EPK.
+    Called when artist opens EPK builder — pulls everything they already have on the platform.
+    """
+    db, User, EPK, _, _ = get_models()
+    uid = get_jwt_identity()
+    user = User.query.get(uid)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    result = {
+        "tracks": [],
+        "albums": [],
+        "videos": [],
+        "stats": {},
+        "profile": {},
+    }
+    
+    # Pull profile data
+    result["profile"] = {
+        "artist_name": user.artist_name or user.username,
+        "bio": user.artist_bio or user.bio or "",
+        "genre": getattr(user, 'artist_genre', '') or "",
+        "location": getattr(user, 'artist_location', '') or "",
+        "website": getattr(user, 'artist_website', '') or "",
+        "email": user.email or "",
+        "profile_photo": user.profile_picture or "",
+        "cover_photo": user.cover_photo or "",
+        "social_links": user.artist_social_links or user.social_links or {},
+    }
+    
+    # Pull tracks (most played first, limit 20)
+    try:
+        from api.models import Audio
+        tracks = Audio.query.filter_by(user_id=uid, is_public=True).order_by(Audio.plays.desc().nullslast()).limit(20).all()
+        total_plays = 0
+        total_likes = 0
+        for t in tracks:
+            total_plays += (t.plays or 0)
+            total_likes += (t.likes or 0)
+            result["tracks"].append({
+                "id": t.id,
+                "title": t.title,
+                "genre": t.genre,
+                "plays": t.plays or 0,
+                "likes": t.likes or 0,
+                "artwork_url": t.artwork_url,
+                "file_url": t.file_url,
+                "duration": t.duration,
+            })
+        result["stats"]["total_streams"] = str(total_plays) if total_plays else ""
+        result["stats"]["total_likes"] = str(total_likes) if total_likes else ""
+    except Exception as e:
+        print(f"EPK auto-populate tracks error: {e}")
+    
+    # Pull albums
+    try:
+        from api.models import Album
+        albums = Album.query.filter_by(user_id=uid).order_by(Album.release_date.desc()).limit(10).all()
+        for a in albums:
+            result["albums"].append({
+                "id": a.id,
+                "title": a.title,
+                "genre": a.genre,
+                "release_date": a.release_date,
+                "cover_art_url": a.cover_art_url,
+            })
+    except Exception as e:
+        print(f"EPK auto-populate albums error: {e}")
+    
+    # Pull videos
+    try:
+        from api.models import Video
+        videos = Video.query.filter_by(user_id=uid).order_by(Video.uploaded_at.desc()).limit(10).all()
+        for v in videos:
+            result["videos"].append({
+                "id": v.id,
+                "title": v.title,
+                "thumbnail_url": v.thumbnail_url,
+                "file_url": v.file_url,
+                "duration": v.duration,
+            })
+    except Exception as e:
+        print(f"EPK auto-populate videos error: {e}")
+    
+    # Count followers if available
+    try:
+        from api.models import Follower
+        follower_count = Follower.query.filter_by(followed_id=uid).count()
+        if follower_count:
+            result["stats"]["followers"] = str(follower_count)
+    except Exception:
+        pass
+    
+    return jsonify(result), 200
 
-/* ── Press Photos ── */
-.ech-press-photos { display: flex; flex-direction: column; gap: 8px; }
-.ech-press-photo-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px; background: rgba(10,22,40,0.4); border-radius: 6px;
-}
-.ech-press-photo-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; }
-.ech-press-photo-item input { flex: 1; }
 
-/* ── Stats Grid ── */
-.ech-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.ech-stat-input {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 12px; background: rgba(10,22,40,0.4); border-radius: 6px;
-  border: 1px solid rgba(90,200,250,0.08);
-}
-.ech-stat-input span { font-size: 1.1rem; }
-.ech-stat-input input { border: none !important; background: transparent !important; padding: 4px !important; }
+@epk_collab_bp.route('/api/epk/upload', methods=['POST'])
+@jwt_required()
+def upload_epk_media():
+    """
+    Upload any media for EPK — images, audio, video, documents.
+    Routes through R2 (Cloudflare) first, falls back to Cloudinary.
+    
+    Fields:
+      - profile_photo, cover_photo, logo_url, stage_plot_url → single file, replaces existing
+      - press_photos → appends to gallery array
+      - audio_demo → audio file (mp3, wav, flac, etc.)
+      - video_demo → video file (mp4, mov, webm, etc.)
+      - document → PDF, doc, press release, etc.
+    """
+    db, User, EPK, _, _ = get_models()
+    uid = get_jwt_identity()
+    
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+    
+    file = request.files['file']
+    if not file or file.filename == '':
+        return jsonify({"error": "Empty file"}), 400
+    
+    field = request.form.get('field', 'press_photos')
+    
+    # Allowed extensions by category
+    ALLOWED = {
+        'image': {'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'},
+        'audio': {'mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg', 'wma'},
+        'video': {'mp4', 'mov', 'avi', 'webm', 'mkv', 'wmv'},
+        'document': {'pdf', 'doc', 'docx', 'txt'},
+    }
+    all_allowed = set()
+    for exts in ALLOWED.values():
+        all_allowed.update(exts)
+    
+    ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+    if ext not in all_allowed:
+        return jsonify({"error": f"File type .{ext} not allowed. Supported: images, audio, video, PDF"}), 400
+    
+    # Determine file category
+    file_type = 'other'
+    for cat, exts in ALLOWED.items():
+        if ext in exts:
+            file_type = cat
+            break
+    
+    try:
+        # Try R2 first (Cloudflare), fall back to Cloudinary
+        url = None
+        try:
+            from api.r2_storage_setup import uploadFile
+            result = uploadFile(file, file.filename)
+            # R2 returns a string URL directly
+            url = result if isinstance(result, str) else result.get('secure_url', result.get('url', ''))
+        except (ImportError, Exception) as r2_err:
+            print(f"R2 upload failed, trying Cloudinary: {r2_err}")
+            try:
+                from api.cloudinary_setup import uploadFile as cloudUpload
+                file.seek(0)  # Reset file pointer after R2 attempt
+                result = cloudUpload(file, file.filename)
+                # Cloudinary returns a dict with secure_url
+                url = result.get('secure_url', '') if isinstance(result, dict) else str(result)
+            except Exception as cloud_err:
+                return jsonify({"error": f"Both R2 and Cloudinary failed. R2: {str(r2_err)}, Cloudinary: {str(cloud_err)}"}), 500
+        
+        if not url:
+            return jsonify({"error": "Upload succeeded but no URL returned"}), 500
+        
+        # Auto-update EPK if it exists
+        epk = EPK.query.filter_by(user_id=uid).first() if EPK else None
+        if epk:
+            # Single-value fields — replace
+            if field in ['profile_photo', 'cover_photo', 'logo_url', 'stage_plot_url']:
+                setattr(epk, field, url)
+                db.session.commit()
+            # Array fields — append
+            elif field == 'press_photos':
+                photos = epk.press_photos or []
+                caption = request.form.get('caption', '')
+                photos.append({"url": url, "caption": caption, "type": file_type})
+                epk.press_photos = photos
+                db.session.commit()
+            elif field == 'featured_media':
+                # Audio demos, music videos, documents, etc.
+                media = epk.featured_media or []
+                media.append({
+                    "title": request.form.get('title', file.filename),
+                    "description": request.form.get('description', ''),
+                    "url": url,
+                    "type": file_type,
+                    "ext": ext,
+                })
+                epk.featured_media = media
+                db.session.commit()
+        
+        return jsonify({
+            "message": "Upload successful",
+            "url": url,
+            "field": field,
+            "file_type": file_type,
+            "ext": ext,
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": f"Upload failed: {str(e)}"}), 500
 
-/* ── Achievement / Quote Rows ── */
-.ech-achievement-row, .ech-quote-row {
-  display: flex; gap: 8px; align-items: start; margin-bottom: 8px;
-  padding: 8px; background: rgba(10,22,40,0.3); border-radius: 6px;
-}
-.ech-achievement-row input, .ech-quote-row input, .ech-quote-row textarea { flex: 1; }
 
-/* ── Equipment ── */
-.ech-equipment-item { display: flex; gap: 8px; margin-bottom: 6px; }
-.ech-equipment-item input { flex: 1; }
+@epk_collab_bp.route('/api/epk/<slug>', methods=['GET'])
+def get_public_epk(slug):
+    """Public EPK view — no auth required"""
+    db, User, EPK, _, _ = get_models()
+    if not EPK:
+        return jsonify({"error": "EPK not available"}), 500
+    
+    epk = EPK.query.filter_by(slug=slug, is_public=True).first()
+    if not epk:
+        return jsonify({"error": "EPK not found"}), 404
+    
+    result = epk.to_dict()
+    # Strip private contact info from public view
+    result.pop('management_email', None)
+    result.pop('booking_email', None)
+    # Add user's track/album data
+    user = User.query.get(epk.user_id)
+    if user:
+        result['username'] = user.username
+    
+    return jsonify(result), 200
 
-/* ── Add / Remove Buttons ── */
-.ech-add-btn {
-  padding: 8px 16px; border: 1px dashed rgba(0,255,200,0.2);
-  border-radius: 6px; background: transparent; color: #00ffc8;
-  font-size: 0.75rem; cursor: pointer; transition: all 0.15s;
-}
-.ech-add-btn:hover { background: rgba(0,255,200,0.06); border-color: rgba(0,255,200,0.35); }
-.ech-remove-btn {
-  padding: 4px 8px; border: 1px solid rgba(255,68,68,0.15);
-  border-radius: 4px; background: transparent; color: #ff4444;
-  font-size: 0.7rem; cursor: pointer; flex-shrink: 0;
-}
-.ech-remove-btn:hover { background: rgba(255,68,68,0.1); }
 
-/* ── Toggle Button ── */
-.ech-toggle {
-  padding: 10px 20px; border: 1px solid rgba(90,200,250,0.12);
-  border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
-  transition: all 0.2s;
-}
-.ech-toggle.on { background: rgba(0,255,200,0.1); border-color: rgba(0,255,200,0.3); color: #00ffc8; }
-.ech-toggle.off { background: rgba(90,200,250,0.04); color: #5a7088; }
+@epk_collab_bp.route('/api/epk/search', methods=['GET'])
+def search_epks():
+    """Search EPKs for collab matching"""
+    db, User, EPK, _, _ = get_models()
+    if not EPK:
+        return jsonify({"results": []}), 200
+    
+    genre = request.args.get('genre', '')
+    skill = request.args.get('skill', '')
+    location = request.args.get('location', '')
+    collab_only = request.args.get('collab_open', 'false') == 'true'
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 20))
+    
+    query = EPK.query.filter_by(is_public=True)
+    
+    if genre:
+        query = query.filter(
+            db.or_(EPK.genre_primary.ilike(f'%{genre}%'), EPK.genre_secondary.ilike(f'%{genre}%'))
+        )
+    if skill:
+        query = query.filter(EPK.skills.cast(db.Text).ilike(f'%{skill}%'))
+    if location:
+        query = query.filter(EPK.location.ilike(f'%{location}%'))
+    if collab_only:
+        query = query.filter_by(collab_open=True)
+    
+    results = query.order_by(EPK.updated_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    
+    return jsonify({
+        "results": [e.to_dict() for e in results.items],
+        "total": results.total,
+        "pages": results.pages,
+        "page": page,
+    }), 200
 
-/* ── Template Grid ── */
-.ech-template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.ech-template-card {
-  padding: 16px; border: 2px solid rgba(90,200,250,0.08);
-  border-radius: 10px; background: rgba(10,22,40,0.4);
-  cursor: pointer; text-align: center; transition: all 0.2s;
-}
-.ech-template-card:hover { border-color: rgba(90,200,250,0.2); }
-.ech-template-card.active { border-color: #00ffc8; background: rgba(0,255,200,0.06); }
-.ech-template-name { display: block; font-size: 0.85rem; font-weight: 700; color: #c0d0e0; }
-.ech-template-desc { font-size: 0.7rem; color: #5a7088; }
 
-/* ── Color Picker ── */
-.ech-color-picker { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.ech-color-picker input[type="color"] {
-  width: 40px; height: 40px; border: 2px solid rgba(90,200,250,0.15);
-  border-radius: 8px; cursor: pointer; background: transparent; padding: 2px;
-}
-.ech-color-picker span { font-size: 0.8rem; color: #5a7088; font-family: monospace; }
-.ech-preset-colors { display: flex; gap: 6px; }
-.ech-color-swatch {
-  width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1);
-  cursor: pointer; transition: transform 0.15s;
-}
-.ech-color-swatch:hover { transform: scale(1.2); }
+# =============================================================================
+# COLLAB REQUEST ROUTES
+# =============================================================================
 
-/* ── Save Bar ── */
-.ech-save-bar {
-  margin-top: 24px; padding: 16px 0; border-top: 1px solid rgba(90,200,250,0.08);
-  display: flex; align-items: center; gap: 16px;
-}
-.ech-save-btn {
-  padding: 12px 28px; border: none; border-radius: 8px;
-  background: linear-gradient(135deg, #00ffc8, #00c89b);
-  color: #030a18; font-size: 0.85rem; font-weight: 700;
-  cursor: pointer; transition: all 0.2s;
-}
-.ech-save-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,255,200,0.3); }
-.ech-save-btn:disabled { opacity: 0.5; cursor: default; background: rgba(90,200,250,0.15); color: #5a7088; }
-.ech-share-url { font-size: 0.72rem; color: #3d5570; font-family: monospace; }
+@epk_collab_bp.route('/api/collab/requests', methods=['GET'])
+def get_collab_requests():
+    """Browse open collab requests"""
+    db, User, _, CollabRequest, _ = get_models()
+    if not CollabRequest:
+        return jsonify({"requests": []}), 200
+    
+    genre = request.args.get('genre', '')
+    role = request.args.get('role', '')
+    status = request.args.get('status', 'open')
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 20))
+    
+    query = CollabRequest.query.filter_by(is_public=True)
+    if status:
+        query = query.filter_by(status=status)
+    if genre:
+        query = query.filter(CollabRequest.genre.ilike(f'%{genre}%'))
+    if role:
+        query = query.filter(CollabRequest.roles_needed.cast(db.Text).ilike(f'%{role}%'))
+    
+    results = query.order_by(CollabRequest.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    
+    return jsonify({
+        "requests": [r.to_dict() for r in results.items],
+        "total": results.total,
+        "pages": results.pages,
+        "page": page,
+    }), 200
 
-/* ═══════════════════════════════════════════════════════════════
-   COLLAB BOARD
-   ═══════════════════════════════════════════════════════════════ */
 
-.ech-collab-board { padding: 16px 20px; max-width: 900px; margin: 0 auto; }
+@epk_collab_bp.route('/api/collab/requests', methods=['POST'])
+@jwt_required()
+def create_collab_request():
+    """Post a new collab request"""
+    db, User, _, CollabRequest, _ = get_models()
+    if not CollabRequest:
+        return jsonify({"error": "CollabRequest model not available"}), 500
+    
+    uid = get_jwt_identity()
+    data = request.json
+    
+    cr = CollabRequest(
+        user_id=uid,
+        title=data.get('title', ''),
+        description=data.get('description', ''),
+        genre=data.get('genre', ''),
+        roles_needed=data.get('roles_needed', []),
+        budget=data.get('budget', ''),
+        deadline=datetime.fromisoformat(data['deadline']) if data.get('deadline') else None,
+        reference_track_url=data.get('reference_track_url', ''),
+        reference_notes=data.get('reference_notes', ''),
+        status='open',
+        is_public=True,
+    )
+    db.session.add(cr)
+    db.session.commit()
+    
+    return jsonify({"message": "Collab request posted", "request": cr.to_dict()}), 201
 
-.ech-collab-nav {
-  display: flex; gap: 4px; margin-bottom: 16px;
-  border-bottom: 1px solid rgba(90,200,250,0.06); padding-bottom: 10px;
-}
-.ech-collab-nav button {
-  padding: 8px 16px; border: none; border-radius: 6px;
-  background: rgba(10,22,40,0.4); color: #5a7088;
-  font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
-}
-.ech-collab-nav button:hover { background: rgba(90,200,250,0.06); color: #8aa0b8; }
-.ech-collab-nav button.active { background: rgba(0,255,200,0.1); color: #00ffc8; }
 
-/* ── Collab Filters ── */
-.ech-collab-filters {
-  display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;
-}
-.ech-collab-filters select, .ech-collab-filters input {
-  padding: 8px 12px; background: rgba(10,22,40,0.6);
-  border: 1px solid rgba(90,200,250,0.1); border-radius: 6px;
-  color: #c0d0e0; font-size: 0.8rem;
-}
-.ech-collab-filters button {
-  padding: 8px 14px; background: rgba(0,255,200,0.06);
-  border: 1px solid rgba(0,255,200,0.15); border-radius: 6px;
-  color: #00ffc8; font-size: 0.78rem; cursor: pointer;
-}
+@epk_collab_bp.route('/api/collab/requests/<int:req_id>', methods=['PUT'])
+@jwt_required()
+def update_collab_request(req_id):
+    """Update a collab request (owner only)"""
+    db, User, _, CollabRequest, _ = get_models()
+    uid = get_jwt_identity()
+    cr = CollabRequest.query.get(req_id)
+    if not cr or cr.user_id != uid:
+        return jsonify({"error": "Not found or unauthorized"}), 404
+    
+    data = request.json
+    for f in ['title', 'description', 'genre', 'roles_needed', 'budget', 'reference_track_url', 'reference_notes', 'status', 'is_public']:
+        if f in data:
+            setattr(cr, f, data[f])
+    if 'deadline' in data:
+        cr.deadline = datetime.fromisoformat(data['deadline']) if data['deadline'] else None
+    
+    cr.updated_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({"message": "Updated", "request": cr.to_dict()}), 200
 
-/* ── Request Cards ── */
-.ech-request-list { display: flex; flex-direction: column; gap: 12px; }
-.ech-request-card {
-  padding: 18px; background: rgba(10,22,40,0.5);
-  border: 1px solid rgba(90,200,250,0.08); border-radius: 10px;
-  transition: border-color 0.2s;
-}
-.ech-request-card:hover { border-color: rgba(90,200,250,0.18); }
-.ech-request-card.owned { border-left: 3px solid #FF6600; }
-.ech-request-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.ech-request-author { display: flex; align-items: center; gap: 8px; }
-.ech-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 1px solid rgba(90,200,250,0.1); }
-.ech-author-name { font-size: 0.8rem; font-weight: 600; color: #8aa0b8; }
-.ech-request-date { font-size: 0.7rem; color: #3d5570; }
-.ech-request-title { font-size: 1rem; font-weight: 700; color: #e0eaf0; margin: 0 0 6px; }
-.ech-request-desc { font-size: 0.8rem; color: #7a8ea0; margin: 0 0 10px; line-height: 1.5; }
 
-/* ── Meta Tags ── */
-.ech-request-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-.ech-meta-tag {
-  padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600;
-}
-.ech-meta-tag.genre { background: rgba(90,200,250,0.08); color: #5ac8fa; border: 1px solid rgba(90,200,250,0.15); }
-.ech-meta-tag.role { background: rgba(200,64,233,0.08); color: #c840e9; border: 1px solid rgba(200,64,233,0.15); }
-.ech-meta-tag.budget { background: rgba(0,255,200,0.08); color: #00ffc8; border: 1px solid rgba(0,255,200,0.15); }
-.ech-meta-tag.deadline { background: rgba(255,102,0,0.08); color: #FF6600; border: 1px solid rgba(255,102,0,0.15); }
-.ech-meta-tag.location { background: rgba(90,200,250,0.06); color: #5a7088; border: 1px solid rgba(90,200,250,0.1); }
-.ech-meta-tag.collab { background: rgba(0,255,200,0.06); color: #00ffc8; border: 1px solid rgba(0,255,200,0.12); }
+@epk_collab_bp.route('/api/collab/requests/<int:req_id>', methods=['DELETE'])
+@jwt_required()
+def delete_collab_request(req_id):
+    """Delete a collab request (owner only)"""
+    db, User, _, CollabRequest, _ = get_models()
+    uid = get_jwt_identity()
+    cr = CollabRequest.query.get(req_id)
+    if not cr or cr.user_id != uid:
+        return jsonify({"error": "Not found or unauthorized"}), 404
+    db.session.delete(cr)
+    db.session.commit()
+    return jsonify({"message": "Deleted"}), 200
 
-/* ── Request Actions ── */
-.ech-request-actions { display: flex; align-items: center; gap: 12px; }
-.ech-apply-btn {
-  padding: 8px 18px; border: 1px solid rgba(0,255,200,0.25);
-  border-radius: 6px; background: rgba(0,255,200,0.08);
-  color: #00ffc8; font-size: 0.78rem; font-weight: 600; cursor: pointer;
-  transition: all 0.15s;
-}
-.ech-apply-btn:hover { background: rgba(0,255,200,0.15); }
-.ech-app-count { font-size: 0.7rem; color: #3d5570; }
 
-/* ── Apply Form ── */
-.ech-apply-form {
-  margin-top: 12px; padding: 14px;
-  background: rgba(0,255,200,0.03); border: 1px solid rgba(0,255,200,0.1);
-  border-radius: 8px;
-}
-.ech-apply-form textarea, .ech-apply-form input {
-  width: 100%; padding: 10px 14px;
-  background: rgba(10,22,40,0.6); border: 1px solid rgba(90,200,250,0.12);
-  border-radius: 6px; color: #c0d0e0; font-size: 0.8rem; margin-bottom: 8px;
-}
-.ech-apply-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.ech-apply-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
-.ech-epk-attached { font-size: 0.7rem; color: #00ffc8; font-style: italic; }
-.ech-submit-apply {
-  padding: 8px 20px; border: none; border-radius: 6px;
-  background: linear-gradient(135deg, #00ffc8, #00c89b);
-  color: #030a18; font-size: 0.8rem; font-weight: 700; cursor: pointer;
-}
-.ech-submit-apply:hover { box-shadow: 0 2px 12px rgba(0,255,200,0.3); }
+@epk_collab_bp.route('/api/collab/my-requests', methods=['GET'])
+@jwt_required()
+def get_my_collab_requests():
+    """Get current user's collab requests"""
+    db, User, _, CollabRequest, _ = get_models()
+    uid = get_jwt_identity()
+    requests = CollabRequest.query.filter_by(user_id=uid).order_by(CollabRequest.created_at.desc()).all()
+    return jsonify({"requests": [r.to_dict() for r in requests]}), 200
 
-/* ── Status Badges ── */
-.ech-status-badge {
-  padding: 3px 10px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-}
-.ech-status-badge.open { background: rgba(0,255,200,0.1); color: #00ffc8; }
-.ech-status-badge.filled { background: rgba(90,200,250,0.1); color: #5ac8fa; }
-.ech-status-badge.closed { background: rgba(90,100,120,0.15); color: #5a7088; }
-.ech-status-badge.pending { background: rgba(255,215,0,0.1); color: #ffd700; }
-.ech-status-badge.accepted { background: rgba(0,255,200,0.1); color: #00ffc8; }
-.ech-status-badge.declined { background: rgba(255,68,68,0.1); color: #ff4444; }
 
-/* ── New Request Form ── */
-.ech-new-request { max-width: 650px; }
-.ech-new-request h3 { color: #e0eaf0; font-size: 1.1rem; margin: 0 0 16px; }
-.ech-post-btn {
-  padding: 12px 28px; border: none; border-radius: 8px;
-  background: linear-gradient(135deg, #FF6600, #e85d00);
-  color: #fff; font-size: 0.85rem; font-weight: 700;
-  cursor: pointer; margin-top: 8px;
-}
-.ech-post-btn:hover { box-shadow: 0 4px 20px rgba(255,102,0,0.3); }
+# =============================================================================
+# COLLAB APPLICATION ROUTES
+# =============================================================================
 
-/* ── My Posts ── */
-.ech-my-posts { display: flex; flex-direction: column; gap: 12px; }
-.ech-close-btn {
-  padding: 6px 12px; border: 1px solid rgba(255,68,68,0.15);
-  border-radius: 4px; background: transparent; color: #ff4444;
-  font-size: 0.72rem; cursor: pointer;
-}
+@epk_collab_bp.route('/api/collab/requests/<int:req_id>/apply', methods=['POST'])
+@jwt_required()
+def apply_to_collab(req_id):
+    """Apply to a collab request — EPK auto-attached"""
+    db, User, EPK, CollabRequest, CollabApplication = get_models()
+    if not CollabApplication:
+        return jsonify({"error": "CollabApplication model not available"}), 500
+    
+    uid = get_jwt_identity()
+    cr = CollabRequest.query.get(req_id)
+    if not cr:
+        return jsonify({"error": "Request not found"}), 404
+    if cr.user_id == uid:
+        return jsonify({"error": "Cannot apply to your own request"}), 400
+    if cr.status != 'open':
+        return jsonify({"error": "This request is no longer open"}), 400
+    
+    # Check for duplicate application
+    existing = CollabApplication.query.filter_by(request_id=req_id, user_id=uid).first()
+    if existing:
+        return jsonify({"error": "You've already applied to this request"}), 400
+    
+    data = request.json
+    app = CollabApplication(
+        request_id=req_id,
+        user_id=uid,
+        message=data.get('message', ''),
+        proposed_rate=data.get('proposed_rate', ''),
+        sample_url=data.get('sample_url', ''),
+        status='pending',
+    )
+    db.session.add(app)
+    db.session.commit()
+    
+    return jsonify({"message": "Application submitted", "application": app.to_dict()}), 201
 
-/* ── Applications List ── */
-.ech-applications-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
-.ech-application-card {
-  padding: 14px; background: rgba(6,15,32,0.5);
-  border: 1px solid rgba(90,200,250,0.06); border-radius: 8px;
-}
-.ech-application-card.accepted { border-left: 3px solid #00ffc8; }
-.ech-application-card.declined { border-left: 3px solid #ff4444; opacity: 0.6; }
-.ech-app-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.ech-app-name { font-size: 0.85rem; font-weight: 700; color: #c0d0e0; display: block; }
-.ech-app-skills { font-size: 0.7rem; color: #5a7088; display: block; }
-.ech-view-epk-link {
-  margin-left: auto; padding: 4px 10px;
-  background: rgba(0,255,200,0.06); border: 1px solid rgba(0,255,200,0.15);
-  border-radius: 4px; color: #00ffc8; text-decoration: none; font-size: 0.72rem;
-}
-.ech-app-message { font-size: 0.8rem; color: #7a8ea0; margin: 0 0 8px; line-height: 1.4; }
-.ech-sample-link { color: #5ac8fa; font-size: 0.75rem; text-decoration: none; }
-.ech-sample-link:hover { text-decoration: underline; }
-.ech-app-response-btns { display: flex; gap: 8px; margin-top: 8px; }
-.ech-accept {
-  padding: 6px 16px; border: 1px solid rgba(0,255,200,0.25);
-  border-radius: 5px; background: rgba(0,255,200,0.08);
-  color: #00ffc8; font-size: 0.78rem; font-weight: 600; cursor: pointer;
-}
-.ech-decline {
-  padding: 6px 16px; border: 1px solid rgba(255,68,68,0.15);
-  border-radius: 5px; background: transparent;
-  color: #ff4444; font-size: 0.78rem; cursor: pointer;
-}
 
-/* ── Empty State ── */
-.ech-empty {
-  padding: 40px; text-align: center; color: #3d5570; font-size: 0.85rem;
-  background: rgba(10,22,40,0.3); border: 1px dashed rgba(90,200,250,0.1);
-  border-radius: 10px;
-}
+@epk_collab_bp.route('/api/collab/requests/<int:req_id>/applications', methods=['GET'])
+@jwt_required()
+def get_applications(req_id):
+    """Get applications for a collab request (owner only)"""
+    db, User, _, CollabRequest, CollabApplication = get_models()
+    uid = get_jwt_identity()
+    cr = CollabRequest.query.get(req_id)
+    if not cr or cr.user_id != uid:
+        return jsonify({"error": "Not found or unauthorized"}), 404
+    
+    apps = CollabApplication.query.filter_by(request_id=req_id).order_by(CollabApplication.created_at.desc()).all()
+    return jsonify({"applications": [a.to_dict() for a in apps]}), 200
 
-/* ═══════════════════════════════════════════════════════════════
-   FIND ARTISTS (EPK Search)
-   ═══════════════════════════════════════════════════════════════ */
 
-.ech-find-artists { padding: 16px 20px; }
+@epk_collab_bp.route('/api/collab/applications/<int:app_id>/respond', methods=['PUT'])
+@jwt_required()
+def respond_to_application(app_id):
+    """Accept or decline an application (request owner only)"""
+    db, User, _, CollabRequest, CollabApplication = get_models()
+    uid = get_jwt_identity()
+    app = CollabApplication.query.get(app_id)
+    if not app:
+        return jsonify({"error": "Application not found"}), 404
+    
+    cr = CollabRequest.query.get(app.request_id)
+    if not cr or cr.user_id != uid:
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    data = request.json
+    status = data.get('status')
+    if status not in ['accepted', 'declined']:
+        return jsonify({"error": "Status must be 'accepted' or 'declined'"}), 400
+    
+    app.status = status
+    db.session.commit()
+    
+    return jsonify({"message": f"Application {status}", "application": app.to_dict()}), 200
 
-.ech-search-bar {
-  display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
-  padding: 14px 18px; background: rgba(6,15,32,0.5);
-  border: 1px solid rgba(90,200,250,0.06); border-radius: 10px;
-  margin-bottom: 20px;
-}
-.ech-search-bar select, .ech-search-bar input[type="text"] {
-  padding: 8px 12px; background: rgba(10,22,40,0.6);
-  border: 1px solid rgba(90,200,250,0.1); border-radius: 6px;
-  color: #c0d0e0; font-size: 0.8rem;
-}
-.ech-search-bar button {
-  padding: 8px 18px; background: linear-gradient(135deg, rgba(0,255,200,0.12), rgba(90,200,250,0.12));
-  border: 1px solid rgba(0,255,200,0.25); border-radius: 6px;
-  color: #00ffc8; font-size: 0.8rem; font-weight: 600; cursor: pointer;
-}
-.ech-collab-filter { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #5a7088; cursor: pointer; }
-.ech-collab-filter input[type="checkbox"] { accent-color: #00ffc8; }
 
-/* ── Artist Grid ── */
-.ech-artist-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 14px;
-}
-.ech-artist-card {
-  padding: 18px; background: rgba(10,22,40,0.5);
-  border: 1px solid rgba(90,200,250,0.08); border-radius: 12px;
-  transition: all 0.2s; position: relative; overflow: hidden;
-}
-.ech-artist-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: var(--card-accent, #00ffc8); opacity: 0.6;
-}
-.ech-artist-card:hover { border-color: rgba(90,200,250,0.2); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
-.ech-artist-card-header { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
-.ech-artist-photo { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--card-accent, #00ffc8); }
-.ech-artist-name { font-size: 1rem; font-weight: 700; color: #e0eaf0; margin: 0; }
-.ech-artist-tagline { font-size: 0.72rem; color: #5a7088; margin: 2px 0 0; }
-.ech-artist-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
-.ech-artist-skills { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
-.ech-skill-chip {
-  padding: 2px 8px; border-radius: 10px; font-size: 0.65rem;
-  background: rgba(200,64,233,0.08); color: #c840e9; border: 1px solid rgba(200,64,233,0.12);
-}
-.ech-more { font-size: 0.65rem; color: #3d5570; padding: 2px 6px; }
-.ech-artist-bio { font-size: 0.78rem; color: #5a7088; margin: 0 0 10px; line-height: 1.4; }
-.ech-artist-actions { display: flex; align-items: center; gap: 10px; }
-.ech-view-epk-btn {
-  padding: 6px 14px; background: rgba(0,255,200,0.06);
-  border: 1px solid rgba(0,255,200,0.2); border-radius: 6px;
-  color: #00ffc8; text-decoration: none; font-size: 0.75rem; font-weight: 600;
-}
-.ech-view-epk-btn:hover { background: rgba(0,255,200,0.12); }
-.ech-rate { font-size: 0.72rem; color: #5a7088; }
+@epk_collab_bp.route('/api/collab/my-applications', methods=['GET'])
+@jwt_required()
+def get_my_applications():
+    """Get current user's sent applications"""
+    db, User, _, _, CollabApplication = get_models()
+    uid = get_jwt_identity()
+    apps = CollabApplication.query.filter_by(user_id=uid).order_by(CollabApplication.created_at.desc()).all()
+    return jsonify({"applications": [a.to_dict() for a in apps]}), 200
 
-/* ═══════════════════════════════════════════════════════════════
-   FEATURED MEDIA (Audio, Video, Docs)
-   ═══════════════════════════════════════════════════════════════ */
 
-.ech-featured-media-list { display: flex; flex-direction: column; gap: 10px; }
-.ech-media-item {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
-  padding: 12px; background: rgba(10,22,40,0.4);
-  border: 1px solid rgba(90,200,250,0.08); border-radius: 8px;
-}
-.ech-media-item.audio { border-left: 3px solid #00ffc8; }
-.ech-media-item.video { border-left: 3px solid #FF6600; }
-.ech-media-item.document { border-left: 3px solid #5ac8fa; }
-.ech-media-icon { font-size: 1.2rem; flex-shrink: 0; }
-.ech-media-info { flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 4px; }
-.ech-media-info input {
-  width: 100%; padding: 6px 10px;
-  background: rgba(6,15,32,0.5); border: 1px solid rgba(90,200,250,0.08);
-  border-radius: 4px; color: #c0d0e0; font-size: 0.78rem;
-}
-.ech-media-player { height: 32px; max-width: 240px; border-radius: 4px; }
-.ech-media-video { max-width: 200px; max-height: 120px; border-radius: 6px; background: #000; }
-.ech-add-media-btn {
-  padding: 12px 20px; border: 1px dashed rgba(0,255,200,0.2);
-  border-radius: 8px; background: rgba(0,255,200,0.03);
-  color: #00ffc8; font-size: 0.78rem; font-weight: 600; cursor: pointer;
-  transition: all 0.15s;
-}
-.ech-add-media-btn:hover:not(:disabled) { background: rgba(0,255,200,0.08); border-color: rgba(0,255,200,0.35); }
-.ech-add-media-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+# =============================================================================
+# MIGRATION SQL — Run this to create tables
+# =============================================================================
+"""
+CREATE TABLE IF NOT EXISTS epk (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER UNIQUE NOT NULL REFERENCES "user"(id),
+    artist_name VARCHAR(100),
+    tagline VARCHAR(200),
+    bio_short TEXT,
+    bio_full TEXT,
+    genre_primary VARCHAR(50),
+    genre_secondary VARCHAR(50),
+    location VARCHAR(100),
+    booking_email VARCHAR(200),
+    management_name VARCHAR(100),
+    management_email VARCHAR(200),
+    label_name VARCHAR(100),
+    website VARCHAR(300),
+    social_links JSON DEFAULT '{}',
+    profile_photo VARCHAR(500),
+    cover_photo VARCHAR(500),
+    press_photos JSON DEFAULT '[]',
+    logo_url VARCHAR(500),
+    achievements JSON DEFAULT '[]',
+    stats JSON DEFAULT '{}',
+    press_quotes JSON DEFAULT '[]',
+    featured_tracks JSON DEFAULT '[]',
+    featured_videos JSON DEFAULT '[]',
+    featured_albums JSON DEFAULT '[]',
+    rider TEXT,
+    stage_plot_url VARCHAR(500),
+    featured_media JSON DEFAULT '[]',
+    skills JSON DEFAULT '[]',
+    collab_open BOOLEAN DEFAULT TRUE,
+    collab_rate VARCHAR(100),
+    preferred_genres JSON DEFAULT '[]',
+    equipment JSON DEFAULT '[]',
+    template VARCHAR(20) DEFAULT 'modern',
+    accent_color VARCHAR(7) DEFAULT '#00ffc8',
+    is_public BOOLEAN DEFAULT TRUE,
+    slug VARCHAR(100) UNIQUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
 
-/* ═══════════════════════════════════════════════════════════════
-   MEDIA UPLOAD COMPONENTS
-   ═══════════════════════════════════════════════════════════════ */
+CREATE TABLE IF NOT EXISTS collab_request (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES "user"(id),
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    genre VARCHAR(50),
+    roles_needed JSON DEFAULT '[]',
+    budget VARCHAR(100),
+    deadline TIMESTAMP,
+    reference_track_url VARCHAR(500),
+    reference_notes TEXT,
+    status VARCHAR(20) DEFAULT 'open',
+    is_public BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
 
-.ech-upload-zone { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.ech-upload-btn {
-  padding: 10px 20px; border: 1px dashed rgba(0,255,200,0.25);
-  border-radius: 8px; background: rgba(0,255,200,0.04);
-  color: #00ffc8; font-size: 0.8rem; font-weight: 600; cursor: pointer;
-  transition: all 0.15s;
-}
-.ech-upload-btn:hover:not(:disabled) { background: rgba(0,255,200,0.1); border-color: rgba(0,255,200,0.4); }
-.ech-upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.ech-url-toggle {
-  padding: 6px 12px; border: none; background: transparent;
-  color: #3d5570; font-size: 0.72rem; cursor: pointer; text-decoration: underline;
-}
-.ech-url-toggle:hover { color: #5a7088; }
-.ech-url-input-row { display: flex; gap: 6px; flex: 1; align-items: center; }
-.ech-url-input-row input {
-  flex: 1; padding: 8px 12px; background: rgba(10,22,40,0.6);
-  border: 1px solid rgba(90,200,250,0.12); border-radius: 6px;
-  color: #c0d0e0; font-size: 0.8rem;
-}
-.ech-url-apply {
-  padding: 6px 12px; border: 1px solid rgba(0,255,200,0.2);
-  border-radius: 4px; background: rgba(0,255,200,0.08);
-  color: #00ffc8; cursor: pointer; font-size: 0.8rem;
-}
-.ech-url-cancel {
-  padding: 6px 10px; border: 1px solid rgba(255,68,68,0.15);
-  border-radius: 4px; background: transparent;
-  color: #ff4444; cursor: pointer; font-size: 0.8rem;
-}
-.ech-file-link {
-  display: inline-block; margin-top: 6px; padding: 6px 12px;
-  background: rgba(90,200,250,0.06); border: 1px solid rgba(90,200,250,0.12);
-  border-radius: 4px; color: #5ac8fa; text-decoration: none; font-size: 0.75rem;
-}
-.ech-file-link:hover { background: rgba(90,200,250,0.1); }
+CREATE TABLE IF NOT EXISTS collab_application (
+    id SERIAL PRIMARY KEY,
+    request_id INTEGER NOT NULL REFERENCES collab_request(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES "user"(id),
+    message TEXT,
+    proposed_rate VARCHAR(100),
+    sample_url VARCHAR(500),
+    status VARCHAR(20) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(request_id, user_id)
+);
 
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════════ */
-
-@media (max-width: 768px) {
-  .ech-epk-builder { grid-template-columns: 1fr; }
-  .ech-epk-sections {
-    flex-direction: row; overflow-x: auto; padding: 10px;
-    border-right: none; border-bottom: 1px solid rgba(90,200,250,0.06);
-  }
-  .ech-section-btn { flex-shrink: 0; padding: 8px 10px; }
-  .ech-section-desc { display: none; }
-  .ech-epk-form { padding: 16px; }
-  .ech-field-row { grid-template-columns: 1fr; }
-  .ech-template-grid { grid-template-columns: 1fr; }
-  .ech-stats-grid { grid-template-columns: 1fr; }
-  .ech-artist-grid { grid-template-columns: 1fr; }
-  .ech-apply-row { grid-template-columns: 1fr; }
-  .ech-search-bar { flex-direction: column; }
-  .ech-tabs { overflow-x: auto; }
-  .ech-collab-nav { overflow-x: auto; }
-}
+CREATE INDEX IF NOT EXISTS idx_epk_slug ON epk(slug);
+CREATE INDEX IF NOT EXISTS idx_epk_collab_open ON epk(collab_open) WHERE is_public = TRUE;
+CREATE INDEX IF NOT EXISTS idx_collab_request_status ON collab_request(status) WHERE is_public = TRUE;
+CREATE INDEX IF NOT EXISTS idx_collab_application_request ON collab_application(request_id);
+"""
