@@ -5,7 +5,7 @@
 // Route: /recording-studio
 // Pure Web Audio API — zero external audio libraries
 // Effects: EQ, Compressor, Reverb, Delay, Distortion, Filter per track
-// Views: Arrange | Console | Beat Maker | Sampler | Drum Kits | Piano Roll | Piano | Sounds | Split | Key Finder | AI Beats | Mic Sim | AI Mix | MIDI | Chords| Vocal | Plugins | Voice MIDI
+// Views: Console | Arrange | Piano Roll | Piano | Sampler | Sounds | Chords | AI Beats | AI Mix | Key Finder | Mic Sim | Vocal | Voice MIDI | Plugins
 // Track limits: Free=4, Starter=8, Creator=16, Pro=32
 //
 // NEW:
@@ -26,18 +26,14 @@ import VirtualPiano from "../component/VirtualPiano";
 import FreesoundBrowser from "../component/FreesoundBrowser";
 import KeyFinder from "../component/KeyFinder";
 import AIBeatAssistant from "../component/AIBeatAssistant";
-import PianoDrumSplit from "../component/PianoDrumSplit";
 import ParametricEQGraph from "../component/ParametricEQGraph";
 import ConsoleFXPanel from "../component/ConsoleFXPanel";
 import PanKnob from "../component/PanKnob";
 import { InlineStemSeparation, AudioToMIDIPanel, PitchCorrectionPanel } from "../component/DAWAdvancedFeatures";
 
-// ── Piano Roll / MIDI / Chord / Quantize imports ──
+// ── Piano Roll / MIDI / Chord imports ──
 import PianoRoll from "../component/PianoRoll";
-import MidiImporter from "../component/MidiImporter";
-import MidiHardwareInput from "../component/MidiHardwareInput";
 import ChordProgressionGenerator from "../component/ChordProgressionGenerator";
-import { QuantizePanel } from "../component/QuantizeEngine";
 
 // ── DAW Menu Bar ──
 import DAWMenuBar from "../component/DAWMenuBar";
@@ -76,7 +72,7 @@ import "../../styles/VirtualPiano.css";
 import "../../styles/FreesoundBrowser.css";
 import "../../styles/KeyFinder.css";
 import "../../styles/AIBeatAssistant.css";
-import "../../styles/PianoDrumSplit.css";
+
 import "../../styles/SoundKitManager.css";
 import "../../styles/PianoRoll.css";
 import "../../styles/ChordProgressionGenerator.css";
@@ -2203,11 +2199,7 @@ const RecordingStudio = ({ user }) => {
         setViewMode("arrange");
         handleImport(sel);
         break;
-      case "file:importMidi":
-      case "midi:import":
-        setViewMode("midi");
-        setStatus("MIDI: Use the MIDI Import panel to select a file");
-        break;
+      case 'file:importMidi': case 'midi:import': setViewMode('pianoroll'); setStatus('Open a .mid file from Piano Roll'); break;
       case "file:exportMidi":
       case "midi:export":
         exportMidiFile();
@@ -2233,9 +2225,6 @@ const RecordingStudio = ({ user }) => {
       case "view:sounds":
         setViewMode("sounds");
         break;
-      case "view:split":
-        setViewMode("split");
-        break;
       case "view:keyfinder":
         setViewMode("keyfinder");
         break;
@@ -2252,7 +2241,7 @@ const RecordingStudio = ({ user }) => {
         setViewMode("aimix");
         break;
       case "view:midi":
-        setViewMode("midi");
+        setViewMode("pianoroll");
         break;
       case "view:chords":
         setViewMode("chords");
@@ -2478,19 +2467,6 @@ const RecordingStudio = ({ user }) => {
             Console
           </button>
           <button
-            className={`daw-view-tab ${viewMode === "beatmaker" ? "active" : ""}`}
-            onClick={() => setViewMode("beatmaker")}
-            title="Sampler — Pads, Sequencer, Kits, BPM/Key Detection"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="2" width="8" height="8" rx="1" />
-              <rect x="14" y="2" width="8" height="8" rx="1" />
-              <rect x="2" y="14" width="8" height="8" rx="1" />
-              <rect x="14" y="14" width="8" height="8" rx="1" />
-            </svg>{" "}
-            Sampler
-          </button>
-          <button
             className={`daw-view-tab ${viewMode === "pianoroll" ? "active" : ""}`}
             onClick={() => setViewMode("pianoroll")}
             title="Piano Roll / MIDI Editor"
@@ -2519,6 +2495,19 @@ const RecordingStudio = ({ user }) => {
             Piano
           </button>
           <button
+            className={`daw-view-tab ${viewMode === "beatmaker" ? "active" : ""}`}
+            onClick={() => setViewMode("beatmaker")}
+            title="Sampler — Pads, Sequencer, Kits, BPM/Key Detection"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="2" y="2" width="8" height="8" rx="1" />
+              <rect x="14" y="2" width="8" height="8" rx="1" />
+              <rect x="2" y="14" width="8" height="8" rx="1" />
+              <rect x="14" y="14" width="8" height="8" rx="1" />
+            </svg>{" "}
+            Sampler
+          </button>
+          <button
             className={`daw-view-tab ${viewMode === "sounds" ? "active" : ""}`}
             onClick={() => setViewMode("sounds")}
             title="Sound Browser (Freesound.org)"
@@ -2528,54 +2517,6 @@ const RecordingStudio = ({ user }) => {
               <path d="M21 21l-4.35-4.35" />
             </svg>{" "}
             Sounds
-          </button>
-          <button
-            className={`daw-view-tab ${viewMode === "split" ? "active" : ""}`}
-            onClick={() => setViewMode("split")}
-            title="Piano + Drums Split"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="2" width="20" height="9" rx="1" />
-              <rect x="2" y="13" width="20" height="9" rx="1" />
-            </svg>{" "}
-            Split
-          </button>
-          <button
-            className={`daw-view-tab ${viewMode === "keyfinder" ? "active" : ""}`}
-            onClick={() => setViewMode("keyfinder")}
-            title="Key & Scale Detector"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 18V5l12-2v13" />
-              <circle cx="6" cy="18" r="3" />
-              <circle cx="18" cy="16" r="3" />
-            </svg>{" "}
-            Key Finder
-          </button>
-          <button
-            className={`daw-view-tab ai-tab ${viewMode === "aibeat" ? "active" : ""}`}
-            onClick={() => setViewMode("aibeat")}
-            title="AI Beat Generator"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2a4 4 0 014 4v1h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2V6a4 4 0 014-4z" />
-            </svg>{" "}
-            AI Beats
-          </button>
-          <button
-            className={`daw-view-tab ${viewMode === "midi" ? "active" : ""}`}
-            onClick={() => setViewMode("midi")}
-            title="MIDI Import & Hardware"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <circle cx="8" cy="10" r="1.5" fill="currentColor" />
-              <circle cx="16" cy="10" r="1.5" fill="currentColor" />
-              <circle cx="12" cy="14" r="1.5" fill="currentColor" />
-              <circle cx="8" cy="16" r="1" fill="currentColor" />
-              <circle cx="16" cy="16" r="1" fill="currentColor" />
-            </svg>{" "}
-            MIDI
           </button>
           <button
             className={`daw-view-tab ai-tab ${viewMode === "chords" ? "active" : ""}`}
@@ -2591,17 +2532,14 @@ const RecordingStudio = ({ user }) => {
             Chords
           </button>
           <button
-            className={`daw-view-tab ${viewMode === "micsim" ? "active" : ""}`}
-            onClick={() => setViewMode("micsim")}
-            title="Mic Simulator"
+            className={`daw-view-tab ai-tab ${viewMode === "aibeat" ? "active" : ""}`}
+            onClick={() => setViewMode("aibeat")}
+            title="AI Beat Generator"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" y1="19" x2="12" y2="23" />
-              <line x1="8" y1="23" x2="16" y2="23" />
+              <path d="M12 2a4 4 0 014 4v1h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2V6a4 4 0 014-4z" />
             </svg>{" "}
-            Mic Sim
+            AI Beats
           </button>
           <button
             className={`daw-view-tab ai-tab ${viewMode === "aimix" ? "active" : ""}`}
@@ -2617,6 +2555,31 @@ const RecordingStudio = ({ user }) => {
             AI Mix
           </button>
           <button
+            className={`daw-view-tab ${viewMode === "keyfinder" ? "active" : ""}`}
+            onClick={() => setViewMode("keyfinder")}
+            title="Key & Scale Detector"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 18V5l12-2v13" />
+              <circle cx="6" cy="18" r="3" />
+              <circle cx="18" cy="16" r="3" />
+            </svg>{" "}
+            Key Finder
+          </button>
+          <button
+            className={`daw-view-tab ${viewMode === "micsim" ? "active" : ""}`}
+            onClick={() => setViewMode("micsim")}
+            title="Mic Simulator"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>{" "}
+            Mic Sim
+          </button>
+          <button
             className={`daw-view-tab ${viewMode === "vocal" ? "active" : ""}`}
             onClick={() => setViewMode("vocal")}
             title="Vocal Processor"
@@ -2630,18 +2593,6 @@ const RecordingStudio = ({ user }) => {
             Vocal
           </button>
           <button
-            className={`daw-view-tab ${viewMode === "plugins" ? "active" : ""}`}
-            onClick={() => setViewMode("plugins")}
-            title="Plugin Rack"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="3" width="20" height="18" rx="2" />
-              <path d="M2 9h20" />
-              <path d="M9 21V9" />
-            </svg>{" "}
-            Plugins
-          </button>
-          <button
             className={`daw-view-tab ${viewMode === "voicemidi" ? "active" : ""}`}
             onClick={() => setViewMode("voicemidi")}
             title="Voice-to-MIDI"
@@ -2652,6 +2603,18 @@ const RecordingStudio = ({ user }) => {
               <circle cx="12" cy="21" r="2" />
             </svg>{" "}
             Voice MIDI
+          </button>
+          <button
+            className={`daw-view-tab ${viewMode === "plugins" ? "active" : ""}`}
+            onClick={() => setViewMode("plugins")}
+            title="Plugin Rack"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="2" y="3" width="20" height="18" rx="2" />
+              <path d="M2 9h20" />
+              <path d="M9 21V9" />
+            </svg>{" "}
+            Plugins
           </button>
         </div>
 
@@ -3265,30 +3228,6 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {viewMode === "midi" && (
-          <div
-            className="daw-midi-view"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px",
-              padding: "12px",
-              height: "100%",
-              overflow: "auto",
-            }}
-          >
-            <MidiImporter onImport={handleMidiImport} onClose={() => setViewMode("pianoroll")} isEmbedded={true} />
-            <MidiHardwareInput onNoteOn={handleMidiNoteOn} onNoteOff={handleMidiNoteOff} isEmbedded={true} />
-            <QuantizePanel
-              notes={pianoRollNotes}
-              onQuantize={(q) => setPianoRollNotes(q)}
-              bpm={bpm}
-              timeSignature={timeSignature}
-              isEmbedded={true}
-            />
-          </div>
-        )}
-
         {viewMode === "chords" && (
           <div className="daw-chords-view">
             <ChordProgressionGenerator
@@ -3342,11 +3281,6 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-        {viewMode === "split" && (
-          <div className="daw-split-view">
-            <PianoDrumSplit audioContext={audioCtxRef.current} onRecordingComplete={() => { }} isEmbedded={true} />
-          </div>
-        )}
         {viewMode === "keyfinder" && (
           <div className="daw-keyfinder-view">
             <KeyFinder
