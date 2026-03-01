@@ -526,6 +526,10 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/upload-reel" className={isActive("/upload-reel") ? "active" : ""}>
             ⬆️ <span className="sidebar-label">Upload Reel</span>
           </MenuItem>
+          <MenuItem to="/podcast/collab/new" className={isActive("/podcast/collab/new") ? "active" : ""}>
+            🎙️ <span className="sidebar-label">Podcast Collab Room</span>
+            <MenuHint className="sidebar-hint">NEW</MenuHint>
+          </MenuItem>
           <MenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>
             🎙️ <span className="sidebar-label">Create Podcast</span>
           </MenuItem>
@@ -600,6 +604,10 @@ const Sidebar = ({ user }) => {
               <MenuItem to="/recording-studio" className={isActive("/recording-studio") ? "active" : ""}>
                 🎛️ <span className="sidebar-label">Recording Studio</span>
                 <MenuHint className="sidebar-hint">8-track</MenuHint>
+              </MenuItem>
+              <MenuItem to="/epk-hub" className={isActive("/epk-hub") ? "active" : ""}>
+                📋 <span className="sidebar-label">EPK & Collabs</span>
+                <MenuHint className="sidebar-hint">NEW</MenuHint>
               </MenuItem>
             </>
           )}

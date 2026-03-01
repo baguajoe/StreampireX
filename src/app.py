@@ -43,6 +43,7 @@ from src.api.recording_studio_routes import recording_studio_bp
 from src.api.beat_store_routes import beat_store_bp
 from src.api.ai_chord_generator import ai_chord_generator_bp
 from src.api.ai_video_tools import ai_video_tools_bp
+from api.epk_collab import epk_collab_bp
 
 # Import your blueprints - use src prefix
 from src.api.routes import api
@@ -320,6 +321,8 @@ app.register_blueprint(podcast_phase2_bp)
 app.register_blueprint(support_bp)
 app.register_blueprint(ai_credits_bp)
 app.register_blueprint(sampler_storage_bp)
+app.register_blueprint(epk_collab_bp)
+
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)

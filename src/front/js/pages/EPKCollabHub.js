@@ -1,0 +1,1063 @@
+// =============================================================================
+// EPKCollabHub.js — EPK Builder + Collab Marketplace (Unified)
+// =============================================================================
+// Three-tab interface:
+//   1. MY EPK — Build/edit your Electronic Press Kit
+//   2. COLLAB BOARD — Browse & post collaboration requests
+//   3. FIND ARTISTS — Search EPKs for matching (skills, genre, location)
+//
+// The EPK is the artist's professional identity card. When you apply to a
+// collab request, your EPK is automatically attached as your pitch/resume.
+// When someone searches for collaborators, they browse EPKs.
+// =============================================================================
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import '../../styles/EPKCollabHub.css';
+
+const BACKEND = process.env.REACT_APP_BACKEND_URL || 'https://streampirex-api.up.railway.app';
+const getToken = () => sessionStorage.getItem('token') || localStorage.getItem('token');
+const authHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${getToken()}`,
+});
+
+const GENRES = [
+  'Hip-Hop', 'R&B', 'Pop', 'Rock', 'Electronic', 'Jazz', 'Country', 'Latin',
+  'Afrobeats', 'Reggae', 'Soul', 'Gospel', 'Classical', 'Indie', 'Metal',
+  'Punk', 'Lo-Fi', 'Trap', 'Drill', 'House', 'Techno', 'DnB', 'Dancehall',
+  'K-Pop', 'Amapiano', 'Funk', 'Blues', 'Folk', 'Alternative', 'Other',
+];
+
+const SKILLS = [
+  'Vocalist', 'Rapper', 'Producer', 'Beat Maker', 'Songwriter', 'Mix Engineer',
+  'Mastering Engineer', 'Session Guitarist', 'Session Bassist', 'Session Drummer',
+  'Session Keys', 'DJ', 'Violinist', 'Trumpet', 'Saxophone', 'Flute',
+  'Sound Designer', 'Composer', 'Arranger', 'Vocal Coach', 'Topline Writer',
+  'Ghost Producer', 'Music Video Director', 'Graphic Designer', 'Photographer',
+];
+
+const TEMPLATES = [
+  { id: 'modern', name: 'Modern', desc: 'Clean lines, teal accents' },
+  { id: 'bold', name: 'Bold', desc: 'High contrast, orange energy' },
+  { id: 'minimal', name: 'Minimal', desc: 'White space, elegant' },
+  { id: 'dark', name: 'Dark', desc: 'Deep blacks, neon glow' },
+];
+
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
+
+const EPKCollabHub = () => {
+  const [activeTab, setActiveTab] = useState('epk'); // epk | collab | find
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
+
+  // ── EPK State ──
+  const [epk, setEpk] = useState(null);
+  const [epkDirty, setEpkDirty] = useState(false);
+  const [epkSection, setEpkSection] = useState('identity'); // identity | contact | media | achievements | collab | template
+
+  // ── Collab Board State ──
+  const [collabRequests, setCollabRequests] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
+  const [myApplications, setMyApplications] = useState([]);
+  const [collabView, setCollabView] = useState('browse'); // browse | my-posts | my-apps | new-post
+  const [newRequest, setNewRequest] = useState({
+    title: '', description: '', genre: '', roles_needed: [], budget: '',
+    deadline: '', reference_track_url: '', reference_notes: '',
+  });
+  const [applyingTo, setApplyingTo] = useState(null);
+  const [applyForm, setApplyForm] = useState({ message: '', proposed_rate: '', sample_url: '' });
+  const [viewingApps, setViewingApps] = useState(null); // request id
+  const [applications, setApplications] = useState([]);
+
+  // ── Find Artists State ──
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchGenre, setSearchGenre] = useState('');
+  const [searchSkill, setSearchSkill] = useState('');
+  const [searchLocation, setSearchLocation] = useState('');
+  const [searchCollabOnly, setSearchCollabOnly] = useState(true);
+  const [viewingEpk, setViewingEpk] = useState(null);
+
+  // ── Filter state for collab board ──
+  const [filterGenre, setFilterGenre] = useState('');
+  const [filterRole, setFilterRole] = useState('');
+
+  // ══════════════════════════════════════════════════════════════════
+  // DATA LOADING
+  // ══════════════════════════════════════════════════════════════════
+
+  const loadEpk = useCallback(async () => {
+    try {
+      const res = await fetch(`${BACKEND}/api/epk`, { headers: authHeaders() });
+      if (res.ok) { const data = await res.json(); setEpk(data); setEpkDirty(false); }
+    } catch (e) { console.error('Load EPK error:', e); }
+  }, []);
+
+  const saveEpk = useCallback(async () => {
+    if (!epk) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${BACKEND}/api/epk`, {
+        method: epk.id ? 'PUT' : 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(epk),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setEpk(data.epk);
+        setEpkDirty(false);
+        setStatus('✓ EPK saved');
+      } else { setError(data.error || 'Save failed'); }
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  }, [epk]);
+
+  const loadCollabRequests = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({ status: 'open' });
+      if (filterGenre) params.set('genre', filterGenre);
+      if (filterRole) params.set('role', filterRole);
+      const res = await fetch(`${BACKEND}/api/collab/requests?${params}`);
+      if (res.ok) { const data = await res.json(); setCollabRequests(data.requests || []); }
+    } catch (e) { console.error('Load collabs error:', e); }
+  }, [filterGenre, filterRole]);
+
+  const loadMyRequests = useCallback(async () => {
+    try {
+      const res = await fetch(`${BACKEND}/api/collab/my-requests`, { headers: authHeaders() });
+      if (res.ok) { const data = await res.json(); setMyRequests(data.requests || []); }
+    } catch (e) {}
+  }, []);
+
+  const loadMyApplications = useCallback(async () => {
+    try {
+      const res = await fetch(`${BACKEND}/api/collab/my-applications`, { headers: authHeaders() });
+      if (res.ok) { const data = await res.json(); setMyApplications(data.applications || []); }
+    } catch (e) {}
+  }, []);
+
+  const searchEpks = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (searchGenre) params.set('genre', searchGenre);
+      if (searchSkill) params.set('skill', searchSkill);
+      if (searchLocation) params.set('location', searchLocation);
+      if (searchCollabOnly) params.set('collab_open', 'true');
+      const res = await fetch(`${BACKEND}/api/epk/search?${params}`);
+      if (res.ok) { const data = await res.json(); setSearchResults(data.results || []); }
+    } catch (e) { console.error('Search EPKs error:', e); }
+  }, [searchGenre, searchSkill, searchLocation, searchCollabOnly]);
+
+  // Initial load
+  useEffect(() => { loadEpk(); }, [loadEpk]);
+  useEffect(() => { if (activeTab === 'collab') { loadCollabRequests(); loadMyRequests(); loadMyApplications(); } }, [activeTab, loadCollabRequests, loadMyRequests, loadMyApplications]);
+  useEffect(() => { if (activeTab === 'find') searchEpks(); }, [activeTab, searchEpks]);
+
+  // Auto-clear status
+  useEffect(() => { if (status) { const t = setTimeout(() => setStatus(''), 3000); return () => clearTimeout(t); } }, [status]);
+  useEffect(() => { if (error) { const t = setTimeout(() => setError(''), 5000); return () => clearTimeout(t); } }, [error]);
+
+  // ── EPK field updater ──
+  const updateEpk = useCallback((field, value) => {
+    setEpk(prev => ({ ...prev, [field]: value }));
+    setEpkDirty(true);
+  }, []);
+
+  // ══════════════════════════════════════════════════════════════════
+  // COLLAB ACTIONS
+  // ══════════════════════════════════════════════════════════════════
+
+  const postCollabRequest = async () => {
+    if (!newRequest.title.trim()) { setError('Title is required'); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`${BACKEND}/api/collab/requests`, {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify(newRequest),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStatus('✓ Collab request posted');
+        setNewRequest({ title: '', description: '', genre: '', roles_needed: [], budget: '', deadline: '', reference_track_url: '', reference_notes: '' });
+        setCollabView('browse');
+        loadCollabRequests();
+        loadMyRequests();
+      } else { setError(data.error || 'Post failed'); }
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const submitApplication = async () => {
+    if (!applyingTo) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${BACKEND}/api/collab/requests/${applyingTo}/apply`, {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify(applyForm),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStatus('✓ Application sent — your EPK is attached');
+        setApplyingTo(null);
+        setApplyForm({ message: '', proposed_rate: '', sample_url: '' });
+        loadMyApplications();
+      } else { setError(data.error || 'Apply failed'); }
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  const loadApplicationsForRequest = async (reqId) => {
+    try {
+      const res = await fetch(`${BACKEND}/api/collab/requests/${reqId}/applications`, { headers: authHeaders() });
+      if (res.ok) { const data = await res.json(); setApplications(data.applications || []); setViewingApps(reqId); }
+    } catch (e) {}
+  };
+
+  const respondToApp = async (appId, responseStatus) => {
+    try {
+      const res = await fetch(`${BACKEND}/api/collab/applications/${appId}/respond`, {
+        method: 'PUT', headers: authHeaders(), body: JSON.stringify({ status: responseStatus }),
+      });
+      if (res.ok) {
+        setStatus(`✓ Application ${responseStatus}`);
+        if (viewingApps) loadApplicationsForRequest(viewingApps);
+      }
+    } catch (e) { setError(e.message); }
+  };
+
+  const deleteRequest = async (reqId) => {
+    if (!window.confirm('Delete this collab request?')) return;
+    try {
+      await fetch(`${BACKEND}/api/collab/requests/${reqId}`, { method: 'DELETE', headers: authHeaders() });
+      setStatus('✓ Deleted');
+      loadMyRequests();
+      loadCollabRequests();
+    } catch (e) { setError(e.message); }
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // RENDER
+  // ══════════════════════════════════════════════════════════════════
+
+  return (
+    <div className="epk-collab-hub">
+      {/* ── Status Bar ── */}
+      {(status || error) && (
+        <div className={`ech-status-bar ${error ? 'error' : 'success'}`}>
+          {error || status}
+        </div>
+      )}
+
+      {/* ── Tab Navigation ── */}
+      <div className="ech-tabs">
+        <button className={activeTab === 'epk' ? 'active' : ''} onClick={() => setActiveTab('epk')}>
+          <span className="ech-tab-icon">📋</span> My EPK
+          {epkDirty && <span className="ech-unsaved-dot">●</span>}
+        </button>
+        <button className={activeTab === 'collab' ? 'active' : ''} onClick={() => setActiveTab('collab')}>
+          <span className="ech-tab-icon">🤝</span> Collab Board
+        </button>
+        <button className={activeTab === 'find' ? 'active' : ''} onClick={() => setActiveTab('find')}>
+          <span className="ech-tab-icon">🔍</span> Find Artists
+        </button>
+        {epk?.slug && (
+          <a href={`/epk/${epk.slug}`} target="_blank" rel="noopener noreferrer" className="ech-preview-link">
+            👁 Preview EPK
+          </a>
+        )}
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          TAB 1: MY EPK BUILDER
+          ═══════════════════════════════════════════════════════════════ */}
+      {activeTab === 'epk' && epk && (
+        <div className="ech-epk-builder">
+          {/* Section nav */}
+          <div className="ech-epk-sections">
+            {[
+              { id: 'identity', label: '🎤 Identity', desc: 'Name, bio, genre' },
+              { id: 'contact', label: '📧 Contact', desc: 'Booking & management' },
+              { id: 'media', label: '📸 Media', desc: 'Photos & press' },
+              { id: 'achievements', label: '🏆 Achievements', desc: 'Stats & press quotes' },
+              { id: 'collab', label: '🤝 Collab Profile', desc: 'Skills & availability' },
+              { id: 'template', label: '🎨 Template', desc: 'Look & feel' },
+            ].map(s => (
+              <button key={s.id} className={`ech-section-btn ${epkSection === s.id ? 'active' : ''}`}
+                onClick={() => setEpkSection(s.id)}>
+                <span className="ech-section-label">{s.label}</span>
+                <span className="ech-section-desc">{s.desc}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Section Content */}
+          <div className="ech-epk-form">
+
+            {/* ── IDENTITY ── */}
+            {epkSection === 'identity' && <>
+              <div className="ech-field">
+                <label>Artist / Stage Name</label>
+                <input type="text" value={epk.artist_name || ''} onChange={(e) => updateEpk('artist_name', e.target.value)} placeholder="Your artist name" />
+              </div>
+              <div className="ech-field">
+                <label>Tagline</label>
+                <input type="text" value={epk.tagline || ''} onChange={(e) => updateEpk('tagline', e.target.value)} placeholder="Grammy-nominated R&B vocalist from Atlanta" maxLength={200} />
+                <span className="ech-hint">{(epk.tagline || '').length}/200 — One-liner for quick impressions</span>
+              </div>
+              <div className="ech-field">
+                <label>Short Bio</label>
+                <textarea value={epk.bio_short || ''} onChange={(e) => updateEpk('bio_short', e.target.value)} placeholder="2-3 sentence elevator pitch..." rows={3} maxLength={500} />
+                <span className="ech-hint">{(epk.bio_short || '').length}/500 — Used in search results & collab pitches</span>
+              </div>
+              <div className="ech-field">
+                <label>Full Bio</label>
+                <textarea value={epk.bio_full || ''} onChange={(e) => updateEpk('bio_full', e.target.value)} placeholder="Your full press bio..." rows={6} />
+              </div>
+              <div className="ech-field-row">
+                <div className="ech-field">
+                  <label>Primary Genre</label>
+                  <select value={epk.genre_primary || ''} onChange={(e) => updateEpk('genre_primary', e.target.value)}>
+                    <option value="">Select genre</option>
+                    {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+                <div className="ech-field">
+                  <label>Secondary Genre</label>
+                  <select value={epk.genre_secondary || ''} onChange={(e) => updateEpk('genre_secondary', e.target.value)}>
+                    <option value="">Select genre</option>
+                    {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="ech-field">
+                <label>Location</label>
+                <input type="text" value={epk.location || ''} onChange={(e) => updateEpk('location', e.target.value)} placeholder="City, State/Country" />
+              </div>
+              <div className="ech-field">
+                <label>EPK URL Slug</label>
+                <div className="ech-slug-preview">
+                  <span className="ech-slug-base">streampirex.com/epk/</span>
+                  <input type="text" value={epk.slug || ''} onChange={(e) => updateEpk('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} />
+                </div>
+              </div>
+            </>}
+
+            {/* ── CONTACT ── */}
+            {epkSection === 'contact' && <>
+              <div className="ech-field">
+                <label>Booking Email</label>
+                <input type="email" value={epk.booking_email || ''} onChange={(e) => updateEpk('booking_email', e.target.value)} placeholder="booking@yourdomain.com" />
+              </div>
+              <div className="ech-field-row">
+                <div className="ech-field">
+                  <label>Management Name</label>
+                  <input type="text" value={epk.management_name || ''} onChange={(e) => updateEpk('management_name', e.target.value)} />
+                </div>
+                <div className="ech-field">
+                  <label>Management Email</label>
+                  <input type="email" value={epk.management_email || ''} onChange={(e) => updateEpk('management_email', e.target.value)} />
+                </div>
+              </div>
+              <div className="ech-field-row">
+                <div className="ech-field">
+                  <label>Label</label>
+                  <input type="text" value={epk.label_name || ''} onChange={(e) => updateEpk('label_name', e.target.value)} placeholder="Independent" />
+                </div>
+                <div className="ech-field">
+                  <label>Website</label>
+                  <input type="url" value={epk.website || ''} onChange={(e) => updateEpk('website', e.target.value)} placeholder="https://" />
+                </div>
+              </div>
+              <div className="ech-field">
+                <label>Social Links</label>
+                <div className="ech-social-grid">
+                  {['spotify', 'apple_music', 'youtube', 'instagram', 'tiktok', 'twitter', 'soundcloud'].map(platform => (
+                    <div key={platform} className="ech-social-row">
+                      <span className="ech-social-label">{platform.replace('_', ' ')}</span>
+                      <input type="url" value={epk.social_links?.[platform] || ''}
+                        onChange={(e) => updateEpk('social_links', { ...(epk.social_links || {}), [platform]: e.target.value })}
+                        placeholder={`https://${platform.replace('_', '')}.com/...`} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="ech-field">
+                <label>Technical Rider</label>
+                <textarea value={epk.rider || ''} onChange={(e) => updateEpk('rider', e.target.value)}
+                  placeholder="Sound requirements, stage setup, hospitality needs..." rows={5} />
+                <span className="ech-hint">For venue bookings — list your sound and stage requirements</span>
+              </div>
+            </>}
+
+            {/* ── MEDIA ── */}
+            {epkSection === 'media' && <>
+              <MediaUploadField label="Profile Photo" field="profile_photo" currentUrl={epk.profile_photo}
+                onUploaded={(url) => updateEpk('profile_photo', url)} previewClass="ech-photo-preview" backend={BACKEND} />
+              <MediaUploadField label="Cover Photo" field="cover_photo" currentUrl={epk.cover_photo}
+                onUploaded={(url) => updateEpk('cover_photo', url)} previewClass="ech-cover-preview" backend={BACKEND} />
+              <MediaUploadField label="Logo" field="logo_url" currentUrl={epk.logo_url}
+                onUploaded={(url) => updateEpk('logo_url', url)} previewClass="ech-photo-preview" backend={BACKEND} />
+              <MediaUploadField label="Stage Plot (PDF or Image)" field="stage_plot_url" currentUrl={epk.stage_plot_url}
+                onUploaded={(url) => updateEpk('stage_plot_url', url)} previewClass="" backend={BACKEND} accept=".jpg,.jpeg,.png,.gif,.webp,.pdf" />
+
+              <div className="ech-field">
+                <label>Press Photos</label>
+                <div className="ech-press-photos">
+                  {(epk.press_photos || []).map((p, i) => (
+                    <div key={i} className="ech-press-photo-item">
+                      <img src={p.url} alt={p.caption || `Photo ${i + 1}`} />
+                      <input type="text" value={p.caption || ''} placeholder="Caption"
+                        onChange={(e) => {
+                          const photos = [...(epk.press_photos || [])];
+                          photos[i] = { ...photos[i], caption: e.target.value };
+                          updateEpk('press_photos', photos);
+                        }} />
+                      <button className="ech-remove-btn" onClick={() => {
+                        updateEpk('press_photos', (epk.press_photos || []).filter((_, j) => j !== i));
+                      }}>✕</button>
+                    </div>
+                  ))}
+                  <PressPhotoUploader backend={BACKEND} onUploaded={(url) => {
+                    updateEpk('press_photos', [...(epk.press_photos || []), { url, caption: '' }]);
+                  }} />
+                </div>
+              </div>
+
+              {/* ── Featured Media (Audio Demos, Videos, Documents) ── */}
+              <div className="ech-field">
+                <label>Featured Media — Audio Demos, Music Videos, Press Releases</label>
+                <p className="ech-hint" style={{ marginBottom: 10 }}>Upload MP3s, WAVs, MP4s, PDFs — anything that showcases your work</p>
+                <div className="ech-featured-media-list">
+                  {(epk.featured_media || []).map((m, i) => (
+                    <div key={i} className={`ech-media-item ${m.type || 'other'}`}>
+                      <span className="ech-media-icon">
+                        {m.type === 'audio' ? '🎵' : m.type === 'video' ? '🎬' : m.type === 'document' ? '📄' : '📎'}
+                      </span>
+                      <div className="ech-media-info">
+                        <input type="text" value={m.title || ''} placeholder="Title"
+                          onChange={(e) => {
+                            const media = [...(epk.featured_media || [])]; media[i] = { ...media[i], title: e.target.value };
+                            updateEpk('featured_media', media);
+                          }} />
+                        <input type="text" value={m.description || ''} placeholder="Description (optional)"
+                          onChange={(e) => {
+                            const media = [...(epk.featured_media || [])]; media[i] = { ...media[i], description: e.target.value };
+                            updateEpk('featured_media', media);
+                          }} />
+                      </div>
+                      {m.type === 'audio' && m.url && (
+                        <audio controls src={m.url} className="ech-media-player" preload="none" />
+                      )}
+                      {m.type === 'video' && m.url && (
+                        <video controls src={m.url} className="ech-media-video" preload="none" />
+                      )}
+                      {(m.type === 'document' || m.type === 'image') && m.url && (
+                        <a href={m.url} target="_blank" rel="noopener noreferrer" className="ech-file-link">
+                          📎 View {m.ext || 'file'}
+                        </a>
+                      )}
+                      <button className="ech-remove-btn" onClick={() => {
+                        updateEpk('featured_media', (epk.featured_media || []).filter((_, j) => j !== i));
+                      }}>✕</button>
+                    </div>
+                  ))}
+                  <FeaturedMediaUploader backend={BACKEND} onUploaded={(mediaObj) => {
+                    updateEpk('featured_media', [...(epk.featured_media || []), mediaObj]);
+                  }} />
+                </div>
+              </div>
+            </>}
+
+            {/* ── ACHIEVEMENTS ── */}
+            {epkSection === 'achievements' && <>
+              <div className="ech-field">
+                <label>Stats</label>
+                <div className="ech-stats-grid">
+                  {[
+                    { key: 'monthly_listeners', label: 'Monthly Listeners', icon: '👂' },
+                    { key: 'total_streams', label: 'Total Streams', icon: '🎵' },
+                    { key: 'followers', label: 'Followers', icon: '👥' },
+                    { key: 'shows_played', label: 'Shows Played', icon: '🎤' },
+                  ].map(s => (
+                    <div key={s.key} className="ech-stat-input">
+                      <span>{s.icon}</span>
+                      <input type="text" value={epk.stats?.[s.key] || ''} placeholder={s.label}
+                        onChange={(e) => updateEpk('stats', { ...(epk.stats || {}), [s.key]: e.target.value })} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="ech-field">
+                <label>Achievements & Highlights</label>
+                {(epk.achievements || []).map((a, i) => (
+                  <div key={i} className="ech-achievement-row">
+                    <input type="text" value={a.title || ''} placeholder="Achievement title"
+                      onChange={(e) => {
+                        const achs = [...(epk.achievements || [])];
+                        achs[i] = { ...achs[i], title: e.target.value };
+                        updateEpk('achievements', achs);
+                      }} />
+                    <input type="text" value={a.description || ''} placeholder="Details"
+                      onChange={(e) => {
+                        const achs = [...(epk.achievements || [])];
+                        achs[i] = { ...achs[i], description: e.target.value };
+                        updateEpk('achievements', achs);
+                      }} />
+                    <button className="ech-remove-btn" onClick={() => updateEpk('achievements', (epk.achievements || []).filter((_, j) => j !== i))}>✕</button>
+                  </div>
+                ))}
+                <button className="ech-add-btn" onClick={() => updateEpk('achievements', [...(epk.achievements || []), { title: '', description: '', date: '', icon: '🏆' }])}>+ Add Achievement</button>
+              </div>
+              <div className="ech-field">
+                <label>Press Quotes</label>
+                {(epk.press_quotes || []).map((q, i) => (
+                  <div key={i} className="ech-quote-row">
+                    <textarea value={q.quote || ''} placeholder="Press quote..." rows={2}
+                      onChange={(e) => {
+                        const quotes = [...(epk.press_quotes || [])];
+                        quotes[i] = { ...quotes[i], quote: e.target.value };
+                        updateEpk('press_quotes', quotes);
+                      }} />
+                    <input type="text" value={q.source || ''} placeholder="Source (e.g. Rolling Stone)"
+                      onChange={(e) => {
+                        const quotes = [...(epk.press_quotes || [])];
+                        quotes[i] = { ...quotes[i], source: e.target.value };
+                        updateEpk('press_quotes', quotes);
+                      }} />
+                    <button className="ech-remove-btn" onClick={() => updateEpk('press_quotes', (epk.press_quotes || []).filter((_, j) => j !== i))}>✕</button>
+                  </div>
+                ))}
+                <button className="ech-add-btn" onClick={() => updateEpk('press_quotes', [...(epk.press_quotes || []), { quote: '', source: '', url: '' }])}>+ Add Press Quote</button>
+              </div>
+            </>}
+
+            {/* ── COLLAB PROFILE ── */}
+            {epkSection === 'collab' && <>
+              <div className="ech-field">
+                <label>Open for Collaborations</label>
+                <button className={`ech-toggle ${epk.collab_open ? 'on' : 'off'}`}
+                  onClick={() => updateEpk('collab_open', !epk.collab_open)}>
+                  {epk.collab_open ? '✅ Open for Collabs' : '⬜ Not Available'}
+                </button>
+              </div>
+              <div className="ech-field">
+                <label>Your Skills</label>
+                <div className="ech-tag-selector">
+                  {SKILLS.map(s => (
+                    <button key={s} className={`ech-tag ${(epk.skills || []).includes(s) ? 'active' : ''}`}
+                      onClick={() => {
+                        const skills = epk.skills || [];
+                        updateEpk('skills', skills.includes(s) ? skills.filter(x => x !== s) : [...skills, s]);
+                      }}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="ech-field">
+                <label>Preferred Collab Genres</label>
+                <div className="ech-tag-selector">
+                  {GENRES.slice(0, 20).map(g => (
+                    <button key={g} className={`ech-tag ${(epk.preferred_genres || []).includes(g) ? 'active' : ''}`}
+                      onClick={() => {
+                        const genres = epk.preferred_genres || [];
+                        updateEpk('preferred_genres', genres.includes(g) ? genres.filter(x => x !== g) : [...genres, g]);
+                      }}>{g}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="ech-field">
+                <label>Rate / Compensation</label>
+                <input type="text" value={epk.collab_rate || ''} onChange={(e) => updateEpk('collab_rate', e.target.value)}
+                  placeholder="e.g. $500/verse, Points only, Negotiable" />
+              </div>
+              <div className="ech-field">
+                <label>Equipment / DAW</label>
+                <div className="ech-equipment-list">
+                  {(epk.equipment || []).map((eq, i) => (
+                    <div key={i} className="ech-equipment-item">
+                      <input type="text" value={eq} onChange={(e) => {
+                        const equip = [...(epk.equipment || [])]; equip[i] = e.target.value;
+                        updateEpk('equipment', equip);
+                      }} />
+                      <button className="ech-remove-btn" onClick={() => updateEpk('equipment', (epk.equipment || []).filter((_, j) => j !== i))}>✕</button>
+                    </div>
+                  ))}
+                  <button className="ech-add-btn" onClick={() => updateEpk('equipment', [...(epk.equipment || []), ''])}>+ Add Equipment</button>
+                </div>
+              </div>
+            </>}
+
+            {/* ── TEMPLATE ── */}
+            {epkSection === 'template' && <>
+              <div className="ech-field">
+                <label>EPK Template</label>
+                <div className="ech-template-grid">
+                  {TEMPLATES.map(t => (
+                    <button key={t.id} className={`ech-template-card ${epk.template === t.id ? 'active' : ''}`}
+                      onClick={() => updateEpk('template', t.id)}>
+                      <span className="ech-template-name">{t.name}</span>
+                      <span className="ech-template-desc">{t.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="ech-field">
+                <label>Accent Color</label>
+                <div className="ech-color-picker">
+                  <input type="color" value={epk.accent_color || '#00ffc8'} onChange={(e) => updateEpk('accent_color', e.target.value)} />
+                  <span>{epk.accent_color || '#00ffc8'}</span>
+                  <div className="ech-preset-colors">
+                    {['#00ffc8', '#FF6600', '#ff4444', '#ffd700', '#4a9eff', '#c840e9', '#ff69b4', '#32cd32'].map(c => (
+                      <button key={c} className="ech-color-swatch" style={{ background: c }}
+                        onClick={() => updateEpk('accent_color', c)} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="ech-field">
+                <label>Public Visibility</label>
+                <button className={`ech-toggle ${epk.is_public ? 'on' : 'off'}`}
+                  onClick={() => updateEpk('is_public', !epk.is_public)}>
+                  {epk.is_public ? '🌐 Public — Anyone with link can view' : '🔒 Private — Only you can see'}
+                </button>
+              </div>
+            </>}
+
+            {/* Save bar */}
+            <div className="ech-save-bar">
+              <button className="ech-save-btn" onClick={saveEpk} disabled={loading || !epkDirty}>
+                {loading ? '⏳ Saving...' : epkDirty ? '💾 Save EPK' : '✓ Saved'}
+              </button>
+              {epk.slug && (
+                <span className="ech-share-url">Share: streampirex.com/epk/{epk.slug}</span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          TAB 2: COLLAB BOARD
+          ═══════════════════════════════════════════════════════════════ */}
+      {activeTab === 'collab' && (
+        <div className="ech-collab-board">
+          <div className="ech-collab-nav">
+            <button className={collabView === 'browse' ? 'active' : ''} onClick={() => setCollabView('browse')}>🔍 Browse</button>
+            <button className={collabView === 'new-post' ? 'active' : ''} onClick={() => setCollabView('new-post')}>➕ Post Request</button>
+            <button className={collabView === 'my-posts' ? 'active' : ''} onClick={() => setCollabView('my-posts')}>📋 My Posts ({myRequests.length})</button>
+            <button className={collabView === 'my-apps' ? 'active' : ''} onClick={() => setCollabView('my-apps')}>📨 My Applications ({myApplications.length})</button>
+          </div>
+
+          {/* ── BROWSE ── */}
+          {collabView === 'browse' && <>
+            <div className="ech-collab-filters">
+              <select value={filterGenre} onChange={(e) => { setFilterGenre(e.target.value); }}>
+                <option value="">All Genres</option>
+                {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <select value={filterRole} onChange={(e) => { setFilterRole(e.target.value); }}>
+                <option value="">All Roles</option>
+                {SKILLS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <button onClick={loadCollabRequests}>🔄 Refresh</button>
+            </div>
+
+            {collabRequests.length === 0 ? (
+              <div className="ech-empty">No open collab requests yet. Be the first to post one!</div>
+            ) : (
+              <div className="ech-request-list">
+                {collabRequests.map(req => (
+                  <div key={req.id} className="ech-request-card">
+                    <div className="ech-request-header">
+                      <div className="ech-request-author">
+                        {req.profile_photo && <img src={req.profile_photo} alt="" className="ech-avatar" />}
+                        <span className="ech-author-name">{req.artist_name}</span>
+                      </div>
+                      <span className="ech-request-date">{new Date(req.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <h3 className="ech-request-title">{req.title}</h3>
+                    {req.description && <p className="ech-request-desc">{req.description}</p>}
+                    <div className="ech-request-meta">
+                      {req.genre && <span className="ech-meta-tag genre">{req.genre}</span>}
+                      {(req.roles_needed || []).map(r => <span key={r} className="ech-meta-tag role">{r}</span>)}
+                      {req.budget && <span className="ech-meta-tag budget">💰 {req.budget}</span>}
+                      {req.deadline && <span className="ech-meta-tag deadline">📅 {new Date(req.deadline).toLocaleDateString()}</span>}
+                    </div>
+                    <div className="ech-request-actions">
+                      <button className="ech-apply-btn" onClick={() => setApplyingTo(applyingTo === req.id ? null : req.id)}>
+                        {applyingTo === req.id ? '✕ Cancel' : '🤝 Apply with EPK'}
+                      </button>
+                      <span className="ech-app-count">{req.application_count || 0} applications</span>
+                    </div>
+                    {applyingTo === req.id && (
+                      <div className="ech-apply-form">
+                        <textarea value={applyForm.message} onChange={(e) => setApplyForm(p => ({ ...p, message: e.target.value }))}
+                          placeholder="Pitch message — why you're the right fit..." rows={3} />
+                        <div className="ech-apply-row">
+                          <input type="text" value={applyForm.proposed_rate}
+                            onChange={(e) => setApplyForm(p => ({ ...p, proposed_rate: e.target.value }))}
+                            placeholder="Your rate (optional)" />
+                          <input type="url" value={applyForm.sample_url}
+                            onChange={(e) => setApplyForm(p => ({ ...p, sample_url: e.target.value }))}
+                            placeholder="Link to relevant work sample" />
+                        </div>
+                        <div className="ech-apply-footer">
+                          <span className="ech-epk-attached">📋 Your EPK will be attached automatically</span>
+                          <button className="ech-submit-apply" onClick={submitApplication} disabled={loading}>
+                            {loading ? '⏳' : '🚀 Send Application'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>}
+
+          {/* ── NEW POST ── */}
+          {collabView === 'new-post' && (
+            <div className="ech-new-request">
+              <h3>Post a Collaboration Request</h3>
+              <div className="ech-field">
+                <label>Title *</label>
+                <input type="text" value={newRequest.title} onChange={(e) => setNewRequest(p => ({ ...p, title: e.target.value }))}
+                  placeholder="e.g. Need R&B vocalist for upcoming single" />
+              </div>
+              <div className="ech-field">
+                <label>Description</label>
+                <textarea value={newRequest.description} onChange={(e) => setNewRequest(p => ({ ...p, description: e.target.value }))}
+                  placeholder="Describe the project, vibe, and what you're looking for..." rows={4} />
+              </div>
+              <div className="ech-field-row">
+                <div className="ech-field">
+                  <label>Genre</label>
+                  <select value={newRequest.genre} onChange={(e) => setNewRequest(p => ({ ...p, genre: e.target.value }))}>
+                    <option value="">Select genre</option>
+                    {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+                <div className="ech-field">
+                  <label>Budget</label>
+                  <input type="text" value={newRequest.budget} onChange={(e) => setNewRequest(p => ({ ...p, budget: e.target.value }))}
+                    placeholder="e.g. $200-500 / Points split / TBD" />
+                </div>
+              </div>
+              <div className="ech-field">
+                <label>Roles Needed</label>
+                <div className="ech-tag-selector compact">
+                  {SKILLS.map(s => (
+                    <button key={s} className={`ech-tag ${newRequest.roles_needed.includes(s) ? 'active' : ''}`}
+                      onClick={() => setNewRequest(p => ({
+                        ...p,
+                        roles_needed: p.roles_needed.includes(s) ? p.roles_needed.filter(x => x !== s) : [...p.roles_needed, s],
+                      }))}>{s}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="ech-field-row">
+                <div className="ech-field">
+                  <label>Deadline</label>
+                  <input type="date" value={newRequest.deadline} onChange={(e) => setNewRequest(p => ({ ...p, deadline: e.target.value }))} />
+                </div>
+                <div className="ech-field">
+                  <label>Reference Track URL</label>
+                  <input type="url" value={newRequest.reference_track_url} onChange={(e) => setNewRequest(p => ({ ...p, reference_track_url: e.target.value }))}
+                    placeholder="SoundCloud / YouTube link for vibe reference" />
+                </div>
+              </div>
+              <button className="ech-post-btn" onClick={postCollabRequest} disabled={loading}>
+                {loading ? '⏳ Posting...' : '🚀 Post Collab Request'}
+              </button>
+            </div>
+          )}
+
+          {/* ── MY POSTS ── */}
+          {collabView === 'my-posts' && (
+            <div className="ech-my-posts">
+              {myRequests.length === 0 ? (
+                <div className="ech-empty">You haven't posted any collab requests yet.</div>
+              ) : myRequests.map(req => (
+                <div key={req.id} className="ech-request-card owned">
+                  <h3>{req.title}</h3>
+                  <div className="ech-request-meta">
+                    <span className={`ech-status-badge ${req.status}`}>{req.status}</span>
+                    {req.genre && <span className="ech-meta-tag genre">{req.genre}</span>}
+                    {(req.roles_needed || []).map(r => <span key={r} className="ech-meta-tag role">{r}</span>)}
+                  </div>
+                  <div className="ech-request-actions">
+                    <button onClick={() => loadApplicationsForRequest(req.id)}>
+                      📨 View Applications ({req.application_count || 0})
+                    </button>
+                    <button className="ech-close-btn" onClick={() => deleteRequest(req.id)}>🗑 Delete</button>
+                  </div>
+                  {viewingApps === req.id && (
+                    <div className="ech-applications-list">
+                      {applications.length === 0 ? (
+                        <div className="ech-empty">No applications yet.</div>
+                      ) : applications.map(app => (
+                        <div key={app.id} className={`ech-application-card ${app.status}`}>
+                          <div className="ech-app-header">
+                            {app.profile_photo && <img src={app.profile_photo} alt="" className="ech-avatar" />}
+                            <div>
+                              <span className="ech-app-name">{app.artist_name}</span>
+                              {app.skills?.length > 0 && <span className="ech-app-skills">{app.skills.slice(0, 3).join(', ')}</span>}
+                            </div>
+                            {app.epk_slug && (
+                              <a href={`/epk/${app.epk_slug}`} target="_blank" rel="noopener noreferrer" className="ech-view-epk-link">📋 View EPK</a>
+                            )}
+                          </div>
+                          {app.message && <p className="ech-app-message">{app.message}</p>}
+                          {app.proposed_rate && <span className="ech-meta-tag budget">💰 {app.proposed_rate}</span>}
+                          {app.sample_url && <a href={app.sample_url} target="_blank" rel="noopener noreferrer" className="ech-sample-link">🎵 Work Sample</a>}
+                          {app.status === 'pending' && (
+                            <div className="ech-app-response-btns">
+                              <button className="ech-accept" onClick={() => respondToApp(app.id, 'accepted')}>✅ Accept</button>
+                              <button className="ech-decline" onClick={() => respondToApp(app.id, 'declined')}>✕ Decline</button>
+                            </div>
+                          )}
+                          {app.status !== 'pending' && <span className={`ech-status-badge ${app.status}`}>{app.status}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── MY APPLICATIONS ── */}
+          {collabView === 'my-apps' && (
+            <div className="ech-my-apps">
+              {myApplications.length === 0 ? (
+                <div className="ech-empty">You haven't applied to any collabs yet. Browse the board!</div>
+              ) : myApplications.map(app => (
+                <div key={app.id} className={`ech-application-card ${app.status}`}>
+                  <span className="ech-app-message">{app.message || '(No message)'}</span>
+                  <div className="ech-request-meta">
+                    <span className={`ech-status-badge ${app.status}`}>{app.status}</span>
+                    {app.proposed_rate && <span className="ech-meta-tag budget">💰 {app.proposed_rate}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          TAB 3: FIND ARTISTS (EPK Search)
+          ═══════════════════════════════════════════════════════════════ */}
+      {activeTab === 'find' && (
+        <div className="ech-find-artists">
+          <div className="ech-search-bar">
+            <select value={searchGenre} onChange={(e) => setSearchGenre(e.target.value)}>
+              <option value="">All Genres</option>
+              {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+            <select value={searchSkill} onChange={(e) => setSearchSkill(e.target.value)}>
+              <option value="">All Skills</option>
+              {SKILLS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <input type="text" value={searchLocation} onChange={(e) => setSearchLocation(e.target.value)} placeholder="Location..." />
+            <label className="ech-collab-filter">
+              <input type="checkbox" checked={searchCollabOnly} onChange={(e) => setSearchCollabOnly(e.target.checked)} />
+              Open for collab only
+            </label>
+            <button onClick={searchEpks}>🔍 Search</button>
+          </div>
+
+          {searchResults.length === 0 ? (
+            <div className="ech-empty">No artists found. Try broadening your search.</div>
+          ) : (
+            <div className="ech-artist-grid">
+              {searchResults.map(epkResult => (
+                <div key={epkResult.id} className="ech-artist-card" style={{ '--card-accent': epkResult.accent_color || '#00ffc8' }}>
+                  <div className="ech-artist-card-header">
+                    {epkResult.profile_photo && <img src={epkResult.profile_photo} alt="" className="ech-artist-photo" />}
+                    <div>
+                      <h3 className="ech-artist-name">{epkResult.artist_name}</h3>
+                      {epkResult.tagline && <p className="ech-artist-tagline">{epkResult.tagline}</p>}
+                    </div>
+                  </div>
+                  <div className="ech-artist-meta">
+                    {epkResult.genre_primary && <span className="ech-meta-tag genre">{epkResult.genre_primary}</span>}
+                    {epkResult.genre_secondary && <span className="ech-meta-tag genre">{epkResult.genre_secondary}</span>}
+                    {epkResult.location && <span className="ech-meta-tag location">📍 {epkResult.location}</span>}
+                    {epkResult.collab_open && <span className="ech-meta-tag collab">🤝 Open</span>}
+                  </div>
+                  {epkResult.skills?.length > 0 && (
+                    <div className="ech-artist-skills">
+                      {epkResult.skills.slice(0, 5).map(s => <span key={s} className="ech-skill-chip">{s}</span>)}
+                      {epkResult.skills.length > 5 && <span className="ech-more">+{epkResult.skills.length - 5}</span>}
+                    </div>
+                  )}
+                  {epkResult.bio_short && <p className="ech-artist-bio">{epkResult.bio_short.slice(0, 120)}...</p>}
+                  <div className="ech-artist-actions">
+                    {epkResult.slug && (
+                      <a href={`/epk/${epkResult.slug}`} target="_blank" rel="noopener noreferrer" className="ech-view-epk-btn">📋 View Full EPK</a>
+                    )}
+                    {epkResult.collab_rate && <span className="ech-rate">💰 {epkResult.collab_rate}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// =============================================================================
+// SUB-COMPONENT: Media Upload Field (upload + URL fallback)
+// =============================================================================
+const MediaUploadField = ({ label, field, currentUrl, onUploaded, previewClass, backend, accept }) => {
+  const [uploading, setUploading] = useState(false);
+  const [urlMode, setUrlMode] = useState(false);
+  const [manualUrl, setManualUrl] = useState(currentUrl || '');
+  const fileRef = useRef(null);
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('field', field);
+      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const res = await fetch(`${backend}/api/epk/upload`, {
+        method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.url) { onUploaded(data.url); }
+      else { alert(data.error || 'Upload failed'); }
+    } catch (err) { alert('Upload error: ' + err.message); }
+    finally { setUploading(false); if (fileRef.current) fileRef.current.value = ''; }
+  };
+
+  return (
+    <div className="ech-field">
+      <label>{label}</label>
+      <div className="ech-upload-zone">
+        {!urlMode ? (
+          <>
+            <input ref={fileRef} type="file" accept={accept || "image/*"} onChange={handleUpload}
+              style={{ display: 'none' }} id={`epk-upload-${field}`} />
+            <button className="ech-upload-btn" onClick={() => fileRef.current?.click()} disabled={uploading}>
+              {uploading ? '⏳ Uploading...' : currentUrl ? '🔄 Replace File' : '📤 Upload File'}
+            </button>
+            <button className="ech-url-toggle" onClick={() => { setUrlMode(true); setManualUrl(currentUrl || ''); }}>
+              or paste URL
+            </button>
+          </>
+        ) : (
+          <div className="ech-url-input-row">
+            <input type="url" value={manualUrl} onChange={(e) => setManualUrl(e.target.value)}
+              placeholder="https://..." />
+            <button className="ech-url-apply" onClick={() => { onUploaded(manualUrl); setUrlMode(false); }}>✓</button>
+            <button className="ech-url-cancel" onClick={() => setUrlMode(false)}>✕</button>
+          </div>
+        )}
+      </div>
+      {currentUrl && previewClass && (
+        <img src={currentUrl} alt={label} className={previewClass} />
+      )}
+      {currentUrl && !previewClass && field === 'stage_plot_url' && (
+        <a href={currentUrl} target="_blank" rel="noopener noreferrer" className="ech-file-link">📄 View uploaded file</a>
+      )}
+    </div>
+  );
+};
+
+// =============================================================================
+// SUB-COMPONENT: Press Photo Uploader (multi-upload for press gallery)
+// =============================================================================
+const PressPhotoUploader = ({ backend, onUploaded }) => {
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  const handleUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setUploading(true);
+    for (const file of files) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('field', 'press_photos');
+        const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+        const res = await fetch(`${backend}/api/epk/upload`, {
+          method: 'POST',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          body: formData,
+        });
+        const data = await res.json();
+        if (res.ok && data.url) { onUploaded(data.url); }
+      } catch (err) { console.error('Press photo upload error:', err); }
+    }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  return (
+    <>
+      <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleUpload} style={{ display: 'none' }} />
+      <button className="ech-add-btn" onClick={() => fileRef.current?.click()} disabled={uploading}>
+        {uploading ? '⏳ Uploading...' : '+ Upload Press Photos'}
+      </button>
+    </>
+  );
+};
+
+// =============================================================================
+// SUB-COMPONENT: Featured Media Uploader (audio, video, docs — any file type)
+// =============================================================================
+const FeaturedMediaUploader = ({ backend, onUploaded }) => {
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('field', 'featured_media');
+      formData.append('title', file.name.replace(/\.[^.]+$/, ''));
+      const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+      const res = await fetch(`${backend}/api/epk/upload`, {
+        method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        onUploaded({
+          url: data.url,
+          title: file.name.replace(/\.[^.]+$/, ''),
+          description: '',
+          type: data.file_type || 'other',
+          ext: data.ext || '',
+        });
+      } else { alert(data.error || 'Upload failed'); }
+    } catch (err) { alert('Upload error: ' + err.message); }
+    finally { setUploading(false); if (fileRef.current) fileRef.current.value = ''; }
+  };
+
+  return (
+    <>
+      <input ref={fileRef} type="file"
+        accept="audio/*,video/*,image/*,.pdf,.doc,.docx,.txt"
+        onChange={handleUpload} style={{ display: 'none' }} />
+      <button className="ech-add-media-btn" onClick={() => fileRef.current?.click()} disabled={uploading}>
+        {uploading ? '⏳ Uploading...' : '+ Upload Audio, Video, or Document'}
+      </button>
+    </>
+  );
+};
+
+export default EPKCollabHub;
