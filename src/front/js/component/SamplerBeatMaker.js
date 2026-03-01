@@ -20,6 +20,7 @@ import SamplerTab from './tabs/SamplerTab';
 import DrumPadTab from './tabs/DrumPadTab';
 import BeatMakerTab from './tabs/BeatMakerTab';
 import '../../styles/SamplerBeatMaker.css';
+import '../../styles/SamplerBeatMaker-compat.css';
 
 const SamplerBeatMaker = (props) => {
   const {

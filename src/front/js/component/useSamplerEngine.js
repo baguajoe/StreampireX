@@ -176,16 +176,32 @@ export default function useSamplerEngine(options = {}) {
   const playingRef = useRef(false);
   const [curStep, setCurStep] = useState(-1);
   const [looping, setLooping] = useState(true);
+  const loopingRef = useRef(true);
+  useEffect(() => { loopingRef.current = looping; }, [looping]);
   const [metOn, setMetOn] = useState(false);
+  const metOnRef = useRef(false);
+  useEffect(() => { metOnRef.current = metOn; }, [metOn]);
   const [swing, setSwing] = useState(0);
+  const swingRef = useRef(0);
+  useEffect(() => { swingRef.current = swing; }, [swing]);
   const [masterVol, setMasterVol] = useState(0.8);
 
   // Sequencer
   const [stepCount, setStepCount] = useState(16);
+  const stepCountRef = useRef(16);
+  useEffect(() => { stepCountRef.current = stepCount; }, [stepCount]);
   const [patterns, setPatterns] = useState([createDefaultPattern()]);
+  const patternsRef = useRef(null);
+  useEffect(() => { patternsRef.current = patterns; }, [patterns]);
   const [curPatIdx, setCurPatIdx] = useState(0);
+  const curPatIdxRef = useRef(0);
+  useEffect(() => { curPatIdxRef.current = curPatIdx; }, [curPatIdx]);
   const [loopStartStep, setLoopStartStep] = useState(0);
+  const loopStartRef = useRef(0);
+  useEffect(() => { loopStartRef.current = loopStartStep; }, [loopStartStep]);
   const [loopEndStep, setLoopEndStep] = useState(null);
+  const loopEndRef = useRef(null);
+  useEffect(() => { loopEndRef.current = loopEndStep; }, [loopEndStep]);
   const [overdub, setOverdub] = useState(false);
   const [quantVal, setQuantVal] = useState('1/16');
 
@@ -266,6 +282,8 @@ export default function useSamplerEngine(options = {}) {
   // Sequencer refs
   const seqRef = useRef(null);
   const stepRef = useRef(-1);
+  // Ref for playPad so tick() always calls the latest version
+  const playPadRef = useRef(null);
 
   // Shortcuts
   const steps = patterns[curPatIdx]?.steps || [];
@@ -331,13 +349,8 @@ export default function useSamplerEngine(options = {}) {
 
     // ── Pitch / Time-stretch ──
     if (pad.timeStretch && pad.stretchMode === 'stretch' && pad.originalBpm > 0) {
-      // Real time-stretch: adjust playback rate to match project BPM, then pitch-shift to compensate
-      // Rate = targetBPM / originalBPM (speeds up/slows down to match tempo)
-      // Then we apply pitch compensation via a separate detune
       const stretchRate = bpm / pad.originalBpm;
       src.playbackRate.value = stretchRate;
-      // Compensate pitch: detune in cents to cancel the pitch change from rate adjustment
-      // Plus any user pitch offset
       const pitchCompCents = -Math.log2(stretchRate) * 1200;
       src.detune.value = pitchCompCents + (pad.pitch * 100);
     } else {
@@ -464,6 +477,9 @@ export default function useSamplerEngine(options = {}) {
     };
   }, [pads, masterVol, bpm, initCtx, selectLayerBuffer, getReverbImpulse]);
 
+  // ── Keep playPadRef in sync so tick() always calls latest playPad ──
+  useEffect(() => { playPadRef.current = playPad; }, [playPad]);
+
   const stopPad = useCallback((pi) => {
     if (activeSrc.current[pi]) {
       const ctx = ctxRef.current;
@@ -485,7 +501,7 @@ export default function useSamplerEngine(options = {}) {
   }, []);
 
   // ═══════════════════════════════════════════════════════════
-  // SEQUENCER
+  // SEQUENCER — All reads inside tick() use refs, never closures
   // ═══════════════════════════════════════════════════════════
 
   const toggleStep = useCallback((pi, si, e) => {
@@ -503,66 +519,106 @@ export default function useSamplerEngine(options = {}) {
     });
   }, [curPatIdx]);
 
-  const startSeq = useCallback(() => {
-    const ctx = initCtx();
-    if (playingRef.current) return;
-    playingRef.current = true;
-    setIsPlaying(true);
-    stepRef.current = (loopStartStep || 0) - 1;
-
-    const tick = () => {
-      if (!playingRef.current) return;
-      let next = stepRef.current + 1;
-      const end = loopEndStep ?? stepCount;
-      const start = loopStartStep || 0;
-      if (next >= end) {
-        if (looping) next = start;
-        else { stopSeq(); return; }
-      }
-      stepRef.current = next;
-      setCurStep(next);
-
-      // Play active steps
-      const pat = patterns[curPatIdx];
-      if (pat) {
-        for (let pi = 0; pi < PAD_COUNT; pi++) {
-          if (pat.steps[pi]?.[next]) {
-            playPad(pi, pat.velocities[pi]?.[next] ?? 0.8);
-          }
-        }
-      }
-
-      // Metronome
-      if (metOn && next % 4 === 0) {
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.frequency.value = next % 16 === 0 ? 1000 : 800;
-        g.gain.value = 0.15;
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
-        o.connect(g); g.connect(ctx.destination);
-        o.start(); o.stop(ctx.currentTime + 0.04);
-      }
-
-      // Swing
-      const baseInterval = (60 / bpmRef.current) / 4 * 1000;
-      const swingOffset = next % 2 === 1 ? baseInterval * (swing / 200) : 0;
-      seqRef.current = setTimeout(tick, baseInterval + swingOffset);
-    };
-
-    tick();
-  }, [initCtx, loopStartStep, loopEndStep, stepCount, looping, patterns, curPatIdx, playPad, metOn, swing]);
-
   const stopSeq = useCallback(() => {
     playingRef.current = false;
     setIsPlaying(false);
     setCurStep(-1);
     stepRef.current = -1;
-    if (seqRef.current) clearTimeout(seqRef.current);
+    if (seqRef.current) {
+      clearTimeout(seqRef.current);
+      seqRef.current = null;
+    }
+    // Stop all currently playing samples
+    Object.keys(activeSrc.current).forEach(k => {
+      try { activeSrc.current[k].source.stop(); } catch (e) {}
+    });
+    activeSrc.current = {};
+    setActivePads(new Set());
   }, []);
 
+  const startSeq = useCallback(() => {
+    const ctx = initCtx();
+
+    // ── CRITICAL FIX: Clean up any stale state from previous runs ──
+    // If playingRef got stuck true (hot reload, failed stop, etc.), reset it
+    if (seqRef.current) {
+      clearTimeout(seqRef.current);
+      seqRef.current = null;
+    }
+    if (playingRef.current) {
+      // Force-stop the old run before starting fresh
+      playingRef.current = false;
+    }
+
+    playingRef.current = true;
+    setIsPlaying(true);
+    stepRef.current = (loopStartRef.current || 0) - 1;
+
+    const tick = () => {
+      if (!playingRef.current) return;
+
+      // ── ALL reads from refs — never stale ──
+      const sc = stepCountRef.current;
+      const end = loopEndRef.current ?? sc;
+      const start = loopStartRef.current || 0;
+
+      let next = stepRef.current + 1;
+      if (next >= end) {
+        if (loopingRef.current) {
+          next = start;
+        } else {
+          playingRef.current = false;
+          setIsPlaying(false);
+          setCurStep(-1);
+          stepRef.current = -1;
+          return;
+        }
+      }
+      stepRef.current = next;
+      setCurStep(next);
+
+      // ── Play active steps from current pattern (via refs) ──
+      const pat = patternsRef.current?.[curPatIdxRef.current];
+      if (pat) {
+        for (let pi = 0; pi < PAD_COUNT; pi++) {
+          if (pat.steps[pi]?.[next]) {
+            playPadRef.current?.(pi, pat.velocities[pi]?.[next] ?? 0.8);
+          }
+        }
+      }
+
+      // ── Metronome (via ref) ──
+      if (metOnRef.current && next % 4 === 0) {
+        try {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.frequency.value = next % 16 === 0 ? 1000 : 800;
+          g.gain.value = 0.15;
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+          o.connect(g); g.connect(ctx.destination);
+          o.start(); o.stop(ctx.currentTime + 0.04);
+        } catch (e) {}
+      }
+
+      // ── Schedule next tick (via refs) ──
+      const baseInterval = (60 / bpmRef.current) / 4 * 1000;
+      const sw = swingRef.current || 0;
+      const swingOffset = next % 2 === 1 ? baseInterval * (sw / 200) : 0;
+      seqRef.current = setTimeout(tick, baseInterval + swingOffset);
+    };
+
+    // Small delay to ensure AudioContext is fully running
+    seqRef.current = setTimeout(tick, 10);
+  }, [initCtx]); // ← Only depends on initCtx — everything else read from refs
+
+  // ── togglePlay: uses playingRef (not isPlaying state) to avoid stale closure ──
   const togglePlay = useCallback(() => {
-    if (isPlaying) stopSeq(); else startSeq();
-  }, [isPlaying, startSeq, stopSeq]);
+    if (playingRef.current) {
+      stopSeq();
+    } else {
+      startSeq();
+    }
+  }, [startSeq, stopSeq]);
 
   // ═══════════════════════════════════════════════════════════
   // PATTERN MANAGEMENT
@@ -618,8 +674,8 @@ export default function useSamplerEngine(options = {}) {
     setRecHits([]);
     setLiveRec(true);
     liveRef.current = true;
-    if (!isPlaying) startSeq();
-  }, [initCtx, isPlaying, startSeq]);
+    if (!playingRef.current) startSeq();
+  }, [initCtx, startSeq]);
 
   const handleLiveHit = useCallback((pi) => {
     if (!liveRef.current || !ctxRef.current) return;
@@ -1196,12 +1252,9 @@ export default function useSamplerEngine(options = {}) {
       // Check MIDI map
       const mappedPad = midiMapRef.current[noteKey];
       if (mappedPad !== undefined && mappedPad < PAD_COUNT) {
-        // Use external playPad — but we can't call it directly in this callback
-        // because it may not be the latest reference. So we use pads ref approach:
         const pad = pads[mappedPad];
         if (pad?.buffer) {
           const ctx = initCtx();
-          // Trigger via the same mechanism
           playPad(mappedPad, vel);
         }
       } else {
