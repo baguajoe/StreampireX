@@ -509,8 +509,18 @@ const WaveformEditor = ({
           <input type="checkbox" checked={snapToZero} onChange={(e) => setSnapToZero(e.target.checked)} /> Zero-X
         </label>
         <span style={{ color: '#556677' }}>|</span>
-        <button onClick={() => startPreview(trimStart)} style={btnStyle}>▶ Preview</button>
-        <button onClick={stopPreview} disabled={!isPreviewPlaying} style={btnStyle}>⏹</button>
+        <button onClick={() => isPreviewPlaying ? stopPreview() : startPreview(trimStart)}
+          style={{
+            ...btnStyle,
+            background: isPreviewPlaying ? 'rgba(255,68,68,0.15)' : 'rgba(0,255,200,0.1)',
+            border: `1px solid ${isPreviewPlaying ? 'rgba(255,68,68,0.3)' : 'rgba(0,255,200,0.3)'}`,
+            color: isPreviewPlaying ? '#ff4444' : '#00ffc8',
+            fontWeight: 700,
+            padding: '3px 14px',
+            fontSize: '0.7rem',
+          }}>
+          {isPreviewPlaying ? '⏹ Stop' : '▶ Preview'}
+        </button>
         <span style={{ flex: 1 }} />
         <span style={{ color: '#5a7088' }}>
           {formatTime(trimStart)} → {formatTime(trimEnd)} ({formatTime(trimEnd - trimStart)}){isLoop && ' 🔁'}
