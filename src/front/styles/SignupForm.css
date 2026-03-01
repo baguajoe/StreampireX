@@ -1,14 +1,15 @@
-/* SignupForm.css - External CSS for the multi-step signup form */
+/* SignupForm.css - StreamPireX Dark Theme Signup Form */
 
 /* Container */
 .signup-container {
     max-width: 600px;
     margin: 2rem auto;
     padding: 2rem;
-    background: white;
+    background: #0a1628;
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #e0e0e0;
 }
 
 /* Header */
@@ -17,62 +18,40 @@
     margin-bottom: 2rem;
 }
 
-.signup-header h1 {
-    color: #2d3748;
-    margin-bottom: 2rem;
-    font-size: 2rem;
+.signup-header h2 {
+    color: #ffffff;
+    margin-bottom: 1.5rem;
+    font-size: 1.75rem;
     font-weight: 600;
 }
 
-/* Progress Bar */
-.progress-bar {
+/* Step Indicator */
+.step-indicator {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 2rem;
-    gap: 0.5rem;
+    gap: 1rem;
 }
 
-.progress-step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.step-circle {
+.step-indicator span {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: #e2e8f0;
-    color: #64748b;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
+    font-size: 0.95rem;
     transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
-.step-circle.active {
-    background: #3b82f6;
-    color: white;
-}
-
-.progress-step span {
-    font-size: 0.875rem;
-    color: #64748b;
-    text-align: center;
-}
-
-.progress-line {
-    width: 60px;
-    height: 2px;
-    background: #e2e8f0;
-    transition: all 0.3s ease;
-}
-
-.progress-line.active {
-    background: #3b82f6;
+.step-indicator span.active {
+    background: rgba(0, 255, 200, 0.15);
+    color: #00ffc8;
+    border-color: #00ffc8;
 }
 
 /* Form Sections */
@@ -81,10 +60,17 @@
 }
 
 .form-step h3 {
-    color: #2d3748;
+    color: #ffffff;
     margin-bottom: 1.5rem;
     font-size: 1.5rem;
     font-weight: 600;
+}
+
+/* Step Description */
+.step-description {
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 24px;
+    font-size: 0.95rem;
 }
 
 /* Form Groups */
@@ -104,38 +90,50 @@
 }
 
 /* Labels */
-label {
+.signup-form label {
     display: block;
     margin-bottom: 0.5rem;
-    color: #374151;
+    color: rgba(255, 255, 255, 0.8);
     font-weight: 500;
     font-size: 0.875rem;
 }
 
 /* Inputs */
-input,
-select,
-textarea {
+.signup-form input,
+.signup-form select,
+.signup-form textarea {
     width: 100%;
     padding: 0.75rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 8px;
     font-size: 1rem;
-    transition: border-color 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
     box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
 }
 
-input:focus,
-select:focus,
-textarea:focus {
+.signup-form input::placeholder,
+.signup-form textarea::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.signup-form input:focus,
+.signup-form select:focus,
+.signup-form textarea:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: #00ffc8;
+    box-shadow: 0 0 0 3px rgba(0, 255, 200, 0.15);
 }
 
-input.error,
-select.error {
+.signup-form input.error,
+.signup-form select.error {
     border-color: #ef4444;
+}
+
+.signup-form select option {
+    background: #0a1628;
+    color: #ffffff;
 }
 
 /* Error Text */
@@ -146,7 +144,127 @@ select.error {
     display: block;
 }
 
-/* Checkbox and Radio Groups */
+.error-message {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+}
+
+/* ============================================
+   CREATOR TYPE CARDS (Step 2)
+   ============================================ */
+
+.creator-type-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.creator-type-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.creator-type-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.creator-type-card.selected {
+    background: rgba(0, 255, 200, 0.08);
+    border-color: #00ffc8;
+}
+
+.creator-type-card input[type="checkbox"] {
+    display: none;
+}
+
+.creator-type-card .card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.creator-type-card .card-icon {
+    font-size: 2rem;
+    width: 50px;
+    text-align: center;
+}
+
+.creator-type-card .card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.creator-type-card .card-description {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.creator-type-card .checkmark {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.creator-type-card.selected .checkmark {
+    background: #00ffc8;
+    color: #0a1628;
+}
+
+/* Skip Note */
+.skip-note {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9rem;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+/* Conditional Fields Sections */
+.conditional-fields {
+    margin-top: 24px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border-left: 3px solid #00ffc8;
+}
+
+.conditional-fields h4 {
+    margin: 0 0 16px;
+    font-size: 1rem;
+    color: #00ffc8;
+}
+
+/* ============================================
+   CHECKBOX & RADIO GROUPS
+   ============================================ */
+
 .checkbox-group,
 .radio-group {
     display: flex;
@@ -162,31 +280,123 @@ select.error {
     font-weight: normal;
     margin-bottom: 0;
     cursor: pointer;
+    color: rgba(255, 255, 255, 0.8);
 }
 
 .checkbox-label input,
 .radio-label input {
     width: auto;
     margin: 0;
+    accent-color: #00ffc8;
 }
 
-/* File Upload Section */
-.file-uploads {
-    border-top: 1px solid #e5e7eb;
-    padding-top: 1.5rem;
-    margin-top: 1.5rem;
+/* Horizontal Checkbox Group (platforms, etc.) */
+.checkbox-group.horizontal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
-.file-uploads small {
-    display: block;
-    color: #6b7280;
-    margin-top: 0.25rem;
-    font-size: 0.75rem;
+.checkbox-group.horizontal .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
 }
 
-/* Legal Section */
+.checkbox-group.horizontal .checkbox-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.checkbox-group.horizontal .checkbox-item input {
+    accent-color: #00ffc8;
+    width: auto;
+}
+
+/* ============================================
+   SOCIAL MEDIA INPUTS (Step 3)
+   ============================================ */
+
+.social-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.social-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.social-input .social-icon {
+    width: 36px;
+    text-align: center;
+    font-size: 1.1rem;
+}
+
+.social-input input {
+    flex: 1;
+}
+
+/* ============================================
+   SIGNUP SUMMARY (Step 4)
+   ============================================ */
+
+.signup-summary {
+    background: rgba(0, 255, 200, 0.05);
+    border: 1px solid rgba(0, 255, 200, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.signup-summary h4 {
+    margin: 0 0 16px;
+    font-size: 1rem;
+    color: #00ffc8;
+}
+
+.signup-summary .summary-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.signup-summary .summary-item:last-child {
+    border-bottom: none;
+}
+
+.signup-summary .summary-item span:first-child {
+    font-size: 1.2rem;
+    width: 30px;
+}
+
+.signup-summary .summary-item span:nth-child(2) {
+    flex: 1;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.signup-summary .summary-item .included {
+    color: #00ffc8;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+/* ============================================
+   LEGAL SECTION (Step 4)
+   ============================================ */
+
 .legal-section {
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding-top: 1.5rem;
     margin-top: 1.5rem;
 }
@@ -196,7 +406,7 @@ select.error {
 }
 
 .legal-section a {
-    color: #3b82f6;
+    color: #00ffc8;
     text-decoration: none;
 }
 
@@ -204,17 +414,19 @@ select.error {
     text-decoration: underline;
 }
 
-/* Navigation */
+/* ============================================
+   NAVIGATION & BUTTONS
+   ============================================ */
+
 .form-navigation {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding-top: 2rem;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     margin-top: 2rem;
 }
 
-/* Buttons */
 .btn-primary,
 .btn-secondary {
     padding: 0.75rem 2rem;
@@ -227,43 +439,51 @@ select.error {
 }
 
 .btn-primary {
-    background: #3b82f6;
-    color: white;
+    background: #00ffc8;
+    color: #0a1628;
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: #2563eb;
+    background: #00e6b4;
+    box-shadow: 0 0 16px rgba(0, 255, 200, 0.3);
 }
 
-.btn-primary:disabled {
-    background: #9ca3af;
+.btn-primary:disabled,
+.btn-primary.disabled {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.4);
     cursor: not-allowed;
+    box-shadow: none;
 }
 
 .btn-secondary {
     background: transparent;
-    color: #6b7280;
-    border: 1px solid #d1d5db;
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-secondary:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #ffffff;
 }
 
 .submit-btn {
     margin-left: auto;
 }
 
-/* Login Link */
+/* ============================================
+   LOGIN LINK
+   ============================================ */
+
 .login-link {
     text-align: center;
-    color: #6b7280;
+    color: rgba(255, 255, 255, 0.5);
     margin-top: 2rem;
 }
 
 .login-link a {
-    color: #3b82f6;
+    color: #00ffc8;
     text-decoration: none;
     font-weight: 500;
 }
@@ -272,7 +492,17 @@ select.error {
     text-decoration: underline;
 }
 
-/* Responsive Design */
+/* Help Text */
+.help-text {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 8px;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
 @media (max-width: 768px) {
     .signup-container {
         margin: 1rem;
@@ -288,22 +518,8 @@ select.error {
         margin-bottom: 1.5rem;
     }
 
-    .progress-bar {
-        font-size: 0.75rem;
-    }
-
-    .step-circle {
-        width: 32px;
-        height: 32px;
-        font-size: 0.875rem;
-    }
-
-    .progress-line {
-        width: 30px;
-    }
-
-    .signup-header h1 {
-        font-size: 1.75rem;
+    .signup-header h2 {
+        font-size: 1.5rem;
     }
 
     .form-navigation {
@@ -314,6 +530,11 @@ select.error {
     .btn-primary,
     .btn-secondary {
         width: 100%;
+        text-align: center;
+    }
+
+    .submit-btn {
+        margin-left: 0;
     }
 }
 
@@ -323,8 +544,8 @@ select.error {
         padding: 1rem;
     }
 
-    .signup-header h1 {
-        font-size: 1.5rem;
+    .signup-header h2 {
+        font-size: 1.35rem;
     }
 
     .form-step {
@@ -335,245 +556,33 @@ select.error {
         font-size: 1.25rem;
     }
 
-    input,
-    select,
-    textarea {
+    .signup-form input,
+    .signup-form select,
+    .signup-form textarea {
         padding: 0.625rem;
         font-size: 0.9rem;
     }
 
-    /* ===========================================
-   SIGNUP FORM - CREATOR TYPE CARDS
-   Add these styles to SignupForm.css
-   =========================================== */
-
-    /* Step Description */
-    .step-description {
-        color: rgba(255, 255, 255, 0.6);
-        margin-bottom: 24px;
-        font-size: 0.95rem;
-    }
-
-    /* Creator Type Selection Grid */
-    .creator-type-selection {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        margin-bottom: 24px;
-    }
-
-    /* Creator Type Card */
     .creator-type-card {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        padding: 20px;
-        background: rgba(255, 255, 255, 0.03);
-        border: 2px solid rgba(255, 255, 255, 0.1);
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        position: relative;
-    }
-
-    .creator-type-card:hover {
-        background: rgba(255, 255, 255, 0.06);
-        border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    .creator-type-card.selected {
-        background: rgba(0, 255, 200, 0.08);
-        border-color: #00ffc8;
-    }
-
-    .creator-type-card input[type="checkbox"] {
-        display: none;
-    }
-
-    .creator-type-card .card-content {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
+        padding: 16px;
     }
 
     .creator-type-card .card-icon {
-        font-size: 2rem;
-        width: 50px;
-        text-align: center;
+        font-size: 1.5rem;
+        width: 40px;
     }
 
     .creator-type-card .card-title {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #fff;
-    }
-
-    .creator-type-card .card-description {
-        font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.5);
-    }
-
-    .creator-type-card .checkmark {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: transparent;
         font-size: 1rem;
-        transition: all 0.2s ease;
     }
 
-    .creator-type-card.selected .checkmark {
-        background: #00ffc8;
-        color: #0a1628;
-    }
-
-    /* Skip Note */
-    .skip-note {
-        text-align: center;
-        color: rgba(255, 255, 255, 0.5);
-        font-size: 0.9rem;
-        padding: 16px;
-        background: rgba(255, 255, 255, 0.03);
-        border-radius: 8px;
-        margin-bottom: 20px;
-    }
-
-    /* Conditional Fields Sections */
-    .conditional-fields {
-        margin-top: 24px;
-        padding: 20px;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 12px;
-        border-left: 3px solid #00ffc8;
-    }
-
-    .conditional-fields h4 {
-        margin: 0 0 16px;
-        font-size: 1rem;
-        color: #00ffc8;
-    }
-
-    /* Horizontal Checkbox Group */
     .checkbox-group.horizontal {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-    }
-
-    .checkbox-group.horizontal .checkbox-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        background: rgba(255, 255, 255, 0.05);
-        padding: 8px 14px;
-        border-radius: 20px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .checkbox-group.horizontal .checkbox-item:hover {
-        background: rgba(255, 255, 255, 0.1);
-    }
-
-    .checkbox-group.horizontal .checkbox-item input {
-        accent-color: #00ffc8;
-    }
-
-    /* Social Media Inputs */
-    .social-inputs {
-        display: flex;
         flex-direction: column;
-        gap: 10px;
     }
 
-    .social-input {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .social-input .social-icon {
-        width: 36px;
-        text-align: center;
-        font-size: 1.1rem;
-    }
-
-    .social-input input {
-        flex: 1;
-    }
-
-    /* Signup Summary (Step 4) */
-    .signup-summary {
-        background: rgba(0, 255, 200, 0.05);
-        border: 1px solid rgba(0, 255, 200, 0.2);
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 24px;
-    }
-
-    .signup-summary h4 {
-        margin: 0 0 16px;
-        font-size: 1rem;
-        color: #00ffc8;
-    }
-
-    .signup-summary .summary-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .signup-summary .summary-item:last-child {
-        border-bottom: none;
-    }
-
-    .signup-summary .summary-item span:first-child {
-        font-size: 1.2rem;
-        width: 30px;
-    }
-
-    .signup-summary .summary-item span:nth-child(2) {
-        flex: 1;
-        color: rgba(255, 255, 255, 0.9);
-    }
-
-    .signup-summary .summary-item .included {
-        color: #00ffc8;
-        font-weight: 600;
+    .step-indicator span {
+        width: 32px;
+        height: 32px;
         font-size: 0.85rem;
-    }
-
-    /* Help Text */
-    .help-text {
-        font-size: 0.85rem;
-        color: rgba(255, 255, 255, 0.5);
-        margin-top: 8px;
-    }
-
-    /* Responsive */
-    @media (max-width: 600px) {
-        .creator-type-card {
-            padding: 16px;
-        }
-
-        .creator-type-card .card-icon {
-            font-size: 1.5rem;
-            width: 40px;
-        }
-
-        .creator-type-card .card-title {
-            font-size: 1rem;
-        }
-
-        .checkbox-group.horizontal {
-            flex-direction: column;
-        }
     }
 }
