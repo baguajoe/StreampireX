@@ -2,6 +2,7 @@
 // SamplerBeatMaker.js — Main Shell (rebuilt clean)
 // 3 Tabs: 🎛️ Sampler | 🎹 Drum Pads | 🥁 Beat Maker
 // Shared: toolbar, transport, overlays, audio engine
+// NEW: R2 cloud storage, sharing, kit browser, auto-save
 // =============================================================================
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
@@ -14,10 +15,11 @@ import { SCALES, CHORD_TYPES, NOTE_REPEAT_RATES,
   rollEnvelope, applyTapeStop, applyTapeStart, filterSweepParams,
 } from './PerformanceEngine';
 import { aiSampleSuggestion, aiChopAssistant, VocalBeatMapper } from './AIEngine';
+import useSamplerStorage from './useSamplerStorage';
 import SamplerTab from './tabs/SamplerTab';
 import DrumPadTab from './tabs/DrumPadTab';
 import BeatMakerTab from './tabs/BeatMakerTab';
-import './SamplerBeatMaker.css';
+import '../../styles/SamplerBeatMaker.css';
 
 const SamplerBeatMaker = (props) => {
   const {
@@ -30,6 +32,12 @@ const SamplerBeatMaker = (props) => {
   const engine = useSamplerEngine({
     projectBpm, projectKey, projectScale,
     onExport, onSendToArrange, onExportToArrange, onBpmSync, onKeySync,
+  });
+
+  // ── Cloud Storage ──
+  const storage = useSamplerStorage({
+    engine,
+    onStatus: (msg) => engine.setExportStatus(msg),
   });
 
   // ── Primary Tab ──
@@ -68,6 +76,17 @@ const SamplerBeatMaker = (props) => {
   const [vocalBeatOn, setVocalBeatOn] = useState(false);
   const [vocalBeatStatus, setVocalBeatStatus] = useState('');
   const vocalMapperRef = useRef(null);
+
+  // ═══════════════════════════════════════════════════════════
+  // AUTO-SAVE: Mark dirty on meaningful state changes
+  // ═══════════════════════════════════════════════════════════
+
+  useEffect(() => {
+    if (storage.projectId) {
+      storage.markDirty();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine.bpm, engine.swing, engine.masterVol, engine.patterns, engine.songSeq, engine.scenes]);
 
   // ═══════════════════════════════════════════════════════════
   // PERFORMANCE CALLBACKS
@@ -301,6 +320,11 @@ const SamplerBeatMaker = (props) => {
       const ki = padKeys.indexOf(e.key.toLowerCase());
       if (ki >= 0) { e.preventDefault(); handlePadDown(ki); return; }
       if (e.key === ' ') { e.preventDefault(); engine.togglePlay(); }
+      // Ctrl+S = save project
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        storage.saveProject();
+      }
     };
     const handleKeyUp = (e) => {
       const padKeys = '1234qwerasdfzxcv';
@@ -313,7 +337,7 @@ const SamplerBeatMaker = (props) => {
       window.removeEventListener('keydown', handleKey);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [handlePadDown, handlePadUp, engine.togglePlay]);
+  }, [handlePadDown, handlePadUp, engine.togglePlay, storage.saveProject]);
 
   // ── Performance props bundle ──
   const perfProps = {
@@ -364,11 +388,44 @@ const SamplerBeatMaker = (props) => {
       )}
 
       {/* ════════════════════════════════════════════════════════ */}
-      {/* TOP BAR: Title + Tabs + Transport */}
+      {/* TOP BAR: Title + File Buttons + Tabs + Transport */}
       {/* ════════════════════════════════════════════════════════ */}
       <div className="sbm-topbar">
         <div className="sbm-topbar-left">
           <span className="sbm-title">🎯 Sampler</span>
+
+          {/* ── Cloud Storage Buttons ── */}
+          <button className="sbm-btn-sm" onClick={storage.newProject} title="New Project">🆕</button>
+          <button className="sbm-btn-sm" onClick={storage.loadProjectList} title="Open Project">📂</button>
+          <button className="sbm-btn-sm" onClick={storage.saveProject}
+            disabled={storage.saving} title="Save Project (Ctrl+S)"
+            style={{ color: storage.dirty ? '#ffaa00' : undefined }}>
+            {storage.saving ? '⏳' : '💾'}
+          </button>
+          <button className="sbm-btn-sm" onClick={() => storage.shareProject('view', true)}
+            title="Share Beat">🔗</button>
+
+          {/* ── Project Name (editable) ── */}
+          <input
+            className="sbm-project-name"
+            value={storage.projectName}
+            onChange={(e) => storage.setProjectName(e.target.value)}
+            onBlur={() => { if (storage.projectId) storage.markDirty(); }}
+            placeholder="Untitled Beat"
+            style={{
+              background: 'transparent', border: '1px solid #1a2636', borderRadius: 4,
+              color: '#ddeeff', padding: '2px 6px', fontSize: '0.7rem', width: 130, outline: 'none',
+            }}
+          />
+
+          {/* ── Auto-save indicator ── */}
+          {storage.projectId && (
+            <span style={{ fontSize: '0.55rem', color: storage.dirty ? '#ffaa00' : '#2a5a3a', marginLeft: 2 }}>
+              {storage.dirty ? '● unsaved' : '✓ saved'}
+            </span>
+          )}
+
+          <div style={{ width: 1, height: 16, background: '#1a2636', margin: '0 4px' }} />
 
           {/* Pattern selector */}
           <select className="sbm-pattern-sel"
@@ -738,7 +795,9 @@ const SamplerBeatMaker = (props) => {
         </div>
       )}
 
-      {/* Kit Browser */}
+      {/* ════════════════════════════════════════════════════════ */}
+      {/* Kit Browser — Cloud Storage Enabled */}
+      {/* ════════════════════════════════════════════════════════ */}
       {engine.showKitBrowser && (
         <div className="sbm-overlay" onClick={() => engine.setShowKitBrowser(false)}>
           <div className="sbm-panel" onClick={(e) => e.stopPropagation()}>
@@ -746,12 +805,180 @@ const SamplerBeatMaker = (props) => {
               <span>Kit Browser</span>
               <button onClick={() => engine.setShowKitBrowser(false)}>✕</button>
             </div>
-            <div className="sbm-empty-msg">
-              Kit browser — load and save drum kits. Coming soon with cloud sync.
+            <div style={{ padding: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button className="sbm-btn" onClick={() => {
+                const name = prompt('Kit name:', 'My Kit');
+                if (name) storage.saveKit(name);
+              }}>💾 Save Current Kit</button>
+              <button className="sbm-btn" onClick={() => storage.loadKits(true)}>
+                📂 Browse Kits
+              </button>
+              <button className="sbm-btn" onClick={() => {
+                const name = prompt('Kit name:', 'My Kit');
+                if (name) storage.saveKit(name, true);
+              }} title="Save as public kit for community">
+                🌐 Save Public
+              </button>
             </div>
-            <button className="sbm-btn" onClick={() => engine.saveKit('My Kit')}>
-              💾 Save Current Kit
-            </button>
+            {storage.showKitManager && (
+              <div style={{ padding: '0 12px 12px', maxHeight: 350, overflowY: 'auto' }}>
+                {storage.kits.length === 0 ? (
+                  <div className="sbm-empty-msg">No kits saved yet. Save your current kit to get started!</div>
+                ) : (
+                  storage.kits.map(kit => (
+                    <div key={kit.id} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '8px 10px', borderBottom: '1px solid #1a2030',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,255,200,0.04)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ color: '#ddeeff', fontSize: 12, fontWeight: 600 }}>{kit.name}</div>
+                        <div style={{ color: '#5a7088', fontSize: 10 }}>
+                          {kit.genre || 'No genre'} · {kit.download_count || 0} downloads
+                          {kit.is_public && <span style={{ color: '#00ffc8', marginLeft: 4 }}>🌐 Public</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button className="sbm-btn-sm" onClick={() => storage.loadKit(kit.id)}
+                          style={{ color: '#00ffc8' }}>Load</button>
+                        <button className="sbm-btn-sm danger" onClick={() => storage.deleteKit(kit.id)}>✕</button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════ */}
+      {/* Project List — Open saved beat projects */}
+      {/* ════════════════════════════════════════════════════════ */}
+      {storage.showProjectList && (
+        <div className="sbm-overlay" onClick={() => storage.setShowProjectList(false)}>
+          <div className="sbm-panel" onClick={(e) => e.stopPropagation()} style={{ minWidth: 380, maxWidth: 500 }}>
+            <div className="sbm-panel-header">
+              <span>📂 My Beat Projects</span>
+              <button onClick={() => storage.setShowProjectList(false)}>✕</button>
+            </div>
+            {storage.projects.length === 0 ? (
+              <div className="sbm-empty-msg" style={{ padding: 20 }}>
+                No saved projects yet. Hit 💾 to save your first beat!
+              </div>
+            ) : (
+              <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                {storage.projects.map(p => (
+                  <div key={p.id} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '10px 14px', borderBottom: '1px solid #1a2030',
+                    cursor: 'pointer', transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,255,200,0.04)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                  onClick={() => storage.loadProject(p.id)}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ color: '#ddeeff', fontSize: 13, fontWeight: 600 }}>
+                        {p.name}
+                        {p.id === storage.projectId && (
+                          <span style={{ color: '#00ffc8', fontSize: 10, marginLeft: 6 }}>● current</span>
+                        )}
+                      </div>
+                      <div style={{ color: '#5a7088', fontSize: 10, marginTop: 2 }}>
+                        {p.bpm} BPM · {p.genre || 'No genre'} · {new Date(p.updated_at).toLocaleDateString()}
+                        {p.is_public && <span style={{ color: '#00ffc8', marginLeft: 6 }}>🌐</span>}
+                        {p.fork_count > 0 && <span style={{ marginLeft: 6 }}>🔀 {p.fork_count}</span>}
+                        {p.play_count > 0 && <span style={{ marginLeft: 6 }}>▶ {p.play_count}</span>}
+                      </div>
+                    </div>
+                    <button className="sbm-btn-sm danger"
+                      onClick={(e) => { e.stopPropagation(); storage.deleteProject(p.id); }}
+                      title="Delete project">
+                      🗑
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════ */}
+      {/* Share Panel — Generate and copy share link */}
+      {/* ════════════════════════════════════════════════════════ */}
+      {storage.showSharePanel && storage.shareInfo && (
+        <div className="sbm-overlay" onClick={() => storage.setShowSharePanel(false)}>
+          <div className="sbm-panel" onClick={(e) => e.stopPropagation()} style={{ minWidth: 380, maxWidth: 480 }}>
+            <div className="sbm-panel-header">
+              <span>🔗 Share Beat</span>
+              <button onClick={() => storage.setShowSharePanel(false)}>✕</button>
+            </div>
+            <div style={{ padding: 16 }}>
+              {/* Share URL */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ color: '#889', fontSize: 11, display: 'block', marginBottom: 4 }}>
+                  Share Link:
+                </label>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input
+                    readOnly
+                    value={storage.shareInfo.url || ''}
+                    style={{
+                      flex: 1, background: '#0a0e14', color: '#00ffc8',
+                      border: '1px solid #1a2636', borderRadius: 4,
+                      padding: '6px 8px', fontSize: 12, fontFamily: 'monospace',
+                    }}
+                  />
+                  <button className="sbm-btn-sm" onClick={() => {
+                    navigator.clipboard.writeText(storage.shareInfo.url || '');
+                    engine.setExportStatus('✓ Link copied!');
+                  }} style={{ color: '#00ffc8' }}>📋 Copy</button>
+                </div>
+              </div>
+
+              {/* Permission buttons */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ color: '#889', fontSize: 11, display: 'block', marginBottom: 6 }}>
+                  Permission Level:
+                </label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="sbm-btn"
+                    onClick={() => storage.shareProject('view', true)}
+                    style={{
+                      background: storage.shareInfo.permissions === 'view' ? 'rgba(0,255,200,0.12)' : undefined,
+                      borderColor: storage.shareInfo.permissions === 'view' ? '#00ffc8' : undefined,
+                    }}>
+                    👁 View Only
+                  </button>
+                  <button className="sbm-btn"
+                    onClick={() => storage.shareProject('remix', true)}
+                    style={{
+                      background: storage.shareInfo.permissions === 'remix' ? 'rgba(255,170,0,0.12)' : undefined,
+                      borderColor: storage.shareInfo.permissions === 'remix' ? '#ffaa00' : undefined,
+                    }}>
+                    🔀 Remix
+                  </button>
+                  <button className="sbm-btn"
+                    onClick={() => storage.shareProject('edit', true)}
+                    style={{
+                      background: storage.shareInfo.permissions === 'edit' ? 'rgba(255,68,68,0.12)' : undefined,
+                      borderColor: storage.shareInfo.permissions === 'edit' ? '#ff4444' : undefined,
+                    }}>
+                    ✏️ Edit
+                  </button>
+                </div>
+              </div>
+
+              {/* Status info */}
+              <div style={{ color: '#5a7088', fontSize: 10, borderTop: '1px solid #1a2030', paddingTop: 10 }}>
+                {storage.shareInfo.isPublic
+                  ? '🌐 This beat is public and visible in the community feed.'
+                  : '🔒 Only people with the link can access this beat.'}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -783,7 +1010,12 @@ const SamplerBeatMaker = (props) => {
 
       {/* Status bar */}
       <div className="sbm-statusbar">
-        <span>Click = normal | Shift = soft | Ctrl = hard | Keys: 1-4, Q-R, A-F, Z-V</span>
+        <span>Click = normal | Shift = soft | Ctrl = hard | Keys: 1-4, Q-R, A-F, Z-V | Ctrl+S = Save</span>
+        {storage.projectId && (
+          <span style={{ color: '#5a7088', marginLeft: 8 }}>
+            Project #{storage.projectId}
+          </span>
+        )}
         {engine.exportStatus && <span className="sbm-status-export">{engine.exportStatus}</span>}
       </div>
     </div>
