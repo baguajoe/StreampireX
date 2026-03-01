@@ -49,6 +49,7 @@ import PodcastGuestJoin from "./pages/PodcastGuestJoin";
 // Phase 2: Async guest recording page (standalone, no auth)
 import { AsyncGuestRecordPage } from "./pages/PodcastStudioPhase2";
 import PodcastCollabRoom from "./component/PodcastCollabRoom";
+import EPKCollabHub from "./pages/EPKCollabHub";
 
 
 import VideoUpload from "./pages/VideoUpload";
@@ -189,6 +190,8 @@ const Layout = () => {
               <Route path="/podcast-join/:sessionId" element={<PodcastGuestJoin />} />
               <Route path="/podcast-async/:linkId" element={<AsyncGuestRecordPage />} />
               <Route path="/support" element={<TechSupportPage />} />
+              <Route path="/epk-hub" element={<EPKCollabHub />} />
+              <Route path="/epk/:slug" element={<EPKCollabHub />} />
 
 
               {/* Video Channel Routes */}
