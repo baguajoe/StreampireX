@@ -13,6 +13,7 @@ import BeatMakerTab from './tabs/BeatMakerTab';
 import DrumPadTab from './tabs/DrumPadTab';
 import SamplerTab from './tabs/SamplerTab';
 import StemSeparatorTab from './tabs/StemSeparatorTab';
+import ChopView from './ChopView';
 
 // =============================================================================
 // CONSTANTS
@@ -1232,7 +1233,7 @@ const SamplerBeatMaker = ({
     setActiveKgNotes(p => { const n = new Set(p); n.delete(midiNote); return n; });
   }, []);
 
-// ==== PERFORMANCE STUBS (DrumPadTab) ====
+  // ==== PERFORMANCE STUBS (DrumPadTab) ====
   const triggerTapeStop = useCallback(() => {
     // TODO: implement tape stop effect — ramp playbackRate to 0
     console.log('[DrumPad] Tape stop triggered');
@@ -2617,11 +2618,11 @@ const SamplerBeatMaker = ({
             handlePadDown={(i) => { initCtx(); playPad(i); }}
             handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
             aiProps={{
-              runAiSuggest: () => {},
-              runAiChop: () => {},
+              runAiSuggest: () => { },
+              runAiChop: () => { },
               vocalBeatOn: false,
-              startVocalBeat: () => {},
-              stopVocalBeat: () => {},
+              startVocalBeat: () => { },
+              stopVocalBeat: () => { },
             }}
           />
         )}
@@ -2655,10 +2656,10 @@ const SamplerBeatMaker = ({
               stopAllNoteRepeats,
             }}
             aiProps={{
-              runAiSuggest: () => {},
+              runAiSuggest: () => { },
               vocalBeatOn: false,
-              startVocalBeat: () => {},
-              stopVocalBeat: () => {},
+              startVocalBeat: () => { },
+              stopVocalBeat: () => { },
             }}
           />
         )}
@@ -3029,47 +3030,13 @@ const SamplerBeatMaker = ({
 
       {/* CHOP VIEW (Phase 2) */}
       {showChop && chopIdx !== null && (
-        <div className="chop-view-overlay">
-          <div className="chop-view">
-            <div className="chop-header"><h3>✂️ Chop — {pads[chopIdx]?.name}</h3><button onClick={() => setShowChop(false)}>✕</button></div>
-            <canvas ref={chopCanvas} className="chop-canvas" width={800} height={200}
-              onClick={chopCanvasClick}
-              onMouseDown={chopMouseDown}
-              onMouseMove={chopMouseMove}
-              onMouseUp={chopMouseUp}
-              onMouseLeave={chopMouseUp}
-              onContextMenu={chopContextMenu}
-              style={{ cursor: chopDragRef.current?.dragging ? 'ew-resize' : 'crosshair' }} />
-            <div className="chop-controls">
-              <div className="chop-mode-selector">
-                {CHOP_MODES.map(m => (
-                  <button key={m} className={chopMode === m ? 'active' : ''} onClick={() => setChopMode(m)}>
-                    {m === 'transient' ? '🎯 Transient' : m === 'bpmgrid' ? '🎵 BPM Grid' : m === 'equal' ? '📏 Equal' : '✋ Manual'}
-                  </button>
-                ))}
-              </div>
-              <button onClick={autoChop} disabled={chopMode === 'manual'}>🤖 Auto-Chop</button>
-              {chopMode === 'transient' && <div className="chop-sensitivity"><label>Sensitivity</label><input type="range" min={1} max={100} value={Math.round(chopSens * 100)} onChange={(e) => setChopSens(+e.target.value / 100)} /></div>}
-              {chopMode === 'equal' && <div className="chop-sensitivity"><label>Slices</label><input type="range" min={2} max={32} value={chopSlices} onChange={(e) => setChopSlices(+e.target.value)} /><span>{chopSlices}</span></div>}
-              <label className="chop-zc-toggle"><input type="checkbox" checked={zeroCrossSnap} onChange={(e) => setZeroCrossSnap(e.target.checked)} /> Zero-Cross Snap</label>
-              <button onClick={() => setChopPts([])}>Clear</button>
-              <button onClick={undoChop} disabled={chopPts.length === 0} title="Undo last chop">↩</button>
-              <button onClick={redoChop} title="Redo chop">↪</button>
-              <button onClick={stopPreview} disabled={activeSlice < 0} title="Stop preview">⏹</button>
-              <span className="chop-count">{chopPts.length} chops → {chopPts.length + 1} slices</span>
-              <button className="distribute-btn" onClick={distributeToPads} disabled={chopPts.length === 0}>📤 Distribute to Pads</button>
-            </div>
-            <div className="chop-slices-preview">
-              {(() => {
-                const all = [0, ...chopPts, pads[chopIdx]?.buffer?.duration || 0];
-                return all.slice(0, -1).map((_, si) => (
-                  <button key={si} className={`chop-slice-btn ${activeSlice === si ? 'playing' : ''}`} onClick={() => previewSlice(si)}>▶ {si + 1} ({((all[si + 1] - all[si]) * 1000).toFixed(0)}ms)</button>
-                ));
-              })()}
-            </div>
-            <div className="chop-hint">Click = add point · Drag handle = move · Right-click = delete point · Slices get 2ms crossfade</div>
-          </div>
-        </div>
+        <ChopView engine={{
+          pads, chopIdx, chopPts, setChopPts, chopMode, setChopMode,
+          chopSens, setChopSens, chopSlices, setChopSlices,
+          zeroCrossSnap, setZeroCrossSnap, activeSlice, setActiveSlice,
+          bpm, masterVol, initCtx, masterRef, activeSrc,
+          updatePad, setShowChop, showChop,
+        }} />
       )}
 
       {/* PAD SETTINGS */}
