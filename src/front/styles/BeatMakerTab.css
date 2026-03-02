@@ -1,0 +1,644 @@
+/* =============================================================================
+   BeatMakerTab.css — Styles for BeatMakerTab.jsx
+   Targets actual class names: sbm-beats-*, sbm-seq-*, sbm-pattern-*
+   
+   Import in SamplerBeatMaker.js:
+     import '../../styles/BeatMakerTab.css';
+   ============================================================================= */
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   0. TAB CONTAINER
+   ───────────────────────────────────────────────────────────────────────────── */
+.sbm-beats-tab {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #0a0e1a;
+  color: #c8d0dc;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. SECONDARY TOOLBAR (Split | Pads | Seq + actions)
+   ───────────────────────────────────────────────────────────────────────────── */
+.sbm-secondary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #0d1220;
+  border-bottom: 1px solid #1a2438;
+  flex-shrink: 0;
+  min-height: 40px;
+  flex-wrap: wrap;
+}
+
+.sbm-sub-tabs {
+  display: flex;
+  gap: 2px;
+  background: #111828;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.sbm-sub-tabs button {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #5a7088;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.sbm-sub-tabs button.active {
+  background: #00ffc8;
+  color: #000;
+  font-weight: 700;
+}
+
+.sbm-sub-tabs button:hover:not(.active) {
+  color: #a0b8d0;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Beat actions toolbar */
+.sbm-beat-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sbm-btn-sm {
+  padding: 4px 10px;
+  border: 1px solid #1e2d42;
+  border-radius: 4px;
+  background: #111828;
+  color: #8899aa;
+  font-size: 0.68rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.sbm-btn-sm:hover {
+  background: #182030;
+  border-color: #00ffc8;
+  color: #00ffc8;
+}
+
+.sbm-perf-divider {
+  color: #1e2d42;
+  font-size: 0.8rem;
+  margin: 0 2px;
+}
+
+.sbm-steps-label {
+  color: #5a7088;
+  font-size: 0.68rem;
+  margin-left: 4px;
+}
+
+.sbm-step-btn {
+  padding: 3px 8px;
+  border: 1px solid #1e2d42;
+  border-radius: 3px;
+  background: #111828;
+  color: #5a7088;
+  font-size: 0.68rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sbm-step-btn.active {
+  background: #00ffc8;
+  color: #000;
+  border-color: #00ffc8;
+  font-weight: 700;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. CONTENT LAYOUTS (split / pads / seq)
+   ───────────────────────────────────────────────────────────────────────────── */
+.sbm-beats-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.sbm-beats-content.view-split {
+  display: flex;
+  flex-direction: column;
+}
+
+.sbm-beats-content.view-pads {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.sbm-beats-content.view-seq {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Split top row: Pads (left) + Piano (right) ── */
+.sbm-beats-toprow {
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  flex: 0 0 auto;
+  min-height: 220px;
+  max-height: 320px;
+  border-bottom: 1px solid #1a2438;
+}
+
+/* ── Split bottom row: Sequencer full width ── */
+.sbm-beats-bottomrow {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. PAD GRID — 4×4 MPC-style pads
+   ───────────────────────────────────────────────────────────────────────────── */
+.sbm-beats-pads {
+  flex: 0 0 50%;
+  max-width: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: #0a0e1a;
+  border-right: 1px solid #1a2438;
+}
+
+/* When in pads-only view, take full width */
+.sbm-beats-content.view-pads .sbm-beats-pads {
+  flex: 1;
+  max-width: 100%;
+  border-right: none;
+}
+
+.sbm-beats-pad-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 6px;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 1 / 1;
+}
+
+/* Individual pad */
+.sbm-beats-pad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  position: relative;
+  min-height: 50px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #12182a, #0e1322);
+  border: 2px solid #1e2d42;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.12s ease;
+  overflow: hidden;
+  padding: 6px 4px;
+}
+
+.sbm-beats-pad:hover {
+  background: linear-gradient(145deg, #162036, #121a2c);
+  border-color: #2a3e58;
+  transform: scale(1.02);
+}
+
+.sbm-beats-pad:active,
+.sbm-beats-pad.active {
+  transform: scale(0.96);
+  box-shadow: 0 0 16px rgba(0, 255, 200, 0.3), inset 0 0 20px rgba(0, 255, 200, 0.08);
+  border-color: #00ffc8;
+  background: linear-gradient(145deg, #0d2a24, #0a1f1a);
+}
+
+.sbm-beats-pad.selected {
+  border-color: #ff6600;
+  box-shadow: 0 0 10px rgba(255, 102, 0, 0.25);
+}
+
+.sbm-beats-pad.loaded {
+  background: linear-gradient(145deg, #141e34, #101828);
+  border-color: #2a3e58;
+}
+
+.sbm-beats-pad.loaded:hover {
+  border-color: #3a5070;
+}
+
+/* Pad number/key label */
+.sbm-beats-pad-num {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #3a5070;
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  letter-spacing: 0.5px;
+}
+
+.sbm-beats-pad.active .sbm-beats-pad-num {
+  color: #00ffc8;
+}
+
+/* Pad sample name */
+.sbm-beats-pad-name {
+  font-size: 0.62rem;
+  color: #6a7a90;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 95%;
+  line-height: 1.2;
+}
+
+.sbm-beats-pad.loaded .sbm-beats-pad-name {
+  color: #a0b8d0;
+}
+
+.sbm-beats-pad.active .sbm-beats-pad-name {
+  color: #fff;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   4. PIANO RIGHT PANEL (in split view)
+   ───────────────────────────────────────────────────────────────────────────── */
+.sbm-beats-right {
+  flex: 0 0 50%;
+  max-width: 50%;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  background: #0c1018;
+}
+
+.sbm-beats-right-inner {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+/* Scale down the embedded VirtualPiano to fit */
+.sbm-beats-right-inner .virtual-piano-container,
+.sbm-beats-right-inner .virtual-piano {
+  font-size: 0.85rem;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   5. SEQUENCER
+   ───────────────────────────────────────────────────────────────────────────── */
+.sbm-sequencer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: #080c16;
+  padding: 4px 0;
+}
+
+/* ── Bar ruler ── */
+.sbm-seq-ruler {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 22px;
+  background: #0d1220;
+  border-bottom: 1px solid #1a2438;
+  padding-left: 0;
+}
+
+.sbm-seq-ruler-label {
+  min-width: 100px;
+  max-width: 100px;
+  padding: 0 6px;
+  font-size: 0.58rem;
+  color: #3a5070;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.sbm-seq-bar-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: #3a5070;
+  cursor: pointer;
+  flex: 1;
+}
+
+.sbm-seq-bar-marker:hover {
+  color: #00ffc8;
+}
+
+/* ── Sub-beat markers ── */
+.sbm-seq-subbeats {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 16px;
+  background: #0a0f1c;
+}
+
+.sbm-seq-subbeat {
+  flex: 1;
+  text-align: center;
+  font-size: 0.5rem;
+  color: #2a3a50;
+}
+
+.sbm-seq-subbeat.beat {
+  color: #3a5070;
+  font-weight: 600;
+}
+
+/* ── Step grid container ── */
+.sbm-seq-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ── Sequencer row (one per pad) ── */
+.sbm-seq-row {
+  display: flex;
+  align-items: stretch;
+  height: 28px;
+  min-height: 28px;
+  border-bottom: 1px solid rgba(26, 36, 56, 0.4);
+}
+
+.sbm-seq-row:hover {
+  background: rgba(0, 255, 200, 0.015);
+}
+
+/* ── Row label (pad name) ── */
+.sbm-seq-row-label {
+  min-width: 100px;
+  max-width: 100px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  font-size: 0.6rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: background 0.1s;
+}
+
+.sbm-seq-row-label:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sbm-seq-row-color {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sbm-seq-row-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #6a7a90;
+  font-size: 0.58rem;
+}
+
+.sbm-seq-row-num {
+  font-size: 0.5rem;
+  color: #2a3a50;
+  flex-shrink: 0;
+}
+
+/* ── Individual sequencer cell (step) ── */
+.sbm-seq-cell {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  border-right: 1px solid rgba(26, 36, 56, 0.3);
+  cursor: pointer;
+  transition: background 0.08s;
+  background: transparent;
+}
+
+.sbm-seq-cell.beat-start {
+  border-left: 1px solid rgba(58, 80, 112, 0.4);
+}
+
+.sbm-seq-cell:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Active step */
+.sbm-seq-cell.on {
+  background: var(--step-color, #00ffc8);
+  opacity: 0.85;
+}
+
+.sbm-seq-cell.on:hover {
+  opacity: 1;
+}
+
+/* Velocity bar inside active step */
+.sbm-seq-vel-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--vel-height, 80%);
+  background: rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+/* Current playback position */
+.sbm-seq-cell.current {
+  box-shadow: inset 0 0 0 2px rgba(0, 255, 200, 0.6);
+}
+
+.sbm-seq-cell.current::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 255, 200, 0.08);
+  pointer-events: none;
+}
+
+/* Loop boundaries */
+.sbm-seq-cell.out-loop {
+  opacity: 0.35;
+}
+
+.sbm-seq-cell.loop-start {
+  border-left: 2px solid #00ffc8;
+}
+
+.sbm-seq-cell.loop-end {
+  border-right: 2px solid #ff6600;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   6. PATTERN BAR
+   ───────────────────────────────────────────────────────────────────────────── */
+.sbm-pattern-bar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 8px;
+  background: #0d1220;
+  border-top: 1px solid #1a2438;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.sbm-pattern-btn {
+  padding: 3px 10px;
+  border: 1px solid #1e2d42;
+  border-radius: 4px;
+  background: #111828;
+  color: #6a7a90;
+  font-size: 0.62rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.sbm-pattern-btn.active {
+  background: #00ffc8;
+  color: #000;
+  border-color: #00ffc8;
+  font-weight: 700;
+}
+
+.sbm-pattern-btn:hover:not(.active) {
+  border-color: #3a5070;
+  color: #a0b8d0;
+}
+
+.sbm-pattern-btn.add {
+  color: #00ffc8;
+  border-style: dashed;
+}
+
+.sbm-pattern-btn.del {
+  color: #ff4444;
+  border-color: #3a2020;
+}
+
+.sbm-pattern-btn.del:hover {
+  background: #2a1010;
+  border-color: #ff4444;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   7. SEQUENCER FOOTER
+   ───────────────────────────────────────────────────────────────────────────── */
+.sbm-seq-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 10px;
+  font-size: 0.52rem;
+  color: #2a3a50;
+  background: #0a0f1c;
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   8. SCROLLBAR
+   ───────────────────────────────────────────────────────────────────────────── */
+.sbm-beats-tab ::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.sbm-beats-tab ::-webkit-scrollbar-track {
+  background: #080c16;
+}
+
+.sbm-beats-tab ::-webkit-scrollbar-thumb {
+  background: #1e2d42;
+  border-radius: 3px;
+}
+
+.sbm-beats-tab ::-webkit-scrollbar-thumb:hover {
+  background: #2a3e58;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   9. RESPONSIVE — Stack on mobile
+   ───────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sbm-beats-toprow {
+    flex-direction: column;
+    max-height: none;
+  }
+
+  .sbm-beats-pads {
+    flex: none;
+    max-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid #1a2438;
+  }
+
+  .sbm-beats-right {
+    flex: none;
+    max-width: 100%;
+    max-height: 200px;
+  }
+
+  .sbm-secondary-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .sbm-beat-actions {
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .sbm-seq-row-label {
+    min-width: 60px;
+    max-width: 60px;
+  }
+
+  .sbm-seq-ruler-label {
+    min-width: 60px;
+    max-width: 60px;
+  }
+}
