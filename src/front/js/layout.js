@@ -42,14 +42,14 @@ import AIRadioDJ from "./component/AIRadioDJ";
 import AIContentWriter from "./pages/AIContentWriter";
 import AIStemSeparation from "./pages/AIStemSeparation";
 import AIVideoStudio from "./pages/AIVideoStudio";
+import EPKCollabHub from "./pages/EPKCollabHub";
 import VoiceCloneServices from './pages/VoiceCloneServices';
 import PluginRackDemo from './pages/PluginRackDemo.js';
 import PodcastStudio from "./pages/PodcastStudio";
 import PodcastGuestJoin from "./pages/PodcastGuestJoin";
 // Phase 2: Async guest recording page (standalone, no auth)
 import { AsyncGuestRecordPage } from "./pages/PodcastStudioPhase2";
-import PodcastCollabRoom from "./component/PodcastCollabRoom";
-import EPKCollabHub from "./pages/EPKCollabHub";
+import PodcastCollabRoom from "./pages/PodcastCollabRoom";
 
 
 import VideoUpload from "./pages/VideoUpload";
@@ -190,8 +190,6 @@ const Layout = () => {
               <Route path="/podcast-join/:sessionId" element={<PodcastGuestJoin />} />
               <Route path="/podcast-async/:linkId" element={<AsyncGuestRecordPage />} />
               <Route path="/support" element={<TechSupportPage />} />
-              <Route path="/epk-hub" element={<EPKCollabHub />} />
-              <Route path="/epk/:slug" element={<EPKCollabHub />} />
 
 
               {/* Video Channel Routes */}
@@ -245,6 +243,8 @@ const Layout = () => {
               <Route path="/upload-lyrics" element={<LyricsUploadPage />} />
               <Route path="/album/:albumId" element={<AlbumDetailPage />} />
               <Route path="/collaborator-splits" element={<CollaboratorSplitPage />} />
+              <Route path="/epk-hub" element={<EPKCollabHub />} />
+              <Route path="/epk/:slug" element={<EPKCollabHub />} />
 
               {/* 🎤 Indie Artists */}
               <Route path="/upload-music" element={<UploadMusic />} />

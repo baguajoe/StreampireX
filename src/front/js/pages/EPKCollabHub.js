@@ -83,6 +83,65 @@ const EPKCollabHub = () => {
   // ── Platform Content (auto-populated from existing data) ──
   const [platformContent, setPlatformContent] = useState(null); // { tracks, albums, videos, stats, profile }
 
+  // ── Messaging ──
+  const [msgModal, setMsgModal] = useState(null); // { recipientId, recipientName, contextType, contextId }
+  const [msgText, setMsgText] = useState('');
+  const [msgSending, setMsgSending] = useState(false);
+
+  // ── Commercial Generator ──
+  const [comStyle, setComStyle] = useState('cinematic');
+  const [comQuality, setComQuality] = useState('standard');
+  const [comCustomPrompt, setComCustomPrompt] = useState('');
+  const [comUsePhoto, setComUsePhoto] = useState(true);
+  const [comGenerating, setComGenerating] = useState(false);
+  const [comResult, setComResult] = useState(null);
+
+  const generateCommercial = async () => {
+    setComGenerating(true); setComResult(null); setError('');
+    try {
+      const res = await fetch(`${BACKEND}/api/epk/generate-commercial`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({
+          style: comStyle, quality: comQuality,
+          custom_prompt: comCustomPrompt, use_photo: comUsePhoto,
+          aspect_ratio: '16:9',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setComResult(data);
+        setStatus(`✓ Commercial generated! ${data.credits_used} credit${data.credits_used > 1 ? 's' : ''} used`);
+        loadEpk(); // Refresh to show new video in featured_media
+      } else {
+        setError(data.error || 'Generation failed');
+        if (data.credits_refunded) setStatus(`Credits refunded: ${data.credits_refunded}`);
+      }
+    } catch (e) { setError(e.message); }
+    finally { setComGenerating(false); }
+  };
+
+  const sendCollabMessage = async () => {
+    if (!msgModal || !msgText.trim()) return;
+    setMsgSending(true);
+    try {
+      const res = await fetch(`${BACKEND}/api/collab/message`, {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({
+          recipient_id: msgModal.recipientId,
+          message: msgText.trim(),
+          context_type: msgModal.contextType || '',
+          context_id: msgModal.contextId || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStatus(`✓ Message sent to ${msgModal.recipientName}`);
+        setMsgModal(null); setMsgText('');
+      } else { setError(data.error || 'Failed to send'); }
+    } catch (e) { setError(e.message); }
+    finally { setMsgSending(false); }
+  };
+
   // ── Filter state for collab board ──
   const [filterGenre, setFilterGenre] = useState('');
   const [filterRole, setFilterRole] = useState('');
@@ -292,6 +351,7 @@ const EPKCollabHub = () => {
               { id: 'collab', label: '🤝 Collab Profile', desc: 'Skills & availability' },
               { id: 'content', label: '🎵 Content', desc: 'Tracks, albums, videos' },
               { id: 'template', label: '🎨 Template', desc: 'Look & feel' },
+              { id: 'commercial', label: '🎬 Commercial', desc: 'Auto-generate promo' },
             ].map(s => (
               <button key={s.id} className={`ech-section-btn ${epkSection === s.id ? 'active' : ''}`}
                 onClick={() => setEpkSection(s.id)}>
@@ -737,6 +797,74 @@ const EPKCollabHub = () => {
 
             {/* ── TEMPLATE ── */}
             {epkSection === 'template' && <>
+              {/* ── AI COMMERCIAL GENERATOR ── */}
+              <div className="ech-commercial-section">
+                <h3 className="ech-commercial-title">🎬 AI Commercial Generator</h3>
+                <p className="ech-commercial-desc">
+                  Your EPK is <strong className="ech-free-tag">100% free</strong> with your plan. Want a promo video too? The AI commercial generator uses your existing video credits — <strong>1 credit</strong> standard, <strong>2 credits</strong> premium.
+                </p>
+
+                <div className="ech-field">
+                  <label>Visual Style</label>
+                  <div className="ech-style-grid">
+                    {[
+                      { id: 'cinematic', icon: '🎥', name: 'Cinematic', desc: 'Dramatic lighting, slow motion, moody' },
+                      { id: 'hype', icon: '🔥', name: 'Hype', desc: 'High energy, urban, concert vibes' },
+                      { id: 'lyric_video', icon: '✨', name: 'Lyric Video', desc: 'Abstract visuals, typography' },
+                      { id: 'minimal', icon: '◻️', name: 'Minimal', desc: 'Clean, elegant, gallery-like' },
+                      { id: 'documentary', icon: '📹', name: 'Documentary', desc: 'Behind the scenes, intimate' },
+                    ].map(s => (
+                      <button key={s.id} className={`ech-style-card ${comStyle === s.id ? 'active' : ''}`}
+                        onClick={() => setComStyle(s.id)}>
+                        <span className="ech-style-icon">{s.icon}</span>
+                        <span className="ech-style-name">{s.name}</span>
+                        <span className="ech-style-desc">{s.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="ech-field-row">
+                  <div className="ech-field">
+                    <label>Quality</label>
+                    <select value={comQuality} onChange={(e) => setComQuality(e.target.value)}>
+                      <option value="standard">Standard (1 credit)</option>
+                      <option value="premium">Premium (2 credits)</option>
+                    </select>
+                  </div>
+                  <div className="ech-field">
+                    <label>Use Profile Photo</label>
+                    <button className={`ech-toggle ${comUsePhoto ? 'on' : 'off'}`}
+                      onClick={() => setComUsePhoto(!comUsePhoto)}>
+                      {comUsePhoto ? '📸 Image-to-Video (your photo)' : '✍️ Text-to-Video only'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="ech-field">
+                  <label>Custom Direction (optional)</label>
+                  <input type="text" value={comCustomPrompt} onChange={(e) => setComCustomPrompt(e.target.value)}
+                    placeholder="e.g. Focus on live performance energy, include crowd shots..." maxLength={200} />
+                  <span className="ech-hint">Added to the auto-generated prompt from your EPK data</span>
+                </div>
+
+                <button className="ech-generate-commercial-btn" onClick={generateCommercial}
+                  disabled={comGenerating || !epk.artist_name}>
+                  {comGenerating ? '⏳ Generating... This may take 1-3 minutes' : '🎬 Generate Commercial (uses credits)'}
+                </button>
+
+                {comResult && (
+                  <div className="ech-commercial-result">
+                    <video controls src={comResult.video_url} className="ech-commercial-video" />
+                    <div className="ech-commercial-meta">
+                      <span>✓ Saved to your Featured Media</span>
+                      <span>Credits remaining: {comResult.credits_remaining}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="ech-divider" />
               <div className="ech-field">
                 <label>EPK Template</label>
                 <div className="ech-template-grid">
@@ -835,6 +963,10 @@ const EPKCollabHub = () => {
                       <button className="ech-apply-btn" onClick={() => setApplyingTo(applyingTo === req.id ? null : req.id)}>
                         {applyingTo === req.id ? '✕ Cancel' : '🤝 Apply with EPK'}
                       </button>
+                      <button className="ech-dm-btn" onClick={() => setMsgModal({
+                        recipientId: req.user_id, recipientName: req.artist_name,
+                        contextType: 'collab_request', contextId: req.id,
+                      })}>💬 Message</button>
                       <span className="ech-app-count">{req.application_count || 0} applications</span>
                     </div>
                     {applyingTo === req.id && (
@@ -962,6 +1094,10 @@ const EPKCollabHub = () => {
                             <div className="ech-app-response-btns">
                               <button className="ech-accept" onClick={() => respondToApp(app.id, 'accepted')}>✅ Accept</button>
                               <button className="ech-decline" onClick={() => respondToApp(app.id, 'declined')}>✕ Decline</button>
+                              <button className="ech-dm-btn" onClick={() => setMsgModal({
+                                recipientId: app.user_id, recipientName: app.artist_name,
+                                contextType: 'collab_application', contextId: app.id,
+                              })}>💬 Message</button>
                             </div>
                           )}
                           {app.status !== 'pending' && <span className={`ech-status-badge ${app.status}`}>{app.status}</span>}
@@ -1045,12 +1181,45 @@ const EPKCollabHub = () => {
                     {epkResult.slug && (
                       <a href={`/epk/${epkResult.slug}`} target="_blank" rel="noopener noreferrer" className="ech-view-epk-btn">📋 View Full EPK</a>
                     )}
+                    <button className="ech-dm-btn" onClick={() => setMsgModal({
+                      recipientId: epkResult.user_id, recipientName: epkResult.artist_name,
+                      contextType: 'epk_contact', contextId: null,
+                    })}>💬 Message</button>
                     {epkResult.collab_rate && <span className="ech-rate">💰 {epkResult.collab_rate}</span>}
                   </div>
                 </div>
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
+          MESSAGE MODAL — Quick DM with collab context
+          ═══════════════════════════════════════════════════════════════ */}
+      {msgModal && (
+        <div className="ech-msg-overlay" onClick={() => setMsgModal(null)}>
+          <div className="ech-msg-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ech-msg-header">
+              <h3>💬 Message {msgModal.recipientName}</h3>
+              <button className="ech-msg-close" onClick={() => setMsgModal(null)}>✕</button>
+            </div>
+            {msgModal.contextType && (
+              <div className="ech-msg-context">
+                {msgModal.contextType === 'collab_request' && '📋 Re: Collab Request'}
+                {msgModal.contextType === 'collab_application' && '📨 Re: Application'}
+                {msgModal.contextType === 'epk_contact' && '📋 Via EPK'}
+              </div>
+            )}
+            <textarea className="ech-msg-input" value={msgText} onChange={(e) => setMsgText(e.target.value)}
+              placeholder={`Message ${msgModal.recipientName}...`} rows={4} autoFocus />
+            <div className="ech-msg-actions">
+              <span className="ech-msg-hint">Message will appear in their DM inbox</span>
+              <button className="ech-msg-send" onClick={sendCollabMessage} disabled={msgSending || !msgText.trim()}>
+                {msgSending ? '⏳' : '🚀 Send Message'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
