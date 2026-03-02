@@ -2,7 +2,7 @@
 // UploadReel.js — Direct Upload Page for Reels (3-minute cap)
 // =============================================================================
 // Location: src/front/js/pages/UploadReel.js
-// Features: Direct video upload, 3-min cap, tags, title, preview
+// Upload flow: Frontend → Backend /api/upload/media → Cloudflare R2
 // =============================================================================
 
 import React, { useState, useRef, useContext } from 'react';
@@ -16,7 +16,7 @@ const UploadReel = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   const videoPreviewRef = useRef(null);
-  
+
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [title, setTitle] = useState('');
@@ -38,19 +38,16 @@ const UploadReel = () => {
 
     setError(null);
 
-    // Must be video
     if (!selectedFile.type.startsWith('video/')) {
       setError('Reels must be video files');
       return;
     }
 
-    // Max 500MB
     if (selectedFile.size > 500 * 1024 * 1024) {
       setError('Video must be less than 500MB');
       return;
     }
 
-    // Check duration cap (3 minutes)
     const result = await checkVideoDuration(selectedFile, MAX_REEL_DURATION);
     setVideoDuration(result.duration);
     if (!result.valid) {
@@ -76,7 +73,7 @@ const UploadReel = () => {
     }
   };
 
-  // Add tag
+  // Tags
   const addTag = () => {
     const tag = tagInput.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
     if (tag && !tags.includes(tag) && tags.length < 10) {
@@ -99,13 +96,14 @@ const UploadReel = () => {
   // Remove file
   const removeFile = () => {
     setFile(null);
+    if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
     setVideoDuration(null);
     setError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Upload reel
+  // Upload reel — sends file to backend → R2, then creates reel record
   const handleUpload = async () => {
     if (!file) {
       setError('Please select a video');
@@ -128,42 +126,54 @@ const UploadReel = () => {
         return;
       }
 
-      // Step 1: Upload to Cloudinary
-      const cloudFormData = new FormData();
-      cloudFormData.append('file', file);
-      cloudFormData.append('upload_preset', process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET || 'streampirex');
-      cloudFormData.append('folder', 'reels');
-      
-      const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+      // ─── Step 1: Upload file to backend → R2 ───
+      const formData = new FormData();
+      formData.append('file', file);
 
       const xhr = new XMLHttpRequest();
-      
+
       const uploadPromise = new Promise((resolve, reject) => {
         xhr.upload.addEventListener('progress', (e) => {
           if (e.lengthComputable) {
-            const progress = Math.round((e.loaded / e.total) * 80); // 80% for upload
+            const progress = Math.round((e.loaded / e.total) * 80);
             setUploadProgress(progress);
           }
         });
 
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(JSON.parse(xhr.responseText));
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch {
+              reject(new Error('Invalid response from server'));
+            }
           } else {
-            reject(new Error('Upload failed'));
+            try {
+              const errData = JSON.parse(xhr.responseText);
+              reject(new Error(errData.error || `Upload failed (${xhr.status})`));
+            } catch {
+              reject(new Error(`Upload failed (${xhr.status})`));
+            }
           }
         };
 
-        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.ontimeout = () => reject(new Error('Upload timed out'));
       });
 
-      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`);
-      xhr.send(cloudFormData);
+      xhr.open('POST', `${backendUrl}/api/upload/media`);
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.timeout = 5 * 60 * 1000; // 5 min timeout for large files
+      xhr.send(formData);
 
       const uploadData = await uploadPromise;
       setUploadProgress(85);
 
-      // Step 2: Create reel in database
+      if (!uploadData.url) {
+        throw new Error('No URL returned from upload');
+      }
+
+      // ─── Step 2: Create reel record in database ───
       const reelResponse = await fetch(`${backendUrl}/api/reels/upload`, {
         method: 'POST',
         headers: {
@@ -171,11 +181,11 @@ const UploadReel = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          video_url: uploadData.secure_url,
-          thumbnail_url: uploadData.secure_url.replace(/\.[^.]+$/, '.jpg'),
+          video_url: uploadData.url,
+          thumbnail_url: null,
           title: title.trim(),
           description: description.trim(),
-          duration: Math.min(Math.ceil(uploadData.duration || 0), MAX_REEL_DURATION),
+          duration: Math.min(Math.ceil(videoDuration || 0), MAX_REEL_DURATION),
           tags: tags,
           is_public: isPublic
         })
@@ -188,7 +198,6 @@ const UploadReel = () => {
 
       setUploadProgress(100);
 
-      // Success — navigate to reels feed
       setTimeout(() => {
         navigate('/reels');
       }, 800);
@@ -203,7 +212,6 @@ const UploadReel = () => {
 
   return (
     <div className="upload-reel-page">
-      {/* Header */}
       <div className="upload-reel-header">
         <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
         <h2>Upload Reel</h2>
@@ -211,9 +219,8 @@ const UploadReel = () => {
       </div>
 
       <div className="upload-reel-content">
-        {/* Upload Area / Preview */}
         {!preview ? (
-          <div 
+          <div
             className="reel-upload-area"
             onClick={() => fileInputRef.current?.click()}
             onDrop={handleDrop}
@@ -248,7 +255,6 @@ const UploadReel = () => {
               </button>
             </div>
 
-            {/* Duration Badge */}
             {videoDuration && (
               <div className={`duration-badge ${videoDuration > MAX_REEL_DURATION ? 'over-limit' : 'within-limit'}`}>
                 ⏱️ {formatDuration(videoDuration)} / {formatDuration(MAX_REEL_DURATION)} max
@@ -257,10 +263,8 @@ const UploadReel = () => {
           </div>
         )}
 
-        {/* Reel Details Form */}
         {preview && (
           <div className="reel-form">
-            {/* Title */}
             <div className="form-group">
               <label>Title *</label>
               <input
@@ -274,7 +278,6 @@ const UploadReel = () => {
               <span className="char-count">{title.length}/100</span>
             </div>
 
-            {/* Description */}
             <div className="form-group">
               <label>Description</label>
               <textarea
@@ -288,7 +291,6 @@ const UploadReel = () => {
               <span className="char-count">{description.length}/500</span>
             </div>
 
-            {/* Tags */}
             <div className="form-group">
               <label>Tags (up to 10)</label>
               <div className="tags-input-wrapper">
@@ -313,7 +315,6 @@ const UploadReel = () => {
               </div>
             </div>
 
-            {/* Visibility */}
             <div className="form-group">
               <label className="toggle-label">
                 <input
@@ -326,31 +327,28 @@ const UploadReel = () => {
               </label>
             </div>
 
-            {/* Error */}
             {error && (
               <div className="reel-upload-error">⚠️ {error}</div>
             )}
 
-            {/* Progress */}
             {uploading && (
               <div className="reel-upload-progress">
                 <div className="progress-bar">
                   <div className="progress-fill" style={{ width: `${uploadProgress}%` }} />
                 </div>
-                <span>{uploadProgress}% — {uploadProgress < 80 ? 'Uploading...' : 'Processing...'}</span>
+                <span>{uploadProgress}% — {uploadProgress < 80 ? 'Uploading to server...' : 'Saving reel...'}</span>
               </div>
             )}
 
-            {/* Actions */}
             <div className="reel-form-actions">
-              <button 
+              <button
                 className="secondary-btn"
                 onClick={removeFile}
                 disabled={uploading}
               >
                 Change Video
               </button>
-              <button 
+              <button
                 className="primary-btn"
                 onClick={handleUpload}
                 disabled={uploading || !file || !title.trim()}

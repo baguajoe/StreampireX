@@ -605,6 +605,10 @@ const Sidebar = ({ user }) => {
                 🎛️ <span className="sidebar-label">Recording Studio</span>
                 <MenuHint className="sidebar-hint">8-track</MenuHint>
               </MenuItem>
+              <MenuItem to="/epk-hub" className={isActive("/epk-hub") ? "active" : ""}>
+                📋 <span className="sidebar-label">EPK & Collabs</span>
+                <MenuHint className="sidebar-hint">NEW</MenuHint>
+              </MenuItem>
             </>
           )}
         </>

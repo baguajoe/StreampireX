@@ -3467,3 +3467,122 @@
 .seq-cell.out-of-loop.on {
   opacity: 0.35;
 }
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 6: BUS ROUTING PANEL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.bus-panel { background: linear-gradient(180deg, #0f1a2e, #0a1220); border-top: 1px solid rgba(90,200,250,0.1); padding: 12px; }
+.bus-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.bus-panel-header h3 { font-size: 0.85rem; color: #5ac8fa; margin: 0; }
+.bus-panel-header button { background: none; border: 1px solid rgba(90,200,250,0.15); color: #7a8ea0; border-radius: 3px; cursor: pointer; padding: 2px 8px; }
+
+.bus-assign-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 12px; max-height: 120px; overflow-y: auto; }
+.bus-assign-header { display: none; }
+.bus-assign-row { display: flex; align-items: center; gap: 6px; padding: 3px 6px; background: rgba(90,200,250,0.03); border-radius: 3px; }
+.bus-assign-row.empty { opacity: 0.35; }
+.bus-assign-pad { font-size: 0.65rem; font-weight: 600; min-width: 60px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bus-assign-select { background: #0a1628; border: 1px solid rgba(90,200,250,0.12); color: #c0d0e0; border-radius: 3px; font-size: 0.6rem; padding: 2px 4px; }
+
+.bus-strips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.bus-strip { background: rgba(90,200,250,0.04); border: 1px solid rgba(90,200,250,0.08); border-radius: 6px; padding: 8px; cursor: pointer; transition: all 0.15s; }
+.bus-strip.selected { border-color: rgba(90,200,250,0.3); background: rgba(90,200,250,0.08); }
+.bus-strip.inactive { opacity: 0.4; }
+.bus-strip:hover { border-color: rgba(90,200,250,0.2); }
+.bus-strip-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.bus-strip-name { font-size: 0.8rem; font-weight: 700; color: #5ac8fa; }
+.bus-strip-count { font-size: 0.6rem; color: #5a7088; }
+.bus-strip-controls { display: flex; flex-direction: column; gap: 4px; }
+.bus-ctrl { display: flex; align-items: center; gap: 4px; }
+.bus-ctrl label { font-size: 0.6rem; color: #5a7088; min-width: 24px; }
+.bus-ctrl input[type="range"] { flex: 1; height: 3px; accent-color: #5ac8fa; }
+.bus-ctrl span { font-size: 0.6rem; color: #7a8ea0; min-width: 30px; text-align: right; }
+.bus-ctrl-btns { display: flex; gap: 4px; justify-content: center; margin-top: 4px; }
+.bus-mute, .bus-solo { padding: 2px 8px; font-size: 0.6rem; font-weight: 700; border-radius: 3px; border: 1px solid rgba(90,200,250,0.12); background: rgba(90,200,250,0.04); color: #5a7088; cursor: pointer; }
+.bus-mute.active { background: #ff4444; color: #fff; border-color: #ff4444; }
+.bus-solo.active { background: #ffd700; color: #000; border-color: #ffd700; }
+.bus-fx-toggles { display: flex; gap: 3px; margin-top: 6px; flex-wrap: wrap; }
+.bus-fx-toggles button { padding: 2px 6px; font-size: 0.55rem; border-radius: 3px; border: 1px solid rgba(90,200,250,0.1); background: rgba(90,200,250,0.03); color: #5a7088; cursor: pointer; }
+.bus-fx-toggles button.active { background: rgba(0,255,200,0.15); color: #00ffc8; border-color: rgba(0,255,200,0.3); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 7: AUTOMATION LANES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.automation-panel { background: linear-gradient(180deg, #0f1a2e, #0a1220); border-top: 1px solid rgba(90,200,250,0.1); padding: 12px; }
+.automation-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.automation-header h3 { font-size: 0.85rem; color: #00ffc8; margin: 0; }
+.automation-controls { display: flex; align-items: center; gap: 6px; }
+.automation-controls select { background: #0a1628; border: 1px solid rgba(90,200,250,0.15); color: #c0d0e0; border-radius: 3px; font-size: 0.7rem; padding: 3px 6px; }
+.automation-controls button { padding: 3px 10px; font-size: 0.7rem; border-radius: 3px; border: 1px solid rgba(90,200,250,0.12); background: rgba(90,200,250,0.06); color: #7a8ea0; cursor: pointer; }
+.automation-controls button:hover { background: rgba(90,200,250,0.12); color: #c0d0e0; }
+
+.automation-lane { position: relative; display: flex; gap: 4px; }
+.automation-grid { display: flex; flex: 1; height: 100px; gap: 1px; user-select: none; }
+.auto-step { flex: 1; position: relative; background: rgba(90,200,250,0.03); border-radius: 2px; cursor: crosshair; min-width: 0; }
+.auto-step.downbeat { border-left: 1px solid rgba(90,200,250,0.1); }
+.auto-step.current { background: rgba(90,200,250,0.08); }
+.auto-step.has-value { background: rgba(0,255,200,0.04); }
+.auto-bar { position: absolute; bottom: 0; left: 15%; right: 15%; background: linear-gradient(180deg, rgba(0,255,200,0.4), rgba(0,255,200,0.15)); border-radius: 2px 2px 0 0; pointer-events: none; }
+.auto-dot { position: absolute; left: 50%; transform: translate(-50%, 50%); width: 6px; height: 6px; background: #00ffc8; border-radius: 50%; box-shadow: 0 0 4px rgba(0,255,200,0.5); pointer-events: none; }
+.automation-y-labels { display: flex; flex-direction: column; justify-content: space-between; padding: 0 4px; font-size: 0.55rem; color: #5a7088; min-width: 50px; }
+.automation-hint { font-size: 0.6rem; color: #3d5570; margin-top: 6px; text-align: center; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 8: SLICE MODE SEQUENCER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.slice-seq-panel { background: linear-gradient(180deg, #1a0f2e, #120a20); border-top: 1px solid rgba(200,100,250,0.15); padding: 12px; }
+.slice-seq-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.slice-seq-header h3 { font-size: 0.85rem; color: #c864ff; margin: 0; }
+.slice-seq-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.slice-seq-controls select { background: #0a0a28; border: 1px solid rgba(200,100,250,0.2); color: #c0d0e0; border-radius: 3px; font-size: 0.7rem; padding: 3px 6px; }
+.slice-seq-controls button { padding: 3px 10px; font-size: 0.7rem; border-radius: 3px; border: 1px solid rgba(200,100,250,0.15); background: rgba(200,100,250,0.08); color: #a080c0; cursor: pointer; }
+.slice-seq-controls button:hover { background: rgba(200,100,250,0.15); color: #d0b0e0; }
+.slice-seq-controls button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.slice-palette { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+.slice-palette-btn { width: 28px; height: 28px; border-radius: 4px; border: 1px solid rgba(200,100,250,0.2); background: hsl(var(--slice-hue, 0), 50%, 20%); color: #fff; font-size: 0.65rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.slice-palette-btn:hover { border-color: rgba(200,100,250,0.5); transform: scale(1.1); }
+.slice-empty-hint { font-size: 0.65rem; color: #5a5080; font-style: italic; }
+
+.slice-seq-grid { display: flex; gap: 1px; overflow-x: auto; }
+.slice-step { flex: 0 0 28px; height: 40px; background: rgba(200,100,250,0.04); border-radius: 3px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid transparent; transition: all 0.1s; }
+.slice-step.downbeat { border-left: 2px solid rgba(200,100,250,0.15); }
+.slice-step.current { box-shadow: inset 0 0 0 2px rgba(200,100,250,0.5); }
+.slice-step.has-slice { background: hsl(var(--slice-hue, 0), 45%, 18%); border-color: hsl(var(--slice-hue, 0), 50%, 35%); }
+.slice-step:hover { background: rgba(200,100,250,0.1); }
+.slice-step-num { font-size: 0.75rem; font-weight: 700; color: #e0c0ff; }
+.slice-step-empty { font-size: 0.6rem; color: #3a3060; }
+.slice-seq-hint { font-size: 0.6rem; color: #4a3d70; margin-top: 6px; text-align: center; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 9: INLINE STEM SEPARATOR TAB
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.stems-section { padding: 8px 0; }
+.stems-intro p { font-size: 0.7rem; color: #7a8ea0; margin: 0 0 10px; }
+
+.stems-model-select { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.stems-model-select label { font-size: 0.7rem; color: #5a7088; }
+.stems-model-select select { background: #0a1628; border: 1px solid rgba(90,200,250,0.15); color: #c0d0e0; border-radius: 4px; font-size: 0.7rem; padding: 4px 8px; }
+
+.stems-separate-btn { width: 100%; padding: 10px; background: linear-gradient(135deg, rgba(0,255,200,0.12), rgba(90,200,250,0.12)); border: 1px solid rgba(0,255,200,0.25); border-radius: 6px; color: #00ffc8; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+.stems-separate-btn:hover:not(:disabled) { background: linear-gradient(135deg, rgba(0,255,200,0.2), rgba(90,200,250,0.2)); border-color: rgba(0,255,200,0.4); }
+.stems-separate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.stems-progress { font-size: 0.7rem; color: #5ac8fa; margin-top: 8px; text-align: center; padding: 6px; background: rgba(90,200,250,0.06); border-radius: 4px; }
+.stems-error { font-size: 0.7rem; color: #ff4444; margin-top: 8px; text-align: center; padding: 6px; background: rgba(255,68,68,0.06); border-radius: 4px; }
+
+.stems-results { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.stem-result-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: rgba(0,255,200,0.04); border: 1px solid rgba(0,255,200,0.1); border-radius: 5px; }
+.stem-result-icon { font-size: 1rem; }
+.stem-result-name { font-size: 0.75rem; color: #c0d0e0; font-weight: 600; flex: 1; text-transform: capitalize; }
+.stem-preview-btn { padding: 3px 8px; background: rgba(90,200,250,0.08); border: 1px solid rgba(90,200,250,0.15); border-radius: 3px; color: #5ac8fa; cursor: pointer; font-size: 0.7rem; }
+.stem-preview-btn:hover { background: rgba(90,200,250,0.15); }
+.stem-load-btn { padding: 3px 8px; background: rgba(0,255,200,0.08); border: 1px solid rgba(0,255,200,0.15); border-radius: 3px; color: #00ffc8; cursor: pointer; font-size: 0.65rem; }
+.stem-load-btn:hover { background: rgba(0,255,200,0.15); }
+
+.stems-load-all-btn { margin-top: 6px; width: 100%; padding: 8px; background: rgba(0,255,200,0.1); border: 1px solid rgba(0,255,200,0.2); border-radius: 5px; color: #00ffc8; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+.stems-load-all-btn:hover { background: rgba(0,255,200,0.18); }
+
+.stems-hint { font-size: 0.6rem; color: #3d5570; margin-top: 10px; text-align: center; font-style: italic; }

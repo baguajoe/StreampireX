@@ -7,13 +7,18 @@ const VideoCategories = ({ categories, selectedCategory, onCategorySelect }) => 
   // Organize categories into groups - memoized to prevent recreation
   const categoryGroups = useMemo(() => ({
     popular: [
-      "All", "Music", "Podcasts", "Gaming", "Education", "Comedy", "Tech", "Fitness"
+      "All", "Music", "Podcasts", "Gaming", "Martial Arts", "Education", "Comedy", "Tech", "Fitness"
     ],
     musicAudio: [
       "Music", "Podcasts", "Live Concerts", "Music Videos", "DJ Sets", "Karaoke"
     ],
+    martialArts: [
+      "Martial Arts", "Internal Arts", "Tai Chi", "Baguazhang", "Xing Yi Quan",
+      "Qigong", "Wing Chun", "Kung Fu", "Karate", "BJJ", "MMA", "Muay Thai",
+      "Judo", "Taekwondo", "Capoeira", "Krav Maga", "Aikido", "Wushu", "Silat", "HEMA"
+    ],
     healthWellness: [
-      "Meditation", "Yoga", "Fitness", "Mental Health", "Nutrition", "Sleep & Relaxation"
+      "Health & Fitness", "Meditation", "Yoga", "Fitness", "Mental Health", "Nutrition", "Sleep & Relaxation"
     ],
     education: [
       "Education", "Tutorials", "Language Learning", "Science", "History", "Philosophy"
@@ -31,13 +36,13 @@ const VideoCategories = ({ categories, selectedCategory, onCategorySelect }) => 
       "Lifestyle", "Fashion", "Beauty", "Travel", "Food & Cooking", "Home & Garden", "Parenting", "Relationships"
     ],
     creative: [
-      "Art", "Photography", "Design", "Writing", "Crafts & DIY", "Architecture"
+      "Art & Design", "Photography", "Design", "Writing", "Crafts & DIY", "Architecture"
     ],
     business: [
       "Business", "Entrepreneurship", "Investing", "Cryptocurrency", "Marketing", "Personal Finance"
     ],
     sports: [
-      "Sports", "Basketball", "Football", "Soccer", "Extreme Sports", "Martial Arts"
+      "Sports", "Basketball", "Football", "Soccer", "Extreme Sports"
     ],
     newsInfo: [
       "News", "Politics", "Current Events", "Documentary"
@@ -52,7 +57,8 @@ const VideoCategories = ({ categories, selectedCategory, onCategorySelect }) => 
 
   const sectionTitles = useMemo(() => ({
     popular: "🔥 Popular",
-    musicAudio: "🎵 Music & Audio", 
+    musicAudio: "🎵 Music & Audio",
+    martialArts: "🥋 Martial Arts",
     healthWellness: "🧘 Health & Wellness",
     education: "📚 Education & Learning",
     technology: "💻 Technology",
@@ -121,15 +127,18 @@ const VideoCategories = ({ categories, selectedCategory, onCategorySelect }) => 
   const renderCategoryGroup = useCallback((sectionKey, categoryNames) => {
     const isExpanded = expandedSections.has(sectionKey);
     
-    // Filter out categories that don't exist in the categories array
-    const existingCategories = categoryNames.filter(name => categoryLookup[name]);
+    // For martial arts section, show all subs even if they don't exist in DB yet
+    const isMartialArts = sectionKey === 'martialArts';
+    const existingCategories = isMartialArts 
+      ? categoryNames 
+      : categoryNames.filter(name => categoryLookup[name]);
     
     if (existingCategories.length === 0) {
       return null;
     }
     
     return (
-      <div key={sectionKey} className="category-group">
+      <div key={sectionKey} className={`category-group ${sectionKey === 'martialArts' ? 'martial-arts-group' : ''}`}>
         <button
           className="category-group-header"
           onClick={() => toggleSection(sectionKey)}

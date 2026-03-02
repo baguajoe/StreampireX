@@ -6,6 +6,9 @@
 // Sub-components: VocalTuner, HarmonyGenerator, TakeLanes, BreathRemover,
 //                 VocalRider, VocalAlignment
 // =============================================================================
+// KNOB UPDATE: FX Chain controls now use VocalKnob rotary components arranged
+// in hardware-style rows instead of flat range sliders.
+// =============================================================================
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import VocalTuner from './VocalTuner';
@@ -14,6 +17,7 @@ import TakeLanes from './TakeLanes';
 import BreathRemover from './BreathRemover';
 import VocalRider from './VocalRider';
 import VocalAlignment from './VocalAlignment';
+import VocalKnob from './VocalKnob';
 
 // ── Constants ──
 const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -152,11 +156,11 @@ const detectPitch = (buffer, sampleRate) => {
 
   for (let i = 0; i < SIZE; i++) rms += buffer[i] * buffer[i];
   rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.01) return -1; // too quiet
+  if (rms < 0.01) return -1;
 
   let lastCorrelation = 1;
-  const minPeriod = Math.floor(sampleRate / 1100); // ~1100Hz max
-  const maxPeriod = Math.floor(sampleRate / 60);    // ~60Hz min
+  const minPeriod = Math.floor(sampleRate / 1100);
+  const maxPeriod = Math.floor(sampleRate / 60);
 
   for (let offset = minPeriod; offset < maxPeriod && offset < MAX_SAMPLES; offset++) {
     let correlation = 0;
@@ -178,34 +182,46 @@ const detectPitch = (buffer, sampleRate) => {
   return -1;
 };
 
+// ── Knob row helper style ──
+const knobRowStyle = {
+  display: 'flex',
+  alignItems: 'flex-end',
+  justifyContent: 'center',
+  gap: 20,
+  padding: '10px 0',
+  flexWrap: 'wrap',
+  width: '100%',
+};
+
 const VocalProcessor = ({
   audioContext: externalCtx,
-  inputStream,           // MediaStream from mic
+  inputStream,
   isEmbedded = false,
-  onRecordingComplete,   // (blob) => void
-  onSendToTrack,         // (audioBuffer, name) => void
-  tracks,                // current DAW tracks for reference
+  onRecordingComplete,
+  onSendToTrack,
+  onApplyToConsole,    // (fxSettings) => void — writes VP chain to Console track effects
+  tracks,
   selectedTrackIndex,
-  bpm = 120,             // project BPM for alignment
+  bpm = 120,
 }) => {
   // ── FX State ──
   const [gateEnabled, setGateEnabled] = useState(true);
-  const [gateThreshold, setGateThreshold] = useState(-45);  // dB
-  const [gateAttack, setGateAttack] = useState(0.5);        // ms
-  const [gateRelease, setGateRelease] = useState(50);       // ms
-  const [gateRange, setGateRange] = useState(-80);           // dB
+  const [gateThreshold, setGateThreshold] = useState(-45);
+  const [gateAttack, setGateAttack] = useState(0.5);
+  const [gateRelease, setGateRelease] = useState(50);
+  const [gateRange, setGateRange] = useState(-80);
 
   const [deesserEnabled, setDeesserEnabled] = useState(true);
-  const [deesserFreq, setDeesserFreq] = useState(6500);     // Hz
-  const [deesserThreshold, setDeesserThreshold] = useState(-25); // dB
-  const [deesserReduction, setDeesserReduction] = useState(6);   // dB
+  const [deesserFreq, setDeesserFreq] = useState(6500);
+  const [deesserThreshold, setDeesserThreshold] = useState(-25);
+  const [deesserReduction, setDeesserReduction] = useState(6);
 
   const [compThreshold, setCompThreshold] = useState(-18);
   const [compRatio, setCompRatio] = useState(3.5);
-  const [compAttack, setCompAttack] = useState(8);           // ms
-  const [compRelease, setCompRelease] = useState(120);       // ms
+  const [compAttack, setCompAttack] = useState(8);
+  const [compRelease, setCompRelease] = useState(120);
 
-  const [eqHighpass, setEqHighpass] = useState(80);          // Hz
+  const [eqHighpass, setEqHighpass] = useState(80);
   const [eqLowpass, setEqLowpass] = useState(20000);
   const [eqPresenceFreq, setEqPresenceFreq] = useState(3500);
   const [eqPresenceGain, setEqPresenceGain] = useState(3);
@@ -213,20 +229,20 @@ const VocalProcessor = ({
   const [eqAirGain, setEqAirGain] = useState(2);
 
   const [doublerEnabled, setDoublerEnabled] = useState(false);
-  const [doublerDetune, setDoublerDetune] = useState(8);     // cents
-  const [doublerDelay, setDoublerDelay] = useState(25);      // ms
+  const [doublerDetune, setDoublerDetune] = useState(8);
+  const [doublerDelay, setDoublerDelay] = useState(25);
   const [doublerMix, setDoublerMix] = useState(0.3);
 
-  const [pitchShift, setPitchShift] = useState(0);           // semitones
+  const [pitchShift, setPitchShift] = useState(0);
 
   const [reverbMix, setReverbMix] = useState(0.12);
   const [reverbDecay, setReverbDecay] = useState(1.4);
 
   const [limiterEnabled, setLimiterEnabled] = useState(true);
-  const [limiterThreshold, setLimiterThreshold] = useState(-1); // dB
-  const [limiterRelease, setLimiterRelease] = useState(50);     // ms
+  const [limiterThreshold, setLimiterThreshold] = useState(-1);
+  const [limiterRelease, setLimiterRelease] = useState(50);
 
-  const [saturation, setSaturation] = useState(0);           // 0-100
+  const [saturation, setSaturation] = useState(0);
 
   // ── Monitoring ──
   const [monitorEnabled, setMonitorEnabled] = useState(false);
@@ -258,9 +274,8 @@ const VocalProcessor = ({
   const [hasStream, setHasStream] = useState(false);
 
   // ── UI ──
-  const [activeTab, setActiveTab] = useState('chain');       // chain | analyzer | presets | ai | tuner | harmony | takes | breaths | rider | align
+  const [activeTab, setActiveTab] = useState('chain');
 
-  // ── Selected track audio buffer (for offline processing tools) ──
   const selectedBuffer = tracks && tracks[selectedTrackIndex] ? tracks[selectedTrackIndex].audioBuffer : null;
   const [selectedPreset, setSelectedPreset] = useState(null);
   const [expandedFx, setExpandedFx] = useState({
@@ -285,6 +300,13 @@ const VocalProcessor = ({
   const monitorGainRef = useRef(null);
   const inputGainRef = useRef(null);
 
+  // ── LIVE FX GRAPH refs ──
+  const fxChainRef = useRef(null);       // { nodes: AudioNode[], cleanups: Function[] }
+  const reverbIRRef = useRef(null);      // cached reverb impulse response buffer
+  const compNodeRef = useRef(null);      // live compressor node for GR metering
+  const fxInputRef = useRef(null);       // GainNode: entry point of FX chain
+  const fxOutputRef = useRef(null);      // GainNode: exit point of FX chain
+
   // ── Audio Context ──
   const getCtx = useCallback(() => {
     if (externalCtx) return externalCtx;
@@ -294,6 +316,200 @@ const VocalProcessor = ({
     if (ctxRef.current.state === 'suspended') ctxRef.current.resume();
     return ctxRef.current;
   }, [externalCtx]);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REVERB IR GENERATOR
+  // ═══════════════════════════════════════════════════════════════════════════
+  const generateReverbIR = useCallback((ctx, decay = 2) => {
+    const len = Math.floor(ctx.sampleRate * Math.max(0.1, decay));
+    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
+    }
+    return buf;
+  }, []);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LIVE FX CHAIN BUILDER
+  // Builds real Web Audio nodes from current knob state.
+  // Signal: fxInput → [gate] → [deesser] → [comp] → [EQ] → [sat] →
+  //         [doubler] → [limiter] → fxOutput
+  //                              ↘ [reverb send] → fxOutput
+  // ═══════════════════════════════════════════════════════════════════════════
+  const buildLiveFxChain = useCallback(() => {
+    const ctx = getCtx();
+    const fxIn = fxInputRef.current;
+    const fxOut = fxOutputRef.current;
+    if (!ctx || !fxIn || !fxOut) return;
+
+    // Tear down previous chain
+    if (fxChainRef.current) {
+      fxChainRef.current.cleanups.forEach(fn => { try { fn(); } catch {} });
+    }
+    try { fxIn.disconnect(); } catch {}
+
+    const nodes = [];
+    const cleanups = [];
+    let last = fxIn;
+    const chain = (node) => { last.connect(node); last = node; nodes.push(node); };
+
+    // 1. NOISE GATE (DynamicsCompressor as expander approximation)
+    if (gateEnabled) {
+      const gate = ctx.createDynamicsCompressor();
+      gate.threshold.value = gateThreshold;
+      gate.ratio.value = 20;
+      gate.knee.value = 0;
+      gate.attack.value = Math.max(0.001, gateAttack / 1000);
+      gate.release.value = Math.max(0.001, gateRelease / 1000);
+      chain(gate);
+    }
+
+    // 2. DE-ESSER (narrow band attenuation)
+    if (deesserEnabled) {
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'peaking';
+      bp.frequency.value = deesserFreq;
+      bp.Q.value = 4;
+      bp.gain.value = -deesserReduction;
+      chain(bp);
+    }
+
+    // 3. COMPRESSOR
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = compThreshold;
+    comp.ratio.value = compRatio;
+    comp.attack.value = Math.max(0.001, compAttack / 1000);
+    comp.release.value = Math.max(0.001, compRelease / 1000);
+    comp.knee.value = 6;
+    chain(comp);
+    compNodeRef.current = comp;
+
+    // 4a. EQ: High-pass
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = eqHighpass;
+    hp.Q.value = 0.707;
+    chain(hp);
+
+    // 4b. EQ: Low-pass (only when < ~20kHz)
+    if (eqLowpass < 19500) {
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = eqLowpass;
+      lp.Q.value = 0.707;
+      chain(lp);
+    }
+
+    // 4c. EQ: Presence peak
+    if (eqPresenceGain !== 0) {
+      const pres = ctx.createBiquadFilter();
+      pres.type = 'peaking';
+      pres.frequency.value = eqPresenceFreq;
+      pres.Q.value = 1.5;
+      pres.gain.value = eqPresenceGain;
+      chain(pres);
+    }
+
+    // 4d. EQ: Air shelf
+    if (eqAirGain !== 0) {
+      const air = ctx.createBiquadFilter();
+      air.type = 'highshelf';
+      air.frequency.value = eqAirFreq;
+      air.gain.value = eqAirGain;
+      chain(air);
+    }
+
+    // 5. SATURATION (waveshaper)
+    if (saturation > 0) {
+      const ws = ctx.createWaveShaper();
+      const drive = saturation / 100;
+      const curve = new Float32Array(44100);
+      for (let i = 0; i < 44100; i++) {
+        const x = (i * 2) / 44100 - 1;
+        curve[i] = Math.tanh(x * (1 + drive * 5));
+      }
+      ws.curve = curve;
+      ws.oversample = '4x';
+      chain(ws);
+    }
+
+    // 6. VOCAL DOUBLER (detuned delayed copy)
+    if (doublerEnabled) {
+      const dryG = ctx.createGain();
+      dryG.gain.value = 1.0;
+      const wetG = ctx.createGain();
+      wetG.gain.value = doublerMix;
+      const del = ctx.createDelay(0.1);
+      del.delayTime.value = doublerDelay / 1000;
+      const lfo = ctx.createOscillator();
+      const lfoG = ctx.createGain();
+      lfo.frequency.value = 0.5;
+      lfoG.gain.value = (doublerDetune / 1200) * 0.01;
+      lfo.connect(lfoG);
+      lfoG.connect(del.delayTime);
+      lfo.start();
+      cleanups.push(() => { try { lfo.stop(); } catch {} });
+      const merge = ctx.createGain();
+      last.connect(dryG); last.connect(del);
+      del.connect(wetG);
+      dryG.connect(merge); wetG.connect(merge);
+      last = merge;
+      nodes.push(dryG, del, wetG, merge);
+    }
+
+    // 7. REVERB (convolver send)
+    if (reverbMix > 0) {
+      if (!reverbIRRef.current || Math.abs((reverbIRRef.current._decay || 0) - reverbDecay) > 0.1) {
+        reverbIRRef.current = generateReverbIR(ctx, reverbDecay);
+        reverbIRRef.current._decay = reverbDecay;
+      }
+      const dryG = ctx.createGain();
+      dryG.gain.value = 1 - reverbMix * 0.5;
+      const conv = ctx.createConvolver();
+      conv.buffer = reverbIRRef.current;
+      const wetG = ctx.createGain();
+      wetG.gain.value = reverbMix;
+      const merge = ctx.createGain();
+      last.connect(dryG); last.connect(conv);
+      conv.connect(wetG);
+      dryG.connect(merge); wetG.connect(merge);
+      last = merge;
+      nodes.push(dryG, conv, wetG, merge);
+    }
+
+    // 8. LIMITER
+    if (limiterEnabled) {
+      const lim = ctx.createDynamicsCompressor();
+      lim.threshold.value = limiterThreshold;
+      lim.ratio.value = 20;
+      lim.knee.value = 0;
+      lim.attack.value = 0.001;
+      lim.release.value = Math.max(0.01, limiterRelease / 1000);
+      chain(lim);
+    }
+
+    // Connect to FX output
+    last.connect(fxOut);
+    fxChainRef.current = { nodes, cleanups };
+  }, [
+    getCtx, generateReverbIR,
+    gateEnabled, gateThreshold, gateAttack, gateRelease,
+    deesserEnabled, deesserFreq, deesserThreshold, deesserReduction,
+    compThreshold, compRatio, compAttack, compRelease,
+    eqHighpass, eqLowpass, eqPresenceFreq, eqPresenceGain, eqAirFreq, eqAirGain,
+    saturation,
+    doublerEnabled, doublerDetune, doublerDelay, doublerMix,
+    reverbMix, reverbDecay,
+    limiterEnabled, limiterThreshold, limiterRelease,
+  ]);
+
+  // ── Rebuild FX chain whenever any parameter changes ──
+  useEffect(() => {
+    if (hasStream && fxInputRef.current && fxOutputRef.current) {
+      buildLiveFxChain();
+    }
+  }, [buildLiveFxChain, hasStream]);
 
   // ── Connect mic stream ──
   const connectStream = useCallback(async () => {
@@ -311,13 +527,12 @@ const VocalProcessor = ({
     const source = ctx.createMediaStreamSource(stream);
     sourceRef.current = source;
 
-    // Input gain
     const inGain = ctx.createGain();
     inGain.gain.value = inputGain;
     inputGainRef.current = inGain;
     source.connect(inGain);
 
-    // Analyser for pitch/level detection
+    // Pre-FX analyser (clean signal for pitch detection)
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 4096;
     analyser.smoothingTimeConstant = 0.8;
@@ -325,18 +540,31 @@ const VocalProcessor = ({
     analyserBufRef.current = new Float32Array(analyser.fftSize);
     inGain.connect(analyser);
 
-    // Monitor output (dry or with FX — simplified for now as dry)
+    // FX chain entry/exit points
+    const fxIn = ctx.createGain();
+    fxIn.gain.value = 1.0;
+    fxInputRef.current = fxIn;
+    inGain.connect(fxIn);
+
+    const fxOut = ctx.createGain();
+    fxOut.gain.value = 1.0;
+    fxOutputRef.current = fxOut;
+
+    // Monitor output (receives processed signal from fxOut)
     const monGain = ctx.createGain();
     monGain.gain.value = monitorEnabled ? monitorVolume : 0;
     monitorGainRef.current = monGain;
-    inGain.connect(monGain);
+    fxOut.connect(monGain);
     monGain.connect(ctx.destination);
 
     setHasStream(true);
-    startAnalysis();
-  }, [getCtx, inputStream, inputGain, monitorEnabled, monitorVolume]);
 
-  // ── Update monitor gain in real-time ──
+    // Build the live FX chain between fxIn → fxOut
+    setTimeout(() => buildLiveFxChain(), 0);
+
+    startAnalysis();
+  }, [getCtx, inputStream, inputGain, monitorEnabled, monitorVolume, buildLiveFxChain]);
+
   useEffect(() => {
     if (monitorGainRef.current) {
       monitorGainRef.current.gain.value = monitorEnabled ? monitorVolume : 0;
@@ -347,11 +575,16 @@ const VocalProcessor = ({
     if (inputGainRef.current) inputGainRef.current.gain.value = inputGain;
   }, [inputGain]);
 
-  // ── Auto-connect when stream prop changes ──
   useEffect(() => {
     if (inputStream) connectStream();
-    return () => stopAnalysis();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      stopAnalysis();
+      // Clean up live FX chain
+      if (fxChainRef.current) {
+        fxChainRef.current.cleanups.forEach(fn => { try { fn(); } catch {} });
+        fxChainRef.current = null;
+      }
+    };
   }, [inputStream]);
 
   // ── Analysis loop ──
@@ -363,12 +596,10 @@ const VocalProcessor = ({
       const buf = analyserBufRef.current;
       if (!analyser || !buf) return;
 
-      // Time domain for pitch
       analyser.getFloatTimeDomainData(buf);
       const ctx = getCtx();
       const freq = detectPitch(buf, ctx.sampleRate);
 
-      // RMS level
       let rms = 0;
       for (let i = 0; i < buf.length; i++) rms += buf[i] * buf[i];
       rms = Math.sqrt(rms / buf.length);
@@ -378,7 +609,6 @@ const VocalProcessor = ({
       rmsHistoryRef.current.push(rmsDb);
       if (rmsHistoryRef.current.length > 500) rmsHistoryRef.current.shift();
 
-      // Dynamic range calculation
       const validRms = rmsHistoryRef.current.filter(v => v > -60);
       if (validRms.length > 10) {
         const sorted = [...validRms].sort((a, b) => a - b);
@@ -387,7 +617,6 @@ const VocalProcessor = ({
         setDynamicRange(Math.round(high - low));
       }
 
-      // Sibilance detection (energy in 4-10kHz band)
       const freqData = new Uint8Array(analyser.frequencyBinCount);
       analyser.getByteFrequencyData(freqData);
       const binSize = ctx.sampleRate / analyser.fftSize;
@@ -399,28 +628,29 @@ const VocalProcessor = ({
       const sibilRatio = totalEnergy > 0 ? sibilEnergy / totalEnergy : 0;
       setSibilanceLevel(sibilRatio);
 
-      // Gate simulation — check if signal is below threshold
       if (rmsDb < gateThreshold) {
         setGateReduction(Math.min(0, gateRange - rmsDb));
       } else {
         setGateReduction(0);
       }
 
-      // Pitch tracking
+      // ── REAL compressor gain reduction from live node ──
+      if (compNodeRef.current) {
+        setCompGainReduction(compNodeRef.current.reduction || 0);
+      }
+
       if (freq > 0) {
         setCurrentPitch(freq);
         const note = noteFromFreq(freq);
         setCurrentNote(note);
         setCurrentCents(centsOff(freq, note));
 
-        // Track range
         historyRef.current.push(note);
         if (historyRef.current.length > 2000) historyRef.current.shift();
 
         if (lowestNote === null || note < lowestNote) setLowestNote(note);
         if (highestNote === null || note > highestNote) setHighestNote(note);
 
-        // Detect vocal range
         if (lowestNote !== null && highestNote !== null) {
           const lowFreq = freqFromNote(lowestNote);
           const highFreq = freqFromNote(highestNote);
@@ -432,7 +662,6 @@ const VocalProcessor = ({
           }
         }
 
-        // Pitch history for graph
         setPitchHistory(prev => {
           const next = [...prev, { freq, note, time: Date.now() }];
           if (next.length > 200) next.shift();
@@ -443,7 +672,6 @@ const VocalProcessor = ({
         setCurrentNote(null);
       }
 
-      // Draw pitch canvas
       drawPitchGraph();
       drawMeter(rmsDb, sibilRatio);
 
@@ -466,12 +694,9 @@ const VocalProcessor = ({
     const history = pitchHistory;
 
     ctx.clearRect(0, 0, w, h);
-
-    // Background
     ctx.fillStyle = '#080e14';
     ctx.fillRect(0, 0, w, h);
 
-    // Note grid lines
     if (history.length > 0) {
       const notes = history.map(p => p.note);
       const minNote = Math.min(...notes) - 2;
@@ -482,11 +707,7 @@ const VocalProcessor = ({
       ctx.lineWidth = 1;
       for (let n = minNote; n <= maxNote; n++) {
         const y = h - ((n - minNote) / range) * h;
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-        // Note label
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
         if (n % 12 === 0 || n % 12 === 4 || n % 12 === 7) {
           ctx.fillStyle = 'rgba(255,255,255,0.15)';
           ctx.font = '8px monospace';
@@ -494,7 +715,6 @@ const VocalProcessor = ({
         }
       }
 
-      // Pitch line
       ctx.beginPath();
       ctx.strokeStyle = '#00ffc8';
       ctx.lineWidth = 2;
@@ -503,21 +723,17 @@ const VocalProcessor = ({
       history.forEach((p, i) => {
         const x = (i / Math.max(history.length - 1, 1)) * w;
         const y = h - ((p.note - minNote) / range) * h;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       });
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // Current position dot
       if (history.length > 0) {
         const last = history[history.length - 1];
         const x = w - 2;
         const y = h - ((last.note - minNote) / range) * h;
         ctx.fillStyle = '#00ffc8';
-        ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
       }
     } else {
       ctx.fillStyle = 'rgba(255,255,255,0.1)';
@@ -539,7 +755,6 @@ const VocalProcessor = ({
     ctx.fillStyle = '#080e14';
     ctx.fillRect(0, 0, w, h);
 
-    // Level bar
     const level = Math.max(0, Math.min(1, (rmsDb + 60) / 60));
     const barH = level * h;
     const grad = ctx.createLinearGradient(0, h, 0, 0);
@@ -550,23 +765,17 @@ const VocalProcessor = ({
     ctx.fillStyle = grad;
     ctx.fillRect(2, h - barH, 14, barH);
 
-    // Gate threshold marker
     const gateY = h - ((gateThreshold + 60) / 60) * h;
     ctx.strokeStyle = '#ff6b35';
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 2]);
-    ctx.beginPath();
-    ctx.moveTo(0, gateY);
-    ctx.lineTo(18, gateY);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, gateY); ctx.lineTo(18, gateY); ctx.stroke();
     ctx.setLineDash([]);
 
-    // Sibilance bar
     const sibilH = sibilRatio * h * 3;
     ctx.fillStyle = sibilRatio > 0.3 ? '#ff3b30' : sibilRatio > 0.15 ? '#ffcc00' : 'rgba(0,255,200,0.3)';
     ctx.fillRect(22, h - sibilH, 10, sibilH);
 
-    // Labels
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
     ctx.font = '7px monospace';
     ctx.fillText('LVL', 1, 8);
@@ -608,6 +817,77 @@ const VocalProcessor = ({
     if (recTimerRef.current) clearInterval(recTimerRef.current);
     setIsRecording(false);
   }, []);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CONSOLE FX BRIDGE — exports VP settings to RecordingStudio track format
+  // ═══════════════════════════════════════════════════════════════════════════
+  const exportToConsoleFx = useCallback(() => ({
+    eq: {
+      lowGain: 0,
+      midGain: eqPresenceGain,
+      midFreq: eqPresenceFreq,
+      highGain: eqAirGain,
+      enabled: eqPresenceGain !== 0 || eqAirGain !== 0 || eqHighpass > 40,
+    },
+    compressor: {
+      threshold: compThreshold,
+      ratio: compRatio,
+      attack: compAttack / 1000,
+      release: compRelease / 1000,
+      knee: 6,
+      enabled: true,
+    },
+    reverb: {
+      mix: reverbMix,
+      decay: reverbDecay,
+      enabled: reverbMix > 0,
+    },
+    gate: {
+      threshold: gateThreshold,
+      attack: gateAttack / 1000,
+      release: gateRelease / 1000,
+      enabled: gateEnabled,
+    },
+    deesser: {
+      frequency: deesserFreq,
+      threshold: deesserThreshold,
+      ratio: 8,
+      enabled: deesserEnabled,
+    },
+    limiter: {
+      threshold: limiterThreshold,
+      knee: 0,
+      ratio: 20,
+      attack: 0.001,
+      release: limiterRelease / 1000,
+      enabled: limiterEnabled,
+    },
+    filter: {
+      type: 'highpass',
+      frequency: eqHighpass,
+      Q: 0.707,
+      enabled: eqHighpass > 40,
+    },
+    distortion: {
+      amount: saturation,
+      enabled: saturation > 0,
+    },
+    chorus: {
+      rate: 0.5,
+      depth: doublerDelay / 1000,
+      mix: doublerMix,
+      enabled: doublerEnabled,
+    },
+  }), [
+    eqPresenceGain, eqPresenceFreq, eqAirGain, eqHighpass,
+    compThreshold, compRatio, compAttack, compRelease,
+    reverbMix, reverbDecay,
+    gateEnabled, gateThreshold, gateAttack, gateRelease,
+    deesserEnabled, deesserFreq, deesserThreshold,
+    limiterEnabled, limiterThreshold, limiterRelease,
+    saturation,
+    doublerEnabled, doublerDelay, doublerMix,
+  ]);
 
   // ── Apply Preset ──
   const applyPreset = useCallback((key) => {
@@ -658,37 +938,31 @@ const VocalProcessor = ({
   const runAIAnalysis = useCallback(() => {
     const suggestions = [];
 
-    // Dynamic range
     if (dynamicRange > 20) {
       suggestions.push({
-        icon: '🎚',
-        title: 'Wide Dynamic Range',
+        icon: '🎚', title: 'Wide Dynamic Range',
         desc: `${dynamicRange}dB range detected. Increase compression ratio to ${Math.min(8, compRatio + 2).toFixed(1)}:1 or lower threshold by 4dB for more consistent levels.`,
         action: () => { setCompRatio(Math.min(8, compRatio + 2)); setCompThreshold(compThreshold - 4); },
         label: 'Apply',
       });
     } else if (dynamicRange < 6 && dynamicRange > 0) {
       suggestions.push({
-        icon: '📊',
-        title: 'Very Compressed',
+        icon: '📊', title: 'Very Compressed',
         desc: `Only ${dynamicRange}dB range. Consider reducing compression ratio to preserve natural dynamics.`,
         action: () => { setCompRatio(Math.max(1.5, compRatio - 1.5)); },
         label: 'Reduce Comp',
       });
     }
 
-    // Sibilance
     if (sibilanceLevel > 0.25) {
       suggestions.push({
-        icon: '🐍',
-        title: 'High Sibilance Detected',
+        icon: '🐍', title: 'High Sibilance Detected',
         desc: `S/T sounds are prominent (${Math.round(sibilanceLevel * 100)}% energy). Enable de-esser or increase reduction.`,
         action: () => { setDeesserEnabled(true); setDeesserReduction(Math.min(12, deesserReduction + 3)); },
         label: 'Fix Sibilance',
       });
     }
 
-    // Pitch stability
     if (pitchHistory.length > 20) {
       const recentPitches = pitchHistory.slice(-50);
       const notes = recentPitches.map(p => p.note);
@@ -696,8 +970,7 @@ const VocalProcessor = ({
       const variance = notes.reduce((a, b) => a + (b - mean) ** 2, 0) / notes.length;
       if (variance > 4) {
         suggestions.push({
-          icon: '🎯',
-          title: 'Pitch Instability',
+          icon: '🎯', title: 'Pitch Instability',
           desc: 'Noticeable pitch variation. Consider subtle pitch correction or doubler to mask wavering.',
           action: () => { setDoublerEnabled(true); setDoublerDetune(6); setDoublerMix(0.2); },
           label: 'Add Doubler',
@@ -705,56 +978,46 @@ const VocalProcessor = ({
       }
     }
 
-    // Level
     const avgRms = rmsHistoryRef.current.length > 0
       ? rmsHistoryRef.current.reduce((a, b) => a + b, 0) / rmsHistoryRef.current.length
       : -60;
     if (avgRms < -35) {
       suggestions.push({
-        icon: '🔊',
-        title: 'Low Input Level',
+        icon: '🔊', title: 'Low Input Level',
         desc: `Average level is ${avgRms.toFixed(1)}dB. Increase input gain or move closer to the mic.`,
         action: () => setInputGain(Math.min(3, inputGain + 0.5)),
         label: 'Boost Gain',
       });
     } else if (avgRms > -6) {
       suggestions.push({
-        icon: '⚠️',
-        title: 'Signal Too Hot',
+        icon: '⚠️', title: 'Signal Too Hot',
         desc: `Average level near ${avgRms.toFixed(1)}dB — risk of clipping. Reduce input gain.`,
         action: () => setInputGain(Math.max(0.1, inputGain - 0.3)),
         label: 'Reduce Gain',
       });
     }
 
-    // Vocal range suggestion
     if (detectedRange) {
       suggestions.push({
-        icon: '🎤',
-        title: `Detected: ${detectedRange.name}`,
+        icon: '🎤', title: `Detected: ${detectedRange.name}`,
         desc: `Range: ${lowestNote !== null ? noteName(lowestNote) : '?'} – ${highestNote !== null ? noteName(highestNote) : '?'}. EQ presence at ${detectedRange.name === 'Bass' || detectedRange.name === 'Baritone' ? '2-4kHz' : '3-6kHz'} will add clarity.`,
-        action: null,
-        label: null,
+        action: null, label: null,
       });
     }
 
-    // Noise floor
     const quietSamples = rmsHistoryRef.current.filter(v => v < -50);
     if (quietSamples.length > rmsHistoryRef.current.length * 0.4 && !gateEnabled) {
       suggestions.push({
-        icon: '🔇',
-        title: 'Background Noise',
+        icon: '🔇', title: 'Background Noise',
         desc: 'Significant silence with noise floor detected. Enable the noise gate to clean up quiet sections.',
         action: () => { setGateEnabled(true); setGateThreshold(-42); },
         label: 'Enable Gate',
       });
     }
 
-    // Limiter check
     if (!limiterEnabled) {
       suggestions.push({
-        icon: '🧱',
-        title: 'No Limiter Active',
+        icon: '🧱', title: 'No Limiter Active',
         desc: 'Enable the limiter as a safety net to prevent clipping on loud peaks.',
         action: () => { setLimiterEnabled(true); setLimiterThreshold(-1); },
         label: 'Enable Limiter',
@@ -763,11 +1026,9 @@ const VocalProcessor = ({
 
     if (suggestions.length === 0) {
       suggestions.push({
-        icon: '✅',
-        title: 'Sounding Good!',
+        icon: '✅', title: 'Sounding Good!',
         desc: 'No major issues detected. Keep singing/speaking to get more detailed analysis.',
-        action: null,
-        label: null,
+        action: null, label: null,
       });
     }
 
@@ -776,7 +1037,6 @@ const VocalProcessor = ({
   }, [dynamicRange, sibilanceLevel, pitchHistory, compRatio, compThreshold, deesserReduction,
       detectedRange, lowestNote, highestNote, gateEnabled, limiterEnabled, inputGain]);
 
-  // ── Reset range tracking ──
   const resetRange = useCallback(() => {
     setLowestNote(null);
     setHighestNote(null);
@@ -805,7 +1065,6 @@ const VocalProcessor = ({
   const fmtHz = (v) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${v}`;
   const fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-  // ── FX block toggle helper ──
   const toggleFx = (key) => setExpandedFx(prev => ({ ...prev, [key]: !prev[key] }));
 
   return (
@@ -818,7 +1077,6 @@ const VocalProcessor = ({
           {isRecording && <span className="vp-rec-badge">● REC {fmtTime(recordingTime)}</span>}
         </div>
         <div className="vp-header-center">
-          {/* Pitch Display */}
           <div className="vp-pitch-display">
             {currentNote !== null ? (
               <>
@@ -834,6 +1092,14 @@ const VocalProcessor = ({
           </div>
         </div>
         <div className="vp-header-right">
+          {hasStream && fxChainRef.current && (
+            <span style={{
+              fontSize: '0.55rem', fontWeight: 800, color: '#00ffc8', background: 'rgba(0,255,200,0.1)',
+              padding: '2px 8px', borderRadius: 4, marginRight: 8, letterSpacing: 1,
+            }}>
+              FX LIVE
+            </span>
+          )}
           <div className="vp-monitor-toggle">
             <button
               className={`vp-btn ${monitorEnabled ? 'active' : ''}`}
@@ -851,12 +1117,24 @@ const VocalProcessor = ({
           {!hasStream ? (
             <button className="vp-btn vp-btn-connect" onClick={connectStream}>🎙 Connect Mic</button>
           ) : (
-            <button
-              className={`vp-btn ${isRecording ? 'vp-btn-recording' : 'vp-btn-record'}`}
-              onClick={isRecording ? stopRecording : startRecording}
-            >
-              {isRecording ? '⏹ Stop' : '⏺ Record'}
-            </button>
+            <>
+              <button
+                className={`vp-btn ${isRecording ? 'vp-btn-recording' : 'vp-btn-record'}`}
+                onClick={isRecording ? stopRecording : startRecording}
+              >
+                {isRecording ? '⏹ Stop' : '⏺ Record'}
+              </button>
+              {onApplyToConsole && (
+                <button
+                  className="vp-btn"
+                  style={{ background: '#1a5c3a', color: '#00ffc8', fontSize: '0.65rem', padding: '4px 10px' }}
+                  onClick={() => onApplyToConsole(exportToConsoleFx())}
+                  title="Copy VP FX settings to Console track effects"
+                >
+                  ⤴ Apply to Console
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -885,9 +1163,12 @@ const VocalProcessor = ({
       {/* ── Content ── */}
       <div className="vp-content">
 
-        {/* ════ FX CHAIN TAB ════ */}
+        {/* ════════════════════════════════════════════════════════════════════
+            FX CHAIN TAB — Now uses VocalKnob rotary controls
+            ════════════════════════════════════════════════════════════════════ */}
         {activeTab === 'chain' && (
           <div className="vp-chain">
+            {/* Signal Flow Strip */}
             <div className="vp-chain-flow">
               <span className="vp-chain-label">Signal Flow:</span>
               <span className="vp-chain-node">🎙 Input</span>
@@ -914,24 +1195,31 @@ const VocalProcessor = ({
             </div>
 
             <div className="vp-chain-scroll">
-              {/* Input Gain */}
+
+              {/* ── Input Gain ── */}
               <div className="vp-fx-block">
-                <div className="vp-fx-header" onClick={() => toggleFx('input')}>
+                <div className="vp-fx-header">
                   <span className="vp-fx-icon">🎙</span>
                   <span className="vp-fx-name">Input Gain</span>
                   <span className="vp-fx-value">{(inputGain * 100).toFixed(0)}%</span>
                 </div>
                 <div className="vp-fx-controls">
-                  <div className="vp-param">
-                    <label>Gain</label>
-                    <input type="range" min={0} max={300} value={inputGain * 100}
-                      onChange={e => setInputGain(e.target.value / 100)} className="vp-slider" />
-                    <span>{(inputGain * 100).toFixed(0)}%</span>
+                  <div style={knobRowStyle}>
+                    <VocalKnob
+                      label="Gain"
+                      value={inputGain * 100}
+                      min={0} max={300} step={1}
+                      onChange={(v) => setInputGain(v / 100)}
+                      formatValue={(v) => `${Math.round(v)}%`}
+                      size="large"
+                      color="#00d4ff"
+                      showScale
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Noise Gate */}
+              {/* ── Noise Gate ── */}
               <div className={`vp-fx-block ${gateEnabled ? 'enabled' : 'bypassed'}`}>
                 <div className="vp-fx-header" onClick={() => toggleFx('gate')}>
                   <button className="vp-fx-toggle" onClick={e => { e.stopPropagation(); setGateEnabled(!gateEnabled); }}>
@@ -943,35 +1231,50 @@ const VocalProcessor = ({
                 </div>
                 {expandedFx.gate && (
                   <div className="vp-fx-controls">
-                    <div className="vp-param">
-                      <label>Threshold</label>
-                      <input type="range" min={-80} max={-10} value={gateThreshold}
-                        onChange={e => setGateThreshold(+e.target.value)} className="vp-slider" />
-                      <span>{fmtDb(gateThreshold)}</span>
-                    </div>
-                    <div className="vp-param">
-                      <label>Attack</label>
-                      <input type="range" min={0.1} max={10} step={0.1} value={gateAttack}
-                        onChange={e => setGateAttack(+e.target.value)} className="vp-slider" />
-                      <span>{fmtMs(gateAttack)}</span>
-                    </div>
-                    <div className="vp-param">
-                      <label>Release</label>
-                      <input type="range" min={5} max={500} value={gateRelease}
-                        onChange={e => setGateRelease(+e.target.value)} className="vp-slider" />
-                      <span>{fmtMs(gateRelease)}</span>
-                    </div>
-                    <div className="vp-param">
-                      <label>Range</label>
-                      <input type="range" min={-100} max={0} value={gateRange}
-                        onChange={e => setGateRange(+e.target.value)} className="vp-slider" />
-                      <span>{fmtDb(gateRange)}</span>
+                    <div style={knobRowStyle}>
+                      <VocalKnob
+                        label="Threshold"
+                        value={gateThreshold}
+                        min={-80} max={-10} step={1}
+                        onChange={setGateThreshold}
+                        formatValue={(v) => `${v.toFixed(0)} dB`}
+                        size="medium"
+                        color="#ff8c00"
+                        showScale
+                      />
+                      <VocalKnob
+                        label="Attack"
+                        value={gateAttack}
+                        min={0.1} max={10} step={0.1}
+                        onChange={setGateAttack}
+                        formatValue={(v) => `${v.toFixed(1)} ms`}
+                        size="small"
+                        color="#ff8c00"
+                      />
+                      <VocalKnob
+                        label="Release"
+                        value={gateRelease}
+                        min={5} max={500} step={1}
+                        onChange={setGateRelease}
+                        formatValue={(v) => `${Math.round(v)} ms`}
+                        size="small"
+                        color="#ff8c00"
+                      />
+                      <VocalKnob
+                        label="Range"
+                        value={gateRange}
+                        min={-100} max={0} step={1}
+                        onChange={setGateRange}
+                        formatValue={(v) => `${v.toFixed(0)} dB`}
+                        size="small"
+                        color="#ff8c00"
+                      />
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* De-Esser */}
+              {/* ── De-Esser ── */}
               <div className={`vp-fx-block ${deesserEnabled ? 'enabled' : 'bypassed'}`}>
                 <div className="vp-fx-header" onClick={() => toggleFx('deesser')}>
                   <button className="vp-fx-toggle" onClick={e => { e.stopPropagation(); setDeesserEnabled(!deesserEnabled); }}>
@@ -983,67 +1286,102 @@ const VocalProcessor = ({
                 </div>
                 {expandedFx.deesser && (
                   <div className="vp-fx-controls">
-                    <div className="vp-param">
-                      <label>Frequency</label>
-                      <input type="range" min={3000} max={12000} value={deesserFreq}
-                        onChange={e => setDeesserFreq(+e.target.value)} className="vp-slider" />
-                      <span>{fmtHz(deesserFreq)} Hz</span>
-                    </div>
-                    <div className="vp-param">
-                      <label>Threshold</label>
-                      <input type="range" min={-40} max={0} value={deesserThreshold}
-                        onChange={e => setDeesserThreshold(+e.target.value)} className="vp-slider" />
-                      <span>{fmtDb(deesserThreshold)}</span>
-                    </div>
-                    <div className="vp-param">
-                      <label>Reduction</label>
-                      <input type="range" min={0} max={20} value={deesserReduction}
-                        onChange={e => setDeesserReduction(+e.target.value)} className="vp-slider" />
-                      <span>{deesserReduction} dB</span>
+                    <div style={knobRowStyle}>
+                      <VocalKnob
+                        label="Frequency"
+                        value={deesserFreq}
+                        min={3000} max={12000} step={100}
+                        onChange={setDeesserFreq}
+                        formatValue={(v) => `${fmtHz(v)} Hz`}
+                        size="medium"
+                        color="#ffaa00"
+                        showScale
+                      />
+                      <VocalKnob
+                        label="Threshold"
+                        value={deesserThreshold}
+                        min={-40} max={0} step={1}
+                        onChange={setDeesserThreshold}
+                        formatValue={(v) => `${v.toFixed(0)} dB`}
+                        size="medium"
+                        color="#ffaa00"
+                        showScale
+                      />
+                      <VocalKnob
+                        label="Reduction"
+                        value={deesserReduction}
+                        min={0} max={20} step={1}
+                        onChange={setDeesserReduction}
+                        formatValue={(v) => `${Math.round(v)} dB`}
+                        size="medium"
+                        color="#ffaa00"
+                        showScale
+                      />
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Compressor */}
+              {/* ── Compressor ── */}
               <div className="vp-fx-block enabled">
                 <div className="vp-fx-header" onClick={() => toggleFx('comp')}>
                   <span className="vp-fx-toggle always-on">◉</span>
                   <span className="vp-fx-icon">🗜</span>
                   <span className="vp-fx-name">Compressor</span>
                   <span className="vp-fx-value">{compRatio}:1</span>
+                  {compGainReduction < -0.5 && (
+                    <span style={{ marginLeft: 8, fontSize: '0.6rem', color: '#ff8c00', fontFamily: 'monospace' }}>
+                      GR: {compGainReduction.toFixed(1)} dB
+                    </span>
+                  )}
                 </div>
                 {expandedFx.comp && (
                   <div className="vp-fx-controls">
-                    <div className="vp-param">
-                      <label>Threshold</label>
-                      <input type="range" min={-60} max={0} value={compThreshold}
-                        onChange={e => setCompThreshold(+e.target.value)} className="vp-slider" />
-                      <span>{fmtDb(compThreshold)}</span>
-                    </div>
-                    <div className="vp-param">
-                      <label>Ratio</label>
-                      <input type="range" min={1} max={20} step={0.5} value={compRatio}
-                        onChange={e => setCompRatio(+e.target.value)} className="vp-slider" />
-                      <span>{compRatio}:1</span>
-                    </div>
-                    <div className="vp-param">
-                      <label>Attack</label>
-                      <input type="range" min={0.1} max={100} step={0.1} value={compAttack}
-                        onChange={e => setCompAttack(+e.target.value)} className="vp-slider" />
-                      <span>{fmtMs(compAttack)}</span>
-                    </div>
-                    <div className="vp-param">
-                      <label>Release</label>
-                      <input type="range" min={10} max={1000} value={compRelease}
-                        onChange={e => setCompRelease(+e.target.value)} className="vp-slider" />
-                      <span>{fmtMs(compRelease)}</span>
+                    <div style={knobRowStyle}>
+                      <VocalKnob
+                        label="Threshold"
+                        value={compThreshold}
+                        min={-60} max={0} step={1}
+                        onChange={setCompThreshold}
+                        formatValue={(v) => `${v.toFixed(0)} dB`}
+                        size="medium"
+                        color="#00d4ff"
+                        showScale
+                      />
+                      <VocalKnob
+                        label="Ratio"
+                        value={compRatio}
+                        min={1} max={20} step={0.5}
+                        onChange={setCompRatio}
+                        formatValue={(v) => `${v}:1`}
+                        size="medium"
+                        color="#00d4ff"
+                        showScale
+                      />
+                      <VocalKnob
+                        label="Attack"
+                        value={compAttack}
+                        min={0.1} max={100} step={0.1}
+                        onChange={setCompAttack}
+                        formatValue={(v) => `${v.toFixed(1)} ms`}
+                        size="small"
+                        color="#00d4ff"
+                      />
+                      <VocalKnob
+                        label="Release"
+                        value={compRelease}
+                        min={10} max={1000} step={1}
+                        onChange={setCompRelease}
+                        formatValue={(v) => `${Math.round(v)} ms`}
+                        size="small"
+                        color="#00d4ff"
+                      />
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* EQ */}
+              {/* ── EQ ── */}
               <div className="vp-fx-block enabled">
                 <div className="vp-fx-header" onClick={() => toggleFx('eq')}>
                   <span className="vp-fx-toggle always-on">◉</span>
@@ -1052,37 +1390,55 @@ const VocalProcessor = ({
                 </div>
                 {expandedFx.eq && (
                   <div className="vp-fx-controls">
-                    <div className="vp-param">
-                      <label>High-Pass</label>
-                      <input type="range" min={20} max={400} value={eqHighpass}
-                        onChange={e => setEqHighpass(+e.target.value)} className="vp-slider vp-slider-orange" />
-                      <span>{eqHighpass} Hz</span>
-                    </div>
-                    {eqLowpass < 20000 && (
-                      <div className="vp-param">
-                        <label>Low-Pass</label>
-                        <input type="range" min={2000} max={20000} value={eqLowpass}
-                          onChange={e => setEqLowpass(+e.target.value)} className="vp-slider vp-slider-orange" />
-                        <span>{fmtHz(eqLowpass)} Hz</span>
-                      </div>
-                    )}
-                    <div className="vp-param">
-                      <label>Presence ({fmtHz(eqPresenceFreq)})</label>
-                      <input type="range" min={-12} max={12} step={0.5} value={eqPresenceGain}
-                        onChange={e => setEqPresenceGain(+e.target.value)} className="vp-slider" />
-                      <span>{eqPresenceGain > 0 ? '+' : ''}{eqPresenceGain} dB</span>
-                    </div>
-                    <div className="vp-param">
-                      <label>Air ({fmtHz(eqAirFreq)})</label>
-                      <input type="range" min={-12} max={12} step={0.5} value={eqAirGain}
-                        onChange={e => setEqAirGain(+e.target.value)} className="vp-slider" />
-                      <span>{eqAirGain > 0 ? '+' : ''}{eqAirGain} dB</span>
+                    <div style={knobRowStyle}>
+                      <VocalKnob
+                        label="High-Pass"
+                        value={eqHighpass}
+                        min={20} max={400} step={1}
+                        onChange={setEqHighpass}
+                        formatValue={(v) => `${Math.round(v)} Hz`}
+                        size="medium"
+                        color="#ff6b35"
+                        showScale
+                      />
+                      {eqLowpass < 20000 && (
+                        <VocalKnob
+                          label="Low-Pass"
+                          value={eqLowpass}
+                          min={2000} max={20000} step={100}
+                          onChange={setEqLowpass}
+                          formatValue={(v) => `${fmtHz(v)} Hz`}
+                          size="medium"
+                          color="#ff6b35"
+                          showScale
+                        />
+                      )}
+                      <VocalKnob
+                        label={`Presence`}
+                        value={eqPresenceGain}
+                        min={-12} max={12} step={0.5}
+                        onChange={setEqPresenceGain}
+                        formatValue={(v) => `${v > 0 ? '+' : ''}${v} dB`}
+                        size="medium"
+                        color="#33cc55"
+                        showScale
+                      />
+                      <VocalKnob
+                        label="Air"
+                        value={eqAirGain}
+                        min={-12} max={12} step={0.5}
+                        onChange={setEqAirGain}
+                        formatValue={(v) => `${v > 0 ? '+' : ''}${v} dB`}
+                        size="medium"
+                        color="#33cc55"
+                        showScale
+                      />
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Saturation */}
+              {/* ── Saturation ── */}
               <div className={`vp-fx-block ${saturation > 0 ? 'enabled' : 'bypassed'}`}>
                 <div className="vp-fx-header" onClick={() => toggleFx('saturation')}>
                   <button className="vp-fx-toggle" onClick={e => { e.stopPropagation(); setSaturation(saturation > 0 ? 0 : 15); }}>
@@ -1094,17 +1450,23 @@ const VocalProcessor = ({
                 </div>
                 {expandedFx.saturation && (
                   <div className="vp-fx-controls">
-                    <div className="vp-param">
-                      <label>Amount</label>
-                      <input type="range" min={0} max={100} value={saturation}
-                        onChange={e => setSaturation(+e.target.value)} className="vp-slider" />
-                      <span>{saturation}%</span>
+                    <div style={knobRowStyle}>
+                      <VocalKnob
+                        label="Amount"
+                        value={saturation}
+                        min={0} max={100} step={1}
+                        onChange={setSaturation}
+                        formatValue={(v) => `${Math.round(v)}%`}
+                        size="large"
+                        color="#ff3333"
+                        showScale
+                      />
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Vocal Doubler */}
+              {/* ── Vocal Doubler ── */}
               <div className={`vp-fx-block ${doublerEnabled ? 'enabled' : 'bypassed'}`}>
                 <div className="vp-fx-header" onClick={() => toggleFx('doubler')}>
                   <button className="vp-fx-toggle" onClick={e => { e.stopPropagation(); setDoublerEnabled(!doublerEnabled); }}>
@@ -1115,32 +1477,46 @@ const VocalProcessor = ({
                 </div>
                 {expandedFx.doubler && (
                   <div className="vp-fx-controls">
-                    <div className="vp-param">
-                      <label>Detune</label>
-                      <input type="range" min={1} max={30} value={doublerDetune}
-                        onChange={e => setDoublerDetune(+e.target.value)} className="vp-slider" />
-                      <span>{doublerDetune}¢</span>
-                    </div>
-                    <div className="vp-param">
-                      <label>Delay</label>
-                      <input type="range" min={5} max={80} value={doublerDelay}
-                        onChange={e => setDoublerDelay(+e.target.value)} className="vp-slider" />
-                      <span>{fmtMs(doublerDelay)}</span>
-                    </div>
-                    <div className="vp-param">
-                      <label>Mix</label>
-                      <input type="range" min={0} max={100} value={doublerMix * 100}
-                        onChange={e => setDoublerMix(e.target.value / 100)} className="vp-slider" />
-                      <span>{Math.round(doublerMix * 100)}%</span>
+                    <div style={knobRowStyle}>
+                      <VocalKnob
+                        label="Detune"
+                        value={doublerDetune}
+                        min={1} max={30} step={1}
+                        onChange={setDoublerDetune}
+                        formatValue={(v) => `${Math.round(v)}¢`}
+                        size="medium"
+                        color="#aa55ff"
+                        showScale
+                      />
+                      <VocalKnob
+                        label="Delay"
+                        value={doublerDelay}
+                        min={5} max={80} step={1}
+                        onChange={setDoublerDelay}
+                        formatValue={(v) => `${Math.round(v)} ms`}
+                        size="medium"
+                        color="#aa55ff"
+                        showScale
+                      />
+                      <VocalKnob
+                        label="Mix"
+                        value={doublerMix * 100}
+                        min={0} max={100} step={1}
+                        onChange={(v) => setDoublerMix(v / 100)}
+                        formatValue={(v) => `${Math.round(v)}%`}
+                        size="medium"
+                        color="#aa55ff"
+                        showScale
+                      />
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Pitch Shift */}
+              {/* ── Pitch Shift ── */}
               <div className={`vp-fx-block ${pitchShift !== 0 ? 'enabled' : 'bypassed'}`}>
                 <div className="vp-fx-header" onClick={() => toggleFx('pitch')}>
-                  <button className="vp-fx-toggle" onClick={e => { e.stopPropagation(); setPitchShift(pitchShift !== 0 ? 0 : 0); }}>
+                  <button className="vp-fx-toggle" onClick={e => { e.stopPropagation(); setPitchShift(0); }}>
                     {pitchShift !== 0 ? '◉' : '○'}
                   </button>
                   <span className="vp-fx-icon">🎵</span>
@@ -1149,17 +1525,23 @@ const VocalProcessor = ({
                 </div>
                 {expandedFx.pitch && (
                   <div className="vp-fx-controls">
-                    <div className="vp-param">
-                      <label>Semitones</label>
-                      <input type="range" min={-12} max={12} value={pitchShift}
-                        onChange={e => setPitchShift(+e.target.value)} className="vp-slider" />
-                      <span>{pitchShift > 0 ? '+' : ''}{pitchShift}st</span>
+                    <div style={knobRowStyle}>
+                      <VocalKnob
+                        label="Semitones"
+                        value={pitchShift}
+                        min={-12} max={12} step={1}
+                        onChange={setPitchShift}
+                        formatValue={(v) => `${v > 0 ? '+' : ''}${v}st`}
+                        size="large"
+                        color="#00ffc8"
+                        showScale
+                      />
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Reverb */}
+              {/* ── Reverb ── */}
               <div className={`vp-fx-block ${reverbMix > 0 ? 'enabled' : 'bypassed'}`}>
                 <div className="vp-fx-header" onClick={() => toggleFx('reverb')}>
                   <span className="vp-fx-toggle always-on">◉</span>
@@ -1169,23 +1551,33 @@ const VocalProcessor = ({
                 </div>
                 {expandedFx.reverb && (
                   <div className="vp-fx-controls">
-                    <div className="vp-param">
-                      <label>Mix</label>
-                      <input type="range" min={0} max={100} value={reverbMix * 100}
-                        onChange={e => setReverbMix(e.target.value / 100)} className="vp-slider" />
-                      <span>{Math.round(reverbMix * 100)}%</span>
-                    </div>
-                    <div className="vp-param">
-                      <label>Decay</label>
-                      <input type="range" min={0.1} max={8} step={0.1} value={reverbDecay}
-                        onChange={e => setReverbDecay(+e.target.value)} className="vp-slider" />
-                      <span>{reverbDecay.toFixed(1)}s</span>
+                    <div style={knobRowStyle}>
+                      <VocalKnob
+                        label="Mix"
+                        value={reverbMix * 100}
+                        min={0} max={100} step={1}
+                        onChange={(v) => setReverbMix(v / 100)}
+                        formatValue={(v) => `${Math.round(v)}%`}
+                        size="medium"
+                        color="#00d4ff"
+                        showScale
+                      />
+                      <VocalKnob
+                        label="Decay"
+                        value={reverbDecay}
+                        min={0.1} max={8} step={0.1}
+                        onChange={setReverbDecay}
+                        formatValue={(v) => `${v.toFixed(1)}s`}
+                        size="medium"
+                        color="#00d4ff"
+                        showScale
+                      />
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Limiter */}
+              {/* ── Limiter ── */}
               <div className={`vp-fx-block ${limiterEnabled ? 'enabled' : 'bypassed'}`}>
                 <div className="vp-fx-header" onClick={() => toggleFx('limiter')}>
                   <button className="vp-fx-toggle" onClick={e => { e.stopPropagation(); setLimiterEnabled(!limiterEnabled); }}>
@@ -1197,21 +1589,32 @@ const VocalProcessor = ({
                 </div>
                 {expandedFx.limiter && (
                   <div className="vp-fx-controls">
-                    <div className="vp-param">
-                      <label>Ceiling</label>
-                      <input type="range" min={-12} max={0} step={0.1} value={limiterThreshold}
-                        onChange={e => setLimiterThreshold(+e.target.value)} className="vp-slider" />
-                      <span>{fmtDb(limiterThreshold)}</span>
-                    </div>
-                    <div className="vp-param">
-                      <label>Release</label>
-                      <input type="range" min={10} max={500} value={limiterRelease}
-                        onChange={e => setLimiterRelease(+e.target.value)} className="vp-slider" />
-                      <span>{fmtMs(limiterRelease)}</span>
+                    <div style={knobRowStyle}>
+                      <VocalKnob
+                        label="Ceiling"
+                        value={limiterThreshold}
+                        min={-12} max={0} step={0.1}
+                        onChange={setLimiterThreshold}
+                        formatValue={(v) => `${v.toFixed(1)} dB`}
+                        size="medium"
+                        color="#ff3333"
+                        showScale
+                      />
+                      <VocalKnob
+                        label="Release"
+                        value={limiterRelease}
+                        min={10} max={500} step={1}
+                        onChange={setLimiterRelease}
+                        formatValue={(v) => `${Math.round(v)} ms`}
+                        size="medium"
+                        color="#ff3333"
+                        showScale
+                      />
                     </div>
                   </div>
                 )}
               </div>
+
             </div>
           </div>
         )}
@@ -1272,7 +1675,6 @@ const VocalProcessor = ({
               <button className="vp-btn" onClick={() => { setActiveTab('ai'); runAIAnalysis(); }}>🤖 Get AI Suggestions</button>
             </div>
 
-            {/* Vocal Range Reference */}
             <div className="vp-range-chart">
               <div className="vp-analyzer-section-label">Vocal Range Reference</div>
               <div className="vp-range-bars">
@@ -1375,7 +1777,6 @@ const VocalProcessor = ({
               audioContext={getCtx()}
               audioBuffer={selectedBuffer}
               onHarmonyCreated={(voices) => {
-                // Send each harmony voice to a new track
                 voices.forEach((v, i) => {
                   if (onSendToTrack) onSendToTrack(v.buffer, v.name);
                 });

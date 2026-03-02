@@ -23,7 +23,7 @@
 #   - Pro: 8 participants max
 # =============================================================================
 
-from api.models import db, PricingPlan
+from src.api.models import db, PricingPlan
 from datetime import datetime
 from app import app
 
