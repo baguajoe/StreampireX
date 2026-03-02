@@ -31,6 +31,7 @@ import ConsoleFXPanel from "../component/ConsoleFXPanel";
 import PanKnob from "../component/PanKnob";
 import { InlineStemSeparation, AudioToMIDIPanel, PitchCorrectionPanel } from "../component/DAWAdvancedFeatures";
 
+
 // ── Piano Roll / MIDI / Chord imports ──
 import PianoRoll from "../component/PianoRoll";
 import ChordProgressionGenerator from "../component/ChordProgressionGenerator";
