@@ -8,6 +8,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import '../../styles/SamplerBeatMaker.css';
+import '../../styles/SamplerBeatMaker-compat.css';
 
 // =============================================================================
 // CONSTANTS
@@ -224,6 +225,62 @@ const SamplerBeatMaker = ({
   const [activeKgNotes, setActiveKgNotes] = useState(new Set()); // Phase 3: active keygroup notes
   const [showKeyboard, setShowKeyboard] = useState(false); // Phase 3: visual keyboard
 
+  // ==== PHASE 6: BUS ROUTING (Multiple Outputs) ====
+  const [padBusAssign, setPadBusAssign] = useState(Array(16).fill('master')); // 'master' | 'A' | 'B' | 'C' | 'D'
+  const [busSettings, setBusSettings] = useState({
+    A: { volume: 0.8, pan: 0, muted: false, soloed: false, filterOn: false, filterType: 'lowpass', filterFreq: 2000, filterQ: 1, reverbOn: false, reverbMix: 0.3, delayOn: false, delayTime: 0.25, delayFeedback: 0.3, delayMix: 0.2, compOn: false, compThreshold: -24, compRatio: 4, compAttack: 0.003, compRelease: 0.25 },
+    B: { volume: 0.8, pan: 0, muted: false, soloed: false, filterOn: false, filterType: 'lowpass', filterFreq: 2000, filterQ: 1, reverbOn: false, reverbMix: 0.3, delayOn: false, delayTime: 0.25, delayFeedback: 0.3, delayMix: 0.2, compOn: false, compThreshold: -24, compRatio: 4, compAttack: 0.003, compRelease: 0.25 },
+    C: { volume: 0.8, pan: 0, muted: false, soloed: false, filterOn: false, filterType: 'lowpass', filterFreq: 2000, filterQ: 1, reverbOn: false, reverbMix: 0.3, delayOn: false, delayTime: 0.25, delayFeedback: 0.3, delayMix: 0.2, compOn: false, compThreshold: -24, compRatio: 4, compAttack: 0.003, compRelease: 0.25 },
+    D: { volume: 0.8, pan: 0, muted: false, soloed: false, filterOn: false, filterType: 'lowpass', filterFreq: 2000, filterQ: 1, reverbOn: false, reverbMix: 0.3, delayOn: false, delayTime: 0.25, delayFeedback: 0.3, delayMix: 0.2, compOn: false, compThreshold: -24, compRatio: 4, compAttack: 0.003, compRelease: 0.25 },
+  });
+  const busNodesRef = useRef({}); // { A: { gain, pan, filter, comp }, B: ... }
+  const [showBusPanel, setShowBusPanel] = useState(false);
+  const [selectedBus, setSelectedBus] = useState('A');
+
+  // ==== PHASE 7: AUTOMATION LANES (Per-step parameter automation) ====
+  const AUTOMATION_PARAMS = useMemo(() => [
+    { key: 'filterFreq', label: 'Filter Freq', min: 20, max: 20000, default: 2000, unit: 'Hz', log: true },
+    { key: 'pitch', label: 'Pitch', min: -12, max: 12, default: 0, unit: 'st', log: false },
+    { key: 'pan', label: 'Pan', min: -1, max: 1, default: 0, unit: '', log: false },
+    { key: 'reverbSend', label: 'Reverb', min: 0, max: 1, default: 0, unit: '%', log: false },
+    { key: 'volume', label: 'Volume', min: 0, max: 1, default: 0.8, unit: '%', log: false },
+    { key: 'delaySend', label: 'Delay', min: 0, max: 1, default: 0, unit: '%', log: false },
+  ], []);
+  // automation[padIdx][paramKey] = Array(stepCount) of null|number — null = no automation
+  const [automation, setAutomation] = useState(() =>
+    Array.from({ length: 16 }, () => {
+      const obj = {};
+      ['filterFreq','pitch','pan','reverbSend','volume','delaySend'].forEach(k => { obj[k] = Array(64).fill(null); });
+      return obj;
+    })
+  );
+  const automationRef = useRef(automation);
+  useEffect(() => { automationRef.current = automation; }, [automation]);
+  const [showAutomation, setShowAutomation] = useState(false);
+  const [automationParam, setAutomationParam] = useState('filterFreq');
+  const [automationPad, setAutomationPad] = useState(0);
+  const [automationDrawing, setAutomationDrawing] = useState(false);
+
+  // ==== PHASE 8: SLICE MODE SEQUENCING (FL Slicer style) ====
+  const [sliceMode, setSliceMode] = useState(false);
+  // sliceSeq[stepIdx] = sliceIndex | null — which chop slice to trigger at each step
+  const [sliceSeq, setSliceSeq] = useState(Array(64).fill(null));
+  const sliceSeqRef = useRef(sliceSeq);
+  useEffect(() => { sliceSeqRef.current = sliceSeq; }, [sliceSeq]);
+  const [sliceSourcePad, setSliceSourcePad] = useState(0); // which pad's chop slices to use
+  // Stored slice buffers (from distributeToPads or chop operation)
+  const [sliceBuffers, setSliceBuffers] = useState([]); // [{ buffer, name, start, end }]
+  const sliceBuffersRef = useRef(sliceBuffers);
+  useEffect(() => { sliceBuffersRef.current = sliceBuffers; }, [sliceBuffers]);
+
+  // ==== PHASE 9: INLINE STEM SEPARATOR ====
+  const STEM_BACKEND = process.env.REACT_APP_BACKEND_URL || 'https://streampirex-api.up.railway.app';
+  const [stemSeparating, setStemSeparating] = useState(false);
+  const [stemProgress, setStemProgress] = useState('');
+  const [stemResults, setStemResults] = useState(null); // { vocals: { url, name }, drums: {...}, bass: {...}, other: {...} }
+  const [stemModel, setStemModel] = useState('htdemucs');
+  const [stemError, setStemError] = useState('');
+
   // ==== PHASE 5: Clip Launcher STATE ====
   const [showClipLauncher, setShowClipLauncher] = useState(false);
   const [scenes, setScenes] = useState(() => Array.from({ length: 4 }, (_, i) => ({
@@ -336,9 +393,17 @@ const SamplerBeatMaker = ({
     const c = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive', sampleRate: 44100 });
     const mg = c.createGain(); mg.gain.value = masterVol; mg.connect(c.destination); masterRef.current = mg;
     const met = c.createGain(); met.gain.value = 0.3; met.connect(c.destination); metGainRef.current = met;
+    // Phase 6: Create bus nodes (A, B, C, D)
+    ['A','B','C','D'].forEach(bus => {
+      const g = c.createGain(); const p = c.createStereoPanner();
+      g.gain.value = busSettings[bus]?.volume ?? 0.8;
+      p.pan.value = busSettings[bus]?.pan ?? 0;
+      g.connect(p); p.connect(mg);
+      busNodesRef.current[bus] = { gain: g, pan: p };
+    });
     ctxRef.current = c;
     return c;
-  }, [masterVol]);
+  }, [masterVol, busSettings]);
 
   // =========================================================================
   // DEVICE DETECTION
@@ -362,6 +427,17 @@ const SamplerBeatMaker = ({
 
   useEffect(() => { const c = ctxRef.current; if (c && selOut !== 'default' && c.setSinkId) c.setSinkId(selOut).catch(() => {}); }, [selOut]);
   useEffect(() => { if (masterRef.current) masterRef.current.gain.value = masterVol; }, [masterVol]);
+
+  // Phase 6: Live-update bus gain/pan/mute
+  useEffect(() => {
+    ['A','B','C','D'].forEach(bus => {
+      const node = busNodesRef.current[bus];
+      if (!node) return;
+      const s = busSettings[bus];
+      node.gain.gain.value = s.muted ? 0 : s.volume;
+      node.pan.pan.value = s.pan;
+    });
+  }, [busSettings]);
 
   // =========================================================================
   // MIDI (Phase 3)
@@ -760,7 +836,7 @@ const SamplerBeatMaker = ({
   // Phase 2: Velocity layer management
   const addLayer = useCallback((pi) => {
     setPads(p => {
-      const u = [...p]; if (u[pi].layers.length >= 4) return u;
+      const u = [...p]; if (u[pi].layers.length >= 8) return u;
       const count = u[pi].layers.length + 1;
       const zoneSize = Math.floor(128 / count);
       const layers = [...u[pi].layers, { buffer: null, name: '', velocityMin: 0, velocityMax: 127, volume: 1 }];
@@ -917,10 +993,29 @@ const SamplerBeatMaker = ({
     }
     pan.pan.value = pad.pan;
 
-    // Effects chain: src → [filter] → [distortion] → gain → pan → master + [delay wet] + [reverb wet]
+    // Effects chain: src → [filter] → [distortion] → gain → pan → [bus|master] + [delay wet] + [reverb wet]
     let last = src;
-    if (pad.filterOn) {
-      const f = c.createBiquadFilter(); f.type = pad.filterType; f.frequency.value = pad.filterFreq; f.Q.value = pad.filterQ;
+
+    // Phase 7: Apply per-step automation overrides
+    const autoData = automationRef.current?.[pi];
+    const autoStep = time ? Math.round((time - (nextStepT.current - 60.0 / bpmRef.current / 4)) / (60.0 / bpmRef.current / 4)) : -1;
+    let autoFilterFreq = pad.filterFreq, autoPitch = pad.pitch, autoPan = pad.pan;
+    let autoReverbSend = pad.reverbOn ? pad.reverbMix : 0;
+    let autoDelaySend = pad.delayOn ? pad.delayMix : 0;
+    let autoVolume = null;
+    if (autoData && autoStep >= 0 && autoStep < scRef.current) {
+      if (autoData.filterFreq?.[autoStep] != null) autoFilterFreq = autoData.filterFreq[autoStep];
+      if (autoData.pitch?.[autoStep] != null) autoPitch = autoData.pitch[autoStep];
+      if (autoData.pan?.[autoStep] != null) autoPan = autoData.pan[autoStep];
+      if (autoData.reverbSend?.[autoStep] != null) autoReverbSend = autoData.reverbSend[autoStep];
+      if (autoData.delaySend?.[autoStep] != null) autoDelaySend = autoData.delaySend[autoStep];
+      if (autoData.volume?.[autoStep] != null) autoVolume = autoData.volume[autoStep];
+    }
+    // Apply automation pitch
+    if (autoPitch !== pad.pitch) src.playbackRate.value = Math.pow(2, autoPitch / 12);
+
+    if (pad.filterOn || (autoData?.filterFreq?.some(v => v != null))) {
+      const f = c.createBiquadFilter(); f.type = pad.filterType; f.frequency.value = autoFilterFreq; f.Q.value = pad.filterQ;
       last.connect(f); last = f;
     }
     if (pad.distortionOn) {
@@ -929,18 +1024,27 @@ const SamplerBeatMaker = ({
       for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; curve[i] = ((3 + amt) * x * 20 * (Math.PI / 180)) / (Math.PI + amt * Math.abs(x)); }
       ws.curve = curve; ws.oversample = '2x'; last.connect(ws); last = ws;
     }
-    last.connect(gain); gain.connect(pan); pan.connect(masterRef.current);
+    last.connect(gain); gain.connect(pan);
+    // Phase 7: Apply automation volume override
+    if (autoVolume != null) gain.gain.value = autoVolume * vel * layerVol;
+    // Phase 7: Apply automation pan override
+    pan.pan.value = autoPan;
+    // Phase 6: Route to assigned bus or master
+    const busAssign = padBusAssign[pi] || 'master';
+    const destNode = (busAssign !== 'master' && busNodesRef.current[busAssign])
+      ? busNodesRef.current[busAssign].gain : masterRef.current;
+    pan.connect(destNode);
 
-    if (pad.delayOn) {
+    if (pad.delayOn || autoDelaySend > 0) {
       const dl = c.createDelay(2), dg = c.createGain(), fb = c.createGain();
-      dl.delayTime.value = pad.delayTime; dg.gain.value = pad.delayMix; fb.gain.value = pad.delayFeedback;
-      pan.connect(dl); dl.connect(dg); dl.connect(fb); fb.connect(dl); dg.connect(masterRef.current);
+      dl.delayTime.value = pad.delayTime; dg.gain.value = autoDelaySend > 0 ? autoDelaySend : pad.delayMix; fb.gain.value = pad.delayFeedback;
+      pan.connect(dl); dl.connect(dg); dl.connect(fb); fb.connect(dl); dg.connect(destNode);
     }
-    if (pad.reverbOn) {
+    if (pad.reverbOn || autoReverbSend > 0) {
       const ir = getReverbIR(c, 2.0);
       const conv = c.createConvolver(), rg = c.createGain();
-      conv.buffer = ir; rg.gain.value = pad.reverbMix;
-      pan.connect(conv); conv.connect(rg); rg.connect(masterRef.current);
+      conv.buffer = ir; rg.gain.value = autoReverbSend > 0 ? autoReverbSend : pad.reverbMix;
+      pan.connect(conv); conv.connect(rg); rg.connect(destNode);
     }
 
     const off = pad.trimStart || 0;
@@ -1037,18 +1141,23 @@ const SamplerBeatMaker = ({
       for (let i = 0; i < 44100; i++) { const x = (i * 2) / 44100 - 1; curve[i] = ((3 + amt) * x * 20 * (Math.PI / 180)) / (Math.PI + amt * Math.abs(x)); }
       ws.curve = curve; ws.oversample = '2x'; last.connect(ws); last = ws;
     }
-    last.connect(gain); gain.connect(pan); pan.connect(masterRef.current);
+    last.connect(gain); gain.connect(pan);
+    // Phase 6: Route keygroup to assigned bus or master
+    const kgBusAssign = padBusAssign[pi] || 'master';
+    const kgDest = (kgBusAssign !== 'master' && busNodesRef.current[kgBusAssign])
+      ? busNodesRef.current[kgBusAssign].gain : masterRef.current;
+    pan.connect(kgDest);
 
     if (pad.delayOn) {
       const dl = c.createDelay(2), dg = c.createGain(), fb = c.createGain();
       dl.delayTime.value = pad.delayTime; dg.gain.value = pad.delayMix; fb.gain.value = pad.delayFeedback;
-      pan.connect(dl); dl.connect(dg); dl.connect(fb); fb.connect(dl); dg.connect(masterRef.current);
+      pan.connect(dl); dl.connect(dg); dl.connect(fb); fb.connect(dl); dg.connect(kgDest);
     }
     if (pad.reverbOn) {
       const ir = getReverbIR(c, 2.0);
       const conv = c.createConvolver(), rg = c.createGain();
       conv.buffer = ir; rg.gain.value = pad.reverbMix;
-      pan.connect(conv); conv.connect(rg); rg.connect(masterRef.current);
+      pan.connect(conv); conv.connect(rg); rg.connect(kgDest);
     }
 
     // Playback — loop for sustained keygroup, oneshot otherwise
@@ -1119,16 +1228,68 @@ const SamplerBeatMaker = ({
   }, []);
 
   // =========================================================================
+  // PHASE 8: SLICE PLAYBACK (FL Slicer style)
+  // =========================================================================
+
+  const playSlice = useCallback((sliceIdx, vel = 0.8, time = null) => {
+    const slices = sliceBuffersRef.current;
+    if (!slices || sliceIdx >= slices.length || !slices[sliceIdx]?.buffer) return;
+    const c = initCtx();
+    const slice = slices[sliceIdx];
+    const src = c.createBufferSource();
+    const gain = c.createGain();
+    src.buffer = slice.buffer;
+    gain.gain.value = vel * masterVol;
+    src.connect(gain); gain.connect(masterRef.current);
+    const st = time || c.currentTime;
+    src.start(st);
+    src.onended = () => {};
+  }, [initCtx, masterVol]);
+
+  // Generate slice buffers from chop points on a source pad
+  const generateSliceBuffers = useCallback((pi) => {
+    const pad = padsRef.current[pi]; if (!pad?.buffer) return;
+    const c = initCtx(); const buf = pad.buffer;
+    const sr = buf.sampleRate; const nc = buf.numberOfChannels;
+    const pts = chopPts.length > 0 ? chopPts : [];
+    const all = [0, ...pts, buf.duration];
+    const buffers = [];
+    for (let i = 0; i < all.length - 1; i++) {
+      const startSample = Math.floor(all[i] * sr);
+      const endSample = Math.min(Math.ceil(all[i + 1] * sr), buf.length);
+      const len = endSample - startSample;
+      if (len <= 0) continue;
+      const sliceBuf = c.createBuffer(nc, len, sr);
+      for (let ch = 0; ch < nc; ch++) {
+        const s = buf.getChannelData(ch), d = sliceBuf.getChannelData(ch);
+        for (let j = 0; j < len; j++) d[j] = s[startSample + j];
+        // Quick fade edges
+        const fi = Math.min(88, Math.floor(len / 4));
+        for (let j = 0; j < fi; j++) { d[j] *= j / fi; d[len - 1 - j] *= j / fi; }
+      }
+      buffers.push({ buffer: sliceBuf, name: `Slice ${i + 1}`, start: all[i], end: all[i + 1] });
+    }
+    setSliceBuffers(buffers);
+    setSliceSourcePad(pi);
+    return buffers;
+  }, [initCtx, chopPts]);
+
+  // =========================================================================
   // SEQUENCER ENGINE
   // =========================================================================
 
   const schedStep = useCallback((si, t) => {
     const cs = stepsRef.current;
+    // Phase 8: Slice mode — trigger slice instead of regular pads
+    if (sliceMode && sliceSeqRef.current[si] != null) {
+      playSlice(sliceSeqRef.current[si], 0.8, t);
+    }
+    // Regular pad triggers
     for (let pi = 0; pi < 16; pi++) { if (cs[pi]?.[si]) playPad(pi, stepVel[pi]?.[si] ?? 0.8, t); }
     if (metRef.current) { const spb = scRef.current / 4; metClick(t, si % spb === 0); } // Fix #5: spb based on step count / beats
     const d = (t - ctxRef.current.currentTime) * 1000;
     setTimeout(() => setCurStep(si), Math.max(0, d));
-  }, [playPad, metClick, stepVel]);
+  }, [playPad, metClick, stepVel, sliceMode, playSlice]);
 
   const startSeq = useCallback(() => {
     const c = initCtx(); if (c.state === 'suspended') c.resume();
@@ -2258,6 +2419,9 @@ const SamplerBeatMaker = ({
           <button className={`transport-btn ${showLib ? 'active' : ''}`} onClick={() => setShowLib(p => !p)} title="Library">📚</button>
           <button className={`transport-btn ${songMode ? 'active' : ''}`} onClick={() => setSongMode(p => !p)} title="Song Mode">🎼</button>
           <button className={`transport-btn ${showClipLauncher ? 'active' : ''}`} onClick={() => setShowClipLauncher(p => !p)} title="Clip Launcher">🚀</button>
+          <button className={`transport-btn ${showBusPanel ? 'active' : ''}`} onClick={() => setShowBusPanel(p => !p)} title="Bus Routing">🔀</button>
+          <button className={`transport-btn ${showAutomation ? 'active' : ''}`} onClick={() => setShowAutomation(p => !p)} title="Automation Lanes">📈</button>
+          <button className={`transport-btn ${sliceMode ? 'active' : ''}`} onClick={() => setSliceMode(p => !p)} title="Slice Sequencer">🔪</button>
 
           {/* SPX Flow Integration */}
           {onOpenSampler && <button className="transport-btn" onClick={onOpenSampler} title="Open Sampler — load/chop samples">〰 Sampler</button>}
@@ -2835,6 +2999,7 @@ const SamplerBeatMaker = ({
             <button className={settingsTab === 'effects' ? 'active' : ''} onClick={() => setSettingsTab('effects')}>Effects</button>
             <button className={settingsTab === 'layers' ? 'active' : ''} onClick={() => setSettingsTab('layers')}>Layers</button>
             <button className={settingsTab === 'stretch' ? 'active' : ''} onClick={() => setSettingsTab('stretch')}>Stretch</button>
+            <button className={settingsTab === 'stems' ? 'active' : ''} onClick={() => setSettingsTab('stems')}>🧬 Stems</button>
           </div>
           <div className="pad-settings-actions">
             <button onClick={() => fileSelect(selectedPad)}>📂 Load</button>
@@ -2866,6 +3031,7 @@ const SamplerBeatMaker = ({
               <button className={`mute-btn ${pads[selectedPad].muted ? 'active' : ''}`} onClick={() => updatePad(selectedPad, { muted: !pads[selectedPad].muted })}>{pads[selectedPad].muted ? '🔇 M' : 'M'}</button>
               <button className={`solo-btn ${pads[selectedPad].soloed ? 'active' : ''}`} onClick={() => updatePad(selectedPad, { soloed: !pads[selectedPad].soloed })}>{pads[selectedPad].soloed ? '🎯 S' : 'S'}</button>
             </div>
+            <div className="pad-setting"><label>Bus</label><select value={padBusAssign[selectedPad] || 'master'} onChange={(e) => setPadBusAssign(prev => { const u = [...prev]; u[selectedPad] = e.target.value; return u; })}><option value="master">Master</option><option value="A">Bus A</option><option value="B">Bus B</option><option value="C">Bus C</option><option value="D">Bus D</option></select></div>
           </>)}
 
           {/* EFFECTS TAB (Phase 3) */}
@@ -2900,8 +3066,8 @@ const SamplerBeatMaker = ({
           {pads[selectedPad].buffer && settingsTab === 'layers' && (
             <div className="layers-section">
               <div className="layers-header">
-                <span>Velocity Layers ({pads[selectedPad].layers.length}/4)</span>
-                <button onClick={() => addLayer(selectedPad)} disabled={pads[selectedPad].layers.length >= 4}>+ Add Layer</button>
+                <span>Velocity Layers ({pads[selectedPad].layers.length}/8)</span>
+                <button onClick={() => addLayer(selectedPad)} disabled={pads[selectedPad].layers.length >= 8}>+ Add Layer</button>
                 <label className="rr-toggle"><input type="checkbox" checked={pads[selectedPad].roundRobin || false} onChange={(e) => updatePad(selectedPad, { roundRobin: e.target.checked })} /> Round Robin</label>
               </div>
 
@@ -3068,6 +3234,100 @@ const SamplerBeatMaker = ({
             </div>
           )}
 
+          {/* STEMS TAB (Phase 9 — AI Stem Separation inline) */}
+          {pads[selectedPad].buffer && settingsTab === 'stems' && (
+            <div className="stems-section">
+              <div className="stems-intro">
+                <p>🧬 Separate this pad's sample into Vocals, Drums, Bass &amp; Other stems using AI (Demucs)</p>
+              </div>
+
+              <div className="stems-model-select">
+                <label>Model:</label>
+                <select value={stemModel} onChange={(e) => setStemModel(e.target.value)}>
+                  <option value="htdemucs">HT Demucs (Best Quality)</option>
+                  <option value="htdemucs_ft">HT Demucs Fine-Tuned</option>
+                  <option value="mdx_extra">MDX Extra (Fast)</option>
+                  <option value="mdx">MDX (Fastest)</option>
+                </select>
+              </div>
+
+              <button className="stems-separate-btn" disabled={stemSeparating}
+                onClick={async () => {
+                  const pad = pads[selectedPad]; if (!pad?.buffer) return;
+                  setStemSeparating(true); setStemProgress('Encoding audio...'); setStemError(''); setStemResults(null);
+                  try {
+                    // Export pad buffer to WAV blob
+                    const wavBlob = toWav(pad.buffer);
+                    const formData = new FormData();
+                    formData.append('audio_file', wavBlob, `${pad.name || 'sample'}.wav`);
+                    formData.append('model', stemModel);
+                    formData.append('title', pad.name || 'Sample');
+
+                    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+                    setStemProgress('Uploading & separating... This may take a few minutes.');
+
+                    const res = await fetch(`${STEM_BACKEND}/api/ai/stems/separate-upload`, {
+                      method: 'POST',
+                      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                      body: formData,
+                    });
+
+                    if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Server error ${res.status}`); }
+                    const data = await res.json();
+
+                    if (data.stems) {
+                      setStemResults(data.stems);
+                      setStemProgress('✓ Separation complete!');
+                    } else { throw new Error('No stems returned from server'); }
+                  } catch (e) {
+                    setStemError(e.message);
+                    setStemProgress('');
+                  } finally { setStemSeparating(false); }
+                }}>
+                {stemSeparating ? '⏳ Separating...' : '🧬 Separate Stems'}
+              </button>
+
+              {stemProgress && <div className="stems-progress">{stemProgress}</div>}
+              {stemError && <div className="stems-error">✗ {stemError}</div>}
+
+              {/* Stem results */}
+              {stemResults && (
+                <div className="stems-results">
+                  {Object.entries(stemResults).map(([stemName, stemData]) => (
+                    <div key={stemName} className="stem-result-row">
+                      <span className="stem-result-icon">{stemData.icon || '🎵'}</span>
+                      <span className="stem-result-name">{stemData.name || stemName}</span>
+                      <button className="stem-preview-btn" onClick={() => {
+                        const audio = new Audio(stemData.url); audio.volume = 0.8; audio.play();
+                      }}>▶</button>
+                      <button className="stem-load-btn" onClick={() => {
+                        // Load this stem onto the next available empty pad
+                        const emptyPad = pads.findIndex((p, i) => i !== selectedPad && !p.buffer);
+                        const targetPad = emptyPad >= 0 ? emptyPad : (selectedPad + 1) % 16;
+                        loadSample(targetPad, stemData.url);
+                      }}>📥 Load to Pad</button>
+                      <button className="stem-load-btn" onClick={() => {
+                        // Replace current pad with this stem
+                        loadSample(selectedPad, stemData.url);
+                      }}>↩ Replace Pad</button>
+                    </div>
+                  ))}
+                  <button className="stems-load-all-btn" onClick={() => {
+                    // Load all stems to pads starting from pad 0
+                    const entries = Object.entries(stemResults);
+                    entries.forEach(([, stemData], i) => {
+                      if (i < 16 && stemData.url) loadSample(i, stemData.url);
+                    });
+                  }}>📥 Load All Stems to Pads 1-{Math.min(Object.keys(stemResults).length, 16)}</button>
+                </div>
+              )}
+
+              <div className="stems-hint">
+                Stems are separated server-side using Meta Demucs. Results load onto pads for chopping, sequencing, and remixing.
+              </div>
+            </div>
+          )}
+
         </div>
       )}
 
@@ -3107,6 +3367,272 @@ const SamplerBeatMaker = ({
             })()}
           </div>
           <div className="kg-keyboard-hint">Click keys or use QWERTY keyboard (Z=C, S=C#, X=D... Q=C+1 octave)</div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          PHASE 6: BUS ROUTING PANEL
+          ═══════════════════════════════════════════════════════════════════ */}
+      {showBusPanel && (
+        <div className="bus-panel">
+          <div className="bus-panel-header">
+            <h3>🔀 Bus Routing</h3>
+            <button onClick={() => setShowBusPanel(false)}>✕</button>
+          </div>
+
+          {/* Per-pad bus assignment */}
+          <div className="bus-assign-grid">
+            <div className="bus-assign-header">
+              <span>Pad</span><span>Bus</span>
+            </div>
+            {pads.map((pad, pi) => (
+              <div key={pi} className={`bus-assign-row ${!pad.buffer ? 'empty' : ''}`}>
+                <span className="bus-assign-pad" style={{ color: pad.color }}>{PAD_KEY_LABELS[pi]} {pad.name}</span>
+                <select className="bus-assign-select" value={padBusAssign[pi] || 'master'}
+                  onChange={(e) => setPadBusAssign(prev => { const u = [...prev]; u[pi] = e.target.value; return u; })}>
+                  <option value="master">Master</option>
+                  <option value="A">Bus A</option>
+                  <option value="B">Bus B</option>
+                  <option value="C">Bus C</option>
+                  <option value="D">Bus D</option>
+                </select>
+              </div>
+            ))}
+          </div>
+
+          {/* Bus channel strips */}
+          <div className="bus-strips">
+            {['A','B','C','D'].map(bus => {
+              const s = busSettings[bus];
+              const padCount = padBusAssign.filter(b => b === bus).length;
+              return (
+                <div key={bus} className={`bus-strip ${selectedBus === bus ? 'selected' : ''} ${padCount === 0 ? 'inactive' : ''}`}
+                  onClick={() => setSelectedBus(bus)}>
+                  <div className="bus-strip-header">
+                    <span className="bus-strip-name">Bus {bus}</span>
+                    <span className="bus-strip-count">{padCount} pads</span>
+                  </div>
+                  <div className="bus-strip-controls">
+                    <div className="bus-ctrl"><label>Vol</label><input type="range" min={0} max={100} value={Math.round(s.volume * 100)}
+                      onChange={(e) => setBusSettings(prev => ({ ...prev, [bus]: { ...prev[bus], volume: +e.target.value / 100 } }))} /><span>{Math.round(s.volume * 100)}%</span></div>
+                    <div className="bus-ctrl"><label>Pan</label><input type="range" min={-100} max={100} value={Math.round(s.pan * 100)}
+                      onChange={(e) => setBusSettings(prev => ({ ...prev, [bus]: { ...prev[bus], pan: +e.target.value / 100 } }))} /><span>{s.pan < 0 ? `L${Math.abs(Math.round(s.pan * 100))}` : s.pan > 0 ? `R${Math.round(s.pan * 100)}` : 'C'}</span></div>
+                    <div className="bus-ctrl-btns">
+                      <button className={`bus-mute ${s.muted ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); setBusSettings(prev => ({ ...prev, [bus]: { ...prev[bus], muted: !prev[bus].muted } })); }}>M</button>
+                      <button className={`bus-solo ${s.soloed ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); setBusSettings(prev => ({ ...prev, [bus]: { ...prev[bus], soloed: !prev[bus].soloed } })); }}>S</button>
+                    </div>
+                  </div>
+                  {/* Bus effects toggles */}
+                  <div className="bus-fx-toggles">
+                    <button className={s.filterOn ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setBusSettings(prev => ({ ...prev, [bus]: { ...prev[bus], filterOn: !prev[bus].filterOn } })); }}>Filter</button>
+                    <button className={s.reverbOn ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setBusSettings(prev => ({ ...prev, [bus]: { ...prev[bus], reverbOn: !prev[bus].reverbOn } })); }}>Reverb</button>
+                    <button className={s.delayOn ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setBusSettings(prev => ({ ...prev, [bus]: { ...prev[bus], delayOn: !prev[bus].delayOn } })); }}>Delay</button>
+                    <button className={s.compOn ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setBusSettings(prev => ({ ...prev, [bus]: { ...prev[bus], compOn: !prev[bus].compOn } })); }}>Comp</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          PHASE 7: AUTOMATION LANES
+          ═══════════════════════════════════════════════════════════════════ */}
+      {showAutomation && (
+        <div className="automation-panel">
+          <div className="automation-header">
+            <h3>📈 Automation</h3>
+            <div className="automation-controls">
+              <select value={automationPad} onChange={(e) => setAutomationPad(+e.target.value)}>
+                {pads.map((pad, i) => <option key={i} value={i}>{PAD_KEY_LABELS[i]} {pad.name}</option>)}
+              </select>
+              <select value={automationParam} onChange={(e) => setAutomationParam(e.target.value)}>
+                {AUTOMATION_PARAMS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+              </select>
+              <button onClick={() => {
+                setAutomation(prev => {
+                  const u = prev.map(p => ({ ...p }));
+                  u[automationPad] = { ...u[automationPad], [automationParam]: Array(64).fill(null) };
+                  return u;
+                });
+              }}>Clear Lane</button>
+              <button onClick={() => setShowAutomation(false)}>✕</button>
+            </div>
+          </div>
+
+          <div className="automation-lane"
+            onMouseDown={() => setAutomationDrawing(true)}
+            onMouseUp={() => setAutomationDrawing(false)}
+            onMouseLeave={() => setAutomationDrawing(false)}>
+            <div className="automation-grid">
+              {Array.from({ length: stepCount }, (_, si) => {
+                const paramDef = AUTOMATION_PARAMS.find(p => p.key === automationParam);
+                const val = automation[automationPad]?.[automationParam]?.[si];
+                const hasValue = val != null;
+                const normalizedVal = hasValue
+                  ? paramDef.log
+                    ? (Math.log(val) - Math.log(paramDef.min)) / (Math.log(paramDef.max) - Math.log(paramDef.min))
+                    : (val - paramDef.min) / (paramDef.max - paramDef.min)
+                  : 0;
+                return (
+                  <div key={si}
+                    className={`auto-step ${curStep === si ? 'current' : ''} ${si % 4 === 0 ? 'downbeat' : ''} ${hasValue ? 'has-value' : ''}`}
+                    onMouseDown={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const y = 1 - ((e.clientY - rect.top) / rect.height);
+                      const clamped = Math.max(0, Math.min(1, y));
+                      const newVal = paramDef.log
+                        ? Math.exp(Math.log(paramDef.min) + clamped * (Math.log(paramDef.max) - Math.log(paramDef.min)))
+                        : paramDef.min + clamped * (paramDef.max - paramDef.min);
+                      setAutomation(prev => {
+                        const u = prev.map(p => ({ ...p }));
+                        const lane = [...(u[automationPad][automationParam] || Array(64).fill(null))];
+                        lane[si] = Math.round(newVal * 100) / 100;
+                        u[automationPad] = { ...u[automationPad], [automationParam]: lane };
+                        return u;
+                      });
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!automationDrawing) return;
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const y = 1 - ((e.clientY - rect.top) / rect.height);
+                      const clamped = Math.max(0, Math.min(1, y));
+                      const newVal = paramDef.log
+                        ? Math.exp(Math.log(paramDef.min) + clamped * (Math.log(paramDef.max) - Math.log(paramDef.min)))
+                        : paramDef.min + clamped * (paramDef.max - paramDef.min);
+                      setAutomation(prev => {
+                        const u = prev.map(p => ({ ...p }));
+                        const lane = [...(u[automationPad][automationParam] || Array(64).fill(null))];
+                        lane[si] = Math.round(newVal * 100) / 100;
+                        u[automationPad] = { ...u[automationPad], [automationParam]: lane };
+                        return u;
+                      });
+                    }}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setAutomation(prev => {
+                        const u = prev.map(p => ({ ...p }));
+                        const lane = [...(u[automationPad][automationParam] || Array(64).fill(null))];
+                        lane[si] = null;
+                        u[automationPad] = { ...u[automationPad], [automationParam]: lane };
+                        return u;
+                      });
+                    }}>
+                    {hasValue && <div className="auto-bar" style={{ height: `${normalizedVal * 100}%` }}></div>}
+                    {hasValue && <div className="auto-dot" style={{ bottom: `${normalizedVal * 100}%` }}></div>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="automation-y-labels">
+              <span>{AUTOMATION_PARAMS.find(p => p.key === automationParam)?.max}{AUTOMATION_PARAMS.find(p => p.key === automationParam)?.unit}</span>
+              <span>{AUTOMATION_PARAMS.find(p => p.key === automationParam)?.min}{AUTOMATION_PARAMS.find(p => p.key === automationParam)?.unit}</span>
+            </div>
+          </div>
+          <div className="automation-hint">Click/drag to draw · Right-click to erase · Values apply per step during playback</div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          PHASE 8: SLICE MODE SEQUENCER (FL Slicer style)
+          ═══════════════════════════════════════════════════════════════════ */}
+      {sliceMode && (
+        <div className="slice-seq-panel">
+          <div className="slice-seq-header">
+            <h3>🔪 Slice Sequencer</h3>
+            <div className="slice-seq-controls">
+              <select value={sliceSourcePad} onChange={(e) => setSliceSourcePad(+e.target.value)}>
+                {pads.map((pad, i) => pad.buffer ? <option key={i} value={i}>{PAD_KEY_LABELS[i]} {pad.name}</option> : null)}
+              </select>
+              <button onClick={() => generateSliceBuffers(sliceSourcePad)} disabled={!pads[sliceSourcePad]?.buffer}>
+                ✂️ Generate Slices ({sliceBuffers.length})
+              </button>
+              <button onClick={() => setSliceSeq(Array(64).fill(null))}>Clear</button>
+              <button onClick={() => {
+                // Auto-fill: sequential slices across steps
+                const count = sliceBuffers.length;
+                if (count === 0) return;
+                setSliceSeq(prev => {
+                  const u = [...prev];
+                  for (let i = 0; i < stepCount; i++) u[i] = i % count;
+                  return u;
+                });
+              }} disabled={sliceBuffers.length === 0}>Auto Fill</button>
+              <button onClick={() => {
+                // Randomize slice order
+                const count = sliceBuffers.length;
+                if (count === 0) return;
+                setSliceSeq(prev => {
+                  const u = [...prev];
+                  for (let i = 0; i < stepCount; i++) u[i] = Math.floor(Math.random() * count);
+                  return u;
+                });
+              }} disabled={sliceBuffers.length === 0}>🎲 Random</button>
+              <button onClick={() => {
+                // Reverse slice order
+                setSliceSeq(prev => {
+                  const u = [...prev];
+                  const active = u.slice(0, stepCount).filter(v => v != null);
+                  active.reverse();
+                  let ai = 0;
+                  for (let i = 0; i < stepCount; i++) {
+                    if (u[i] != null) { u[i] = active[ai++]; }
+                  }
+                  return u;
+                });
+              }}>◀ Reverse</button>
+              <button onClick={() => setSliceMode(false)}>✕</button>
+            </div>
+          </div>
+
+          {/* Slice palette — available slices to pick from */}
+          <div className="slice-palette">
+            {sliceBuffers.map((slice, si) => (
+              <button key={si} className="slice-palette-btn"
+                onClick={() => {
+                  // Preview slice
+                  const c = initCtx();
+                  const src = c.createBufferSource(); const g = c.createGain();
+                  src.buffer = slice.buffer; g.gain.value = 0.8;
+                  src.connect(g); g.connect(masterRef.current); src.start(0);
+                }}
+                style={{ '--slice-hue': (si * 30) % 360 }}>
+                {si + 1}
+              </button>
+            ))}
+            {sliceBuffers.length === 0 && <span className="slice-empty-hint">Generate slices from a chopped pad first</span>}
+          </div>
+
+          {/* Slice step grid */}
+          <div className="slice-seq-grid">
+            {Array.from({ length: stepCount }, (_, si) => {
+              const sliceIdx = sliceSeq[si];
+              const hasSlice = sliceIdx != null && sliceIdx < sliceBuffers.length;
+              return (
+                <div key={si}
+                  className={`slice-step ${curStep === si ? 'current' : ''} ${si % 4 === 0 ? 'downbeat' : ''} ${hasSlice ? 'has-slice' : ''}`}
+                  onClick={() => {
+                    // Cycle through slices: null → 0 → 1 → 2 → ... → null
+                    setSliceSeq(prev => {
+                      const u = [...prev];
+                      if (u[si] == null) u[si] = 0;
+                      else if (u[si] >= sliceBuffers.length - 1) u[si] = null;
+                      else u[si] = u[si] + 1;
+                      return u;
+                    });
+                  }}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setSliceSeq(prev => { const u = [...prev]; u[si] = null; return u; });
+                  }}
+                  style={hasSlice ? { '--slice-hue': (sliceIdx * 30) % 360 } : {}}>
+                  {hasSlice ? <span className="slice-step-num">{sliceIdx + 1}</span> : <span className="slice-step-empty">·</span>}
+                </div>
+              );
+            })}
+          </div>
+          <div className="slice-seq-hint">Click to cycle slices · Right-click to clear · Auto Fill = sequential · 🎲 = random arrangement</div>
         </div>
       )}
     </div>

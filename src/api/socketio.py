@@ -1,527 +1,897 @@
 # src/api/socketio.py
+
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask import request
+from datetime import datetime
 
 socketio = SocketIO(cors_allowed_origins="*", allow_credentials=True)
-active_rooms = {}
 
-@socketio.on('connect')
-def handle_connect():
-    print(f'✅ Client connected: {request.sid}')
-    emit('connected', {'sid': request.sid})
+# -----------------------------------------------------------------------------
+# In-memory tracking
+# -----------------------------------------------------------------------------
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    print(f'❌ Client disconnected: {request.sid}')
-    for room_id, users in list(active_rooms.items()):
-        if request.sid in users:
-            users.remove(request.sid)
-            emit('user-left', {'userId': request.sid}, room=room_id, skip_sid=request.sid)
-            if not users:
+# WebRTC signaling rooms (simple list of SIDs)
+active_rooms = {}  # { room_id: [sid, sid, ...] }
+
+# Gamers chat rooms
+chat_rooms = {}    # { stream_id: { sid: user_info, ... } }
+
+# Team rooms
+team_rooms = {}    # { room_id: { sid: user_info, ... } }
+
+# Podcast collab rooms
+podcast_collab_rooms = {}  # { room_id: { sid: user_info, ... } }
+
+
+# -----------------------------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------------------------
+
+def _safe_room(room_id: str):
+    return (room_id or "").strip()
+
+def _emit_team_participants(room_id: str):
+    """Broadcast full participant list to everyone in a team room."""
+    if room_id in team_rooms:
+        participants = list(team_rooms[room_id].values())
+        emit("team_room_participants", participants, room=room_id)
+
+def _set_team_host_if_needed(room_id: str):
+    """Ensure exactly one host exists when room has members."""
+    if room_id not in team_rooms or not team_rooms[room_id]:
+        return
+
+    # If any host exists, keep it.
+    any_host = any(u.get("role") == "host" for u in team_rooms[room_id].values())
+    if any_host:
+        return
+
+    # Promote first sid to host
+    first_sid = next(iter(team_rooms[room_id]))
+    team_rooms[room_id][first_sid]["role"] = "host"
+    emit("host-transferred", {"newHostId": team_rooms[room_id][first_sid].get("id")}, room=room_id)
+
+def _remove_sid_from_webrtc_rooms(sid: str):
+    """Remove sid from active WebRTC rooms and notify peers."""
+    for room_id, sids in list(active_rooms.items()):
+        if sid in sids:
+            sids.remove(sid)
+            emit("user-left", {"userId": sid, "sid": sid}, room=room_id, skip_sid=sid)
+            if not sids:
                 del active_rooms[room_id]
-                print(f'🗑️  Cleaned up empty room: {room_id}')
+                print(f"🗑️  Cleaned up empty WebRTC room: {room_id}")
 
-@socketio.on('join_webrtc_room')
-def handle_join_room(data):
-    room_id = data.get('roomId')
-    user_id = data.get('userId')
-    user_name = data.get('userName')
-    
+def _remove_sid_from_chat_rooms(sid: str):
+    """Remove sid from chat rooms and broadcast updated roster."""
+    for stream_id, users in list(chat_rooms.items()):
+        if sid in users:
+            user_info = users.pop(sid, {})
+            username = user_info.get("gamertag") or user_info.get("username", "Someone")
+
+            emit("receive_message", {
+                "type": "system",
+                "message": f"🔴 {username} disconnected",
+                "timestamp": datetime.utcnow().isoformat()
+            }, room=stream_id)
+
+            if users:
+                users_list = list(users.values())
+                emit("users_update", users_list, room=stream_id)
+
+                active_games = list(set(
+                    u.get("current_game") for u in users_list if u.get("current_game")
+                ))
+                emit("games_update", active_games, room=stream_id)
+            else:
+                del chat_rooms[stream_id]
+                print(f"🗑️  Cleaned up empty chat room: {stream_id}")
+
+def _remove_sid_from_team_rooms(sid: str):
+    """Remove sid from team rooms, transfer host if needed, broadcast roster."""
+    for room_id, users in list(team_rooms.items()):
+        if sid in users:
+            user_info = users.pop(sid, {})
+            user_name = user_info.get("name", "Someone")
+            was_host = user_info.get("role") == "host"
+
+            if users:
+                if was_host:
+                    # Promote next sid
+                    next_sid = next(iter(users))
+                    users[next_sid]["role"] = "host"
+                    emit("host-transferred", {"newHostId": users[next_sid].get("id")}, room=room_id)
+                    print(f"👑 Auto-transferred host to {users[next_sid].get('name')} in {room_id}")
+
+                _emit_team_participants(room_id)
+            else:
+                del team_rooms[room_id]
+                print(f"🗑️  Cleaned up empty team room: {room_id}")
+
+            print(f"👋 {user_name} removed from team room {room_id} via disconnect")
+
+def _remove_sid_from_podcast_rooms(sid: str):
+    """Remove sid from podcast collab rooms and broadcast updated roster."""
+    for room_id, users in list(podcast_collab_rooms.items()):
+        if sid in users:
+            user_info = users.pop(sid, {})
+            user_name = user_info.get("userName", "Someone")
+
+            if users:
+                emit("podcast_collab_user_left", {
+                    "userId": user_info.get("userId"),
+                    "userName": user_name,
+                    "sid": sid,
+                    "participants": list(users.values())
+                }, room=f"podcast_{room_id}")
+            else:
+                del podcast_collab_rooms[room_id]
+                print(f"🗑️  Cleaned up empty podcast room: {room_id}")
+
+            print(f"🎙️ {user_name} removed from podcast collab room {room_id} via disconnect")
+
+
+# -----------------------------------------------------------------------------
+# Core connect/disconnect
+# -----------------------------------------------------------------------------
+
+@socketio.on("connect")
+def handle_connect():
+    print(f"✅ Client connected: {request.sid}")
+    emit("connected", {"sid": request.sid})
+
+@socketio.on("disconnect")
+def handle_disconnect():
+    """Unified disconnect cleanup for ALL room types."""
+    sid = request.sid
+    print(f"❌ Client disconnected: {sid}")
+
+    _remove_sid_from_webrtc_rooms(sid)
+    _remove_sid_from_chat_rooms(sid)
+    _remove_sid_from_team_rooms(sid)
+    _remove_sid_from_podcast_rooms(sid)
+
+
+# -----------------------------------------------------------------------------
+# 0) WebRTC generic room membership + signaling (multi-peer)
+#    NOTE: For stable multi-peer, client should include targetSid where possible.
+# -----------------------------------------------------------------------------
+
+@socketio.on("join_webrtc_room")
+def handle_join_webrtc_room(data):
+    room_id = _safe_room(data.get("roomId"))
+    user_id = data.get("userId")
+    user_name = data.get("userName", "User")
+
+    if not room_id:
+        return
+
     join_room(room_id)
-    
+
     if room_id not in active_rooms:
         active_rooms[room_id] = []
-    
+
     if request.sid not in active_rooms[room_id]:
         active_rooms[room_id].append(request.sid)
-    
-    emit('user-joined', {
-        'userId': user_id,
-        'userName': user_name,
-        'sid': request.sid
+
+    # 1) Tell JOINER who is already in the room (so they can create offers)
+    existing_sids = [s for s in active_rooms[room_id] if s != request.sid]
+    emit("webrtc-existing-peers", {
+        "roomId": room_id,
+        "peers": existing_sids
+    })
+
+    # 2) Notify others that a new user joined (so they can create answers)
+    emit("user-joined", {
+        "userId": user_id,
+        "userName": user_name,
+        "sid": request.sid
     }, room=room_id, skip_sid=request.sid)
-    
-    print(f'✅ User {user_name} joined room {room_id} (Users: {len(active_rooms[room_id])})')
 
-@socketio.on('leave_webrtc_room')
-def handle_leave_room(data):
-    room_id = data.get('roomId')
-    
-    if room_id and room_id in active_rooms:
-        if request.sid in active_rooms[room_id]:
-            active_rooms[room_id].remove(request.sid)
-            leave_room(room_id)
-            
-            if not active_rooms[room_id]:
-                del active_rooms[room_id]
-            
-            emit('user-left', {'userId': request.sid}, room=room_id, skip_sid=request.sid)
-            print(f'👋 User {request.sid} left room {room_id}')
+    print(f"✅ WebRTC: {user_name} joined {room_id} (sids={len(active_rooms[room_id])})")
 
-@socketio.on('offer')
+
+@socketio.on("leave_webrtc_room")
+def handle_leave_webrtc_room(data):
+    room_id = _safe_room(data.get("roomId"))
+    if not room_id:
+        return
+
+    if room_id in active_rooms and request.sid in active_rooms[room_id]:
+        active_rooms[room_id].remove(request.sid)
+
+        leave_room(room_id)
+
+        emit("user-left", {"userId": request.sid, "sid": request.sid}, room=room_id, skip_sid=request.sid)
+
+        if not active_rooms[room_id]:
+            del active_rooms[room_id]
+            print(f"🗑️  Cleaned up empty WebRTC room: {room_id}")
+
+        print(f"👋 WebRTC: {request.sid} left {room_id}")
+
+
+@socketio.on("offer")
 def handle_offer(data):
-    room_id = data.get('roomId')
-    offer = data.get('offer')
-    
+    room_id = _safe_room(data.get("roomId"))
+    offer = data.get("offer")
+    target_sid = data.get("targetSid")  # recommended for multi-peer
+
     if not room_id or not offer:
         return
-    
-    emit('offer', {'offer': offer, 'from': request.sid}, room=room_id, skip_sid=request.sid)
-    print(f'📡 Offer sent in room {room_id}')
 
-@socketio.on('answer')
+    payload = {"offer": offer, "from": request.sid, "roomId": room_id}
+
+    if target_sid:
+        emit("offer", payload, to=target_sid)
+    else:
+        emit("offer", payload, room=room_id, skip_sid=request.sid)
+
+    print(f"📡 Offer relayed in {room_id} (target={target_sid or 'broadcast'})")
+
+
+@socketio.on("answer")
 def handle_answer(data):
-    room_id = data.get('roomId')
-    answer = data.get('answer')
-    
+    room_id = _safe_room(data.get("roomId"))
+    answer = data.get("answer")
+    target_sid = data.get("targetSid")  # required if you want stable multi-peer
+
     if not room_id or not answer:
         return
-    
-    emit('answer', {'answer': answer, 'from': request.sid}, room=room_id, skip_sid=request.sid)
-    print(f'📡 Answer sent in room {room_id}')
 
-@socketio.on('ice-candidate')
+    payload = {"answer": answer, "from": request.sid, "roomId": room_id}
+
+    if target_sid:
+        emit("answer", payload, to=target_sid)
+    else:
+        emit("answer", payload, room=room_id, skip_sid=request.sid)
+
+    print(f"📡 Answer relayed in {room_id} (target={target_sid or 'broadcast'})")
+
+
+@socketio.on("ice-candidate")
 def handle_ice_candidate(data):
-    room_id = data.get('roomId')
-    candidate = data.get('candidate')
-    
+    room_id = _safe_room(data.get("roomId"))
+    candidate = data.get("candidate")
+    target_sid = data.get("targetSid")  # recommended for multi-peer
+
     if not room_id or not candidate:
         return
-    
-    emit('ice-candidate', {'candidate': candidate, 'from': request.sid}, room=room_id, skip_sid=request.sid)
-    print(f'🧊 ICE candidate sent in room {room_id}')
 
-@socketio.on('chat-message')
+    payload = {"candidate": candidate, "from": request.sid, "roomId": room_id}
+
+    if target_sid:
+        emit("ice-candidate", payload, to=target_sid)
+    else:
+        emit("ice-candidate", payload, room=room_id, skip_sid=request.sid)
+
+    # keep logs light (ICE can be chatty)
+    # print(f"🧊 ICE relayed in {room_id} (target={target_sid or 'broadcast'})")
+
+
+@socketio.on("chat-message")
 def handle_chat_message(data):
-    room_id = data.get('roomId')
-    message = data.get('message')
-    
+    room_id = _safe_room(data.get("roomId"))
+    message = data.get("message")
     if not room_id or not message:
         return
-    
-    emit('chat-message', message, room=room_id)
-    print(f'💬 Chat message in room {room_id}')
+    emit("chat-message", message, room=room_id)
 
-# =====================================================
-# SCREEN SHARE SIGNALING ADDITIONS FOR socketio.py
-# =====================================================
-# Add these events to your existing src/api/socketio.py
-# They work alongside your existing offer/answer/ice-candidate handlers
-# =====================================================
 
-# --- Paste these ABOVE your existing 'chat-message' handler ---
+# -----------------------------------------------------------------------------
+# 1) Team Room — participant tracking & roles
+# -----------------------------------------------------------------------------
 
-@socketio.on('screen-share-start')
+@socketio.on("join_team_room")
+def handle_join_team_room(data):
+    room_id = _safe_room(data.get("room_id"))
+    user_id = data.get("user_id")
+    user_name = data.get("user_name", "Anonymous")
+    video_enabled = bool(data.get("video_enabled", True))
+    audio_enabled = bool(data.get("audio_enabled", True))
+
+    if not room_id:
+        return
+
+    join_room(room_id)
+
+    if room_id not in team_rooms:
+        team_rooms[room_id] = {}
+
+    # first user becomes host
+    is_first = len(team_rooms[room_id]) == 0
+    role = "host" if is_first else "participant"
+
+    team_rooms[room_id][request.sid] = {
+        "id": user_id,
+        "name": user_name,
+        "role": role,
+        "videoEnabled": video_enabled,
+        "audioEnabled": audio_enabled,
+        "sid": request.sid,
+        "joinedAt": datetime.utcnow().isoformat()
+    }
+
+    # send role assignment to joining socket
+    emit("role-update", {"userId": user_id, "newRole": role})
+
+    # broadcast full roster
+    _emit_team_participants(room_id)
+
+    print(f"🧑‍🤝‍🧑 {user_name} joined team room {room_id} as {role} ({len(team_rooms[room_id])} users)")
+
+
+@socketio.on("leave_team_room")
+def handle_leave_team_room(data):
+    room_id = _safe_room(data.get("room_id"))
+    user_id = data.get("user_id")
+    user_name = data.get("user_name", "Someone")
+
+    if not room_id:
+        return
+
+    # remove this sid
+    was_host = False
+    if room_id in team_rooms and request.sid in team_rooms[room_id]:
+        was_host = team_rooms[room_id][request.sid].get("role") == "host"
+        del team_rooms[room_id][request.sid]
+
+        if not team_rooms[room_id]:
+            del team_rooms[room_id]
+        else:
+            # host transfer if needed
+            if was_host:
+                _set_team_host_if_needed(room_id)
+            _emit_team_participants(room_id)
+
+    leave_room(room_id)
+    print(f"👋 {user_name} left team room {room_id} (user_id={user_id})")
+
+
+@socketio.on("role-update")
+def handle_role_update(data):
+    room_id = _safe_room(data.get("roomId"))
+    target_user_id = data.get("userId")
+    new_role = data.get("newRole")
+
+    if not room_id or not target_user_id or not new_role:
+        return
+
+    if room_id in team_rooms:
+        for sid, user_info in team_rooms[room_id].items():
+            if str(user_info.get("id")) == str(target_user_id):
+                team_rooms[room_id][sid]["role"] = new_role
+                break
+
+    emit("role-update", {"userId": target_user_id, "newRole": new_role}, room=room_id)
+    print(f"🔄 Role update in {room_id}: user {target_user_id} → {new_role}")
+
+
+@socketio.on("kick-user")
+def handle_kick_user(data):
+    room_id = _safe_room(data.get("roomId"))
+    target_user_id = data.get("userId")
+    if not room_id or not target_user_id:
+        return
+
+    if room_id in team_rooms:
+        target_sid = None
+        for sid, user_info in team_rooms[room_id].items():
+            if str(user_info.get("id")) == str(target_user_id):
+                target_sid = sid
+                break
+
+        if target_sid:
+            # remove from tracking
+            del team_rooms[room_id][target_sid]
+
+            # notify kicked user + force them out client-side
+            emit("kicked", {"userId": target_user_id}, to=target_sid)
+
+            # transfer host if needed
+            _set_team_host_if_needed(room_id)
+
+            # update roster
+            if team_rooms.get(room_id):
+                _emit_team_participants(room_id)
+            else:
+                team_rooms.pop(room_id, None)
+
+    print(f"🚪 User {target_user_id} kicked from {room_id}")
+
+
+@socketio.on("transfer-host")
+def handle_transfer_host(data):
+    room_id = _safe_room(data.get("roomId"))
+    new_host_id = data.get("newHostId")
+    if not room_id or not new_host_id:
+        return
+
+    if room_id in team_rooms:
+        for sid, user_info in team_rooms[room_id].items():
+            if str(user_info.get("id")) == str(new_host_id):
+                team_rooms[room_id][sid]["role"] = "host"
+            elif user_info.get("role") == "host":
+                team_rooms[room_id][sid]["role"] = "participant"
+
+    emit("host-transferred", {"newHostId": new_host_id}, room=room_id)
+    _emit_team_participants(room_id)
+    print(f"👑 Host transferred to {new_host_id} in {room_id}")
+
+
+@socketio.on("update_video_status")
+def handle_update_video_status(data):
+    room_id = _safe_room(data.get("room_id"))
+    user_id = data.get("user_id")
+    if not room_id or room_id not in team_rooms:
+        return
+
+    video_enabled = bool(data.get("video_enabled", True))
+    audio_enabled = bool(data.get("audio_enabled", True))
+
+    # update by matching user_id
+    for sid, user_info in team_rooms[room_id].items():
+        if str(user_info.get("id")) == str(user_id):
+            team_rooms[room_id][sid]["videoEnabled"] = video_enabled
+            team_rooms[room_id][sid]["audioEnabled"] = audio_enabled
+            break
+
+    emit("user_status_update", {
+        "userId": user_id,
+        "videoEnabled": video_enabled,
+        "audioEnabled": audio_enabled
+    }, room=room_id, skip_sid=request.sid)
+
+
+# -----------------------------------------------------------------------------
+# 2) Screen Share signaling (separate PC recommended client-side)
+# -----------------------------------------------------------------------------
+
+@socketio.on("screen-share-start")
 def handle_screen_share_start(data):
-    """Notify room that someone started sharing their screen"""
-    room_id = data.get('roomId')
-    user_id = data.get('userId')
-    user_name = data.get('userName')
-    
+    room_id = _safe_room(data.get("roomId"))
+    user_id = data.get("userId")
+    user_name = data.get("userName")
     if not room_id:
         return
-    
-    emit('screen-share-start', {
-        'userId': user_id,
-        'userName': user_name,
-        'sid': request.sid
-    }, room=room_id, skip_sid=request.sid)
-    
-    print(f'🖥️ Screen share started by {user_name} in room {room_id}')
+    emit("screen-share-start", {"userId": user_id, "userName": user_name, "sid": request.sid},
+         room=room_id, skip_sid=request.sid)
 
-
-@socketio.on('screen-share-stop')
+@socketio.on("screen-share-stop")
 def handle_screen_share_stop(data):
-    """Notify room that someone stopped sharing their screen"""
-    room_id = data.get('roomId')
-    user_id = data.get('userId')
-    
+    room_id = _safe_room(data.get("roomId"))
+    user_id = data.get("userId")
     if not room_id:
         return
-    
-    emit('screen-share-stop', {
-        'userId': user_id,
-        'sid': request.sid
-    }, room=room_id, skip_sid=request.sid)
-    
-    print(f'🖥️ Screen share stopped by {user_id} in room {room_id}')
+    emit("screen-share-stop", {"userId": user_id, "sid": request.sid},
+         room=room_id, skip_sid=request.sid)
 
-
-@socketio.on('screen-share-offer')
+@socketio.on("screen-share-offer")
 def handle_screen_share_offer(data):
-    """Relay WebRTC offer for screen share stream"""
-    room_id = data.get('roomId')
-    offer = data.get('offer')
-    
+    room_id = _safe_room(data.get("roomId"))
+    offer = data.get("offer")
+    target_sid = data.get("targetSid")
     if not room_id or not offer:
         return
-    
-    emit('screen-share-offer', {
-        'offer': offer,
-        'from': request.sid
-    }, room=room_id, skip_sid=request.sid)
-    
-    print(f'📡 Screen share offer sent in room {room_id}')
+    payload = {"offer": offer, "from": request.sid, "roomId": room_id}
+    if target_sid:
+        emit("screen-share-offer", payload, to=target_sid)
+    else:
+        emit("screen-share-offer", payload, room=room_id, skip_sid=request.sid)
 
-
-@socketio.on('screen-share-answer')
+@socketio.on("screen-share-answer")
 def handle_screen_share_answer(data):
-    """Relay WebRTC answer for screen share stream"""
-    room_id = data.get('roomId')
-    answer = data.get('answer')
-    target_sid = data.get('targetSid')
-    
+    room_id = _safe_room(data.get("roomId"))
+    answer = data.get("answer")
+    target_sid = data.get("targetSid")
     if not room_id or not answer:
         return
-    
-    # Send answer back to the sharer specifically
+    payload = {"answer": answer, "from": request.sid, "roomId": room_id}
     if target_sid:
-        emit('screen-share-answer', {
-            'answer': answer,
-            'from': request.sid
-        }, to=target_sid)
+        emit("screen-share-answer", payload, to=target_sid)
     else:
-        emit('screen-share-answer', {
-            'answer': answer,
-            'from': request.sid
-        }, room=room_id, skip_sid=request.sid)
-    
-    print(f'📡 Screen share answer sent in room {room_id}')
+        emit("screen-share-answer", payload, room=room_id, skip_sid=request.sid)
 
-
-@socketio.on('screen-share-ice')
+@socketio.on("screen-share-ice")
 def handle_screen_share_ice(data):
-    """Relay ICE candidates for screen share peer connection"""
-    room_id = data.get('roomId')
-    candidate = data.get('candidate')
-    target_sid = data.get('targetSid')
-    
+    room_id = _safe_room(data.get("roomId"))
+    candidate = data.get("candidate")
+    target_sid = data.get("targetSid")
     if not room_id or not candidate:
         return
-    
+    payload = {"candidate": candidate, "from": request.sid, "roomId": room_id}
     if target_sid:
-        emit('screen-share-ice', {
-            'candidate': candidate,
-            'from': request.sid
-        }, to=target_sid)
+        emit("screen-share-ice", payload, to=target_sid)
     else:
-        emit('screen-share-ice', {
-            'candidate': candidate,
-            'from': request.sid
-        }, room=room_id, skip_sid=request.sid)
+        emit("screen-share-ice", payload, room=room_id, skip_sid=request.sid)
 
-# =====================================================
-# VOICE CHAT HANDLERS — add to socketio.py
-# =====================================================
 
-@socketio.on('voice-user-joined')
+# -----------------------------------------------------------------------------
+# 3) Voice Chat signaling (separate PC recommended client-side)
+# -----------------------------------------------------------------------------
+
+@socketio.on("voice-user-joined")
 def handle_voice_user_joined(data):
-    """User joined voice chat in a room"""
-    room_id = data.get('roomId')
-    user_id = data.get('userId')
-    user_name = data.get('userName')
-    
+    room_id = _safe_room(data.get("roomId"))
+    user_id = data.get("userId")
+    user_name = data.get("userName")
     if room_id:
-        # Broadcast to room that user joined voice
-        emit('voice-user-joined', {
-            'userId': user_id,
-            'userName': user_name,
-            'sid': request.sid
-        }, room=room_id, include_self=False)
-        print(f"🎤 Voice user joined: {user_name} in {room_id}")
+        emit("voice-user-joined", {"userId": user_id, "userName": user_name, "sid": request.sid},
+             room=room_id, include_self=False)
 
-
-@socketio.on('voice-user-left')
+@socketio.on("voice-user-left")
 def handle_voice_user_left(data):
-    """User left voice chat"""
-    room_id = data.get('roomId')
-    user_id = data.get('userId')
-    
+    room_id = _safe_room(data.get("roomId"))
+    user_id = data.get("userId")
     if room_id:
-        emit('voice-user-left', {
-            'userId': user_id,
-            'sid': request.sid
-        }, room=room_id, include_self=False)
-        print(f"🎤 Voice user left: {user_id} from {room_id}")
+        emit("voice-user-left", {"userId": user_id, "sid": request.sid},
+             room=room_id, include_self=False)
 
-
-@socketio.on('voice-offer')
+@socketio.on("voice-offer")
 def handle_voice_offer(data):
-    """Relay WebRTC voice offer"""
-    room_id = data.get('roomId')
-    offer = data.get('offer')
-    
+    room_id = _safe_room(data.get("roomId"))
+    offer = data.get("offer")
+    target_sid = data.get("targetSid")
     if room_id and offer:
-        emit('voice-offer', {
-            'offer': offer,
-            'from': request.sid
-        }, room=room_id, include_self=False)
+        payload = {"offer": offer, "from": request.sid, "roomId": room_id}
+        if target_sid:
+            emit("voice-offer", payload, to=target_sid)
+        else:
+            emit("voice-offer", payload, room=room_id, include_self=False)
 
-
-@socketio.on('voice-answer')
+@socketio.on("voice-answer")
 def handle_voice_answer(data):
-    """Relay WebRTC voice answer"""
-    room_id = data.get('roomId')
-    answer = data.get('answer')
-    target_sid = data.get('targetSid')
-    
+    room_id = _safe_room(data.get("roomId"))
+    answer = data.get("answer")
+    target_sid = data.get("targetSid")
     if answer:
+        payload = {"answer": answer, "from": request.sid, "roomId": room_id}
         if target_sid:
-            emit('voice-answer', {
-                'answer': answer,
-                'from': request.sid
-            }, room=target_sid)
+            emit("voice-answer", payload, to=target_sid)
         elif room_id:
-            emit('voice-answer', {
-                'answer': answer,
-                'from': request.sid
-            }, room=room_id, include_self=False)
+            emit("voice-answer", payload, room=room_id, include_self=False)
 
-
-@socketio.on('voice-ice')
+@socketio.on("voice-ice")
 def handle_voice_ice(data):
-    """Relay ICE candidates for voice"""
-    room_id = data.get('roomId')
-    candidate = data.get('candidate')
-    target_sid = data.get('targetSid')
-    
+    room_id = _safe_room(data.get("roomId"))
+    candidate = data.get("candidate")
+    target_sid = data.get("targetSid")
     if candidate:
+        payload = {"candidate": candidate, "from": request.sid, "roomId": room_id}
         if target_sid:
-            emit('voice-ice', {
-                'candidate': candidate,
-                'from': request.sid
-            }, room=target_sid)
+            emit("voice-ice", payload, to=target_sid)
         elif room_id:
-            emit('voice-ice', {
-                'candidate': candidate,
-                'from': request.sid
-            }, room=room_id, include_self=False)
+            emit("voice-ice", payload, room=room_id, include_self=False)
 
-# Admin endpoint for debugging
-@socketio.on('get_room_stats')
+
+# -----------------------------------------------------------------------------
+# 4) Podcast Collab Room
+# -----------------------------------------------------------------------------
+
+@socketio.on("podcast_collab_join")
+def handle_podcast_collab_join(data):
+    room_id = _safe_room(data.get("roomId"))
+    user_id = data.get("userId")
+    user_name = data.get("userName")
+    avatar = data.get("avatar", "")
+    is_host = bool(data.get("isHost", False))
+
+    if not room_id or not user_id:
+        return
+
+    join_room(f"podcast_{room_id}")
+
+    if room_id not in podcast_collab_rooms:
+        podcast_collab_rooms[room_id] = {}
+
+    podcast_collab_rooms[room_id][request.sid] = {
+        "userId": user_id,
+        "userName": user_name,
+        "avatar": avatar,
+        "isHost": is_host,
+        "sid": request.sid,
+        "handRaised": False,
+        "isMuted": False,
+        "videoOff": False
+    }
+
+    emit("podcast_collab_user_joined", {
+        "userId": user_id,
+        "userName": user_name,
+        "avatar": avatar,
+        "isHost": is_host,
+        "sid": request.sid,
+        "participants": list(podcast_collab_rooms[room_id].values())
+    }, room=f"podcast_{room_id}")
+
+    print(f"🎙️ {user_name} joined podcast collab room {room_id} (Total: {len(podcast_collab_rooms[room_id])})")
+
+
+@socketio.on("podcast_collab_leave")
+def handle_podcast_collab_leave(data):
+    room_id = _safe_room(data.get("roomId"))
+    if not room_id:
+        return
+
+    leave_room(f"podcast_{room_id}")
+
+    if room_id in podcast_collab_rooms and request.sid in podcast_collab_rooms[room_id]:
+        user_info = podcast_collab_rooms[room_id].pop(request.sid, {})
+
+        if not podcast_collab_rooms[room_id]:
+            del podcast_collab_rooms[room_id]
+
+        emit("podcast_collab_user_left", {
+            "userId": user_info.get("userId"),
+            "userName": user_info.get("userName"),
+            "sid": request.sid,
+            "participants": list(podcast_collab_rooms.get(room_id, {}).values())
+        }, room=f"podcast_{room_id}")
+
+
+@socketio.on("podcast_collab_offer")
+def handle_podcast_collab_offer(data):
+    room_id = _safe_room(data.get("roomId"))
+    target_sid = data.get("targetSid")
+    offer = data.get("offer")
+    if target_sid and offer:
+        emit("podcast_collab_offer", {"offer": offer, "from": request.sid, "roomId": room_id}, to=target_sid)
+
+@socketio.on("podcast_collab_answer")
+def handle_podcast_collab_answer(data):
+    room_id = _safe_room(data.get("roomId"))
+    target_sid = data.get("targetSid")
+    answer = data.get("answer")
+    if target_sid and answer:
+        emit("podcast_collab_answer", {"answer": answer, "from": request.sid, "roomId": room_id}, to=target_sid)
+
+@socketio.on("podcast_collab_ice")
+def handle_podcast_collab_ice(data):
+    room_id = _safe_room(data.get("roomId"))
+    target_sid = data.get("targetSid")
+    candidate = data.get("candidate")
+    if target_sid and candidate:
+        emit("podcast_collab_ice", {"candidate": candidate, "from": request.sid, "roomId": room_id}, to=target_sid)
+
+@socketio.on("podcast_collab_chat")
+def handle_podcast_collab_chat(data):
+    room_id = _safe_room(data.get("roomId"))
+    message = data.get("message")
+    if room_id and message:
+        emit("podcast_collab_chat", message, room=f"podcast_{room_id}")
+
+
+@socketio.on("podcast_collab_reaction")
+def handle_podcast_collab_reaction(data):
+    room_id = _safe_room(data.get("roomId"))
+    if room_id:
+        emit("podcast_collab_reaction", {
+            "userId": data.get("userId"),
+            "userName": data.get("userName"),
+            "emoji": data.get("emoji", "👍"),
+            "sid": request.sid
+        }, room=f"podcast_{room_id}")
+
+
+@socketio.on("podcast_collab_hand_raise")
+def handle_podcast_collab_hand_raise(data):
+    room_id = _safe_room(data.get("roomId"))
+    raised = bool(data.get("raised", False))
+    if room_id:
+        if room_id in podcast_collab_rooms and request.sid in podcast_collab_rooms[room_id]:
+            podcast_collab_rooms[room_id][request.sid]["handRaised"] = raised
+
+        emit("podcast_collab_hand_raise", {
+            "userId": data.get("userId"),
+            "userName": data.get("userName"),
+            "raised": raised,
+            "sid": request.sid
+        }, room=f"podcast_{room_id}")
+
+
+@socketio.on("podcast_collab_layout_sync")
+def handle_podcast_collab_layout_sync(data):
+    room_id = _safe_room(data.get("roomId"))
+    if room_id:
+        emit("podcast_collab_layout_sync", {
+            "layout": data.get("layout"),
+            "orientation": data.get("orientation"),
+            "spotlightUser": data.get("spotlightUser"),
+            "fromHost": bool(data.get("fromHost", False))
+        }, room=f"podcast_{room_id}", skip_sid=request.sid)
+
+
+@socketio.on("podcast_collab_recording_start")
+def handle_podcast_collab_recording_start(data):
+    room_id = _safe_room(data.get("roomId"))
+    if room_id:
+        emit("podcast_collab_recording_start", {
+            "startedBy": data.get("userId"),
+            "timestamp": data.get("timestamp", datetime.utcnow().isoformat())
+        }, room=f"podcast_{room_id}")
+
+@socketio.on("podcast_collab_recording_stop")
+def handle_podcast_collab_recording_stop(data):
+    room_id = _safe_room(data.get("roomId"))
+    if room_id:
+        emit("podcast_collab_recording_stop", {
+            "stoppedBy": data.get("userId"),
+            "timestamp": data.get("timestamp", datetime.utcnow().isoformat())
+        }, room=f"podcast_{room_id}")
+
+
+# -----------------------------------------------------------------------------
+# 5) Gamers Chatroom (joinRoom/leaveRoom/send_message)
+# -----------------------------------------------------------------------------
+
+@socketio.on("joinRoom")
+def handle_join_chat_room(data):
+    stream_id = _safe_room(data.get("stream_id"))
+    user_info = data.get("user_info", {}) or {}
+    if not stream_id:
+        return
+
+    join_room(stream_id)
+
+    if stream_id not in chat_rooms:
+        chat_rooms[stream_id] = {}
+
+    chat_rooms[stream_id][request.sid] = {
+        "id": user_info.get("id"),
+        "username": user_info.get("username", "Anonymous"),
+        "gamertag": user_info.get("gamertag", ""),
+        "current_game": user_info.get("current_game", ""),
+        "sid": request.sid,
+        "joined_at": datetime.utcnow().isoformat()
+    }
+
+    users_list = list(chat_rooms[stream_id].values())
+    emit("users_update", users_list, room=stream_id)
+
+    active_games = list(set(u.get("current_game") for u in users_list if u.get("current_game")))
+    emit("games_update", active_games, room=stream_id)
+
+    emit("receive_message", {
+        "type": "system",
+        "message": f"🟢 {user_info.get('gamertag') or user_info.get('username', 'Someone')} joined the room",
+        "timestamp": datetime.utcnow().isoformat()
+    }, room=stream_id, skip_sid=request.sid)
+
+    print(f"💬 {user_info.get('username')} joined chat room {stream_id} ({len(chat_rooms[stream_id])} users)")
+
+
+@socketio.on("leaveRoom")
+def handle_leave_chat_room(data):
+    stream_id = _safe_room(data.get("stream_id"))
+    if not stream_id:
+        return
+
+    user_info = {}
+    if stream_id in chat_rooms and request.sid in chat_rooms[stream_id]:
+        user_info = chat_rooms[stream_id].pop(request.sid, {})
+        if not chat_rooms[stream_id]:
+            del chat_rooms[stream_id]
+
+    leave_room(stream_id)
+
+    if stream_id in chat_rooms:
+        users_list = list(chat_rooms[stream_id].values())
+        emit("users_update", users_list, room=stream_id)
+
+        active_games = list(set(u.get("current_game") for u in users_list if u.get("current_game")))
+        emit("games_update", active_games, room=stream_id)
+
+    username = user_info.get("gamertag") or user_info.get("username", "Someone")
+    emit("receive_message", {
+        "type": "system",
+        "message": f"🔴 {username} left the room",
+        "timestamp": datetime.utcnow().isoformat()
+    }, room=stream_id)
+
+    print(f"👋 {username} left chat room {stream_id}")
+
+
+@socketio.on("send_message")
+def handle_send_message(data):
+    stream_id = _safe_room(data.get("stream_id"))
+    message = data.get("message")
+    user_info = data.get("user_info", {}) or {}
+
+    if not stream_id or not message:
+        return
+
+    msg_payload = {
+        "type": "user",
+        "message": message,
+        "username": user_info.get("gamertag") or user_info.get("username", "Anonymous"),
+        "user_id": user_info.get("id") or chat_rooms.get(stream_id, {}).get(request.sid, {}).get("id"),
+        "gamertag": user_info.get("gamertag", ""),
+        "current_game": user_info.get("current_game", ""),
+        "gamer_rank": user_info.get("gamer_rank", ""),
+        "isGameInvite": bool(user_info.get("isGameInvite", False)),
+        "timestamp": datetime.utcnow().isoformat(),
+        "sid": request.sid
+    }
+
+    emit("receive_message", msg_payload, room=stream_id)
+    print(f'💬 [{stream_id}] {msg_payload["username"]}: {message[:80]}')
+
+
+@socketio.on("typing")
+def handle_typing(data):
+    stream_id = _safe_room(data.get("stream_id"))
+    username = data.get("username")
+    if stream_id and username:
+        emit("user_typing", {"username": username, "timestamp": datetime.utcnow().isoformat()},
+             room=stream_id, skip_sid=request.sid)
+
+@socketio.on("stop_typing")
+def handle_stop_typing(data):
+    stream_id = _safe_room(data.get("stream_id") or data.get("room"))
+    username = data.get("from") or data.get("username")
+    if stream_id:
+        emit("stop_typing", {"username": username}, room=stream_id, skip_sid=request.sid)
+
+@socketio.on("update_game_status")
+def handle_game_status_update(data):
+    stream_id = _safe_room(data.get("stream_id"))
+    game_status = data.get("game_status", "")
+
+    if not stream_id:
+        return
+
+    if stream_id in chat_rooms and request.sid in chat_rooms[stream_id]:
+        chat_rooms[stream_id][request.sid]["current_game"] = game_status
+
+    if stream_id in chat_rooms:
+        active_games = list(set(
+            u.get("current_game") for u in chat_rooms[stream_id].values()
+            if u.get("current_game")
+        ))
+        emit("games_update", active_games, room=stream_id)
+
+    emit("user_status_update", {"sid": request.sid, "game_status": game_status},
+         room=stream_id, skip_sid=request.sid)
+
+
+# -----------------------------------------------------------------------------
+# Debug: room stats
+# -----------------------------------------------------------------------------
+
+@socketio.on("get_room_stats")
 def handle_get_room_stats():
     stats = {
-        'total_rooms': len(active_rooms),
-        'rooms': [
-            {
-                'roomId': room_id,
-                'userCount': len(users),
-                'users': users
-            }
-            for room_id, users in active_rooms.items()
-        ]
+        "total_webrtc_rooms": len(active_rooms),
+        "webrtc_rooms": [
+            {"roomId": rid, "userCount": len(sids), "sids": sids}
+            for rid, sids in active_rooms.items()
+        ],
+        "total_team_rooms": len(team_rooms),
+        "team_rooms": [
+            {"roomId": rid, "userCount": len(users), "users": list(users.values())}
+            for rid, users in team_rooms.items()
+        ],
     }
-    emit('room_stats', stats)
-    print(f'📊 Room stats: {len(active_rooms)} active rooms')
+    emit("room_stats", stats)
+    print(f"📊 Room stats: {len(active_rooms)} webrtc rooms, {len(team_rooms)} team rooms")
+
+
+# -----------------------------------------------------------------------------
+# init
+# -----------------------------------------------------------------------------
 
 def init_socketio(app):
-    """Initialize SocketIO with Flask app"""
+    """Initialize SocketIO with Flask app."""
     socketio.init_app(
         app,
         cors_allowed_origins="*",
-        async_mode='threading',
+        allow_credentials=True,
         logger=True,
         engineio_logger=True,
-        manage_session=False
+        manage_session=False,
+        # IMPORTANT:
+        # If you can install eventlet, use async_mode="eventlet" for best websocket support.
+        # If not, threading works but can be less reliable under load.
+        async_mode="eventlet"
     )
-    print("✅ WebRTC SocketIO initialized")
+    print("✅ SocketIO initialized")
     return socketio
-
-# =============================================================================
-# PODCAST COLLAB ROOM — Socket Events
-# =============================================================================
-# Handles: room join/leave, WebRTC signaling, chat, reactions, 
-#           hand raise, layout sync, recording coordination
-# =============================================================================
-
-podcast_collab_rooms = {}
-
-@socketio.on('podcast_collab_join')
-def handle_podcast_collab_join(data):
-    """User joins a podcast collab room"""
-    room_id = data.get('roomId')
-    user_id = data.get('userId')
-    user_name = data.get('userName')
-    avatar = data.get('avatar', '')
-    is_host = data.get('isHost', False)
-    
-    if not room_id or not user_id:
-        return
-    
-    join_room(f'podcast_{room_id}')
-    
-    if room_id not in podcast_collab_rooms:
-        podcast_collab_rooms[room_id] = {}
-    
-    podcast_collab_rooms[room_id][request.sid] = {
-        'userId': user_id,
-        'userName': user_name,
-        'avatar': avatar,
-        'isHost': is_host,
-        'sid': request.sid,
-        'handRaised': False,
-        'isMuted': False,
-        'videoOff': False
-    }
-    
-    # Notify everyone in the room
-    emit('podcast_collab_user_joined', {
-        'userId': user_id,
-        'userName': user_name,
-        'avatar': avatar,
-        'isHost': is_host,
-        'sid': request.sid,
-        'participants': list(podcast_collab_rooms[room_id].values())
-    }, room=f'podcast_{room_id}')
-    
-    print(f'🎙️ {user_name} joined podcast collab room {room_id} (Total: {len(podcast_collab_rooms[room_id])})')
-
-
-@socketio.on('podcast_collab_leave')
-def handle_podcast_collab_leave(data):
-    """User leaves a podcast collab room"""
-    room_id = data.get('roomId')
-    
-    if not room_id:
-        return
-    
-    leave_room(f'podcast_{room_id}')
-    
-    if room_id in podcast_collab_rooms and request.sid in podcast_collab_rooms[room_id]:
-        user_info = podcast_collab_rooms[room_id].pop(request.sid)
-        
-        if not podcast_collab_rooms[room_id]:
-            del podcast_collab_rooms[room_id]
-        
-        emit('podcast_collab_user_left', {
-            'userId': user_info['userId'],
-            'userName': user_info['userName'],
-            'sid': request.sid,
-            'participants': list(podcast_collab_rooms.get(room_id, {}).values())
-        }, room=f'podcast_{room_id}')
-        
-        print(f'🎙️ {user_info["userName"]} left podcast collab room {room_id}')
-
-
-@socketio.on('podcast_collab_offer')
-def handle_podcast_collab_offer(data):
-    """Relay WebRTC offer for podcast collab"""
-    room_id = data.get('roomId')
-    target_sid = data.get('targetSid')
-    offer = data.get('offer')
-    
-    if target_sid and offer:
-        emit('podcast_collab_offer', {
-            'offer': offer,
-            'from': request.sid
-        }, to=target_sid)
-
-
-@socketio.on('podcast_collab_answer')
-def handle_podcast_collab_answer(data):
-    """Relay WebRTC answer for podcast collab"""
-    target_sid = data.get('targetSid')
-    answer = data.get('answer')
-    
-    if target_sid and answer:
-        emit('podcast_collab_answer', {
-            'answer': answer,
-            'from': request.sid
-        }, to=target_sid)
-
-
-@socketio.on('podcast_collab_ice')
-def handle_podcast_collab_ice(data):
-    """Relay ICE candidate for podcast collab"""
-    target_sid = data.get('targetSid')
-    candidate = data.get('candidate')
-    
-    if target_sid and candidate:
-        emit('podcast_collab_ice', {
-            'candidate': candidate,
-            'from': request.sid
-        }, to=target_sid)
-
-
-@socketio.on('podcast_collab_chat')
-def handle_podcast_collab_chat(data):
-    """Chat message in podcast collab room"""
-    room_id = data.get('roomId')
-    message = data.get('message')
-    
-    if room_id and message:
-        emit('podcast_collab_chat', message, room=f'podcast_{room_id}')
-
-
-@socketio.on('podcast_collab_reaction')
-def handle_podcast_collab_reaction(data):
-    """Emoji reaction in podcast collab room"""
-    room_id = data.get('roomId')
-    
-    if room_id:
-        emit('podcast_collab_reaction', {
-            'userId': data.get('userId'),
-            'userName': data.get('userName'),
-            'emoji': data.get('emoji', '👍'),
-            'sid': request.sid
-        }, room=f'podcast_{room_id}')
-
-
-@socketio.on('podcast_collab_hand_raise')
-def handle_podcast_collab_hand_raise(data):
-    """Toggle hand raise in podcast collab room"""
-    room_id = data.get('roomId')
-    raised = data.get('raised', False)
-    
-    if room_id:
-        # Update local state
-        if room_id in podcast_collab_rooms and request.sid in podcast_collab_rooms[room_id]:
-            podcast_collab_rooms[room_id][request.sid]['handRaised'] = raised
-        
-        emit('podcast_collab_hand_raise', {
-            'userId': data.get('userId'),
-            'userName': data.get('userName'),
-            'raised': raised,
-            'sid': request.sid
-        }, room=f'podcast_{room_id}')
-
-
-@socketio.on('podcast_collab_layout_sync')
-def handle_podcast_collab_layout_sync(data):
-    """Host syncs layout preset to all participants"""
-    room_id = data.get('roomId')
-    
-    if room_id:
-        emit('podcast_collab_layout_sync', {
-            'layout': data.get('layout'),
-            'orientation': data.get('orientation'),
-            'spotlightUser': data.get('spotlightUser'),
-            'fromHost': data.get('fromHost', False)
-        }, room=f'podcast_{room_id}', skip_sid=request.sid)
-
-
-@socketio.on('podcast_collab_recording_start')
-def handle_podcast_collab_recording_start(data):
-    """Host signals all participants to start local recording"""
-    room_id = data.get('roomId')
-    
-    if room_id:
-        emit('podcast_collab_recording_start', {
-            'startedBy': data.get('userId'),
-            'timestamp': data.get('timestamp')
-        }, room=f'podcast_{room_id}')
-        print(f'🔴 Recording started in podcast room {room_id}')
-
-
-@socketio.on('podcast_collab_recording_stop')
-def handle_podcast_collab_recording_stop(data):
-    """Host signals all participants to stop local recording"""
-    room_id = data.get('roomId')
-    
-    if room_id:
-        emit('podcast_collab_recording_stop', {
-            'stoppedBy': data.get('userId'),
-            'timestamp': data.get('timestamp')
-        }, room=f'podcast_{room_id}')
-        print(f'⏹️ Recording stopped in podcast room {room_id}')
-

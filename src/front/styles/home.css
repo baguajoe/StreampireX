@@ -545,6 +545,77 @@
 /* =============================================
    How It Works Section
    ============================================= */
+/* ═══════════════════════════════════════════════════════════════
+   EPK & COLLAB HUB SPOTLIGHT
+   ═══════════════════════════════════════════════════════════════ */
+
+.streampirex-home .epk-collab-spotlight {
+	padding: 4rem 2rem;
+	background: linear-gradient(180deg, #0b1120, #111827) !important;
+	text-align: center;
+	border-top: 2px solid rgba(0, 255, 200, 0.15);
+	border-bottom: 2px solid rgba(0, 255, 200, 0.15);
+}
+
+.streampirex-home .epk-collab-spotlight h2 {
+	color: #00ffc8 !important;
+	font-size: 2.2rem;
+	margin-bottom: 0.5rem;
+	background: transparent !important;
+}
+
+.streampirex-home .epk-features-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1.5rem;
+	max-width: 1200px;
+	margin: 2.5rem auto 0;
+}
+
+.streampirex-home .epk-feature {
+	background: linear-gradient(145deg, #0d1b2a, #162236) !important;
+	border: 1px solid rgba(0, 255, 200, 0.12);
+	border-radius: 14px;
+	padding: 2rem 1.5rem;
+	text-align: center;
+	transition: all 0.3s ease;
+}
+
+.streampirex-home .epk-feature:hover {
+	border-color: #00ffc8;
+	transform: translateY(-4px);
+	box-shadow: 0 12px 35px rgba(0, 255, 200, 0.1);
+}
+
+.streampirex-home .epk-icon {
+	font-size: 2.5rem;
+	display: block;
+	margin-bottom: 1rem;
+}
+
+.streampirex-home .epk-feature h4 {
+	color: #00ffc8 !important;
+	font-size: 1.15rem;
+	margin-bottom: 0.75rem;
+	background: transparent !important;
+}
+
+.streampirex-home .epk-feature p {
+	color: #9ca3af !important;
+	font-size: 0.9rem;
+	line-height: 1.6;
+	background: transparent !important;
+}
+
+.streampirex-home .epk-cta {
+	display: flex;
+	justify-content: center;
+	gap: 1rem;
+	margin-top: 2.5rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+
 .streampirex-home .how-it-works {
 	padding: 4rem 2rem;
 	background: #111827 !important;
@@ -1392,6 +1463,10 @@
 	.streampirex-home .beat-store-features-grid {
 		grid-template-columns: repeat(2, 1fr);
 	}
+
+	.streampirex-home .epk-features-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
 }
 
 /* Tablets */
@@ -1495,6 +1570,13 @@
 	}
 
 	.streampirex-home .beat-store-features-grid {
+		grid-template-columns: 1fr;
+		max-width: 600px;
+		margin-left: auto;
+		margin-right: auto;
+	}
+
+	.streampirex-home .epk-features-grid {
 		grid-template-columns: 1fr;
 		max-width: 600px;
 		margin-left: auto;

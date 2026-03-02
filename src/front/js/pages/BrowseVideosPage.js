@@ -13,6 +13,30 @@ import "../../styles/BrowseVideos.css";
 const ITEMS_PER_PAGE = 20;
 const DEBOUNCE_DELAY = 300;
 
+// Martial Arts subcategories
+const MARTIAL_ARTS_SUBS = [
+  "All Martial Arts",
+  "Internal Arts",
+  "Tai Chi",
+  "Baguazhang",
+  "Xing Yi Quan",
+  "Qigong",
+  "Wing Chun",
+  "Kung Fu",
+  "Karate",
+  "BJJ",
+  "MMA",
+  "Muay Thai",
+  "Judo",
+  "Taekwondo",
+  "Capoeira",
+  "Krav Maga",
+  "Aikido",
+  "Wushu",
+  "Silat",
+  "HEMA"
+];
+
 // Debounce hook
 const useDebounce = (value, delay) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -62,6 +86,7 @@ const BrowseVideosPage = () => {
   const [channels, setChannels] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedSubCategory, setSelectedSubCategory] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [isLoading, setIsLoading] = useState(true);
   const [pagination, setPagination] = useState({});
@@ -71,6 +96,7 @@ const BrowseVideosPage = () => {
   const [browseMode, setBrowseMode] = useState("videos");
 
   const scrollRef = useRef(null);
+  const subScrollRef = useRef(null);
 
   const debouncedSearchTerm = useDebounce(searchTerm, DEBOUNCE_DELAY);
   const { apiCall } = useApi();
@@ -80,6 +106,14 @@ const BrowseVideosPage = () => {
     () => searchTerm || selectedCategory !== "All" || sortBy !== "newest",
     [searchTerm, selectedCategory, sortBy]
   );
+
+  // The actual category sent to the API (includes subcategory if applicable)
+  const effectiveCategory = useMemo(() => {
+    if (selectedCategory === "Martial Arts" && selectedSubCategory && selectedSubCategory !== "All Martial Arts") {
+      return selectedSubCategory;
+    }
+    return selectedCategory;
+  }, [selectedCategory, selectedSubCategory]);
 
   const contentCountText = useMemo(() => {
     if (browseMode === "channels") {
@@ -124,6 +158,28 @@ const BrowseVideosPage = () => {
     }
   };
 
+  const scrollSubLeft = () => {
+    if (subScrollRef.current) {
+      subScrollRef.current.scrollLeft -= 200;
+    }
+  };
+
+  const scrollSubRight = () => {
+    if (subScrollRef.current) {
+      subScrollRef.current.scrollLeft += 200;
+    }
+  };
+
+  // Handle category selection
+  const handleCategorySelect = useCallback((category) => {
+    setSelectedCategory(category);
+    if (category !== "Martial Arts") {
+      setSelectedSubCategory("");
+    } else {
+      setSelectedSubCategory("All Martial Arts");
+    }
+  }, []);
+
   // API calls
   const fetchVideos = useCallback(async () => {
     setIsLoading(true);
@@ -132,7 +188,7 @@ const BrowseVideosPage = () => {
     try {
       const params = new URLSearchParams({
         search: debouncedSearchTerm,
-        category: selectedCategory,
+        category: effectiveCategory,
         sort_by: sortBy,
         page: currentPage.toString(),
         per_page: ITEMS_PER_PAGE.toString()
@@ -160,7 +216,7 @@ const BrowseVideosPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [apiCall, debouncedSearchTerm, selectedCategory, sortBy, currentPage]);
+  }, [apiCall, debouncedSearchTerm, effectiveCategory, sortBy, currentPage]);
 
   const fetchClips = useCallback(async () => {
     setIsLoading(true);
@@ -230,6 +286,7 @@ const BrowseVideosPage = () => {
   const handleClearFilters = useCallback(() => {
     setSearchTerm("");
     setSelectedCategory("All");
+    setSelectedSubCategory("");
     setSortBy("newest");
     setCurrentPage(1);
   }, []);
@@ -239,6 +296,7 @@ const BrowseVideosPage = () => {
     setCurrentPage(1);
     setActiveTab("");
     setSelectedCategory("All");
+    setSelectedSubCategory("");
   }, []);
 
   // Effects
@@ -263,7 +321,7 @@ const BrowseVideosPage = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchTerm, selectedCategory, sortBy, browseMode]);
+  }, [debouncedSearchTerm, selectedCategory, selectedSubCategory, sortBy, browseMode]);
 
   const getModeLabel = () => {
     if (browseMode === "clips") return "Clips";
@@ -407,147 +465,76 @@ const BrowseVideosPage = () => {
         </div>
       )}
 
-      {/* Categories – HARDCODED VERSION THAT WILL WORK */}
+      {/* Categories */}
       {browseMode === "videos" && (
-        <div className="browse-categories">
-          <button
-            className="browse-cat-scroll-btn"
-            onClick={scrollLeft}
-          >
-            ‹
-          </button>
-          <div 
-            className="browse-cat-scroll" 
-            ref={scrollRef}
-          >
+        <>
+          <div className="browse-categories">
             <button
-              onClick={() => setSelectedCategory("All")}
-              className={`browse-cat-pill${selectedCategory === "All" ? " active" : ""}`}
+              className="browse-cat-scroll-btn"
+              onClick={scrollLeft}
             >
-              All
+              ‹
             </button>
-            <button
-              onClick={() => setSelectedCategory("Music")}
-              className={`browse-cat-pill${selectedCategory === "Music" ? " active" : ""}`}
+            <div 
+              className="browse-cat-scroll" 
+              ref={scrollRef}
             >
-              Music
-            </button>
+              {[
+                "All", "Music", "Podcasts", "Live Concerts", "Music Videos",
+                "DJ Sets", "Gaming", "Education", "Tech", "Comedy", "Sports",
+                "Martial Arts", "Health & Fitness", "News", "Lifestyle", "Travel",
+                "Food & Cooking", "Art & Design", "Business", "Documentary",
+                "ASMR", "Vlogs"
+              ].map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => handleCategorySelect(cat)}
+                  className={`browse-cat-pill${selectedCategory === cat ? " active" : ""}`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
             <button
-              onClick={() => setSelectedCategory("Podcasts")}
-              className={`browse-cat-pill${selectedCategory === "Podcasts" ? " active" : ""}`}
+              className="browse-cat-scroll-btn"
+              onClick={scrollRight}
             >
-              Podcasts
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Live Concerts")}
-              className={`browse-cat-pill${selectedCategory === "Live Concerts" ? " active" : ""}`}
-            >
-              Live Concerts
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Music Videos")}
-              className={`browse-cat-pill${selectedCategory === "Music Videos" ? " active" : ""}`}
-            >
-              Music Videos
-            </button>
-            <button
-              onClick={() => setSelectedCategory("DJ Sets")}
-              className={`browse-cat-pill${selectedCategory === "DJ Sets" ? " active" : ""}`}
-            >
-              DJ Sets
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Gaming")}
-              className={`browse-cat-pill${selectedCategory === "Gaming" ? " active" : ""}`}
-            >
-              Gaming
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Education")}
-              className={`browse-cat-pill${selectedCategory === "Education" ? " active" : ""}`}
-            >
-              Education
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Tech")}
-              className={`browse-cat-pill${selectedCategory === "Tech" ? " active" : ""}`}
-            >
-              Tech
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Comedy")}
-              className={`browse-cat-pill${selectedCategory === "Comedy" ? " active" : ""}`}
-            >
-              Comedy
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Sports")}
-              className={`browse-cat-pill${selectedCategory === "Sports" ? " active" : ""}`}
-            >
-              Sports
-            </button>
-            <button
-              onClick={() => setSelectedCategory("News")}
-              className={`browse-cat-pill${selectedCategory === "News" ? " active" : ""}`}
-            >
-              News
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Lifestyle")}
-              className={`browse-cat-pill${selectedCategory === "Lifestyle" ? " active" : ""}`}
-            >
-              Lifestyle
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Travel")}
-              className={`browse-cat-pill${selectedCategory === "Travel" ? " active" : ""}`}
-            >
-              Travel
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Food & Cooking")}
-              className={`browse-cat-pill${selectedCategory === "Food & Cooking" ? " active" : ""}`}
-            >
-              Food & Cooking
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Art & Design")}
-              className={`browse-cat-pill${selectedCategory === "Art & Design" ? " active" : ""}`}
-            >
-              Art & Design
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Business")}
-              className={`browse-cat-pill${selectedCategory === "Business" ? " active" : ""}`}
-            >
-              Business
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Documentary")}
-              className={`browse-cat-pill${selectedCategory === "Documentary" ? " active" : ""}`}
-            >
-              Documentary
-            </button>
-            <button
-              onClick={() => setSelectedCategory("ASMR")}
-              className={`browse-cat-pill${selectedCategory === "ASMR" ? " active" : ""}`}
-            >
-              ASMR
-            </button>
-            <button
-              onClick={() => setSelectedCategory("Vlogs")}
-              className={`browse-cat-pill${selectedCategory === "Vlogs" ? " active" : ""}`}
-            >
-              Vlogs
+              ›
             </button>
           </div>
-          <button
-            className="browse-cat-scroll-btn"
-            onClick={scrollRight}
-          >
-            ›
-          </button>
-        </div>
+
+          {/* Martial Arts Subcategories */}
+          {selectedCategory === "Martial Arts" && (
+            <div className="browse-subcategories">
+              <button
+                className="browse-cat-scroll-btn browse-sub-scroll-btn"
+                onClick={scrollSubLeft}
+              >
+                ‹
+              </button>
+              <div 
+                className="browse-cat-scroll browse-sub-scroll" 
+                ref={subScrollRef}
+              >
+                {MARTIAL_ARTS_SUBS.map(sub => (
+                  <button
+                    key={sub}
+                    onClick={() => setSelectedSubCategory(sub)}
+                    className={`browse-sub-pill${selectedSubCategory === sub ? " active" : ""}`}
+                  >
+                    {sub}
+                  </button>
+                ))}
+              </div>
+              <button
+                className="browse-cat-scroll-btn browse-sub-scroll-btn"
+                onClick={scrollSubRight}
+              >
+                ›
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Error state */}
