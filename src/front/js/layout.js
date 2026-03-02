@@ -49,7 +49,7 @@ import PodcastStudio from "./pages/PodcastStudio";
 import PodcastGuestJoin from "./pages/PodcastGuestJoin";
 // Phase 2: Async guest recording page (standalone, no auth)
 import { AsyncGuestRecordPage } from "./pages/PodcastStudioPhase2";
-import PodcastCollabRoom from "./pages/PodcastCollabRoom";
+import PodcastCollabRoom from "./component/PodcastCollabRoom";
 
 
 import VideoUpload from "./pages/VideoUpload";

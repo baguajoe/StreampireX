@@ -43,7 +43,7 @@ from src.api.recording_studio_routes import recording_studio_bp
 from src.api.beat_store_routes import beat_store_bp
 from src.api.ai_chord_generator import ai_chord_generator_bp
 from src.api.ai_video_tools import ai_video_tools_bp
-from api.epk_collab import epk_collab_bp
+from src.api.epk_collab import epk_collab_bp
 
 # Import your blueprints - use src prefix
 from src.api.routes import api
