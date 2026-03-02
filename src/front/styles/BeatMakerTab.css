@@ -151,6 +151,19 @@
 .sbm-beats-content.view-seq {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Make sequencer rows slightly taller in seq-only view */
+.sbm-beats-content.view-seq .sbm-seq-row {
+  height: 32px;
+  min-height: 32px;
+}
+
+.sbm-beats-content.view-seq .sbm-seq-row-label {
+  min-width: 120px;
+  max-width: 120px;
 }
 
 /* ── Split top row: Pads (left) + Piano (right) ── */
@@ -158,16 +171,17 @@
   display: flex;
   flex-direction: row;
   gap: 0;
-  flex: 0 0 auto;
-  min-height: 220px;
-  max-height: 320px;
+  flex: 1 1 auto;
+  min-height: 320px;
+  max-height: 480px;
+  height: 55%;
   border-bottom: 1px solid #1a2438;
 }
 
 /* ── Split bottom row: Sequencer full width ── */
 .sbm-beats-bottomrow {
   flex: 1;
-  min-height: 0;
+  min-height: 180px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -198,10 +212,11 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(4, 1fr);
-  gap: 6px;
+  gap: 8px;
   width: 100%;
-  max-width: 420px;
-  aspect-ratio: 1 / 1;
+  max-width: 520px;
+  height: 100%;
+  max-height: 440px;
 }
 
 /* Individual pad */
@@ -212,15 +227,15 @@
   justify-content: center;
   gap: 4px;
   position: relative;
-  min-height: 50px;
-  border-radius: 8px;
+  min-height: 64px;
+  border-radius: 10px;
   background: linear-gradient(145deg, #12182a, #0e1322);
   border: 2px solid #1e2d42;
   cursor: pointer;
   user-select: none;
   transition: all 0.12s ease;
   overflow: hidden;
-  padding: 6px 4px;
+  padding: 8px 6px;
 }
 
 .sbm-beats-pad:hover {
@@ -253,12 +268,12 @@
 
 /* Pad number/key label */
 .sbm-beats-pad-num {
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: #3a5070;
   position: absolute;
-  top: 3px;
-  left: 5px;
+  top: 4px;
+  left: 6px;
   letter-spacing: 0.5px;
 }
 
@@ -268,14 +283,14 @@
 
 /* Pad sample name */
 .sbm-beats-pad-name {
-  font-size: 0.62rem;
+  font-size: 0.72rem;
   color: #6a7a90;
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 95%;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
 .sbm-beats-pad.loaded .sbm-beats-pad-name {
@@ -296,18 +311,35 @@
   align-items: stretch;
   overflow: hidden;
   background: #0c1018;
+  border-left: 1px solid #1a2438;
 }
 
 .sbm-beats-right-inner {
   flex: 1;
   min-width: 0;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Scale down the embedded VirtualPiano to fit */
-.sbm-beats-right-inner .virtual-piano-container,
-.sbm-beats-right-inner .virtual-piano {
-  font-size: 0.85rem;
+/* Make the embedded VirtualPiano fill the panel and feel bigger */
+.sbm-beats-right-inner > * {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Instrument selector row — compact */
+.sbm-beats-right-inner .instrument-select,
+.sbm-beats-right-inner .virtual-piano-instruments {
+  padding: 6px 8px;
+}
+
+/* Piano keys container — fill remaining height */
+.sbm-beats-right-inner .piano-keys-wrapper,
+.sbm-beats-right-inner .virtual-piano-keys,
+.sbm-beats-right-inner .piano-keys-container {
+  flex: 1;
+  min-height: 120px;
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -392,13 +424,17 @@
 .sbm-seq-row {
   display: flex;
   align-items: stretch;
-  height: 28px;
-  min-height: 28px;
-  border-bottom: 1px solid rgba(26, 36, 56, 0.4);
+  height: 26px;
+  min-height: 26px;
+  border-bottom: 1px solid rgba(26, 36, 56, 0.3);
+}
+
+.sbm-seq-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.008);
 }
 
 .sbm-seq-row:hover {
-  background: rgba(0, 255, 200, 0.015);
+  background: rgba(0, 255, 200, 0.02);
 }
 
 /* ── Row label (pad name) ── */
@@ -447,28 +483,33 @@
   flex: 1;
   min-width: 0;
   position: relative;
-  border-right: 1px solid rgba(26, 36, 56, 0.3);
+  border-right: 1px solid rgba(26, 36, 56, 0.2);
   cursor: pointer;
   transition: background 0.08s;
   background: transparent;
+  margin: 1px 0;
 }
 
 .sbm-seq-cell.beat-start {
-  border-left: 1px solid rgba(58, 80, 112, 0.4);
+  border-left: 1px solid rgba(58, 80, 112, 0.35);
 }
 
 .sbm-seq-cell:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
 }
 
-/* Active step */
+/* Active step — filled with pad color */
 .sbm-seq-cell.on {
   background: var(--step-color, #00ffc8);
-  opacity: 0.85;
+  opacity: 0.8;
+  border-radius: 2px;
+  margin: 2px 1px;
+  box-shadow: 0 0 4px rgba(0, 255, 200, 0.15);
 }
 
 .sbm-seq-cell.on:hover {
   opacity: 1;
+  box-shadow: 0 0 8px rgba(0, 255, 200, 0.3);
 }
 
 /* Velocity bar inside active step */
@@ -484,7 +525,8 @@
 
 /* Current playback position */
 .sbm-seq-cell.current {
-  box-shadow: inset 0 0 0 2px rgba(0, 255, 200, 0.6);
+  box-shadow: inset 0 0 0 2px #00ffc8;
+  z-index: 1;
 }
 
 .sbm-seq-cell.current::after {
@@ -494,13 +536,19 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 255, 200, 0.08);
+  background: rgba(0, 255, 200, 0.1);
   pointer-events: none;
+  animation: stepPulse 0.15s ease-out;
+}
+
+@keyframes stepPulse {
+  from { background: rgba(0, 255, 200, 0.25); }
+  to { background: rgba(0, 255, 200, 0.1); }
 }
 
 /* Loop boundaries */
 .sbm-seq-cell.out-loop {
-  opacity: 0.35;
+  opacity: 0.3;
 }
 
 .sbm-seq-cell.loop-start {
@@ -641,4 +689,1255 @@
     min-width: 60px;
     max-width: 60px;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   10. ADDITIONAL POLISH
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Pad active glow pulse */
+@keyframes padGlow {
+  0% { box-shadow: 0 0 12px rgba(0, 255, 200, 0.4), inset 0 0 16px rgba(0, 255, 200, 0.1); }
+  50% { box-shadow: 0 0 20px rgba(0, 255, 200, 0.5), inset 0 0 24px rgba(0, 255, 200, 0.15); }
+  100% { box-shadow: 0 0 12px rgba(0, 255, 200, 0.4), inset 0 0 16px rgba(0, 255, 200, 0.1); }
+}
+
+.sbm-beats-pad.active {
+  animation: padGlow 0.3s ease-out;
+}
+
+/* Pads-only view: center and go bigger */
+.sbm-beats-content.view-pads {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  flex: 1;
+}
+
+.sbm-beats-content.view-pads .sbm-beats-pads {
+  flex: 1;
+  max-width: 100%;
+  border-right: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.sbm-beats-content.view-pads .sbm-beats-pad-grid {
+  max-width: 680px;
+  max-height: 680px;
+  width: 90%;
+  height: 90%;
+  gap: 12px;
+}
+
+.sbm-beats-content.view-pads .sbm-beats-pad {
+  min-height: 100px;
+  border-radius: 12px;
+  padding: 10px 8px;
+  border-width: 2px;
+}
+
+.sbm-beats-content.view-pads .sbm-beats-pad-num {
+  font-size: 0.9rem;
+}
+
+.sbm-beats-content.view-pads .sbm-beats-pad-name {
+  font-size: 0.9rem;
+}
+
+/* Sequencer row label hover effect */
+.sbm-seq-row-label:hover .sbm-seq-row-name {
+  color: #c8d8e8;
+}
+
+/* Pattern button active pulse */
+.sbm-pattern-btn.active {
+  box-shadow: 0 0 8px rgba(0, 255, 200, 0.2);
+}
+
+/* Step button active state in toolbar */
+.sbm-step-btn.active:hover {
+  background: #00e6b6;
+}
+
+/* Sub-tabs active hover */
+.sbm-sub-tabs button.active:hover {
+  background: #00e6b6;
+}
+
+/* Even/odd beat shading in sequencer */
+.sbm-seq-cell:nth-child(4n+2),
+.sbm-seq-cell:nth-child(4n+3),
+.sbm-seq-cell:nth-child(4n+4),
+.sbm-seq-cell:nth-child(4n+5) {
+  /* Subtle alternating group shading handled by beat-start border */
+}
+
+/* Make the sequencer scroll area have a subtle inner shadow */
+.sbm-seq-grid {
+  box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Tooltip style for sequencer cells */
+.sbm-seq-cell[title]:hover::before {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a2438;
+  color: #c8d8e8;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.55rem;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* =============================================================================
+   11. DRUM PAD TAB (DrumPadTab.js)
+   ============================================================================= */
+
+.sbm-pads-tab {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #0a0e1a;
+  color: #c8d0dc;
+}
+
+/* DrumPad uses same .sbm-beats-pads + .sbm-beats-pad-grid — already styled above */
+/* But it also has .sbm-pad / .sbm-mpc-pad classes: */
+
+.sbm-pads-tab .sbm-beats-pads {
+  flex: 1;
+  max-width: 100%;
+  border-right: none;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sbm-pads-tab .sbm-beats-pad-grid {
+  max-width: 600px;
+  max-height: 600px;
+  gap: 10px;
+}
+
+/* MPC-style pads in drum tab — bigger and more prominent */
+.sbm-pad.sbm-mpc-pad {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  position: relative;
+  min-height: 80px;
+  border-radius: 10px;
+  background: linear-gradient(150deg, #121c30, #0c1424);
+  border: 2px solid var(--pad-color, #1e2d42);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.12s ease;
+  overflow: hidden;
+  padding: 0;
+}
+
+.sbm-pad.sbm-mpc-pad:hover {
+  background: linear-gradient(150deg, #162236, #101c2e);
+  transform: scale(1.02);
+  box-shadow: 0 0 8px rgba(0, 255, 200, 0.1);
+}
+
+.sbm-pad.sbm-mpc-pad:active,
+.sbm-pad.sbm-mpc-pad.active {
+  transform: scale(0.95);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--pad-color, #00ffc8) 50%, transparent),
+              inset 0 0 16px rgba(0, 255, 200, 0.08);
+  border-color: #fff;
+  background: linear-gradient(150deg, #0e2820, #0a1c18);
+}
+
+.sbm-pad.sbm-mpc-pad.selected {
+  border-color: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
+}
+
+.sbm-pad.sbm-mpc-pad.loaded {
+  background: linear-gradient(150deg, #141e34, #101828);
+}
+
+.sbm-pad.sbm-mpc-pad.empty {
+  opacity: 0.85;
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.sbm-pad.sbm-mpc-pad.empty .sbm-pad-num {
+  color: #6a8aaa;
+}
+
+.sbm-pad.sbm-mpc-pad.empty .sbm-pad-empty-label {
+  color: #5a7a98;
+  font-size: 0.65rem;
+}
+
+.sbm-pad.sbm-mpc-pad.drag-over {
+  border-color: #00ffc8;
+  background: rgba(0, 255, 200, 0.06);
+  border-style: solid;
+}
+
+/* Pad header row (number + badges) */
+.sbm-pad-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 2px;
+  gap: 4px;
+}
+
+.sbm-pad-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #8aa0b8;
+}
+
+.sbm-mpc-pad.active .sbm-pad-num {
+  color: #00ffc8;
+}
+
+.sbm-pad-badge {
+  font-size: 0.5rem;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(0, 255, 200, 0.12);
+  color: #00ffc8;
+}
+
+.sbm-pad-badge.loop {
+  background: rgba(255, 102, 0, 0.12);
+  color: #ff6600;
+}
+
+/* Pad body (name + waveform) */
+.sbm-pad-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px 4px;
+  gap: 2px;
+  min-height: 0;
+}
+
+.sbm-pad-name {
+  font-size: 0.68rem;
+  color: #c0d0e0;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.sbm-pad-empty-label {
+  font-size: 0.65rem;
+  color: #5a7a98;
+}
+
+/* Mini waveform canvas */
+.sbm-mini-wave {
+  width: 100%;
+  max-width: 80px;
+  height: 24px;
+  opacity: 0.7;
+}
+
+.sbm-mpc-pad.active .sbm-mini-wave {
+  opacity: 1;
+}
+
+/* Velocity flash overlay */
+.sbm-pad-velocity {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0, 255, 200, 0.15), transparent 70%);
+  pointer-events: none;
+  animation: padFlash 0.2s ease-out forwards;
+}
+
+@keyframes padFlash {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Quick action buttons on pad */
+.sbm-pad-quick {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.sbm-mpc-pad:hover .sbm-pad-quick {
+  opacity: 1;
+}
+
+.sbm-pad-qbtn {
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #8899aa;
+  font-size: 0.55rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.sbm-pad-qbtn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+}
+
+/* Performance controls bar */
+.sbm-perf-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sbm-perf-btn {
+  padding: 4px 10px;
+  border: 1px solid #1e2d42;
+  border-radius: 4px;
+  background: #111828;
+  color: #8899aa;
+  font-size: 0.68rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.sbm-perf-btn:hover {
+  border-color: #00ffc8;
+  color: #00ffc8;
+  background: #141e30;
+}
+
+.sbm-perf-btn.active {
+  background: #00ffc8;
+  color: #000;
+  border-color: #00ffc8;
+  font-weight: 600;
+}
+
+.sbm-perf-btn.active.rec {
+  background: #ff4444;
+  border-color: #ff4444;
+  color: #fff;
+  animation: recPulse 1s ease-in-out infinite;
+}
+
+@keyframes recPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.sbm-perf-sel {
+  padding: 3px 6px;
+  border: 1px solid #1e2d42;
+  border-radius: 3px;
+  background: #111828;
+  color: #a0b8d0;
+  font-size: 0.65rem;
+}
+
+.sbm-perf-status {
+  font-size: 0.62rem;
+  color: #5a7088;
+  margin-left: 4px;
+}
+
+.sbm-sweep-knob {
+  width: 80px;
+  accent-color: #00ffc8;
+}
+
+/* AI buttons */
+.sbm-btn-ai {
+  padding: 4px 10px;
+  border: 1px solid #2a1e42;
+  border-radius: 4px;
+  background: #1a1230;
+  color: #c088ff;
+  font-size: 0.68rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.sbm-btn-ai:hover {
+  border-color: #c088ff;
+  background: #221840;
+}
+
+.sbm-btn-ai.active {
+  background: #c088ff;
+  color: #000;
+  border-color: #c088ff;
+}
+
+/* =============================================================================
+   12. SAMPLER TAB (SamplerTab.js)
+   ============================================================================= */
+
+.sbm-sampler-tab {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #0a0e1a;
+  color: #c8d0dc;
+}
+
+/* ── Pad selector strip ── */
+.sbm-pad-strip {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 6px 8px;
+  background: #0d1220;
+  border-bottom: 1px solid #1a2438;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+.sbm-pad-strip-btn {
+  flex: 1;
+  min-width: 42px;
+  max-width: 64px;
+  padding: 6px 2px;
+  border: 2px solid #1e2d42;
+  border-radius: 6px;
+  background: #111828;
+  color: #5a7088;
+  font-size: 0.58rem;
+  cursor: pointer;
+  transition: all 0.12s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.sbm-pad-strip-btn:hover {
+  background: #162030;
+  border-color: #2a3e58;
+}
+
+.sbm-pad-strip-btn.selected {
+  border-color: #00ffc8;
+  background: #0d2a24;
+  color: #00ffc8;
+  box-shadow: 0 0 8px rgba(0, 255, 200, 0.2);
+}
+
+.sbm-pad-strip-btn.loaded {
+  color: #a0b8d0;
+}
+
+.sbm-pad-strip-btn.loaded:not(.selected) {
+  background: #141e30;
+}
+
+.sbm-pad-strip-btn.playing {
+  animation: stripPulse 0.3s ease-out;
+}
+
+@keyframes stripPulse {
+  from { box-shadow: 0 0 12px rgba(0, 255, 200, 0.5); }
+  to { box-shadow: none; }
+}
+
+.sbm-strip-num {
+  font-weight: 700;
+  font-size: 0.65rem;
+}
+
+.sbm-strip-name {
+  font-size: 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  color: inherit;
+}
+
+/* ── Main content area ── */
+.sbm-sampler-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+/* ── Waveform area ── */
+.sbm-waveform-area {
+  flex: 1;
+  min-height: 160px;
+  display: flex;
+  align-items: stretch;
+  background: #080c16;
+  border-bottom: 1px solid #1a2438;
+}
+
+.sbm-waveform-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #3a5070;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sbm-waveform-empty:hover {
+  background: rgba(0, 255, 200, 0.02);
+}
+
+.sbm-waveform-empty-icon {
+  font-size: 2rem;
+  opacity: 0.5;
+}
+
+.sbm-waveform-empty-hint {
+  font-size: 0.6rem;
+  color: #2a3a50;
+}
+
+/* ── Sample info bar ── */
+.sbm-sample-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px;
+  background: #0d1220;
+  border-bottom: 1px solid #1a2438;
+  font-size: 0.6rem;
+  color: #5a7088;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.sbm-info-name {
+  font-weight: 600;
+  font-size: 0.68rem;
+}
+
+.sbm-info-program {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(0, 255, 200, 0.08);
+  color: #00ffc8;
+  font-size: 0.55rem;
+  text-transform: uppercase;
+}
+
+/* ── Inline settings row ── */
+.sbm-inline-settings {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #0d1220;
+  border-bottom: 1px solid #1a2438;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.sbm-inline-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6rem;
+  color: #6a7a90;
+}
+
+.sbm-inline-ctrl input[type="range"] {
+  width: 60px;
+  accent-color: #00ffc8;
+  height: 3px;
+}
+
+.sbm-inline-ctrl span:first-child {
+  min-width: 28px;
+  color: #5a7088;
+  font-size: 0.55rem;
+}
+
+.sbm-inline-ctrl span:last-child {
+  min-width: 24px;
+  text-align: right;
+  font-size: 0.55rem;
+  color: #a0b8d0;
+  font-variant-numeric: tabular-nums;
+}
+
+.sbm-inline-sel {
+  padding: 2px 6px;
+  border: 1px solid #1e2d42;
+  border-radius: 3px;
+  background: #111828;
+  color: #a0b8d0;
+  font-size: 0.6rem;
+}
+
+.sbm-btn-sm.danger {
+  color: #ff4444;
+  border-color: #3a2020;
+}
+
+.sbm-btn-sm.danger:hover {
+  background: #2a1010;
+  border-color: #ff4444;
+}
+
+/* ── Piano section ── */
+.sbm-piano-section {
+  flex-shrink: 0;
+  background: #0a0f1c;
+  border-top: 1px solid #1a2438;
+  padding: 0;
+}
+
+.sbm-piano-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  font-size: 0.65rem;
+  color: #6a7a90;
+  background: #0d1220;
+  border-bottom: 1px solid #1a2438;
+}
+
+.sbm-piano-keys {
+  display: flex;
+  position: relative;
+  height: 100px;
+  background: #0a0e1a;
+  overflow-x: auto;
+}
+
+.sbm-piano-key {
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.08s;
+}
+
+.sbm-piano-key.white {
+  flex: 1;
+  min-width: 28px;
+  height: 100%;
+  background: linear-gradient(180deg, #e8eaed, #d0d4da);
+  border-right: 1px solid #b0b4ba;
+  border-radius: 0 0 4px 4px;
+  z-index: 0;
+}
+
+.sbm-piano-key.white:hover {
+  background: linear-gradient(180deg, #f0f2f5, #dce0e5);
+}
+
+.sbm-piano-key.white:active,
+.sbm-piano-key.white.active {
+  background: linear-gradient(180deg, #00ffc8, #00d4a8);
+}
+
+.sbm-piano-key.black {
+  width: 18px;
+  height: 62%;
+  background: linear-gradient(180deg, #2a2e34, #1a1e24);
+  border-radius: 0 0 3px 3px;
+  margin-left: -9px;
+  margin-right: -9px;
+  z-index: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.sbm-piano-key.black:hover {
+  background: linear-gradient(180deg, #3a3e44, #2a2e34);
+}
+
+.sbm-piano-key.black:active,
+.sbm-piano-key.black.active {
+  background: linear-gradient(180deg, #00cc9e, #00aa82);
+}
+
+.sbm-piano-key-label {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
+  color: #5a6070;
+  pointer-events: none;
+}
+
+.sbm-piano-key.active .sbm-piano-key-label {
+  color: #000;
+}
+
+.sbm-piano-hint {
+  padding: 6px 10px;
+  font-size: 0.6rem;
+  color: #3a5070;
+  text-align: center;
+}
+
+/* ── Shared subtab style used by all tabs ── */
+.sbm-subtab {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #5a7088;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.sbm-subtab.active {
+  background: #00ffc8;
+  color: #000;
+  font-weight: 700;
+}
+
+.sbm-subtab:hover:not(.active) {
+  color: #a0b8d0;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Sub-actions row */
+.sbm-sub-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* =============================================================================
+   13. TOPBAR RIGHT FIX (Pads/Seq/Split + Arrange + Export)
+   ============================================================================= */
+
+/* The parent SamplerBeatMaker topbar-right area */
+.sampler-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* View toggle group (Pads | Seq | Split) */
+.sampler-topbar-right .view-toggle,
+.view-toggle {
+  display: flex;
+  gap: 1px;
+  background: #111828;
+  border-radius: 5px;
+  padding: 2px;
+  border: 1px solid #1e2d42;
+}
+
+.view-toggle button {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: #5a7088;
+  font-size: 0.65rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.view-toggle button.active {
+  background: #00ffc8;
+  color: #000;
+  font-weight: 700;
+}
+
+.view-toggle button:hover:not(.active) {
+  color: #a0b8d0;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Export button */
+.export-btn {
+  padding: 5px 12px;
+  border: 1px solid #00ffc8;
+  border-radius: 5px;
+  background: rgba(0, 255, 200, 0.08);
+  color: #00ffc8;
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.export-btn:hover {
+  background: #00ffc8;
+  color: #000;
+}
+
+/* Export dropdown menu */
+.export-dropdown {
+  position: relative;
+}
+
+.export-dropdown .export-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: #111828;
+  border: 1px solid #1e2d42;
+  border-radius: 6px;
+  padding: 4px;
+  z-index: 100;
+  min-width: 120px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.export-dropdown:hover .export-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.export-menu button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #a0b8d0;
+  font-size: 0.65rem;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.export-menu button:hover {
+  background: rgba(0, 255, 200, 0.08);
+  color: #00ffc8;
+}
+
+/* Close button */
+.close-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #2a1a1a;
+  border-radius: 5px;
+  background: rgba(255, 68, 68, 0.06);
+  color: #ff6666;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.close-btn:hover {
+  background: #ff4444;
+  color: #fff;
+  border-color: #ff4444;
+}
+
+/* Export status badge */
+.export-status-badge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  white-space: nowrap;
+}
+
+.export-status-badge.success {
+  background: rgba(0, 255, 200, 0.1);
+  color: #00ffc8;
+}
+
+.export-status-badge.error {
+  background: rgba(255, 68, 68, 0.1);
+  color: #ff4444;
+}
+
+.export-status-badge.info {
+  background: rgba(74, 158, 255, 0.1);
+  color: #4a9eff;
+}
+
+/* =============================================================================
+   14. CHOP VIEW OVERLAY
+   ============================================================================= */
+
+.chop-view-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.chop-view {
+  background: #0c1220;
+  border: 1px solid #1e2d42;
+  border-radius: 12px;
+  width: 95%;
+  max-width: 960px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Header ── */
+.chop-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #0a0f1c;
+  border-bottom: 1px solid #1a2438;
+  border-radius: 12px 12px 0 0;
+}
+
+.chop-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #e0e8f0;
+  font-weight: 600;
+}
+
+.chop-header button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #2a1a1a;
+  border-radius: 6px;
+  background: rgba(255, 68, 68, 0.06);
+  color: #ff6666;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.chop-header button:hover {
+  background: #ff4444;
+  color: #fff;
+}
+
+/* ── Waveform Canvas ── */
+.chop-canvas {
+  width: 100%;
+  height: 180px;
+  display: block;
+  background: #080c16;
+  border-bottom: 1px solid #1a2438;
+}
+
+/* ── Controls Row ── */
+.chop-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #0d1424;
+  border-bottom: 1px solid #1a2438;
+  flex-wrap: wrap;
+}
+
+/* Chop mode selector (Transient | BPM Grid | Equal | Manual) */
+.chop-mode-selector {
+  display: flex;
+  gap: 2px;
+  background: #111828;
+  border-radius: 6px;
+  padding: 2px;
+  border: 1px solid #1e2d42;
+}
+
+.chop-mode-selector button {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #6a7a90;
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.chop-mode-selector button.active {
+  background: #ff6600;
+  color: #fff;
+  font-weight: 600;
+}
+
+.chop-mode-selector button:hover:not(.active) {
+  color: #c0d0e0;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Auto-Chop button */
+.chop-controls > button {
+  padding: 5px 12px;
+  border: 1px solid #1e2d42;
+  border-radius: 5px;
+  background: #111828;
+  color: #a0b8d0;
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.chop-controls > button:hover {
+  border-color: #00ffc8;
+  color: #00ffc8;
+  background: #141e30;
+}
+
+.chop-controls > button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Sensitivity / Slices slider */
+.chop-sensitivity {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6rem;
+  color: #6a7a90;
+}
+
+.chop-sensitivity label {
+  color: #5a7088;
+  font-size: 0.6rem;
+  white-space: nowrap;
+}
+
+.chop-sensitivity input[type="range"] {
+  width: 80px;
+  accent-color: #ff6600;
+}
+
+.chop-sensitivity span {
+  min-width: 20px;
+  text-align: center;
+  color: #a0b8d0;
+  font-size: 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Zero-cross snap toggle */
+.chop-zc-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6rem;
+  color: #6a7a90;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chop-zc-toggle input[type="checkbox"] {
+  accent-color: #00ffc8;
+}
+
+/* Chop count display */
+.chop-count {
+  font-size: 0.62rem;
+  color: #ff6600;
+  font-weight: 600;
+  padding: 3px 8px;
+  background: rgba(255, 102, 0, 0.08);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Distribute to Pads button */
+.distribute-btn {
+  padding: 5px 14px !important;
+  border-color: #00ffc8 !important;
+  background: rgba(0, 255, 200, 0.08) !important;
+  color: #00ffc8 !important;
+  font-weight: 600 !important;
+}
+
+.distribute-btn:hover {
+  background: #00ffc8 !important;
+  color: #000 !important;
+}
+
+.distribute-btn:disabled {
+  opacity: 0.3 !important;
+}
+
+/* ── Slice Preview Buttons ── */
+.chop-slices-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 16px;
+  background: #0a0f1c;
+  border-bottom: 1px solid #1a2438;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.chop-slice-btn {
+  padding: 4px 10px;
+  border: 1px solid #1e2d42;
+  border-radius: 4px;
+  background: #111828;
+  color: #8899aa;
+  font-size: 0.6rem;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+}
+
+.chop-slice-btn:hover {
+  border-color: #00ffc8;
+  color: #00ffc8;
+  background: #141e30;
+}
+
+.chop-slice-btn.playing {
+  background: #00ffc8;
+  color: #000;
+  border-color: #00ffc8;
+  font-weight: 600;
+}
+
+/* ── Hint text ── */
+.chop-hint {
+  padding: 8px 16px;
+  font-size: 0.55rem;
+  color: #3a5070;
+  background: #0a0f1c;
+  border-radius: 0 0 12px 12px;
+  text-align: center;
+}
+
+/* =============================================================================
+   15. CHOPVIEW.JS OVERLAY (sbm-overlay / sbm-panel)
+   ============================================================================= */
+
+.sbm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.sbm-panel {
+  background: #0c1220;
+  border: 1px solid #1e2d42;
+  border-radius: 12px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.sbm-chop-panel {
+  width: 95% !important;
+  max-width: 960px !important;
+  min-width: 650px !important;
+}
+
+.sbm-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #0a0f1c;
+  border-bottom: 1px solid #1a2438;
+  border-radius: 12px 12px 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e0e8f0;
+}
+
+.sbm-panel-header button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #2a1a1a;
+  border-radius: 6px;
+  background: rgba(255, 68, 68, 0.06);
+  color: #ff6666;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.sbm-panel-header button:hover {
+  background: #ff4444;
+  color: #fff;
+}
+
+.sbm-empty-msg {
+  color: #3a5070;
+  font-size: 0.8rem;
+  text-align: center;
 }
