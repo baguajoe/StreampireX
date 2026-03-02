@@ -7203,7 +7203,7 @@ class CreditPackPurchase(db.Model):
 class SamplerProject(db.Model):
     """A sampler/beat maker project with pad configs, patterns, and R2 sample URLs."""
     __tablename__ = "sampler_projects"
-    __table_args__ = {'extend_existing': True}pipenv run migrate
+    __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)

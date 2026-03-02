@@ -4210,41 +4210,46 @@ def calculate_royalties():
 @api.route('/upload_track', methods=['POST'])
 @jwt_required()
 def upload_track():
-    """Allow artists to upload music with ISRC codes"""
+    """Allow artists to upload music with artwork, genre, ISRC codes"""
     user_id = get_jwt_identity()
     
     try:
-        # Handle both form data and file upload
         title = request.form.get("title")
         isrc = request.form.get("isrc")
+        genre = request.form.get("genre", "")
         
         if 'file' not in request.files:
             return jsonify({"error": "No audio file provided"}), 400
         
         audio_file = request.files['file']
-
-        print("YOU SHOULD BE SEEING FILE NAMES BELOW THIS LINE")
-        print(request.files)
-        print(request.files['file'])
-
         if not audio_file or audio_file.filename == '':
             return jsonify({"error": "No valid audio file selected"}), 400
         
         filename = secure_filename(audio_file.filename)
-        
-        # Use uploadFile function to upload to cloudinary
         file_url = uploadFile(audio_file, filename)
-
+        
+        # Handle artwork/cover image upload
+        artwork_url = None
+        artwork_file = request.files.get('artwork') or request.files.get('cover_image')
+        if artwork_file and artwork_file.filename:
+            try:
+                art_filename = secure_filename(artwork_file.filename)
+                artwork_url = uploadFile(artwork_file, art_filename)
+                print(f"Artwork uploaded: {artwork_url}")
+            except Exception as art_err:
+                print(f"Artwork upload failed (track still saved): {art_err}")
+        
         new_track = Audio(
             user_id=user_id,
             title=title,
-            file_url=file_url,  # Store cloudinary URL
+            file_url=file_url,
+            artwork_url=artwork_url,
+            genre=genre,
             isrc_code=isrc,
             uploaded_at=datetime.utcnow()
         )
         db.session.add(new_track)
         db.session.commit()
-
         return jsonify({
             "message": "Track uploaded successfully!",
             "track": new_track.serialize()
