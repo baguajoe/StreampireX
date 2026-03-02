@@ -359,6 +359,320 @@ def save_epk():
     }), 201 if is_new else 200
 
 
+@epk_collab_bp.route('/api/epk/generate-commercial', methods=['POST'])
+@jwt_required()
+def generate_epk_commercial():
+    """
+    Generate an AI promo video/commercial from EPK data.
+    Uses the existing AI video generation pipeline (Replicate/Kling).
+    Costs 1 credit per generation. Stores result in R2.
+    
+    Flow:
+      1. Reads EPK data (name, genre, tagline, bio, photos)
+      2. Builds a cinematic prompt from the EPK
+      3. Calls AI video generation (text-to-video or image-to-video if photo provided)
+      4. Stores result in R2
+      5. Saves URL to EPK as commercial_url
+    """
+    db, User, EPK, _, _ = get_models()
+    uid = get_jwt_identity()
+    
+    epk = EPK.query.filter_by(user_id=uid).first() if EPK else None
+    if not epk:
+        return jsonify({"error": "Create your EPK first before generating a commercial"}), 400
+    
+    data = request.json or {}
+    style = data.get('style', 'cinematic')  # cinematic | lyric_video | hype | minimal | documentary
+    aspect_ratio = data.get('aspect_ratio', '16:9')
+    quality = data.get('quality', 'standard')  # standard | premium
+    custom_prompt = data.get('custom_prompt', '')
+    use_photo = data.get('use_photo', True)  # Use profile/cover photo for image-to-video
+    
+    # ── Check credits via existing system ──
+    try:
+        from api.ai_credits_routes import deduct_user_credits, get_user_tier
+    except ImportError:
+        try:
+            from api.ai_video_credits_routes import get_or_create_credits, get_user_tier
+            # Manual deduction fallback
+            def deduct_user_credits(user_id, amount):
+                credit = get_or_create_credits(user_id)
+                if credit.balance < amount:
+                    return False, credit, {"error": "Not enough credits", "balance": credit.balance, "required": amount}
+                credit.balance -= amount
+                db.session.commit()
+                return True, credit, None
+        except ImportError:
+            return jsonify({"error": "Credit system not available"}), 500
+    
+    tier = get_user_tier(uid)
+    if tier == 'free':
+        return jsonify({"error": "EPK commercials require a paid subscription", "upgrade_required": True}), 403
+    
+    credit_cost = 2 if quality == 'premium' else 1
+    success, credit, error = deduct_user_credits(uid, credit_cost)
+    if not success:
+        return jsonify(error), 402
+    
+    # ── Build the prompt from EPK data ──
+    STYLE_TEMPLATES = {
+        'cinematic': (
+            "Cinematic music promo video, dramatic lighting, slow motion, "
+            "professional color grading, lens flares, dark moody atmosphere. "
+            "{genre} artist {name}. {tagline}. "
+            "Studio quality, 4K, shallow depth of field, smoke effects, neon accents."
+        ),
+        'lyric_video': (
+            "Stylish lyric video background, animated typography, "
+            "flowing abstract visuals, {genre} aesthetic. "
+            "Artist: {name}. Smooth camera movement, "
+            "particle effects, dark background with vibrant color accents."
+        ),
+        'hype': (
+            "High energy music promo, fast cuts, urban landscape, "
+            "street style, {genre} vibes. {name} — {tagline}. "
+            "Neon lights, bass-heavy atmosphere, concert energy, crowd shots, "
+            "dynamic camera angles, film grain."
+        ),
+        'minimal': (
+            "Clean minimalist artist promo, white space, elegant typography, "
+            "subtle motion, {genre} artist {name}. {tagline}. "
+            "Modern design, soft shadows, professional, gallery-like presentation."
+        ),
+        'documentary': (
+            "Documentary style artist profile, behind the scenes, studio footage, "
+            "{genre} musician {name} at work. {tagline}. "
+            "Natural lighting, handheld camera feel, intimate close-ups, "
+            "authentic moments, warm color palette."
+        ),
+    }
+    
+    template = STYLE_TEMPLATES.get(style, STYLE_TEMPLATES['cinematic'])
+    prompt = template.format(
+        name=epk.artist_name or 'Artist',
+        genre=epk.genre_primary or 'music',
+        tagline=epk.tagline or epk.bio_short or '',
+    )
+    
+    if custom_prompt:
+        prompt = f"{custom_prompt}. {prompt}"
+    
+    # Truncate to 500 chars (Replicate limit)
+    prompt = prompt[:500]
+    
+    # ── Call existing AI video generation ──
+    try:
+        import replicate
+        import os
+        
+        # Determine if we do image-to-video (using press photo) or text-to-video
+        generation_type = 'text'
+        source_image_url = None
+        
+        if use_photo:
+            # Try profile photo, then cover, then first press photo
+            source_image_url = (
+                epk.profile_photo or
+                epk.cover_photo or
+                (epk.press_photos[0]['url'] if epk.press_photos else None)
+            )
+            if source_image_url:
+                generation_type = 'image'
+        
+        # Select model
+        MODELS = {
+            'text': {
+                'standard': 'kwaivgi/kling-v1.6-standard:45d3267b5e8a92e42e5b24218e0e053cafc9a7f1eee7bdf6ea3b8fe72ef7bd63',
+                'premium': 'kwaivgi/kling-v1.6-pro:1081e794ddb6e4fd184631fcdab3e26cf9e3b6e79a2528e5a2f15aebd1ad4106',
+            },
+            'image': {
+                'standard': 'kwaivgi/kling-v1.6-standard:45d3267b5e8a92e42e5b24218e0e053cafc9a7f1eee7bdf6ea3b8fe72ef7bd63',
+                'premium': 'kwaivgi/kling-v1.6-pro:1081e794ddb6e4fd184631fcdab3e26cf9e3b6e79a2528e5a2f15aebd1ad4106',
+            },
+        }
+        
+        model_id = MODELS[generation_type][quality]
+        
+        input_params = {
+            'prompt': prompt,
+            'aspect_ratio': aspect_ratio,
+            'duration': 5,
+        }
+        if generation_type == 'image' and source_image_url:
+            input_params['image'] = source_image_url
+        
+        # Create generation record
+        from api.models import AIVideoGeneration
+        generation = AIVideoGeneration(
+            user_id=uid,
+            prompt=prompt,
+            generation_type=f'epk_commercial_{generation_type}',
+            model_name=f'Kling v1.6 {"Pro" if quality == "premium" else "Standard"}',
+            aspect_ratio=aspect_ratio,
+            quality=quality,
+            credits_used=credit_cost,
+            status='processing',
+        )
+        db.session.add(generation)
+        db.session.commit()
+        gen_id = generation.id
+        
+        # Run generation (synchronous for now — could be async with celery)
+        try:
+            output = replicate.run(model_id, input=input_params)
+            video_url_replicate = output if isinstance(output, str) else str(output)
+            
+            # Download and upload to R2
+            import requests as req
+            from io import BytesIO
+            
+            video_response = req.get(video_url_replicate, timeout=120)
+            if video_response.status_code == 200:
+                # Upload to R2
+                try:
+                    from api.r2_storage_setup import uploadFile as r2Upload
+                    from werkzeug.datastructures import FileStorage
+                    
+                    video_bytes = BytesIO(video_response.content)
+                    video_bytes.name = f"epk_commercial_{uid}_{gen_id}.mp4"
+                    r2_url = r2Upload(video_bytes, video_bytes.name)
+                    final_url = r2_url if isinstance(r2_url, str) else r2_url.get('secure_url', '')
+                except Exception as r2_err:
+                    print(f"R2 upload failed, using Replicate URL: {r2_err}")
+                    final_url = video_url_replicate
+                
+                # Update generation record
+                generation.status = 'completed'
+                generation.video_url = final_url
+                generation.completed_at = datetime.utcnow()
+                
+                # Save to EPK
+                epk.updated_at = datetime.utcnow()
+                # Store commercial in featured_media
+                media = epk.featured_media or []
+                media.append({
+                    "url": final_url,
+                    "title": f"EPK Commercial ({style.title()})",
+                    "description": f"AI-generated {style} promo • {quality}",
+                    "type": "video",
+                    "ext": "mp4",
+                    "generated": True,
+                })
+                epk.featured_media = media
+                db.session.commit()
+                
+                return jsonify({
+                    "message": "Commercial generated!",
+                    "video_url": final_url,
+                    "generation_id": gen_id,
+                    "credits_used": credit_cost,
+                    "credits_remaining": credit.balance,
+                    "style": style,
+                    "prompt_used": prompt,
+                }), 200
+            else:
+                raise Exception(f"Failed to download video: HTTP {video_response.status_code}")
+                
+        except Exception as gen_err:
+            generation.status = 'failed'
+            generation.error = str(gen_err)
+            db.session.commit()
+            # Refund credits on failure
+            try:
+                from api.ai_credits_routes import refund_user_credits
+                refund_user_credits(uid, credit_cost)
+            except ImportError:
+                credit.balance += credit_cost
+                db.session.commit()
+            return jsonify({"error": f"Video generation failed: {str(gen_err)}", "credits_refunded": credit_cost}), 500
+            
+    except ImportError as imp_err:
+        # Refund if replicate not installed
+        credit.balance += credit_cost
+        db.session.commit()
+        return jsonify({"error": f"AI video generation not configured: {str(imp_err)}"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@epk_collab_bp.route('/api/collab/message', methods=['POST'])
+@jwt_required()
+def send_collab_message():
+    """
+    Start or continue a DM conversation with context from a collab request.
+    Creates a DirectMessage and a Conversation if one doesn't exist.
+    Returns conversation info so frontend can open the chat.
+    """
+    db, User, _, CollabRequest, CollabApplication = get_models()
+    uid = get_jwt_identity()
+    data = request.json
+    recipient_id = data.get('recipient_id')
+    message_text = data.get('message', '')
+    context_type = data.get('context_type', '')  # 'collab_request' | 'collab_application' | 'epk_contact'
+    context_id = data.get('context_id')  # request or application id
+    
+    if not recipient_id or not message_text:
+        return jsonify({"error": "recipient_id and message are required"}), 400
+    if recipient_id == uid:
+        return jsonify({"error": "Cannot message yourself"}), 400
+    
+    recipient = User.query.get(recipient_id)
+    if not recipient:
+        return jsonify({"error": "Recipient not found"}), 404
+    
+    try:
+        from api.models import Conversation, DirectMessage
+        
+        # Find or create conversation
+        convo = Conversation.query.filter(
+            db.or_(
+                db.and_(Conversation.user1_id == uid, Conversation.user2_id == recipient_id),
+                db.and_(Conversation.user1_id == recipient_id, Conversation.user2_id == uid),
+            )
+        ).first()
+        
+        if not convo:
+            convo = Conversation(user1_id=uid, user2_id=recipient_id)
+            db.session.add(convo)
+            db.session.flush()
+        
+        # Build message with collab context prefix
+        prefix = ""
+        if context_type == 'collab_request' and context_id and CollabRequest:
+            cr = CollabRequest.query.get(context_id)
+            if cr:
+                prefix = f"[Re: Collab — {cr.title}]\n"
+        elif context_type == 'collab_application' and context_id and CollabApplication:
+            app = CollabApplication.query.get(context_id)
+            if app:
+                cr = CollabRequest.query.get(app.request_id) if CollabRequest else None
+                prefix = f"[Re: Application for — {cr.title if cr else 'Collab'}]\n"
+        elif context_type == 'epk_contact':
+            prefix = "[Via EPK]\n"
+        
+        dm = DirectMessage(
+            sender_id=uid,
+            recipient_id=recipient_id,
+            message=prefix + message_text,
+        )
+        db.session.add(dm)
+        convo.last_message_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Message sent",
+            "conversation_id": convo.id,
+            "recipient_id": recipient_id,
+            "recipient_name": recipient.artist_name or recipient.username,
+        }), 201
+        
+    except ImportError:
+        return jsonify({"error": "Messaging models not available"}), 500
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
 @epk_collab_bp.route('/api/epk/auto-populate', methods=['GET'])
 @jwt_required()
 def auto_populate_epk():
