@@ -7200,6 +7200,8 @@ class CreditPackPurchase(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
+
+
 class SamplerProject(db.Model):
     """A sampler/beat maker project with pad configs, patterns, and R2 sample URLs."""
     __tablename__ = "sampler_projects"
