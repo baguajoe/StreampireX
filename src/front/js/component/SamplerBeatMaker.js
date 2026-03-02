@@ -9,6 +9,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import '../../styles/SamplerBeatMaker.css';
 import '../../styles/SamplerBeatMaker-compat.css';
+import BeatMakerTab from './tabs/BeatMakerTab';
+import DrumPadTab from './tabs/DrumPadTab';
+import SamplerTab from './tabs/SamplerTab';
+import StemSeparatorTab from './tabs/StemSeparatorTab';
 
 // =============================================================================
 // CONSTANTS
@@ -22,15 +26,15 @@ const KEY_TO_PAD = {
 };
 
 const PAD_KEY_LABELS = [
-  '1','2','3','4','Q','W','E','R',
-  'A','S','D','F','Z','X','C','V',
+  '1', '2', '3', '4', 'Q', 'W', 'E', 'R',
+  'A', 'S', 'D', 'F', 'Z', 'X', 'C', 'V',
 ];
 
 const PAD_COLORS = [
-  '#ff4444','#ff6b35','#ffa500','#ffd700',
-  '#00ffc8','#00d4ff','#4a9eff','#7b68ee',
-  '#ff69b4','#ff1493','#c840e9','#9370db',
-  '#32cd32','#00fa9a','#40e0d0','#87ceeb',
+  '#ff4444', '#ff6b35', '#ffa500', '#ffd700',
+  '#00ffc8', '#00d4ff', '#4a9eff', '#7b68ee',
+  '#ff69b4', '#ff1493', '#c840e9', '#9370db',
+  '#32cd32', '#00fa9a', '#40e0d0', '#87ceeb',
 ];
 
 const DEFAULT_PAD = {
@@ -64,29 +68,29 @@ const STEP_COUNTS = [16, 32, 64];
 
 const SOUND_LIBRARY = {
   'Trap Kit': [
-    '808 Deep','808 Distorted','Kick Hard','Snare Tight',
-    'HH Closed','HH Open','HH Roll','Clap',
-    'Rim','Perc 1','Crash','Vox Chop',
+    '808 Deep', '808 Distorted', 'Kick Hard', 'Snare Tight',
+    'HH Closed', 'HH Open', 'HH Roll', 'Clap',
+    'Rim', 'Perc 1', 'Crash', 'Vox Chop',
   ],
   'Boom Bap Kit': [
-    'Kick Dusty','Snare Vinyl','HH Tight','Open Hat',
-    'Shaker','Kick Alt','Snare Ghost','Ride',
+    'Kick Dusty', 'Snare Vinyl', 'HH Tight', 'Open Hat',
+    'Shaker', 'Kick Alt', 'Snare Ghost', 'Ride',
   ],
   'R&B Kit': [
-    'Kick Soft','Snare Brush','HH Light','Rim Click',
-    'Fingersnap','Shaker','Tambourine','Clap Soft',
+    'Kick Soft', 'Snare Brush', 'HH Light', 'Rim Click',
+    'Fingersnap', 'Shaker', 'Tambourine', 'Clap Soft',
   ],
   'Lo-Fi Kit': [
-    'Kick Muffled','Snare Tape','HH Dusty','Vinyl Crackle',
-    'Perc Warm','Rim Soft',
+    'Kick Muffled', 'Snare Tape', 'HH Dusty', 'Vinyl Crackle',
+    'Perc Warm', 'Rim Soft',
   ],
   'EDM Kit': [
-    'Kick Big','Clap Layer','HH Sharp','Open Hat',
-    'Crash','Snare Build','Riser','Impact',
+    'Kick Big', 'Clap Layer', 'HH Sharp', 'Open Hat',
+    'Crash', 'Snare Build', 'Riser', 'Impact',
   ],
   'Afrobeats Kit': [
-    'Kick Log','Snare Wire','Shaker','Bell',
-    'Conga High','Conga Low','Guiro','Perc',
+    'Kick Log', 'Snare Wire', 'Shaker', 'Bell',
+    'Conga High', 'Conga Low', 'Guiro', 'Perc',
   ],
 };
 
@@ -120,7 +124,7 @@ const calcRMS = (analyser) => {
   return Math.sqrt(sum / buf.length);
 };
 
-const CHROMATIC_KEYS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const CHROMATIC_KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const CHOP_MODES = ['transient', 'bpmgrid', 'equal', 'manual'];
 
 // =============================================================================
@@ -237,6 +241,8 @@ const SamplerBeatMaker = ({
   const [showBusPanel, setShowBusPanel] = useState(false);
   const [selectedBus, setSelectedBus] = useState('A');
 
+  const [activeTab, setActiveTab] = useState('beats'); // beats | drumpad | sampler | stems
+
   // ==== PHASE 7: AUTOMATION LANES (Per-step parameter automation) ====
   const AUTOMATION_PARAMS = useMemo(() => [
     { key: 'filterFreq', label: 'Filter Freq', min: 20, max: 20000, default: 2000, unit: 'Hz', log: true },
@@ -250,7 +256,7 @@ const SamplerBeatMaker = ({
   const [automation, setAutomation] = useState(() =>
     Array.from({ length: 16 }, () => {
       const obj = {};
-      ['filterFreq','pitch','pan','reverbSend','volume','delaySend'].forEach(k => { obj[k] = Array(64).fill(null); });
+      ['filterFreq', 'pitch', 'pan', 'reverbSend', 'volume', 'delaySend'].forEach(k => { obj[k] = Array(64).fill(null); });
       return obj;
     })
   );
@@ -301,6 +307,26 @@ const SamplerBeatMaker = ({
   const [savedKits, setSavedKits] = useState(() => {
     try { return JSON.parse(localStorage.getItem('spx_kits') || '[]'); } catch { return []; }
   });
+
+  // ==== DRUM PAD PERFORMANCE FEATURES (stubs for DrumPadTab) ====
+  const [noteRepeatOn, setNoteRepeatOn] = useState(false);
+  const [noteRepeatRate, setNoteRepeatRate] = useState('1/16');
+  const [rollOn, setRollOn] = useState(false);
+  const [tapeStopOn, setTapeStopOn] = useState(false);
+  const [filterSweepOn, setFilterSweepOn] = useState(false);
+  const [filterSweepVal, setFilterSweepVal] = useState(2000);
+  const [scaleLockOn, setScaleLockOn] = useState(false);
+  const [scaleLockRoot, setScaleLockRoot] = useState('C');
+  const [scaleLockScale, setScaleLockScale] = useState('major');
+  const [chordModeOn, setChordModeOn] = useState(false);
+  const [chordType, setChordType] = useState('triad');
+  const [chordInversion, setChordInversion] = useState(0);
+  const [liveLoopState, setLiveLoopState] = useState('idle'); // idle | recording | playing
+  const loopBufRef = useRef(null);
+
+  // ==== DETECTED ANALYSIS (for SamplerTab) ====
+  const [detectedBpm, setDetectedBpm] = useState(0);
+  const [detectedKey, setDetectedKey] = useState(null);
 
   // ==== UI ====
   const [view, setView] = useState('split');
@@ -394,7 +420,7 @@ const SamplerBeatMaker = ({
     const mg = c.createGain(); mg.gain.value = masterVol; mg.connect(c.destination); masterRef.current = mg;
     const met = c.createGain(); met.gain.value = 0.3; met.connect(c.destination); metGainRef.current = met;
     // Phase 6: Create bus nodes (A, B, C, D)
-    ['A','B','C','D'].forEach(bus => {
+    ['A', 'B', 'C', 'D'].forEach(bus => {
       const g = c.createGain(); const p = c.createStereoPanner();
       g.gain.value = busSettings[bus]?.volume ?? 0.8;
       p.pan.value = busSettings[bus]?.pan ?? 0;
@@ -412,7 +438,7 @@ const SamplerBeatMaker = ({
   useEffect(() => {
     const detect = async () => {
       try {
-        await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop())).catch(() => {});
+        await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop())).catch(() => { });
         const d = await navigator.mediaDevices.enumerateDevices();
         setDevices({
           inputs: d.filter(x => x.kind === 'audioinput').map(x => ({ id: x.deviceId, label: x.label || `Input ${x.deviceId.slice(0, 8)}` })),
@@ -425,12 +451,12 @@ const SamplerBeatMaker = ({
     return () => navigator.mediaDevices?.removeEventListener('devicechange', detect);
   }, []);
 
-  useEffect(() => { const c = ctxRef.current; if (c && selOut !== 'default' && c.setSinkId) c.setSinkId(selOut).catch(() => {}); }, [selOut]);
+  useEffect(() => { const c = ctxRef.current; if (c && selOut !== 'default' && c.setSinkId) c.setSinkId(selOut).catch(() => { }); }, [selOut]);
   useEffect(() => { if (masterRef.current) masterRef.current.gain.value = masterVol; }, [masterVol]);
 
   // Phase 6: Live-update bus gain/pan/mute
   useEffect(() => {
-    ['A','B','C','D'].forEach(bus => {
+    ['A', 'B', 'C', 'D'].forEach(bus => {
       const node = busNodesRef.current[bus];
       if (!node) return;
       const s = busSettings[bus];
@@ -448,7 +474,7 @@ const SamplerBeatMaker = ({
     navigator.requestMIDIAccess({ sysex: false }).then(acc => {
       const ins = []; acc.inputs.forEach(i => ins.push(i)); setMidiInputs(ins);
       acc.onstatechange = () => { const n = []; acc.inputs.forEach(i => n.push(i)); setMidiInputs(n); };
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -671,7 +697,7 @@ const SamplerBeatMaker = ({
   const [activeSlice, setActiveSlice] = useState(-1);
 
   const stopPreview = useCallback(() => {
-    if (previewSrcRef.current) { try { previewSrcRef.current.stop(); } catch(e) {} previewSrcRef.current = null; }
+    if (previewSrcRef.current) { try { previewSrcRef.current.stop(); } catch (e) { } previewSrcRef.current = null; }
     if (chopPlayheadRef.current) { cancelAnimationFrame(chopPlayheadRef.current); chopPlayheadRef.current = null; }
     setActiveSlice(-1);
   }, []);
@@ -877,7 +903,7 @@ const SamplerBeatMaker = ({
     if (anySolo && !pad.soloed) return;
 
     // Stop prev
-    if (activeSrc.current[pi]) { try { activeSrc.current[pi].source.stop(); } catch (e) {} }
+    if (activeSrc.current[pi]) { try { activeSrc.current[pi].source.stop(); } catch (e) { } }
 
     // Phase 2: Velocity layer selection
     let sampleBuffer = pad.buffer;
@@ -1065,7 +1091,7 @@ const SamplerBeatMaker = ({
   }, [initCtx]);
 
   const stopPad = useCallback((pi) => {
-    if (activeSrc.current[pi]) { try { activeSrc.current[pi].source.stop(); } catch (e) {} delete activeSrc.current[pi]; }
+    if (activeSrc.current[pi]) { try { activeSrc.current[pi].source.stop(); } catch (e) { } delete activeSrc.current[pi]; }
     setActivePads(p => { const n = new Set(p); n.delete(pi); return n; });
   }, []);
 
@@ -1078,7 +1104,7 @@ const SamplerBeatMaker = ({
 
     const key = `kg_${pi}_${midiNote}`;
     // Stop previous note on same key (retrigger)
-    if (activeSrc.current[key]) { try { activeSrc.current[key].source.stop(); } catch(e) {} delete activeSrc.current[key]; }
+    if (activeSrc.current[key]) { try { activeSrc.current[key].source.stop(); } catch (e) { } delete activeSrc.current[key]; }
 
     // Velocity layer selection (same as drum mode)
     let sampleBuffer = pad.buffer;
@@ -1198,19 +1224,66 @@ const SamplerBeatMaker = ({
       entry.gain.gain.cancelScheduledValues(now);
       entry.gain.gain.setValueAtTime(entry.gain.gain.value, now);
       entry.gain.gain.linearRampToValueAtTime(0, now + rel);
-      try { entry.source.stop(now + rel + 0.01); } catch(e) {}
+      try { entry.source.stop(now + rel + 0.01); } catch (e) { }
     } else {
-      try { entry.source.stop(); } catch(e) {}
+      try { entry.source.stop(); } catch (e) { }
     }
     delete activeSrc.current[key];
     setActiveKgNotes(p => { const n = new Set(p); n.delete(midiNote); return n; });
   }, []);
 
+// ==== PERFORMANCE STUBS (DrumPadTab) ====
+  const triggerTapeStop = useCallback(() => {
+    // TODO: implement tape stop effect — ramp playbackRate to 0
+    console.log('[DrumPad] Tape stop triggered');
+  }, []);
+
+  const toggleFilterSweep = useCallback(() => {
+    setFilterSweepOn(p => !p);
+  }, []);
+
+  const updateFilterSweep = useCallback((val) => {
+    setFilterSweepVal(val);
+    // TODO: apply filter sweep to master or active pads in real-time
+  }, []);
+
+  const startLoopRec = useCallback(() => {
+    setLiveLoopState('recording');
+    // TODO: capture live pad hits into a loop buffer
+  }, []);
+
+  const stopLoopRec = useCallback(() => {
+    setLiveLoopState('idle');
+  }, []);
+
+  const playLoop = useCallback(() => {
+    if (!loopBufRef.current) return;
+    setLiveLoopState('playing');
+    // TODO: play back recorded loop
+  }, []);
+
+  const stopLoop = useCallback(() => {
+    setLiveLoopState('idle');
+  }, []);
+
+  const stopAllNoteRepeats = useCallback(() => {
+    setNoteRepeatOn(false);
+    // TODO: clear any active note repeat intervals
+  }, []);
+
+  // ==== ANALYSIS STUB (SamplerTab) ====
+  const analyzePadSample = useCallback((pi) => {
+    const bpmResult = detectBpm(pi);
+    if (bpmResult > 0) setDetectedBpm(bpmResult);
+    // TODO: key detection
+    setDetectedKey(null);
+  }, [detectBpm]);
+
   const stopAll = useCallback(() => {
-    Object.keys(activeSrc.current).forEach(k => { try { activeSrc.current[k].source.stop(); } catch (e) {} });
+    Object.keys(activeSrc.current).forEach(k => { try { activeSrc.current[k].source.stop(); } catch (e) { } });
     activeSrc.current = {}; setActivePads(new Set());
     // Phase 5: also stop clip launcher sources
-    Object.keys(clipSources.current).forEach(k => { try { clipSources.current[k].source.stop(); } catch (e) {} });
+    Object.keys(clipSources.current).forEach(k => { try { clipSources.current[k].source.stop(); } catch (e) { } });
     clipSources.current = {}; setClipStates({}); setActiveScene(-1);
   }, []);
 
@@ -1243,7 +1316,7 @@ const SamplerBeatMaker = ({
     src.connect(gain); gain.connect(masterRef.current);
     const st = time || c.currentTime;
     src.start(st);
-    src.onended = () => {};
+    src.onended = () => { };
   }, [initCtx, masterVol]);
 
   // Generate slice buffers from chop points on a source pad
@@ -1369,7 +1442,7 @@ const SamplerBeatMaker = ({
   // PHASE 5: CLIP LAUNCHER (Ableton-style)
   // =========================================================================
 
-  const CLIP_COLORS = ['#ff4444','#ff8800','#ffd700','#00ff88','#00ffc8','#4a9eff','#8844ff','#ff44aa'];
+  const CLIP_COLORS = ['#ff4444', '#ff8800', '#ffd700', '#00ff88', '#00ffc8', '#4a9eff', '#8844ff', '#ff44aa'];
 
   // Assign a pad's current buffer to a clip slot
   const assignClip = useCallback((sceneIdx, padIdx) => {
@@ -1395,7 +1468,7 @@ const SamplerBeatMaker = ({
     const key = `${sceneIdx}_${padIdx}`;
     // Stop if playing
     if (clipSources.current[key]) {
-      try { clipSources.current[key].source.stop(); } catch(e) {}
+      try { clipSources.current[key].source.stop(); } catch (e) { }
       delete clipSources.current[key];
     }
     setClipStates(prev => { const u = { ...prev }; delete u[key]; return u; });
@@ -1418,7 +1491,7 @@ const SamplerBeatMaker = ({
     // Stop any currently playing clip on this pad (across all scenes)
     Object.keys(clipSources.current).forEach(k => {
       if (k.endsWith(`_${padIdx}`)) {
-        try { clipSources.current[k].source.stop(); } catch(e) {}
+        try { clipSources.current[k].source.stop(); } catch (e) { }
         delete clipSources.current[k];
         setClipStates(prev => { const u = { ...prev }; u[k] = 'stopped'; return u; });
       }
@@ -1465,9 +1538,9 @@ const SamplerBeatMaker = ({
       if (c && entry.gain) {
         entry.gain.gain.setValueAtTime(entry.gain.gain.value, c.currentTime);
         entry.gain.gain.linearRampToValueAtTime(0, c.currentTime + 0.02);
-        try { entry.source.stop(c.currentTime + 0.025); } catch(e) {}
+        try { entry.source.stop(c.currentTime + 0.025); } catch (e) { }
       } else {
-        try { entry.source.stop(); } catch(e) {}
+        try { entry.source.stop(); } catch (e) { }
       }
       delete clipSources.current[key];
     }
@@ -1523,9 +1596,9 @@ const SamplerBeatMaker = ({
       if (c && entry?.gain) {
         entry.gain.gain.setValueAtTime(entry.gain.gain.value, c.currentTime);
         entry.gain.gain.linearRampToValueAtTime(0, c.currentTime + 0.02);
-        try { entry.source.stop(c.currentTime + 0.025); } catch(e) {}
+        try { entry.source.stop(c.currentTime + 0.025); } catch (e) { }
       } else {
-        try { entry.source.stop(); } catch(e) {}
+        try { entry.source.stop(); } catch (e) { }
       }
       delete clipSources.current[k];
     });
@@ -1550,9 +1623,9 @@ const SamplerBeatMaker = ({
       if (c && entry?.gain) {
         entry.gain.gain.setValueAtTime(entry.gain.gain.value, c.currentTime);
         entry.gain.gain.linearRampToValueAtTime(0, c.currentTime + 0.02);
-        try { entry.source.stop(c.currentTime + 0.025); } catch(e) {}
+        try { entry.source.stop(c.currentTime + 0.025); } catch (e) { }
       } else {
-        try { entry.source.stop(); } catch(e) {}
+        try { entry.source.stop(); } catch (e) { }
       }
       delete clipSources.current[k];
     });
@@ -1875,7 +1948,7 @@ const SamplerBeatMaker = ({
   const saveKit = useCallback((name) => {
     const kit = { name, date: new Date().toISOString(), pads: pads.map(p => ({ name: p.name, volume: p.volume, pitch: p.pitch, pan: p.pan, playMode: p.playMode, reverse: p.reverse, trimStart: p.trimStart, trimEnd: p.trimEnd, filterOn: p.filterOn, filterType: p.filterType, filterFreq: p.filterFreq, filterQ: p.filterQ, reverbOn: p.reverbOn, reverbMix: p.reverbMix, delayOn: p.delayOn, delayTime: p.delayTime, delayFeedback: p.delayFeedback, delayMix: p.delayMix, distortionOn: p.distortionOn, distortionAmt: p.distortionAmt, attack: p.attack, release: p.release, hasBuffer: !!p.buffer })) };
     const u = [...savedKits, kit]; setSavedKits(u);
-    try { localStorage.setItem('spx_kits', JSON.stringify(u)); } catch (e) {}
+    try { localStorage.setItem('spx_kits', JSON.stringify(u)); } catch (e) { }
   }, [pads, savedKits]);
 
   // =========================================================================
@@ -1907,7 +1980,7 @@ const SamplerBeatMaker = ({
 
   useEffect(() => {
     const kd = (e) => {
-      if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
       const k = e.key.toLowerCase();
       if (k === ' ') { e.preventDefault(); togglePlay(); return; }
 
@@ -1997,10 +2070,10 @@ const SamplerBeatMaker = ({
     const fmt = bd === 32 ? 3 : 1; // 3=IEEE float, 1=PCM
     const ab = new ArrayBuffer(44 + dl), v = new DataView(ab);
     const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
-    ws(0,'RIFF'); v.setUint32(4,36+dl,true); ws(8,'WAVE'); ws(12,'fmt '); v.setUint32(16,16,true);
-    v.setUint16(20,fmt,true); v.setUint16(22,nc,true); v.setUint32(24,sr,true);
-    v.setUint32(28,sr*ba,true); v.setUint16(32,ba,true); v.setUint16(34,bd,true);
-    ws(36,'data'); v.setUint32(40,dl,true);
+    ws(0, 'RIFF'); v.setUint32(4, 36 + dl, true); ws(8, 'WAVE'); ws(12, 'fmt '); v.setUint32(16, 16, true);
+    v.setUint16(20, fmt, true); v.setUint16(22, nc, true); v.setUint32(24, sr, true);
+    v.setUint32(28, sr * ba, true); v.setUint16(32, ba, true); v.setUint16(34, bd, true);
+    ws(36, 'data'); v.setUint32(40, dl, true);
     const chs = []; for (let c = 0; c < nc; c++) chs.push(buf.getChannelData(c));
     let o = 44;
     for (let i = 0; i < buf.length; i++) {
@@ -2009,8 +2082,8 @@ const SamplerBeatMaker = ({
         if (bd === 32) { v.setFloat32(o, s, true); o += 4; }
         else if (bd === 24) {
           const int24 = s < 0 ? Math.max(-8388608, Math.round(s * 8388608)) : Math.min(8388607, Math.round(s * 8388607));
-          v.setUint8(o, int24 & 0xFF); v.setUint8(o+1, (int24>>8)&0xFF); v.setUint8(o+2, (int24>>16)&0xFF); o += 3;
-        } else { v.setInt16(o, s < 0 ? s*0x8000 : s*0x7FFF, true); o += 2; }
+          v.setUint8(o, int24 & 0xFF); v.setUint8(o + 1, (int24 >> 8) & 0xFF); v.setUint8(o + 2, (int24 >> 16) & 0xFF); o += 3;
+        } else { v.setInt16(o, s < 0 ? s * 0x8000 : s * 0x7FFF, true); o += 2; }
       }
     }
     return new Blob([ab], { type: 'audio/wav' });
@@ -2315,10 +2388,10 @@ const SamplerBeatMaker = ({
   const exportMIDI = useCallback(() => {
     const useSong = songMode && songSeq.length > 0;
     const tpb = 480, tps = tpb / 4;
-    const hdr = [0x4D,0x54,0x68,0x64,0,0,0,6,0,0,0,1,(tpb>>8)&0xFF,tpb&0xFF];
+    const hdr = [0x4D, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, (tpb >> 8) & 0xFF, tpb & 0xFF];
     const evts = [];
     const usPerBeat = Math.round(60000000 / bpm);
-    evts.push({ d: 0, data: [0xFF,0x51,0x03,(usPerBeat>>16)&0xFF,(usPerBeat>>8)&0xFF,usPerBeat&0xFF] });
+    evts.push({ d: 0, data: [0xFF, 0x51, 0x03, (usPerBeat >> 16) & 0xFF, (usPerBeat >> 8) & 0xFF, usPerBeat & 0xFF] });
 
     if (useSong) {
       let tickOff = 0;
@@ -2348,8 +2421,8 @@ const SamplerBeatMaker = ({
       db.reverse().forEach(b => tb.push(b)); e.data.forEach(b => tb.push(b));
     });
     tb.push(0x00, 0xFF, 0x2F, 0x00);
-    const th = [0x4D,0x54,0x72,0x6B,(tb.length>>24)&0xFF,(tb.length>>16)&0xFF,(tb.length>>8)&0xFF,tb.length&0xFF];
-    const blob = new Blob([new Uint8Array([...hdr,...th,...tb])], { type: 'audio/midi' });
+    const th = [0x4D, 0x54, 0x72, 0x6B, (tb.length >> 24) & 0xFF, (tb.length >> 16) & 0xFF, (tb.length >> 8) & 0xFF, tb.length & 0xFF];
+    const blob = new Blob([new Uint8Array([...hdr, ...th, ...tb])], { type: 'audio/midi' });
     const label = useSong ? 'song' : 'beat';
     downloadBlob(blob, `${label}_${bpm}bpm.mid`);
     setExportStatus('✓ MIDI exported');
@@ -2365,7 +2438,7 @@ const SamplerBeatMaker = ({
   // =========================================================================
   // CLEANUP
   // =========================================================================
-  useEffect(() => { return () => { stopSeq(); if (ctxRef.current) ctxRef.current.close(); if (mediaStream.current) mediaStream.current.getTracks().forEach(t => t.stop()); blobUrls.current.forEach(u => { try { URL.revokeObjectURL(u); } catch(e) {} }); Object.keys(clipSources.current).forEach(k => { try { clipSources.current[k].source.stop(); } catch(e) {} }); }; }, [stopSeq]);
+  useEffect(() => { return () => { stopSeq(); if (ctxRef.current) ctxRef.current.close(); if (mediaStream.current) mediaStream.current.getTracks().forEach(t => t.stop()); blobUrls.current.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) { } }); Object.keys(clipSources.current).forEach(k => { try { clipSources.current[k].source.stop(); } catch (e) { } }); }; }, [stopSeq]);
 
   // =========================================================================
   // RENDER
@@ -2472,7 +2545,39 @@ const SamplerBeatMaker = ({
           {devices.outputs.length > 1 && <div className="device-hint">✅ External audio interface detected</div>}
         </div>
       )}
-
+      {/* ═══ 4-TAB NAVIGATION ═══ */}
+      <div className="sbm-tab-nav" style={{
+        display: 'flex', gap: 0, background: '#0a1628',
+        borderBottom: '2px solid #1a2a3a', padding: '0 8px',
+      }}>
+        {[
+          { id: 'sampler', label: '🎧 Sampler', title: 'Sample Editor, Waveform, Chop, ADSR' },
+          { id: 'drumpad', label: '🥁 Drum Kit', title: 'MPC Pads, Performance, Kits' },
+          { id: 'beats', label: '🎹 Beat Maker', title: 'Step Sequencer, Patterns, Song Mode' },
+          { id: 'stems', label: '✂️ Stems', title: 'AI Stem Separator' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            className={`sbm-main-tab ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+            title={tab.title}
+            style={{
+              padding: '8px 16px',
+              background: activeTab === tab.id ? '#0d1f35' : 'transparent',
+              color: activeTab === tab.id ? '#00ffc8' : '#5a7088',
+              border: 'none',
+              borderBottom: activeTab === tab.id ? '2px solid #00ffc8' : '2px solid transparent',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              fontWeight: activeTab === tab.id ? 700 : 400,
+              transition: 'all 0.15s',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
       {/* LIVE REC BAR */}
       {liveRec && <div className="live-record-bar"><span className="rec-dot">⏺</span> RECORDING — Play pads to record <span className="rec-hits">{recHits.length} hits</span><button onClick={stopLiveRec}>⏹ Stop & Quantize</button></div>}
 
@@ -2489,134 +2594,113 @@ const SamplerBeatMaker = ({
       )}
 
       {/* MAIN CONTENT */}
-      <div className={`sampler-content view-${view}`}>
+      {/* MAIN CONTENT — routed by activeTab */}
+      <div className="sampler-content-wrapper" style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
-        {/* PAD GRID */}
-        {(view === 'pads' || view === 'split') && (
-          <div className="pad-grid-section">
-            <div className="pad-grid">
-              {pads.map((pad, i) => (
-                <div key={i}
-                  className={`pad ${activePads.has(i) ? 'active' : ''} ${selectedPad === i ? 'selected' : ''} ${dragPad === i ? 'drag-over' : ''} ${pad.buffer ? 'loaded' : 'empty'} ${pad.muted ? 'muted' : ''} ${midiLearn ? 'midi-learn' : ''}`}
-                  style={{ '--pad-color': pad.color, '--pad-glow': activePads.has(i) ? pad.color : 'transparent' }}
-                  onMouseDown={(e) => { e.preventDefault(); initCtx(); playPad(i); setSelectedPad(i); setShowPadSet(true); if (liveRef.current) handleLiveHit(i); if (midiLearn) setMidiLearnPad(i); }}
-                  onMouseUp={() => { if (pads[i].playMode === 'hold') stopPad(i); }}
-                  onTouchStart={(e) => { e.preventDefault(); initCtx(); playPad(i); setSelectedPad(i); if (liveRef.current) handleLiveHit(i); }}
-                  onTouchEnd={(e) => { e.preventDefault(); if (pads[i].playMode === 'hold') stopPad(i); }}
-                  onDragOver={(e) => onDragOver(e, i)} onDragLeave={onDragLeave} onDrop={(e) => onDrop(e, i)}
-                  onDoubleClick={() => fileSelect(i)}>
-                  <div className="pad-key">{PAD_KEY_LABELS[i]}</div>
-                  <div className="pad-name">{pad.name}</div>
-                  {!pad.buffer && <div className="pad-hint">Drop audio or double-click</div>}
-                  {pad.layers?.length > 0 && <div className="pad-layer-badge">L{pad.layers.length}</div>}
-                  {pad.programType === 'keygroup' && <div className="pad-kg-badge">KG</div>}
-                  {pad.timeStretch && <div className="pad-ts-badge">TS</div>}
-                  {pad.muted && <div className="pad-mute-badge">M</div>}
-                  {pad.filterOn && <div className="pad-fx-badge">FX</div>}
-                  {midiLearn && <div className="pad-midi-badge">MIDI?</div>}
-                  {Object.values(midiMap).includes(i) && <div className="pad-midi-note">{Object.entries(midiMap).find(([,v]) => v === i)?.[0]}</div>}
-                </div>
-              ))}
-            </div>
-            <div className="pad-quick-actions">
-              <button onClick={clearPat}>🗑️ Clear</button>
-              <button onClick={stopAll}>⏹ Stop All</button>
-              <button onClick={() => selectedPad !== null && openChop(selectedPad)} disabled={selectedPad === null || !pads[selectedPad]?.buffer}>✂️ Chop</button>
-              <button onClick={() => selectedPad !== null && startMicRec(selectedPad)} disabled={selectedPad === null || micRec}>🎙️ Sample</button>
-              <button onClick={() => selectedPad !== null && normalizeSample(selectedPad)} disabled={selectedPad === null || !pads[selectedPad]?.buffer}>📊 Norm</button>
-              <button onClick={() => selectedPad !== null && reverseSampleDestructive(selectedPad)} disabled={selectedPad === null || !pads[selectedPad]?.buffer}>◀ Rev</button>
-              <button onClick={() => selectedPad !== null && fadeInSample(selectedPad, 0.05)} disabled={selectedPad === null || !pads[selectedPad]?.buffer} title="Fade In (50ms)">⤴ In</button>
-              <button onClick={() => selectedPad !== null && fadeOutSample(selectedPad, 0.05)} disabled={selectedPad === null || !pads[selectedPad]?.buffer} title="Fade Out (50ms)">⤵ Out</button>
-              <button onClick={() => { const n = prompt('Kit name:'); if (n) saveKit(n); }}>💾 Save Kit</button>
-              <div className="step-count-selector"><label>Steps:</label>
-                {STEP_COUNTS.map(c => (
-                  <button key={c} className={stepCount === c ? 'active' : ''} onClick={() => {
-                    setStepCount(c);
-                    setSteps(p => p.map(r => r.length < c ? [...r, ...Array(c - r.length).fill(false)] : r.slice(0, c)));
-                    setStepVel(p => p.map(r => r.length < c ? [...r, ...Array(c - r.length).fill(0.8)] : r.slice(0, c)));
-                  }}>{c}</button>
-                ))}
-              </div>
-            </div>
-          </div>
+        {/* ── SAMPLER TAB ── */}
+        {activeTab === 'sampler' && (
+          <SamplerTab
+            engine={{
+              pads, setPads, selectedPad, setSelectedPad, activePads,
+              updatePad, fileSelect: (pi) => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'audio/*'; inp.onchange = (e) => { if (e.target.files[0]) loadSample(pi, e.target.files[0]); }; inp.click(); },
+              loadSample, clearPad, playPad, stopPad, stopAll,
+              openChop, openSampleEditor: (pi) => { setSelectedPad(pi); setShowPadSet(true); },
+              startMicRec, normalizeSample, reverseSampleDestructive,
+              fadeInSample, fadeOutSample, analyzePadSample,
+              playPadKeygroup, stopPadKeygroup, activeKgNotes,
+              onDragOver: (e, pi) => { e.preventDefault(); setDragPad(pi); },
+              onDragLeave: () => setDragPad(null),
+              onDrop: (e, pi) => { e.preventDefault(); setDragPad(null); const f = e.dataTransfer?.files?.[0]; if (f) loadSample(pi, f); },
+              setShowPadSet, ctxRef, masterRef, isPlaying,
+              detectedBpm: detectedBpm || 0, detectedKey: detectedKey || null,
+            }}
+            handlePadDown={(i) => { initCtx(); playPad(i); }}
+            handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
+            aiProps={{
+              runAiSuggest: () => {},
+              runAiChop: () => {},
+              vocalBeatOn: false,
+              startVocalBeat: () => {},
+              stopVocalBeat: () => {},
+            }}
+          />
         )}
 
-        {/* STEP SEQUENCER */}
-        {(view === 'sequencer' || view === 'split') && (
-          <div className="sequencer-section">
-            {/* ── Bar Ruler ── */}
-            <div className="seq-bar-ruler">
-              <div className="seq-label-cell" style={{ minWidth: 100, fontSize: '0.6rem', color: '#5a7088', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-                {loopEndStep != null ? `Loop ${Math.floor(loopStartStep / 4) + 1}–${Math.floor((loopEndStep - 1) / 4) + 1}` : 'All'}
-              </div>
-              {Array.from({ length: Math.ceil(stepCount / 4) }, (_, bar) => {
-                const barStart = bar * 4;
-                const barEnd = Math.min(barStart + 4, stepCount);
-                const barWidth = barEnd - barStart;
-                const isInLoop = loopEndStep == null || (barStart < loopEndStep && barEnd > loopStartStep);
-                const isLoopStart = barStart === loopStartStep && loopEndStep != null;
-                const isLoopEnd = barEnd === loopEndStep;
-                const currentBar = curStep >= barStart && curStep < barEnd;
-                return (
-                  <div
-                    key={bar}
-                    className={`seq-bar-marker ${currentBar ? 'current' : ''} ${isInLoop ? 'in-loop' : 'out-loop'} ${isLoopStart ? 'loop-start' : ''} ${isLoopEnd ? 'loop-end' : ''}`}
-                    style={{ flex: `0 0 ${barWidth * (100 / stepCount)}%`, minWidth: 0 }}
-                    onClick={(e) => {
-                      if (e.shiftKey) {
-                        setLoopEndStep(barEnd);
-                      } else if (e.altKey || e.ctrlKey) {
-                        setLoopStartStep(0);
-                        setLoopEndStep(null);
-                      } else {
-                        setLoopStartStep(barStart);
-                        if (loopEndStep != null && barStart >= loopEndStep) {
-                          setLoopEndStep(null);
-                        }
-                      }
-                    }}
-                    title={`Bar ${bar + 1} | Click = loop start | Shift+Click = loop end | Ctrl+Click = clear`}
-                  >
-                    <span className="bar-number">{bar + 1}</span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="sequencer-grid">
-              <div className="seq-header-row">
-                <div className="seq-label-cell"></div>
-                {Array.from({ length: stepCount }, (_, i) => {
-                  const inLoop = loopEndStep == null || (i >= loopStartStep && i < loopEndStep);
-                  return (
-                    <div key={i} className={`seq-header-cell ${curStep === i ? 'current' : ''} ${i % 4 === 0 ? 'downbeat' : ''} ${!inLoop ? 'out-of-loop' : ''}`}>
-                      {i % 4 === 0 ? `${Math.floor(i / 4) + 1}.1` : `.${(i % 4) + 1}`}
-                    </div>
-                  );
-                })}
-              </div>
-              {pads.map((pad, pi) => (
-                <div key={pi} className={`seq-row ${!pad.buffer ? 'empty-row' : ''}`}>
-                  <div className={`seq-label-cell ${selectedPad === pi ? 'selected' : ''}`} onClick={() => { setSelectedPad(pi); setShowPadSet(true); }}>
-                    <span className="seq-pad-color" style={{ background: pad.color }}></span>
-                    <span className="seq-pad-name">{pad.name}</span>
-                    <span className="seq-pad-key">{PAD_KEY_LABELS[pi]}</span>
-                  </div>
-                  {Array.from({ length: stepCount }, (_, si) => {
-                    const inLoop = loopEndStep == null || (si >= loopStartStep && si < loopEndStep);
-                    return (
-                      <div key={si}
-                        className={`seq-cell ${steps[pi]?.[si] ? 'on' : ''} ${curStep === si ? 'current' : ''} ${si % 4 === 0 ? 'downbeat' : ''} ${si % 8 < 4 ? 'even-group' : 'odd-group'} ${!inLoop ? 'out-of-loop' : ''}`}
-                        style={{ '--cell-color': pad.color, '--cell-opacity': steps[pi]?.[si] ? (stepVel[pi]?.[si] ?? 0.8) : 0 }}
-                        onClick={(e) => toggleStep(pi, si, e)} />
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-            <div className="sequencer-hint">Click = normal | Shift = soft | Ctrl = hard · Bar ruler: Click = loop start | Shift+Click = loop end | Ctrl+Click = clear</div>
-          </div>
+        {/* ── DRUM KIT TAB ── */}
+        {activeTab === 'drumpad' && (
+          <DrumPadTab
+            engine={{
+              pads, setPads, selectedPad, setSelectedPad, activePads, dragPad,
+              updatePad, fileSelect: (pi) => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'audio/*'; inp.onchange = (e) => { if (e.target.files[0]) loadSample(pi, e.target.files[0]); }; inp.click(); },
+              clearPad, playPad, stopPad, stopAll, openSampleEditor: (pi) => { setSelectedPad(pi); setShowPadSet(true); },
+              setShowPadSet, setShowKitBrowser: () => setShowLib(true),
+              openChop,
+            }}
+            handlePadDown={(i) => { initCtx(); playPad(i); }}
+            handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
+            perfProps={{
+              noteRepeatOn, setNoteRepeatOn,
+              noteRepeatRate, setNoteRepeatRate,
+              rollOn, setRollOn,
+              tapeStopOn, triggerTapeStop,
+              filterSweepOn, toggleFilterSweep,
+              filterSweepVal, updateFilterSweep,
+              liveLoopState, startLoopRec, stopLoopRec, playLoop, stopLoop, loopBufRef,
+              scaleLockOn, setScaleLockOn,
+              scaleLockRoot, setScaleLockRoot,
+              scaleLockScale, setScaleLockScale,
+              chordModeOn, setChordModeOn,
+              chordType, setChordType,
+              chordInversion, setChordInversion,
+              stopAllNoteRepeats,
+            }}
+            aiProps={{
+              runAiSuggest: () => {},
+              vocalBeatOn: false,
+              startVocalBeat: () => {},
+              stopVocalBeat: () => {},
+            }}
+          />
         )}
+
+        {/* ── BEAT MAKER TAB ── */}
+        {activeTab === 'beats' && (
+          <BeatMakerTab
+            engine={{
+              pads, selectedPad, setSelectedPad, activePads,
+              steps, stepVel, stepCount, setStepCount, curStep, isPlaying,
+              patterns, setPatterns, curPatIdx, setCurPatIdx,
+              loopStartStep, setLoopStartStep, loopEndStep, setLoopEndStep,
+              toggleStep, clearPat, stopAll, addPattern, delPattern, renamePattern,
+              setShowMixer: (v) => setShowMixer(v),
+              setSongMode: (v) => setSongMode(v),
+              setShowClipLauncher: (v) => setShowClipLauncher(v),
+              setShowExportPanel: (v) => setShowExportPanel(v),
+              fileSelect: (pi) => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'audio/*'; inp.onchange = (e) => { if (e.target.files[0]) loadSample(pi, e.target.files[0]); }; inp.click(); },
+              onDragOver: (e, pi) => { e.preventDefault(); setDragPad(pi); },
+              onDragLeave: () => setDragPad(null),
+              onDrop: (e, pi) => { e.preventDefault(); setDragPad(null); const f = e.dataTransfer?.files?.[0]; if (f) loadSample(pi, f); },
+            }}
+            handlePadDown={(i) => { initCtx(); playPad(i); }}
+            handlePadUp={(i) => { if (pads[i]?.playMode === 'hold') stopPad(i); }}
+          />
+        )}
+
+        {/* ── STEMS TAB ── */}
+        {activeTab === 'stems' && (
+          <StemSeparatorTab
+            engine={{
+              loadBufferToPad: (pi, buffer, name) => {
+                setPads(p => {
+                  const u = [...p];
+                  u[pi] = { ...u[pi], buffer, name: name || `Stem ${pi + 1}`, trimEnd: buffer.duration };
+                  return u;
+                });
+              },
+            }}
+          />
+        )}
+
       </div>
 
       {/* MIXER (Phase 2) */}
@@ -2976,9 +3060,10 @@ const SamplerBeatMaker = ({
               <button className="distribute-btn" onClick={distributeToPads} disabled={chopPts.length === 0}>📤 Distribute to Pads</button>
             </div>
             <div className="chop-slices-preview">
-              {(() => { const all = [0, ...chopPts, pads[chopIdx]?.buffer?.duration || 0];
+              {(() => {
+                const all = [0, ...chopPts, pads[chopIdx]?.buffer?.duration || 0];
                 return all.slice(0, -1).map((_, si) => (
-                  <button key={si} className={`chop-slice-btn ${activeSlice === si ? 'playing' : ''}`} onClick={() => previewSlice(si)}>▶ {si+1} ({((all[si+1]-all[si])*1000).toFixed(0)}ms)</button>
+                  <button key={si} className={`chop-slice-btn ${activeSlice === si ? 'playing' : ''}`} onClick={() => previewSlice(si)}>▶ {si + 1} ({((all[si + 1] - all[si]) * 1000).toFixed(0)}ms)</button>
                 ));
               })()}
             </div>
@@ -3014,7 +3099,7 @@ const SamplerBeatMaker = ({
             <div className="pad-setting"><label>Pan</label><input type="range" min={-100} max={100} value={Math.round(pads[selectedPad].pan * 100)} onChange={(e) => updatePad(selectedPad, { pan: +e.target.value / 100 })} /><span className="setting-value">{pads[selectedPad].pan < 0 ? `L${Math.abs(Math.round(pads[selectedPad].pan * 100))}` : pads[selectedPad].pan > 0 ? `R${Math.round(pads[selectedPad].pan * 100)}` : 'C'}</span></div>
             <div className="pad-setting"><label>Trim Start</label><input type="range" min={0} max={Math.round((pads[selectedPad].buffer?.duration || 1) * 1000)} value={Math.round((pads[selectedPad].trimStart || 0) * 1000)} onChange={(e) => updatePad(selectedPad, { trimStart: +e.target.value / 1000 })} /><span className="setting-value">{(pads[selectedPad].trimStart || 0).toFixed(2)}s</span></div>
             <div className="pad-setting"><label>Trim End</label><input type="range" min={0} max={Math.round((pads[selectedPad].buffer?.duration || 1) * 1000)} value={Math.round((pads[selectedPad].trimEnd || pads[selectedPad].buffer?.duration || 0) * 1000)} onChange={(e) => updatePad(selectedPad, { trimEnd: +e.target.value / 1000 })} /><span className="setting-value">{(pads[selectedPad].trimEnd || pads[selectedPad].buffer?.duration || 0).toFixed(2)}s</span></div>
-            <div className="pad-setting"><label>Mode</label><div className="play-mode-btns">{['oneshot','hold','loop'].map(m => <button key={m} className={pads[selectedPad].playMode === m ? 'active' : ''} onClick={() => updatePad(selectedPad, { playMode: m })}>{m === 'oneshot' ? '▶ One' : m === 'hold' ? '✊ Hold' : '🔁 Loop'}</button>)}</div></div>
+            <div className="pad-setting"><label>Mode</label><div className="play-mode-btns">{['oneshot', 'hold', 'loop'].map(m => <button key={m} className={pads[selectedPad].playMode === m ? 'active' : ''} onClick={() => updatePad(selectedPad, { playMode: m })}>{m === 'oneshot' ? '▶ One' : m === 'hold' ? '✊ Hold' : '🔁 Loop'}</button>)}</div></div>
             <div className="pad-setting"><label>Reverse</label><button className={`toggle-btn ${pads[selectedPad].reverse ? 'active' : ''}`} onClick={() => updatePad(selectedPad, { reverse: !pads[selectedPad].reverse })}>{pads[selectedPad].reverse ? '◀ Rev' : '▶ Norm'}</button></div>
             <div className="pad-setting"><label>Attack</label><input type="range" min={0} max={1000} value={Math.round(pads[selectedPad].attack * 1000)} onChange={(e) => updatePad(selectedPad, { attack: +e.target.value / 1000 })} /><span className="setting-value">{(pads[selectedPad].attack * 1000).toFixed(0)}ms</span></div>
             <div className="pad-setting"><label>Decay</label><input type="range" min={0} max={2000} value={Math.round((pads[selectedPad].decay || 0) * 1000)} onChange={(e) => updatePad(selectedPad, { decay: +e.target.value / 1000 })} /><span className="setting-value">{((pads[selectedPad].decay || 0) * 1000).toFixed(0)}ms</span></div>
@@ -3095,58 +3180,64 @@ const SamplerBeatMaker = ({
 
               {pads[selectedPad].layers.map((layer, li) => {
                 const isActive = activePads.has(selectedPad) && activeSrc.current[selectedPad]?.layerIdx === li;
-                const colors = ['#ff4444','#ffa500','#00ffc8','#4a9eff'];
+                const colors = ['#ff4444', '#ffa500', '#00ffc8', '#4a9eff'];
                 return (
-                <div key={li} className={`layer-row ${layer.buffer ? 'loaded' : 'empty'} ${isActive ? 'layer-active' : ''}`}
-                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('layer-dragover'); }}
-                  onDragLeave={(e) => { e.currentTarget.classList.remove('layer-dragover'); }}
-                  onDrop={(e) => {
-                    e.preventDefault(); e.currentTarget.classList.remove('layer-dragover');
-                    const file = e.dataTransfer.files[0];
-                    if (file && file.type.startsWith('audio/')) loadLayerSample(selectedPad, li, file);
-                  }}
-                >
-                  <div className="layer-row-top">
-                    <span className="layer-num" style={{ color: colors[li] }}>{li + 1}</span>
-                    <span className="layer-name">{layer.buffer ? (layer.name || `Layer ${li + 1}`) : '(drop audio here)'}</span>
-                    <button className="layer-load-btn" onClick={() => {
-                      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'audio/*';
-                      inp.onchange = (e) => { if (e.target.files[0]) loadLayerSample(selectedPad, li, e.target.files[0]); }; inp.click();
-                    }}>{layer.buffer ? '🔄' : '📂'}</button>
-                    {layer.buffer && <button className="layer-preview-btn" onClick={() => {
-                      const c = initCtx(); const src = c.createBufferSource();
-                      const g = c.createGain(); g.gain.value = layer.volume ?? 1;
-                      src.buffer = layer.buffer; src.connect(g); g.connect(masterRef.current); src.start(0);
-                    }}>▶</button>}
-                    <button className="layer-remove-btn" onClick={() => removeLayer(selectedPad, li)}>✕</button>
+                  <div key={li} className={`layer-row ${layer.buffer ? 'loaded' : 'empty'} ${isActive ? 'layer-active' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('layer-dragover'); }}
+                    onDragLeave={(e) => { e.currentTarget.classList.remove('layer-dragover'); }}
+                    onDrop={(e) => {
+                      e.preventDefault(); e.currentTarget.classList.remove('layer-dragover');
+                      const file = e.dataTransfer.files[0];
+                      if (file && file.type.startsWith('audio/')) loadLayerSample(selectedPad, li, file);
+                    }}
+                  >
+                    <div className="layer-row-top">
+                      <span className="layer-num" style={{ color: colors[li] }}>{li + 1}</span>
+                      <span className="layer-name">{layer.buffer ? (layer.name || `Layer ${li + 1}`) : '(drop audio here)'}</span>
+                      <button className="layer-load-btn" onClick={() => {
+                        const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'audio/*';
+                        inp.onchange = (e) => { if (e.target.files[0]) loadLayerSample(selectedPad, li, e.target.files[0]); }; inp.click();
+                      }}>{layer.buffer ? '🔄' : '📂'}</button>
+                      {layer.buffer && <button className="layer-preview-btn" onClick={() => {
+                        const c = initCtx(); const src = c.createBufferSource();
+                        const g = c.createGain(); g.gain.value = layer.volume ?? 1;
+                        src.buffer = layer.buffer; src.connect(g); g.connect(masterRef.current); src.start(0);
+                      }}>▶</button>}
+                      <button className="layer-remove-btn" onClick={() => removeLayer(selectedPad, li)}>✕</button>
+                    </div>
+                    <div className="layer-row-vel">
+                      <label>Vel:</label>
+                      <input type="range" min={0} max={127} value={layer.velocityMin} onChange={(e) => {
+                        const val = +e.target.value;
+                        setPads(p => {
+                          const u = [...p]; const layers = [...u[selectedPad].layers];
+                          layers[li] = { ...layers[li], velocityMin: Math.min(val, layers[li].velocityMax - 1) };
+                          u[selectedPad] = { ...u[selectedPad], layers }; return u;
+                        });
+                      }} />
+                      <span className="vel-range-display">{layer.velocityMin}–{layer.velocityMax}</span>
+                      <input type="range" min={0} max={127} value={layer.velocityMax} onChange={(e) => {
+                        const val = +e.target.value;
+                        setPads(p => {
+                          const u = [...p]; const layers = [...u[selectedPad].layers];
+                          layers[li] = { ...layers[li], velocityMax: Math.max(val, layers[li].velocityMin + 1) };
+                          u[selectedPad] = { ...u[selectedPad], layers }; return u;
+                        });
+                      }} />
+                    </div>
+                    <div className="layer-row-vol">
+                      <label>Vol:</label>
+                      <input type="range" min={0} max={150} value={Math.round((layer.volume ?? 1) * 100)} onChange={(e) => {
+                        const val = +e.target.value / 100;
+                        setPads(p => {
+                          const u = [...p]; const layers = [...u[selectedPad].layers];
+                          layers[li] = { ...layers[li], volume: val };
+                          u[selectedPad] = { ...u[selectedPad], layers }; return u;
+                        });
+                      }} />
+                      <span className="layer-vol-display">{Math.round((layer.volume ?? 1) * 100)}%</span>
+                    </div>
                   </div>
-                  <div className="layer-row-vel">
-                    <label>Vel:</label>
-                    <input type="range" min={0} max={127} value={layer.velocityMin} onChange={(e) => {
-                      const val = +e.target.value;
-                      setPads(p => { const u = [...p]; const layers = [...u[selectedPad].layers];
-                        layers[li] = { ...layers[li], velocityMin: Math.min(val, layers[li].velocityMax - 1) };
-                        u[selectedPad] = { ...u[selectedPad], layers }; return u; });
-                    }} />
-                    <span className="vel-range-display">{layer.velocityMin}–{layer.velocityMax}</span>
-                    <input type="range" min={0} max={127} value={layer.velocityMax} onChange={(e) => {
-                      const val = +e.target.value;
-                      setPads(p => { const u = [...p]; const layers = [...u[selectedPad].layers];
-                        layers[li] = { ...layers[li], velocityMax: Math.max(val, layers[li].velocityMin + 1) };
-                        u[selectedPad] = { ...u[selectedPad], layers }; return u; });
-                    }} />
-                  </div>
-                  <div className="layer-row-vol">
-                    <label>Vol:</label>
-                    <input type="range" min={0} max={150} value={Math.round((layer.volume ?? 1) * 100)} onChange={(e) => {
-                      const val = +e.target.value / 100;
-                      setPads(p => { const u = [...p]; const layers = [...u[selectedPad].layers];
-                        layers[li] = { ...layers[li], volume: val };
-                        u[selectedPad] = { ...u[selectedPad], layers }; return u; });
-                    }} />
-                    <span className="layer-vol-display">{Math.round((layer.volume ?? 1) * 100)}%</span>
-                  </div>
-                </div>
                 );
               })}
               {pads[selectedPad].layers.length === 0 && (
@@ -3402,7 +3493,7 @@ const SamplerBeatMaker = ({
 
           {/* Bus channel strips */}
           <div className="bus-strips">
-            {['A','B','C','D'].map(bus => {
+            {['A', 'B', 'C', 'D'].map(bus => {
               const s = busSettings[bus];
               const padCount = padBusAssign.filter(b => b === bus).length;
               return (
