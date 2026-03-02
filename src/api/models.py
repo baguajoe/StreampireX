@@ -7203,6 +7203,7 @@ class CreditPackPurchase(db.Model):
 class SamplerProject(db.Model):
     """A sampler/beat maker project with pad configs, patterns, and R2 sample URLs."""
     __tablename__ = "sampler_projects"
+    __table_args__ = {'extend_existing': True}pipenv run migrate
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False, index=True)
@@ -7277,3 +7278,207 @@ class SamplerKit(db.Model):
 
     def __repr__(self):
         return f"<SamplerKit {self.id} '{self.name}' user={self.user_id}>"
+
+class EPK(db.Model):
+    '''Electronic Press Kit — artist's professional identity card'''
+    __tablename__ = 'epk'
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    epk_name = db.Column(db.String(100), default='My EPK')  # Internal label for multiple EPKs
+    
+    # Identity
+    artist_name = db.Column(db.String(100))
+    tagline = db.Column(db.String(200))
+    bio_short = db.Column(db.Text)
+    bio_full = db.Column(db.Text)
+    genre_primary = db.Column(db.String(50))
+    genre_secondary = db.Column(db.String(50))
+    location = db.Column(db.String(100))
+    
+    # Contact & Booking
+    booking_email = db.Column(db.String(200))
+    management_name = db.Column(db.String(100))
+    management_email = db.Column(db.String(200))
+    label_name = db.Column(db.String(100))
+    website = db.Column(db.String(300))
+    
+    # Social Links (JSON)
+    social_links = db.Column(db.JSON, default=dict)
+    
+    # Media
+    profile_photo = db.Column(db.String(500))
+    cover_photo = db.Column(db.String(500))
+    press_photos = db.Column(db.JSON, default=list)
+    logo_url = db.Column(db.String(500))
+    
+    # Achievements & Stats
+    achievements = db.Column(db.JSON, default=list)
+    stats = db.Column(db.JSON, default=dict)
+    press_quotes = db.Column(db.JSON, default=list)
+    
+    # Featured Content (pulled from platform)
+    featured_tracks = db.Column(db.JSON, default=list)
+    featured_videos = db.Column(db.JSON, default=list)
+    featured_albums = db.Column(db.JSON, default=list)
+    
+    # Technical Rider
+    rider = db.Column(db.Text)
+    stage_plot_url = db.Column(db.String(500))
+    
+    # Featured Media (uploaded demos, videos, docs)
+    featured_media = db.Column(db.JSON, default=list)
+    
+    # Collab Profile
+    skills = db.Column(db.JSON, default=list)
+    collab_open = db.Column(db.Boolean, default=True)
+    collab_rate = db.Column(db.String(100))
+    preferred_genres = db.Column(db.JSON, default=list)
+    equipment = db.Column(db.JSON, default=list)
+    
+    # Template & Appearance
+    template = db.Column(db.String(20), default='modern')
+    accent_color = db.Column(db.String(7), default='#00ffc8')
+    
+    # Visibility
+    is_public = db.Column(db.Boolean, default=True)
+    slug = db.Column(db.String(100), unique=True, index=True)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    user = db.relationship('User', backref=db.backref('epks', lazy=True))
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "epk_name": self.epk_name,
+            "artist_name": self.artist_name,
+            "tagline": self.tagline,
+            "bio_short": self.bio_short,
+            "bio_full": self.bio_full,
+            "genre_primary": self.genre_primary,
+            "genre_secondary": self.genre_secondary,
+            "location": self.location,
+            "booking_email": self.booking_email,
+            "management_name": self.management_name,
+            "management_email": self.management_email,
+            "label_name": self.label_name,
+            "website": self.website,
+            "social_links": self.social_links or {},
+            "profile_photo": self.profile_photo,
+            "cover_photo": self.cover_photo,
+            "press_photos": self.press_photos or [],
+            "logo_url": self.logo_url,
+            "achievements": self.achievements or [],
+            "stats": self.stats or {},
+            "press_quotes": self.press_quotes or [],
+            "featured_tracks": self.featured_tracks or [],
+            "featured_videos": self.featured_videos or [],
+            "featured_albums": self.featured_albums or [],
+            "rider": self.rider,
+            "stage_plot_url": self.stage_plot_url,
+            "featured_media": self.featured_media or [],
+            "skills": self.skills or [],
+            "collab_open": self.collab_open,
+            "collab_rate": self.collab_rate,
+            "preferred_genres": self.preferred_genres or [],
+            "equipment": self.equipment or [],
+            "template": self.template,
+            "accent_color": self.accent_color,
+            "is_public": self.is_public,
+            "slug": self.slug,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class CollabRequest(db.Model):
+    '''A collab posting — "I need a vocalist for my R&B track"'''
+    __tablename__ = 'collab_request'
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    genre = db.Column(db.String(50))
+    roles_needed = db.Column(db.JSON, default=list)
+    budget = db.Column(db.String(100))
+    deadline = db.Column(db.DateTime)
+    
+    reference_track_url = db.Column(db.String(500))
+    reference_notes = db.Column(db.Text)
+    
+    status = db.Column(db.String(20), default='open')
+    is_public = db.Column(db.Boolean, default=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('collab_requests', lazy=True))
+    
+    def to_dict(self):
+        user = self.user
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "artist_name": user.artist_name or user.username if user else None,
+            "profile_photo": user.profile_picture if user else None,
+            "title": self.title,
+            "description": self.description,
+            "genre": self.genre,
+            "roles_needed": self.roles_needed or [],
+            "budget": self.budget,
+            "deadline": self.deadline.isoformat() if self.deadline else None,
+            "reference_track_url": self.reference_track_url,
+            "reference_notes": self.reference_notes,
+            "status": self.status,
+            "is_public": self.is_public,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "application_count": len(self.applications) if hasattr(self, 'applications') else 0,
+        }
+
+
+class CollabApplication(db.Model):
+    '''An application/pitch to a collab request — includes EPK link'''
+    __tablename__ = 'collab_application'
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.Integer, db.ForeignKey('collab_request.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    message = db.Column(db.Text)
+    proposed_rate = db.Column(db.String(100))
+    sample_url = db.Column(db.String(500))
+    
+    status = db.Column(db.String(20), default='pending')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    request = db.relationship('CollabRequest', backref=db.backref('applications', lazy=True))
+    user = db.relationship('User', backref=db.backref('collab_applications', lazy=True))
+    
+    def to_dict(self):
+        user = self.user
+        epk = None
+        if user:
+            epks = EPK.query.filter_by(user_id=user.id).first()
+            epk = epks
+        return {
+            "id": self.id,
+            "request_id": self.request_id,
+            "user_id": self.user_id,
+            "artist_name": user.artist_name or user.username if user else None,
+            "profile_photo": user.profile_picture if user else None,
+            "epk_slug": epk.slug if epk else None,
+            "skills": epk.skills if epk else [],
+            "genre": epk.genre_primary if epk else None,
+            "message": self.message,
+            "proposed_rate": self.proposed_rate,
+            "sample_url": self.sample_url,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }

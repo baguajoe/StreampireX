@@ -54,7 +54,21 @@ const EPKCollabHub = () => {
   const [error, setError] = useState('');
 
   // ── EPK State ──
-  const [epk, setEpk] = useState(null);
+  const EMPTY_EPK = {
+    artist_name: '', tagline: '', bio_short: '', bio_full: '',
+    genre_primary: '', genre_secondary: '', location: '',
+    booking_email: '', management_name: '', management_email: '',
+    label_name: '', website: '', social_links: {},
+    profile_photo: '', cover_photo: '', press_photos: [], logo_url: '',
+    achievements: [], stats: {}, press_quotes: [],
+    featured_tracks: [], featured_videos: [], featured_albums: [],
+    rider: '', stage_plot_url: '', featured_media: [],
+    skills: [], collab_open: true, collab_rate: '',
+    preferred_genres: [], equipment: [],
+    template: 'modern', accent_color: '#00ffc8',
+    is_public: true, slug: '',
+  };
+  const [epk, setEpk] = useState(EMPTY_EPK);
   const [epkDirty, setEpkDirty] = useState(false);
   const [epkSection, setEpkSection] = useState('identity'); // identity | contact | media | achievements | collab | template
 
@@ -153,7 +167,12 @@ const EPKCollabHub = () => {
   const loadEpk = useCallback(async () => {
     try {
       const res = await fetch(`${BACKEND}/api/epk`, { headers: authHeaders() });
-      if (res.ok) { const data = await res.json(); setEpk(data); setEpkDirty(false); }
+      if (res.ok) {
+        const data = await res.json();
+        setEpk(prev => ({ ...prev, ...data }));
+        setEpkDirty(false);
+      }
+      // If not ok (404, 500), keep the EMPTY_EPK defaults — builder still renders
     } catch (e) { console.error('Load EPK error:', e); }
   }, []);
 
@@ -341,6 +360,38 @@ const EPKCollabHub = () => {
           ═══════════════════════════════════════════════════════════════ */}
       {activeTab === 'epk' && epk && (
         <div className="ech-epk-builder">
+          {/* EPK Switcher — multiple EPKs */}
+          <div className="ech-epk-switcher">
+            {(epk.all_epks || []).length > 0 && (
+              <div className="ech-epk-list">
+                {(epk.all_epks || []).map(e => (
+                  <button key={e.id} className={`ech-epk-tab ${epk.id === e.id ? 'active' : ''}`}
+                    onClick={async () => {
+                      const res = await fetch(`${BACKEND}/api/epk?id=${e.id}`, { headers: authHeaders() });
+                      if (res.ok) { const data = await res.json(); setEpk(prev => ({ ...prev, ...data })); }
+                    }}>
+                    {e.epk_name || e.artist_name}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button className="ech-new-epk-btn" onClick={() => {
+              setEpk(prev => ({
+                ...EMPTY_EPK,
+                all_epks: prev.all_epks || [],
+                epk_name: `New EPK ${(prev.all_epks || []).length + 1}`,
+              }));
+              setEpkSection('identity');
+              setEpkDirty(true);
+            }}>+ New EPK</button>
+            {epk.id && (epk.all_epks || []).length > 1 && (
+              <button className="ech-delete-epk-btn" onClick={async () => {
+                if (!window.confirm(`Delete "${epk.epk_name || epk.artist_name}"?`)) return;
+                const res = await fetch(`${BACKEND}/api/epk/${epk.id}`, { method: 'DELETE', headers: authHeaders() });
+                if (res.ok) { loadEpk(); setStatus('EPK deleted'); }
+              }}>🗑</button>
+            )}
+          </div>
           {/* Section nav */}
           <div className="ech-epk-sections">
             {[
@@ -366,6 +417,14 @@ const EPKCollabHub = () => {
 
             {/* ── IDENTITY ── */}
             {epkSection === 'identity' && <>
+              {/* EPK Label (internal name) */}
+              <div className="ech-field">
+                <label>EPK Name (internal label)</label>
+                <input type="text" value={epk.epk_name || ''} onChange={(e) => updateEpk('epk_name', e.target.value)}
+                  placeholder="e.g. Solo Artist, Producer, DJ Alias" />
+                <span className="ech-hint">Only you see this — use it to tell your EPKs apart</span>
+              </div>
+
               {/* Auto-populate banner for new EPKs */}
               {!epk.id && platformContent && (
                 <div className="ech-auto-banner">

@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import UploadTrackModal from "../component/UploadTrackModal";
 import TipJar from "../component/TipJar";
 import BeatsTab from "../component/BeatsTab";
+import { ProfileEPKSection } from "./PublicEPK";
 import "../../styles/ArtistProfile.css";
 
 const ArtistProfilePage = () => {
@@ -100,7 +101,9 @@ const ArtistProfilePage = () => {
   };
 
   const currentUserId = getCurrentUserId();
-  const isOwnProfile = currentUserId && id && String(currentUserId) === String(id);
+  // If no id in URL (e.g. /profile/artist), it's the user's own profile
+  const isOwnProfile = !id || (currentUserId && String(currentUserId) === String(id));
+  const effectiveId = id || currentUserId; // Use currentUserId when no URL param
 
   // Debug log (remove in production)
   console.log("Profile Debug:", { currentUserId, id, isOwnProfile });
@@ -923,6 +926,9 @@ const ArtistProfilePage = () => {
                 )}
               </div>
             </section>
+
+            {/* ── EPK Section ── */}
+            <ProfileEPKSection userId={effectiveId} />
           </div>
         );
 
@@ -1163,6 +1169,18 @@ const ArtistProfilePage = () => {
                 </div>
               </div>
             </section>
+          </div>
+        );
+
+      case "epk":
+        return (
+          <div className="tab-content">
+            <ProfileEPKSection userId={effectiveId} />
+            {isOwnProfile && (
+              <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                <Link to="/epk-hub" className="btn btn-primary">✏️ Edit My EPKs</Link>
+              </div>
+            )}
           </div>
         );
 
@@ -1533,6 +1551,12 @@ const ArtistProfilePage = () => {
             📊 Analytics
           </button>
         )}
+        <button
+          className={`tab-btn ${activeTab === "epk" ? "active" : ""}`}
+          onClick={() => setActiveTab("epk")}
+        >
+          📋 EPK
+        </button>
       </div>
 
       {/* Search Bar */}
