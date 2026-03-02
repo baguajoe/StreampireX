@@ -165,7 +165,7 @@ const Home = () => {
 					<div className="feature-card highlight">
 						<div className="feature-icon">🎬</div>
 						<h4>AI Video Studio</h4>
-						<p>Text-to-video and image-to-video generation. Create promo commercials from your EPK. Credits-based.</p>
+						<p>Generate videos from text or images with Kling v1.6 AI. Create music videos, promo clips, visualizers, social content, and EPK commercials. Credits-based.</p>
 						<span className="feature-tag ai-tag">AI</span>
 					</div>
 
@@ -372,16 +372,17 @@ const Home = () => {
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🎬</div>
 						<div className="ai-badge">AI</div>
-						<h4>AI Video Studio & Commercial Generator</h4>
+						<h4>AI Video Studio</h4>
 						<p>
-							Text-to-video and image-to-video with Kling v1.6. Generate promo commercials
-							directly from your EPK — your photos, bio, and genre auto-build cinematic
-							prompts. 5 visual styles. Stored on Cloudflare R2. Credits-based.
+							Generate videos from text prompts or images using Kling v1.6 AI. Create music
+							videos, visualizers, promo clips, social content, ads, and more — standard
+							and premium quality. Also powers the EPK commercial generator with 5 cinematic
+							styles. All videos stored on Cloudflare R2. Credits-based.
 						</p>
 						<div className="ai-feature-stats">
-							<span>5 Promo Styles</span>
-							<span>EPK → Video</span>
-							<span>Credit-Based</span>
+							<span>Text → Video</span>
+							<span>Image → Video</span>
+							<span>EPK Commercials</span>
 						</div>
 					</div>
 
@@ -659,6 +660,7 @@ const Home = () => {
 						<h4>✅ StreamPireX All-in-One</h4>
 						<ul>
 							<li>🎬 Video Editor + AI Video Studio</li>
+							<li>🤖 AI Video Generation (text/image → video)</li>
 							<li>🎚️ Recording Studio — Multi-Track DAW</li>
 							<li>🥁 Beat Maker — MPC Sampler + Sequencer</li>
 							<li>🤖 AI Mix Assistant + AI Mastering</li>
@@ -697,7 +699,7 @@ const Home = () => {
 					<div className="creator-card">
 						<span className="creator-emoji">🎬</span>
 						<h4>Video Creators</h4>
-						<p>Edit with AI assistance, generate promo commercials, export for every platform, monetize, and grow your audience</p>
+						<p>Edit videos, generate AI music videos and promo clips from text or images, export for every platform, monetize, and grow your audience</p>
 					</div>
 					<div className="creator-card">
 						<span className="creator-emoji">🎙️</span>
@@ -880,9 +882,9 @@ const Home = () => {
 				<h2>Ready to Create Without Limits?</h2>
 				<p>
 					Join StreamPireX and get an AI-powered recording studio, MPC beat maker, voice-to-MIDI,
-					beat store, podcast studio, EPK builder, collab marketplace, AI commercial generator,
-					mix assistant, mastering, music distribution, video editing, live streaming, and more
-					— all in one platform. Keep 90% of everything you earn.
+					beat store, podcast studio, EPK builder, collab marketplace, AI video generation,
+					AI commercial generator, mix assistant, mastering, music distribution, video editing,
+					live streaming, and more — all in one platform. Keep 90% of everything you earn.
 				</p>
 				<div className="cta-buttons">
 					<Link to="/signup" className="btn btn-primary btn-lg">Start Creating for Free</Link>
@@ -892,6 +894,8 @@ const Home = () => {
 					<Link to="/epk-hub" className="cta-link">Build Your EPK</Link>
 					<span className="cta-divider">•</span>
 					<Link to="/beats" className="cta-link">Browse Beat Store</Link>
+					<span className="cta-divider">•</span>
+					<Link to="/ai-video-studio" className="cta-link">AI Video Studio</Link>
 					<span className="cta-divider">•</span>
 					<Link to="/podcast-studio" className="cta-link">Podcast Studio</Link>
 					<span className="cta-divider">•</span>
