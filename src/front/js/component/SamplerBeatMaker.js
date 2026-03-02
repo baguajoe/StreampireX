@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import '../../styles/SamplerBeatMaker.css';
-import '../../styles/SamplerBeatMaker-compat.css';
+import '../../styles/BeatMakerTab.css';
 import BeatMakerTab from './tabs/BeatMakerTab';
 import DrumPadTab from './tabs/DrumPadTab';
 import SamplerTab from './tabs/SamplerTab';
