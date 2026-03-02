@@ -114,7 +114,7 @@
 .ech-section-btn.active .ech-section-label { color: #00ffc8; }
 .ech-section-desc { font-size: 0.68rem; color: #3d5570; }
 
-.ech-epk-form { padding: 28px 36px; max-width: 740px; }
+.ech-epk-form { padding: 28px 36px; max-width: 100%; }
 
 /* ── Form Fields ── */
 .ech-field { margin-bottom: 26px; }
