@@ -216,14 +216,14 @@ const EPKCollabHub = () => {
     try {
       const res = await fetch(`${BACKEND}/api/collab/my-requests`, { headers: authHeaders() });
       if (res.ok) { const data = await res.json(); setMyRequests(data.requests || []); }
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   const loadMyApplications = useCallback(async () => {
     try {
       const res = await fetch(`${BACKEND}/api/collab/my-applications`, { headers: authHeaders() });
       if (res.ok) { const data = await res.json(); setMyApplications(data.applications || []); }
-    } catch (e) {}
+    } catch (e) { }
   }, []);
 
   const searchEpks = useCallback(async () => {
@@ -298,7 +298,7 @@ const EPKCollabHub = () => {
     try {
       const res = await fetch(`${BACKEND}/api/collab/requests/${reqId}/applications`, { headers: authHeaders() });
       if (res.ok) { const data = await res.json(); setApplications(data.applications || []); setViewingApps(reqId); }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const respondToApp = async (appId, responseStatus) => {
@@ -859,9 +859,32 @@ const EPKCollabHub = () => {
               {/* ── AI COMMERCIAL GENERATOR ── */}
               <div className="ech-commercial-section">
                 <h3 className="ech-commercial-title">🎬 AI Commercial Generator</h3>
-                <p className="ech-commercial-desc">
-                  Your EPK is <strong className="ech-free-tag">100% free</strong> with your plan. Want a promo video too? The AI commercial generator uses your existing video credits — <strong>1 credit</strong> standard, <strong>2 credits</strong> premium.
+                <p className="ech-commercial-desc" style={{ fontSize: '0.88rem', lineHeight: '1.7' }}>
+                  Your EPK builder is <strong className="ech-free-tag">100% free</strong> — build, share, and update unlimited EPKs at no cost.
                 </p>
+                <div style={{
+                  padding: '14px 18px', marginBottom: '16px',
+                  background: 'rgba(255,102,0,0.08)', border: '1px solid rgba(255,102,0,0.25)',
+                  borderRadius: '10px', fontSize: '0.85rem', color: '#FF6600', lineHeight: '1.6'
+                }}>
+                  ⚠️ <strong>AI Commercial Generator requires credits.</strong> Standard = 1 credit, Premium = 2 credits.
+                  <br />
+                  <span style={{ color: '#7a8ea0', fontSize: '0.78rem' }}>
+                    Credits are used from your video generation balance.
+                  </span>
+                  <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <a href="/pricing" style={{
+                      padding: '8px 20px', background: 'linear-gradient(135deg, #FF6600, #e85d00)',
+                      borderRadius: '6px', color: '#fff', textDecoration: 'none',
+                      fontWeight: 700, fontSize: '0.8rem', display: 'inline-block'
+                    }}>💳 Get Credits</a>
+                    <a href="/ai-video" style={{
+                      padding: '8px 16px', border: '1px solid rgba(0,255,200,0.2)',
+                      borderRadius: '6px', color: '#00ffc8', textDecoration: 'none',
+                      fontSize: '0.78rem', fontWeight: 600
+                    }}>Check Balance</a>
+                  </div>
+                </div>
 
                 <div className="ech-field">
                   <label>Visual Style</label>
