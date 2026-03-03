@@ -17,6 +17,7 @@ const VideoChannelProfile = () => {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('home');
+  const [reels, setReels] = useState([]);
   const [sortBy, setSortBy] = useState('newest');
 
   // Check if this is the user's own channel
@@ -142,6 +143,28 @@ const VideoChannelProfile = () => {
     } catch (error) {
       console.error('Error toggling subscription:', error);
       showToast.error("Failed to update subscription");
+    }
+  };
+
+  const fetchChannelReels = async (userId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/reels/feed?type=foryou`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const userReels = (data.reels || []).filter(r => r.user_id === userId || r.user_id === parseInt(userId));
+        setReels(userReels);
+      }
+    } catch (error) {
+      console.error('Error fetching reels:', error);
     }
   };
 
@@ -285,6 +308,12 @@ const VideoChannelProfile = () => {
             onClick={() => setActiveTab('videos')}
           >
             VIDEOS
+          </button>
+          <button 
+            className={`nav-tab ${activeTab === 'reels' ? 'active' : ''}`}
+            onClick={() => setActiveTab('reels')}
+          >
+            REELS
           </button>
           <button 
             className={`nav-tab ${activeTab === 'playlists' ? 'active' : ''}`}
@@ -455,6 +484,60 @@ const VideoChannelProfile = () => {
                 <div className="empty-icon">📁</div>
                 <h3>No playlists yet</h3>
                 <p>{isOwnChannel ? "Create playlists to organize your videos" : "This channel hasn't created any playlists"}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+
+        {/* Reels Tab */}
+        {activeTab === 'reels' && (
+          <div className="reels-channel-content">
+            {reels.length > 0 ? (
+              <div className="reels-grid-channel">
+                {reels.map((reel) => (
+                  <div
+                    key={reel.id}
+                    className="reel-channel-card"
+                    onClick={() => window.location.href = `/reels/${reel.id}`}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="reel-channel-thumb">
+                      {reel.thumbnail_url ? (
+                        <img src={reel.thumbnail_url} alt={reel.title} />
+                      ) : reel.video_url ? (
+                        <video src={reel.video_url} muted preload="metadata" />
+                      ) : (
+                        <div className="reel-channel-placeholder">🎬</div>
+                      )}
+                      <div className="reel-channel-overlay">
+                        <span className="reel-channel-play">▶</span>
+                      </div>
+                      {reel.duration && (
+                        <span className="reel-channel-duration">
+                          {Math.floor(reel.duration / 60)}:{(reel.duration % 60).toString().padStart(2, '0')}
+                        </span>
+                      )}
+                    </div>
+                    <div className="reel-channel-info">
+                      <h4>{reel.title || 'Untitled Reel'}</h4>
+                      <div className="reel-channel-stats">
+                        <span>👁 {formatCount(reel.views || 0)}</span>
+                        <span>❤️ {reel.likes || 0}</span>
+                        <span>💬 {reel.comments || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">
+                <div className="empty-icon">🎬</div>
+                <h3>No reels yet</h3>
+                <p>{isOwnChannel ? 'Upload short-form videos to engage your audience!' : 'This channel hasn\'t uploaded any reels yet.'}</p>
+                {isOwnChannel && (
+                  <a href="/upload-reel" className="upload-btn">📤 Upload First Reel</a>
+                )}
               </div>
             )}
           </div>
