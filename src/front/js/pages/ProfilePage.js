@@ -2453,7 +2453,7 @@ const ProfilePage = () => {
                             Videos ({media.userVideos.length})
                         </button>
                         <button
-                            className={\`content-tab-main \${ui.activeTab === 'reels' ? 'active' : ''}\`}
+                            className={`content-tab-main ${ui.activeTab === 'reels' ? 'active' : ''}`}
                             onClick={() => handleTabChange('reels')}
                         >
                             Reels ({media.userReels.length})
