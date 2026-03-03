@@ -319,10 +319,16 @@ def upload_recording():
     preset_id = request.form.get('preset_id', None, type=int)
 
     try:
-        # Upload to Cloudinary
-        result = cloudinary.uploader.upload(
-            audio_file,
-            resource_type="auto",
+        # Upload to R2 (primary) or Cloudinary (fallback)
+        if _USE_R2:
+            audio_file.seek(0)
+            mic_filename = f'mic_sim/{user_id}/{mic_profile}_{audio_file.filename}'
+            audio_url = r2_upload(audio_file, mic_filename)
+            result = {'secure_url': audio_url, 'public_id': mic_filename}
+        else:
+            result = cloudinary.uploader.upload(
+                audio_file,
+                resource_type="auto",
             folder=f"streampirex/mic_sim/{user_id}",
             public_id=f"micsim_{user_id}_{int(datetime.utcnow().timestamp())}",
             tags=["mic_sim", f"profile_{mic_profile}", f"user_{user_id}"]

@@ -154,14 +154,20 @@ def upload_sample(kit_id):
     if not audio_file.filename:
         return jsonify({'error': 'Empty filename'}), 400
 
-    # Upload to Cloudinary
+    # Upload to R2 (primary) or Cloudinary (fallback)
     try:
-        result = cloudinary.uploader.upload(
-            audio_file,
-            resource_type='video',  # Cloudinary uses 'video' for audio
-            folder=f'streampirex/soundkits/{user_id}/{kit_id}',
-            public_id=f'sample_{kit.samples.count()}_{audio_file.filename.rsplit(".", 1)[0][:30]}',
-        )
+        filename = f'soundkits/{user_id}/{kit_id}/sample_{kit.samples.count()}_{audio_file.filename}'
+        if _USE_R2:
+            audio_file.seek(0)
+            audio_url = r2_upload(audio_file, filename)
+            result = {'secure_url': audio_url, 'public_id': filename}
+        else:
+            result = cloudinary.uploader.upload(
+                audio_file,
+                resource_type='video',
+                folder=f'streampirex/soundkits/{user_id}/{kit_id}',
+                public_id=f'sample_{kit.samples.count()}_{audio_file.filename.rsplit(".", 1)[0][:30]}',
+            )
     except Exception as e:
         return jsonify({'error': f'Upload failed: {str(e)}'}), 500
 
