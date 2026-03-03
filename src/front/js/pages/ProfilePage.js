@@ -652,7 +652,6 @@ const ProfilePage = () => {
         images: [],
         userPhotos: [],
         userVideos: [],
-                userReels: []
     });
 
     // Posts state with comments
@@ -1640,7 +1639,6 @@ const ProfilePage = () => {
                 images: [],
                 userPhotos: [],
                 userVideos: [],
-        userReels: []
             });
             setPosts([]);
             setCircleMembers([]);
