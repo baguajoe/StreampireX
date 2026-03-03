@@ -523,7 +523,10 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/reels" className={isActive("/reels") ? "active" : ""}>
             🎞️ <span className="sidebar-label">Reels</span>
           </MenuItem>
-          <MenuItem to="/upload-reel" className={isActive("/upload-reel") ? "active" : ""}>
+          <MenuItem to="/my-reels" className={isActive("/my-reels") ? "active" : ""}>
+        📂 <span className="sidebar-label">My Reels</span>
+      </MenuItem>
+      <MenuItem to="/upload-reel" className={isActive("/upload-reel") ? "active" : ""}>
             ⬆️ <span className="sidebar-label">Upload Reel</span>
           </MenuItem>
           <MenuItem to="/podcast/collab/new" className={isActive("/podcast/collab/new") ? "active" : ""}>
