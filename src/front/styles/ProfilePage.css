@@ -2748,3 +2748,120 @@
 .block-confirm-btn:hover {
   box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
 }
+/* ==================== REELS TAB ON PROFILE ==================== */
+
+.reels-tab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.reels-tab-header h3 {
+  margin: 0;
+  color: #fff;
+}
+
+.reels-grid-profile {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.reel-grid-item {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reel-grid-item:hover {
+  border-color: rgba(0, 255, 200, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.reel-thumbnail-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9/16;
+  background: #161b22;
+  overflow: hidden;
+}
+
+.reel-grid-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.reel-grid-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  background: rgba(0, 255, 200, 0.03);
+}
+
+.reel-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.reel-grid-item:hover .reel-grid-overlay {
+  opacity: 1;
+}
+
+.reel-grid-play {
+  font-size: 36px;
+  color: #fff;
+}
+
+.reel-grid-duration {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.reel-grid-info {
+  padding: 10px;
+}
+
+.reel-grid-info h6 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #e5e7eb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reel-grid-stats {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: #8b949e;
+}
+
+@media (max-width: 768px) {
+  .reels-grid-profile {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+}

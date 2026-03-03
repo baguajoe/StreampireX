@@ -651,7 +651,9 @@ const ProfilePage = () => {
         videos: [],
         images: [],
         userPhotos: [],
-        userVideos: []
+        userVideos: [],
+                userReels: [],
+        userReels: []
     });
 
     // Posts state with comments
@@ -811,6 +813,29 @@ const ProfilePage = () => {
             }
         } catch (error) {
             console.error('Error fetching user videos:', error);
+        }
+    }, [profileUserId, authState.userId]);
+
+    const fetchUserReels = useCallback(async (targetId) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return;
+
+            const userId = targetId || profileUserId || authState.userId;
+            const response = await fetch(\`\${BACKEND_URL}/api/clips/user/\${userId}?content_type=reel\`, {
+                headers: {
+                    'Authorization': \`Bearer \${token}\`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const reels = (data.clips || []).filter(c => c.content_type === 'reel');
+                setMedia(prev => ({ ...prev, userReels: reels }));
+            }
+        } catch (error) {
+            console.error('Error fetching user reels:', error);
         }
     }, [profileUserId, authState.userId]);
 
@@ -1637,7 +1662,8 @@ const ProfilePage = () => {
                 videos: [],
                 images: [],
                 userPhotos: [],
-                userVideos: []
+                userVideos: [],
+        userReels: []
             });
             setPosts([]);
             setCircleMembers([]);
@@ -1671,6 +1697,7 @@ const ProfilePage = () => {
             fetchSocialAnalytics();
             fetchUserPhotos(targetUserId);
             fetchUserVideos(targetUserId);
+            fetchUserReels(targetUserId);
             fetchUserCircle(targetUserId);
             fetchUserPosts(targetUserId);
             fetchFavoriteProfiles();
@@ -2426,6 +2453,12 @@ const ProfilePage = () => {
                             Videos ({media.userVideos.length})
                         </button>
                         <button
+                            className={\`content-tab-main \${ui.activeTab === 'reels' ? 'active' : ''}\`}
+                            onClick={() => handleTabChange('reels')}
+                        >
+                            Reels ({media.userReels.length})
+                        </button>
+                        <button
                             className={`content-tab-main ${ui.activeTab === 'circle' ? 'active' : ''}`}
                             onClick={() => handleTabChange('circle')}
                         >
@@ -2633,6 +2666,85 @@ const ProfilePage = () => {
                                                 className="upload-first-video-btn"
                                             >
                                                 Upload Your First Video
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+
+                    {ui.activeTab === 'reels' && (
+                        <div className="reels-tab-content">
+                            <div className="reels-tab-header">
+                                <h3>Reels</h3>
+                                {isOwnProfile && (
+                                    <button
+                                        onClick={() => window.location.href = '/upload-reel'}
+                                        className="upload-video-btn"
+                                    >
+                                        Upload Reel
+                                    </button>
+                                )}
+                            </div>
+
+                            {media.userReels.length > 0 ? (
+                                <div className="reels-grid-profile">
+                                    {media.userReels.map((reel, index) => (
+                                        <div
+                                            key={reel.id || index}
+                                            className="reel-grid-item"
+                                            onClick={() => window.location.href = `/reels/${reel.id}`}
+                                        >
+                                            <div className="reel-thumbnail-container">
+                                                {reel.thumbnail_url ? (
+                                                    <img
+                                                        src={reel.thumbnail_url}
+                                                        alt={reel.title || `Reel ${index + 1}`}
+                                                        className="reel-grid-thumbnail"
+                                                    />
+                                                ) : reel.video_url ? (
+                                                    <video
+                                                        src={reel.video_url}
+                                                        className="reel-grid-thumbnail"
+                                                        muted
+                                                        preload="metadata"
+                                                    />
+                                                ) : (
+                                                    <div className="reel-grid-placeholder">🎬</div>
+                                                )}
+                                                <div className="reel-grid-overlay">
+                                                    <span className="reel-grid-play">▶</span>
+                                                </div>
+                                                {reel.duration && (
+                                                    <span className="reel-grid-duration">
+                                                        {reel.duration_formatted || `${Math.floor(reel.duration / 60)}:${(reel.duration % 60).toString().padStart(2, '0')}`}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="reel-grid-info">
+                                                <h6>{reel.title || 'Untitled Reel'}</h6>
+                                                <div className="reel-grid-stats">
+                                                    <span>👁 {reel.views || 0}</span>
+                                                    <span>❤️ {reel.likes || 0}</span>
+                                                    <span>💬 {reel.comments || 0}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="empty-videos">
+                                    <div className="empty-state">
+                                        <h4>No Reels Yet</h4>
+                                        <p>{isOwnProfile ? 'Create short-form videos to share with your audience!' : 'No reels to display.'}</p>
+                                        {isOwnProfile && (
+                                            <button
+                                                onClick={() => window.location.href = '/upload-reel'}
+                                                className="upload-first-video-btn"
+                                            >
+                                                Upload Your First Reel
                                             </button>
                                         )}
                                     </div>
