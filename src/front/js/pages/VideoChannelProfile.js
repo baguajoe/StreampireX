@@ -149,22 +149,14 @@ const VideoChannelProfile = () => {
     try {
       const token = localStorage.getItem('token');
       const uid = parseInt(userId);
-      const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL}/api/clips/user/${uid}`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        const userReels = (data.clips || []).filter(c => c.content_type === 'reel');
-        if (userReels.length > 0) { setReels(userReels); return; }
-      }
       const feedRes = await fetch(
         `${process.env.REACT_APP_BACKEND_URL}/api/reels/feed?type=foryou&per_page=50`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       if (feedRes.ok) {
         const feedData = await feedRes.json();
-        const userReels = (feedData.reels || []).filter(r => r.user_id === uid);
+        const userReels = (feedData.reels || []).filter(r => parseInt(r.user_id) === uid);
+        console.log('Channel reels found:', userReels.length, 'for user:', uid);
         setReels(userReels);
       }
     } catch (error) {
