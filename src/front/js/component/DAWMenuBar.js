@@ -5,9 +5,14 @@
 // Compact always-visible dropdown bar with File, Edit, View, Track, Transport,
 // MIDI, Tools menus. All actions fire callbacks to RecordingStudio parent.
 // Keyboard shortcuts displayed + functional via useEffect listener.
+//
+// FIX: Switched dropdown items from onMouseDown → onClick to resolve
+//      Edge/Chromium event swallowing when menu unmounts mid-handler.
+//      Added mousedown prevention on dropdown container to keep menus
+//      from closing before the click event fires on the item.
 // =============================================================================
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import '../../styles/DAWMenuBar.css';
 
 // ── Menu definitions ──
@@ -24,6 +29,7 @@ const buildMenus = ({
       { type: 'separator' },
       { label: 'Save', shortcut: 'Ctrl+S', action: 'file:save', icon: '💾', disabled: saving },
       { label: 'Save As…', shortcut: 'Ctrl+Shift+S', action: 'file:saveAs', icon: '📁' },
+      { label: 'Save to Desktop…', action: 'file:saveDesktop', icon: '💻' },
       { type: 'separator' },
       { label: 'Import Audio…', shortcut: 'Ctrl+I', action: 'file:importAudio', icon: '📥' },
       { label: 'Import MIDI…', action: 'file:importMidi', icon: '🎹' },
@@ -212,7 +218,7 @@ const DAWMenuBar = ({
   const [openMenu, setOpenMenu] = useState(null);
   const barRef = useRef(null);
 
-  // Close menu on outside click
+  // Close menu on outside click — uses mousedown on document
   useEffect(() => {
     const handleClick = (e) => {
       if (barRef.current && !barRef.current.contains(e.target)) {
@@ -228,6 +234,7 @@ const DAWMenuBar = ({
     const handleKey = (e) => {
       const tag = e.target.tagName.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      if (e.target.isContentEditable) return;
 
       let combo = '';
       if (e.ctrlKey || e.metaKey) combo += 'ctrl+';
@@ -251,6 +258,7 @@ const DAWMenuBar = ({
     maxTracks, saving, mixingDown, pianoRollNotes
   });
 
+  // ── Menu label toggle (mousedown so it opens before click fires) ──
   const handleMenuClick = (idx) => {
     setOpenMenu(openMenu === idx ? null : idx);
   };
@@ -259,13 +267,27 @@ const DAWMenuBar = ({
     if (openMenu !== null) setOpenMenu(idx);
   };
 
-  const handleItemClick = (e, item) => {
+  // ── FIX: Use onClick (not onMouseDown) for dropdown items ──
+  // onMouseDown was causing Edge/Chromium to swallow the event when
+  // React unmounts the dropdown (setOpenMenu(null)) in the same tick.
+  // onClick fires after mousedown+mouseup, so the action dispatches
+  // fully before the DOM changes.
+  const handleItemClick = useCallback((e, item) => {
+    e.preventDefault();
     e.stopPropagation();
     if (item.disabled) return;
     if (item.type === 'separator') return;
+
+    // Dispatch action FIRST, then close menu
+    console.log('[DAWMenuBar] Action:', item.action);
     onAction(item.action);
-    setOpenMenu(null);
-  };
+
+    // Close menu after a microtask so async handlers aren't cut short
+    // (e.g. file:saveAs uses showSaveFilePicker which needs to run
+    //  from a user gesture — closing the menu synchronously in the
+    //  same handler is fine, but we use setTimeout(0) as extra safety)
+    setTimeout(() => setOpenMenu(null), 0);
+  }, [onAction]);
 
   return (
     <div className="daw-menubar" ref={barRef}>
@@ -277,8 +299,15 @@ const DAWMenuBar = ({
           onMouseEnter={() => handleMenuHover(idx)}
         >
           <span className="daw-menubar-label">{menu.label}</span>
+
           {openMenu === idx && (
-            <div className="daw-menubar-dropdown" onMouseDown={(e) => e.stopPropagation()}>
+            <div
+              className="daw-menubar-dropdown"
+              // Prevent mousedown on dropdown from toggling the parent menu
+              onMouseDown={(e) => e.stopPropagation()}
+              // Also prevent click from bubbling to parent
+              onClick={(e) => e.stopPropagation()}
+            >
               {menu.items.map((item, iIdx) => {
                 if (item.type === 'separator') {
                   return <div key={`sep-${iIdx}`} className="daw-menubar-separator" />;
@@ -287,7 +316,7 @@ const DAWMenuBar = ({
                   <div
                     key={item.action || iIdx}
                     className={`daw-menubar-dropdown-item ${item.disabled ? 'disabled' : ''} ${item.active ? 'active' : ''}`}
-                    onMouseDown={(e) => handleItemClick(e, item)}
+                    onClick={(e) => handleItemClick(e, item)}
                   >
                     <span className="daw-menubar-item-icon">
                       {item.active ? '●' : (item.icon || '')}

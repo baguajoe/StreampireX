@@ -572,6 +572,7 @@ def upload_video_track():
 
 def _upload_to_storage(file_path, filename):
     """Upload to R2 (primary) or Cloudinary (fallback)."""
+    # ── Try R2 first ──
     try:
         import boto3
         r2_endpoint = os.environ.get('R2_ENDPOINT')
@@ -585,28 +586,25 @@ def _upload_to_storage(file_path, filename):
                 aws_access_key_id=r2_access_key,
                 aws_secret_access_key=r2_secret_key
             )
-            key = f'podcasts/{filename}'
+            key = f'podcasts/audio/{filename}'
             s3.upload_file(file_path, r2_bucket, key)
             public_url = f"{os.environ.get('R2_PUBLIC_URL', r2_endpoint)}/{key}"
+            print(f"✅ Podcast audio uploaded to R2: {filename}")
             return public_url
     except Exception as e:
-        print(f"R2 upload failed: {e}")
+        print(f"R2 upload failed, trying Cloudinary: {e}")
 
+    # ── Fallback: Cloudinary ──
     try:
         import cloudinary.uploader
-
-# R2 primary storage
-try:
-    from src.api.r2_storage_setup import uploadFile as r2_upload
-    _USE_R2 = True
-except ImportError:
-    _USE_R2 = False
         result = cloudinary.uploader.upload(
             file_path,
             resource_type='auto',
-            folder='podcasts',
+            folder='podcasts/audio',
             public_id=filename.rsplit('.', 1)[0]
         )
+        print(f"✅ Podcast audio uploaded to Cloudinary: {filename}")
         return result['secure_url']
     except Exception as e:
+        print(f"Cloudinary upload also failed: {e}")
         raise Exception(f"All storage uploads failed: {e}")
