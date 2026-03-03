@@ -1,0 +1,486 @@
+/* =============================================================================
+   MyReels.css — User's Reels Management Page
+   StreamPireX Dark Theme
+   ============================================================================= */
+
+.my-reels-page {
+  min-height: 100vh;
+  background: #0d1117;
+  color: #e5e7eb;
+  padding: 24px;
+}
+
+/* ── Header ── */
+
+.my-reels-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.my-reels-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.my-reels-header h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #fff;
+  font-weight: 700;
+}
+
+.my-reels-count {
+  font-size: 14px;
+  color: #8b949e;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.my-reels-header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.my-reels-browse-btn {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #e5e7eb;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.my-reels-browse-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(0, 255, 200, 0.3);
+}
+
+.my-reels-upload-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #00ffc8, #00d4a8);
+  border: none;
+  border-radius: 10px;
+  color: #000;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.my-reels-upload-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 255, 200, 0.3);
+}
+
+.my-reels-upload-btn.large {
+  padding: 14px 32px;
+  font-size: 16px;
+}
+
+/* ── Loading ── */
+
+.my-reels-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  gap: 16px;
+  color: #8b949e;
+}
+
+.my-reels-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(0, 255, 200, 0.2);
+  border-top-color: #00ffc8;
+  border-radius: 50%;
+  animation: spinMyReels 0.8s linear infinite;
+}
+
+@keyframes spinMyReels {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Empty State ── */
+
+.my-reels-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 20px;
+  gap: 12px;
+}
+
+.my-reels-empty-icon {
+  font-size: 72px;
+  margin-bottom: 8px;
+}
+
+.my-reels-empty h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 22px;
+}
+
+.my-reels-empty p {
+  margin: 0;
+  color: #8b949e;
+  font-size: 15px;
+  max-width: 400px;
+}
+
+/* ── Reels Grid ── */
+
+.my-reels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.my-reel-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.my-reel-card:hover {
+  border-color: rgba(0, 255, 200, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Thumbnail ── */
+
+.my-reel-thumbnail {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9/16;
+  background: #161b22;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.my-reel-thumbnail img,
+.my-reel-thumbnail video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.my-reel-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  background: rgba(0, 255, 200, 0.03);
+}
+
+.my-reel-duration {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.my-reel-visibility {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.my-reel-visibility.public {
+  background: rgba(0, 255, 200, 0.15);
+  color: #00ffc8;
+  border: 1px solid rgba(0, 255, 200, 0.3);
+}
+
+.my-reel-visibility.private {
+  background: rgba(255, 167, 38, 0.15);
+  color: #ffa726;
+  border: 1px solid rgba(255, 167, 38, 0.3);
+}
+
+.my-reel-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-size: 36px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.my-reel-thumbnail:hover .my-reel-play-overlay {
+  opacity: 1;
+}
+
+/* ── Info Section ── */
+
+.my-reel-info {
+  padding: 14px;
+}
+
+.my-reel-title {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.my-reel-description {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #8b949e;
+  line-height: 1.4;
+}
+
+.my-reel-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 8px;
+}
+
+.my-reel-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.my-reel-tag {
+  font-size: 12px;
+  color: #00ffc8;
+  background: rgba(0, 255, 200, 0.08);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.my-reel-date {
+  font-size: 12px;
+  color: #6e7681;
+  display: block;
+  margin-bottom: 10px;
+}
+
+/* ── Card Actions ── */
+
+.my-reel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.my-reel-action-btn {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.my-reel-action-btn.visibility {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e5e7eb;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.my-reel-action-btn.visibility:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.my-reel-action-btn.delete {
+  background: rgba(255, 71, 87, 0.08);
+  color: #ff6b7a;
+  border: 1px solid rgba(255, 71, 87, 0.15);
+}
+
+.my-reel-action-btn.delete:hover {
+  background: rgba(255, 71, 87, 0.15);
+}
+
+.my-reel-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Pagination ── */
+
+.my-reels-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 32px;
+  padding: 20px 0;
+}
+
+.my-reels-pagination button {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #e5e7eb;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.my-reels-pagination button:hover:not(:disabled) {
+  background: rgba(0, 255, 200, 0.1);
+  border-color: rgba(0, 255, 200, 0.3);
+}
+
+.my-reels-pagination button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.my-reels-pagination span {
+  color: #8b949e;
+  font-size: 14px;
+}
+
+/* ── Delete Modal ── */
+
+.my-reels-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.my-reels-modal {
+  background: #161b22;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+
+.my-reels-modal h3 {
+  margin: 0 0 10px;
+  color: #fff;
+  font-size: 18px;
+}
+
+.my-reels-modal p {
+  margin: 0 0 24px;
+  color: #8b949e;
+  font-size: 14px;
+}
+
+.my-reels-modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.modal-cancel {
+  flex: 1;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #e5e7eb;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modal-cancel:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.modal-delete {
+  flex: 1;
+  padding: 12px;
+  background: rgba(255, 71, 87, 0.15);
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  border-radius: 10px;
+  color: #ff4757;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.modal-delete:hover {
+  background: rgba(255, 71, 87, 0.25);
+}
+
+.modal-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+  .my-reels-page {
+    padding: 16px;
+  }
+
+  .my-reels-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .my-reels-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+
+  .my-reel-info {
+    padding: 10px;
+  }
+
+  .my-reel-actions {
+    flex-direction: column;
+    gap: 6px;
+  }
+}

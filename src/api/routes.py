@@ -23778,7 +23778,124 @@ def toggle_clip_like(clip_id):
         print(f"Like clip error: {e}")
         return jsonify({'error': 'Failed to toggle like'}), 500
 
+# =============================================================================
+# MY REELS — Current user's uploaded reels (including private)
+# =============================================================================
+# ADD THIS TO src/api/routes.py after the existing reels endpoints
 
+@api.route('/reels/my', methods=['GET'])
+@jwt_required()
+def get_my_reels():
+    """Get current user's reels (including private ones)."""
+    try:
+        user_id = get_jwt_identity()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+
+        query = VideoClip.query.filter_by(
+            user_id=user_id, content_type='reel'
+        ).order_by(VideoClip.created_at.desc())
+
+        total = query.count()
+        reels = query.offset((page - 1) * per_page).limit(per_page).all()
+
+        user = User.query.get(user_id)
+
+        reels_data = []
+        for reel in reels:
+            duration_mins = reel.duration // 60 if reel.duration else 0
+            duration_secs = reel.duration % 60 if reel.duration else 0
+
+            reels_data.append({
+                'id': reel.id,
+                'title': reel.title,
+                'description': reel.description,
+                'video_url': reel.video_url,
+                'thumbnail_url': reel.thumbnail_url,
+                'duration': reel.duration,
+                'duration_formatted': f"{duration_mins}:{duration_secs:02d}",
+                'content_type': reel.content_type,
+                'views': reel.views or 0,
+                'likes': reel.likes or 0,
+                'comments': reel.comments or 0,
+                'shares': reel.shares or 0,
+                'is_public': reel.is_public,
+                'tags': reel.tags or [],
+                'created_at': reel.created_at.isoformat() if reel.created_at else None,
+                'creator': {
+                    'id': user.id,
+                    'username': user.username,
+                    'display_name': getattr(user, 'display_name', None) or user.username,
+                    'profile_picture': getattr(user, 'profile_picture', None) or getattr(user, 'avatar_url', None)
+                } if user else None
+            })
+
+        return jsonify({
+            'reels': reels_data,
+            'total': total,
+            'has_next': page * per_page < total,
+            'has_prev': page > 1,
+            'page': page
+        }), 200
+
+    except Exception as e:
+        print(f"My reels error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to fetch your reels'}), 500
+
+
+@api.route('/reels/<int:reel_id>', methods=['DELETE'])
+@jwt_required()
+def delete_reel(reel_id):
+    """Delete a reel owned by the current user."""
+    try:
+        user_id = get_jwt_identity()
+
+        reel = VideoClip.query.get(reel_id)
+        if not reel:
+            return jsonify({'error': 'Reel not found'}), 404
+
+        if reel.user_id != int(user_id):
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        db.session.delete(reel)
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': 'Reel deleted'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Delete reel error: {e}")
+        return jsonify({'error': 'Failed to delete reel'}), 500
+
+
+@api.route('/reels/<int:reel_id>/toggle-visibility', methods=['POST'])
+@jwt_required()
+def toggle_reel_visibility(reel_id):
+    """Toggle a reel between public and private."""
+    try:
+        user_id = get_jwt_identity()
+
+        reel = VideoClip.query.get(reel_id)
+        if not reel:
+            return jsonify({'error': 'Reel not found'}), 404
+
+        if reel.user_id != int(user_id):
+            return jsonify({'error': 'Unauthorized'}), 403
+
+        reel.is_public = not reel.is_public
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'is_public': reel.is_public,
+            'message': f"Reel is now {'public' if reel.is_public else 'private'}"
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to toggle visibility'}), 500
 
 # ==================== UPDATE: MODIFY CREATE STORY ====================
 # Update the create_story route to include comment_mode:
