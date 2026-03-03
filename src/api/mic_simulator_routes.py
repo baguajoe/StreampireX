@@ -17,6 +17,13 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 import cloudinary
 import cloudinary.uploader
+
+# R2 primary storage
+try:
+    from src.api.r2_storage_setup import uploadFile as r2_upload
+    _USE_R2 = True
+except ImportError:
+    _USE_R2 = False
 from src.api.extensions import db
 from src.api.models import MicSimPreset, MicSimRecording, User
 

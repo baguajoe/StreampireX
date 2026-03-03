@@ -689,6 +689,13 @@ def _upload_to_storage(file_path, filename):
     # Fallback: Cloudinary
     try:
         import cloudinary.uploader
+
+# R2 primary storage
+try:
+    from src.api.r2_storage_setup import uploadFile as r2_upload
+    _USE_R2 = True
+except ImportError:
+    _USE_R2 = False
         result = cloudinary.uploader.upload(
             file_path,
             resource_type='auto',
