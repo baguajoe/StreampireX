@@ -1364,7 +1364,7 @@ def upload_editor_asset():
             upload_options['eager_async'] = True
         
         url = upload_to_cloud(file, upload_options.get('public_id', 'editor_asset'), upload_options.get('resource_type', 'auto'))
-            result = {'secure_url': url, 'public_id': upload_options.get('public_id', 'editor_asset')}
+        result = {'secure_url': url, 'public_id': upload_options.get('public_id', 'editor_asset')}
         
         response_data = {
             "success": True,
@@ -1416,9 +1416,9 @@ def upload_with_fps():
         public_id = f"editor/{user_id}/{timestamp}_{hash_suffix}"
         
         # R2 primary upload
-            url = upload_to_cloud(file, 'editor_fps_asset', 'auto')
-            result = {'secure_url': url, 'public_id': 'editor_fps_asset'}
-            if False:  # Original cloudinary call preserved for reference
+        url = upload_to_cloud(file, 'editor_fps_asset', 'auto')
+        result = {'secure_url': url, 'public_id': 'editor_fps_asset'}
+        if False:  # Original cloudinary call preserved for reference
                 result = cloudinary.uploader.upload(
             file,
             public_id=public_id,

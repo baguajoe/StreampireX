@@ -35,6 +35,13 @@ ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
 CHUNK_STORAGE = os.environ.get('CHUNK_STORAGE_PATH', '/tmp/podcast_chunks')
 os.makedirs(CHUNK_STORAGE, exist_ok=True)
 
+# R2 primary storage flag
+try:
+    from src.api.r2_storage_setup import uploadFile as r2_upload
+    _USE_R2 = True
+except ImportError:
+    _USE_R2 = False
+
 
 # =============================================================================
 # 1. AI TRANSCRIPTION — Word-level timestamps via Deepgram Nova-2
@@ -660,13 +667,24 @@ def _generate_notes_openai(transcript):
 
 
 # =============================================================================
-# STORAGE HELPER
+# STORAGE HELPER — R2 primary, Cloudinary fallback
 # =============================================================================
 
 def _upload_to_storage(file_path, filename):
     """Upload to R2 (primary) or Cloudinary (fallback)."""
+    # ── Try R2 first ──
     try:
-        # Try R2 first
+        if _USE_R2:
+            with open(file_path, 'rb') as f:
+                url = r2_upload(f, filename)
+            if url:
+                print(f"✅ Podcast audio uploaded to R2: {filename}")
+                return url
+    except Exception as e:
+        print(f"R2 upload failed, trying Cloudinary: {e}")
+
+    # ── Try R2 via boto3 direct (fallback if r2_storage_setup unavailable) ──
+    try:
         import boto3
         r2_endpoint = os.environ.get('R2_ENDPOINT')
         r2_access_key = os.environ.get('R2_ACCESS_KEY')
@@ -682,26 +700,21 @@ def _upload_to_storage(file_path, filename):
             key = f'podcasts/audio/{filename}'
             s3.upload_file(file_path, r2_bucket, key)
             public_url = f"{os.environ.get('R2_PUBLIC_URL', r2_endpoint)}/{key}"
+            print(f"✅ Podcast audio uploaded to R2 (boto3): {filename}")
             return public_url
     except Exception as e:
-        print(f"R2 upload failed, trying Cloudinary: {e}")
+        print(f"R2 boto3 upload failed, trying Cloudinary: {e}")
 
-    # Fallback: Cloudinary
+    # ── Fallback: Cloudinary ──
     try:
         import cloudinary.uploader
-
-# R2 primary storage
-try:
-    from src.api.r2_storage_setup import uploadFile as r2_upload
-    _USE_R2 = True
-except ImportError:
-    _USE_R2 = False
         result = cloudinary.uploader.upload(
             file_path,
             resource_type='auto',
             folder='podcasts/audio',
             public_id=filename.rsplit('.', 1)[0]
         )
+        print(f"✅ Podcast audio uploaded to Cloudinary: {filename}")
         return result['secure_url']
     except Exception as e:
         print(f"Cloudinary upload also failed: {e}")
