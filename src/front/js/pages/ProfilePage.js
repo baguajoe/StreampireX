@@ -822,9 +822,9 @@ const ProfilePage = () => {
             if (!token) return;
 
             const userId = targetId || profileUserId || authState.userId;
-            const response = await fetch(\`\${BACKEND_URL}/api/clips/user/\${userId}?content_type=reel\`, {
+            const response = await fetch(`${BACKEND_URL}/api/clips/user/${userId}?content_type=reel`, {
                 headers: {
-                    'Authorization': \`Bearer \${token}\`,
+                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
