@@ -3029,11 +3029,11 @@ const RecordingStudio = ({ user }) => {
                     {masterVolume > 0 ? (20 * Math.log10(masterVolume)).toFixed(1) : "-∞"}
                   </div>
                 </div>
-              </div>
 
               <div className="daw-ch-name">
                 <div style={{ fontWeight: 700, fontSize: "0.62rem", color: "#ddeeff" }}>MASTER</div>
                 <div className="daw-ch-number">Stereo Out</div>
+              </div>
               </div>
             </div>
           </div>
