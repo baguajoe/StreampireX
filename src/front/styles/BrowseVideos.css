@@ -871,3 +871,57 @@
     grid-template-columns: 1fr;
   }
 }
+/* ==================== SUBCATEGORY PILLS ==================== */
+
+.browse-subcategories {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  margin: 0 auto;
+  max-width: 1400px;
+}
+
+.browse-sub-scroll {
+  scrollbar-width: none;
+}
+
+.browse-sub-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.browse-sub-scroll-btn {
+  background: rgba(0, 255, 200, 0.1) !important;
+  border-color: rgba(0, 255, 200, 0.2) !important;
+  color: #00ffc8 !important;
+  min-width: 28px;
+  height: 28px;
+  font-size: 14px;
+}
+
+.browse-sub-pill {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #c9d1d9;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.browse-sub-pill:hover {
+  background: rgba(0, 255, 200, 0.1);
+  border-color: rgba(0, 255, 200, 0.3);
+  color: #00ffc8;
+}
+
+.browse-sub-pill.active {
+  background: linear-gradient(135deg, #00ffc8, #00d4a8);
+  color: #0d1117;
+  border-color: #00ffc8;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 255, 200, 0.3);
+}

@@ -15,7 +15,7 @@ const DEBOUNCE_DELAY = 300;
 
 // Martial Arts subcategories
 const MARTIAL_ARTS_SUBS = [
-  "All Martial Arts",
+  "All",
   "Internal Arts",
   "Tai Chi",
   "Baguazhang",
@@ -109,7 +109,7 @@ const BrowseVideosPage = () => {
 
   // The actual category sent to the API (includes subcategory if applicable)
   const effectiveCategory = useMemo(() => {
-    if (selectedCategory === "Martial Arts" && selectedSubCategory && selectedSubCategory !== "All Martial Arts") {
+    if (selectedCategory === "Martial Arts" && selectedSubCategory && selectedSubCategory !== "All") {
       return selectedSubCategory;
     }
     return selectedCategory;
@@ -176,7 +176,7 @@ const BrowseVideosPage = () => {
     if (category !== "Martial Arts") {
       setSelectedSubCategory("");
     } else {
-      setSelectedSubCategory("All Martial Arts");
+      setSelectedSubCategory("All");
     }
   }, []);
 
