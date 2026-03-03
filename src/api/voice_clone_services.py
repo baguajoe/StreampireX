@@ -16,6 +16,13 @@
 # Uses existing ElevenLabs voice clone from ai_radio_dj.py
 # =============================================================================
 
+# AI Credit System
+try:
+    from src.api.ai_credits_routes import deduct_user_credits, check_tier_access, AI_FEATURE_COSTS
+    _HAS_CREDITS = True
+except ImportError:
+    _HAS_CREDITS = False
+
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime

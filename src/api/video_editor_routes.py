@@ -10,9 +10,46 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from sqlalchemy import desc
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
+try:
+    from src.api.r2_storage_setup import uploadFile as r2_upload
+    _USE_R2 = True
+except ImportError:
+    _USE_R2 = False
+
+try:
+    import cloudinary
+    import cloudinary.uploader
+    _USE_CLOUDINARY = True
+except ImportError:
+    _USE_CLOUDINARY = False
+
+def upload_to_cloud(file, filename, resource_type='auto'):
+    """Upload to R2 primary, Cloudinary fallback"""
+    if _USE_R2:
+        try:
+            if hasattr(file, 'seek'):
+                file.seek(0)
+            url = r2_upload(file, filename)
+            print(f"✅ R2 upload: {filename}")
+            return url
+        except Exception as e:
+            print(f"⚠️ R2 failed, trying Cloudinary: {e}")
+    if _USE_CLOUDINARY:
+        if hasattr(file, 'seek'):
+            file.seek(0)
+        result = cloudinary.uploader.upload(file, public_id=filename, resource_type=resource_type, unique_filename=True)
+        print(f"✅ Cloudinary fallback: {filename}")
+        return result['secure_url']
+    raise Exception("No storage backend available")
+
+def delete_from_cloud(public_id, resource_type='video'):
+    """Delete from Cloudinary (R2 deletion handled separately)"""
+    if _USE_CLOUDINARY:
+        try:
+            cloudinary.uploader.destroy(public_id, resource_type=resource_type)
+        except:
+            pass
+
 import os
 import json
 import hashlib
@@ -1326,7 +1363,8 @@ def upload_editor_asset():
             ]
             upload_options['eager_async'] = True
         
-        result = cloudinary.uploader.upload(file, **upload_options)
+        url = upload_to_cloud(file, upload_options.get('public_id', 'editor_asset'), upload_options.get('resource_type', 'auto'))
+            result = {'secure_url': url, 'public_id': upload_options.get('public_id', 'editor_asset')}
         
         response_data = {
             "success": True,
@@ -1377,7 +1415,11 @@ def upload_with_fps():
         hash_suffix = hashlib.md5(f"{user_id}_{timestamp}".encode()).hexdigest()[:8]
         public_id = f"editor/{user_id}/{timestamp}_{hash_suffix}"
         
-        result = cloudinary.uploader.upload(
+        # R2 primary upload
+            url = upload_to_cloud(file, 'editor_fps_asset', 'auto')
+            result = {'secure_url': url, 'public_id': 'editor_fps_asset'}
+            if False:  # Original cloudinary call preserved for reference
+                result = cloudinary.uploader.upload(
             file,
             public_id=public_id,
             resource_type="video",

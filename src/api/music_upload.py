@@ -9,6 +9,13 @@ from src.api.models import db, TrackRelease  # ✅ FIX: was "from models import 
 from api.utils.audio_filters import validate_uploaded_audio, get_file_hash
 
 # ✅ FIX: Renamed from 'api' to 'music_upload_bp' to avoid blueprint name collision
+# R2 primary storage
+try:
+    from src.api.r2_storage_setup import uploadFile as r2_upload
+    _USE_R2 = True
+except ImportError:
+    _USE_R2 = False
+
 music_upload_bp = Blueprint('music_upload', __name__)
 
 UPLOAD_FOLDER = "static/uploads/music"
