@@ -1020,6 +1020,22 @@
 
   .reels-page::before { left: 0; }
   .reels-page::after { right: 0; }
+
+  .reel-actions {
+    position: fixed;
+    right: calc((100vw - 480px) / 2 - 80px);
+    bottom: auto;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100005;
+  }
+
+
+
+  .action-count {
+    color: rgba(255, 255, 255, 0.7);
+    text-shadow: none;
+  }
 }
 
 /* ==================== RESPONSIVE ==================== */
