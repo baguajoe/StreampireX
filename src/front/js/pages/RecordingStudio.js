@@ -30,7 +30,7 @@ import ParametricEQGraph from "../component/ParametricEQGraph";
 import ConsoleFXPanel from "../component/ConsoleFXPanel";
 import PanKnob from "../component/PanKnob";
 import { InlineStemSeparation, AudioToMIDIPanel, PitchCorrectionPanel } from "../component/DAWAdvancedFeatures";
-
+import SaveAsModal from '../component/SaveAsModal';
 
 // ── Piano Roll / MIDI / Chord imports ──
 import PianoRoll from "../component/PianoRoll";
@@ -609,6 +609,8 @@ const RecordingStudio = ({ user }) => {
   const [pianoRollKey, setPianoRollKey] = useState("C");
   const [pianoRollScale, setPianoRollScale] = useState("major");
   const [selectedTrack, setSelectedTrack] = useState(0);
+  const [showSaveAsModal, setShowSaveAsModal] = useState(false);
+  const [saveAsData, setSaveAsData] = useState(null);
 
   // ── STEP 13: Track active region being edited in Piano Roll ──
   const [editingRegion, setEditingRegion] = useState(null);
@@ -2238,21 +2240,11 @@ const RecordingStudio = ({ user }) => {
           piano_roll_notes: pianoRollNotes, piano_roll_key: pianoRollKey, piano_roll_scale: pianoRollScale,
           created_at: new Date().toISOString(), format: 'streampirex-daw', version: '1.0'
         };
-        const jsonStr = JSON.stringify(saveData, null, 2);
-        const fileName = window.prompt('Save project as:', projectName.replace(/\s+/g, '_') + '.spx');
-        if (fileName && fileName.trim()) {
-          const blob = new Blob([jsonStr], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = fileName.trim().endsWith('.spx') ? fileName.trim() : fileName.trim() + '.spx';
-          document.body.appendChild(a); a.click(); document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          setStatus('Saved: ' + fileName.trim());
-        }
+        setSaveAsData(JSON.stringify(saveData, null, 2));
+        setShowSaveAsModal(true);
         break;
       }
-            case 'file:saveDesktop': {
+      case 'file:saveDesktop': {
         const dlData = {
           name: projectName, bpm,
           time_signature: `${timeSignature[0]}/${timeSignature[1]}`,
@@ -3749,6 +3741,29 @@ const RecordingStudio = ({ user }) => {
             />
           </div>
         )}
+
+        {/* ═══════════════════ SAVE AS MODAL ═══════════════════ */}
+        <SaveAsModal
+          show={showSaveAsModal}
+          defaultName={projectName}
+          onSave={(fileName) => {
+            if (saveAsData) {
+              const blob = new Blob([saveAsData], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = fileName;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              setStatus('Saved: ' + fileName);
+            }
+            setShowSaveAsModal(false);
+            setSaveAsData(null);
+          }}
+          onCancel={() => { setShowSaveAsModal(false); setSaveAsData(null); }}
+        />
       </div>
     </div >
   );
