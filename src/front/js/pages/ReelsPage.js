@@ -1,14 +1,13 @@
 // =============================================================================
 // ReelsPage.js — TikTok/YouTube Shorts Style Vertical Video Feed
-// =============================================================================
-// Route: /reels
+// =============================================================================currentIndex >= reels
 // Features: Snap scrolling, like/comment/share overlay, creator info,
 //           sound attribution, auto-play, mute toggle, upload FAB
 // Backend: /api/reels, /api/reels/:id/like, /api/reels/:id/comment
 // =============================================================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import './ReelsPage.css';
+import '../../styles/ReelsPage.css';
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
 const getToken = () => sessionStorage.getItem('token') || localStorage.getItem('token');
@@ -86,12 +85,18 @@ const ReelsPage = () => {
 
   // ── Infinite scroll ──
   useEffect(() => {
-    if (currentIndex >= reels.length - 3 && hasMore && !loading) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      loadReels(nextPage, true);
-    }
-  }, [currentIndex, reels.length, hasMore, loading, page, loadReels]);
+  if (
+    reels.length > 0 &&
+    currentIndex >= reels.length - 3 &&
+    hasMore &&
+    !loading
+  ) {
+    setLoading(true); // prevent re-entry
+    const nextPage = page + 1;
+    setPage(nextPage);
+    loadReels(nextPage, true);
+  }
+}, [currentIndex, reels.length, hasMore, loading, page, loadReels]);
 
   // ── Like ──
   const toggleLike = async (reelId) => {
