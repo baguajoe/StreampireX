@@ -23,6 +23,20 @@ try:
 except ImportError:
     _HAS_CREDITS = False
 
+def _check_and_deduct_voice_credits(user_id, feature='voice_clone_tts'):
+    """Check and deduct AI credits before ElevenLabs call. Returns (ok, error_response)."""
+    if not _HAS_CREDITS:
+        return True, None  # No credit system = allow (dev mode)
+    try:
+        success, credit, error = deduct_user_credits(user_id, feature)
+        if not success:
+            return False, jsonify({"error": error or "Insufficient credits", "feature": feature}), 402
+        return True, None
+    except Exception as e:
+        print(f"Credit check warning: {e}")
+        return True, None  # Allow if credit system errors
+
+
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
@@ -183,6 +197,11 @@ def generate_podcast_intro():
     if error:
         return jsonify({"error": error}), 400
 
+    # AI Credit check
+    ok, err_resp = _check_and_deduct_voice_credits(user_id, 'ai_podcast_intro')
+    if not ok:
+        return err_resp
+
     show_name = data.get("show_name", "my podcast")
     host_name = data.get("host_name", "your host")
     topic = data.get("topic", "something amazing")
@@ -224,6 +243,11 @@ def generate_podcast_outro():
     voice_id, voice_name, error = check_voice_available(user_id)
     if error:
         return jsonify({"error": error}), 400
+
+    # AI Credit check
+    ok, err_resp = _check_and_deduct_voice_credits(user_id, 'ai_podcast_intro')
+    if not ok:
+        return err_resp
 
     show_name = data.get("show_name", "my podcast")
     host_name = data.get("host_name", "your host")
@@ -312,6 +336,11 @@ def generate_batch_narration():
     if error:
         return jsonify({"error": error}), 400
 
+    # AI Credit check
+    ok, err_resp = _check_and_deduct_voice_credits(user_id, 'voice_clone_tts')
+    if not ok:
+        return err_resp
+
     segments = data.get("segments", [])
     if not segments:
         return jsonify({"error": "Please provide at least one segment."}), 400
@@ -397,6 +426,11 @@ def generate_stream_alert():
     if error:
         return jsonify({"error": error}), 400
 
+    # AI Credit check
+    ok, err_resp = _check_and_deduct_voice_credits(user_id, 'voice_clone_tts')
+    if not ok:
+        return err_resp
+
     alert_type = data.get("alert_type", "tip")  # tip, subscribe, follow, raid, gift_sub
     username = data.get("username", "someone")
     amount = data.get("amount", "")
@@ -441,6 +475,11 @@ def pregenerate_stream_alerts():
     voice_id, voice_name, error = check_voice_available(user_id)
     if error:
         return jsonify({"error": error}), 400
+
+    # AI Credit check
+    ok, err_resp = _check_and_deduct_voice_credits(user_id, 'voice_clone_tts')
+    if not ok:
+        return err_resp
 
     tone = data.get("tone", "default")
     test_username = data.get("test_username", "StreamFan42")
@@ -538,6 +577,11 @@ def generate_batch_shoutouts():
     if error:
         return jsonify({"error": error}), 400
 
+    # AI Credit check
+    ok, err_resp = _check_and_deduct_voice_credits(user_id, 'voice_clone_tts')
+    if not ok:
+        return err_resp
+
     shoutouts = data.get("shoutouts", [])
     creator_name = data.get("creator_name", "me")
 
@@ -589,6 +633,11 @@ def generate_story_narration():
     voice_id, voice_name, error = check_voice_available(user_id)
     if error:
         return jsonify({"error": error}), 400
+
+    # AI Credit check
+    ok, err_resp = _check_and_deduct_voice_credits(user_id, 'ai_video_narration')
+    if not ok:
+        return err_resp
 
     script = data.get("script", "").strip()
     content_type = data.get("content_type", "story")  # story or reel
@@ -642,6 +691,11 @@ def generate_course_lesson_audio():
     voice_id, voice_name, error = check_voice_available(user_id)
     if error:
         return jsonify({"error": error}), 400
+
+    # AI Credit check
+    ok, err_resp = _check_and_deduct_voice_credits(user_id, 'voice_clone_tts')
+    if not ok:
+        return err_resp
 
     script = data.get("script", "").strip()
     lesson_title = data.get("title", "Lesson")
@@ -708,6 +762,11 @@ def generate_course_batch():
     voice_id, voice_name, error = check_voice_available(user_id)
     if error:
         return jsonify({"error": error}), 400
+
+    # AI Credit check (per batch item)
+    ok, err_resp = _check_and_deduct_voice_credits(user_id, 'voice_clone_tts')
+    if not ok:
+        return err_resp
 
     lessons = data.get("lessons", [])
     course_name = data.get("course_name", "My Course")

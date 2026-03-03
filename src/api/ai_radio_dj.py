@@ -27,6 +27,18 @@ try:
 except ImportError:
     _HAS_CREDITS = False
 
+def _check_radio_credits(user_id, feature='ai_radio_dj_tts'):
+    """Check and deduct credits for radio DJ TTS."""
+    if not _HAS_CREDITS:
+        return True
+    try:
+        success, credit, error = deduct_user_credits(user_id, feature)
+        return success
+    except Exception as e:
+        print(f"Radio credit check warning: {e}")
+        return True  # Allow if credit system errors
+
+
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
@@ -410,6 +422,7 @@ def generate_tts_audio(script, persona_key, output_path, custom_voice_id=None):
 
     # Priority 1: Custom cloned voice
     elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
+    # Note: Credit deduction happens at the route level before calling this function
     if custom_voice_id and elevenlabs_key:
         try:
             result = _tts_elevenlabs(script, custom_voice_id, output_path, elevenlabs_key)
@@ -1153,6 +1166,11 @@ def api_generate_script():
 def api_generate_break():
     """Generate a complete talk break: script + TTS audio."""
     user_id = get_jwt_identity()
+
+    # AI Credit check for TTS
+    if _HAS_CREDITS:
+        if not _check_radio_credits(user_id, 'ai_radio_dj_tts'):
+            return jsonify({"error": "Insufficient credits for AI DJ TTS", "feature": "ai_radio_dj_tts"}), 402
     data = request.get_json()
 
     station_id = data.get("station_id")
@@ -1195,6 +1213,11 @@ def api_generate_break():
 def api_generate_stitched_segment():
     """Generate a full stitched segment: talk break + crossfade + next song."""
     user_id = get_jwt_identity()
+
+    # AI Credit check for TTS
+    if _HAS_CREDITS:
+        if not _check_radio_credits(user_id, 'ai_radio_dj_tts'):
+            return jsonify({"error": "Insufficient credits for AI DJ TTS", "feature": "ai_radio_dj_tts"}), 402
     data = request.get_json()
 
     station_id = data.get("station_id")
@@ -1523,6 +1546,11 @@ def clone_voice():
 def preview_cloned_voice():
     """Preview a cloned voice by generating a short test phrase."""
     user_id = get_jwt_identity()
+
+    # AI Credit check for TTS
+    if _HAS_CREDITS:
+        if not _check_radio_credits(user_id, 'ai_radio_dj_tts'):
+            return jsonify({"error": "Insufficient credits for AI DJ TTS", "feature": "ai_radio_dj_tts"}), 402
     data = request.get_json()
 
     station_id = data.get("station_id")
