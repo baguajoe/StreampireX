@@ -64,6 +64,9 @@ const VideoChannelProfile = () => {
           const videosData = await videosRes.json();
           setVideos(videosData.videos || []);
         }
+
+        // Fetch reels for this channel
+        await fetchChannelReels(channel.user_id || channel.id);
         
         // Check subscription status if not own channel
         if (!isOwnChannel) {
