@@ -2982,8 +2982,9 @@ const RecordingStudio = ({ user }) => {
                 </div>
 
                 <div className="daw-ch-inserts">
-                  <div className="daw-ch-insert-slot empty" style={{ fontSize: "0.6rem", color: "#5a7088" }}>
-                    —
+                  <div className="daw-ch-inserts-label">Master</div>
+                  <div className="daw-ch-insert-slot empty" style={{ fontSize: "0.55rem", color: "#5a7088" }}>
+                    Stereo Bus
                   </div>
                 </div>
 
