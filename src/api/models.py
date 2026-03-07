@@ -7522,3 +7522,33 @@ class VideoSeries(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
+
+class DAWSession(db.Model):
+    __tablename__ = 'daw_sessions'
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    session_code = db.Column(db.String(20), nullable=False)
+    host_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('recording_projects.id'), nullable=True)
+    state_json = db.Column(db.Text, default='{}')
+    collaborators_json = db.Column(db.Text, default='[]')
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    host = db.relationship('User', backref='daw_sessions')
+
+    def serialize(self):
+        import json
+        return {
+            'id': self.id,
+            'session_id': self.session_id,
+            'session_code': self.session_code,
+            'host_id': self.host_id,
+            'project_id': self.project_id,
+            'state': json.loads(self.state_json or '{}'),
+            'collaborators': json.loads(self.collaborators_json or '[]'),
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
