@@ -88,6 +88,7 @@ import "../../styles/PianoRoll.css";
 import "../../styles/ChordProgressionGenerator.css";
 import "../../styles/DAWMenuBar.css";
 import "../../styles/VocalTools.css";
+import { useDAWCollaboration, CollabToolbar, CollabOverlay, CollabChatPanel } from "../component/hooks/useDAWCollaboration";
 
 const TRACK_COLORS = [
   "#34c759",
@@ -590,6 +591,20 @@ const RecordingStudio = ({ user }) => {
   const [tracks, setTracks] = useState(Array.from({ length: 1 }, (_, i) => DEFAULT_TRACK(i)));
   const [trackMicModels, setTrackMicModels] = useState({});
 
+
+  // ── DAW Collaboration ──
+  const collab = useDAWCollaboration({
+    projectId: currentProjectId || null,
+    user: store?.user || null,
+    tracks,
+    setTracks,
+    bpm,
+    setBpm,
+    timeSignature,
+    setTimeSignature,
+    isEnabled: true,
+    onStatus: (msg) => console.log('[Collab]', msg),
+  });
   // ── Selected track (for DAWMenuBar Track/Edit actions) ──
   const [selectedTrackIndex, setSelectedTrackIndex] = useState(0);
   const [newTrackType, setNewTrackType] = useState("audio");
@@ -2521,6 +2536,8 @@ const RecordingStudio = ({ user }) => {
         {/* ═══ View Tabs ═══ */}
         <div className="daw-topbar-center-tabs">
           <button
+            {/* ── Collab Toolbar ── */}
+            <CollabToolbar collab={collab} />
             className={`daw-view-tab ${viewMode === "arrange" ? "active" : ""}`}
             onClick={() => setViewMode("arrange")}
           >
@@ -2760,6 +2777,7 @@ const RecordingStudio = ({ user }) => {
       {/* ═══════════════════ MAIN VIEW AREA ═══════════════════ */}
       <div className="daw-main">
         {viewMode === "arrange" && (
+          <div style={{ position: "relative" }}>
           <ArrangerView
             tracks={tracks}
             setTracks={setTracks}
@@ -2789,6 +2807,8 @@ const RecordingStudio = ({ user }) => {
             onTimelineDoubleClick={handleTimelineDoubleClick}
             MidiRegionPreview={MidiRegionPreview}
           />
+          <CollabOverlay collab={collab} tracks={tracks} trackHeight={48} />
+          </div>
         )}
 
         {/* ──────── CONSOLE VIEW — Cubase-style with CubaseMeter + Master Pan Knob ──────── */}
@@ -3820,6 +3840,7 @@ const RecordingStudio = ({ user }) => {
           onCancel={() => { setShowSaveAsModal(false); setSaveAsData(null); }}
         />
       </div>
+      <CollabChatPanel collab={collab} />
     </div >
   );
 };
