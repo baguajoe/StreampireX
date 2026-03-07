@@ -1,0 +1,1692 @@
+// =============================================================================
+// VoiceToMIDI.js — StreamPireX DAW (Premium Voice-to-MIDI Controller) v2.1
+// Poly Mode realism (Dubler-ish): voice-leading + chord hold/latch + humanize
+// + Pitch bend smoothing + CC mapping + Triggers + Visuals + WebMIDI output
+//
+// Drop-in:
+//   import "./VoiceToMIDI.css";
+//   <VoiceToMIDI />
+//
+// Notes:
+// - Uses WebAudio for mic + pitch detect (autocorrelation).
+// - Uses WebMIDI if available. If not, still shows UI + activity.
+// - Poly Mode = 1 voice pitch → inferred chord (scale+quality) with voice-leading.
+// =============================================================================
+
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import "./VoiceToMIDI.css";
+
+// --------------------------- Music helpers ---------------------------
+
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+
+function midiToNoteName(m) {
+  const n = NOTE_NAMES[m % 12];
+  const oct = Math.floor(m / 12) - 1;
+  return `${n}${oct}`;
+}
+
+function hzToMidi(f) {
+  return 69 + 12 * Math.log2(f / 440);
+}
+
+function midiToHz(m) {
+  return 440 * Math.pow(2, (m - 69) / 12);
+}
+
+function centsOffFromMidi(f, midiRounded) {
+  const target = midiToHz(midiRounded);
+  return Math.round(1200 * Math.log2(f / target));
+}
+
+function nearestMidi(f) {
+  return Math.round(hzToMidi(f));
+}
+
+function noteNameFromHz(f) {
+  if (!f || !isFinite(f)) return null;
+  const m = nearestMidi(f);
+  return midiToNoteName(m);
+}
+
+// Scales (pitch classes)
+const SCALES = {
+  Major: [0, 2, 4, 5, 7, 9, 11],
+  Minor: [0, 2, 3, 5, 7, 8, 10], // natural minor
+  Dorian: [0, 2, 3, 5, 7, 9, 10],
+  Mixolydian: [0, 2, 4, 5, 7, 9, 10],
+  Pentatonic: [0, 2, 4, 7, 9],
+};
+
+const DEGREE_QUAL_MAJOR = ["major", "minor", "minor", "major", "major", "minor", "dim"];
+const DEGREE_QUAL_MINOR = ["minor", "dim", "major", "minor", "minor", "major", "major"]; // natural minor
+
+function pc(midi) {
+  return ((midi % 12) + 12) % 12;
+}
+
+function buildTriad(rootMidi, quality) {
+  // rootMidi is MIDI integer
+  switch (quality) {
+    case "major":
+      return [rootMidi, rootMidi + 4, rootMidi + 7];
+    case "minor":
+      return [rootMidi, rootMidi + 3, rootMidi + 7];
+    case "dim":
+      return [rootMidi, rootMidi + 3, rootMidi + 6];
+    case "sus2":
+      return [rootMidi, rootMidi + 2, rootMidi + 7];
+    case "sus4":
+      return [rootMidi, rootMidi + 5, rootMidi + 7];
+    default:
+      return [rootMidi, rootMidi + 4, rootMidi + 7];
+  }
+}
+
+function add7th(chord, quality7 = "7") {
+  // Basic 7ths: maj7, min7, dom7
+  const root = chord[0];
+  if (quality7 === "maj7") return [...chord, root + 11];
+  if (quality7 === "min7") return [...chord, root + 10];
+  // dom7 default
+  return [...chord, root + 10];
+}
+
+function quantizeToScale(midiIn, keyRootPc, scalePcs, strength = 1) {
+  // strength 0..1 blends between raw and snapped
+  const m = midiIn;
+  const desiredPcSet = new Set(scalePcs.map((x) => (x + keyRootPc) % 12));
+
+  // If already in scale, keep
+  if (desiredPcSet.has(pc(m))) return Math.round(m);
+
+  // Search nearest by semitone distance
+  let best = m;
+  let bestDist = 999;
+  for (let delta = -6; delta <= 6; delta++) {
+    const cand = Math.round(m + delta);
+    if (desiredPcSet.has(pc(cand))) {
+      const d = Math.abs(delta);
+      if (d < bestDist) {
+        bestDist = d;
+        best = cand;
+      }
+    }
+  }
+  const snapped = best;
+  const blended = Math.round(lerp(m, snapped, clamp(strength, 0, 1)));
+  return blended;
+}
+
+function degreeIndexInScale(rootPc, keyRootPc, scale) {
+  // returns 0..scale.length-1 best match
+  const rel = ((rootPc - keyRootPc) + 12) % 12;
+  let bestI = 0;
+  let bestDist = 999;
+  for (let i = 0; i < scale.length; i++) {
+    const dist = Math.abs(rel - scale[i]);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestI = i;
+    }
+  }
+  return bestI;
+}
+
+// Voice-leading: pick nearest inversion/±12 shifts to minimize movement
+function voiceLeadChord(prevChord, nextChord) {
+  if (!prevChord?.length) return nextChord.slice().sort((a, b) => a - b);
+
+  const prev = prevChord.slice().sort((a, b) => a - b);
+  const next = nextChord.slice().sort((a, b) => a - b);
+
+  const shifts = [-12, 0, 12];
+  const candidates = [];
+
+  const build = (notes, i = 0, acc = []) => {
+    if (i === notes.length) {
+      candidates.push(acc);
+      return;
+    }
+    for (const s of shifts) build(notes, i + 1, [...acc, notes[i] + s]);
+  };
+
+  build(next);
+
+  let best = next;
+  let bestScore = Infinity;
+
+  for (const cand of candidates) {
+    const c = cand.slice().sort((a, b) => a - b);
+    const score = c.reduce((sum, n, i) => sum + Math.abs(n - (prev[i] ?? prev[prev.length - 1])), 0);
+    if (score < bestScore) {
+      bestScore = score;
+      best = c;
+    }
+  }
+
+  return best.map((n) => clamp(n, 0, 127));
+}
+
+// --------------------------- Pitch detection ---------------------------
+// Lightweight autocorrelation (good enough for musical monophonic voice)
+
+function autoCorrelateFloat32(buffer, sampleRate) {
+  // Returns frequency in Hz or null
+  const SIZE = buffer.length;
+
+  // RMS gate
+  let rms = 0;
+  for (let i = 0; i < SIZE; i++) rms += buffer[i] * buffer[i];
+  rms = Math.sqrt(rms / SIZE);
+  if (rms < 0.01) return { freq: null, confidence: 0, rms };
+
+  // Trim edges that are too quiet (optional)
+  let r1 = 0;
+  let r2 = SIZE - 1;
+  const thresh = 0.2;
+
+  for (let i = 0; i < SIZE / 2; i++) {
+    if (Math.abs(buffer[i]) < thresh) {
+      r1 = i;
+      break;
+    }
+  }
+  for (let i = 1; i < SIZE / 2; i++) {
+    if (Math.abs(buffer[SIZE - i]) < thresh) {
+      r2 = SIZE - i;
+      break;
+    }
+  }
+
+  const buf = buffer.slice(r1, r2);
+  const n = buf.length;
+  if (n < 64) return { freq: null, confidence: 0, rms };
+
+  const c = new Array(n).fill(0);
+  for (let lag = 0; lag < n; lag++) {
+    let sum = 0;
+    for (let i = 0; i < n - lag; i++) sum += buf[i] * buf[i + lag];
+    c[lag] = sum;
+  }
+
+  // Find first dip
+  let d = 0;
+  while (d < n - 1 && c[d] > c[d + 1]) d++;
+
+  // Find peak after dip
+  let maxVal = -1;
+  let maxPos = -1;
+  for (let i = d; i < n; i++) {
+    if (c[i] > maxVal) {
+      maxVal = c[i];
+      maxPos = i;
+    }
+  }
+  if (maxPos <= 0) return { freq: null, confidence: 0, rms };
+
+  // Parabolic interpolation around maxPos
+  let t0 = maxPos;
+  if (maxPos > 0 && maxPos < n - 1) {
+    const x1 = c[maxPos - 1];
+    const x2 = c[maxPos];
+    const x3 = c[maxPos + 1];
+    const a = (x1 + x3 - 2 * x2) / 2;
+    const b = (x3 - x1) / 2;
+    if (a) t0 = maxPos - b / (2 * a);
+  }
+
+  const freq = sampleRate / t0;
+  // Confidence: peak correlation normalized
+  const confidence = clamp(maxVal / c[0], 0, 1);
+  return { freq: isFinite(freq) ? freq : null, confidence, rms };
+}
+
+// --------------------------- Feature extraction (brightness) ---------------------------
+
+function spectralCentroid(buffer, sampleRate) {
+  // crude brightness estimate via FFT-ish bins using Goertzel-ish sampling would be heavy;
+  // we approximate via zero-crossing rate + highpass energy ratio:
+  let zc = 0;
+  for (let i = 1; i < buffer.length; i++) {
+    if ((buffer[i - 1] >= 0 && buffer[i] < 0) || (buffer[i - 1] < 0 && buffer[i] >= 0)) zc++;
+  }
+  const zcr = zc / buffer.length;
+
+  // High frequency "brightness" proxy: diff energy
+  let diffE = 0;
+  let e = 0;
+  for (let i = 1; i < buffer.length; i++) {
+    const d = buffer[i] - buffer[i - 1];
+    diffE += d * d;
+    e += buffer[i] * buffer[i];
+  }
+  const ratio = e > 0 ? diffE / e : 0;
+
+  // Map into 0..1
+  const bright = clamp((zcr * 4 + ratio * 0.6), 0, 1);
+  return bright;
+}
+
+// --------------------------- WebMIDI wrapper ---------------------------
+
+function buildMidiOut() {
+  return {
+    enabled: false,
+    outputs: [],
+    output: null,
+    channel: 0, // 0..15
+  };
+}
+
+// Send helpers (0..15 channel)
+function midiNoteOn(out, ch, note, vel) {
+  if (!out) return;
+  out.send([0x90 + (ch & 0x0f), note & 0x7f, vel & 0x7f]);
+}
+function midiNoteOff(out, ch, note) {
+  if (!out) return;
+  out.send([0x80 + (ch & 0x0f), note & 0x7f, 0]);
+}
+function midiCC(out, ch, cc, val) {
+  if (!out) return;
+  out.send([0xb0 + (ch & 0x0f), cc & 0x7f, val & 0x7f]);
+}
+function midiPitchBend(out, ch, value14) {
+  // value14: 0..16383 (8192 center)
+  if (!out) return;
+  const v = clamp(value14 | 0, 0, 16383);
+  const lsb = v & 0x7f;
+  const msb = (v >> 7) & 0x7f;
+  out.send([0xe0 + (ch & 0x0f), lsb, msb]);
+}
+function midiAllNotesOff(out, ch) {
+  if (!out) return;
+  // CC 123 (All notes off)
+  out.send([0xb0 + (ch & 0x0f), 123, 0]);
+}
+
+// --------------------------- Component ---------------------------
+
+const DEFAULT_TRIGGERS = [
+  { id: "t1", name: "Kick", note: 36, color: "#00ffc8", threshold: 0.7 },
+  { id: "t2", name: "Snare", note: 38, color: "#ff9500", threshold: 0.7 },
+  { id: "t3", name: "Hat", note: 42, color: "#5ac8fa", threshold: 0.7 },
+  { id: "t4", name: "Clap", note: 39, color: "#ff375f", threshold: 0.7 },
+  { id: "t5", name: "Tom", note: 45, color: "#af52de", threshold: 0.7 },
+  { id: "t6", name: "Ride", note: 51, color: "#007aff", threshold: 0.7 },
+  { id: "t7", name: "Crash", note: 49, color: "#ff3b30", threshold: 0.7 },
+  { id: "t8", name: "Perc", note: 56, color: "#00cc9f", threshold: 0.7 },
+];
+
+export default function VoiceToMIDI() {
+  // UI + mode
+  const [isActive, setIsActive] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [mode, setMode] = useState("mono"); // mono | poly | triggers
+
+  // Musical settings
+  const [keyRoot, setKeyRoot] = useState("C"); // C..B
+  const [scaleName, setScaleName] = useState("Major");
+  const [quantizeStrength, setQuantizeStrength] = useState(0.8); // 0..1
+  const [baseOctave, setBaseOctave] = useState(4); // target octave for output
+  const [velocity, setVelocity] = useState(95); // fixed base vel
+  const [humanizeMs, setHumanizeMs] = useState(14); // timing randomization
+  const [humanizeVel, setHumanizeVel] = useState(10); // vel randomization
+  const [legatoMs, setLegatoMs] = useState(60); // mono legato overlap
+  const [polyChordType, setPolyChordType] = useState("diatonic"); // diatonic | maj | min | sus2 | sus4
+  const [polyAdd7, setPolyAdd7] = useState(true);
+
+  // Realism settings
+  const [chordHoldMs, setChordHoldMs] = useState(180);
+  const [noteOnConf, setNoteOnConf] = useState(0.45);
+  const [noteOffConf, setNoteOffConf] = useState(0.30);
+  const [pitchSmoothing, setPitchSmoothing] = useState(0.25); // 0..1
+  const [bendEnabled, setBendEnabled] = useState(true);
+  const [bendRangeSemis, setBendRangeSemis] = useState(2); // ± semitones
+  const [bendSmoothing, setBendSmoothing] = useState(0.2);
+
+  // CC mapping (simple)
+  const [ccEnabled, setCcEnabled] = useState(true);
+  const [ccVolume, setCcVolume] = useState(11); // expression
+  const [ccBrightness, setCcBrightness] = useState(74); // timbre
+  const [ccConfidence, setCcConfidence] = useState(1); // modwheel
+
+  // Latency preset (mostly UI; analysis loop always ~60fps)
+  const [latencyPreset, setLatencyPreset] = useState("balanced"); // low | balanced | stable
+
+  // Triggers
+  const [triggers, setTriggers] = useState(DEFAULT_TRIGGERS);
+  const [trainingTriggerId, setTrainingTriggerId] = useState(null);
+  const [activeTriggerId, setActiveTriggerId] = useState(null);
+
+  // Status readouts
+  const [pitchHz, setPitchHz] = useState(null);
+  const [pitchConf, setPitchConf] = useState(0);
+  const [vol, setVol] = useState(0);
+  const [bright, setBright] = useState(0);
+  const [midiBlink, setMidiBlink] = useState(false);
+  const [lastSent, setLastSent] = useState("");
+
+  const keyRootPc = useMemo(() => NOTE_NAMES.indexOf(keyRoot), [keyRoot]);
+  const scale = useMemo(() => SCALES[scaleName] || SCALES.Major, [scaleName]);
+
+  // Refs for audio
+  const audioCtxRef = useRef(null);
+  const streamRef = useRef(null);
+  const sourceRef = useRef(null);
+  const analyserRef = useRef(null);
+  const workBufRef = useRef(new Float32Array(2048));
+  const rafRef = useRef(null);
+
+  // Refs for smoothing + gate
+  const smoothPitchRef = useRef(null);
+  const lastGoodPitchAtRef = useRef(0);
+  const lastNoteOnAtRef = useRef(0);
+
+  // MIDI refs
+  const midiRef = useRef(buildMidiOut());
+  const [midiReady, setMidiReady] = useState(false);
+  const [midiOutputName, setMidiOutputName] = useState("No MIDI");
+  const [midiChannel, setMidiChannel] = useState(1); // 1..16
+  const [selectedOutputId, setSelectedOutputId] = useState("");
+
+  // Note state refs
+  const currentMonoNoteRef = useRef(null);
+  const prevChordNotesRef = useRef([]);
+  const chordOnRef = useRef(false);
+
+  // Visual canvas
+  const canvasRef = useRef(null);
+
+  // Recording (simple event log for UI)
+  const [recCount, setRecCount] = useState(0);
+  const recStartRef = useRef(0);
+
+  // --------------------------- WebMIDI init ---------------------------
+
+  const refreshMidiOutputs = useCallback(async () => {
+    try {
+      if (!navigator.requestMIDIAccess) {
+        setMidiReady(false);
+        setMidiOutputName("WebMIDI not supported");
+        return;
+      }
+      const access = await navigator.requestMIDIAccess({ sysex: false });
+      const outs = [];
+      for (const output of access.outputs.values()) outs.push(output);
+
+      midiRef.current.enabled = true;
+      midiRef.current.outputs = outs;
+
+      // pick existing selection if available
+      let out = null;
+      if (selectedOutputId) out = outs.find((o) => o.id === selectedOutputId) || null;
+      if (!out) out = outs[0] || null;
+
+      midiRef.current.output = out;
+      setMidiReady(true);
+      setMidiOutputName(out ? out.name || "MIDI Out" : "No MIDI outputs");
+      setSelectedOutputId(out ? out.id : "");
+
+      // Listen for device changes
+      access.onstatechange = () => {
+        // best-effort refresh
+        setTimeout(() => refreshMidiOutputs(), 80);
+      };
+    } catch (e) {
+      setMidiReady(false);
+      setMidiOutputName("MIDI permission denied");
+    }
+  }, [selectedOutputId]);
+
+  useEffect(() => {
+    refreshMidiOutputs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    midiRef.current.channel = clamp((midiChannel | 0) - 1, 0, 15);
+  }, [midiChannel]);
+
+  const midiOut = () => midiRef.current.output;
+  const midiCh = () => midiRef.current.channel;
+
+  const blinkMidi = useCallback((label) => {
+    setMidiBlink(true);
+    setLastSent(label);
+    setTimeout(() => setMidiBlink(false), 70);
+  }, []);
+
+  // --------------------------- Audio start/stop ---------------------------
+
+  const start = useCallback(async () => {
+    if (isActive) return;
+
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioContext();
+      audioCtxRef.current = ctx;
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: false,
+        },
+        video: false,
+      });
+
+      streamRef.current = stream;
+
+      const src = ctx.createMediaStreamSource(stream);
+      sourceRef.current = src;
+
+      const analyser = ctx.createAnalyser();
+      analyserRef.current = analyser;
+
+      // Latency preset affects analyser size (trade accuracy vs responsiveness)
+      const preset = latencyPreset;
+      analyser.fftSize = preset === "low" ? 1024 : preset === "stable" ? 4096 : 2048;
+      analyser.smoothingTimeConstant = preset === "low" ? 0.2 : preset === "stable" ? 0.6 : 0.35;
+
+      src.connect(analyser);
+
+      smoothPitchRef.current = null;
+      currentMonoNoteRef.current = null;
+      prevChordNotesRef.current = [];
+      chordOnRef.current = false;
+      lastGoodPitchAtRef.current = 0;
+
+      setIsActive(true);
+      loop();
+    } catch (e) {
+      console.error(e);
+      setIsActive(false);
+    }
+  }, [isActive, latencyPreset]);
+
+  const stop = useCallback(() => {
+    setIsActive(false);
+    setIsRecording(false);
+
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+
+    try {
+      if (midiOut()) midiAllNotesOff(midiOut(), midiCh());
+    } catch {}
+
+    try {
+      if (sourceRef.current) sourceRef.current.disconnect();
+    } catch {}
+    try {
+      if (analyserRef.current) analyserRef.current.disconnect();
+    } catch {}
+
+    if (streamRef.current) {
+      for (const t of streamRef.current.getTracks()) t.stop();
+      streamRef.current = null;
+    }
+    if (audioCtxRef.current) {
+      audioCtxRef.current.close().catch(() => {});
+      audioCtxRef.current = null;
+    }
+
+    setPitchHz(null);
+    setPitchConf(0);
+    setVol(0);
+    setBright(0);
+
+    currentMonoNoteRef.current = null;
+    prevChordNotesRef.current = [];
+    chordOnRef.current = false;
+  }, []);
+
+  // --------------------------- MIDI scheduling helpers ---------------------------
+
+  const sendNoteOn = useCallback((note, vel, delayMs = 0) => {
+    const out = midiOut();
+    if (!out) return;
+
+    const v = clamp(vel | 0, 1, 127);
+    const n = clamp(note | 0, 0, 127);
+
+    const ms = Math.max(0, delayMs | 0);
+    if (ms === 0) {
+      midiNoteOn(out, midiCh(), n, v);
+    } else {
+      setTimeout(() => midiNoteOn(out, midiCh(), n, v), ms);
+    }
+    blinkMidi(`ON ${midiToNoteName(n)} v${v}`);
+  }, [blinkMidi]);
+
+  const sendNoteOff = useCallback((note, delayMs = 0) => {
+    const out = midiOut();
+    if (!out) return;
+
+    const n = clamp(note | 0, 0, 127);
+    const ms = Math.max(0, delayMs | 0);
+    if (ms === 0) {
+      midiNoteOff(out, midiCh(), n);
+    } else {
+      setTimeout(() => midiNoteOff(out, midiCh(), n), ms);
+    }
+    blinkMidi(`OFF ${midiToNoteName(n)}`);
+  }, [blinkMidi]);
+
+  const sendCC = useCallback((cc, val) => {
+    const out = midiOut();
+    if (!out) return;
+    midiCC(out, midiCh(), clamp(cc | 0, 0, 127), clamp(val | 0, 0, 127));
+  }, []);
+
+  const sendPitchBend = useCallback((bend14) => {
+    const out = midiOut();
+    if (!out) return;
+    midiPitchBend(out, midiCh(), bend14);
+  }, []);
+
+  const allNotesOff = useCallback(() => {
+    const out = midiOut();
+    if (!out) return;
+    midiAllNotesOff(out, midiCh());
+    currentMonoNoteRef.current = null;
+    prevChordNotesRef.current = [];
+    chordOnRef.current = false;
+    blinkMidi("ALL OFF");
+  }, [blinkMidi]);
+
+  // --------------------------- Poly chord build (Diatonic / forced) ---------------------------
+
+  const buildPolyChord = useCallback((rootMidi) => {
+    const rootPc = pc(rootMidi);
+
+    // Determine quality
+    let quality = "major";
+    if (polyChordType === "maj") quality = "major";
+    else if (polyChordType === "min") quality = "minor";
+    else if (polyChordType === "sus2") quality = "sus2";
+    else if (polyChordType === "sus4") quality = "sus4";
+    else {
+      // diatonic
+      const deg = degreeIndexInScale(rootPc, keyRootPc, scale);
+      const useMinor = scaleName === "Minor";
+      quality = (useMinor ? DEGREE_QUAL_MINOR : DEGREE_QUAL_MAJOR)[deg] || "major";
+    }
+
+    // Triad from *actual rootMidi*
+    let chord = buildTriad(rootMidi, quality);
+
+    if (polyAdd7) {
+      // Basic 7th selection
+      const isMinor = quality === "minor";
+      const isDim = quality === "dim";
+      const seven = isDim ? "min7" : isMinor ? "min7" : "7"; // dom7-ish default
+      chord = add7th(chord, seven);
+    }
+
+    return chord.map((n) => clamp(n, 0, 127));
+  }, [polyAdd7, polyChordType, keyRootPc, scale, scaleName]);
+
+  // --------------------------- Main analysis loop ---------------------------
+
+  const drawCanvas = useCallback((timeDomain, confVal) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // background
+    ctx.fillStyle = "#080c12";
+    ctx.fillRect(0, 0, w, h);
+
+    // waveform
+    ctx.strokeStyle = "rgba(0,255,200,0.8)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const step = Math.max(1, Math.floor(timeDomain.length / w));
+    for (let x = 0; x < w; x++) {
+      const i = x * step;
+      const y = (0.5 - timeDomain[i] * 0.45) * h;
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // confidence bar
+    const barW = Math.floor(w * clamp(confVal, 0, 1));
+    ctx.fillStyle = "rgba(255,149,0,0.25)";
+    ctx.fillRect(0, h - 10, barW, 10);
+  }, []);
+
+  const loop = useCallback(() => {
+    if (!isActive) return;
+    const analyser = analyserRef.current;
+    const ctx = audioCtxRef.current;
+    if (!analyser || !ctx) return;
+
+    const buf = workBufRef.current;
+    analyser.getFloatTimeDomainData(buf);
+
+    // Pitch + confidence
+    const { freq, confidence, rms } = autoCorrelateFloat32(buf, ctx.sampleRate);
+
+    // Volume meter (0..1)
+    const vol01 = clamp((rms - 0.01) / 0.25, 0, 1);
+
+    // Brightness proxy
+    const b01 = spectralCentroid(buf, ctx.sampleRate);
+
+    // Smooth pitch (for bend + stability)
+    let smoothed = smoothPitchRef.current;
+    if (freq && isFinite(freq)) {
+      if (!smoothed) smoothed = freq;
+      else smoothed = lerp(smoothed, freq, clamp(pitchSmoothing, 0.02, 0.9));
+      smoothPitchRef.current = smoothed;
+    }
+
+    // Update UI
+    setPitchHz(freq ? freq : null);
+    setPitchConf(confidence);
+    setVol(vol01);
+    setBright(b01);
+
+    // Draw canvas
+    drawCanvas(buf, confidence);
+
+    // CC output (continuous)
+    if (ccEnabled && midiOut()) {
+      // Volume (expression)
+      sendCC(ccVolume, Math.round(vol01 * 127));
+      // Brightness
+      sendCC(ccBrightness, Math.round(b01 * 127));
+      // Confidence -> modwheel
+      sendCC(ccConfidence, Math.round(clamp(confidence, 0, 1) * 127));
+    }
+
+    // MIDI logic based on mode
+    const now = performance.now();
+
+    const hasPitch = !!(freq && isFinite(freq));
+    const strong = confidence >= noteOnConf;
+    const weak = confidence <= noteOffConf;
+
+    // Consider "held" if we had good pitch recently (Dubler-ish latch)
+    const held = now - lastGoodPitchAtRef.current < chordHoldMs;
+
+    if (hasPitch && strong) lastGoodPitchAtRef.current = now;
+
+    if (mode === "mono") {
+      // Mono note tracking
+      if (hasPitch && strong) {
+        const rawMidi = hzToMidi(smoothed || freq);
+        // Force into a sensible octave region
+        const targetMidi = clamp(Math.round(rawMidi), 0, 127);
+
+        // Re-octave near baseOctave: choose octave so note lands near baseOctave
+        const desiredOct = clamp(baseOctave | 0, 0, 9);
+        const desiredCenter = (desiredOct + 1) * 12; // C of that octave
+        let m = targetMidi;
+        while (m < desiredCenter - 6) m += 12;
+        while (m > desiredCenter + 6) m -= 12;
+
+        // Quantize to scale
+        const q = quantizeToScale(m, keyRootPc, scale, quantizeStrength);
+
+        // Humanize timing/vel
+        const tJit = (Math.random() * 2 - 1) * humanizeMs;
+        const vJit = (Math.random() * 2 - 1) * humanizeVel;
+        const vel = clamp(velocity + vJit, 1, 127);
+
+        const prev = currentMonoNoteRef.current;
+
+        if (prev === null) {
+          // fresh note on
+          sendNoteOn(q, vel, Math.max(0, tJit));
+          currentMonoNoteRef.current = q;
+          lastNoteOnAtRef.current = now;
+
+          if (isRecording) setRecCount((c) => c + 1);
+        } else if (prev !== q) {
+          // legato: overlap a bit
+          sendNoteOn(q, vel, Math.max(0, tJit));
+          sendNoteOff(prev, Math.max(0, tJit + legatoMs));
+          currentMonoNoteRef.current = q;
+          lastNoteOnAtRef.current = now;
+
+          if (isRecording) setRecCount((c) => c + 1);
+        }
+
+        // Pitch bend realism (glide/vibrato)
+        if (bendEnabled && midiOut()) {
+          const ideal = q; // target snapped note
+          const idealHz = midiToHz(ideal);
+          const fNow = smoothed || freq;
+          const deltaSemis = 12 * Math.log2(fNow / idealHz);
+          const max = clamp(bendRangeSemis, 1, 12);
+          const norm = clamp(deltaSemis / max, -1, 1);
+
+          // Map -1..1 to 0..16383, 8192 center
+          const targetBend = Math.round(8192 + norm * 8191);
+
+          // Smooth bend
+          const prevB = loop._bend ?? 8192;
+          const smB = Math.round(lerp(prevB, targetBend, clamp(bendSmoothing, 0.05, 0.9)));
+          loop._bend = smB;
+
+          sendPitchBend(smB);
+        }
+      } else {
+        // note off logic with hold window
+        if (currentMonoNoteRef.current !== null) {
+          if (weak && !held) {
+            sendNoteOff(currentMonoNoteRef.current, 0);
+            currentMonoNoteRef.current = null;
+            if (bendEnabled && midiOut()) sendPitchBend(8192);
+          }
+        }
+      }
+    }
+
+    if (mode === "poly") {
+      // Poly chord tracking (voice → chord)
+      if (hasPitch && strong) {
+        const rawMidi = hzToMidi(smoothed || freq);
+        let m = clamp(Math.round(rawMidi), 0, 127);
+
+        // Move chord root into base octave neighborhood (more musical)
+        const desiredOct = clamp(baseOctave | 0, 0, 9);
+        const desiredCenter = (desiredOct + 1) * 12;
+        while (m < desiredCenter - 6) m += 12;
+        while (m > desiredCenter + 6) m -= 12;
+
+        // Quantize root into key/scale
+        const rootQ = quantizeToScale(m, keyRootPc, scale, quantizeStrength);
+
+        // Build chord + voice-leading
+        let chord = buildPolyChord(rootQ);
+        chord = voiceLeadChord(prevChordNotesRef.current, chord);
+        prevChordNotesRef.current = chord;
+
+        // Humanize: stagger notes like a “strum”
+        const baseDelay = Math.max(0, (Math.random() * 2 - 1) * humanizeMs);
+        const strumMs = 10 + Math.round(Math.random() * 12); // Dubler-ish spread
+
+        // If chord already on, only update when changed
+        const prevChord = loop._lastChordOn ?? [];
+        const changed =
+          chord.length !== prevChord.length ||
+          chord.some((n, i) => n !== prevChord[i]);
+
+        if (!chordOnRef.current) {
+          // chord on
+          chord.forEach((n, i) => {
+            const vJit = (Math.random() * 2 - 1) * humanizeVel;
+            const vel = clamp(velocity + vJit, 1, 127);
+            sendNoteOn(n, vel, Math.max(0, baseDelay + i * strumMs));
+          });
+          chordOnRef.current = true;
+          loop._lastChordOn = chord;
+
+          if (isRecording) setRecCount((c) => c + 1);
+        } else if (changed) {
+          // transition: voice-leading already minimized; do a soft swap:
+          // - note-on new chord (slight strum)
+          // - note-off notes not present after short tail
+          const prevSet = new Set(prevChord);
+          const nextSet = new Set(chord);
+
+          chord.forEach((n, i) => {
+            if (!prevSet.has(n)) {
+              const vJit = (Math.random() * 2 - 1) * humanizeVel;
+              const vel = clamp(velocity + vJit, 1, 127);
+              sendNoteOn(n, vel, Math.max(0, baseDelay + i * strumMs));
+            }
+          });
+
+          prevChord.forEach((n) => {
+            if (!nextSet.has(n)) {
+              sendNoteOff(n, Math.max(0, baseDelay + 30));
+            }
+          });
+
+          loop._lastChordOn = chord;
+          if (isRecording) setRecCount((c) => c + 1);
+        }
+
+        // Optional pitch bend in poly: subtle (centered) — Dubler typically doesn’t bend chords hard
+        if (bendEnabled && midiOut()) {
+          const ideal = rootQ;
+          const idealHz = midiToHz(ideal);
+          const fNow = smoothed || freq;
+          const deltaSemis = 12 * Math.log2(fNow / idealHz);
+          const max = clamp(bendRangeSemis, 1, 12);
+          const norm = clamp(deltaSemis / max, -0.35, 0.35); // clamp for chord realism
+          const targetBend = Math.round(8192 + norm * 8191);
+
+          const prevB = loop._bend ?? 8192;
+          const smB = Math.round(lerp(prevB, targetBend, clamp(bendSmoothing, 0.05, 0.9)));
+          loop._bend = smB;
+          sendPitchBend(smB);
+        }
+      } else {
+        // chord off with hold/latch
+        if (chordOnRef.current) {
+          if (weak && !held) {
+            const prevChord = loop._lastChordOn ?? prevChordNotesRef.current ?? [];
+            prevChord.forEach((n) => sendNoteOff(n, 0));
+            chordOnRef.current = false;
+            loop._lastChordOn = [];
+            if (bendEnabled && midiOut()) sendPitchBend(8192);
+          }
+        }
+      }
+    }
+
+    if (mode === "triggers") {
+      // Simple trigger detection:
+      // - Use volume + brightness + confidence gates
+      // - Training: user clicks a pad, we store a brightness+volume signature to that trigger
+      const v = vol01;
+      const br = b01;
+      const conf = confidence;
+
+      const active = triggers.find((t) => {
+        const sig = t.signature || null;
+        if (!sig) return false;
+
+        const dv = Math.abs(v - sig.v);
+        const db = Math.abs(br - sig.b);
+        const score = 1 - (dv * 0.9 + db * 0.7);
+        const passed = score >= (t.threshold ?? 0.7) && conf >= 0.2 && v >= 0.08;
+        return passed;
+      });
+
+      if (trainingTriggerId) {
+        const vOk = v >= 0.08 && conf >= 0.25;
+        if (vOk) {
+          // capture signature average
+          setTriggers((prev) =>
+            prev.map((t) =>
+              t.id === trainingTriggerId
+                ? { ...t, signature: { v, b: br }, trained: true }
+                : t
+            )
+          );
+        }
+      } else if (active && midiOut()) {
+        // fire only on edges
+        const prevActive = loop._prevTrig || null;
+        if (prevActive !== active.id) {
+          setActiveTriggerId(active.id);
+
+          const tJit = (Math.random() * 2 - 1) * humanizeMs;
+          const vJit = (Math.random() * 2 - 1) * humanizeVel;
+          const vel = clamp(velocity + vJit, 1, 127);
+
+          sendNoteOn(active.note, vel, Math.max(0, tJit));
+          sendNoteOff(active.note, Math.max(0, tJit + 60));
+          loop._prevTrig = active.id;
+
+          if (isRecording) setRecCount((c) => c + 1);
+          setTimeout(() => setActiveTriggerId(null), 110);
+        }
+      } else {
+        loop._prevTrig = null;
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(loop);
+  }, [
+    isActive,
+    mode,
+    baseOctave,
+    keyRootPc,
+    scale,
+    scaleName,
+    quantizeStrength,
+    velocity,
+    humanizeMs,
+    humanizeVel,
+    legatoMs,
+    pitchSmoothing,
+    bendEnabled,
+    bendRangeSemis,
+    bendSmoothing,
+    chordHoldMs,
+    noteOnConf,
+    noteOffConf,
+    ccEnabled,
+    ccVolume,
+    ccBrightness,
+    ccConfidence,
+    triggers,
+    trainingTriggerId,
+    isRecording,
+    buildPolyChord,
+    sendCC,
+    sendNoteOn,
+    sendNoteOff,
+    sendPitchBend,
+    drawCanvas,
+  ]);
+
+  // --------------------------- Recording controls ---------------------------
+
+  const toggleRecording = useCallback(() => {
+    if (!isActive) return;
+    setIsRecording((r) => {
+      const next = !r;
+      if (next) {
+        recStartRef.current = performance.now();
+        setRecCount(0);
+      }
+      return next;
+    });
+  }, [isActive]);
+
+  const recDurationSec = useMemo(() => {
+    if (!isRecording) return 0;
+    return Math.max(0, (performance.now() - recStartRef.current) / 1000);
+  }, [isRecording, recCount]); // recCount updates keep it lively
+
+  // --------------------------- UI helpers ---------------------------
+
+  const noteText = useMemo(() => {
+    if (!pitchHz) return { note: "--", hz: "--", cents: null, centsClass: "" };
+    const m = nearestMidi(pitchHz);
+    const cents = centsOffFromMidi(pitchHz, m);
+    const centsClass = Math.abs(cents) <= 7 ? "intune" : cents > 0 ? "sharp" : "flat";
+    return { note: midiToNoteName(m), hz: `${pitchHz.toFixed(1)} Hz`, cents, centsClass };
+  }, [pitchHz]);
+
+  const statusText = isActive ? "Listening" : "Idle";
+
+  // --------------------------- Trigger actions ---------------------------
+
+  const startTraining = (id) => setTrainingTriggerId(id);
+  const stopTraining = () => setTrainingTriggerId(null);
+
+  const clearTrigger = (id) => {
+    setTriggers((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, signature: null, trained: false } : t))
+    );
+  };
+
+  const setTriggerField = (id, field, value) => {
+    setTriggers((prev) => prev.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
+  };
+
+  // --------------------------- MIDI output change ---------------------------
+
+  const handleOutputChange = (e) => {
+    const id = e.target.value;
+    setSelectedOutputId(id);
+    const out = midiRef.current.outputs.find((o) => o.id === id) || null;
+    midiRef.current.output = out;
+    setMidiOutputName(out ? out.name || "MIDI Out" : "No MIDI outputs");
+  };
+
+  // Update canvas resolution on mount + resize
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.max(320, Math.floor(rect.width * devicePixelRatio));
+      canvas.height = Math.max(90, Math.floor(120 * devicePixelRatio));
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => () => stop(), [stop]);
+
+  // --------------------------- Render ---------------------------
+
+  return (
+    <div className="vtm-root">
+      {/* HEADER */}
+      <div className="vtm-header">
+        <div className="vtm-header-left">
+          <div className="vtm-logo">
+            <div className="vtm-logo-icon">🎤</div>
+            <div>
+              <div className="vtm-logo-text">
+                Voice→MIDI <span className="vtm-logo-version">v2.1</span>
+              </div>
+              <div className={`vtm-status-text ${isActive ? "active" : ""}`}>{statusText}</div>
+            </div>
+          </div>
+
+          <div className="vtm-mode-tabs">
+            <button
+              className={`vtm-mode-tab ${mode === "mono" ? "active" : ""}`}
+              onClick={() => setMode("mono")}
+            >
+              Mono
+            </button>
+            <button
+              className={`vtm-mode-tab ${mode === "poly" ? "active" : ""}`}
+              onClick={() => setMode("poly")}
+            >
+              Poly
+            </button>
+            <button
+              className={`vtm-mode-tab ${mode === "triggers" ? "active" : ""}`}
+              onClick={() => setMode("triggers")}
+            >
+              Triggers
+            </button>
+          </div>
+        </div>
+
+        <div className="vtm-header-actions">
+          {!isActive ? (
+            <button className="vtm-btn vtm-btn-start" onClick={start}>
+              Start
+            </button>
+          ) : (
+            <button className="vtm-btn vtm-btn-stop" onClick={stop}>
+              Stop
+            </button>
+          )}
+
+          <button
+            className={`vtm-btn vtm-btn-record ${isRecording ? "recording" : ""}`}
+            onClick={toggleRecording}
+            disabled={!isActive}
+            title={!isActive ? "Start listening first" : "Toggle recording"}
+          >
+            {isRecording ? "Recording" : "Record"}
+          </button>
+
+          <button className="vtm-btn vtm-btn-ghost" onClick={allNotesOff} disabled={!isActive}>
+            Panic
+          </button>
+        </div>
+      </div>
+
+      {/* BODY */}
+      <div className="vtm-body">
+        {/* LEFT: VISUALS */}
+        <div className="vtm-viz-panel">
+          <div className="vtm-viz-section vtm-pitch-display">
+            <div className={`vtm-pitch-note ${pitchHz ? "" : "no-pitch"}`}>
+              {pitchHz ? noteText.note : "NO PITCH"}
+            </div>
+            <div className="vtm-pitch-freq">{pitchHz ? noteText.hz : "—"}</div>
+            {pitchHz && (
+              <div className={`vtm-pitch-cents ${noteText.centsClass}`}>
+                {noteText.cents > 0 ? "+" : ""}
+                {noteText.cents} cents
+              </div>
+            )}
+
+            <div className="vtm-meters-row" style={{ marginTop: 12 }}>
+              <div className="vtm-meter">
+                <div className="vtm-meter-track">
+                  <div className="vtm-meter-fill vol" style={{ height: `${Math.round(vol * 100)}%` }} />
+                </div>
+                <div className="vtm-meter-label">Vol</div>
+              </div>
+
+              <div className="vtm-meter">
+                <div className="vtm-meter-track">
+                  <div
+                    className="vtm-meter-fill conf"
+                    style={{ height: `${Math.round(clamp(pitchConf, 0, 1) * 100)}%` }}
+                  />
+                </div>
+                <div className="vtm-meter-label">Conf</div>
+              </div>
+
+              <div className="vtm-meter">
+                <div className="vtm-meter-track">
+                  <div
+                    className="vtm-meter-fill bright"
+                    style={{ height: `${Math.round(clamp(bright, 0, 1) * 100)}%` }}
+                  />
+                </div>
+                <div className="vtm-meter-label">Bright</div>
+              </div>
+            </div>
+
+            <div className="vtm-midi-activity" style={{ marginTop: 12 }}>
+              <div className={`vtm-midi-dot ${midiBlink ? "on" : ""}`} />
+              <div className="vtm-midi-label">
+                {midiReady ? midiOutputName : "MIDI: Not Ready"}{" "}
+                {midiReady ? `• Ch ${midiChannel}` : ""}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 8, fontSize: 11, color: "#3d4f65" }}>
+              {lastSent ? `Last: ${lastSent}` : "—"}
+            </div>
+          </div>
+
+          <div className="vtm-viz-section">
+            <div className="vtm-section-title musical">
+              <span className="dot" /> Visual
+            </div>
+            <div className="vtm-canvas-wrap">
+              <canvas ref={canvasRef} />
+            </div>
+          </div>
+        </div>
+
+        {/* CENTER */}
+        <div className="vtm-center">
+          {/* CC Strip */}
+          <div className="vtm-cc-strip">
+            <div className="vtm-cc-strip-label">CC Monitor</div>
+            <div className="vtm-cc-value">Vol→CC{ccVolume}: {Math.round(vol * 127)}</div>
+            <div className="vtm-cc-value">Bright→CC{ccBrightness}: {Math.round(bright * 127)}</div>
+            <div className="vtm-cc-value">Conf→CC{ccConfidence}: {Math.round(clamp(pitchConf, 0, 1) * 127)}</div>
+          </div>
+
+          {/* Recording info */}
+          <div className="vtm-rec-info">
+            <div>
+              <div className="vtm-rec-info-label">Recording</div>
+              <div className="vtm-rec-info-value">{isRecording ? "ON" : "OFF"}</div>
+            </div>
+            <div>
+              <div className="vtm-rec-info-label">Events</div>
+              <div className="vtm-rec-info-value">{recCount}</div>
+            </div>
+            <div>
+              <div className="vtm-rec-info-label">Duration</div>
+              <div className="vtm-rec-info-detail">{isRecording ? `${recDurationSec.toFixed(1)}s` : "—"}</div>
+            </div>
+            <div style={{ marginLeft: "auto", fontSize: 11, color: "#5a7088" }}>
+              {mode === "poly" ? "Poly: voice→chord (Dubler-ish)" : mode === "mono" ? "Mono: voice→note" : "Triggers: voice→pads"}
+            </div>
+          </div>
+
+          {/* Poly display */}
+          {mode === "poly" && (
+            <div className="vtm-poly-chord-row">
+              {(loop._lastChordOn || prevChordNotesRef.current || []).slice(0, 6).map((n) => (
+                <div key={n} className="vtm-poly-note">
+                  <div className="name">{midiToNoteName(n)}</div>
+                  <div className="hz">{midiToHz(n).toFixed(1)} Hz</div>
+                </div>
+              ))}
+              {(!loop._lastChordOn || (loop._lastChordOn || []).length === 0) && (
+                <div style={{ color: "#5a7088", fontSize: 12 }}>Sing a note to generate a chord…</div>
+              )}
+            </div>
+          )}
+
+          {/* Trigger grid */}
+          {mode === "triggers" && (
+            <div className="vtm-trigger-grid">
+              {triggers.map((t) => {
+                const isTraining = trainingTriggerId === t.id;
+                const isTrained = !!t.signature;
+                const isActiveTrig = activeTriggerId === t.id;
+
+                return (
+                  <div
+                    key={t.id}
+                    className={`vtm-trigger-pad ${isTraining ? "training" : ""} ${isTrained ? "trained" : ""} ${
+                      isActiveTrig ? "active" : ""
+                    }`}
+                    style={{
+                      "--pad-color": t.color,
+                      "--pad-glow": `${t.color}55`,
+                    }}
+                    onClick={() => (trainingTriggerId ? stopTraining() : startTraining(t.id))}
+                    title={trainingTriggerId ? "Click to stop training" : "Click to train this pad"}
+                  >
+                    <div className="vtm-trigger-dot" style={{ background: t.color, boxShadow: isActiveTrig ? `0 0 18px ${t.color}88` : "none" }} />
+                    <div className="vtm-trigger-name">{t.name}</div>
+                    <div className="vtm-trigger-note">MIDI {t.note}</div>
+
+                    <div className="vtm-trigger-confidence">
+                      <div
+                        className="vtm-trigger-confidence-fill"
+                        style={{
+                          width: `${Math.round(clamp(t.threshold ?? 0.7, 0, 1) * 100)}%`,
+                          background: t.color,
+                        }}
+                      />
+                    </div>
+
+                    <div className="vtm-trigger-actions" onClick={(e) => e.stopPropagation()}>
+                      <button className="vtm-trigger-action-btn" onClick={() => clearTrigger(t.id)}>
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {mode !== "triggers" && (
+            <div style={{ flex: 1, minHeight: 0 }} />
+          )}
+        </div>
+
+        {/* RIGHT: SETTINGS */}
+        <div className="vtm-settings">
+          {/* OUTPUT */}
+          <div className="vtm-settings-section">
+            <div className="vtm-section-title output">
+              <span className="dot" /> Output
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">MIDI Out</div>
+              <select className="vtm-select" value={selectedOutputId} onChange={handleOutputChange}>
+                <option value="">{midiReady ? "Auto / First Output" : "No MIDI"}</option>
+                {(midiRef.current.outputs || []).map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name || o.manufacturer || "MIDI Output"}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Channel</div>
+              <select className="vtm-select" value={midiChannel} onChange={(e) => setMidiChannel(Number(e.target.value))}>
+                {Array.from({ length: 16 }).map((_, i) => (
+                  <option key={i} value={i + 1}>
+                    Ch {i + 1}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* MUSICAL */}
+          <div className="vtm-settings-section">
+            <div className="vtm-section-title musical">
+              <span className="dot" /> Musical
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Key</div>
+              <select className="vtm-select" value={keyRoot} onChange={(e) => setKeyRoot(e.target.value)}>
+                {NOTE_NAMES.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Scale</div>
+              <select className="vtm-select" value={scaleName} onChange={(e) => setScaleName(e.target.value)}>
+                {Object.keys(SCALES).map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Octave</div>
+              <input
+                className="vtm-range"
+                type="range"
+                min="1"
+                max="7"
+                step="1"
+                value={baseOctave}
+                onChange={(e) => setBaseOctave(Number(e.target.value))}
+              />
+              <div className="vtm-range-value">{baseOctave}</div>
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Quantize</div>
+              <input
+                className="vtm-range"
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={quantizeStrength}
+                onChange={(e) => setQuantizeStrength(Number(e.target.value))}
+              />
+              <div className="vtm-range-value">{Math.round(quantizeStrength * 100)}%</div>
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Velocity</div>
+              <input
+                className="vtm-range"
+                type="range"
+                min="1"
+                max="127"
+                step="1"
+                value={velocity}
+                onChange={(e) => setVelocity(Number(e.target.value))}
+              />
+              <div className="vtm-range-value">{velocity}</div>
+            </div>
+          </div>
+
+          {/* POLY (Dubler-ish realism controls) */}
+          <div className="vtm-settings-section">
+            <div className="vtm-section-title poly">
+              <span className="dot" /> Poly Mode
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Chord</div>
+              <select className="vtm-select" value={polyChordType} onChange={(e) => setPolyChordType(e.target.value)}>
+                <option value="diatonic">Diatonic</option>
+                <option value="maj">Major</option>
+                <option value="min">Minor</option>
+                <option value="sus2">Sus2</option>
+                <option value="sus4">Sus4</option>
+              </select>
+            </div>
+
+            <label className="vtm-checkbox-row">
+              <input className="vtm-checkbox" type="checkbox" checked={polyAdd7} onChange={(e) => setPolyAdd7(e.target.checked)} />
+              <div className="vtm-checkbox-label">Add 7th (richer chords)</div>
+            </label>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Hold</div>
+              <input
+                className="vtm-range"
+                type="range"
+                min="60"
+                max="350"
+                step="5"
+                value={chordHoldMs}
+                onChange={(e) => setChordHoldMs(Number(e.target.value))}
+              />
+              <div className="vtm-range-value">{chordHoldMs}ms</div>
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">On Conf</div>
+              <input
+                className="vtm-range"
+                type="range"
+                min="0.1"
+                max="0.9"
+                step="0.01"
+                value={noteOnConf}
+                onChange={(e) => setNoteOnConf(Number(e.target.value))}
+              />
+              <div className="vtm-range-value">{noteOnConf.toFixed(2)}</div>
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Off Conf</div>
+              <input
+                className="vtm-range"
+                type="range"
+                min="0.05"
+                max="0.8"
+                step="0.01"
+                value={noteOffConf}
+                onChange={(e) => setNoteOffConf(Number(e.target.value))}
+              />
+              <div className="vtm-range-value">{noteOffConf.toFixed(2)}</div>
+            </div>
+          </div>
+
+          {/* FEEL */}
+          <div className="vtm-settings-section">
+            <div className="vtm-section-title feel">
+              <span className="dot" /> Feel
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Humanize</div>
+              <input
+                className="vtm-range"
+                type="range"
+                min="0"
+                max="40"
+                step="1"
+                value={humanizeMs}
+                onChange={(e) => setHumanizeMs(Number(e.target.value))}
+              />
+              <div className="vtm-range-value">{humanizeMs}ms</div>
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Vel Rand</div>
+              <input
+                className="vtm-range"
+                type="range"
+                min="0"
+                max="25"
+                step="1"
+                value={humanizeVel}
+                onChange={(e) => setHumanizeVel(Number(e.target.value))}
+              />
+              <div className="vtm-range-value">{humanizeVel}</div>
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Legato</div>
+              <input
+                className="vtm-range"
+                type="range"
+                min="0"
+                max="140"
+                step="5"
+                value={legatoMs}
+                onChange={(e) => setLegatoMs(Number(e.target.value))}
+              />
+              <div className="vtm-range-value">{legatoMs}ms</div>
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Smooth</div>
+              <input
+                className="vtm-range"
+                type="range"
+                min="0.05"
+                max="0.75"
+                step="0.01"
+                value={pitchSmoothing}
+                onChange={(e) => setPitchSmoothing(Number(e.target.value))}
+              />
+              <div className="vtm-range-value">{pitchSmoothing.toFixed(2)}</div>
+            </div>
+          </div>
+
+          {/* PITCHBEND */}
+          <div className="vtm-settings-section">
+            <div className="vtm-section-title pitchbend">
+              <span className="dot" /> Pitch Bend
+            </div>
+
+            <label className="vtm-checkbox-row">
+              <input className="vtm-checkbox" type="checkbox" checked={bendEnabled} onChange={(e) => setBendEnabled(e.target.checked)} />
+              <div className="vtm-checkbox-label">Enable bend</div>
+            </label>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Range</div>
+              <input
+                className="vtm-range"
+                type="range"
+                min="1"
+                max="12"
+                step="1"
+                value={bendRangeSemis}
+                onChange={(e) => setBendRangeSemis(Number(e.target.value))}
+              />
+              <div className="vtm-range-value">±{bendRangeSemis}</div>
+            </div>
+
+            <div className="vtm-setting-row">
+              <div className="vtm-setting-label">Smooth</div>
+              <input
+                className="vtm-range"
+                type="range"
+                min="0.05"
+                max="0.9"
+                step="0.01"
+                value={bendSmoothing}
+                onChange={(e) => setBendSmoothing(Number(e.target.value))}
+              />
+              <div className="vtm-range-value">{bendSmoothing.toFixed(2)}</div>
+            </div>
+          </div>
+
+          {/* MIDI CC */}
+          <div className="vtm-settings-section">
+            <div className="vtm-section-title midicc">
+              <span className="dot" /> MIDI CC
+            </div>
+
+            <label className="vtm-checkbox-row">
+              <input className="vtm-checkbox" type="checkbox" checked={ccEnabled} onChange={(e) => setCcEnabled(e.target.checked)} />
+              <div className="vtm-checkbox-label">Send CCs (vol/bright/conf)</div>
+            </label>
+
+            <div className={`vtm-cc-row ${ccEnabled ? "" : "disabled"}`}>
+              <div className="vtm-cc-prefix">CC</div>
+              <div className="vtm-cc-name">Volume</div>
+              <input
+                className="vtm-cc-input"
+                disabled={!ccEnabled}
+                value={ccVolume}
+                onChange={(e) => setCcVolume(Number(e.target.value))}
+              />
+            </div>
+
+            <div className={`vtm-cc-row ${ccEnabled ? "" : "disabled"}`}>
+              <div className="vtm-cc-prefix">CC</div>
+              <div className="vtm-cc-name">Bright</div>
+              <input
+                className="vtm-cc-input"
+                disabled={!ccEnabled}
+                value={ccBrightness}
+                onChange={(e) => setCcBrightness(Number(e.target.value))}
+              />
+            </div>
+
+            <div className={`vtm-cc-row ${ccEnabled ? "" : "disabled"}`}>
+              <div className="vtm-cc-prefix">CC</div>
+              <div className="vtm-cc-name">Conf</div>
+              <input
+                className="vtm-cc-input"
+                disabled={!ccEnabled}
+                value={ccConfidence}
+                onChange={(e) => setCcConfidence(Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          {/* LATENCY */}
+          <div className="vtm-settings-section">
+            <div className="vtm-section-title latency">
+              <span className="dot" /> Latency
+            </div>
+
+            <div className="vtm-latency-group">
+              <button
+                className={`vtm-latency-btn ${latencyPreset === "low" ? "active" : ""}`}
+                onClick={() => setLatencyPreset("low")}
+              >
+                Low
+              </button>
+              <button
+                className={`vtm-latency-btn ${latencyPreset === "balanced" ? "active" : ""}`}
+                onClick={() => setLatencyPreset("balanced")}
+              >
+                Balanced
+              </button>
+              <button
+                className={`vtm-latency-btn ${latencyPreset === "stable" ? "active" : ""}`}
+                onClick={() => setLatencyPreset("stable")}
+              >
+                Stable
+              </button>
+            </div>
+
+            <div className="vtm-latency-info">
+              {latencyPreset === "low"
+                ? "Fast response, less stable pitch"
+                : latencyPreset === "stable"
+                ? "More stable pitch, more lag"
+                : "Best overall balance"}
+            </div>
+
+            <div style={{ marginTop: 10, fontSize: 11, color: "#3d4f65" }}>
+              Changing this while active requires Stop → Start to apply.
+            </div>
+          </div>
+
+          {/* TRIGGERS */}
+          <div className="vtm-settings-section">
+            <div className="vtm-section-title triggers">
+              <span className="dot" /> Triggers
+            </div>
+
+            {triggers.map((t) => {
+              const isTraining = trainingTriggerId === t.id;
+              return (
+                <div key={t.id} className={`vtm-trigger-setting ${isTraining ? "training" : ""}`}>
+                  <div className="vtm-trigger-color" style={{ background: t.color }} />
+                  <input
+                    className="vtm-trigger-input"
+                    value={t.name}
+                    onChange={(e) => setTriggerField(t.id, "name", e.target.value)}
+                  />
+                  <input
+                    className="vtm-trigger-note-input"
+                    value={t.note}
+                    onChange={(e) => setTriggerField(t.id, "note", Number(e.target.value))}
+                    title="MIDI note"
+                  />
+                  <input
+                    className="vtm-range vtm-trigger-threshold"
+                    type="range"
+                    min="0.2"
+                    max="0.95"
+                    step="0.01"
+                    value={t.threshold ?? 0.7}
+                    onChange={(e) => setTriggerField(t.id, "threshold", Number(e.target.value))}
+                    title="Sensitivity threshold"
+                  />
+                  <button
+                    className="vtm-trigger-action-btn"
+                    onClick={() => (trainingTriggerId ? stopTraining() : startTraining(t.id))}
+                    style={{ marginLeft: "auto" }}
+                  >
+                    {trainingTriggerId === t.id ? "Stop" : "Train"}
+                  </button>
+                </div>
+              );
+            })}
+
+            <div style={{ marginTop: 10, fontSize: 11, color: "#3d4f65" }}>
+              Training tip: make a consistent sound for each pad (kick “puh”, snare “tss”, hat “ts”).
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

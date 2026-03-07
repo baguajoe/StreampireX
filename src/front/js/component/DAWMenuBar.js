@@ -77,6 +77,7 @@ const buildMenus = ({
       { type: 'separator' },
       { label: 'Mic Simulator', action: 'view:micsim', active: viewMode === 'micsim' },
       { label: 'Vocal Processor', action: 'view:vocal', active: viewMode === 'vocal' },
+      { label: 'Multiband Effects', action: 'view:multiband', icon: '🎛' },
       { label: 'Voice-to-MIDI', action: 'view:voicemidi', active: viewMode === 'voicemidi' },
       { type: 'separator' },
       { label: 'Plugin Rack', action: 'view:plugins', active: viewMode === 'plugins' },

@@ -76,6 +76,10 @@ from src.api.support_routes import support_bp
 from src.api.ai_credits_routes import ai_credits_bp
 from src.api.sampler_storage_routes import sampler_storage_bp
 from src.api.epk_collab import epk_collab_bp
+from src.api.analytics_routes import analytics_bp
+from src.api.fan_membership_routes import fan_membership_bp
+from src.api.series_routes import series_bp
+from src.api.comment_routes import comment_bp
 
 
 # ✅ Environment setup
@@ -323,6 +327,10 @@ app.register_blueprint(support_bp)
 app.register_blueprint(ai_credits_bp)
 app.register_blueprint(sampler_storage_bp)
 app.register_blueprint(epk_collab_bp)
+app.register_blueprint(analytics_bp)
+app.register_blueprint(fan_membership_bp)
+app.register_blueprint(series_bp)
+app.register_blueprint(comment_bp)
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)

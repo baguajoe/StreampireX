@@ -928,7 +928,7 @@ const ArtistProfilePage = () => {
             </section>
 
             {/* ── EPK Section ── */}
-            <ProfileEPKSection userId={effectiveId} />
+            <ProfileEPKSection userId={artistInfo.id} />
           </div>
         );
 

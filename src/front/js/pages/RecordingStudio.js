@@ -31,6 +31,9 @@ import ConsoleFXPanel from "../component/ConsoleFXPanel";
 import PanKnob from "../component/PanKnob";
 import { InlineStemSeparation, AudioToMIDIPanel, PitchCorrectionPanel } from "../component/DAWAdvancedFeatures";
 import SaveAsModal from '../component/SaveAsModal';
+import MultibandEffects from '../component/MultibandEffects';
+import '../../styles/VoiceToMIDI.css';
+
 
 // ── Piano Roll / MIDI / Chord imports ──
 import PianoRoll from "../component/PianoRoll";
@@ -43,15 +46,21 @@ import DAWMenuBar from "../component/DAWMenuBar";
 import VocalProcessor from "../component/VocalProcessor";
 
 // ── Plugin Rack System ──
-import { getEngine } from "../component/audio/engine/AudioEngine";
-import TrackGraph from "../component/audio/engine/TrackGraph";
-import PluginRackPanel from "../component/audio/components/plugins/PluginRackPanel";
+import UnifiedFXChain from '../component/UnifiedFXChain';
+import MasteringChain from '../component/MasteringChain';
+import LoopermanBrowser from '../component/LoopermanBrowser';
 
 // ── Voice-to-MIDI (Dubler-style) ──
 import VoiceToMIDI from "../component/VoiceToMIDI";
 
 // ── Drum Kit Connector ──
 import DrumKitConnector from "../component/DrumKitConnector";
+
+// ── Add these with the other component imports at the top ──
+import useDAWHistory from '../component/useDAWHistory';
+import ArrangeClipEditor from '../component/ArrangeClipEditor';
+import TrackGroupBus from '../component/TrackGroupBus';
+import DAWMeteringTools from '../component/DAWMeteringTools';
 
 // ── Instrument Track Engine (STEP 1) ──
 import useInstrumentTrackEngine, {
@@ -2326,6 +2335,9 @@ const RecordingStudio = ({ user }) => {
       case "view:plugins":
         setViewMode("plugins");
         break;
+      case "view:multiband":
+        setViewMode("multiband");
+        break;
       case "view:voicemidi":
         setViewMode("voicemidi");
         break;
@@ -2625,6 +2637,15 @@ const RecordingStudio = ({ user }) => {
             </svg>{" "}
             AI Mix
           </button>
+          <button className={`daw-view-tab ${viewMode === 'multiband' ? 'active' : ''}`} onClick={() => setViewMode('multiband')} title="Multiband Compressor/Effects">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="2" y="4" width="4" height="16" rx="1" />
+              <rect x="10" y="8" width="4" height="12" rx="1" />
+              <rect x="18" y="12" width="4" height="8" rx="1" />
+              <line x1="2" y1="2" x2="22" y2="2" />
+            </svg>
+            Multiband
+          </button>
           <button
             className={`daw-view-tab ${viewMode === "keyfinder" ? "active" : ""}`}
             onClick={() => setViewMode("keyfinder")}
@@ -2675,17 +2696,17 @@ const RecordingStudio = ({ user }) => {
             </svg>{" "}
             Voice MIDI
           </button>
-          <button
-            className={`daw-view-tab ${viewMode === "plugins" ? "active" : ""}`}
-            onClick={() => setViewMode("plugins")}
-            title="Plugin Rack"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="3" width="20" height="18" rx="2" />
-              <path d="M2 9h20" />
-              <path d="M9 21V9" />
-            </svg>{" "}
-            Plugins
+          <button className={`daw-view-tab ${viewMode === 'fx' ? 'active' : ''}`} onClick={() => setViewMode('fx')} title="FX Chain — All effects for selected track">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M4.93 4.93a10 10 0 0 0 0 14.14" /></svg>
+            FX Chain
+          </button>
+          <button className={`daw-view-tab ${viewMode === 'mastering' ? 'active' : ''}`} onClick={() => setViewMode('mastering')} title="Mastering Suite — LUFS, EQ, Limiter, Widener">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
+            Master
+          </button>
+          <button className={`daw-view-tab ${viewMode === 'looperman' ? 'active' : ''}`} onClick={() => setViewMode('looperman')} title="Looperman — Free royalty-free loops & acapellas">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
+            Loops
           </button>
         </div>
 
@@ -3031,10 +3052,10 @@ const RecordingStudio = ({ user }) => {
                   </div>
                 </div>
 
-              <div className="daw-ch-name">
-                <div style={{ fontWeight: 700, fontSize: "0.62rem", color: "#ddeeff" }}>MASTER</div>
-                <div className="daw-ch-number">Stereo Out</div>
-              </div>
+                <div className="daw-ch-name">
+                  <div style={{ fontWeight: 700, fontSize: "0.62rem", color: "#ddeeff" }}>MASTER</div>
+                  <div className="daw-ch-number">Stereo Out</div>
+                </div>
               </div>
             </div>
           </div>
@@ -3451,51 +3472,84 @@ const RecordingStudio = ({ user }) => {
         )}
         {/* ──────── PLUGIN RACK VIEW ──────── */}
         {viewMode === "plugins" && (
-          <div style={{ flex: 1, minHeight: 0, overflow: "hidden", padding: "12px" }}>
-            {(() => {
-              const selTrack = tracks[selectedTrackIndex];
-              if (!selTrack) {
-                return (
-                  <div style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    height: "100%", color: "#5a7088", fontSize: "0.85rem"
-                  }}>
-                    No track selected
-                  </div>
-                );
-              }
-
-              // Try to get or create a TrackGraph for the selected track
-              const engine = getEngine();
-              if (!engine.context && audioCtxRef.current) {
-                try { engine.init(audioCtxRef.current); } catch (e) { /* already init */ }
-              }
-
-              let trackGraph = engine.getTrack?.(selTrack.id);
-              if (!trackGraph && engine.context) {
-                try {
-                  trackGraph = new TrackGraph(selTrack.id, engine.context, {
-                    name: selTrack.name,
-                    color: selTrack.color,
-                  });
-                  engine.registerTrack?.(trackGraph);
-                } catch (e) {
-                  console.warn("[Plugins] Could not create TrackGraph:", e);
-                }
-              }
-
-              return (
-                <PluginRackPanel
-                  trackGraph={trackGraph}
-                  trackName={selTrack.name}
-                  trackColor={selTrack.color}
-                  onClose={() => setViewMode("arrange")}
-                />
-              );
-            })()}
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <UnifiedFXChain
+              track={tracks[selectedTrackIndex]}
+              trackIndex={selectedTrackIndex}
+              audioContext={audioCtxRef.current}
+              updateEffect={updateEffect}
+              onClose={() => setViewMode('arrange')}
+              isEmbedded={true}
+            />
           </div>
         )}
 
+        {/* ──────── MULTIBAND EFFECTS VIEW ──────── */}
+        {viewMode === 'multiband' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <MultibandEffects
+              audioContext={audioCtxRef.current}
+              inputNode={
+                selectedTrackIndex !== null && trackGainsRef.current[selectedTrackIndex]
+                  ? trackGainsRef.current[selectedTrackIndex]
+                  : masterGainRef.current
+              }
+              outputNode={masterGainRef.current}
+              onClose={() => setViewMode('arrange')}
+              isEmbedded={true}
+            />
+          </div>
+        )}
+        {/* ──────── FX CHAIN VIEW ──────── */}
+        {viewMode === 'fx' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <UnifiedFXChain
+              track={tracks[selectedTrackIndex]}
+              trackIndex={selectedTrackIndex}
+              audioContext={audioCtxRef.current}
+              updateEffect={updateEffect}
+              onClose={() => setViewMode('arrange')}
+              isEmbedded={true}
+            />
+          </div>
+        )}
+
+        {/* ──────── MASTERING VIEW ──────── */}
+        {viewMode === 'mastering' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <MasteringChain
+              audioContext={audioCtxRef.current}
+              inputNode={masterGainRef.current}
+              outputNode={audioCtxRef.current?.destination}
+              masterVolume={masterVolume}
+              onClose={() => setViewMode('arrange')}
+              isEmbedded={true}
+            />
+          </div>
+        )}
+
+        {/* ──────── LOOPERMAN VIEW ──────── */}
+        {viewMode === 'looperman' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <LoopermanBrowser
+              audioContext={audioCtxRef.current}
+              onSoundSelect={(audioBuffer, name, audioUrl) => {
+                const ai = tracks.findIndex(t => t.armed);
+                if (ai !== -1) {
+                  updateTrack(ai, { audioBuffer, audio_url: audioUrl, name: name || 'Loop' });
+                  createRegionFromImport(ai, audioBuffer, name || 'Loop', audioUrl);
+                  setStatus(`✓ "${name}" → Track ${ai + 1}`);
+                } else {
+                  window.__spx_sampler_export = { buffer: audioBuffer, name, timestamp: Date.now() };
+                  setViewMode('beatmaker');
+                  setStatus(`Loop "${name}" sent to Beat Maker`);
+                }
+              }}
+              onClose={() => setViewMode('arrange')}
+              isEmbedded={true}
+            />
+          </div>
+        )}
         {/* ──────── VOICE MIDI VIEW ──────── */}
         {viewMode === "voicemidi" && (
           <div className="daw-voicemidi-view">
