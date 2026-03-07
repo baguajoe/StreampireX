@@ -856,7 +856,13 @@ const EPKCollabHub = () => {
 
             {/* ── TEMPLATE ── */}
             {epkSection === 'template' && <>
-              {/* ── AI COMMERCIAL GENERATOR ── */}
+              <div className="ech-template-placeholder">
+                <p style={{color:'#5a7088'}}>Template settings coming soon.</p>
+              </div>
+            </>}
+
+            {/* ── COMMERCIAL ── */}
+            {epkSection === 'commercial' && <>
               <div className="ech-commercial-section">
                 <h3 className="ech-commercial-title">🎬 AI Commercial Generator</h3>
                 <p className="ech-commercial-desc" style={{ fontSize: '0.88rem', lineHeight: '1.7' }}>
