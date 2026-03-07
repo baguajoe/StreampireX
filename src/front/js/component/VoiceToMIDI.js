@@ -1064,8 +1064,8 @@ const VoiceToMIDI = ({
 
   // ── Meter component ──
   const Meter = ({ value, color = "#00ffc8", label, max = 1, height = 80 }) => (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-      <div style={{ width: 8, height, background: "#1a2332", borderRadius: 4, position: "relative", overflow: "hidden" }}>
+    <div className="vtm-meter">
+      <div className="vtm-meter-bar">
         <div
           style={{
             position: "absolute",
@@ -1078,7 +1078,7 @@ const VoiceToMIDI = ({
           }}
         />
       </div>
-      {label && <span style={{ fontSize: "0.55rem", color: "#5a7088" }}>{label}</span>}
+      {label && <span className="vtm-meter-label">{label}</span>}
     </div>
   );
 
@@ -1087,33 +1087,16 @@ const VoiceToMIDI = ({
   // =============================================================================
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        background: "linear-gradient(135deg, #0d1117 0%, #161b22 50%, #0d1117 100%)",
-        color: "#c9d1d9",
-        fontFamily: "'Inter', -apple-system, sans-serif",
-        overflow: "auto",
-      }}
+    <div className="vtm-root"
     >
       {/* ══════ HEADER ══════ */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "8px 12px",
-          borderBottom: "1px solid #21262d",
-          background: "#161b2266",
-        }}
+      <div className="vtm-header"
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#00ffc8" }}>🎤 Voice → MIDI</span>
-          <span style={{ fontSize: "0.65rem", color: "#5a7088" }}>v2.1 — Dubler-Style (Realistic Poly)</span>
+        <div className="vtm-header-left">
+          <span className="vtm-title">🎤 Voice → MIDI</span>
+          <span className="vtm-subtitle">v2.1 — Dubler-Style (Realistic Poly)</span>
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div className="vtm-header-right">
           <button
             onClick={isListening ? stopListening : startListening}
             style={{
@@ -1168,7 +1151,7 @@ const VoiceToMIDI = ({
       </div>
 
       {/* ══════ MODE TABS ══════ */}
-      <div style={{ display: "flex", gap: 4, padding: "6px 12px", borderBottom: "1px solid #21262d" }}>
+      <div className="vtm-tabs">
         {[
           { id: "pitch", label: "🎵 Pitch", desc: "Sing → Notes" },
           { id: "poly", label: "🎹 Poly", desc: "Sing → Chords (Realistic)" },
@@ -1196,13 +1179,13 @@ const VoiceToMIDI = ({
             {m.label}
           </button>
         ))}
-        <span style={{ marginLeft: "auto", fontSize: "0.65rem", color: "#5a7088" }}>{status}</span>
+        <span className="vtm-status">{status}</span>
       </div>
 
       {/* ══════ MAIN AREA ══════ */}
-      <div style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden" }}>
+      <div className="vtm-body">
         {/* ── LEFT: Live Display ── */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: 12, gap: 10, overflow: "auto" }}>
+        <div className="vtm-main">
           {/* Current Note Display */}
           <div
             style={{
@@ -1215,7 +1198,7 @@ const VoiceToMIDI = ({
               border: "1px solid #30363d",
             }}
           >
-            <div style={{ textAlign: "center", minWidth: 90 }}>
+            <div className="vtm-pitch-center">
               <div
                 style={{
                   fontSize: "2rem",
@@ -1226,11 +1209,11 @@ const VoiceToMIDI = ({
               >
                 {currentNote ? currentNote.noteName : "---"}
               </div>
-              <div style={{ fontSize: "0.6rem", color: "#5a7088" }}>{currentFreq > 0 ? `${currentFreq.toFixed(1)} Hz` : "No pitch"}</div>
+              <div className="vtm-freq-label">{currentFreq > 0 ? `${currentFreq.toFixed(1)} Hz` : "No pitch"}</div>
             </div>
 
             {/* Meters */}
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="vtm-meter-row">
               <Meter value={rmsLevel} max={0.3} color="#00ffc8" label="Vol" />
               <Meter value={confidence} max={1} color="#007aff" label="Conf" />
               <Meter value={spectralBrightness} max={5000} color="#ff9500" label="Bright" />
@@ -1238,7 +1221,7 @@ const VoiceToMIDI = ({
 
             {/* Vibrato indicator */}
             {vibratoInfo?.detected && (
-              <div style={{ padding: "4px 8px", borderRadius: 6, background: "#af52de30", border: "1px solid #af52de", fontSize: "0.65rem" }}>
+              <div className="vtm-chord-badge">
                 Vibrato: {vibratoInfo.rate}Hz ±{vibratoInfo.depthCents}¢
               </div>
             )}
@@ -1264,7 +1247,7 @@ const VoiceToMIDI = ({
             )}
 
             {/* Active notes */}
-            <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginLeft: "auto" }}>
+            <div className="vtm-knob-row">
               {[...activeNotes].map((n) => (
                 <span
                   key={n}
@@ -1285,7 +1268,7 @@ const VoiceToMIDI = ({
 
           {/* Poly chord display */}
           {mode === "poly" && polyNotes.length > 0 && (
-            <div style={{ display: "flex", gap: 6, padding: 8, background: "#21262d", borderRadius: 8, border: "1px solid #30363d" }}>
+            <div className="vtm-pad-grid">
               {polyNotes.map((p, i) => (
                 <div
                   key={i}
@@ -1297,8 +1280,8 @@ const VoiceToMIDI = ({
                     textAlign: "center",
                   }}
                 >
-                  <div style={{ fontSize: "0.9rem", fontWeight: 700 }}>{p.noteName}</div>
-                  <div style={{ fontSize: "0.55rem", color: "#5a7088" }}>{p.freq.toFixed(0)}Hz</div>
+                  <div className="vtm-pad-note">{p.noteName}</div>
+                  <div className="vtm-meter-label">{p.freq.toFixed(0)}Hz</div>
                 </div>
               ))}
             </div>
@@ -1561,7 +1544,7 @@ const VoiceToMIDI = ({
               <div key={key} style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3, opacity: mapping.enabled ? 1 : 0.5 }}>
                 <input type="checkbox" checked={mapping.enabled} onChange={() => toggleCC(key)} style={{ width: 14, height: 14 }} />
                 <span style={{ width: 84, fontSize: "0.6rem" }}>{mapping.label}</span>
-                <span style={{ fontSize: "0.55rem", color: "#5a7088" }}>CC</span>
+                <span className="vtm-meter-label">CC</span>
                 <input
                   type="number"
                   value={mapping.cc}
@@ -1638,7 +1621,7 @@ const VoiceToMIDI = ({
                 ))}
               </select>
             ) : (
-              <span style={{ fontSize: "0.6rem", color: "#5a7088" }}>{webMidiEnabled ? "No MIDI devices found" : "Web MIDI not available"}</span>
+              <span className="vtm-freq-label">{webMidiEnabled ? "No MIDI devices found" : "Web MIDI not available"}</span>
             )}
           </div>
 
