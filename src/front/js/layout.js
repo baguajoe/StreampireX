@@ -246,7 +246,7 @@ const Layout = () => {
               <Route path="/album/:albumId" element={<AlbumDetailPage />} />
               <Route path="/collaborator-splits" element={<CollaboratorSplitPage />} />
               <Route path="/epk-hub" element={<EPKCollabHub />} />
-              <Route path="/epk/:slug" element={<EPKCollabHub />} />
+              <Route path="/epk/:slug" element={<PublicEPKPage />} />
 
               {/* 🎤 Indie Artists */}
               <Route path="/upload-music" element={<UploadMusic />} />
