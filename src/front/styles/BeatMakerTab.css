@@ -1941,3 +1941,46 @@
   font-size: 0.8rem;
   text-align: center;
 }
+
+/* ═══ SamplerBeatMaker Tab Navigation ═══ */
+.sbm-tab-nav {
+  display: flex;
+  gap: 0;
+  background: #0a1628;
+  border-bottom: 2px solid #1a2a3a;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+
+.sbm-main-tab {
+  padding: 8px 16px;
+  background: transparent;
+  color: #5a7088;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 400;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.sbm-main-tab.active {
+  background: #0d1f35;
+  color: #00ffc8;
+  border-bottom: 2px solid #00ffc8;
+  font-weight: 700;
+}
+
+.sbm-main-tab:hover {
+  color: #00ffc8;
+  background: rgba(0, 255, 200, 0.05);
+}
+
+.sampler-content-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
