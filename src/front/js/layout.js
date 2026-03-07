@@ -43,6 +43,7 @@ import AIContentWriter from "./pages/AIContentWriter";
 import AIStemSeparation from "./pages/AIStemSeparation";
 import AIVideoStudio from "./pages/AIVideoStudio";
 import EPKCollabHub from "./pages/EPKCollabHub";
+import { PublicEPKPage } from "./pages/PublicEPK";
 import VoiceCloneServices from './pages/VoiceCloneServices';
 import PluginRackDemo from './pages/PluginRackDemo.js';
 import PodcastStudio from "./pages/PodcastStudio";
@@ -116,6 +117,12 @@ import CreateTeamRoomPage from "./pages/CreateTeamRoomPage";
 import ContentLibrary from "./pages/ContentLibrary";
 import StoryViewer from "./pages/StoryViewer";
 import StoryUpload from "./pages/StoryUpload";
+import VideoSeriesBuilder from "./pages/VideoSeriesBuilder";
+import { CreatorMembershipManager, FanMembershipPage } from "./pages/FanMembership";
+import { CollabBrowsePage, CollabInbox } from "./pages/CollabRequests";
+import PayoutDashboard from "./pages/PayoutDashboard";
+import { SearchPage, ExplorePage } from "./pages/GlobalSearch";
+import { BrowseStemsPage, SellStemsPage } from "./pages/StemsStore";
 
 // ✨ NEW: Unified Dashboard
 import { Dashboard } from "./pages/Dashboard";
@@ -191,6 +198,17 @@ const Layout = () => {
               <Route path="/podcast-join/:sessionId" element={<PodcastGuestJoin />} />
               <Route path="/podcast-async/:linkId" element={<AsyncGuestRecordPage />} />
               <Route path="/support" element={<TechSupportPage />} />
+              <Route path="/video-series/new" element={<VideoSeriesBuilder />} />
+              <Route path="/video-series/:id/edit" element={<VideoSeriesBuilder />} />
+              <Route path="/creator/membership" element={<CreatorMembershipManager />} />
+              <Route path="/fan/membership/:creatorId" element={<FanMembershipPage />} />
+              <Route path="/collab/browse" element={<CollabBrowsePage />} />
+              <Route path="/collab/inbox" element={<CollabInbox />} />
+              <Route path="/payouts" element={<PayoutDashboard />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/explore" element={<ExplorePage />} />
+              <Route path="/stems" element={<BrowseStemsPage />} />
+              <Route path="/stems/sell" element={<SellStemsPage />} />
 
 
               {/* Video Channel Routes */}
@@ -204,7 +222,6 @@ const Layout = () => {
               {/* 🔍 Discover Users - Main route + redirects from old routes */}
               <Route path="/discover-users" element={<DiscoverUsersPage />} />
               <Route path="/search-artists" element={<Navigate to="/discover-users" replace />} />
-              <Route path="/search" element={<Navigate to="/discover-users" replace />} />
               <Route path="/browse-users" element={<Navigate to="/discover-users" replace />} />
 
               {/* 📊 Radio Schedule */}
@@ -290,9 +307,6 @@ const Layout = () => {
 
               {/* 🔔 Notifications */}
               <Route path="/notifications" element={<NotificationsPage />} />
-
-              {/* 404 Fallback */}
-              <Route path="*" element={<h1>Not found!</h1>} />
 
               {/* 💳 Subscription */}
               <Route path="/subscription/success" element={<SubscriptionSuccess />} />
