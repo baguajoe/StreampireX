@@ -7688,3 +7688,41 @@ class CollabApplication(db.Model):
             "status": self.status,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+class VideoSeries(db.Model):
+    __tablename__ = 'video_series'
+
+    id = db.Column(db.Integer, primary_key=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    thumbnail_url = db.Column(db.String(500))
+    genre = db.Column(db.String(100))
+    tags = db.Column(db.Text, default='[]')           # JSON array
+    episodes_json = db.Column(db.Text, default='[]')  # [{video_id, title, order}]
+    is_public = db.Column(db.Boolean, default=True)
+    is_complete = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    creator = db.relationship('User', backref='video_series')
+
+    def serialize(self):
+        creator = User.query.get(self.creator_id)
+        return {
+            'id': self.id,
+            'creator_id': self.creator_id,
+            'creator_name': creator.username if creator else 'Unknown',
+            'creator_photo': creator.profile_photo if creator else None,
+            'title': self.title,
+            'description': self.description,
+            'thumbnail_url': self.thumbnail_url,
+            'genre': self.genre,
+            'tags': json.loads(self.tags or '[]'),
+            'episodes': json.loads(self.episodes_json or '[]'),
+            'episode_count': len(json.loads(self.episodes_json or '[]')),
+            'is_public': self.is_public,
+            'is_complete': self.is_complete,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
