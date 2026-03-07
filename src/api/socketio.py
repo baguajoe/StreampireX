@@ -875,6 +875,141 @@ def handle_get_room_stats():
     print(f"📊 Room stats: {len(active_rooms)} webrtc rooms, {len(team_rooms)} team rooms")
 
 
+
+# =============================================================================
+# DAW Collaboration Socket.IO Handlers
+# =============================================================================
+daw_sessions = {}
+
+@socketio.on('daw:create_session')
+def on_daw_create_session(data):
+    import json
+    from src.api.models import DAWSession, db
+    session_id = data['sessionId']
+    join_room(session_id)
+    collaborators = [{'id': data['hostId'], 'username': data['hostName']}]
+    daw_sessions[session_id] = {
+        'host_id': data['hostId'],
+        'project_id': data['projectId'],
+        'state': data.get('initialState', {}),
+        'collaborators': collaborators,
+    }
+    try:
+        existing = DAWSession.query.filter_by(session_id=session_id).first()
+        if existing:
+            existing.is_active = True
+            existing.collaborators_json = json.dumps(collaborators)
+            existing.state_json = json.dumps(data.get('initialState', {}))
+        else:
+            sess_db = DAWSession(
+                session_id=session_id,
+                session_code=data.get('sessionCode', ''),
+                host_id=data['hostId'],
+                project_id=data.get('projectId'),
+                state_json=json.dumps(data.get('initialState', {})),
+                collaborators_json=json.dumps(collaborators),
+                is_active=True,
+            )
+            db.session.add(sess_db)
+        db.session.commit()
+    except Exception as e:
+        print(f'[DAW] DB persist error: {e}')
+    emit('daw:session_created', {'sessionId': session_id, 'sessionCode': data['sessionCode']})
+
+@socketio.on('daw:join_session')
+def on_daw_join_session(data):
+    import json
+    from src.api.models import DAWSession, db
+    session_id = data['sessionId']
+    join_room(session_id)
+    if session_id not in daw_sessions:
+        sess_db = DAWSession.query.filter_by(session_id=session_id, is_active=True).first()
+        if sess_db:
+            daw_sessions[session_id] = {
+                'host_id': sess_db.host_id,
+                'project_id': sess_db.project_id,
+                'state': json.loads(sess_db.state_json or '{}'),
+                'collaborators': json.loads(sess_db.collaborators_json or '[]'),
+            }
+    if session_id in daw_sessions:
+        sess = daw_sessions[session_id]
+        sess['collaborators'].append({'id': data['userId'], 'username': data['username']})
+        try:
+            sess_db = DAWSession.query.filter_by(session_id=session_id).first()
+            if sess_db:
+                sess_db.collaborators_json = json.dumps(sess['collaborators'])
+                db.session.commit()
+        except Exception as e:
+            print(f'[DAW] DB update error: {e}')
+        emit('daw:request_state', {'userId': data['userId']}, room=str(sess['host_id']))
+        emit('daw:user_joined', data, room=session_id, include_self=False)
+    else:
+        emit('daw:error', {'message': 'Session not found'})
+
+@socketio.on('daw:leave_session')
+def on_daw_leave_session(data):
+    import json
+    from src.api.models import DAWSession, db
+    session_id = data.get('sessionId')
+    if session_id:
+        leave_room(session_id)
+        if session_id in daw_sessions:
+            sess = daw_sessions[session_id]
+            sess['collaborators'] = [
+                c for c in sess['collaborators']
+                if c['id'] != data.get('userId')
+            ]
+            # If no collaborators left, mark inactive
+            is_empty = len(sess['collaborators']) == 0
+            try:
+                sess_db = DAWSession.query.filter_by(session_id=session_id).first()
+                if sess_db:
+                    sess_db.collaborators_json = json.dumps(sess['collaborators'])
+                    if is_empty:
+                        sess_db.is_active = False
+                    db.session.commit()
+            except Exception as e:
+                print(f'[DAW] Leave persist error: {e}')
+            if is_empty:
+                daw_sessions.pop(session_id, None)
+        emit('daw:user_left', data, room=session_id)
+
+@socketio.on('daw:op')
+def on_daw_op(data):
+    import json
+    from src.api.models import DAWSession, db
+    session_id = data.get('sessionId')
+    if session_id:
+        emit('daw:op', data, room=session_id, include_self=False)
+        # Persist state update to DB periodically (on track changes)
+        if data.get('type') in ('track_update', 'bpm_change', 'tracks_set'):
+            try:
+                sess_db = DAWSession.query.filter_by(session_id=session_id).first()
+                if sess_db and session_id in daw_sessions:
+                    sess_db.state_json = json.dumps(daw_sessions[session_id].get('state', {}))
+                    db.session.commit()
+            except Exception as e:
+                print(f'[DAW] State persist error: {e}')
+
+@socketio.on('daw:cursor')
+def on_daw_cursor(data):
+    session_id = data.get('sessionId')
+    if session_id:
+        emit('daw:cursor', data, room=session_id, include_self=False)
+
+@socketio.on('daw:full_state_response')
+def on_daw_full_state_response(data):
+    target_id = data.get('targetUserId')
+    if target_id:
+        emit('daw:full_state', data, room=target_id)
+
+@socketio.on('daw:chat')
+def on_daw_chat(data):
+    session_id = data.get('sessionId')
+    if session_id:
+        emit('daw:chat', data, room=session_id, include_self=False)
+
+
 # -----------------------------------------------------------------------------
 # init
 # -----------------------------------------------------------------------------
