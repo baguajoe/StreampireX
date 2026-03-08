@@ -38,7 +38,7 @@ try:
     import matchering as mg
     MATCHERING_AVAILABLE = True
     print("✅ Matchering loaded — Phase 2 AI mastering enabled")
-except ImportError:
+except Exception:
     MATCHERING_AVAILABLE = False
     print("⚠️ Matchering not installed — Phase 2 disabled. Run: pip install matchering")
 
@@ -46,7 +46,7 @@ except ImportError:
 from src.api.models import db, Audio
 try:
     from src.api.r2_storage_setup import uploadFile
-except ImportError:
+except Exception:
     from src.api.cloudinary_setup import uploadFile
 
 ai_mastering_bp = Blueprint('ai_mastering', __name__)
