@@ -1233,52 +1233,144 @@ const SamplerBeatMaker = ({
     setActiveKgNotes(p => { const n = new Set(p); n.delete(midiNote); return n; });
   }, []);
 
-  // ==== PERFORMANCE STUBS (DrumPadTab) ====
-  const triggerTapeStop = useCallback(() => {
-    // TODO: implement tape stop effect — ramp playbackRate to 0
-    console.log('[DrumPad] Tape stop triggered');
-  }, []);
+  // ==== PERFORMANCE FEATURES (DrumPadTab) ====
 
+  // Tape Stop: ramps master gain to 0 over 1.5s then restores
+  const tapeStopActiveRef = React.useRef(false);
+  const triggerTapeStop = useCallback(() => {
+    const c = ctxRef.current;
+    const m = masterRef.current;
+    if (!c || !m || tapeStopActiveRef.current) return;
+    tapeStopActiveRef.current = true;
+    setTapeStopOn(true);
+    const now = c.currentTime;
+    const savedVol = m.gain.value;
+    m.gain.cancelScheduledValues(now);
+    m.gain.setValueAtTime(savedVol, now);
+    m.gain.linearRampToValueAtTime(0, now + 1.5);
+    setTimeout(() => {
+      if (masterRef.current) {
+        masterRef.current.gain.cancelScheduledValues(masterRef.current.context.currentTime);
+        masterRef.current.gain.setValueAtTime(masterVol, masterRef.current.context.currentTime);
+      }
+      tapeStopActiveRef.current = false;
+      setTapeStopOn(false);
+    }, 2000);
+  }, [masterVol]);
+
+  // Filter Sweep: inserts BiquadFilter on master, sweeps frequency with slider
+  const masterFilterRef = React.useRef(null);
   const toggleFilterSweep = useCallback(() => {
-    setFilterSweepOn(p => !p);
+    const c = ctxRef.current;
+    const m = masterRef.current;
+    setFilterSweepOn(p => {
+      const next = !p;
+      if (next && c && m) {
+        if (!masterFilterRef.current) {
+          const f = c.createBiquadFilter();
+          f.type = 'lowpass';
+          f.frequency.value = 20000;
+          f.Q.value = 1;
+          m.disconnect();
+          m.connect(f);
+          f.connect(c.destination);
+          masterFilterRef.current = f;
+        }
+      } else {
+        if (masterFilterRef.current && m && c) {
+          try { m.disconnect(); masterFilterRef.current.disconnect(); } catch (e) {}
+          m.connect(c.destination);
+          masterFilterRef.current = null;
+        }
+      }
+      return next;
+    });
   }, []);
 
   const updateFilterSweep = useCallback((val) => {
     setFilterSweepVal(val);
-    // TODO: apply filter sweep to master or active pads in real-time
+    if (masterFilterRef.current && ctxRef.current) {
+      const freq = 20 + (val * val) * 19980;
+      masterFilterRef.current.frequency.setTargetAtTime(freq, ctxRef.current.currentTime, 0.01);
+    }
   }, []);
 
-  const startLoopRec = useCallback(() => {
-    setLiveLoopState('recording');
-    // TODO: capture live pad hits into a loop buffer
-  }, []);
+  // Live Looper: records master output to AudioBuffer, loops playback
+  const loopRecorderRef = React.useRef(null);
+  const loopChunksRef = React.useRef([]);
+  const loopSrcRef = React.useRef(null);
+
+  const startLoopRec = useCallback(async () => {
+    const c = ctxRef.current || initCtx();
+    if (c.state === 'suspended') await c.resume();
+    try {
+      const dest = c.createMediaStreamDestination();
+      masterRef.current.connect(dest);
+      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+      const rec = new MediaRecorder(dest.stream, { mimeType: mime });
+      loopChunksRef.current = [];
+      rec.ondataavailable = (e) => { if (e.data.size > 0) loopChunksRef.current.push(e.data); };
+      rec.start(100);
+      loopRecorderRef.current = { recorder: rec, dest };
+      setLiveLoopState('recording');
+    } catch (e) { console.error('[Looper] startLoopRec failed:', e); }
+  }, [initCtx]);
 
   const stopLoopRec = useCallback(() => {
-    setLiveLoopState('idle');
+    const lr = loopRecorderRef.current;
+    if (!lr) return;
+    lr.recorder.onstop = async () => {
+      try { masterRef.current.disconnect(lr.dest); } catch (e) {}
+      const blob = new Blob(loopChunksRef.current, { type: 'audio/webm' });
+      const ab = await blob.arrayBuffer();
+      if (ctxRef.current) {
+        const buf = await ctxRef.current.decodeAudioData(ab);
+        loopBufRef.current = buf;
+      }
+      loopRecorderRef.current = null;
+      setLiveLoopState('idle');
+    };
+    lr.recorder.stop();
   }, []);
 
   const playLoop = useCallback(() => {
-    if (!loopBufRef.current) return;
+    if (!loopBufRef.current || !ctxRef.current) return;
+    if (loopSrcRef.current) { try { loopSrcRef.current.stop(); } catch (e) {} }
+    const src = ctxRef.current.createBufferSource();
+    src.buffer = loopBufRef.current;
+    src.loop = true;
+    src.connect(masterRef.current);
+    src.start();
+    loopSrcRef.current = src;
     setLiveLoopState('playing');
-    // TODO: play back recorded loop
   }, []);
 
   const stopLoop = useCallback(() => {
+    if (loopSrcRef.current) { try { loopSrcRef.current.stop(); } catch (e) {} loopSrcRef.current = null; }
     setLiveLoopState('idle');
   }, []);
 
+  // Note Repeat: clear active intervals on stop
+  const noteRepeatIntervalRef = React.useRef(null);
   const stopAllNoteRepeats = useCallback(() => {
     setNoteRepeatOn(false);
-    // TODO: clear any active note repeat intervals
+    if (noteRepeatIntervalRef.current) { clearInterval(noteRepeatIntervalRef.current); noteRepeatIntervalRef.current = null; }
   }, []);
 
-  // ==== ANALYSIS STUB (SamplerTab) ====
-  const analyzePadSample = useCallback((pi) => {
-    const bpmResult = detectBpm(pi);
-    if (bpmResult > 0) setDetectedBpm(bpmResult);
-    // TODO: key detection
+  // ==== ANALYSIS (SamplerTab) — real BPM + Key via AudioAnalysis.js ====
+  const analyzePadSample = useCallback(async (pi) => {
+    const buf = pads[pi]?.buffer;
+    if (!buf) return;
+    setDetectedBpm(0);
     setDetectedKey(null);
-  }, [detectBpm]);
+    try {
+      const { detectBPM, detectKey } = await import('./AudioAnalysis.js');
+      const bpmResult = detectBPM(buf);
+      const keyResult = detectKey(buf);
+      if (bpmResult?.bpm > 0) setDetectedBpm(Math.round(bpmResult.bpm));
+      if (keyResult?.key) setDetectedKey({ key: keyResult.key, scale: keyResult.scale, confidence: keyResult.confidence });
+    } catch (e) { console.error('[Analysis] failed:', e); }
+  }, [pads]);
 
   const stopAll = useCallback(() => {
     Object.keys(activeSrc.current).forEach(k => { try { activeSrc.current[k].source.stop(); } catch (e) { } });
