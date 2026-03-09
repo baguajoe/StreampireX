@@ -25,7 +25,7 @@ from botocore.client import Config
 from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from models import db, User, Subscription  # adjust import path as needed
+from src.api.models import db, User, Subscription  # adjust import path as needed
 
 marketplace_bp = Blueprint('marketplace', __name__)
 
