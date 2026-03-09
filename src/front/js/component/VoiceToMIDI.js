@@ -1176,7 +1176,6 @@ const VoiceToMIDI = ({
             {formantInfo?.vowel && (
               <div
                 className="vtm-vowel-bubble"
-                }}
               >
                 {formantInfo.vowel.toUpperCase()}
               </div>
@@ -1242,7 +1241,6 @@ const VoiceToMIDI = ({
                         clearTrigger(i);
                       }}
                       className="vtm-btn-clear-trig"
-                      }}
                     >
                       Clear
                     </button>

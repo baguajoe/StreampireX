@@ -216,8 +216,8 @@ const Layout = () => {
               <Route path="/video-series/:id/edit" element={<VideoSeriesBuilder />} />
               <Route path="/creator/membership" element={<CreatorMembershipManager />} />
               <Route path="/fan/membership/:creatorId" element={<FanMembershipPage />} />
-              <Route path="/collab/browse" element={<CollabBrowsePage />} />
-              <Route path="/collab/inbox" element={<CollabInbox />} />
+              <Route path="/collab/browse" element={<Navigate to="/collab-marketplace" replace />} />
+              <Route path="/collab/inbox" element={<Navigate to="/collab-marketplace" replace />} />
               <Route path="/payouts" element={<PayoutDashboard />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/explore" element={<ExplorePage />} />

@@ -594,8 +594,8 @@ const RecordingStudio = ({ user }) => {
 
   // ── DAW Collaboration ──
   const collab = useDAWCollaboration({
-    projectId: currentProjectId || null,
-    user: store?.user || null,
+    projectId: projectId || null,
+    user: null,
     tracks,
     setTracks,
     bpm,
@@ -2535,9 +2535,9 @@ const RecordingStudio = ({ user }) => {
 
         {/* ═══ View Tabs ═══ */}
         <div className="daw-topbar-center-tabs">
+          {/* ── Collab Toolbar ── */}
+          <CollabToolbar collab={collab} />
           <button
-            {/* ── Collab Toolbar ── */}
-            <CollabToolbar collab={collab} />
             className={`daw-view-tab ${viewMode === "arrange" ? "active" : ""}`}
             onClick={() => setViewMode("arrange")}
           >
@@ -2608,40 +2608,6 @@ const RecordingStudio = ({ user }) => {
             Sampler
           </button>
           <button
-            className={`daw-view-tab ${viewMode === "sounds" ? "active" : ""}`}
-            onClick={() => setViewMode("sounds")}
-            title="Sound Browser (Freesound.org)"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <path d="M21 21l-4.35-4.35" />
-            </svg>{" "}
-            Sounds
-          </button>
-          <button
-            className={`daw-view-tab ai-tab ${viewMode === "chords" ? "active" : ""}`}
-            onClick={() => setViewMode("chords")}
-            title="AI Chord Progression Generator"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 18V5l12-2v13" />
-              <circle cx="6" cy="18" r="3" />
-              <circle cx="18" cy="16" r="3" />
-              <path d="M3 3l18 18" strokeWidth="1.5" />
-            </svg>{" "}
-            Chords
-          </button>
-          <button
-            className={`daw-view-tab ai-tab ${viewMode === "aibeat" ? "active" : ""}`}
-            onClick={() => setViewMode("aibeat")}
-            title="AI Beat Generator"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2a4 4 0 014 4v1h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V9a2 2 0 012-2h2V6a4 4 0 014-4z" />
-            </svg>{" "}
-            AI Beats
-          </button>
-          <button
             className={`daw-view-tab ai-tab ${viewMode === "aimix" ? "active" : ""}`}
             onClick={() => setViewMode("aimix")}
             title="AI Mix Assistant"
@@ -2676,19 +2642,6 @@ const RecordingStudio = ({ user }) => {
             Key Finder
           </button>
           <button
-            className={`daw-view-tab ${viewMode === "micsim" ? "active" : ""}`}
-            onClick={() => setViewMode("micsim")}
-            title="Mic Simulator"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" y1="19" x2="12" y2="23" />
-              <line x1="8" y1="23" x2="16" y2="23" />
-            </svg>{" "}
-            Mic Sim
-          </button>
-          <button
             className={`daw-view-tab ${viewMode === "vocal" ? "active" : ""}`}
             onClick={() => setViewMode("vocal")}
             title="Vocal Processor"
@@ -2701,18 +2654,6 @@ const RecordingStudio = ({ user }) => {
             </svg>{" "}
             Vocal
           </button>
-          <button
-            className={`daw-view-tab ${viewMode === "voicemidi" ? "active" : ""}`}
-            onClick={() => setViewMode("voicemidi")}
-            title="Voice-to-MIDI"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <circle cx="12" cy="21" r="2" />
-            </svg>{" "}
-            Voice MIDI
-          </button>
           <button className={`daw-view-tab ${viewMode === 'fx' ? 'active' : ''}`} onClick={() => setViewMode('fx')} title="FX Chain — All effects for selected track">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M4.93 4.93a10 10 0 0 0 0 14.14" /></svg>
             FX Chain
@@ -2720,10 +2661,6 @@ const RecordingStudio = ({ user }) => {
           <button className={`daw-view-tab ${viewMode === 'mastering' ? 'active' : ''}`} onClick={() => setViewMode('mastering')} title="Mastering Suite — LUFS, EQ, Limiter, Widener">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
             Master
-          </button>
-          <button className={`daw-view-tab ${viewMode === 'looperman' ? 'active' : ''}`} onClick={() => setViewMode('looperman')} title="Looperman — Free royalty-free loops & acapellas">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></svg>
-            Loops
           </button>
         </div>
 
@@ -3317,6 +3254,79 @@ const RecordingStudio = ({ user }) => {
               setStatus(`🥁 Beat → Arrange Track ${drumTrackIdx + 1}`);
               setViewMode('arrange');
             }}
+            chordsComponent={
+              <ChordProgressionGenerator
+                musicalKey={pianoRollKey}
+                scale={pianoRollScale}
+                bpm={bpm}
+                timeSignature={timeSignature}
+                onInsertChords={handleChordInsert}
+                onKeyChange={handleChordKeyChange}
+                audioContext={audioCtxRef.current}
+                onClose={() => {}}
+                isEmbedded={true}
+              />
+            }
+            soundsComponent={
+              <FreesoundBrowser
+                audioContext={audioCtxRef.current}
+                onSoundSelect={(audioBuffer, name, audioUrl) => {
+                  const ai = tracks.findIndex((t) => t.armed);
+                  if (ai !== -1) {
+                    updateTrack(ai, { audioBuffer, audio_url: audioUrl, name: name || 'Freesound Sample' });
+                    setStatus(`🎵 "${name}" → Track ${ai + 1}`);
+                  } else {
+                    window.__spx_sampler_export = { buffer: audioBuffer, name, timestamp: Date.now() };
+                    setStatus(`🎵 "${name}" loaded to Sampler`);
+                  }
+                }}
+                isEmbedded={true}
+              />
+            }
+            loopsComponent={
+              <LoopermanBrowser
+                audioContext={audioCtxRef.current}
+                onSoundSelect={(audioBuffer, name, audioUrl) => {
+                  const ai = tracks.findIndex(t => t.armed);
+                  if (ai !== -1) {
+                    updateTrack(ai, { audioBuffer, audio_url: audioUrl, name: name || 'Loop' });
+                    createRegionFromImport(ai, audioBuffer, name || 'Loop', audioUrl);
+                    setStatus(`✓ "${name}" → Track ${ai + 1}`);
+                  } else {
+                    window.__spx_sampler_export = { buffer: audioBuffer, name, timestamp: Date.now() };
+                    setStatus(`Loop "${name}" sent to Sampler`);
+                  }
+                }}
+                onClose={() => {}}
+                isEmbedded={true}
+              />
+            }
+            aiBeatsComponent={
+              <AIBeatAssistant
+                onApplyPattern={handleAIBeatApply}
+                onClose={() => {}}
+                isEmbedded={true}
+              />
+            }
+            voiceMidiComponent={
+              <VoiceToMIDI
+                audioContext={audioCtxRef.current}
+                bpm={bpm}
+                isEmbedded={true}
+                onNoteOn={({ note, velocity }) => {
+                  const armedIdx = tracks.findIndex(
+                    (t) => t.armed && (t.trackType === 'midi' || t.trackType === 'instrument'),
+                  );
+                  if (armedIdx !== -1) instrumentEngine.playNoteOnTrack(armedIdx, note, velocity);
+                }}
+                onNoteOff={({ note }) => {
+                  const armedIdx = tracks.findIndex(
+                    (t) => t.armed && (t.trackType === 'midi' || t.trackType === 'instrument'),
+                  );
+                  if (armedIdx !== -1) instrumentEngine.stopNoteOnTrack(armedIdx, note);
+                }}
+              />
+            }
           />
         )}
 

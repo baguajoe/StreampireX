@@ -2647,6 +2647,11 @@ const SamplerBeatMaker = ({
           { id: 'sampler', label: '🎧 Sampler', title: 'Sample Editor, Waveform, Chop, ADSR' },
           { id: 'drumpad', label: '🥁 Drum Kit', title: 'MPC Pads, Performance, Kits' },
           { id: 'beats', label: '🎹 Beat Maker', title: 'Step Sequencer, Patterns, Song Mode' },
+          { id: 'chords', label: '🎼 Chords', title: 'Chord Progression Generator' },
+          { id: 'sounds', label: '🔊 Sounds', title: 'Freesound Sample Browser' },
+          { id: 'loops', label: '🔁 Loops', title: 'Looperman Loop Browser' },
+          { id: 'aibeats', label: '🤖 AI Beats', title: 'AI Beat Pattern Generator' },
+          { id: 'voicemidi', label: '🎤 Voice MIDI', title: 'Voice to MIDI Converter' },
           { id: 'stems', label: '✂️ Stems', title: 'AI Stem Separator' },
         ].map(tab => (
           <button
@@ -2792,6 +2797,41 @@ const SamplerBeatMaker = ({
               },
             }}
           />
+        )}
+
+        {/* ── CHORDS TAB ── */}
+        {activeTab === 'chords' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
+            {props.chordsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🎼 Chord Progression Generator — open via DAW Sampler view</div>}
+          </div>
+        )}
+
+        {/* ── SOUNDS TAB ── */}
+        {activeTab === 'sounds' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
+            {props.soundsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🔊 Freesound Browser — open via DAW Sampler view</div>}
+          </div>
+        )}
+
+        {/* ── LOOPS TAB ── */}
+        {activeTab === 'loops' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
+            {props.loopsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🔁 Looperman Browser — open via DAW Sampler view</div>}
+          </div>
+        )}
+
+        {/* ── AI BEATS TAB ── */}
+        {activeTab === 'aibeats' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
+            {props.aiBeatsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🤖 AI Beat Assistant — open via DAW Sampler view</div>}
+          </div>
+        )}
+
+        {/* ── VOICE MIDI TAB ── */}
+        {activeTab === 'voicemidi' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
+            {props.voiceMidiComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🎤 Voice MIDI — open via DAW Sampler view</div>}
+          </div>
         )}
 
       </div>

@@ -73,6 +73,19 @@ const EPKView = ({ epk, compact = false }) => {
             {epk.location && <span className="pepk-location">📍 {epk.location}</span>}
           </div>
           {epk.collab_open && <span className="pepk-collab-badge">🤝 Open for Collabs</span>}
+          {epk.collab_open && (
+            
+              href={`/collab-marketplace?creator=${epk.user_id}`}
+              className="pepk-book-me-btn"
+              style={{
+                display: 'inline-block', marginTop: '10px', padding: '8px 20px',
+                background: '#FF6600', color: '#fff', borderRadius: '6px',
+                fontWeight: 700, fontSize: '14px', textDecoration: 'none',
+              }}
+            >
+              📅 Book Me
+            </a>
+          )}
         </div>
       </div>
 
