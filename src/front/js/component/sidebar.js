@@ -418,6 +418,12 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/discover-users" className={isActive("/discover-users") ? "active" : ""}>
             🔍 <span className="sidebar-label">Discover Users</span>
           </MenuItem>
+          <MenuItem to="/search" className={isActive("/search") ? "active" : ""}>
+            🔎 <span className="sidebar-label">Search</span>
+          </MenuItem>
+          <MenuItem to="/explore" className={isActive("/explore") ? "active" : ""}>
+            🌐 <span className="sidebar-label">Explore</span>
+          </MenuItem>
         </>
       )}
 
@@ -524,9 +530,9 @@ const Sidebar = ({ user }) => {
             🎞️ <span className="sidebar-label">Reels</span>
           </MenuItem>
           <MenuItem to="/my-reels" className={isActive("/my-reels") ? "active" : ""}>
-        📂 <span className="sidebar-label">My Reels</span>
-      </MenuItem>
-      <MenuItem to="/upload-reel" className={isActive("/upload-reel") ? "active" : ""}>
+            📂 <span className="sidebar-label">My Reels</span>
+          </MenuItem>
+          <MenuItem to="/upload-reel" className={isActive("/upload-reel") ? "active" : ""}>
             ⬆️ <span className="sidebar-label">Upload Reel</span>
           </MenuItem>
           <MenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>
@@ -540,6 +546,12 @@ const Sidebar = ({ user }) => {
           </MenuItem>
           <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
             📡 <span className="sidebar-label">Live Streams</span>
+          </MenuItem>
+          <MenuItem to="/collab/browse" className={isActive("/collab/browse") ? "active" : ""}>
+            🤝 <span className="sidebar-label">Browse Collabs</span>
+          </MenuItem>
+          <MenuItem to="/collab/inbox" className={isActive("/collab/inbox") ? "active" : ""}>
+            📬 <span className="sidebar-label">Collab Inbox</span>
           </MenuItem>
         </>
       )}
@@ -607,6 +619,17 @@ const Sidebar = ({ user }) => {
               <MenuItem to="/epk-hub" className={isActive("/epk-hub") ? "active" : ""}>
                 📋 <span className="sidebar-label">EPK & Collabs</span>
                 <MenuHint className="sidebar-hint">NEW</MenuHint>
+              </MenuItem>
+              <MenuItem to="/video-series/new" className={isActive("/video-series") ? "active" : ""}>
+                🎬 <span className="sidebar-label">Video Series</span>
+                <MenuHint className="sidebar-hint">NEW</MenuHint>
+              </MenuItem>
+              <MenuItem to="/creator/membership" className={isActive("/creator/membership") ? "active" : ""}>
+                ⭐ <span className="sidebar-label">Fan Membership</span>
+                <MenuHint className="sidebar-hint">NEW</MenuHint>
+              </MenuItem>
+              <MenuItem to="/payouts" className={isActive("/payouts") ? "active" : ""}>
+                💵 <span className="sidebar-label">Payout Dashboard</span>
               </MenuItem>
             </>
           )}
@@ -694,6 +717,13 @@ const Sidebar = ({ user }) => {
           </MenuItem>
           <MenuItem to="/orders" className={isActive("/orders") ? "active" : ""}>
             📦 <span className="sidebar-label">Orders</span>
+          </MenuItem>
+          <MenuItem to="/stems" className={isActive("/stems") ? "active" : ""}>
+            🎵 <span className="sidebar-label">Stems Store</span>
+            <MenuHint className="sidebar-hint">NEW</MenuHint>
+          </MenuItem>
+          <MenuItem to="/stems/sell" className={isActive("/stems/sell") ? "active" : ""}>
+            💰 <span className="sidebar-label">Sell Stems</span>
           </MenuItem>
         </>
       )}

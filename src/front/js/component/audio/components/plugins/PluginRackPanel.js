@@ -8,10 +8,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getPluginHost } from '../../plugins/PluginHost';
 import PluginSlot from './PluginSlot';
+import WAMPluginSlot from './WAMPluginSlot';
+import { getInstalledWAMPlugins } from '../../plugins/WAMPluginHost';
 import PluginBrowserModal from './PluginBrowserModal';
 
 const PluginRackPanel = ({ trackGraph, trackName, trackColor, onClose }) => {
   const [rack, setRack] = useState([]);
+  const [wamSlots, setWamSlots] = useState([]);
   const [showBrowser, setShowBrowser] = useState(false);
   const [dragIdx, setDragIdx] = useState(null);
   const hostRef = useRef(getPluginHost());
@@ -34,6 +37,13 @@ const PluginRackPanel = ({ trackGraph, trackName, trackColor, onClose }) => {
 
   const handleAddPlugin = useCallback(async (pluginId) => {
     if (!trackGraph) return;
+    if (pluginId.startsWith('wam:')) {
+      const url = pluginId.replace('wam:', '');
+      const meta = getInstalledWAMPlugins().find(p => p.url === url);
+      if (!meta) return;
+      setWamSlots(prev => [...prev, { id: `wam_${Date.now()}`, pluginMeta: meta }]);
+      return;
+    }
     try {
       await hostRef.current.addPlugin(trackGraph, pluginId);
       refreshRack();

@@ -312,6 +312,7 @@ const Layout = () => {
               <Route path="/subscription/success" element={<SubscriptionSuccess />} />
 
               {/* 404 Fallback */}
+                            <Route path="/plugin-store" element={<WAMPluginStore />} />
               <Route path="*" element={<h1>Not found!</h1>} />
 
             </Routes>

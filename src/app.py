@@ -333,6 +333,8 @@ app.register_blueprint(looperman_bp)
 app.register_blueprint(fan_membership_bp)
 app.register_blueprint(series_bp)
 app.register_blueprint(comment_bp)
+from src.api.wam_plugin_routes import wam_plugin_bp
+app.register_blueprint(wam_plugin_bp)
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)
