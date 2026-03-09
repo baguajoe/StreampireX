@@ -27,6 +27,16 @@ const FEATURE_INFO = {
   ai_auto_captions:      { name: 'Auto Captions',          icon: '💬', cat: 'Video' },
   ai_lyrics_generation:  { name: 'Lyrics Writer',          icon: '📝', cat: 'Content' },
   ai_image_generation:   { name: 'Image Generation',       icon: '🖼️', cat: 'Visual' },
+  
+  text_to_song:              { name: 'AI Text to Song',          icon: '✨', cat: 'Music AI' },
+  text_to_song_with_vocals:  { name: 'AI Song + Vocals',         icon: '✨', cat: 'Music AI' },
+  add_vocals_to_track:       { name: 'Add Vocals to Beat',       icon: '🎤', cat: 'Music AI' },
+  add_beat_to_vocals:        { name: 'Add Beat to Vocals',       icon: '🎸', cat: 'Music AI' },
+  hum_to_song:               { name: 'Hum to Song',              icon: '🎙', cat: 'Music AI' },
+  song_extender:             { name: 'AI Song Extender',         icon: '🔮', cat: 'Music AI' },
+  ai_stack_generator:        { name: 'AI Stack Generator',       icon: '🎛', cat: 'Music AI' },
+  reference_mastering_ai:    { name: 'Reference Mastering AI',   icon: '📊', cat: 'Mastering' },
+
   ai_thumbnail_enhance:  { name: 'Thumbnail Enhance',      icon: '✨', cat: 'Visual' },
   stem_separation:       { name: 'Stem Separation',        icon: '🎛️', cat: 'Audio' },
   ai_mix_assistant:      { name: 'Mix Assistant',          icon: '🎚️', cat: 'Audio' },

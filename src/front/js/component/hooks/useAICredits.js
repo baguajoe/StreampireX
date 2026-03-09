@@ -52,6 +52,28 @@ const FEATURE_LABELS = {
     motion_tracking:       '📍 Motion Tracking',
     ai_beat_detection:     '🥁 Beat Detection',
     vocal_tuner:           '🎤 Vocal Tuner',
+
+    // Suno gap features
+    text_to_song:              '✨ AI Text to Song',
+    text_to_song_with_vocals:  '✨ AI Text to Song + Vocals',
+    add_vocals_to_track:       '🎤 Add Vocals to Beat',
+    add_beat_to_vocals:        '🎸 Add Beat to Vocals',
+    hum_to_song:               '🎙 Hum to Song',
+    song_extender:             '🔮 AI Song Extender',
+
+    // Competitor gap features
+    ai_stack_generator:        '🎛 AI Stack Generator',
+    reference_mastering_ai:    '📊 Reference Mastering AI',
+    chord_track_detect:        '🎹 Chord Track (Free)',
+    smart_backing_track:       '🎸 Smart Backing Track (Free)',
+    chord_progression_gen:     '🎼 Chord Progression Generator (Free)',
+    quick_capture:             '⚡ Quick Capture (Free)',
+    session_version_control:   '💾 Session Version Control (Free)',
+    daw_collab_audio:          '👥 DAW Collab (Free)',
+    amp_sim:                   '🎸 Amp Simulator (Free)',
+    voice_to_midi:             '🎵 Voice to MIDI (Free)',
+    voice_to_beat:             '🥁 Voice to Beat (Free)',
+
 };
 
 const useAICredits = () => {

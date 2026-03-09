@@ -70,7 +70,32 @@ AI_FEATURE_COSTS = {
     'audio_ducking':           0,   # Web Audio API (browser)
     'motion_tracking':         0,   # Canvas template matching (browser)
     'ai_beat_detection':       0,   # Local onset detection
-    'vocal_tuner':             0,   # PhaseVocoder (browser)
+    'vocal_tuner':             0,
+
+    # ── Suno Gap Features (Replicate musicgen + ElevenLabs) ──────────────
+    'text_to_song':              15,   # Replicate musicgen-stereo (user pays)
+    'text_to_song_with_vocals':  25,   # musicgen + ElevenLabs TTS (user pays)
+    'add_vocals_to_track':       20,   # ElevenLabs TTS + ffmpeg (user pays)
+    'add_beat_to_vocals':        20,   # Replicate musicgen-melody (user pays)
+    'hum_to_song':               20,   # Replicate musicgen-melody from hum (user pays)
+    'song_extender':             15,   # Replicate musicgen per 30s pass (user pays)
+
+    # ── LANDR / Loopcloud / Splice Gap Features ───────────────────────────
+    'ai_stack_generator':        10,   # Claude API → layered sample suggestions
+    'reference_mastering_ai':     5,   # librosa analysis is free; AI suggestion via Claude API
+
+    # ── FREE local-processing features (0 credits) ────────────────────────
+    'chord_track_detect':         0,   # local Web Audio chord detection
+    'smart_backing_track':        0,   # local BPM/key matching, no API
+    'chord_progression_gen':      0,   # deterministic music theory, no API
+    'quick_capture':              0,   # local MediaRecorder, no API
+    'session_version_control':    0,   # R2 storage only, no AI API
+    'daw_collab_audio':           0,   # WebRTC, no AI API
+    'amp_sim':                    0,   # Web Audio DSP, no API
+    'voice_to_midi':              0,   # local YIN pitch detection, no API
+    'voice_to_beat':              0,   # local onset detection, no API
+    'reference_mastering_local':  0,   # librosa runs on server, open source
+   # PhaseVocoder (browser)
 }
 
 # Features requiring a minimum tier (regardless of credits)
