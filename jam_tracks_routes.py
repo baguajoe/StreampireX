@@ -30,23 +30,27 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_req
 
 jam_tracks_bp = Blueprint('jam_tracks', __name__)
 
-R2_ENDPOINT = os.environ.get('R2_ENDPOINT_URL', '')
-R2_KEY      = os.environ.get('R2_ACCESS_KEY_ID', '')
-R2_SECRET   = os.environ.get('R2_SECRET_ACCESS_KEY', '')
-R2_BUCKET   = os.environ.get('R2_BUCKET_NAME', 'streampirex-media')
+R2_BUCKET = os.environ.get("R2_BUCKET_NAME", "streampirex-media")
+PLATFORM_FEE = 0.10
 
-s3 = boto3.client(
-    's3',
-    endpoint_url=R2_ENDPOINT,
-    aws_access_key_id=R2_KEY,
-    aws_secret_access_key=R2_SECRET,
-    config=Config(signature_version='s3v4'),
-    region_name='auto',
-)
+def get_s3():
+    import boto3
+    from botocore.client import Config
+    return boto3.client(
+        's3',
+        endpoint_url=os.environ.get('R2_ENDPOINT_URL') or os.environ.get('R2_ENDPOINT', ''),
+        aws_access_key_id=os.environ.get('R2_ACCESS_KEY_ID', ''),
+        aws_secret_access_key=os.environ.get('R2_SECRET_ACCESS_KEY', ''),
+        config=Config(signature_version='s3v4'),
+        region_name='auto',
+    )
+
+
+
 
 def presign(key, expiry=3600, method='get_object'):
     try:
-        return s3.generate_presigned_url(
+        return get_s3().generate_presigned_url(
             method,
             Params={'Bucket': R2_BUCKET, 'Key': key},
             ExpiresIn=expiry,
@@ -157,7 +161,7 @@ def save_recording(track_id):
     r2_key  = f'jam-tracks/recordings/{user_id}/{track_id}/{rec_id}.webm'
 
     try:
-        s3.upload_fileobj(
+        get_s3().upload_fileobj(
             audio_file,
             R2_BUCKET,
             r2_key,
