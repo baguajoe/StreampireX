@@ -526,6 +526,20 @@ def restrict_admin_to_basic_auth():
                 {'WWW-Authenticate': 'Basic realm="Login Required"'})
 
 # ✅ FIXED: Run the app with better error handling
+
+from src.api.sample_marketplace_routes import marketplace_bp
+from src.api.jam_tracks_routes import jam_tracks_bp
+from src.api.collab_marketplace_routes import collab_marketplace_bp
+from src.api.reference_mastering_routes import reference_mastering_bp
+from src.api.suno_gap_routes import suno_gap_bp
+
+
+app.register_blueprint(marketplace_bp)
+app.register_blueprint(jam_tracks_bp)
+app.register_blueprint(collab_marketplace_bp)
+app.register_blueprint(reference_mastering_bp)
+app.register_blueprint(suno_gap_bp)
+
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3001))
     
