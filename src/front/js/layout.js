@@ -1,5 +1,5 @@
 import React, { useContext, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ScrollToTop from "./component/scrollToTop";
 import injectContext, { Context } from "./store/appContext";
 import { initializeAdvancedPWAFeatures } from './component/AdvancedPWAFeatures';
@@ -24,7 +24,6 @@ import HomeFeed from "./pages/HomeFeed";
 import RadioStationDetailPage from "./component/RadioStationDetailPage";
 import GamerProfilePage from "./pages/GamerProfilePage";
 import GamersChatroomPage from "./pages/GamersChatroomPage";
-// Add these imports at the top of your layout.js
 import EditArtistProfilePage from "./pages/EditArtistProfilePage";
 import AlbumDetailPage from "./pages/AlbumDetailPage";
 import VideoChannelDashboard from "./pages/VideoChannelDashboard";
@@ -36,7 +35,7 @@ import GoLivePage from './pages/GoLivePage';
 import CreateClipPage from './pages/CreateClipPage';
 import FloatingVideoCall from "./component/FloatingVideoCall";
 import SubscriptionSuccess from './pages/SubscriptionSuccess';
-import AIMasteringPage from "./pages/AIMasteringPage";       // ✅ correct
+import AIMasteringPage from "./pages/AIMasteringPage";
 import AIRadioDJPage from "./pages/AIRadioDJPage";
 import AIRadioDJ from "./component/AIRadioDJ";
 import AIContentWriter from "./pages/AIContentWriter";
@@ -48,7 +47,6 @@ import VoiceCloneServices from './pages/VoiceCloneServices';
 import PluginRackDemo from './pages/PluginRackDemo.js';
 import PodcastStudio from "./pages/PodcastStudio";
 import PodcastGuestJoin from "./pages/PodcastGuestJoin";
-// Phase 2: Async guest recording page (standalone, no auth)
 import { AsyncGuestRecordPage } from "./pages/PodcastStudioPhase2";
 import PodcastCollabRoom from "./component/PodcastCollabRoom";
 import WAMPluginStore from './pages/WAMPluginStore';
@@ -65,7 +63,6 @@ import QuickCaptureMode from './pages/QuickCaptureMode';
 import AIThumbnailMaker from './pages/AIThumbnailMaker';
 import AIEPKWriter from './pages/AIEPKWriter';
 import AIPromoGenerator from './pages/AIPromoGenerator';
-
 
 import VideoUpload from "./pages/VideoUpload";
 import VideoDetails from "./component/VideoDetails";
@@ -99,7 +96,6 @@ import LyricsUploadPage from "./pages/LyricsUploadPage";
 import PodcastDetailPage from "./pages/PodcastDetailPage";
 import SquadFinderPage from "./pages/SquadFinderPage";
 import MusicDistribution from "./pages/MusicDistribution";
-// Store/Marketplace Components
 import ProductDetailPage from "./pages/ProductDetailPage";
 import ShoppingCart from "./pages/ShoppingCart";
 import CheckoutPage from "./pages/CheckoutPage";
@@ -138,41 +134,35 @@ import PayoutDashboard from "./pages/PayoutDashboard";
 import { SearchPage, ExplorePage } from "./pages/GlobalSearch";
 import { BrowseStemsPage, SellStemsPage } from "./pages/StemsStore";
 
-// ✨ NEW: Unified Dashboard
 import { Dashboard } from "./pages/Dashboard";
 
-const Layout = () => {
-  const basename = process.env.BASENAME || "";
+// ─── Routes where Navbar + Sidebar should NOT appear ───────────────────────
+// The homepage, login, and signup are fully standalone pages with their own layout.
+const PUBLIC_ONLY_ROUTES = ["/", "/login", "/signup"];
 
-  // Pull user from context
-  const { store } = useContext(Context);
-  const user = store.user;
-
-  useEffect(() => {
-    initializeAdvancedPWAFeatures();
-  }, []);
-
-  // if (!process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL === "")
-  // return <BackendURL />;
-
-  // rest of your component...
+// Inner shell component — must live inside <Router> so useLocation works
+const AppShell = ({ user }) => {
+  const location = useLocation();
+  const isPublicRoute = PUBLIC_ONLY_ROUTES.includes(location.pathname);
 
   return (
-    <Router basename={basename}>
-      {/* 🔥 TOAST NOTIFICATIONS - Add this right after Router */}
+    <>
       <Toaster />
-
       <ScrollToTop>
-        <Navbar />
+        {/* Navbar only shown on authenticated/app routes */}
+        {!isPublicRoute && <Navbar />}
+
         <div className="app-layout">
-          <Sidebar user={user} />
-          <main className="main-content">
+          {/* Sidebar only shown on authenticated/app routes */}
+          {!isPublicRoute && <Sidebar user={user} />}
+
+          <main className={`main-content${isPublicRoute ? " no-sidebar" : ""}`}>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<SignupForm />} />
 
-              {/* 💰 Pricing Routes - Both paths for compatibility */}
+              {/* 💰 Pricing */}
               <Route path="/pricing" element={<PricingPlans />} />
               <Route path="/pricing/plans" element={<PricingPlans />} />
               <Route path="/pricing-plans" element={<PricingPlans />} />
@@ -186,16 +176,17 @@ const Layout = () => {
               <Route path="/support/:username" element={<TipJarPage />} />
               <Route path="/tip/:username" element={<TipJarPage />} />
 
-              {/* ✨ NEW: Unified Dashboard with nested routes */}
+              {/* ✨ Unified Dashboard */}
               <Route path="/dashboard/*" element={<Dashboard />} />
 
-              {/* 🔄 Redirects from old dashboard routes to new unified dashboard */}
+              {/* 🔄 Redirects from old dashboard routes */}
               <Route path="/creator-dashboard" element={<Navigate to="/dashboard" replace />} />
               <Route path="/artist-dashboard" element={<Navigate to="/dashboard/music" replace />} />
               <Route path="/podcast-dashboard" element={<Navigate to="/dashboard/podcasts" replace />} />
               <Route path="/radio-dashboard" element={<Navigate to="/dashboard/radio" replace />} />
               <Route path="/video-dashboard" element={<Navigate to="/dashboard/videos" replace />} />
               <Route path="/sales-dashboard" element={<Navigate to="/dashboard/store" replace />} />
+
               <Route path="/ai-mastering" element={<AIMasteringPage />} />
               <Route path="/ai-radio-dj" element={<AIRadioDJPage />} />
               <Route path="/ai-radio-dj/:stationId" element={<AIRadioDJ />} />
@@ -238,8 +229,7 @@ const Layout = () => {
               <Route path="/ai-epk-writer" element={<AIEPKWriter />} />
               <Route path="/ai-promo" element={<AIPromoGenerator />} />
 
-
-              {/* Video Channel Routes */}
+              {/* Video Channel */}
               <Route path="/profile/video" element={<VideoChannelProfile />} />
               <Route path="/my-channel" element={<MyVideoChannel />} />
               <Route path="/upload-video" element={<VideoUpload />} />
@@ -247,7 +237,7 @@ const Layout = () => {
               <Route path="/video-details/:id" element={<VideoDetails />} />
               <Route path="/live-streams/:id" element={<LiveStreamViewer />} />
 
-              {/* 🔍 Discover Users - Main route + redirects from old routes */}
+              {/* 🔍 Discover Users */}
               <Route path="/discover-users" element={<DiscoverUsersPage />} />
               <Route path="/search-artists" element={<Navigate to="/discover-users" replace />} />
               <Route path="/browse-users" element={<Navigate to="/discover-users" replace />} />
@@ -264,7 +254,6 @@ const Layout = () => {
               <Route path="/podcast-category/:category" element={<PodcastCategoryPage />} />
               <Route path="/podcast/:id" element={<PodcastDetailPage />} />
               <Route path="/user/:userId/videos" element={<UserVideoChannelPage />} />
-
 
               {/* 📻 Radio Stations */}
               <Route path="/radio-stations" element={<RadioStationPage />} />
@@ -293,11 +282,11 @@ const Layout = () => {
               <Route path="/epk-hub" element={<EPKCollabHub />} />
               <Route path="/epk/:slug" element={<PublicEPKPage />} />
 
-              {/* 🎤 Indie Artists */}
+              {/* 🎤 Music */}
               <Route path="/upload-music" element={<UploadMusic />} />
               <Route path="/music-distribution" element={<MusicDistribution />} />
 
-              {/* 👤 Public User Profile (for viewing other users) */}
+              {/* 👤 Profiles */}
               <Route path="/user/:userId" element={<ProfilePage />} />
               <Route path="/user/u/:username" element={<UserSearchProfilePage />} />
               <Route path="/artist/:id" element={<ArtistProfilePage />} />
@@ -310,7 +299,7 @@ const Layout = () => {
               <Route path="/live-concerts" element={<LiveConcerts />} />
               <Route path="/live-show/:id" element={<LiveShowPage />} />
 
-              {/* 👤 User - ALL PROFILE TYPES */}
+              {/* 👤 User — All Profile Types */}
               <Route path="/home-feed" element={<HomeFeed />} />
               <Route path="/content-library" element={<ContentLibrary />} />
               <Route path="/profile" element={<ProfilePage />} />
@@ -327,7 +316,7 @@ const Layout = () => {
               <Route path="/squad-finder" element={<SquadFinderPage />} />
               <Route path="/create-team-room" element={<CreateTeamRoomPage />} />
 
-              {/* 🎵 Additional Artist Routes (Optional) */}
+              {/* 🎵 Additional Artist Routes */}
               <Route path="/artist/upload" element={<UploadMusic />} />
               <Route path="/artist/analytics" element={<Navigate to="/dashboard/music" replace />} />
 
@@ -340,15 +329,29 @@ const Layout = () => {
               <Route path="/subscription/success" element={<SubscriptionSuccess />} />
 
               {/* 404 Fallback */}
-                            <Route path="/plugin-store" element={<WAMPluginStore />} />
               <Route path="*" element={<h1>Not found!</h1>} />
-
             </Routes>
             <FloatingVideoCall currentUser={user} />
           </main>
         </div>
         <Footer />
       </ScrollToTop>
+    </>
+  );
+};
+
+const Layout = () => {
+  const basename = process.env.BASENAME || "";
+  const { store } = useContext(Context);
+  const user = store.user;
+
+  useEffect(() => {
+    initializeAdvancedPWAFeatures();
+  }, []);
+
+  return (
+    <Router basename={basename}>
+      <AppShell user={user} />
     </Router>
   );
 };
