@@ -51,6 +51,7 @@ import PodcastGuestJoin from "./pages/PodcastGuestJoin";
 // Phase 2: Async guest recording page (standalone, no auth)
 import { AsyncGuestRecordPage } from "./pages/PodcastStudioPhase2";
 import PodcastCollabRoom from "./component/PodcastCollabRoom";
+import WAMPluginStore from './pages/WAMPluginStore';
 
 
 import VideoUpload from "./pages/VideoUpload";
@@ -209,6 +210,7 @@ const Layout = () => {
               <Route path="/explore" element={<ExplorePage />} />
               <Route path="/stems" element={<BrowseStemsPage />} />
               <Route path="/stems/sell" element={<SellStemsPage />} />
+              <Route path="/plugin-store" element={<WAMPluginStore />} />
 
 
               {/* Video Channel Routes */}
