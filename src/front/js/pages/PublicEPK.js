@@ -74,7 +74,7 @@ const EPKView = ({ epk, compact = false }) => {
           </div>
           {epk.collab_open && <span className="pepk-collab-badge">🤝 Open for Collabs</span>}
           {epk.collab_open && (
-            
+            <a
               href={`/collab-marketplace?creator=${epk.user_id}`}
               className="pepk-book-me-btn"
               style={{
