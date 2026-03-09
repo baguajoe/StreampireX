@@ -20,7 +20,7 @@ let _wamHostGroupId = null;
 let _wamHostGroupKey = null;
 let _wamSDKLoaded = false;
 
-const WAM_SDK_URL = 'https://mainline.i3s.unice.fr/wam2/packages/sdk/src/index.js';
+const WAM_SDK_URL = 'https://pub-3a956be9429449469ec53b73495e.r2.dev/wam-sdk/wam-sdk.js';
 
 /**
  * Load the WAM 2.0 SDK once per session.
