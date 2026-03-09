@@ -52,6 +52,19 @@ import PodcastGuestJoin from "./pages/PodcastGuestJoin";
 import { AsyncGuestRecordPage } from "./pages/PodcastStudioPhase2";
 import PodcastCollabRoom from "./component/PodcastCollabRoom";
 import WAMPluginStore from './pages/WAMPluginStore';
+import AITextToSong from './pages/AITextToSong';
+import AddVocalsToTrack from './pages/AddVocalsToTrack';
+import AddBeatToVocals from './pages/AddBeatToVocals';
+import SongExtender from './pages/SongExtender';
+import HumToSong from './pages/HumToSong';
+import CreatorSampleMarketplace from './pages/CreatorSampleMarketplace';
+import CreatorAcademy from './pages/CreatorAcademy';
+import CollabMarketplace from './pages/CollabMarketplace';
+import JamTrackLibrary from './pages/JamTrackLibrary';
+import QuickCaptureMode from './pages/QuickCaptureMode';
+import AIThumbnailMaker from './pages/AIThumbnailMaker';
+import AIEPKWriter from './pages/AIEPKWriter';
+import AIPromoGenerator from './pages/AIPromoGenerator';
 
 
 import VideoUpload from "./pages/VideoUpload";
@@ -211,6 +224,19 @@ const Layout = () => {
               <Route path="/stems" element={<BrowseStemsPage />} />
               <Route path="/stems/sell" element={<SellStemsPage />} />
               <Route path="/plugin-store" element={<WAMPluginStore />} />
+              <Route path="/ai-song" element={<AITextToSong />} />
+              <Route path="/ai-add-vocals" element={<AddVocalsToTrack />} />
+              <Route path="/ai-add-beat" element={<AddBeatToVocals />} />
+              <Route path="/ai-extend-song" element={<SongExtender />} />
+              <Route path="/hum-to-song" element={<HumToSong />} />
+              <Route path="/sample-marketplace" element={<CreatorSampleMarketplace />} />
+              <Route path="/academy" element={<CreatorAcademy />} />
+              <Route path="/collab-marketplace" element={<CollabMarketplace />} />
+              <Route path="/jam-tracks" element={<JamTrackLibrary />} />
+              <Route path="/quick-record" element={<QuickCaptureMode />} />
+              <Route path="/ai-thumbnail" element={<AIThumbnailMaker />} />
+              <Route path="/ai-epk-writer" element={<AIEPKWriter />} />
+              <Route path="/ai-promo" element={<AIPromoGenerator />} />
 
 
               {/* Video Channel Routes */}
