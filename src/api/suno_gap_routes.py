@@ -43,19 +43,17 @@ R2_KEY      = os.environ.get('R2_ACCESS_KEY_ID', '')
 R2_SECRET   = os.environ.get('R2_SECRET_ACCESS_KEY', '')
 R2_BUCKET   = os.environ.get('R2_BUCKET_NAME', 'streampirex-media')
 
-s3 = boto3.client(
-    's3',
-    endpoint_url=R2_ENDPOINT,
-    aws_access_key_id=R2_KEY,
-    aws_secret_access_key=R2_SECRET,
-    config=Config(signature_version='s3v4'),
+def get_s3():
+    import boto3
+    from botocore.client import Config
+    return boto3.client("s3", endpoint_url=os.environ.get("R2_ENDPOINT_URL") or os.environ.get("R2_ENDPOINT",""), aws_access_key_id=os.environ.get("R2_ACCESS_KEY_ID",""), aws_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY",""), config=Config(signature_version="s3v4"), region_name="auto"),
     region_name='auto',
 )
 
 def upload_to_r2(data: bytes, key: str, content_type: str = 'audio/mpeg') -> str:
     """Upload bytes to R2 and return a presigned URL."""
-    s3.put_object(Bucket=R2_BUCKET, Key=key, Body=data, ContentType=content_type)
-    return s3.generate_presigned_url(
+    get_s3().put_object(Bucket=R2_BUCKET, Key=key, Body=data, ContentType=content_type)
+    return get_s3().generate_presigned_url(
         'get_object',
         Params={'Bucket': R2_BUCKET, 'Key': key},
         ExpiresIn=86400,
