@@ -24,6 +24,19 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
+def get_s3():
+    import boto3
+    from botocore.config import Config
+    return boto3.client(
+        's3',
+        endpoint_url=os.environ.get('R2_ENDPOINT_URL') or os.environ.get('R2_ENDPOINT'),
+        aws_access_key_id=os.environ.get('R2_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.environ.get('R2_SECRET_ACCESS_KEY'),
+        config=Config(signature_version='s3v4'),
+        region_name='auto',
+    )
+
+
 # from models import db, User
 # from models import CollabService, CollabOrder  # add to models.py
 

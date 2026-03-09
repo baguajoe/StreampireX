@@ -24,6 +24,19 @@ from botocore.client import Config
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
+def get_s3():
+    import boto3
+    from botocore.config import Config
+    return boto3.client(
+        's3',
+        endpoint_url=os.environ.get('R2_ENDPOINT_URL') or os.environ.get('R2_ENDPOINT'),
+        aws_access_key_id=os.environ.get('R2_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.environ.get('R2_SECRET_ACCESS_KEY'),
+        config=Config(signature_version='s3v4'),
+        region_name='auto',
+    )
+
+
 reference_mastering_bp = Blueprint('reference_mastering', __name__)
 
 R2_ENDPOINT = os.environ.get('R2_ENDPOINT_URL', '')
@@ -31,16 +44,13 @@ R2_KEY      = os.environ.get('R2_ACCESS_KEY_ID', '')
 R2_SECRET   = os.environ.get('R2_SECRET_ACCESS_KEY', '')
 R2_BUCKET   = os.environ.get('R2_BUCKET_NAME', 'streampirex-media')
 
-# s3 init moved to lazy loader
-def get_s3():
-    import os
-    return boto3.client("s3", endpoint_url=os.environ.get("R2_ENDPOINT"), aws_access_key_id=os.environ.get("R2_ACCESS_KEY_ID"), aws_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY"), region_name="auto"),
+,
     region_name='auto',
 )
 
 def presign(key, expiry=3600):
     try:
-        return s3.generate_presigned_url(
+        return get_s3().generate_presigned_url(
             'get_object',
             Params={'Bucket': R2_BUCKET, 'Key': key},
             ExpiresIn=expiry,
@@ -175,7 +185,7 @@ def save_snapshot():
     })
 
     try:
-        s3.put_object(
+        get_s3().put_object(
             Bucket=R2_BUCKET,
             Key=r2_key,
             Body=payload.encode('utf-8'),
@@ -206,7 +216,7 @@ def list_snapshots():
     prefix     = f'sessions/{user_id}/{session_id}/snapshots/'
 
     try:
-        response = s3.list_objects_v2(Bucket=R2_BUCKET, Prefix=prefix)
+        response = get_s3().list_objects_v2(Bucket=R2_BUCKET, Prefix=prefix)
         objects  = response.get('Contents', [])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -214,7 +224,7 @@ def list_snapshots():
     snapshots = []
     for obj in sorted(objects, key=lambda x: x['LastModified'], reverse=True):
         try:
-            body = s3.get_object(Bucket=R2_BUCKET, Key=obj['Key'])['Body'].read()
+            body = get_s3().get_object(Bucket=R2_BUCKET, Key=obj['Key'])['Body'].read()
             snap = json.loads(body)
             snap['size_kb'] = obj['Size'] // 1024
             snapshots.append(snap)
@@ -235,7 +245,7 @@ def delete_snapshot(snapshot_id):
     r2_key     = f'sessions/{user_id}/{session_id}/snapshots/{snapshot_id}.json'
 
     try:
-        s3.delete_object(Bucket=R2_BUCKET, Key=r2_key)
+        get_s3().delete_object(Bucket=R2_BUCKET, Key=r2_key)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
