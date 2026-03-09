@@ -1,0 +1,319 @@
+/* VoiceToMIDI.css — DAW dark theme */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+.vtm-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0d1117;
+  color: #c9d1d9;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  overflow: hidden;
+}
+
+.vtm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+
+.vtm-header-left { display: flex; flex-direction: column; gap: 2px; }
+.vtm-title { font-size: 0.85rem; font-weight: 700; color: #00ffc8; }
+.vtm-subtitle { font-size: 0.6rem; color: #5a7088; }
+.vtm-header-right { display: flex; align-items: center; gap: 6px; }
+
+.vtm-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.75rem;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+.vtm-btn:disabled { opacity: 0.4; cursor: default; }
+.vtm-btn-start { background: #00ffc8; color: #000; }
+.vtm-btn-start.active { background: #ff3b30; color: #fff; }
+.vtm-btn-record { background: #21262d; color: #c9d1d9; font-weight: 600; }
+.vtm-btn-record.active { background: #ff3b30; color: #fff; }
+.vtm-btn-export {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  cursor: pointer;
+  background: transparent;
+  color: #c9d1d9;
+  font-size: 0.7rem;
+  font-family: inherit;
+}
+.vtm-btn-export:disabled { opacity: 0.4; }
+
+.vtm-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: #161b22;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+.vtm-tab {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background: transparent;
+  color: #8b949e;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 400;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.vtm-tab.active {
+  border-color: #00ffc8;
+  background: #00ffc820;
+  color: #00ffc8;
+  font-weight: 700;
+}
+.vtm-status { margin-left: auto; font-size: 0.65rem; color: #5a7088; }
+
+.vtm-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.vtm-main {
+  flex: 1;
+  padding: 10px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vtm-note-display {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background: #21262d;
+  border-radius: 8px;
+  border: 1px solid #30363d;
+}
+
+.vtm-meters-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 8px;
+  background: #161b22;
+  border-radius: 6px;
+  border: 1px solid #21262d;
+}
+
+.vtm-meter { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.vtm-meter-bar {
+  width: 18px;
+  height: 80px;
+  background: #0d1117;
+  border-radius: 4px;
+  border: 1px solid #21262d;
+  position: relative;
+  overflow: hidden;
+}
+.vtm-meter-label { font-size: 0.55rem; color: #5a7088; text-align: center; }
+
+.vtm-section {
+  padding: 8px 10px;
+  background: #161b22;
+  border-radius: 6px;
+  border: 1px solid #21262d;
+}
+.vtm-section-title {
+  font-weight: 700;
+  color: #00ffc8;
+  margin-bottom: 6px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+}
+
+.vtm-row { display: flex; gap: 4px; margin-bottom: 4px; align-items: center; }
+.vtm-label { width: 60px; color: #5a7088; font-size: 0.65rem; }
+.vtm-select {
+  flex: 1;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  color: #c9d1d9;
+  padding: 2px 4px;
+  font-size: 0.65rem;
+  font-family: inherit;
+}
+
+.vtm-sidebar {
+  width: 280px;
+  border-left: 1px solid #21262d;
+  padding: 10px;
+  overflow: auto;
+  font-size: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vtm-trigger-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.vtm-trigger-pad {
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  background: #161b22;
+  cursor: pointer;
+  text-align: center;
+  font-size: 0.65rem;
+  transition: all 0.1s;
+}
+.vtm-trigger-pad:hover { border-color: #00ffc8; }
+.vtm-trigger-pad.active { background: #00ffc820; border-color: #00ffc8; }
+.vtm-trigger-name { font-size: 0.75rem; font-weight: 700; color: #5a7088; }
+.vtm-trigger-name.trained { color: inherit; }
+.vtm-trigger-info { font-size: 0.55rem; color: #5a7088; margin-top: 2px; }
+.vtm-trigger-listening { font-size: 0.55rem; color: #ff9500; margin-top: 4px; }
+
+.vtm-key-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #21262d;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  font-size: 0.65rem;
+}
+.vtm-key-label { color: #5a7088; }
+.vtm-key-value { color: #00ffc8; font-weight: 700; }
+.vtm-btn-reset {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #00ffc820;
+  border: 1px solid #00ffc8;
+  color: #00ffc8;
+  font-size: 0.6rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.vtm-recorded {
+  padding: 6px 10px;
+  background: #21262d;
+  border-radius: 6px;
+  border: 1px solid #30363d;
+  font-size: 0.65rem;
+}
+.vtm-recorded-label { color: #5a7088; }
+.vtm-recorded-count { color: #00ffc8; }
+
+/* Additional classes from JSX refactor */
+.vtm-note-name {
+  font-size: 2rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+}
+.vtm-pitch-center { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.vtm-freq-label { font-size: 0.65rem; color: #5a7088; }
+.vtm-note-pill {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #00ffc830;
+  border: 1px solid #00ffc8;
+  font-size: 0.6rem;
+  font-family: monospace;
+}
+.vtm-vowel-bubble {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ff950030;
+  border: 1px solid #ff9500;
+  font-size: 1rem;
+  font-weight: 800;
+}
+.vtm-pad-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.vtm-poly-card {
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #007aff20;
+  border: 1px solid #007aff;
+  text-align: center;
+}
+.vtm-pad-note { font-size: 0.85rem; font-weight: 700; color: #007aff; }
+.vtm-latency-btn {
+  flex: 1;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #30363d;
+  background: transparent;
+  color: #5a7088;
+  font-size: 0.6rem;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.vtm-latency-btn.active { border-color: #5ac8fa; background: #5ac8fa20; color: #5ac8fa; }
+.vtm-trig-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 3px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: transparent;
+}
+.vtm-trig-row.training { background: #ff950020; }
+.vtm-btn-clear-trig {
+  margin-top: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #ff3b3020;
+  border: 1px solid #ff3b30;
+  color: #ff3b30;
+  font-size: 0.5rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.vtm-range { flex: 1; }
+.vtm-range-sm { width: 60px; }
+.vtm-value-span { text-align: center; min-width: 26px; }
+.vtm-input-sm {
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 3px;
+  color: #c9d1d9;
+  padding: 1px 3px;
+  font-size: 0.6rem;
+  font-family: inherit;
+}
+.vtm-checkbox-label { display: flex; align-items: center; gap: 6px; cursor: pointer; margin-bottom: 4px; }
+.vtm-checkbox { width: 14px; height: 14px; }
+.vtm-cc-row { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.vtm-cc-row.disabled { opacity: 0.5; }
+.vtm-cc-label { width: 84px; font-size: 0.6rem; }
+.vtm-vowel-row { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
+.vtm-vowel-letter { width: 16px; font-weight: 800; color: #ff2d55; }
+.vtm-muted-xs { font-size: 0.55rem; color: #5a7088; }
+.vtm-muted-xxs { font-size: 0.5rem; color: #5a7088; }
+.vtm-flex-row { display: flex; gap: 4px; }
+.vtm-hint { font-size: 0.55rem; color: #5a7088; margin-top: 3px; }
+.vtm-sidebar-section { margin-bottom: 10px; }

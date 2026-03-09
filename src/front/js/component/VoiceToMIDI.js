@@ -16,6 +16,7 @@
 // ✅ Drum channel routing is controllable (default: GM Ch 10 / channel 9)
 // =============================================================================
 
+import "./VoiceToMIDI.css";
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   YINDetector,
@@ -1099,16 +1100,7 @@ const VoiceToMIDI = ({
         <div className="vtm-header-right">
           <button
             onClick={isListening ? stopListening : startListening}
-            style={{
-              padding: "4px 12px",
-              borderRadius: 6,
-              border: "none",
-              cursor: "pointer",
-              background: isListening ? "#ff3b30" : "#00ffc8",
-              color: isListening ? "#fff" : "#000",
-              fontWeight: 700,
-              fontSize: "0.75rem",
-            }}
+            className={`vtm-btn vtm-btn-start${isListening ? " active" : ""}`}
           >
             {isListening ? "■ Stop" : "▶ Start"}
           </button>
@@ -1116,17 +1108,7 @@ const VoiceToMIDI = ({
           <button
             onClick={isRecording ? stopRecording : startRecording}
             disabled={!isListening}
-            style={{
-              padding: "4px 12px",
-              borderRadius: 6,
-              border: "none",
-              cursor: "pointer",
-              background: isRecording ? "#ff3b30" : "#21262d",
-              color: isRecording ? "#fff" : "#c9d1d9",
-              fontWeight: 600,
-              fontSize: "0.75rem",
-              opacity: isListening ? 1 : 0.4,
-            }}
+            className={`vtm-btn vtm-btn-record${isRecording ? " active" : ""}`}
           >
             {isRecording ? "● REC" : "⏺ Record"}
           </button>
@@ -1134,16 +1116,7 @@ const VoiceToMIDI = ({
           <button
             onClick={exportMidi}
             disabled={recordedEvents.length === 0}
-            style={{
-              padding: "4px 10px",
-              borderRadius: 6,
-              border: "1px solid #30363d",
-              cursor: "pointer",
-              background: "transparent",
-              color: "#c9d1d9",
-              fontSize: "0.7rem",
-              opacity: recordedEvents.length > 0 ? 1 : 0.4,
-            }}
+            className="vtm-btn-export"
           >
             Export .mid
           </button>
@@ -1164,17 +1137,7 @@ const VoiceToMIDI = ({
               allNotesOff();
               setPolyNotes([]);
             }}
-            style={{
-              padding: "4px 12px",
-              borderRadius: 6,
-              border: "1px solid",
-              borderColor: mode === m.id ? "#00ffc8" : "#30363d",
-              background: mode === m.id ? "#00ffc820" : "transparent",
-              color: mode === m.id ? "#00ffc8" : "#8b949e",
-              cursor: "pointer",
-              fontSize: "0.7rem",
-              fontWeight: mode === m.id ? 700 : 400,
-            }}
+            className={`vtm-tab${mode === m.id ? " active" : ""}`}
           >
             {m.label}
           </button>
@@ -1187,26 +1150,9 @@ const VoiceToMIDI = ({
         {/* ── LEFT: Live Display ── */}
         <div className="vtm-main">
           {/* Current Note Display */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              padding: 12,
-              background: "#21262d",
-              borderRadius: 8,
-              border: "1px solid #30363d",
-            }}
-          >
+          <div className="vtm-note-display">
             <div className="vtm-pitch-center">
-              <div
-                style={{
-                  fontSize: "2rem",
-                  fontWeight: 800,
-                  fontFamily: "'JetBrains Mono', monospace",
-                  color: currentNote ? "#00ffc8" : "#30363d",
-                }}
-              >
+              <div className="vtm-note-name" style={{color: currentNote ? "#00ffc8" : "#30363d"}}>
                 {currentNote ? currentNote.noteName : "---"}
               </div>
               <div className="vtm-freq-label">{currentFreq > 0 ? `${currentFreq.toFixed(1)} Hz` : "No pitch"}</div>
@@ -1229,17 +1175,7 @@ const VoiceToMIDI = ({
             {/* Formant/Vowel */}
             {formantInfo?.vowel && (
               <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "#ff950030",
-                  border: "1px solid #ff9500",
-                  fontSize: "1rem",
-                  fontWeight: 800,
+                className="vtm-vowel-bubble"
                 }}
               >
                 {formantInfo.vowel.toUpperCase()}
@@ -1251,14 +1187,7 @@ const VoiceToMIDI = ({
               {[...activeNotes].map((n) => (
                 <span
                   key={n}
-                  style={{
-                    padding: "2px 6px",
-                    borderRadius: 4,
-                    background: "#00ffc830",
-                    border: "1px solid #00ffc8",
-                    fontSize: "0.6rem",
-                    fontFamily: "monospace",
-                  }}
+                  className="vtm-note-pill"
                 >
                   {midiToNoteName(n)}
                 </span>
@@ -1272,13 +1201,7 @@ const VoiceToMIDI = ({
               {polyNotes.map((p, i) => (
                 <div
                   key={i}
-                  style={{
-                    padding: "6px 10px",
-                    borderRadius: 6,
-                    background: "#007aff20",
-                    border: "1px solid #007aff",
-                    textAlign: "center",
-                  }}
+                  className="vtm-poly-card"
                 >
                   <div className="vtm-pad-note">{p.noteName}</div>
                   <div className="vtm-meter-label">{p.freq.toFixed(0)}Hz</div>
@@ -1289,7 +1212,7 @@ const VoiceToMIDI = ({
 
           {/* Trigger pads */}
           {mode === "trigger" && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+            <div className="vtm-trigger-grid">
               {triggers.map((trig, i) => (
                 <div
                   key={i}
@@ -1305,12 +1228,12 @@ const VoiceToMIDI = ({
                   }}
                   onClick={() => (trainingSlot === i ? stopTraining() : startTraining(i))}
                 >
-                  <div style={{ fontSize: "0.75rem", fontWeight: 700, color: trig.trained ? trig.color : "#5a7088" }}>{trig.name}</div>
-                  <div style={{ fontSize: "0.55rem", color: "#5a7088", marginTop: 2 }}>
+                  <div className={`vtm-trigger-name${trig.trained ? " trained" : ""}`} style={trig.trained ? {color: trig.color} : {}}>{trig.name}</div>
+                  <div className="vtm-trigger-info">
                     Note: {trig.midiNote} {trig.trained ? `(${trig.samples.length} samples)` : "(untrained)"}
                   </div>
 
-                  {trainingSlot === i && <div style={{ fontSize: "0.55rem", color: "#ff9500", marginTop: 4 }}>● Listening...</div>}
+                  {trainingSlot === i && <div className="vtm-trigger-listening">● Listening...</div>}
 
                   {trig.trained && trainingSlot !== i && (
                     <button
@@ -1318,15 +1241,7 @@ const VoiceToMIDI = ({
                         e.stopPropagation();
                         clearTrigger(i);
                       }}
-                      style={{
-                        marginTop: 4,
-                        padding: "1px 6px",
-                        borderRadius: 4,
-                        background: "#ff3b3020",
-                        border: "1px solid #ff3b30",
-                        color: "#ff3b30",
-                        fontSize: "0.5rem",
-                        cursor: "pointer",
+                      className="vtm-btn-clear-trig"
                       }}
                     >
                       Clear
@@ -1339,9 +1254,9 @@ const VoiceToMIDI = ({
 
           {/* Key detection display */}
           {autoKeyDetect && detectedKey && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: "#21262d", borderRadius: 6, border: "1px solid #30363d", fontSize: "0.65rem" }}>
-              <span style={{ color: "#5a7088" }}>Detected Key:</span>
-              <span style={{ color: "#00ffc8", fontWeight: 700 }}>
+            <div className="vtm-key-display">
+              <span className="vtm-key-label">Detected Key:</span>
+              <span className="vtm-key-value">
                 {detectedKey.keyName} {detectedKey.mode}
               </span>
               <button
@@ -1349,7 +1264,7 @@ const VoiceToMIDI = ({
                   setCurrentKey(detectedKey.key);
                   setCurrentScale(detectedKey.mode);
                 }}
-                style={{ padding: "2px 8px", borderRadius: 4, background: "#00ffc820", border: "1px solid #00ffc8", color: "#00ffc8", fontSize: "0.6rem", cursor: "pointer" }}
+                className="vtm-btn-reset"
               >
                 Apply
               </button>
@@ -1358,25 +1273,25 @@ const VoiceToMIDI = ({
 
           {/* Recording info */}
           {recordedEvents.length > 0 && (
-            <div style={{ padding: "6px 10px", background: "#21262d", borderRadius: 6, border: "1px solid #30363d", fontSize: "0.65rem" }}>
-              <span style={{ color: "#5a7088" }}>Recorded: </span>
-              <span style={{ color: "#00ffc8" }}>{recordedEvents.length} events</span>
+            <div className="vtm-recorded">
+              <span className="vtm-recorded-label">Recorded: </span>
+              <span className="vtm-recorded-count">{recordedEvents.length} events</span>
             </div>
           )}
         </div>
 
         {/* ── RIGHT: Settings Panel ── */}
-        <div style={{ width: 280, borderLeft: "1px solid #21262d", padding: 10, overflow: "auto", fontSize: "0.7rem" }}>
+        <div className="vtm-sidebar">
           {/* Musical Settings */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontWeight: 700, color: "#00ffc8", marginBottom: 6, fontSize: "0.65rem", textTransform: "uppercase" }}>Musical</div>
+          <div className="vtm-sidebar-section">
+            <div className="vtm-section-title">Musical</div>
 
-            <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-              <label style={{ width: 60, color: "#5a7088" }}>Key</label>
+            <div className="vtm-row">
+              <label className="vtm-label">Key</label>
               <select
                 value={currentKey}
                 onChange={(e) => setCurrentKey(parseInt(e.target.value, 10))}
-                style={{ flex: 1, background: "#21262d", border: "1px solid #30363d", borderRadius: 4, color: "#c9d1d9", padding: "2px 4px", fontSize: "0.65rem" }}
+                className="vtm-select"
               >
                 {KEY_NAMES.map((k, i) => (
                   <option key={i} value={i}>
@@ -1386,12 +1301,12 @@ const VoiceToMIDI = ({
               </select>
             </div>
 
-            <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-              <label style={{ width: 60, color: "#5a7088" }}>Scale</label>
+            <div className="vtm-row">
+              <label className="vtm-label">Scale</label>
               <select
                 value={currentScale}
                 onChange={(e) => setCurrentScale(e.target.value)}
-                style={{ flex: 1, background: "#21262d", border: "1px solid #30363d", borderRadius: 4, color: "#c9d1d9", padding: "2px 4px", fontSize: "0.65rem" }}
+                className="vtm-select"
               >
                 {Object.keys(SCALES).map((s) => (
                   <option key={s} value={s}>
@@ -1401,18 +1316,18 @@ const VoiceToMIDI = ({
               </select>
             </div>
 
-            <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-              <label style={{ width: 60, color: "#5a7088" }}>Octave</label>
-              <input type="range" min={-3} max={3} value={octaveOffset} onChange={(e) => setOctaveOffset(parseInt(e.target.value, 10))} style={{ flex: 1 }} />
-              <span style={{ width: 26, textAlign: "center" }}>{octaveOffset >= 0 ? "+" : ""}{octaveOffset}</span>
+            <div className="vtm-row">
+              <label className="vtm-label">Octave</label>
+              <input type="range" min={-3} max={3} value={octaveOffset} onChange={(e) => setOctaveOffset(parseInt(e.target.value, 10))} className="vtm-range" />
+              <span className="vtm-value-span">{octaveOffset >= 0 ? "+" : ""}{octaveOffset}</span>
             </div>
 
-            <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-              <label style={{ width: 60, color: "#5a7088" }}>Chord</label>
+            <div className="vtm-row">
+              <label className="vtm-label">Chord</label>
               <select
                 value={chordMode}
                 onChange={(e) => setChordMode(e.target.value)}
-                style={{ flex: 1, background: "#21262d", border: "1px solid #30363d", borderRadius: 4, color: "#c9d1d9", padding: "2px 4px", fontSize: "0.65rem" }}
+                className="vtm-select"
               >
                 <option value="off">Off</option>
                 <option value="major">Major triad</option>
@@ -1428,12 +1343,12 @@ const VoiceToMIDI = ({
               </select>
             </div>
 
-            <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-              <label style={{ width: 60, color: "#5a7088" }}>Channel</label>
+            <div className="vtm-row">
+              <label className="vtm-label">Channel</label>
               <select
                 value={midiChannel}
                 onChange={(e) => setMidiChannel(parseInt(e.target.value, 10))}
-                style={{ flex: 1, background: "#21262d", border: "1px solid #30363d", borderRadius: 4, color: "#c9d1d9", padding: "2px 4px", fontSize: "0.65rem" }}
+                className="vtm-select"
               >
                 {Array.from({ length: 16 }, (_, i) => (
                   <option key={i} value={i}>
@@ -1443,24 +1358,24 @@ const VoiceToMIDI = ({
               </select>
             </div>
 
-            <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-              <label style={{ width: 60, color: "#5a7088" }}>Velocity</label>
-              <input type="range" min={0.1} max={1} step={0.05} value={velocitySensitivity} onChange={(e) => setVelocitySensitivity(parseFloat(e.target.value))} style={{ flex: 1 }} />
-              <span style={{ width: 34, textAlign: "center" }}>{Math.round(velocitySensitivity * 100)}%</span>
+            <div className="vtm-row">
+              <label className="vtm-label">Velocity</label>
+              <input type="range" min={0.1} max={1} step={0.05} value={velocitySensitivity} onChange={(e) => setVelocitySensitivity(parseFloat(e.target.value))} className="vtm-range" />
+              <span className="vtm-value-span">{Math.round(velocitySensitivity * 100)}%</span>
             </div>
           </div>
 
           {/* Poly settings */}
           {mode === "poly" && (
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontWeight: 700, color: "#007aff", marginBottom: 6, fontSize: "0.65rem", textTransform: "uppercase" }}>Poly Mode (Realistic)</div>
+            <div className="vtm-sidebar-section">
+              <div className="vtm-section-title" style={{color:"#007aff"}}>Poly Mode (Realistic)</div>
 
-              <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-                <label style={{ width: 90, color: "#5a7088" }}>Chord Style</label>
+              <div className="vtm-row">
+                <label className="vtm-label">Chord Style</label>
                 <select
                   value={polyChordStyle}
                   onChange={(e) => setPolyChordStyle(e.target.value)}
-                  style={{ flex: 1, background: "#21262d", border: "1px solid #30363d", borderRadius: 4, color: "#c9d1d9", padding: "2px 4px", fontSize: "0.65rem" }}
+                  className="vtm-select"
                 >
                   <option value="diatonicTriad">Diatonic Triad</option>
                   <option value="diatonic7">Diatonic 7th</option>
@@ -1469,12 +1384,12 @@ const VoiceToMIDI = ({
               </div>
 
               {polyChordStyle === "fixed" && (
-                <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-                  <label style={{ width: 90, color: "#5a7088" }}>Fixed Type</label>
+                <div className="vtm-row">
+                  <label className="vtm-label">Fixed Type</label>
                   <select
                     value={polyFixedType}
                     onChange={(e) => setPolyFixedType(e.target.value)}
-                    style={{ flex: 1, background: "#21262d", border: "1px solid #30363d", borderRadius: 4, color: "#c9d1d9", padding: "2px 4px", fontSize: "0.65rem" }}
+                    className="vtm-select"
                   >
                     {Object.keys(CHORD_INTERVALS).map((k) => (
                       <option key={k} value={k}>
@@ -1488,62 +1403,62 @@ const VoiceToMIDI = ({
           )}
 
           {/* “Dubler feel” settings */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontWeight: 700, color: "#5ac8fa", marginBottom: 6, fontSize: "0.65rem", textTransform: "uppercase" }}>Feel / Stability</div>
+          <div className="vtm-sidebar-section">
+            <div className="vtm-section-title" style={{color:"#5ac8fa"}}>Feel / Stability</div>
 
-            <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-              <label style={{ width: 110, color: "#5a7088" }}>Stability (ms)</label>
-              <input type="range" min={20} max={140} step={5} value={noteStabilityMs} onChange={(e) => setNoteStabilityMs(parseInt(e.target.value, 10))} style={{ flex: 1 }} />
-              <span style={{ width: 34, textAlign: "center" }}>{noteStabilityMs}</span>
+            <div className="vtm-row">
+              <label className="vtm-label">Stability (ms)</label>
+              <input type="range" min={20} max={140} step={5} value={noteStabilityMs} onChange={(e) => setNoteStabilityMs(parseInt(e.target.value, 10))} className="vtm-range" />
+              <span className="vtm-value-span">{noteStabilityMs}</span>
             </div>
 
-            <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-              <label style={{ width: 110, color: "#5a7088" }}>NoteOn conf</label>
-              <input type="range" min={0.3} max={0.9} step={0.05} value={noteOnConf} onChange={(e) => setNoteOnConf(parseFloat(e.target.value))} style={{ flex: 1 }} />
-              <span style={{ width: 34, textAlign: "center" }}>{noteOnConf.toFixed(2)}</span>
+            <div className="vtm-row">
+              <label className="vtm-label">NoteOn conf</label>
+              <input type="range" min={0.3} max={0.9} step={0.05} value={noteOnConf} onChange={(e) => setNoteOnConf(parseFloat(e.target.value))} className="vtm-range" />
+              <span className="vtm-value-span">{noteOnConf.toFixed(2)}</span>
             </div>
 
-            <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-              <label style={{ width: 110, color: "#5a7088" }}>NoteOff conf</label>
-              <input type="range" min={0.2} max={0.8} step={0.05} value={noteOffConf} onChange={(e) => setNoteOffConf(parseFloat(e.target.value))} style={{ flex: 1 }} />
-              <span style={{ width: 34, textAlign: "center" }}>{noteOffConf.toFixed(2)}</span>
+            <div className="vtm-row">
+              <label className="vtm-label">NoteOff conf</label>
+              <input type="range" min={0.2} max={0.8} step={0.05} value={noteOffConf} onChange={(e) => setNoteOffConf(parseFloat(e.target.value))} className="vtm-range" />
+              <span className="vtm-value-span">{noteOffConf.toFixed(2)}</span>
             </div>
 
-            <div style={{ display: "flex", gap: 4, marginBottom: 4 }}>
-              <label style={{ width: 110, color: "#5a7088" }}>RMS gate</label>
-              <input type="range" min={0.002} max={0.03} step={0.001} value={minRmsGate} onChange={(e) => setMinRmsGate(parseFloat(e.target.value))} style={{ flex: 1 }} />
-              <span style={{ width: 34, textAlign: "center" }}>{minRmsGate.toFixed(3)}</span>
+            <div className="vtm-row">
+              <label className="vtm-label">RMS gate</label>
+              <input type="range" min={0.002} max={0.03} step={0.001} value={minRmsGate} onChange={(e) => setMinRmsGate(parseFloat(e.target.value))} className="vtm-range" />
+              <span className="vtm-value-span">{minRmsGate.toFixed(3)}</span>
             </div>
           </div>
 
           {/* Pitch Bend & Vibrato */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontWeight: 700, color: "#af52de", marginBottom: 6, fontSize: "0.65rem", textTransform: "uppercase" }}>Pitch Bend</div>
+          <div className="vtm-sidebar-section">
+            <div className="vtm-section-title" style={{color:"#af52de"}}>Pitch Bend</div>
 
-            <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, cursor: "pointer" }}>
+            <label className="vtm-checkbox-label">
               <input type="checkbox" checked={pitchBendEnabled} onChange={(e) => setPitchBendEnabled(e.target.checked)} />
               <span>Continuous pitch bend</span>
             </label>
 
-            <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, cursor: "pointer" }}>
+            <label className="vtm-checkbox-label">
               <input type="checkbox" checked={vibratoToPitchBend} onChange={(e) => setVibratoToPitchBend(e.target.checked)} />
               <span>Vibrato → pitch bend</span>
             </label>
 
-            <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, cursor: "pointer" }}>
+            <label className="vtm-checkbox-label">
               <input type="checkbox" checked={autoKeyDetect} onChange={(e) => setAutoKeyDetect(e.target.checked)} />
               <span>Auto key detection</span>
             </label>
           </div>
 
           {/* MIDI CC Mappings */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontWeight: 700, color: "#ff9500", marginBottom: 6, fontSize: "0.65rem", textTransform: "uppercase" }}>MIDI CC Controls</div>
+          <div className="vtm-sidebar-section">
+            <div className="vtm-section-title" style={{color:"#ff9500"}}>MIDI CC Controls</div>
 
             {Object.entries(ccMappings).map(([key, mapping]) => (
-              <div key={key} style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3, opacity: mapping.enabled ? 1 : 0.5 }}>
-                <input type="checkbox" checked={mapping.enabled} onChange={() => toggleCC(key)} style={{ width: 14, height: 14 }} />
-                <span style={{ width: 84, fontSize: "0.6rem" }}>{mapping.label}</span>
+              <div key={key} className="vtm-cc-row">
+                <input type="checkbox" checked={mapping.enabled} onChange={() => toggleCC(key)} className="vtm-checkbox" />
+                <span className="vtm-cc-label">{mapping.label}</span>
                 <span className="vtm-meter-label">CC</span>
                 <input
                   type="number"
@@ -1551,16 +1466,16 @@ const VoiceToMIDI = ({
                   min={0}
                   max={127}
                   onChange={(e) => updateCCNumber(key, e.target.value)}
-                  style={{ width: 40, background: "#21262d", border: "1px solid #30363d", borderRadius: 3, color: "#c9d1d9", padding: "1px 3px", fontSize: "0.6rem" }}
+                  className="vtm-input-sm"
                 />
               </div>
             ))}
           </div>
 
           {/* Vowel-to-CC */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontWeight: 700, color: "#ff2d55", marginBottom: 6, fontSize: "0.65rem", textTransform: "uppercase" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+          <div className="vtm-sidebar-section">
+            <div className="vtm-section-title" style={{color:"#ff2d55"}}>
+              <label className="vtm-checkbox-label">
                 <input type="checkbox" checked={vowelCcEnabled} onChange={(e) => setVowelCcEnabled(e.target.checked)} />
                 Vowel → CC
               </label>
@@ -1568,9 +1483,9 @@ const VoiceToMIDI = ({
 
             {vowelCcEnabled &&
               Object.entries(vowelMappings).map(([vowel, mapping]) => (
-                <div key={vowel} style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
-                  <span style={{ width: 16, fontWeight: 800, color: "#ff2d55" }}>{vowel.toUpperCase()}</span>
-                  <span style={{ fontSize: "0.55rem", color: "#5a7088", width: 20 }}>CC</span>
+                <div key={vowel} className="vtm-vowel-row">
+                  <span className="vtm-vowel-letter">{vowel.toUpperCase()}</span>
+                  <span className="vtm-muted-xs">CC</span>
                   <input
                     type="number"
                     value={mapping.cc}
@@ -1582,9 +1497,9 @@ const VoiceToMIDI = ({
                         [vowel]: { ...prev[vowel], cc: parseInt(e.target.value, 10) || 0 },
                       }))
                     }
-                    style={{ width: 36, background: "#21262d", border: "1px solid #30363d", borderRadius: 3, color: "#c9d1d9", padding: "1px 3px", fontSize: "0.6rem" }}
+                    className="vtm-input-sm"
                   />
-                  <span style={{ fontSize: "0.55rem", color: "#5a7088", width: 24 }}>Val</span>
+                  <span className="vtm-muted-xs">Val</span>
                   <input
                     type="number"
                     value={mapping.value}
@@ -1596,22 +1511,22 @@ const VoiceToMIDI = ({
                         [vowel]: { ...prev[vowel], value: parseInt(e.target.value, 10) || 0 },
                       }))
                     }
-                    style={{ width: 40, background: "#21262d", border: "1px solid #30363d", borderRadius: 3, color: "#c9d1d9", padding: "1px 3px", fontSize: "0.6rem" }}
+                    className="vtm-input-sm"
                   />
-                  <span style={{ fontSize: "0.5rem", color: "#5a7088" }}>{mapping.label}</span>
+                  <span className="vtm-muted-xxs">{mapping.label}</span>
                 </div>
               ))}
           </div>
 
           {/* Web MIDI Output */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontWeight: 700, color: "#007aff", marginBottom: 6, fontSize: "0.65rem", textTransform: "uppercase" }}>MIDI Output</div>
+          <div className="vtm-sidebar-section">
+            <div className="vtm-section-title" style={{color:"#007aff"}}>MIDI Output</div>
 
             {midiOutputs.length > 0 ? (
               <select
                 value={selectedMidiOutput || ""}
                 onChange={(e) => selectMidiOutput(e.target.value)}
-                style={{ width: "100%", background: "#21262d", border: "1px solid #30363d", borderRadius: 4, color: "#c9d1d9", padding: "3px 4px", fontSize: "0.65rem" }}
+                className="vtm-select"
               >
                 <option value="">Internal only</option>
                 {midiOutputs.map((o) => (
@@ -1626,18 +1541,18 @@ const VoiceToMIDI = ({
           </div>
 
           {/* Trigger routing */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontWeight: 700, color: "#ff3b30", marginBottom: 6, fontSize: "0.65rem", textTransform: "uppercase" }}>Trigger Routing</div>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+          <div className="vtm-sidebar-section">
+            <div className="vtm-section-title" style={{color:"#ff3b30"}}>Trigger Routing</div>
+            <label className="vtm-checkbox-label">
               <input type="checkbox" checked={useGMDrumChannel} onChange={(e) => setUseGMDrumChannel(e.target.checked)} />
               Use GM Drum Channel (Ch 10)
             </label>
           </div>
 
           {/* Latency */}
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontWeight: 700, color: "#5ac8fa", marginBottom: 6, fontSize: "0.65rem", textTransform: "uppercase" }}>Latency</div>
-            <div style={{ display: "flex", gap: 4 }}>
+          <div className="vtm-sidebar-section">
+            <div className="vtm-section-title" style={{color:"#5ac8fa"}}>Latency</div>
+            <div className="vtm-flex-row">
               {["low", "balanced", "quality"].map((l) => (
                 <button
                   key={l}
@@ -1648,60 +1563,43 @@ const VoiceToMIDI = ({
                       setTimeout(startListening, 100);
                     }
                   }}
-                  style={{
-                    flex: 1,
-                    padding: "3px 6px",
-                    borderRadius: 4,
-                    cursor: "pointer",
-                    border: `1px solid ${latencyMode === l ? "#5ac8fa" : "#30363d"}`,
-                    background: latencyMode === l ? "#5ac8fa20" : "transparent",
-                    color: latencyMode === l ? "#5ac8fa" : "#5a7088",
-                    fontSize: "0.6rem",
-                  }}
+                  className={`vtm-latency-btn${latencyMode === l ? " active" : ""}`}
                 >
                   {l.charAt(0).toUpperCase() + l.slice(1)}
                 </button>
               ))}
             </div>
-            <div style={{ fontSize: "0.55rem", color: "#5a7088", marginTop: 3 }}>
+            <div className="vtm-hint">
               Buffer: {BUFFER_SIZES[latencyMode]} samples (~{Math.round(BUFFER_SIZES[latencyMode] / 48)}ms)
             </div>
           </div>
 
           {/* Trigger Settings (when in trigger mode) */}
           {mode === "trigger" && (
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontWeight: 700, color: "#ff3b30", marginBottom: 6, fontSize: "0.65rem", textTransform: "uppercase" }}>Trigger Settings</div>
+            <div className="vtm-sidebar-section">
+              <div className="vtm-section-title" style={{color:"#ff3b30"}}>Trigger Settings</div>
               {triggers.map((trig, i) => (
                 <div
                   key={i}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    marginBottom: 3,
-                    padding: "2px 4px",
-                    borderRadius: 4,
-                    background: trainingSlot === i ? "#ff950020" : "transparent",
-                  }}
+                  className={`vtm-trig-row${trainingSlot === i ? " training" : ""}`}
                 >
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: trig.color }} />
                   <input
                     value={trig.name}
                     onChange={(e) => updateTrigger(i, { name: e.target.value })}
-                    style={{ width: 64, background: "#21262d", border: "1px solid #30363d", borderRadius: 3, color: "#c9d1d9", padding: "1px 3px", fontSize: "0.6rem" }}
+                    className="vtm-input-sm"
                   />
-                  <span style={{ fontSize: "0.5rem", color: "#5a7088" }}>N:</span>
+                  <span className="vtm-muted-xxs">N:</span>
                   <input
                     type="number"
                     value={trig.midiNote}
                     min={0}
                     max={127}
                     onChange={(e) => updateTrigger(i, { midiNote: parseInt(e.target.value, 10) || 36 })}
-                    style={{ width: 36, background: "#21262d", border: "1px solid #30363d", borderRadius: 3, color: "#c9d1d9", padding: "1px 3px", fontSize: "0.6rem" }}
+                    className="vtm-input-sm"
                   />
-                  <span style={{ fontSize: "0.5rem", color: "#5a7088" }}>Th:</span>
-                  <input type="range" min={0.3} max={0.95} step={0.05} value={trig.threshold} onChange={(e) => updateTrigger(i, { threshold: parseFloat(e.target.value) })} style={{ width: 60 }} />
+                  <span className="vtm-muted-xxs">Th:</span>
+                  <input type="range" min={0.3} max={0.95} step={0.05} value={trig.threshold} onChange={(e) => updateTrigger(i, { threshold: parseFloat(e.target.value) })} className="vtm-range-sm" />
                 </div>
               ))}
             </div>
