@@ -232,7 +232,7 @@ const Home = () => {
 				<p className="section-subtitle">
 					Build your audience where your tools live. Free on every plan — no separate app needed.
 				</p>
-				<div className="social-features-grid">
+				<div className="social-features-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1.5rem",maxWidth:"1100px",margin:"2.5rem auto"}}>
 					<div className="social-feature">
 						<span className="social-icon">🏠</span>
 						<h4>Home Feed</h4>
@@ -282,7 +282,7 @@ const Home = () => {
 					3 billion gamers globally. Squad finder, team rooms, chatrooms, streaming, and monetization —
 					all inside the same platform where you make music, edit videos, and run your creative business.
 				</p>
-				<div className="gaming-features-grid">
+				<div className="gaming-features-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1.5rem",maxWidth:"1100px",margin:"2.5rem auto"}}>
 					<div className="gaming-feature">
 						<span className="gaming-icon">🔍</span>
 						<h4>Squad Finder</h4>
