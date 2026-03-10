@@ -1813,132 +1813,146 @@ def add_text_overlay():
 @video_editor_bp.route('/api/video-editor/export', methods=['POST'])
 @jwt_required()
 def export_project():
-    """Export a complete video project with all transformations."""
+    """Export video project using FFmpeg — downloads from R2, renders, re-uploads."""
+    import tempfile
+    import requests as http_requests
+    import ffmpeg
+
     try:
         user_id = get_jwt_identity()
         data = request.get_json()
-        
+
         if not data:
             return jsonify({"error": "No project data provided"}), 400
-        
+
         timeline = data.get('timeline', {})
         tracks = timeline.get('tracks', [])
         settings = data.get('settings', {})
-        
+
         if not tracks:
             return jsonify({"error": "No tracks in timeline"}), 400
-        
+
         resolution = settings.get('resolution', '1080p')
-        quality = settings.get('quality', 'auto')
-        format = settings.get('format', 'mp4')
+        quality = settings.get('quality', 'high')
+        fmt = settings.get('format', 'mp4')
         frame_rate = settings.get('frameRate', 24)
-        
-        valid_frame_rates = [24, 25, 30, 48, 60]
-        if frame_rate not in valid_frame_rates:
-            frame_rate = 24
-        
-        print(f"📹 Export settings: {resolution}, {frame_rate}fps, {quality}, {format}")
-        
+
+        res_map = {
+            '480p': (854, 480), '720p': (1280, 720),
+            '1080p': (1920, 1080), '4k': (3840, 2160)
+        }
+        width, height = res_map.get(resolution, (1920, 1080))
+        crf_map = {'low': 28, 'medium': 23, 'high': 18, 'auto': 23}
+        crf = crf_map.get(quality, 23)
+
         video_clips = []
         for track in tracks:
             if track.get('type') == 'video':
                 for clip in track.get('clips', []):
-                    if clip.get('cloudinary_public_id') or clip.get('public_id'):
-                        video_clips.append(clip)
-        
+                    url = clip.get('url') or clip.get('src')
+                    if url:
+                        video_clips.append({
+                            'url': url,
+                            'trim_in': clip.get('trimIn', 0),
+                            'trim_out': clip.get('trimOut'),
+                        })
+
         if not video_clips:
             return jsonify({"error": "No video clips found in timeline"}), 400
-        
-        if len(video_clips) == 1:
-            clip = video_clips[0]
-            public_id = clip.get('cloudinary_public_id') or clip.get('public_id')
-            
-            transformations = transformer.process_timeline_clip(clip)
-            
-            res_transform = transformer.build_resolution_transformation(resolution, frame_rate)
-            if res_transform:
-                transformations.append(res_transform)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            local_clips = []
+            for i, clip in enumerate(video_clips):
+                ext = clip['url'].split('.')[-1].split('?')[0] or 'mp4'
+                local_path = os.path.join(tmpdir, f"clip_{i}.{ext}")
+                print(f"⬇️ Downloading clip {i}...")
+                r = http_requests.get(clip['url'], stream=True, timeout=120)
+                r.raise_for_status()
+                with open(local_path, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                local_clips.append({'path': local_path, **clip})
+
+            output_path = os.path.join(tmpdir, f"export_{uuid.uuid4().hex}.{fmt}")
+            scale_filter = f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2"
+
+            if len(local_clips) == 1:
+                clip = local_clips[0]
+                inp_kwargs = {'ss': clip.get('trim_in', 0)}
+                if clip.get('trim_out'):
+                    inp_kwargs['t'] = clip['trim_out'] - clip.get('trim_in', 0)
+                stream = ffmpeg.input(clip['path'], **inp_kwargs)
+                (
+                    ffmpeg.output(stream, output_path,
+                        vf=scale_filter, r=frame_rate,
+                        vcodec='libx264', crf=crf,
+                        acodec='aac', audio_bitrate='192k',
+                        movflags='+faststart', loglevel='error')
+                    .overwrite_output().run()
+                )
             else:
-                fps_transform = transformer.build_fps_transformation(frame_rate)
-                if fps_transform:
-                    transformations.append(fps_transform)
-            
-            transformations.append(transformer.build_quality_transformation(quality, format))
-            
-            export_url = transformer.build_full_transformation_url(
-                public_id,
-                transformations,
-                format
-            )
-            
+                # Concat multiple clips via temp concat file
+                concat_list = os.path.join(tmpdir, 'concat.txt')
+                trimmed_paths = []
+                for i, clip in enumerate(local_clips):
+                    trimmed = os.path.join(tmpdir, f"trimmed_{i}.mp4")
+                    inp_kwargs = {'ss': clip.get('trim_in', 0)}
+                    if clip.get('trim_out'):
+                        inp_kwargs['t'] = clip['trim_out'] - clip.get('trim_in', 0)
+                    stream = ffmpeg.input(clip['path'], **inp_kwargs)
+                    (
+                        ffmpeg.output(stream, trimmed,
+                            vf=scale_filter, r=frame_rate,
+                            vcodec='libx264', crf=crf,
+                            acodec='aac', audio_bitrate='192k',
+                            loglevel='error')
+                        .overwrite_output().run()
+                    )
+                    trimmed_paths.append(trimmed)
+
+                with open(concat_list, 'w') as f:
+                    for p in trimmed_paths:
+                        f.write(f"file '{p}'\n")
+
+                (
+                    ffmpeg.input(concat_list, format='concat', safe=0)
+                    .output(output_path, c='copy', movflags='+faststart', loglevel='error')
+                    .overwrite_output().run()
+                )
+
+            export_filename = f"video-exports/{user_id}/{uuid.uuid4().hex}.{fmt}"
+            with open(output_path, 'rb') as f:
+                export_url = r2_upload(f, export_filename)
+
+            print(f"✅ Export complete: {export_url}")
+
+            try:
+                export_record = VideoExport(
+                    user_id=user_id,
+                    export_url=export_url,
+                    format=fmt,
+                    resolution=resolution,
+                    status='completed',
+                    created_at=datetime.utcnow()
+                )
+                db.session.add(export_record)
+                db.session.commit()
+            except Exception as db_err:
+                print(f"⚠️ DB record failed (non-fatal): {db_err}")
+
             return jsonify({
                 "success": True,
                 "export_url": export_url,
                 "status": "completed",
-                "settings": {
-                    "resolution": resolution,
-                    "frame_rate": frame_rate,
-                    "quality": quality,
-                    "format": format
-                },
-                "message": f"Video exported at {resolution}, {frame_rate}fps. Click the URL to download."
+                "clips_processed": len(local_clips),
+                "settings": {"resolution": resolution, "frame_rate": frame_rate, "quality": quality, "format": fmt},
+                "message": f"Exported {len(local_clips)} clip(s) at {resolution}, {frame_rate}fps"
             }), 200
-        
-        else:
-            first_clip = video_clips[0]
-            base_public_id = first_clip.get('cloudinary_public_id') or first_clip.get('public_id')
-            
-            transformations = []
-            
-            first_transforms = transformer.process_timeline_clip(first_clip)
-            transformations.extend(first_transforms)
-            
-            for clip in video_clips[1:]:
-                clip_id = clip.get('cloudinary_public_id') or clip.get('public_id')
-                if clip_id:
-                    safe_id = clip_id.replace('/', ':')
-                    
-                    splice_parts = [f"l_video:{safe_id}"]
-                    
-                    clip_transforms = transformer.process_timeline_clip(clip)
-                    if clip_transforms:
-                        splice_parts.extend(clip_transforms)
-                    
-                    splice_parts.append("fl_splice")
-                    splice_parts.append("fl_layer_apply")
-                    
-                    transformations.append("/".join(splice_parts))
-            
-            res_transform = transformer.build_resolution_transformation(resolution, frame_rate)
-            if res_transform:
-                transformations.append(res_transform)
-            else:
-                fps_transform = transformer.build_fps_transformation(frame_rate)
-                if fps_transform:
-                    transformations.append(fps_transform)
-            
-            transformations.append(transformer.build_quality_transformation(quality, format))
-            
-            export_url = transformer.build_full_transformation_url(
-                base_public_id,
-                transformations,
-                format
-            )
-            
-            return jsonify({
-                "success": True,
-                "export_url": export_url,
-                "status": "completed",
-                "clips_processed": len(video_clips),
-                "settings": {
-                    "resolution": resolution,
-                    "frame_rate": frame_rate,
-                    "quality": quality,
-                    "format": format
-                },
-                "message": f"Video exported at {resolution}, {frame_rate}fps. Click the URL to download."
-            }), 200
-        
+
+    except ffmpeg.Error as e:
+        err_msg = e.stderr.decode() if e.stderr else str(e)
+        print(f"❌ FFmpeg error: {err_msg}")
+        return jsonify({"error": f"FFmpeg render failed: {err_msg[:500]}"}), 500
     except Exception as e:
         print(f"❌ Export error: {str(e)}")
         return jsonify({"error": f"Export failed: {str(e)}"}), 500
