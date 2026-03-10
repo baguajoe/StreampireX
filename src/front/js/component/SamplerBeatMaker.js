@@ -138,7 +138,9 @@ const SamplerBeatMaker = ({
   onSendToArrange,     // (audioBuffer, name) => place bounced pattern on arrange track
   onOpenSampler,       // () => switch to Sampler view
   incomingSample,      // { buffer, name, timestamp } from Sampler
-  incomingSlices,      // [{ buffer, name }] from Sampler auto-chop
+  incomingSlices,
+  chordsComponent, soundsComponent, loopsComponent, aiBeatsComponent, voiceMidiComponent,
+  humToSongComponent, textToSongComponent,      // [{ buffer, name }] from Sampler auto-chop
 }) => {
 
   // ==== AUDIO ENGINE REFS ====
@@ -2652,6 +2654,8 @@ const SamplerBeatMaker = ({
           { id: 'loops', label: '🔁 Loops', title: 'Looperman Loop Browser' },
           { id: 'aibeats', label: '🤖 AI Beats', title: 'AI Beat Pattern Generator' },
           { id: 'voicemidi', label: '🎤 Voice MIDI', title: 'Voice to MIDI Converter' },
+          { id: 'humtosong', label: '🎵 Hum to Song', title: 'Hum a melody to generate a beat' },
+          { id: 'texttosong', label: '✍️ Text to Song', title: 'Text prompt to generated song' },
           { id: 'stems', label: '✂️ Stems', title: 'AI Stem Separator' },
         ].map(tab => (
           <button
@@ -2802,35 +2806,49 @@ const SamplerBeatMaker = ({
         {/* ── CHORDS TAB ── */}
         {activeTab === 'chords' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            {props.chordsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🎼 Chord Progression Generator — open via DAW Sampler view</div>}
+            {chordsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🎼 Chord Progression Generator — open via DAW Sampler view</div>}
           </div>
         )}
 
         {/* ── SOUNDS TAB ── */}
         {activeTab === 'sounds' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            {props.soundsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🔊 Freesound Browser — open via DAW Sampler view</div>}
+            {soundsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🔊 Freesound Browser — open via DAW Sampler view</div>}
           </div>
         )}
 
         {/* ── LOOPS TAB ── */}
         {activeTab === 'loops' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            {props.loopsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🔁 Looperman Browser — open via DAW Sampler view</div>}
+            {loopsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🔁 Looperman Browser — open via DAW Sampler view</div>}
           </div>
         )}
 
         {/* ── AI BEATS TAB ── */}
         {activeTab === 'aibeats' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            {props.aiBeatsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🤖 AI Beat Assistant — open via DAW Sampler view</div>}
+            {aiBeatsComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🤖 AI Beat Assistant — open via DAW Sampler view</div>}
           </div>
         )}
 
         {/* ── VOICE MIDI TAB ── */}
         {activeTab === 'voicemidi' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
-            {props.voiceMidiComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🎤 Voice MIDI — open via DAW Sampler view</div>}
+            {voiceMidiComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🎤 Voice MIDI — open via DAW Sampler view</div>}
+          </div>
+        )}
+
+        {/* ── HUM TO SONG TAB ── */}
+        {activeTab === 'humtosong' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
+            {humToSongComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>🎵 Hum to Song — open via AI Tools sidebar</div>}
+          </div>
+        )}
+
+        {/* ── TEXT TO SONG TAB ── */}
+        {activeTab === 'texttosong' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
+            {textToSongComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>✍️ Text to Song — open via AI Tools sidebar</div>}
           </div>
         )}
 
