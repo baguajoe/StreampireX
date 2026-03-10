@@ -717,8 +717,8 @@ const Home = () => {
 					</div>
 				</div>
 				<div className="epk-cta">
-					<Link to="/epk-hub" className="btn btn-primary">Build Your EPK</Link>
-					<Link to="/epk-hub" className="btn btn-outline-light">Find Collaborators</Link>
+					<a href="#waitlist" className="btn btn-primary">Join the Waitlist</a>
+					<a href="#waitlist" className="btn btn-outline-light">Request Early Access</a>
 				</div>
 			</section>
 
@@ -753,8 +753,8 @@ const Home = () => {
 					</div>
 				</div>
 				<div className="beat-store-cta">
-					<Link to="/beats" className="btn btn-primary">Browse Beat Store</Link>
-					<Link to="/sell-beats" className="btn btn-outline-light">Sell Your Beats</Link>
+					<a href="#waitlist" className="btn btn-primary">Join the Waitlist</a>
+					<a href="#waitlist" className="btn btn-outline-light">Request Early Access</a>
 				</div>
 			</section>
 
@@ -799,8 +799,8 @@ const Home = () => {
 					</div>
 				</div>
 				<div className="podcast-studio-cta">
-					<Link to="/podcast-create" className="btn btn-primary">Launch Your Podcast</Link>
-					<Link to="/podcast-studio" className="btn btn-outline-light">Open Podcast Studio</Link>
+					<a href="#waitlist" className="btn btn-primary">Join the Waitlist</a>
+					<a href="#waitlist" className="btn btn-outline-light">Request Early Access</a>
 				</div>
 			</section>
 
@@ -947,7 +947,7 @@ const Home = () => {
 					</div>
 				</div>
 				<div className="pricing-preview-cta">
-					<Link to="/pricing" className="btn btn-primary">View Full Pricing</Link>
+					<a href="#waitlist" className="btn btn-primary">Join the Waitlist</a>
 				</div>
 			</section>
 
@@ -1036,22 +1036,22 @@ const Home = () => {
 				</p>
 				<div className="cta-buttons">
 					<a href="#waitlist" className="btn btn-primary btn-lg">Join the Waitlist</a>
-					<Link to="/pricing" className="btn btn-outline-light btn-lg">View Pricing</Link>
+					<a href="#waitlist" className="btn btn-outline-light btn-lg">Request Early Access</a>
 				</div>
 				<div className="cta-secondary-links">
-					<Link to="/epk-hub" className="cta-link">Build Your EPK</Link>
+					<a href="#waitlist" className="cta-link">Build Your EPK</a>
 					<span className="cta-divider">•</span>
-					<Link to="/beats" className="cta-link">Browse Beat Store</Link>
+					<a href="#waitlist" className="cta-link">Browse Beat Store</a>
 					<span className="cta-divider">•</span>
-					<Link to="/ai-video-studio" className="cta-link">AI Video Studio</Link>
+					<a href="#waitlist" className="cta-link">AI Video Studio</a>
 					<span className="cta-divider">•</span>
-					<Link to="/podcast-studio" className="cta-link">Podcast Studio</Link>
+					<a href="#waitlist" className="cta-link">Podcast Studio</a>
 					<span className="cta-divider">•</span>
-					<Link to="/recording-studio" className="cta-link">Recording Studio</Link>
+					<a href="#waitlist" className="cta-link">Recording Studio</a>
 					<span className="cta-divider">•</span>
 					<Link to="/squad-finder" className="cta-link">Gaming Hub</Link>
 					<span className="cta-divider">•</span>
-					<Link to="/marketplace" className="cta-link">Marketplace</Link>
+					<a href="#waitlist" className="cta-link">Marketplace</a>
 				</div>
 			</section>
 
