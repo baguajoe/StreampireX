@@ -157,11 +157,17 @@ def join_waitlist():
     </div>
     </body></html>
     """
-    send_email(email, "You're on the StreamPireX early access list! 🎵", confirm_html)
+    try:
+        send_email(email, "You're on the StreamPireX early access list! 🎵", confirm_html)
+    except Exception as e:
+        print(f"⚠️ Confirmation email failed: {e}")
 
     # Notify admin
-    admin_html = f"<p>New waitlist signup: <strong>{name or 'No name'}</strong> — {email} (source: {source})</p>"
-    send_email("baguajoe@gmail.com", f"🔔 New StreamPireX waitlist signup: {email}", admin_html)
+    try:
+        admin_html = f"<p>New waitlist signup: <strong>{name or 'No name'}</strong> — {email} (source: {source})</p>"
+        send_email("baguajoe@gmail.com", f"🔔 New StreamPireX waitlist signup: {email}", admin_html)
+    except Exception as e:
+        print(f"⚠️ Admin notification email failed: {e}")
 
     return jsonify({'message': 'You are on the list!'}), 201
 
