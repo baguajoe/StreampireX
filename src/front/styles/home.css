@@ -1831,3 +1831,208 @@
 .streampirex-home .free-banner-cta {
   text-align: center;
 }
+
+/* =============================================
+   Social Network Spotlight — Added Mar 2026
+   ============================================= */
+.streampirex-home .social-network-spotlight {
+  padding: 5rem 2rem;
+  background: #0d1117;
+  border-bottom: 1px solid #1f2937;
+}
+
+.streampirex-home .social-network-spotlight h2 {
+  text-align: center;
+  font-size: 2rem;
+  color: #00ffc8;
+  margin-bottom: 0.5rem;
+}
+
+.streampirex-home .social-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  max-width: 1100px;
+  margin: 2.5rem auto;
+}
+
+@media (max-width: 900px) {
+  .streampirex-home .social-features-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .streampirex-home .social-features-grid { grid-template-columns: 1fr; }
+}
+
+.streampirex-home .social-feature {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.streampirex-home .social-feature:hover {
+  border-color: #00ffc8;
+  transform: translateY(-3px);
+}
+
+.streampirex-home .social-icon {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.streampirex-home .social-feature h4 {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.streampirex-home .social-feature p {
+  color: #9ca3af !important;
+  font-size: 0.875rem !important;
+  margin: 0;
+}
+
+.streampirex-home .social-cta {
+  text-align: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+/* =============================================
+   Gaming Hub Spotlight — Added Mar 2026
+   ============================================= */
+.streampirex-home .gaming-hub-spotlight {
+  padding: 5rem 2rem;
+  background: linear-gradient(145deg, #0d1117, #0f1923);
+  border-bottom: 1px solid #1f2937;
+}
+
+.streampirex-home .gaming-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.streampirex-home .gaming-header h2 {
+  font-size: 2rem;
+  color: #00ffc8;
+  margin: 0;
+}
+
+.streampirex-home .gaming-free-tag {
+  background: #FF6600;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+}
+
+.streampirex-home .gaming-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  max-width: 1100px;
+  margin: 2.5rem auto;
+}
+
+@media (max-width: 900px) {
+  .streampirex-home .gaming-features-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .streampirex-home .gaming-features-grid { grid-template-columns: 1fr; }
+}
+
+.streampirex-home .gaming-feature {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.streampirex-home .gaming-feature:hover {
+  border-color: #FF6600;
+  transform: translateY(-3px);
+}
+
+.streampirex-home .gaming-icon {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.streampirex-home .gaming-feature h4 {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.streampirex-home .gaming-feature p {
+  color: #9ca3af !important;
+  font-size: 0.875rem !important;
+  margin: 0;
+}
+
+.streampirex-home .gaming-cta {
+  text-align: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.streampirex-home .btn-gaming {
+  background: #FF6600;
+  color: #fff;
+  padding: 0.75rem 1.75rem;
+  border-radius: 8px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 2px solid #FF6600;
+  transition: background 0.2s, color 0.2s;
+}
+
+.streampirex-home .btn-gaming:hover {
+  background: transparent;
+  color: #FF6600;
+}
+
+.streampirex-home .btn-outline-gaming {
+  background: transparent;
+  color: #FF6600;
+  padding: 0.75rem 1.75rem;
+  border-radius: 8px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 2px solid #FF6600;
+  transition: background 0.2s, color 0.2s;
+}
+
+.streampirex-home .btn-outline-gaming:hover {
+  background: #FF6600;
+  color: #fff;
+}
+
+/* Section subtitle shared style */
+.streampirex-home .section-subtitle {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 1.05rem;
+  max-width: 700px;
+  margin: 0 auto 2rem;
+}
