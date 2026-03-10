@@ -42,7 +42,7 @@ import AIContentWriter from "./pages/AIContentWriter";
 import AIStemSeparation from "./pages/AIStemSeparation";
 import AIVideoStudio from "./pages/AIVideoStudio";
 import EPKCollabHub from "./pages/EPKCollabHub";
-import { PublicEPKPage } from "./pages/PublicEPK";
+import PublicEPKPage from "./pages/PublicEPK";
 import VoiceCloneServices from './pages/VoiceCloneServices';
 import PluginRackDemo from './pages/PluginRackDemo.js';
 import PodcastStudio from "./pages/PodcastStudio";
