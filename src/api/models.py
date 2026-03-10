@@ -7552,3 +7552,14 @@ class DAWSession(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
+
+
+class WaitlistEntry(db.Model):
+    __tablename__ = 'waitlist'
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120))
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    source = db.Column(db.String(80), default='landing_page')
+    subscribed = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=db.func.now())

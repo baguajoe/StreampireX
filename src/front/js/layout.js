@@ -43,6 +43,7 @@ import AIStemSeparation from "./pages/AIStemSeparation";
 import AIVideoStudio from "./pages/AIVideoStudio";
 import EPKCollabHub from "./pages/EPKCollabHub";
 import PublicEPKPage from "./pages/PublicEPK";
+import Contact from "./pages/Contact";
 import VoiceCloneServices from './pages/VoiceCloneServices';
 import PluginRackDemo from './pages/PluginRackDemo.js';
 import PodcastStudio from "./pages/PodcastStudio";
@@ -203,6 +204,7 @@ const AppShell = ({ user }) => {
               <Route path="/podcast-join/:sessionId" element={<PodcastGuestJoin />} />
               <Route path="/podcast-async/:linkId" element={<AsyncGuestRecordPage />} />
               <Route path="/support" element={<TechSupportPage />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="/video-series/new" element={<VideoSeriesBuilder />} />
               <Route path="/video-series/:id/edit" element={<VideoSeriesBuilder />} />
               <Route path="/creator/membership" element={<CreatorMembershipManager />} />

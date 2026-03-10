@@ -1,4 +1,5 @@
 // =============================================================================
+import WaitlistSection from "../component/WaitlistSection";
 // Home.js — StreamPireX Landing Page (Updated Mar 2026)
 // =============================================================================
 // Section order (ranked by community size & revenue impact):
@@ -1051,6 +1052,13 @@ const Home = () => {
 				</div>
 			</section>
 
+
+                        {/* ================================================================
+                            EARLY ACCESS / WAITLIST
+                            ================================================================ */}
+                        <section style={{ background: "linear-gradient(135deg, #0d1117 0%, #161b22 100%)", padding: "80px 20px", textAlign: "center", borderTop: "1px solid #30363d" }}>
+                          <WaitlistSection />
+                        </section>
 			{/* ================================================================
 			    FOOTER
 			    ================================================================ */}
