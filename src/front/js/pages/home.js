@@ -661,14 +661,17 @@ const Home = () => {
 					</div>
 				</div>
 
-				<div className="ai-coming-soon">
-					<h4>🚀 More AI Features Coming Soon</h4>
-					<div className="coming-soon-items">
-						<span className="coming-soon-tag">AI Podcast Transcription</span>
-						<span className="coming-soon-tag">AI Analytics Insights</span>
-						<span className="coming-soon-tag">AI Lyrics Generator</span>
-						<span className="coming-soon-tag">AI Sample Finder</span>
-						<span className="coming-soon-tag">AI Beat Matching</span>
+				<div className="ai-also-included">
+					<h4>🛠️ Also Included in Your Plan</h4>
+					<div className="also-included-items">
+						<span className="also-tag">AI Podcast Transcription</span>
+						<span className="also-tag">AI Analytics Insights</span>
+						<span className="also-tag">AI Lyrics Generator</span>
+						<span className="also-tag">AI Sample Finder</span>
+						<span className="also-tag">AI Beat Matching</span>
+						<span className="also-tag">AI Content Writer</span>
+						<span className="also-tag">Smart Distribution</span>
+						<span className="also-tag">AI Thumbnail Maker</span>
 					</div>
 				</div>
 			</section>
