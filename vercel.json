@@ -2,6 +2,5 @@
   "buildCommand": "cd src/front && npm install && npm run build",
   "outputDirectory": "src/front/build",
   "framework": null,
-  "installCommand": "npm install",
-  "ignoreCommand": "exit 1"
+  "installCommand": "npm install"
 }
