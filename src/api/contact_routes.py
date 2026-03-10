@@ -159,6 +159,10 @@ def join_waitlist():
     """
     send_email(email, "You're on the StreamPireX early access list! 🎵", confirm_html)
 
+    # Notify admin
+    admin_html = f"<p>New waitlist signup: <strong>{name or 'No name'}</strong> — {email} (source: {source})</p>"
+    send_email("baguajoe@gmail.com", f"🔔 New StreamPireX waitlist signup: {email}", admin_html)
+
     return jsonify({'message': 'You are on the list!'}), 201
 
 @contact_bp.route('/api/waitlist/count', methods=['GET'])
