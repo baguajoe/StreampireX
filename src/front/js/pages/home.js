@@ -41,8 +41,8 @@ const Home = () => {
 
 					{!user ? (
 						<div className="cta-buttons">
-							<Link to="/signup" className="btn btn-primary">Get Started Free</Link>
-							<Link to="/login" className="btn btn-outline-light">Log In</Link>
+							<a href="#waitlist" className="btn btn-primary">Join the Waitlist</a>
+							<a href="#waitlist" className="btn btn-outline-light">Request Access</a>
 						</div>
 					) : (
 						<div className="cta-buttons">
@@ -219,7 +219,7 @@ const Home = () => {
 						</div>
 					</div>
 					<div className="free-banner-cta">
-						<Link to="/signup" className="btn btn-primary btn-lg">Sign Up Free — No Card Needed</Link>
+						<a href="#waitlist" className="btn btn-primary btn-lg">Join the Waitlist — Be First</a>
 					</div>
 				</div>
 			</section>
@@ -265,8 +265,8 @@ const Home = () => {
 					</div>
 				</div>
 				<div className="social-cta">
-					<Link to="/signup" className="btn btn-primary">Join the Community — Free</Link>
-					<Link to="/home-feed" className="btn btn-outline-light">Browse Feed</Link>
+					<a href="#waitlist" className="btn btn-primary">Join the Waitlist</a>
+					<a href="#waitlist" className="btn btn-outline-light">Request Early Access</a>
 				</div>
 			</section>
 
@@ -315,8 +315,8 @@ const Home = () => {
 					</div>
 				</div>
 				<div className="gaming-cta">
-					<Link to="/squad-finder" className="btn btn-gaming">Find Your Squad — Free</Link>
-					<Link to="/gamers/chat" className="btn btn-outline-gaming">Browse Chatrooms</Link>
+					<a href="#waitlist" className="btn btn-gaming">Join the Waitlist</a>
+					<a href="#waitlist" className="btn btn-outline-gaming">Request Early Access</a>
 				</div>
 			</section>
 
@@ -1032,7 +1032,7 @@ const Home = () => {
 					live streaming, and more — all in one platform. Keep 90% of everything you earn.
 				</p>
 				<div className="cta-buttons">
-					<Link to="/signup" className="btn btn-primary btn-lg">Start Creating for Free</Link>
+					<a href="#waitlist" className="btn btn-primary btn-lg">Join the Waitlist</a>
 					<Link to="/pricing" className="btn btn-outline-light btn-lg">View Pricing</Link>
 				</div>
 				<div className="cta-secondary-links">
