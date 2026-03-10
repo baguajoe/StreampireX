@@ -509,18 +509,18 @@ const MusicDistribution = () => {
           <div className="standalone-option">
             <p className="option-name">Artist Distribution</p>
             <p className="option-price">$22.99/year</p>
-            <Link to="/pricing/plans" className="option-btn">Choose Artist</Link>
+            <button className="option-btn" onClick={() => window.location.href="https://streampirex.sonosuite.com/sonosuite-login"}>Go to Dashboard</button>
           </div>
           <div className="standalone-option">
             <p className="option-name">Label Distribution</p>
             <p className="option-price">$74.99/year</p>
-            <Link to="/pricing/plans" className="option-btn">Choose Label</Link>
+            <button className="option-btn" onClick={() => window.location.href="https://streampirex.sonosuite.com/sonosuite-login"}>Go to Dashboard</button>
           </div>
         </div>
       </div>
 
       <div className="plan-cta">
-        <Link to="/pricing" className="cta-btn">🎯 Choose a Plan & Start Distributing</Link>
+        <button className="cta-btn" onClick={() => window.location.href="https://streampirex.sonosuite.com/sonosuite-login"}>🎯 Go to SonoSuite Dashboard</button>
       </div>
     </section>
   );
@@ -637,8 +637,8 @@ const MusicDistribution = () => {
       <div className="plan-management">
         <h4>🎯 Manage Your Plan</h4>
         <div className="plan-actions">
-          <Link to="/pricing/plans" className="btn-view-plans">📊 View All Plans</Link>
-          <Link to="/pricing/plans" className="btn-upgrade">🚀 Upgrade Plan</Link>
+          <button className="btn-view-plans" onClick={() => window.location.href="https://streampirex.sonosuite.com/sonosuite-login"}>📊 SonoSuite Dashboard</button>
+          <button className="btn-upgrade" onClick={() => window.location.href="https://streampirex.sonosuite.com/sonosuite-login"}>🚀 SonoSuite Dashboard</button>
         </div>
         <p>Current Plan: <strong>{userPlan?.plan?.name || 'Loading...'}</strong></p>
         <button onClick={handleDisconnect} className="btn-disconnect">

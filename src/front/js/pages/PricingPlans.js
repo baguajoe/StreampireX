@@ -97,6 +97,11 @@ const PricingPlans = () => {
     }
 
     if (isCurrentPlan(tier)) {
+      if (isDistribution) {
+        window.location.href = 'https://streampirex.sonosuite.com/sonosuite-login';
+      } else {
+        navigate('/dashboard');
+      }
       return;
     }
 
@@ -134,6 +139,12 @@ const PricingPlans = () => {
       } else if (response.ok) {
         alert('✅ ' + (data.message || 'Subscription updated!'));
         window.location.reload();
+      } else if (data.error && (data.error.toLowerCase().includes('active') || data.error.toLowerCase().includes('already'))) {
+        if (isDistribution) {
+          window.location.href = 'https://streampirex.sonosuite.com/sonosuite-login';
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         alert('❌ ' + (data.error || 'Subscription failed'));
       }

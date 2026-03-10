@@ -117,18 +117,6 @@ def send_mass_email():
 
 
 # ── WAITLIST ──────────────────────────────────────────────────────────────────
-from .models import db
-
-from datetime import datetime as dt
-
-# WaitlistEntry moved to models.py
-    __tablename__ = 'waitlist'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120))
-    email = db.Column(db.String(255), unique=True, nullable=False)
-    source = db.Column(db.String(80), default='landing_page')
-    subscribed = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=dt.utcnow)
 
 @contact_bp.route('/api/waitlist', methods=['POST'])
 def join_waitlist():
