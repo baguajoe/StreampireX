@@ -153,7 +153,7 @@ def join_waitlist():
         </div>
         <p>Stay tuned. This is going to be big.</p>
         <p style="color:#FF6600;font-weight:bold;">— The StreamPireX Team</p>
-        <p style="color:#5a7088;font-size:11px;margin-top:30px;">© {dt.now().year} StreamPireX · Eye Forge Studios LLC</p>
+        <p style="color:#5a7088;font-size:11px;margin-top:30px;">© 2026 StreamPireX · Eye Forge Studios LLC</p>
     </div>
     </body></html>
     """
