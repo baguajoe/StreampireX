@@ -9,7 +9,7 @@ const WaitlistSection = () => {
     if (!email) return;
     setStatus("sending");
     try {
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/waitlist`, {
+      const res = await fetch(`https://web-production-a9a2f.up.railway.app/api/waitlist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, name, source: "landing_page" }),
