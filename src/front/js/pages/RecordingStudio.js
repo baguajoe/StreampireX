@@ -22,6 +22,7 @@ import AIMixAssistant from "../component/AIMixAssistant";
 import SamplerBeatMaker from "../component/SamplerBeatMaker";
 import SamplerInstrument from "../component/SamplerInstrument";
 import MicSimulator from "../component/MicSimulator";
+import SpeakerSimulator from "../component/SpeakerSimulator";
 import VirtualPiano from "../component/VirtualPiano";
 import FreesoundBrowser from "../component/FreesoundBrowser";
 import KeyFinder from "../component/KeyFinder";
@@ -2659,6 +2660,7 @@ const RecordingStudio = ({ user }) => {
             FX Chain
           </button>
           <button className={`daw-view-tab ${viewMode === 'mastering' ? 'active' : ''}`} onClick={() => setViewMode('mastering')} title="Mastering Suite — LUFS, EQ, Limiter, Widener">
+          <button className={`daw-view-tab ${viewMode === 'speakersim' ? 'active' : ''}`} onClick={() => setViewMode('speakersim')} title="Mix Translator — Hear your mix on 22 speakers">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
             Master
           </button>
@@ -3545,6 +3547,9 @@ const RecordingStudio = ({ user }) => {
         )}
 
         {/* ──────── MASTERING VIEW ──────── */}
+        {viewMode === 'speakersim' && (
+          <SpeakerSimulator />
+        )}
         {viewMode === 'mastering' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
             <MasteringChain
