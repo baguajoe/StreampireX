@@ -1,6 +1,6 @@
 {
-  "buildCommand": "cd src/front && npm install && npm run build",
-  "outputDirectory": "src/front/build",
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": "public",
   "framework": null,
   "installCommand": "npm install"
 }
