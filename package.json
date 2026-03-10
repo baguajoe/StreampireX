@@ -1,157 +1,163 @@
 {
-	"name": "react-hello-webapp",
-	"engines": {
-		"node": "22.x"
-	},
-	"version": "1.0.1",
-	"description": "StreamPirex - Creator Platform with Music Distribution, Podcasts, Radio, Gaming & Video Editor",
-	"main": "index.js",
-	"scripts": {
-		"start": "webpack serve --config webpack.dev.js --host 0.0.0.0 --port 3000",
-		"build": "webpack --config webpack.prod.js",
-		"test": "playwright test",
-		"test:install": "playwright install",
-		"test:headed": "playwright test --headed",
-		"test:debug": "playwright test --debug",
-		"test:ui": "playwright test --ui",
-		"test:report": "playwright show-report",
-		"test:auth": "playwright test tests/auth/ --project=auth-tests",
-		"test:api": "playwright test tests/api/ --project=api-integration",
-		"test:frontend": "playwright test tests/frontend --project=frontend-tests",
-		"test:sonosuite": "playwright test tests/sonosuite/ --project=sonosuite-integration",
-		"test:music": "playwright test tests/music/ --project=music-features",
-		"test:podcasts": "playwright test tests/podcasts/ --project=podcast-features",
-		"test:radio": "playwright test tests/radio/ --project=radio-features",
-		"test:gaming": "playwright test tests/gaming/ --project=gaming-features",
-		"test:video-editor": "playwright test tests/video-editor/ --project=video-editor-features",
-		"test:marketplace": "playwright test tests/marketplace/ --project=marketplace-features",
-		"test:distribution": "playwright test tests/distribution/ --project=distribution-features",
-		"test:mobile": "playwright test tests/mobile/ --project=mobile-chrome",
-		"test:cross-browser": "playwright test --project=firefox --project=webkit",
-		"test:all-browsers": "playwright test --project=chromium --project=firefox --project=webkit",
-		"test:working-features": "playwright test tests/auth/ tests/api/ tests/frontend/",
-		"test:pending-features": "playwright test tests/sonosuite/ tests/distribution/ --reporter=list",
-		"test:core": "playwright test tests/auth/ tests/api/ tests/frontend/ --project=chromium",
-		"test:integration": "playwright test tests/integration/ --project=integration-tests",
-		"test:performance": "playwright test tests/performance/ --project=performance-tests",
-		"test:accessibility": "playwright test tests/accessibility/ --project=a11y-tests",
-		"test:visual": "playwright test tests/visual/ --project=visual-tests",
-		"test:health": "curl -f http://localhost:3001/health || echo 'Backend not running'",
-		"test:backend-health": "curl -f http://localhost:3001/api/health || echo 'API not responding'",
-		"test:endpoints": "playwright test tests/api/endpoint-validation.spec.js",
-		"test:ci": "playwright test --reporter=junit --reporter=html",
-		"test:ci-core": "playwright test tests/auth/ tests/api/ --reporter=junit",
-		"test:ci-features": "playwright test tests/music/ tests/podcasts/ tests/radio/ --reporter=junit",
-		"test:smoke": "playwright test tests/smoke/ --project=smoke-tests",
-		"test:watch": "playwright test --watch",
-		"test:update-snapshots": "playwright test --update-snapshots",
-		"test:trace": "playwright test --trace=on",
-		"test:record": "playwright codegen http://localhost:3000",
-		"test:login-flow": "playwright test tests/auth/login.spec.js --headed",
-		"test:registration-flow": "playwright test tests/auth/registration.spec.js --headed",
-		"test:jwt-validation": "playwright test tests/auth/jwt-validation.spec.js",
-		"test:sonosuite-urls": "playwright test tests/sonosuite/url-construction.spec.js",
-		"test:upload-workflows": "playwright test tests/music/upload-flow.spec.js tests/podcasts/upload-flow.spec.js",
-		"test:full-suite": "npm run test:working-features && npm run test:pending-features",
-		"test:production-ready": "npm run test:core && npm run test:performance && npm run test:accessibility",
-		"test:feature-complete": "npm run test:music && npm run test:podcasts && npm run test:radio && npm run test:gaming",
-		"test:all-platforms": "npm run test:core && npm run test:mobile && npm run test:cross-browser"
-	},
-	"author": {
-		"name": "Alejandro Sanchez",
-		"url": "http://alesanchezr.com/"
-	},
-	"contributors": [
-		{
-			"name": "Alejandro Sanchez",
-			"url": "http://alesanchezr.com/"
-		},
-		{
-			"name": "Ignacio Cordoba",
-			"url": "http://github.com/nachovz"
-		}
-	],
-	"license": "ISC",
-	"devDependencies": {
-		"@babel/cli": "^7.16.0",
-		"@babel/core": "^7.16.0",
-		"@babel/plugin-proposal-class-properties": "^7.16.0",
-		"@babel/plugin-transform-runtime": "^7.16.4",
-		"@babel/preset-env": "^7.16.4",
-		"@babel/preset-react": "^7.16.0",
-		"@babel/runtime": "^7.16.3",
-		"@playwright/test": "^1.54.2",
-		"babel-eslint": "^10.1.0",
-		"babel-loader": "^8.2.3",
-		"babel-plugin-transform-class-properties": "^6.24.1",
-		"bc-console": "0.0.2",
-		"css-loader": "^6.5.1",
-		"dotenv-webpack": "^7.0.3",
-		"envfile": "^6.17.0",
-		"error-overlay-webpack-plugin": "^1.0.0",
-		"eslint": "^8.4.0",
-		"eslint-plugin-react": "^7.27.1",
-		"eslint-webpack-plugin": "^3.1.1",
-		"file-loader": "^6.2.0",
-		"gh-pages": "^3.2.3",
-		"html-loader": "^3.0.1",
-		"html-webpack-plugin": "^5.5.0",
-		"parse-github-url": "^1.0.2",
-		"prettier": "^2.5.1",
-		"remote-origin-url": "^2.0.0",
-		"style-loader": "^3.3.1",
-		"webpack": "^5.65.0",
-		"webpack-cli": "^4.9.1",
-		"webpack-dev-server": "^4.6.0",
-		"webpack-merge": "^5.8.0",
-		"workbox-webpack-plugin": "^7.4.0"
-	},
-	"babel": {
-		"presets": [
-			"@babel/preset-env",
-			"@babel/preset-react"
-		],
-		"plugins": [
-			"@babel/plugin-proposal-class-properties",
-			[
-				"@babel/plugin-transform-runtime",
-				{
-					"regenerator": true
-				}
-			]
-		]
-	},
-	"dependencies": {
-		"@google/model-viewer": "^4.0.0",
-		"@mediapipe/camera_utils": "^0.3.1675466862",
-		"@mediapipe/face_detection": "^0.4.1646425229",
-		"@mediapipe/hands": "^0.4.1675469240",
-		"@mediapipe/holistic": "^0.5.1675471629",
-		"@mediapipe/pose": "^0.5.1675469404",
-		"@readyplayerme/react-avatar-creator": "^0.5.0",
-		"@stripe/react-stripe-js": "^3.5.1",
-		"@stripe/stripe-js": "^6.1.0",
-		"axios": "^1.8.3",
-		"chart.js": "^4.4.8",
-		"hls.js": "^1.5.20",
-		"i18next": "^24.2.3",
-		"i18next-browser-languagedetector": "^8.0.4",
-		"i18next-http-backend": "^3.0.2",
-		"lucide-react": "^0.525.0",
-		"prop-types": "^15.6.1",
-		"react": "^18.3.1",
-		"react-beautiful-dnd": "^13.1.1",
-		"react-chartjs-2": "^5.3.0",
-		"react-dom": "^18.3.1",
-		"react-hot-toast": "^2.6.0",
-		"react-i18next": "^15.4.1",
-		"react-icons": "^4.12.0",
-		"react-polyfills": "0.0.1",
-		"react-router-dom": "^6.30.1",
-		"react-swipeable": "^7.0.2",
-		"react-toastify": "^11.0.5",
-		"recharts": "^2.15.4",
-		"socket.io-client": "^4.8.1",
-		"styled-components": "^6.1.15"
-	}
+  "name": "react-hello-webapp",
+  "engines": {
+    "node": "22.x"
+  },
+  "version": "1.0.1",
+  "description": "StreamPirex - Creator Platform with Music Distribution, Podcasts, Radio, Gaming & Video Editor",
+  "main": "index.js",
+  "scripts": {
+    "start": "webpack serve --config webpack.dev.js --host 0.0.0.0 --port 3000",
+    "build": "webpack --config webpack.prod.js",
+    "test": "playwright test",
+    "test:install": "playwright install",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report",
+    "test:auth": "playwright test tests/auth/ --project=auth-tests",
+    "test:api": "playwright test tests/api/ --project=api-integration",
+    "test:frontend": "playwright test tests/frontend --project=frontend-tests",
+    "test:sonosuite": "playwright test tests/sonosuite/ --project=sonosuite-integration",
+    "test:music": "playwright test tests/music/ --project=music-features",
+    "test:podcasts": "playwright test tests/podcasts/ --project=podcast-features",
+    "test:radio": "playwright test tests/radio/ --project=radio-features",
+    "test:gaming": "playwright test tests/gaming/ --project=gaming-features",
+    "test:video-editor": "playwright test tests/video-editor/ --project=video-editor-features",
+    "test:marketplace": "playwright test tests/marketplace/ --project=marketplace-features",
+    "test:distribution": "playwright test tests/distribution/ --project=distribution-features",
+    "test:mobile": "playwright test tests/mobile/ --project=mobile-chrome",
+    "test:cross-browser": "playwright test --project=firefox --project=webkit",
+    "test:all-browsers": "playwright test --project=chromium --project=firefox --project=webkit",
+    "test:working-features": "playwright test tests/auth/ tests/api/ tests/frontend/",
+    "test:pending-features": "playwright test tests/sonosuite/ tests/distribution/ --reporter=list",
+    "test:core": "playwright test tests/auth/ tests/api/ tests/frontend/ --project=chromium",
+    "test:integration": "playwright test tests/integration/ --project=integration-tests",
+    "test:performance": "playwright test tests/performance/ --project=performance-tests",
+    "test:accessibility": "playwright test tests/accessibility/ --project=a11y-tests",
+    "test:visual": "playwright test tests/visual/ --project=visual-tests",
+    "test:health": "curl -f http://localhost:3001/health || echo 'Backend not running'",
+    "test:backend-health": "curl -f http://localhost:3001/api/health || echo 'API not responding'",
+    "test:endpoints": "playwright test tests/api/endpoint-validation.spec.js",
+    "test:ci": "playwright test --reporter=junit --reporter=html",
+    "test:ci-core": "playwright test tests/auth/ tests/api/ --reporter=junit",
+    "test:ci-features": "playwright test tests/music/ tests/podcasts/ tests/radio/ --reporter=junit",
+    "test:smoke": "playwright test tests/smoke/ --project=smoke-tests",
+    "test:watch": "playwright test --watch",
+    "test:update-snapshots": "playwright test --update-snapshots",
+    "test:trace": "playwright test --trace=on",
+    "test:record": "playwright codegen http://localhost:3000",
+    "test:login-flow": "playwright test tests/auth/login.spec.js --headed",
+    "test:registration-flow": "playwright test tests/auth/registration.spec.js --headed",
+    "test:jwt-validation": "playwright test tests/auth/jwt-validation.spec.js",
+    "test:sonosuite-urls": "playwright test tests/sonosuite/url-construction.spec.js",
+    "test:upload-workflows": "playwright test tests/music/upload-flow.spec.js tests/podcasts/upload-flow.spec.js",
+    "test:full-suite": "npm run test:working-features && npm run test:pending-features",
+    "test:production-ready": "npm run test:core && npm run test:performance && npm run test:accessibility",
+    "test:feature-complete": "npm run test:music && npm run test:podcasts && npm run test:radio && npm run test:gaming",
+    "test:all-platforms": "npm run test:core && npm run test:mobile && npm run test:cross-browser"
+  },
+  "author": {
+    "name": "Alejandro Sanchez",
+    "url": "http://alesanchezr.com/"
+  },
+  "contributors": [
+    {
+      "name": "Alejandro Sanchez",
+      "url": "http://alesanchezr.com/"
+    },
+    {
+      "name": "Ignacio Cordoba",
+      "url": "http://github.com/nachovz"
+    }
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "^7.16.0",
+    "@babel/core": "^7.29.0",
+    "@babel/plugin-proposal-class-properties": "^7.16.0",
+    "@babel/plugin-transform-runtime": "^7.16.4",
+    "@babel/preset-env": "^7.29.0",
+    "@babel/preset-react": "^7.28.5",
+    "@babel/runtime": "^7.16.3",
+    "@playwright/test": "^1.54.2",
+    "babel-eslint": "^10.1.0",
+    "babel-loader": "^8.4.1",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "bc-console": "0.0.2",
+    "css-loader": "^6.5.1",
+    "dotenv-webpack": "^7.0.3",
+    "envfile": "^6.17.0",
+    "error-overlay-webpack-plugin": "^1.0.0",
+    "eslint": "^8.4.0",
+    "eslint-plugin-react": "^7.27.1",
+    "eslint-webpack-plugin": "^3.1.1",
+    "file-loader": "^6.2.0",
+    "gh-pages": "^3.2.3",
+    "html-loader": "^3.0.1",
+    "html-webpack-plugin": "^5.5.0",
+    "parse-github-url": "^1.0.2",
+    "prettier": "^2.5.1",
+    "remote-origin-url": "^2.0.0",
+    "style-loader": "^3.3.1",
+    "webpack": "^5.65.0",
+    "webpack-cli": "^4.9.1",
+    "webpack-dev-server": "^4.6.0",
+    "webpack-merge": "^5.8.0",
+    "workbox-webpack-plugin": "^7.4.0"
+  },
+  "babel": {
+    "presets": [
+      [
+        "@babel/preset-env",
+        {
+          "targets": {
+            "browsers": [
+              "> 1%",
+              "last 2 versions"
+            ]
+          }
+        }
+      ],
+      [
+        "@babel/preset-react",
+        {
+          "runtime": "automatic"
+        }
+      ]
+    ]
+  },
+  "dependencies": {
+    "@google/model-viewer": "^4.0.0",
+    "@mediapipe/camera_utils": "^0.3.1675466862",
+    "@mediapipe/face_detection": "^0.4.1646425229",
+    "@mediapipe/hands": "^0.4.1675469240",
+    "@mediapipe/holistic": "^0.5.1675471629",
+    "@mediapipe/pose": "^0.5.1675469404",
+    "@readyplayerme/react-avatar-creator": "^0.5.0",
+    "@stripe/react-stripe-js": "^3.5.1",
+    "@stripe/stripe-js": "^6.1.0",
+    "axios": "^1.8.3",
+    "chart.js": "^4.4.8",
+    "hls.js": "^1.5.20",
+    "i18next": "^24.2.3",
+    "i18next-browser-languagedetector": "^8.0.4",
+    "i18next-http-backend": "^3.0.2",
+    "lucide-react": "^0.525.0",
+    "prop-types": "^15.6.1",
+    "react": "^18.3.1",
+    "react-beautiful-dnd": "^13.1.1",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.6.0",
+    "react-i18next": "^15.4.1",
+    "react-icons": "^4.12.0",
+    "react-polyfills": "0.0.1",
+    "react-router-dom": "^6.30.1",
+    "react-swipeable": "^7.0.2",
+    "react-toastify": "^11.0.5",
+    "recharts": "^2.15.4",
+    "socket.io-client": "^4.8.1",
+    "styled-components": "^6.1.15"
+  }
 }
