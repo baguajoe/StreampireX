@@ -78,6 +78,7 @@ import ArtistRadioStation from "./pages/ArtistRadioStation";
 import CreatorDashboard from "./pages/CreatorDashboard";
 import FavoritesPage from "./pages/FavoritesPage";
 import TeamRoomPage from "./pages/TeamRoomPage";
+import SonosuiteRedirect from './pages/SonosuiteRedirect';
 import PricingPlans from "./pages/PricingPlans";
 import TipJarPage from "./pages/TipJarPage";
 
@@ -165,6 +166,7 @@ const AppShell = ({ user }) => {
 
               {/* 💰 Pricing */}
               <Route path="/pricing" element={<PricingPlans />} />
+              <Route path="/sonosuite-redirect" element={<SonosuiteRedirect />} />
               <Route path="/pricing/plans" element={<PricingPlans />} />
               <Route path="/pricing-plans" element={<PricingPlans />} />
 
