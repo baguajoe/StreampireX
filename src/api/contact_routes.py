@@ -165,7 +165,7 @@ def join_waitlist():
     # Notify admin
     try:
         admin_html = f"<p>New waitlist signup: <strong>{name or 'No name'}</strong> — {email} (source: {source})</p>"
-        send_email("baguajoe@gmail.com", f"🔔 New StreamPireX waitlist signup: {email}", admin_html)
+        send_email("info@eyeforgestudios.com", f"🔔 New StreamPireX waitlist signup: {email}", admin_html)
     except Exception as e:
         print(f"⚠️ Admin notification email failed: {e}")
 
