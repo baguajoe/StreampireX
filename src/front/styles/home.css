@@ -1732,3 +1732,102 @@
 		font-size: 1.6rem;
 	}
 }
+/* =============================================
+   Free Features Banner — Added Mar 2026
+   ============================================= */
+.streampirex-home .free-features-banner {
+  background: linear-gradient(145deg, #0d1117, #161b22);
+  border-top: 2px solid #00ffc8;
+  border-bottom: 2px solid #00ffc8;
+  padding: 5rem 2rem;
+}
+
+.streampirex-home .free-banner-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.streampirex-home .free-banner-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.streampirex-home .free-badge-large {
+  display: inline-block;
+  background: #00ffc8;
+  color: #0d1117;
+  font-weight: 800;
+  font-size: 0.9rem;
+  padding: 0.4rem 1.2rem;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+}
+
+.streampirex-home .free-banner-header h2 {
+  font-size: 2.2rem;
+  color: #ffffff;
+  margin-bottom: 0.75rem;
+}
+
+.streampirex-home .free-banner-header p {
+  color: #9ca3af;
+  font-size: 1.1rem;
+}
+
+.streampirex-home .free-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+@media (max-width: 900px) {
+  .streampirex-home .free-features-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .streampirex-home .free-features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.streampirex-home .free-feature-item {
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.streampirex-home .free-feature-item:hover {
+  border-color: #00ffc8;
+  transform: translateY(-3px);
+}
+
+.streampirex-home .free-feature-icon {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.streampirex-home .free-feature-item h4 {
+  color: #00ffc8;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.streampirex-home .free-feature-item p {
+  color: #9ca3af !important;
+  font-size: 0.9rem !important;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.streampirex-home .free-banner-cta {
+  text-align: center;
+}
