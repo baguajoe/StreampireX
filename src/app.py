@@ -5,6 +5,7 @@ eventlet.monkey_patch()
 from api.fan_subscription_routes import fan_sub_bp
 from api.beat_licensing_routes import beat_license_bp
 from api.clip_sharing_routes import clip_bp
+from api.collab_request_routes import collab_bp
 
 import sys
 import os
@@ -549,6 +550,7 @@ app.register_blueprint(suno_gap_bp)
 app.register_blueprint(fan_sub_bp)
 app.register_blueprint(beat_license_bp)
 app.register_blueprint(clip_bp)
+app.register_blueprint(collab_bp)
 
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3001))
