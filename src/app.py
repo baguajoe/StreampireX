@@ -2,10 +2,10 @@
 # ✅ Monkey patch must come FIRST — before ANY other imports
 import eventlet
 eventlet.monkey_patch()
-from api.fan_subscription_routes import fan_sub_bp
-from api.beat_licensing_routes import beat_license_bp
-from api.clip_sharing_routes import clip_bp
-from api.collab_request_routes import collab_bp
+from src.api.fan_subscription_routes import fan_sub_bp
+from src.api.beat_licensing_routes import beat_license_bp
+from src.api.clip_sharing_routes import clip_bp
+from src.api.collab_request_routes import collab_bp
 
 import sys
 import os
