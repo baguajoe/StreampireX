@@ -19,6 +19,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import ArrangerView from "../component/ArrangerView";
 import AIMixAssistant from "../component/AIMixAssistant";
+import ChannelStripAIMix from "../component/ChannelStripAIMix";
 import SamplerBeatMaker from "../component/SamplerBeatMaker";
 import SamplerInstrument from "../component/SamplerInstrument";
 import MicSimulator from "../component/MicSimulator";
@@ -2941,6 +2942,7 @@ const RecordingStudio = ({ user }) => {
                       </button>
                     </div>
 
+                    <ChannelStripAIMix track={t} trackIndex={i} userTier={userTier} onApplyVolume={handleAIApplyVolume} onApplyPan={handleAIApplyPan} onApplyEffect={updateEffect} onStatus={setStatus} />
                     <div className="daw-ch-name">
                       <input
                         className="daw-ch-name-input"
@@ -3013,7 +3015,8 @@ const RecordingStudio = ({ user }) => {
                   </div>
                 </div>
 
-                <div className="daw-ch-name">
+                <ChannelStripAIMix track={t} trackIndex={i} userTier={userTier} onApplyVolume={handleAIApplyVolume} onApplyPan={handleAIApplyPan} onApplyEffect={updateEffect} onStatus={setStatus} />
+                    <div className="daw-ch-name">
                   <div style={{ fontWeight: 700, fontSize: "0.62rem", color: "#ddeeff" }}>MASTER</div>
                   <div className="daw-ch-number">Stereo Out</div>
                 </div>
