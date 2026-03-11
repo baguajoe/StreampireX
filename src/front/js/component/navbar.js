@@ -383,20 +383,12 @@ const Navbar = () => {
           ) : (
             <div className="auth-links">
               <Link
-                to="/login"
-                className="nav-link login-link"
-                onClick={closeMobileMenu}
-              >
-                <span className="auth-icon">🔑</span>
-                Login
-              </Link>
-              <Link
                 to="/signup"
                 className="nav-link signup-link"
                 onClick={closeMobileMenu}
+                style={{padding:"8px 20px",background:"#00ffc8",color:"#0d1117",borderRadius:"5px",fontWeight:700,textDecoration:"none"}}
               >
-                <span className="auth-icon">👤</span>
-                Sign Up
+                🚀 Join Waitlist
               </Link>
             </div>
           )}
