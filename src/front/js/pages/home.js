@@ -304,12 +304,12 @@ const Home = () => {
 					<div className="gaming-feature">
 						<span className="gaming-icon">📡</span>
 						<h4>Game Streaming</h4>
-						<p>Stream your gameplay live directly on StreamPireX. Chat, tips, and VOD recording — Creator+.</p>
+						<p>Stream your gameplay live directly on StreamPireX. Chat, tips, and VOD recording — Pro+.</p>
 					</div>
 					<div className="gaming-feature">
 						<span className="gaming-icon">💰</span>
 						<h4>Gaming Monetization</h4>
-						<p>Accept tips during streams, sell gaming content, and earn from your community — Creator+.</p>
+						<p>Accept tips during streams, sell gaming content, and earn from your community — Pro+.</p>
 					</div>
 					<div className="gaming-feature">
 						<span className="gaming-icon">📊</span>
