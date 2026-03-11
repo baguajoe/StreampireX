@@ -157,6 +157,9 @@ const Home = () => {
 							<li>🎮 Gaming Hub + Social Network</li>
 						</ul>
 						<p className="comparison-total">Starting at $12.99/month — Keep 90%</p>
+											<div style={{textAlign:"center",marginTop:"20px"}}>
+												<a href="/compare" style={{display:"inline-block",padding:"12px 28px",border:"2px solid #00ffc8",color:"#00ffc8",background:"rgba(0,255,200,0.06)",borderRadius:"6px",fontSize:"14px",fontWeight:700,textDecoration:"none"}}>📊 See Full Platform Comparison →</a>
+											</div>
 					</div>
 				</div>
 			</section>

@@ -140,6 +140,7 @@ import { Dashboard } from "./pages/Dashboard";
 import CollabFeed from './pages/CollabFeed';
 import EmbeddablePlayer from './pages/EmbeddablePlayer';
 import ClipView from './pages/ClipView';
+import ComparePage from './pages/ComparePage';
 
 // ─── Routes where Navbar + Sidebar should NOT appear ───────────────────────
 // The homepage, login, and signup are fully standalone pages with their own layout.
@@ -336,6 +337,7 @@ const AppShell = ({ user }) => {
               <Route path="/subscription/success" element={<SubscriptionSuccess />} />
 
               {/* 404 Fallback */}
+              <Route path="/compare" element={<ComparePage />} />
               <Route path="*" element={<h1>Not found!</h1>} />
                       <Route path="/collab" element={<CollabFeed />} />
                     <Route path="/embed/:type/:id" element={<EmbeddablePlayer /><Route path="/clip/:token" element={<ClipView />} />
