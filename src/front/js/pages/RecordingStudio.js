@@ -359,6 +359,25 @@ const CubaseMeter = React.memo(({ leftLevel = 0, rightLevel = 0, height = 200, s
 const MicModelSelector = React.memo(({ trackIndex, currentModel, onApply }) => {
   const [isOpen, setIsOpen] = useState(false);
 
+  // ── Helper: land an AudioBuffer/ArrayBuffer on the next empty Arrange track ──
+  const landBufferOnTrack = useCallback((audioBuffer, trackName) => {
+    const foundIdx = tracks.findIndex(t => !t.audioBuffer);
+    const targetIdx = (foundIdx === -1 && tracks.length < maxTracks) ? tracks.length : foundIdx;
+    if (foundIdx === -1 && tracks.length < maxTracks) {
+      setTracks(prev => [...prev, DEFAULT_TRACK(targetIdx)]);
+    }
+    if (targetIdx === -1) {
+      setStatus("⚠ No empty tracks — clear a track first");
+      return;
+    }
+    const blob = new Blob([audioBuffer], { type: "audio/wav" });
+    const audioUrl = URL.createObjectURL(blob);
+    updateTrack(targetIdx, { audioBuffer, audio_url: audioUrl, name: trackName });
+    createRegionFromImport(targetIdx, audioBuffer, trackName, audioUrl);
+    setStatus(`✓ "${trackName}" → Track ${targetIdx + 1}`);
+    setViewMode("arrange");
+  }, [tracks, maxTracks, updateTrack, createRegionFromImport]);
+
   return (
     <div style={{ position: "relative" }}>
       <div
@@ -3633,25 +3652,6 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
         {/* ──────── VOICE MIDI VIEW ──────── */}
-        
-  // ── Helper: land an AudioBuffer/ArrayBuffer on the next empty Arrange track ──
-  const landBufferOnTrack = useCallback((audioBuffer, trackName) => {
-    const foundIdx = tracks.findIndex(t => !t.audioBuffer);
-    const targetIdx = (foundIdx === -1 && tracks.length < maxTracks) ? tracks.length : foundIdx;
-    if (foundIdx === -1 && tracks.length < maxTracks) {
-      setTracks(prev => [...prev, DEFAULT_TRACK(targetIdx)]);
-    }
-    if (targetIdx === -1) {
-      setStatus("⚠ No empty tracks — clear a track first");
-      return;
-    }
-    const blob = new Blob([audioBuffer], { type: "audio/wav" });
-    const audioUrl = URL.createObjectURL(blob);
-    updateTrack(targetIdx, { audioBuffer, audio_url: audioUrl, name: trackName });
-    createRegionFromImport(targetIdx, audioBuffer, trackName, audioUrl);
-    setStatus(`✓ "${trackName}" → Track ${targetIdx + 1}`);
-    setViewMode("arrange");
-  }, [tracks, maxTracks, updateTrack, createRegionFromImport]);
 
         {viewMode === "synth" && (
           <div className="daw-synth-view" style={{ flex: 1, overflow: "auto", height: "100%" }}>
