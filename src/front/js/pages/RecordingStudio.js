@@ -2352,6 +2352,9 @@ const RecordingStudio = ({ user }) => {
       case "view:plugins":
         setViewMode("plugins");
         break;
+      case "view:plugin-store":
+        setViewMode("plugin-store");
+        break;
       case "view:multiband":
         setViewMode("multiband");
         break;
