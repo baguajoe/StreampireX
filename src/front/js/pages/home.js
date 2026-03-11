@@ -30,7 +30,7 @@ const Home = () => {
 			    ================================================================ */}
 			<header className="hero">
 				<div className="hero-content">
-					<h1>🔥 Welcome to StreamPireX</h1>
+					<h1><img src="/static/img/StreampireX.png" alt="StreamPireX" style={{height:"60px"}} /></h1>
 					<p className="hero-tagline">The AI-Powered All-In-One Creator Platform</p>
 					<p>
 						Replace 15+ tools with one platform. Recording studio, MPC-style beat maker,

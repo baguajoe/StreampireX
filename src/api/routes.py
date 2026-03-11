@@ -23901,4 +23901,145 @@ def toggle_reel_visibility(reel_id):
 # Update the create_story route to include comment_mode:
 
 # In the create_story route, add this line when creating the Story:
-#     comment_mode=data.get('comment_mode', 'both'),
+#     comment_mode=data.get('comment_mode', 'both'),# ─── SIMULCAST ───────────────────────────────────────────────────────────────
+@api.route('/stream/simulcast', methods=['POST'])
+@jwt_required()
+def start_simulcast():
+    from .video_tiers import can_simulcast
+    from .subscription_utils import get_user_plan
+    user_id = get_jwt_identity()
+    plan = get_user_plan(user_id)
+    if not plan or not getattr(plan, 'includes_simulcast', False):
+        return jsonify({"error": "Simulcast requires Pro or Studio plan", "upgrade_url": "/pricing"}), 403
+    data = request.get_json()
+    stream_key = data.get('stream_key')
+    destinations = data.get('destinations', [])  # [{"platform":"twitch","rtmp_url":"rtmp://...","key":"xxx"}]
+    source_url = data.get('source_url')
+    if not source_url or not destinations:
+        return jsonify({"error": "source_url and destinations required"}), 400
+    import subprocess, threading
+    results = []
+    def push_to_destination(dest):
+        rtmp_target = f"{dest['rtmp_url']}/{dest['key']}"
+        try:
+            cmd = [
+                'ffmpeg', '-re', '-i', source_url,
+                '-c:v', 'copy', '-c:a', 'aac',
+                '-f', 'flv', rtmp_target
+            ]
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            results.append({"platform": dest.get('platform'), "status": "started", "pid": proc.pid})
+        except Exception as e:
+            results.append({"platform": dest.get('platform'), "status": "error", "message": str(e)})
+    threads = [threading.Thread(target=push_to_destination, args=(d,)) for d in destinations]
+    for t in threads: t.start()
+    for t in threads: t.join(timeout=3)
+    return jsonify({"message": f"Simulcast started to {len(destinations)} destinations", "results": results}), 200
+
+# ─── PODCAST EPISODE ANALYTICS ───────────────────────────────────────────────
+@api.route('/podcasts/<int:podcast_id>/analytics', methods=['GET'])
+@jwt_required()
+def get_podcast_analytics(podcast_id):
+    from .subscription_utils import get_user_plan
+    user_id = get_jwt_identity()
+    plan = get_user_plan(user_id)
+    plan_name = plan.name.lower() if plan else 'free'
+    if plan_name not in ['pro', 'studio', 'professional', 'premium']:
+        return jsonify({"error": "Podcast analytics requires Pro or Studio plan", "upgrade_url": "/pricing"}), 403
+    from .models import PodcastEpisode, PodcastPlay
+    episodes = PodcastEpisode.query.filter_by(podcast_id=podcast_id).order_by(PodcastEpisode.created_at.desc()).all()
+    analytics = []
+    for ep in episodes:
+        plays = 0
+        try:
+            plays = PodcastPlay.query.filter_by(episode_id=ep.id).count()
+        except Exception:
+            pass
+        analytics.append({
+            "episode_id": ep.id,
+            "title": ep.title,
+            "published_at": ep.created_at.isoformat() if ep.created_at else None,
+            "total_plays": plays,
+            "duration": getattr(ep, 'duration', 0),
+            "file_url": getattr(ep, 'file_url', None),
+        })
+    return jsonify({"podcast_id": podcast_id, "episodes": analytics, "total_episodes": len(analytics)}), 200
+
+# ─── CREATOR DISCOVERY (fan tier enriched) ───────────────────────────────────
+@api.route('/creators/discover', methods=['GET'])
+def discover_creators():
+    try:
+        from .fan_subscription_routes import FanSubscriptionTier, FanSubscription
+        from .models import User
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+        genre = request.args.get('genre', '')
+        # Get users who have active fan subscription tiers
+        creator_ids = db.session.query(FanSubscriptionTier.creator_id)\
+            .filter_by(active=True).distinct().all()
+        creator_ids = [c[0] for c in creator_ids]
+        query = User.query.filter(User.id.in_(creator_ids))
+        if genre:
+            query = query.filter(User.artist_genre.ilike(f'%{genre}%'))
+        total = query.count()
+        users = query.offset((page - 1) * per_page).limit(per_page).all()
+        creators = []
+        for u in users:
+            tiers = FanSubscriptionTier.query.filter_by(creator_id=u.id, active=True).all()
+            sub_count = FanSubscription.query.filter(
+                FanSubscription.tier_id.in_([t.id for t in tiers]),
+                FanSubscription.status == 'active'
+            ).count() if tiers else 0
+            creators.append({
+                "id": u.id,
+                "username": u.username,
+                "bio": u.bio or u.artist_bio or "",
+                "genre": u.artist_genre or "",
+                "profile_image": getattr(u, 'profile_image', None),
+                "subscriber_count": sub_count,
+                "tiers": [{"id": t.id, "name": t.name, "price": float(t.price), "description": t.description} for t in tiers],
+            })
+        creators.sort(key=lambda x: x['subscriber_count'], reverse=True)
+        return jsonify({"creators": creators, "total": total, "page": page, "per_page": per_page}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ─── RADIO STATION PUBLIC STREAM URL ─────────────────────────────────────────
+@api.route('/radio/<int:station_id>/public-stream-url', methods=['GET'])
+def get_public_stream_url(station_id):
+    from .models import RadioStation
+    station = RadioStation.query.get_or_404(station_id)
+    base_url = request.host_url.rstrip('/')
+    stream_url = f"{base_url}/radio/{station_id}/stream"
+    return jsonify({
+        "station_id": station_id,
+        "station_name": station.name,
+        "stream_url": stream_url,
+        "hls_url": f"{base_url}/radio/{station_id}/stream.m3u8",
+        "formats": ["mp3", "hls"],
+    }), 200
+
+# ─── MERCH / PRINTFUL PROXY ───────────────────────────────────────────────────
+@api.route('/merch/products', methods=['GET'])
+def get_merch_products():
+    """Proxy to Printful API — returns store products"""
+    import os, requests as req
+    printful_key = os.environ.get('PRINTFUL_API_KEY')
+    if not printful_key:
+        return jsonify({"products": [], "message": "Printful not connected yet"}), 200
+    try:
+        r = req.get('https://api.printful.com/store/products',
+            headers={"Authorization": f"Bearer {printful_key}"}, timeout=8)
+        data = r.json()
+        products = []
+        for item in data.get('result', []):
+            products.append({
+                "id": item['id'],
+                "name": item['name'],
+                "category": item.get('type', 'Other'),
+                "image": item.get('thumbnail_url'),
+                "price": item.get('retail_price', 0),
+            })
+        return jsonify({"products": products}), 200
+    except Exception as e:
+        return jsonify({"products": [], "error": str(e)}), 200

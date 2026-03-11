@@ -91,6 +91,10 @@ import SettingsPage from "./pages/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
 import { Footer } from "./component/footer";
 import Navbar from "./component/navbar";
+import MerchStore from "./pages/MerchStore";
+import DiscoverCreators from "./pages/DiscoverCreators";
+import MerchStore from "./pages/MerchStore";
+import AnnouncementBar from "./component/AnnouncementBar";
 import Sidebar from "./component/sidebar";
 import { BackendURL } from "./component/backendURL";
 import CreateReleasePage from "./pages/CreateReleasePage";
@@ -156,6 +160,7 @@ const AppShell = ({ user }) => {
       <Toaster />
       <ScrollToTop>
         {/* Navbar only shown on authenticated/app routes */}
+        {!isPublicRoute && <AnnouncementBar />}
         {!isPublicRoute && <Navbar />}
 
         <div className="app-layout">
@@ -248,6 +253,8 @@ const AppShell = ({ user }) => {
 
               {/* 🔍 Discover Users */}
               <Route path="/discover-users" element={<DiscoverUsersPage />} />
+              <Route path="/discover-creators" element={<DiscoverCreators />} />
+              <Route path="/merch-store" element={<MerchStore />} />/
               <Route path="/search-artists" element={<Navigate to="/discover-users" replace />} />
               <Route path="/browse-users" element={<Navigate to="/discover-users" replace />} />
 

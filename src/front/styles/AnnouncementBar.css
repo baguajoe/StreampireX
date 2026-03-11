@@ -1,0 +1,32 @@
+.announcement-bar {
+    width: 100%;
+    background: #00ffc8;
+    color: #0d1117;
+    text-align: center;
+    padding: 10px 40px;
+    font-size: 14px;
+    font-weight: 500;
+    position: relative;
+    z-index: 9999;
+    box-sizing: border-box;
+}
+.announcement-bar strong { font-weight: 700; }
+.announcement-bar__cta {
+    color: #0d1117;
+    font-weight: 700;
+    text-decoration: underline;
+    margin-left: 6px;
+}
+.announcement-bar__close {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #0d1117;
+    font-weight: 700;
+    line-height: 1;
+}

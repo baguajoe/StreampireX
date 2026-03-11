@@ -1,77 +1,115 @@
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import PollComponent from "../component/PollComponent";
-import LiveVideoPlayer from "../component/LiveVideoPlayer";
+import React, { useEffect, useState, useContext } from "react";
+import { Context } from "../store/appContext";
+import "../../../styles/StorefrontPage.css";
 
-const LiveStreams = () => {
-  const [liveStreams, setLiveStreams] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const PRINTFUL_CATEGORIES = ["T-Shirts", "Hoodies", "Hats", "Mugs", "Phone Cases", "Posters"];
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/live-streams`)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`Server responded with status: ${res.status}`);
-        }
-        return res.json();
-      })
-      .then((data) => {
-        setLiveStreams(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError("Error fetching live streams: " + err.message);
-        setLoading(false);
-      });
-  }, []);
+const MerchStore = () => {
+    const { store } = useContext(Context);
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [category, setCategory] = useState("all");
+    const [cart, setCart] = useState([]);
+    const [cartOpen, setCartOpen] = useState(false);
 
-  const filteredStreams = liveStreams.filter((stream) =>
-    stream.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    useEffect(() => {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/merch/products`, {
+            headers: { Authorization: `Bearer ${store.token}` }
+        })
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(data => { setProducts(data.products || []); setLoading(false); })
+        .catch(() => {
+            // Fallback to mock products until Printful is connected
+            setProducts(MOCK_PRODUCTS);
+            setLoading(false);
+        });
+    }, []);
 
-  if (loading) return <p>Loading live streams...</p>;
-  if (error) return <p>{error}</p>;
+    const addToCart = (product) => {
+        setCart(prev => {
+            const existing = prev.find(i => i.id === product.id);
+            if (existing) return prev.map(i => i.id === product.id ? {...i, qty: i.qty + 1} : i);
+            return [...prev, {...product, qty: 1}];
+        });
+    };
 
-  return (
-    <div className="live-streams-container">
-      <h1>🎥 Live Streams</h1>
-      <input
-        type="text"
-        placeholder="Search live streams..."
-        className="search-bar"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-      />
-      <div className="live-stream-list">
-        {filteredStreams.length > 0 ? (
-          filteredStreams.map((stream) => (
-            <div key={stream.id} className="live-stream-card">
-              <h2>{stream.title}</h2>
-              <p>{stream.description}</p>
-              {stream.is_live ? (
-                stream.stream_url ? (
-                  <LiveVideoPlayer streamUrl={stream.stream_url} />
-                ) : (
-                  <p>Stream URL unavailable</p>
-                )
-              ) : (
-                <p className="offline">🔴 Offline</p>
-              )}
-              <Link to={`/live-streams/${stream.id}`} className="view-details">
-                Watch Stream →
-              </Link>
-              {stream.is_live && <PollComponent streamId={stream.id} />}
+    const cartTotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+    const filtered = category === "all" ? products : products.filter(p => p.category === category);
+
+    return (
+        <div className="merch-store">
+            <div className="merch-store__header">
+                <h1>🛍️ Creator Merch Store</h1>
+                <p>Custom merch powered by Printful — ships worldwide, no inventory needed</p>
+                <button className="merch-store__cart-btn" onClick={() => setCartOpen(!cartOpen)}>
+                    🛒 Cart ({cart.reduce((s, i) => s + i.qty, 0)}) — ${cartTotal.toFixed(2)}
+                </button>
             </div>
-          ))
-        ) : (
-          <p>No live streams available.</p>
-        )}
-      </div>
-    </div>
-  );
+            <div className="merch-store__filters">
+                {["all", ...PRINTFUL_CATEGORIES].map(c => (
+                    <button key={c}
+                        className={`merch-filter-btn ${category === c ? "active" : ""}`}
+                        onClick={() => setCategory(c)}>
+                        {c.charAt(0).toUpperCase() + c.slice(1)}
+                    </button>
+                ))}
+            </div>
+            {loading ? <div className="merch-loading">Loading products...</div> :
+             error ? <div className="merch-error">{error}</div> :
+            <div className="merch-store__grid">
+                {filtered.map(product => (
+                    <div key={product.id} className="merch-card">
+                        <div className="merch-card__img">
+                            {product.image ? <img src={product.image} alt={product.name} /> :
+                             <div className="merch-card__placeholder">👕</div>}
+                        </div>
+                        <div className="merch-card__info">
+                            <h3>{product.name}</h3>
+                            <p className="merch-card__category">{product.category}</p>
+                            <p className="merch-card__price">${product.price?.toFixed(2)}</p>
+                            <button className="merch-card__btn" onClick={() => addToCart(product)}>
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                ))}
+                {filtered.length === 0 && (
+                    <div className="merch-empty">
+                        <p>🎨 No products yet. Connect your Printful account to add merch.</p>
+                        <a href="https://printful.com" target="_blank" rel="noreferrer"
+                           className="merch-connect-btn">Connect Printful →</a>
+                    </div>
+                )}
+            </div>}
+            {cartOpen && (
+                <div className="merch-cart-panel">
+                    <h3>Your Cart</h3>
+                    {cart.length === 0 ? <p>Cart is empty</p> : <>
+                        {cart.map(i => (
+                            <div key={i.id} className="merch-cart-item">
+                                <span>{i.name} x{i.qty}</span>
+                                <span>${(i.price * i.qty).toFixed(2)}</span>
+                            </div>
+                        ))}
+                        <div className="merch-cart-total">Total: ${cartTotal.toFixed(2)}</div>
+                        <button className="merch-checkout-btn"
+                            onClick={() => alert("Connect Stripe + Printful to enable checkout")}>
+                            Checkout
+                        </button>
+                    </>}
+                </div>
+            )}
+        </div>
+    );
 };
 
-export default LiveStreams;
+const MOCK_PRODUCTS = [
+    { id: 1, name: "StreamPireX Tee", category: "T-Shirts", price: 29.99, image: null },
+    { id: 2, name: "Creator Hoodie", category: "Hoodies", price: 54.99, image: null },
+    { id: 3, name: "SPX Logo Hat", category: "Hats", price: 24.99, image: null },
+    { id: 4, name: "Studio Mug", category: "Mugs", price: 16.99, image: null },
+    { id: 5, name: "Beats Poster", category: "Posters", price: 19.99, image: null },
+];
+
+export default MerchStore;
