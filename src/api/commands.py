@@ -32,7 +32,7 @@ def setup_commands(app):
     @app.cli.command("insert-test-data")
     def insert_test_data():
         pass
-@app.cli.command("update-prices")
+    @app.cli.command("update-prices")
 def update_prices():
     """Update pricing tiers to new 2026 prices"""
     from src.api.models import db, PricingPlan
