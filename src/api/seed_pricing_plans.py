@@ -3,7 +3,7 @@
 # =============================================================================
 # Run: python seed_pricing_plans.py
 # Updated Feb 2026 — +$2 across paid tiers for AI deployment costs
-# Prices: Free $0 | Starter $12.99 | Creator $22.99 | Pro $31.99
+# Prices: Free $0 | Starter $19.99 | Pro $34.99 | Studio $49.99
 #
 # AI Video Credits are a SEPARATE add-on system (not part of subscription).
 # Subscription handles: mastering limits, podcast eps, storage, streaming, etc.
@@ -152,8 +152,8 @@ with app.app_context():
         # =====================================================================
         PricingPlan(
             name="Starter",
-            price_monthly=12.99,
-            price_yearly=129.99,
+            price_monthly=19.99,
+            price_yearly=199.00,
             trial_days=7,
             sort_order=2,
             
@@ -262,9 +262,9 @@ with app.app_context():
         # CREATOR TIER - $22.99/month ($229.99/year) — MOST POPULAR
         # =====================================================================
         PricingPlan(
-            name="Creator",
-            price_monthly=22.99,
-            price_yearly=229.99,
+            name="Pro",
+            price_monthly=34.99,
+            price_yearly=349.00,
             trial_days=14,
             sort_order=3,
             
@@ -375,9 +375,9 @@ with app.app_context():
         # PRO TIER - $31.99/month ($319.99/year) — ULTIMATE
         # =====================================================================
         PricingPlan(
-            name="Pro",
-            price_monthly=31.99,
-            price_yearly=319.99,
+            name="Studio",
+            price_monthly=49.99,
+            price_yearly=499.00,
             trial_days=30,
             sort_order=4,
             

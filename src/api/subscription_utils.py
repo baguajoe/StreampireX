@@ -195,7 +195,8 @@ def check_content_limit(user_id, content_type):
             podcast_limits = {
                 "free": 0,
                 "starter": 2,
-                "creator": 10,
+                "pro": 10,
+                "pro": 10,
                 "pro": -1
             }
             max_podcasts = podcast_limits.get(plan_name.lower(), 2)
@@ -344,7 +345,7 @@ def check_upload_limit(user_id, content_type):
                 limit = 0
             elif user_plan.name.lower() == "pro":
                 limit = 10  # 10 uploads per month
-            elif user_plan.name.lower() == "premium":
+            elif user_plan.name.lower() in ("studio", "premium"):
                 limit = -1  # Unlimited
             else:
                 limit = 5  # Default limit
@@ -393,7 +394,7 @@ def check_upload_limit(user_id, content_type):
                 limit = 0
             elif user_plan.name.lower() == "pro":
                 limit = 5  # 5 uploads per month
-            elif user_plan.name.lower() == "premium":
+            elif user_plan.name.lower() in ("studio", "premium"):
                 limit = -1  # Unlimited
             else:
                 limit = 2  # Default limit
