@@ -341,8 +341,8 @@ const AppShell = ({ user }) => {
               <Route path="/compare" element={<ComparePage />} />
               <Route path="*" element={<h1>Not found!</h1>} />
                       <Route path="/collab" element={<CollabFeed />} />
-                    <Route path="/embed/:type/:id" element={<EmbeddablePlayer /><Route path="/clip/:token" element={<ClipView />} />
-          } />
+                    <Route path="/embed/:type/:id" element={<EmbeddablePlayer />} />
+                    <Route path="/clip/:token" element={<ClipView />} />
           </Routes>
             <FloatingVideoCall currentUser={user} />
           </main>
