@@ -11851,31 +11851,63 @@ def get_now_playing(station_id):
         }), 500
 
 @api.route('/marketplace/products', methods=['GET'])
+@handle_db_errors
 def get_marketplace_products():
-    """Get marketplace products (minimal safe version)"""
+    """Get marketplace products with pagination and filtering"""
     try:
+        # Get query parameters
         page = request.args.get('page', 1, type=int)
         per_page = min(request.args.get('per_page', 20, type=int), 100)
-
-        items = Product.query.order_by(Product.created_at.desc()).limit(per_page).offset((page - 1) * per_page).all()
-
+        category = request.args.get('category')
+        search = request.args.get('search')
+        sort_by = request.args.get('sort_by', 'newest')
+        
+        # Build query WITHOUT is_active filter (since that field doesn't exist)
+        query = Product.query
+        
+        if category and category != 'all':
+            query = query.filter(Product.category == category)
+        
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+            db.or_(
+            Product.title.ilike(search_term),
+            Product.description.ilike(search_term)
+        )
+    )
+        
+        # Apply sorting
+        if sort_by == 'price-low':
+            query = query.order_by(Product.price.asc())
+        elif sort_by == 'price-high':
+            query = query.order_by(Product.price.desc())
+        elif sort_by == 'popular':
+            query = query.order_by(Product.sales_count.desc())
+        else:  # newest
+            query = query.order_by(Product.created_at.desc())
+        
+        # Paginate
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        
         return jsonify({
-            "products": [product.serialize() for product in items],
+            "products": [product.serialize() for product in pagination.items],
             "pagination": {
                 "page": page,
                 "per_page": per_page,
-                "total": len(items),
-                "pages": 1,
-                "has_next": False,
-                "has_prev": page > 1
+                "total": pagination.total,
+                "pages": pagination.pages,
+                "has_next": pagination.has_next,
+                "has_prev": pagination.has_prev
             }
         }), 200
+        
     except Exception as e:
+        print(f"Marketplace products error: {str(e)}")
         return jsonify({
             "error": "Products fetch error",
             "message": str(e)
         }), 500
-
 
 @api.route('/marketplace/categories', methods=['GET'])
 def get_marketplace_categories():
@@ -24011,36 +24043,3 @@ def get_merch_products():
         return jsonify({"products": products}), 200
     except Exception as e:
         return jsonify({"products": [], "error": str(e)}), 200
-
-
-
-
-
-
-@api.route('/merch/create', methods=['POST'])
-@jwt_required()
-def create_merch_item():
-    from src.api.models import db, Product
-    new_p = Product(title="Custom Hoodie", price=55.0, category="merch", is_printful=True, creator_id=get_jwt_identity())
-    db.session.add(new_p)
-    db.session.commit()
-    return jsonify({"msg": "Live!", "id": new_p.id}), 201
-
-
-
-
-@api.route('/merch/order', methods=['POST'])
-@jwt_required()
-def place_merch_order():
-    from src.api.models import db, Order
-    data = request.get_json()
-    new_o = Order(
-        product_id=data.get('product_id'), 
-        user_id=get_jwt_identity(), 
-        size=data.get('size'), 
-        shipping_details=str(data.get('shipping')),
-        status="pending"
-    )
-    db.session.add(new_o)
-    db.session.commit()
-    return jsonify({"msg": "Order saved", "id": new_o.id}), 201

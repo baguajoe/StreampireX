@@ -96,12 +96,6 @@ class Squad(db.Model):
         }
 
 class User(db.Model):
-
-    printful_access_token = db.Column(db.Text, nullable=True)
-    printful_refresh_token = db.Column(db.Text, nullable=True)
-    printful_token_type = db.Column(db.String(50), nullable=True)
-    printful_token_expires_at = db.Column(db.String(100), nullable=True)
-    printful_connected = db.Column(db.Boolean, default=False, nullable=False)
     __tablename__ = 'user'
     __table_args__ = {'extend_existing': True}
     
@@ -3801,7 +3795,6 @@ class Product(db.Model):
     price = db.Column(db.Float, nullable=False)
     stock = db.Column(db.Integer, nullable=True)  # ✅ Only for physical products
     is_digital = db.Column(db.Boolean, default=True)  # ✅ Mark if it's a digital product
-    category = db.Column(db.String(50), default="physical")
     sales_revenue = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     platform_cut = db.Column(db.Float, default=0.10)  # 15% by default
@@ -3813,15 +3806,6 @@ class Product(db.Model):
 
 
     creator = db.relationship('User', backref=db.backref('products', lazy=True))
-
-
-    product_type = db.Column(db.String(50), default='physical', nullable=False)
-    is_printful = db.Column(db.Boolean, default=False, nullable=False)
-    printful_product_id = db.Column(db.String(100), nullable=True)
-    printful_variant_id = db.Column(db.String(100), nullable=True)
-    artwork_url = db.Column(db.String(500), nullable=True)
-    mockup_url = db.Column(db.String(500), nullable=True)
-    printful_sync_status = db.Column(db.String(50), default='not_synced', nullable=False)
 
     def serialize(self):
         return {
@@ -4255,17 +4239,6 @@ class Tip(db.Model):
 
     def __repr__(self):
         return f"<Tip ${self.amount} from {self.sender_id} to {self.recipient_id} via {self.payment_method}>"
-
-
-    is_printful = db.Column(db.Boolean, default=False, nullable=False)
-    printful_order_id = db.Column(db.String(100), nullable=True)
-    fulfillment_status = db.Column(db.String(50), default='pending', nullable=False)
-    shipping_name = db.Column(db.String(255), nullable=True)
-    shipping_address1 = db.Column(db.String(255), nullable=True)
-    shipping_city = db.Column(db.String(120), nullable=True)
-    shipping_state = db.Column(db.String(120), nullable=True)
-    shipping_country = db.Column(db.String(120), nullable=True)
-    shipping_zip = db.Column(db.String(40), nullable=True)
 
     def serialize(self):
         return {

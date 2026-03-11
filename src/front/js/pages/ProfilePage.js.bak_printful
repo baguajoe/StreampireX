@@ -243,14 +243,7 @@ const InnerCircle = ({ userId, isOwnProfile, compact = false }) => {
                             {isEditing ? 'Done' : 'Edit'}
                         </button>
                     )}
-                
-
-  <button
-    className="btn btn-primary"
-  >
-  </button>
-
-</div>
+                </div>
             </div>
 
             {!compact && (
@@ -552,8 +545,6 @@ const createSocket = (token) => {
         withCredentials: true,
     });
 };
-
-
 
 const ProfilePage = () => {
     // Get profile ID from URL (if viewing someone else's profile)

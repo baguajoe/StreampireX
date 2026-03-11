@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "../../styles/StoreFrontPage.css";
+import "../../styles/StorefrontPage.css";
 
 const StorefrontPage = () => {
     const [products, setProducts] = useState([]);
@@ -7,6 +7,7 @@ const StorefrontPage = () => {
         title: "",
         description: "",
         price: "",
+        stock: 1,
         image: null,
         isDigital: false,
         file: null
@@ -43,17 +44,18 @@ const StorefrontPage = () => {
         formData.append("description", newProduct.description);
         formData.append("price", newProduct.price);
         formData.append("isDigital", newProduct.isDigital);
-        if (newProduct.file) formData.append("file", newProduct.file);
+        if (!newProduct.isDigital) formData.append("stock", newProduct.stock || 1);
+        if (newProduct.file) formData.append("productFile", newProduct.file);
         if (newProduct.image) formData.append("image", newProduct.image);
 
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/storefront/add-product`, {
+        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/products/upload`, {
             method: "POST",
             headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
             body: formData
         })
         .then(res => res.json())
         .then(data => {
-            setProducts([...products, data]);
+            setProducts([...products, data.product]);
             alert("Product added successfully!");
         })
         .catch(err => console.error("Error adding product:", err));
@@ -74,6 +76,16 @@ const StorefrontPage = () => {
                     <input type="checkbox" name="isDigital" checked={newProduct.isDigital} onChange={(e) => setNewProduct({ ...newProduct, isDigital: e.target.checked })} />
                     Digital Product
                 </label>
+
+                {!newProduct.isDigital && (
+                    <input
+                        type="number"
+                        name="stock"
+                        placeholder="Stock Quantity"
+                        value={newProduct.stock || ""}
+                        onChange={handleInputChange}
+                    />
+                )}
 
                 <input type="file" onChange={handleImageUpload} />
                 {newProduct.image && <img src={newProduct.image} alt="Preview" className="product-preview" />}

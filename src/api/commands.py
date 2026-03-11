@@ -33,24 +33,24 @@ def setup_commands(app):
     def insert_test_data():
         pass
     @app.cli.command("update-prices")
-def update_prices():
-    """Update pricing tiers to new 2026 prices"""
-    from src.api.models import db, PricingPlan
-    renames = [
-        ("Creator", "Pro",     34.99, 349.00),
-        ("Pro",     "Studio",  49.99, 499.00),
-        ("Starter", "Starter", 19.99, 199.00),
-    ]
-    for old_name, new_name, monthly, yearly in renames:
-        plan = PricingPlan.query.filter_by(name=old_name).first()
-        if plan:
-            plan.name = new_name
-            plan.price_monthly = monthly
-            plan.price_yearly = yearly
-            print(f"Updated {old_name} -> {new_name} ${monthly}/mo")
-        else:
-            print(f"NOT FOUND: {old_name}")
-    db.session.commit()
-    for p in PricingPlan.query.order_by(PricingPlan.sort_order).all():
-        print(f"  {p.name}: ${p.price_monthly}/mo")
-    print("Done.")
+    def update_prices():
+        """Update pricing tiers to new 2026 prices"""
+        from src.api.models import db, PricingPlan
+        renames = [
+            ("Creator", "Pro",     34.99, 349.00),
+            ("Pro",     "Studio",  49.99, 499.00),
+            ("Starter", "Starter", 19.99, 199.00),
+        ]
+        for old_name, new_name, monthly, yearly in renames:
+            plan = PricingPlan.query.filter_by(name=old_name).first()
+            if plan:
+                plan.name = new_name
+                plan.price_monthly = monthly
+                plan.price_yearly = yearly
+                print(f"Updated {old_name} -> {new_name} ${monthly}/mo")
+            else:
+                print(f"NOT FOUND: {old_name}")
+        db.session.commit()
+        for p in PricingPlan.query.order_by(PricingPlan.sort_order).all():
+            print(f"  {p.name}: ${p.price_monthly}/mo")
+        print("Done.")

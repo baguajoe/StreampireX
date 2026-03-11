@@ -2,7 +2,7 @@ import os, uuid, stripe
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
-from .models import db, User
+from src.api.models import db, User
 
 fan_sub_bp = Blueprint('fan_subscriptions', __name__)
 stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')

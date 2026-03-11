@@ -1,18 +1,20 @@
-import eventlet
-eventlet.monkey_patch()
 # src/app.py - FIXED VERSION
 # ✅ Monkey patch must come FIRST — before ANY other imports
+import eventlet
+eventlet.monkey_patch()
+from src.api.fan_subscription_routes import fan_sub_bp
+from src.api.beat_licensing_routes import beat_license_bp
+from src.api.clip_sharing_routes import clip_bp
+from src.api.collab_request_routes import collab_bp
+
 import sys
 import os
+
 # ✅ CRITICAL: Add parent directory to path BEFORE any local imports
 src_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(src_dir)
 if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
-from src.api.fan_subscription_routes import fan_sub_bp
-from src.api.beat_licensing_routes import beat_license_bp
-from src.api.clip_sharing_routes import clip_bp
-from src.api.collab_request_routes import collab_bp
 
 from dotenv import load_dotenv
 
@@ -536,8 +538,6 @@ def restrict_admin_to_basic_auth():
 from src.api.sample_marketplace_routes import marketplace_bp
 from src.api.jam_tracks_routes import jam_tracks_bp
 from src.api.collab_marketplace_routes import collab_marketplace_bp
-from src.api.printful_oauth_routes import printful_oauth_bp
-from src.api.printful_unified_routes import printful_unified_bp
 from src.api.reference_mastering_routes import reference_mastering_bp
 from src.api.suno_gap_routes import suno_gap_bp
 
@@ -545,8 +545,6 @@ from src.api.suno_gap_routes import suno_gap_bp
 app.register_blueprint(marketplace_bp)
 app.register_blueprint(jam_tracks_bp)
 app.register_blueprint(collab_marketplace_bp)
-app.register_blueprint(printful_oauth_bp)
-app.register_blueprint(printful_unified_bp, url_prefix="/api/merch")
 app.register_blueprint(reference_mastering_bp)
 app.register_blueprint(suno_gap_bp)
 app.register_blueprint(fan_sub_bp)

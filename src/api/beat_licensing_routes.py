@@ -3,54 +3,10 @@ from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from .models import db, User
+from src.api.beat_store_models import BeatLicense
 
 beat_license_bp = Blueprint('beat_licensing', __name__)
 
-class BeatLicense(db.Model):
-    __tablename__ = 'beat_licenses'
-    id              = db.Column(db.Integer, primary_key=True)
-    beat_id         = db.Column(db.Integer, nullable=False)
-    beat_title      = db.Column(db.String(200))
-    producer_id     = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    buyer_id        = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    license_type    = db.Column(db.String(50), nullable=False)  # basic | premium | exclusive
-    price_paid      = db.Column(db.Float, nullable=False)
-    license_number  = db.Column(db.String(100), unique=True)
-    terms           = db.Column(db.Text)
-    purchased_at    = db.Column(db.DateTime, default=datetime.utcnow)
-    is_exclusive    = db.Column(db.Boolean, default=False)
-
-LICENSE_TERMS = {
-    'basic': {
-        'streams': '100,000',
-        'distribution': 'Digital only',
-        'radio': False,
-        'video': False,
-        'exclusive': False,
-        'description': 'Non-exclusive license for up to 100,000 streams. Digital distribution only.',
-    },
-    'premium': {
-        'streams': '500,000',
-        'distribution': 'Digital + Physical',
-        'radio': True,
-        'video': True,
-        'exclusive': False,
-        'description': 'Non-exclusive license for up to 500,000 streams. Digital, physical, radio & video use.',
-    },
-    'exclusive': {
-        'streams': 'Unlimited',
-        'distribution': 'All platforms',
-        'radio': True,
-        'video': True,
-        'exclusive': True,
-        'description': 'Full exclusive rights. Beat removed from store after purchase. Unlimited streams.',
-    },
-}
-
-def generate_license_number():
-    return f"SPX-{datetime.utcnow().strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
-
-# GET /api/beat-license/terms  — return available license types
 @beat_license_bp.route('/api/beat-license/terms', methods=['GET'])
 def get_terms():
     return jsonify(LICENSE_TERMS), 200

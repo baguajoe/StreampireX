@@ -1,3 +1,5 @@
+import MerchCheckout from "./pages/MerchCheckout";
+import MerchDesigner from "./pages/MerchDesigner";
 import React, { useContext, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ScrollToTop from "./component/scrollToTop";
@@ -345,6 +347,9 @@ const AppShell = ({ user }) => {
 
               {/* 404 Fallback */}
               <Route path="/compare" element={<ComparePage />} />
+              
+              <Route path="/merch/checkout/:id" element={<MerchCheckout />} />
+              <Route path="/merch/designer" element={<MerchDesigner />} />
               <Route path="*" element={<h1>Not found!</h1>} />
                       <Route path="/collab" element={<CollabFeed />} />
                     <Route path="/embed/:type/:id" element={<EmbeddablePlayer />} />
