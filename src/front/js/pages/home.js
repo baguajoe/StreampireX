@@ -102,12 +102,12 @@ const Home = () => {
 				<div className="solution">
 					<h3>✨ The StreamPireX Solution</h3>
 					<p>
-						One AI-powered platform for everything. Record, mix, and master with AI help.
+						One AI-powered platform for everything. Record, mix, and master with AI help. Build synths, design drums, and create custom instruments directly in the DAW.
 						Make beats with the MPC sampler. Sell beats with auto-generated license agreements.
 						Host and monetize podcasts. Distribute to 150+ platforms. Stream live. Run 24/7
 						radio with an AI DJ. Edit video. Build your EPK and find collaborators. Generate
 						AI promo commercials. Build gaming communities. Keep 90% of your earnings — all
-						starting at $12.99/month.
+						starting at $19.99/month.
 					</p>
 				</div>
 			</section>
@@ -156,7 +156,7 @@ const Home = () => {
 							<li>🛍️ Marketplace + Courses + Storefront</li>
 							<li>🎮 Gaming Hub + Social Network</li>
 						</ul>
-						<p className="comparison-total">Starting at $12.99/month — Keep 90%</p>
+						<p className="comparison-total">Starting at $19.99/month — Keep 90%</p>
 											<div style={{textAlign:"center",marginTop:"20px"}}>
 												<a href="/compare" style={{display:"inline-block",padding:"12px 28px",border:"2px solid #00ffc8",color:"#00ffc8",background:"rgba(0,255,200,0.06)",borderRadius:"6px",fontSize:"14px",fontWeight:700,textDecoration:"none"}}>📊 See Full Platform Comparison →</a>
 											</div>
@@ -198,7 +198,7 @@ const Home = () => {
 						<div className="free-feature-item">
 							<span className="free-feature-icon">🎛️</span>
 							<h4>Recording Studio</h4>
-							<p>4-track DAW with full FX chain, arranger, piano roll, and AI mix assistant</p>
+							<p>4-track DAW with full FX chain, arranger, piano roll, AI mix assistant, Synth Creator, Drum Designer, and Instrument Builder</p>
 						</div>
 						<div className="free-feature-item">
 							<span className="free-feature-icon">🥁</span>
@@ -934,19 +934,19 @@ const Home = () => {
 					</div>
 					<div className="pricing-preview-card starter">
 						<h4>Starter</h4>
-						<div className="preview-price">$12.99<span>/mo</span></div>
+						<div className="preview-price">$19.99<span>/mo</span></div>
 						<p>8 studio tracks, AI mastering (3/mo), AI mix assistant, beat selling, 5 podcast episodes, live streaming, radio, 25GB</p>
 					</div>
-					<div className="pricing-preview-card creator popular">
+					<div className="pricing-preview-card pro popular">
 						<div className="preview-popular">Most Popular</div>
-						<h4>Creator</h4>
-						<div className="preview-price">$22.99<span>/mo</span></div>
+						<h4>Pro</h4>
+						<div className="preview-price">$34.99<span>/mo</span></div>
 						<p>16 tracks, AI mastering (15/mo), AI Radio DJ, unlimited podcasts, 4K export, beat store + courses, AI video credits, 100GB</p>
 					</div>
-					<div className="pricing-preview-card pro">
-						<h4>Pro</h4>
-						<div className="preview-price">$31.99<span>/mo</span></div>
-						<p>32 tracks, unlimited AI mastering, voice cloning, 8K, music distribution, AI commercial generator, unlimited everything, storefront</p>
+					<div className="pricing-preview-card studio">
+						<h4>Studio</h4>
+						<div className="preview-price">$49.99<span>/mo</span></div>
+						<p>32 tracks, unlimited AI mastering, voice cloning, 8K, music distribution, simulcast, AI commercial generator, Synth Creator, Drum Designer, unlimited everything</p>
 					</div>
 				</div>
 				<div className="pricing-preview-cta">
