@@ -132,7 +132,7 @@ const ComparePage = () => {
         <div style={{fontSize:"clamp(40px,8vw,80px)",fontWeight:900,letterSpacing:"4px",color:"#00ffc8",lineHeight:1}}>STREAMPIREX</div>
         <div style={{fontSize:"11px",color:"#4e6070",fontFamily:"monospace",letterSpacing:"2px",marginTop:"6px",marginBottom:"24px"}}>WHY WE WIN — PLATFORM COMPARISON</div>
         <div style={{display:"flex",justifyContent:"center",gap:"16px",flexWrap:"wrap",marginBottom:"20px"}}>
-          {[["90%","Revenue Share"],["$12.99","Starting/mo"],["15+","Tools Replaced"],["150+","DSPs"]].map(([v,l])=>(
+          {[["90%","Revenue Share"],["$19.99","Starting/mo"],["15+","Tools Replaced"],["150+","DSPs"]].map(([v,l])=>(
             <div key={l} style={{background:"rgba(0,255,200,0.06)",border:"1px solid rgba(0,255,200,0.15)",borderRadius:"8px",padding:"12px 20px",textAlign:"center"}}>
               <div style={{fontSize:"28px",fontWeight:900,color:"#00ffc8",lineHeight:1}}>{v}</div>
               <div style={{fontSize:"10px",color:"#4e6070",fontFamily:"monospace",marginTop:"4px"}}>{l}</div>
@@ -149,8 +149,8 @@ const ComparePage = () => {
             <div style={{fontSize:"12px",color:"#4e6070"}}>Replace 15+ subscriptions costing $170–$350/mo. Keep 90% of everything you earn.</div>
           </div>
           <div style={{textAlign:"center"}}>
-            <div style={{fontSize:"48px",fontWeight:900,color:"#00ffc8",lineHeight:1}}>$12.99<span style={{fontSize:"22px"}}>/mo</span></div>
-            <div style={{fontSize:"10px",color:"#4e6070",fontFamily:"monospace",marginBottom:"12px"}}>Starter · Creator $22.99 · Pro $31.99</div>
+            <div style={{fontSize:"48px",fontWeight:900,color:"#00ffc8",lineHeight:1}}>$19.99<span style={{fontSize:"22px"}}>/mo</span></div>
+            <div style={{fontSize:"10px",color:"#4e6070",fontFamily:"monospace",marginBottom:"12px"}}>Starter · Creator $34.99 · Pro $49.99</div>
             <Link to="/signup" style={{display:"inline-block",padding:"10px 24px",background:"#00ffc8",color:"#0d1117",borderRadius:"5px",fontWeight:700,fontSize:"13px",textDecoration:"none"}}>Get Started Free →</Link>
           </div>
         </div>

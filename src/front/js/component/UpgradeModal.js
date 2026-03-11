@@ -127,9 +127,9 @@ const FEATURE_DETAILS = {
 
 // Tier pricing for display — UPDATED to match current 4-tier structure
 const TIER_PRICING = {
-  starter: { monthly: 12.99, yearly: 129.99 },
-  creator: { monthly: 22.99, yearly: 229.99 },
-  pro: { monthly: 31.99, yearly: 319.99 },
+  starter: { monthly: 19.99, yearly: 199.99 },
+  creator: { monthly: 34.99, yearly: 349.99 },
+  pro: { monthly: 49.99, yearly: 499.99 },
 };
 
 const UpgradeModal = ({
