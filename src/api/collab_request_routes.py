@@ -1,32 +1,10 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
-from .models import db, User
+from .models import db, User, CollabRequest, CollabApplication
 
 collab_bp = Blueprint('collab_requests', __name__)
 
-class CollabRequest(db.Model):
-    __tablename__ = 'collab_requests'
-    id          = db.Column(db.Integer, primary_key=True)
-    user_id     = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    role        = db.Column(db.String(50), nullable=False)   # producer | vocalist | beatmaker | mixing | guitarist | etc
-    looking_for = db.Column(db.String(50), nullable=False)   # what they need
-    title       = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    genre       = db.Column(db.String(100))
-    sample_url  = db.Column(db.String(500))   # optional audio sample
-    status      = db.Column(db.String(20), default='open')   # open | closed
-    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
-
-class CollabApplication(db.Model):
-    __tablename__ = 'collab_applications'
-    id         = db.Column(db.Integer, primary_key=True)
-    request_id = db.Column(db.Integer, db.ForeignKey('collab_requests.id'), nullable=False)
-    applicant_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    message    = db.Column(db.Text)
-    sample_url = db.Column(db.String(500))
-    status     = db.Column(db.String(20), default='pending')  # pending | accepted | rejected
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 def req_to_dict(r, include_apps=False):
     user = User.query.get(r.user_id)

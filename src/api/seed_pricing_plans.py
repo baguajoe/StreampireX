@@ -10,8 +10,8 @@
 # AI Video Studio uses its own credit system:
 #   - Free: 3 one-time trial credits
 #   - Starter: 10 monthly credits (included with subscription)
-#   - Creator: 30 monthly credits (included with subscription)
-#   - Pro: 50 monthly credits (included with subscription)
+#   - Pro: 30 monthly credits (included with subscription)
+#   - Studio: 50 monthly credits (included with subscription)
 #   - All paid tiers can purchase additional credit packs ($7.99–$59.99)
 #   - 1 credit = 1 AI-generated video
 #   - Unused monthly credits roll over for 1 billing cycle
@@ -19,13 +19,13 @@
 # Podcast Collab Room (remote multi-participant recording):
 #   - Free: No access (upgrade wall)
 #   - Starter: 2 participants max
-#   - Creator: 4 participants max
-#   - Pro: 8 participants max
+#   - Pro: 4 participants max
+#   - Studio: 8 participants max
 # =============================================================================
 
 from src.api.models import db, PricingPlan
 from datetime import datetime
-from app import app
+from src.app import app
 
 # File size constants
 MB = 1024 * 1024
@@ -259,7 +259,7 @@ with app.app_context():
         ),
         
         # =====================================================================
-        # CREATOR TIER - $22.99/month ($229.99/year) — MOST POPULAR
+        # STUDIO TIER - $22.99/month ($229.99/year) — MOST POPULAR
         # =====================================================================
         PricingPlan(
             name="Pro",
@@ -315,7 +315,7 @@ with app.app_context():
             max_radio_stations=3,
             includes_auto_dj=True,
             
-            # Podcast Collab Room — Creator: 4 participants
+            # Podcast Collab Room — Pro: 4 participants
             includes_podcast_collab=True,
             max_collab_participants=4,
             
@@ -332,7 +332,7 @@ with app.app_context():
             ai_video_onetime_credits=0,
             
             # Recording Studio
-            # Creator: 16 tracks (uses max_tracks above = 24 for video, 
+            # Pro: 16 tracks (uses max_tracks above = 24 for video, 
             # recording studio enforced separately in RecordingStudio.js)
             # AI Mix Assistant (browser-side)
             
@@ -372,7 +372,7 @@ with app.app_context():
         ),
         
         # =====================================================================
-        # PRO TIER - $31.99/month ($319.99/year) — ULTIMATE
+        # STUDIO TIER - $31.99/month ($319.99/year) — ULTIMATE
         # =====================================================================
         PricingPlan(
             name="Studio",
@@ -428,7 +428,7 @@ with app.app_context():
             max_radio_stations=-1,  # Unlimited
             includes_auto_dj=True,
             
-            # Podcast Collab Room — Pro: 8 participants
+            # Podcast Collab Room — Studio: 8 participants
             includes_podcast_collab=True,
             max_collab_participants=8,
             

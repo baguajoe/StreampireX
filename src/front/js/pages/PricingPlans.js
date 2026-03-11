@@ -17,9 +17,9 @@ const PricingPlans = () => {
   // ==========================================================================
   const pricing = {
     free: { monthly: 0, yearly: 0 },
-    starter: { monthly: 12.99, yearly: 129.99 },
-    creator: { monthly: 22.99, yearly: 229.99 },
-    pro: { monthly: 31.99, yearly: 319.99 },
+    starter: { monthly: 19.99, yearly: 199.00 },
+    pro: { monthly: 34.99, yearly: 349.00 },
+    studio: { monthly: 49.99, yearly: 499.00 },
   };
 
   // Distribution Plan Pricing (yearly only)
@@ -112,8 +112,8 @@ const PricingPlans = () => {
       const planNameMap = {
         'free': 'Free',
         'starter': 'Starter',
-        'creator': 'Creator',
         'pro': 'Pro',
+        'studio': 'Studio',
         'artist-distribution': 'standalone-artist',
         'label-distribution': 'standalone-label'
       };
@@ -351,7 +351,7 @@ const PricingPlans = () => {
           </div>
 
           {/* ============================================================ */}
-          {/* STARTER TIER - $12.99 */}
+          {/* STARTER TIER - $19.99 */}
           {/* ============================================================ */}
           <div className={`pricing-card starter ${isCurrentPlan('starter') ? 'current' : ''}`}>
             {isCurrentPlan('starter') && <div className="current-badge">Current Plan</div>}
@@ -488,24 +488,24 @@ const PricingPlans = () => {
           </div>
 
           {/* ============================================================ */}
-          {/* CREATOR TIER - $22.99 (MOST POPULAR) */}
+          {/* PRO TIER - $34.99 (MOST POPULAR) */}
           {/* ============================================================ */}
-          <div className={`pricing-card creator popular ${isCurrentPlan('creator') ? 'current' : ''}`}>
+          <div className={`pricing-card studio popular ${isCurrentPlan('studio') ? 'current' : ''}`}>
             <div className="popular-badge">🔥 Most Popular</div>
-            {isCurrentPlan('creator') && <div className="current-badge">Current Plan</div>}
+            {isCurrentPlan('studio') && <div className="current-badge">Current Plan</div>}
 
             <div className="card-header">
-              <h2>Creator</h2>
+              <h2>Studio</h2>
               <p className="card-subtitle">For serious creators</p>
             </div>
 
             <div className="card-price">
-              <span className="price">${getMonthlyEquivalent('creator')}</span>
+              <span className="price">${getMonthlyEquivalent('studio')}</span>
               <span className="period">/month</span>
               {billingCycle === 'yearly' && (
                 <>
-                  <span className="billed-yearly">Billed ${getPrice('creator')}/year</span>
-                  <span className="yearly-savings">Save ${getYearlySavings('creator')}</span>
+                  <span className="billed-yearly">Billed ${getPrice('studio')}/year</span>
+                  <span className="yearly-savings">Save ${getYearlySavings('studio')}</span>
                 </>
               )}
             </div>
@@ -604,7 +604,7 @@ const PricingPlans = () => {
                 <span>Advanced Analytics Dashboard</span>
               </li>
 
-              {/* AI Features - Creator */}
+              {/* AI Features - Studio */}
               <li className="feature included highlight">
                 <span className="icon">🤖</span>
                 <span><strong>AI Mastering</strong> (15/month)</span>
@@ -621,20 +621,20 @@ const PricingPlans = () => {
             </ul>
 
             <button
-              className="select-plan-btn creator-btn"
-              onClick={() => handleSelectPlan('creator')}
-              disabled={processing === 'creator' || isCurrentPlan('creator')}
+              className="select-plan-btn studio-btn"
+              onClick={() => handleSelectPlan('studio')}
+              disabled={processing === 'studio' || isCurrentPlan('studio')}
             >
-              {processing === 'creator' ? (
+              {processing === 'studio' ? (
                 <span className="btn-loading">
                   <span className="spinner"></span> Processing...
                 </span>
-              ) : isCurrentPlan('creator') ? '✅ Current Plan' : 'Go Creator'}
+              ) : isCurrentPlan('studio') ? '✅ Current Plan' : 'Go Studio'}
             </button>
           </div>
 
           {/* ============================================================ */}
-          {/* PRO TIER - $31.99 */}
+          {/* STUDIO TIER - $49.99 */}
           {/* ============================================================ */}
           <div className={`pricing-card pro ${isCurrentPlan('pro') ? 'current' : ''}`}>
             {isCurrentPlan('pro') && <div className="current-badge">Current Plan</div>}
@@ -658,7 +658,7 @@ const PricingPlans = () => {
             <ul className="features-list">
               <li className="feature included highlight">
                 <span className="icon">⬆️</span>
-                <span><strong>Everything in Creator, plus:</strong></span>
+                <span><strong>Everything in Pro, plus:</strong></span>
               </li>
 
               {/* Video Editing */}
@@ -847,7 +847,7 @@ const PricingPlans = () => {
               <li className="feature included special"><span className="icon">🚀</span><span><strong>Unlimited Pack</strong> — 500 credits / $49.99</span></li>
             </ul>
             <div style={{ padding: '0 20px 15px', fontSize: '13px', color: '#aaa' }}>
-              <p>Credits never expire. Available to Starter, Creator, and Pro subscribers. Purchased credits stack on top of your monthly allotment.</p>
+              <p>Credits never expire. Available to Starter, Pro, and Studio subscribers. Purchased credits stack on top of your monthly allotment.</p>
             </div>
           </div>
         </div>
@@ -1040,7 +1040,7 @@ const PricingPlans = () => {
                 <th>Feature</th>
                 <th>Free</th>
                 <th>Starter</th>
-                <th className="highlight">Creator</th>
+                <th className="highlight">Studio</th>
                 <th>Pro</th>
               </tr>
             </thead>
@@ -1556,7 +1556,7 @@ const PricingPlans = () => {
 
           <div className="faq-item">
             <h3>What are AI Credits?</h3>
-            <p>AI Credits power premium AI features like video generation, voice cloning, auto-captions, and content generation. Each paid plan includes monthly credits that reset every 30 days — Starter gets 50, Creator gets 200, and Pro gets 1,000. Many AI tools like stem separation, pitch correction, key finder, beat detection, audio-to-MIDI, background removal, and motion tracking are completely free and never use credits.</p>
+            <p>AI Credits power premium AI features like video generation, voice cloning, auto-captions, and content generation. Each paid plan includes monthly credits that reset every 30 days — Starter gets 50, Pro gets 200, and Studio gets 1,000. Many AI tools like stem separation, pitch correction, key finder, beat detection, audio-to-MIDI, background removal, and motion tracking are completely free and never use credits.</p>
           </div>
 
           <div className="faq-item">
@@ -1591,7 +1591,7 @@ const PricingPlans = () => {
 
           <div className="faq-item">
             <h3>Is there a free trial?</h3>
-            <p>Starter has a 7-day trial, Creator has 14 days, and Pro has a full 30-day trial. Cancel anytime during the trial.</p>
+            <p>Starter has a 7-day trial, Pro has 14 days, and Studio has a full 30-day trial. Cancel anytime during the trial.</p>
           </div>
 
           <div className="faq-item">
@@ -1611,7 +1611,7 @@ const PricingPlans = () => {
 
           <div className="faq-item">
             <h3>What is the Recording Studio?</h3>
-            <p>A full multi-track DAW (Digital Audio Workstation) in your browser. Record audio, import files, add effects (EQ, compression, reverb, delay, distortion, filters), arrange regions on a timeline, and bounce to a final mix. Track limits scale with your plan: 4 (Free), 8 (Starter), 16 (Creator), 32 (Pro).</p>
+            <p>A full multi-track DAW (Digital Audio Workstation) in your browser. Record audio, import files, add effects (EQ, compression, reverb, delay, distortion, filters), arrange regions on a timeline, and bounce to a final mix. Track limits scale with your plan: 4 (Free), 8 (Starter), 16 (Pro), 32 (Studio).</p>
           </div>
 
           <div className="faq-item">
