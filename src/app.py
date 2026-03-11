@@ -1,46 +1,4 @@
 # src/app.py - FIXED VERSION
-    app.register_blueprint(api, url_prefix='/api')
-    app.register_blueprint(messages_bp)
-    app.register_blueprint(video_editor_bp)
-    app.register_blueprint(follow_bp)
-    app.register_blueprint(video_tier_bp, url_prefix='/api')  # ADD THIS
-    app.register_blueprint(notifications_bp)
-    app.register_blueprint(ai_mastering_bp)
-    app.register_blueprint(ai_mastering_phase3_bp)
-    app.register_blueprint(ai_radio_dj_bp)
-    app.register_blueprint(ai_content_bp)
-    app.register_blueprint(recording_studio_bp)
-    app.register_blueprint(ai_mix_assistant_bp)
-    app.register_blueprint(ai_stem_separation_bp)
-    app.register_blueprint(ai_video_gen_bp)
-    app.register_blueprint(mic_simulator_bp)  # 🎙️ Mic Simulator
-    app.register_blueprint(freesound_bp)  # 🔊 Freesound.org Sample Browser
-    app.register_blueprint(sound_kit_bp)  # 🎛️ Sound Kit Management
-    app.register_blueprint(playlist_bp)
-    app.register_blueprint(beat_store_bp)
-    app.register_blueprint(voice_clone_services_bp)
-    app.register_blueprint(ai_chord_generator_bp)
-    app.register_blueprint(ai_video_tools_bp)
-    app.register_blueprint(podcast_studio_bp)
-    app.register_blueprint(podcast_ai_bp)
-    app.register_blueprint(podcast_phase2_bp)
-    app.register_blueprint(support_bp)
-    app.register_blueprint(ai_credits_bp)
-    app.register_blueprint(sampler_storage_bp)
-    app.register_blueprint(epk_collab_bp)
-    app.register_blueprint(contact_bp)
-    app.register_blueprint(sonosuite_bp)
-    app.register_blueprint(analytics_bp)
-    app.register_blueprint(looperman_bp)
-    app.register_blueprint(fan_membership_bp)
-    app.register_blueprint(series_bp)
-    app.register_blueprint(comment_bp)
-    app.register_blueprint(wam_plugin_bp)
-    app.register_blueprint(marketplace_bp)
-    app.register_blueprint(jam_tracks_bp)
-    app.register_blueprint(collab_marketplace_bp)
-    app.register_blueprint(reference_mastering_bp)
-    app.register_blueprint(suno_gap_bp)
 from api.fan_subscription_routes import fan_sub_bp
 from api.beat_licensing_routes import beat_license_bp
 from api.clip_sharing_routes import clip_bp
@@ -345,8 +303,45 @@ setup_commands(app)
 register_commands(app)
 
 # ✅ Register blueprints
+app.register_blueprint(api, url_prefix='/api')
+app.register_blueprint(messages_bp)
+app.register_blueprint(video_editor_bp)
+app.register_blueprint(follow_bp) 
+app.register_blueprint(video_tier_bp, url_prefix='/api')  # ADD THIS
+app.register_blueprint(notifications_bp)
+app.register_blueprint(ai_mastering_bp)
+app.register_blueprint(ai_mastering_phase3_bp)
+app.register_blueprint(ai_radio_dj_bp)
+app.register_blueprint(ai_content_bp)
+app.register_blueprint(recording_studio_bp)
+app.register_blueprint(ai_mix_assistant_bp)
+app.register_blueprint(ai_stem_separation_bp)
 # OLD: app.register_blueprint(ai_video_credits_bp)  # Replaced by ai_credits_bp
+app.register_blueprint(ai_video_gen_bp)
+app.register_blueprint(mic_simulator_bp)  # 🎙️ Mic Simulator
+app.register_blueprint(freesound_bp)  # 🔊 Freesound.org Sample Browser
+app.register_blueprint(sound_kit_bp)  # 🎛️ Sound Kit Management
+app.register_blueprint(playlist_bp)
+app.register_blueprint(beat_store_bp)
+app.register_blueprint(voice_clone_services_bp)
+app.register_blueprint(ai_chord_generator_bp)
+app.register_blueprint(ai_video_tools_bp)
+app.register_blueprint(podcast_studio_bp)
+app.register_blueprint(podcast_ai_bp)
+app.register_blueprint(podcast_phase2_bp)
+app.register_blueprint(support_bp)
+app.register_blueprint(ai_credits_bp)
+app.register_blueprint(sampler_storage_bp)
+app.register_blueprint(epk_collab_bp)
+app.register_blueprint(contact_bp)
+app.register_blueprint(sonosuite_bp)
+app.register_blueprint(analytics_bp)
+app.register_blueprint(looperman_bp)
+app.register_blueprint(fan_membership_bp)
+app.register_blueprint(series_bp)
+app.register_blueprint(comment_bp)
 from src.api.wam_plugin_routes import wam_plugin_bp
+app.register_blueprint(wam_plugin_bp)
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)
@@ -546,6 +541,11 @@ from src.api.reference_mastering_routes import reference_mastering_bp
 from src.api.suno_gap_routes import suno_gap_bp
 
 
+app.register_blueprint(marketplace_bp)
+app.register_blueprint(jam_tracks_bp)
+app.register_blueprint(collab_marketplace_bp)
+app.register_blueprint(reference_mastering_bp)
+app.register_blueprint(suno_gap_bp)
     app.register_blueprint(fan_sub_bp)
     app.register_blueprint(beat_license_bp)
     app.register_blueprint(clip_bp)
