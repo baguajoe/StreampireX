@@ -1,4 +1,7 @@
 # src/app.py - FIXED VERSION
+from api.fan_subscription_routes import fan_sub_bp
+from api.beat_licensing_routes import beat_license_bp
+from api.clip_sharing_routes import clip_bp
 # ✅ Monkey patch must come FIRST — before ANY other imports
 import eventlet
 eventlet.monkey_patch()
@@ -543,6 +546,9 @@ app.register_blueprint(jam_tracks_bp)
 app.register_blueprint(collab_marketplace_bp)
 app.register_blueprint(reference_mastering_bp)
 app.register_blueprint(suno_gap_bp)
+    app.register_blueprint(fan_sub_bp)
+    app.register_blueprint(beat_license_bp)
+    app.register_blueprint(clip_bp)
 
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3001))
