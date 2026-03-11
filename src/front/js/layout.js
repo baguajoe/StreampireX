@@ -91,7 +91,6 @@ import SettingsPage from "./pages/SettingsPage";
 import ProfilePage from "./pages/ProfilePage";
 import { Footer } from "./component/footer";
 import Navbar from "./component/navbar";
-import MerchStore from "./pages/MerchStore";
 import DiscoverCreators from "./pages/DiscoverCreators";
 import MerchStore from "./pages/MerchStore";
 import AnnouncementBar from "./component/AnnouncementBar";
@@ -254,7 +253,7 @@ const AppShell = ({ user }) => {
               {/* 🔍 Discover Users */}
               <Route path="/discover-users" element={<DiscoverUsersPage />} />
               <Route path="/discover-creators" element={<DiscoverCreators />} />
-              <Route path="/merch-store" element={<MerchStore />} />/
+              <Route path="/merch-store" element={<MerchStore />} />
               <Route path="/search-artists" element={<Navigate to="/discover-users" replace />} />
               <Route path="/browse-users" element={<Navigate to="/discover-users" replace />} />
 

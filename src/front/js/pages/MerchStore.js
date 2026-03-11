@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import { Context } from "../store/appContext";
-import "../../../styles/StorefrontPage.css";
+import "../../styles/StorefrontPage.css";
 
 const PRINTFUL_CATEGORIES = ["T-Shirts", "Hoodies", "Hats", "Mugs", "Phone Cases", "Posters"];
 
