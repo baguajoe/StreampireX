@@ -5,6 +5,7 @@ import { Context } from "../store/appContext";
 import logo from "../../img/StreampireX.png";
 import "../../styles/Navbar.css";
 import PWAInstallButton from './PWAInstallButton';
+import ThemeToggle from './ThemeToggle';
 
 const Navbar = () => {
   const [user, setUser] = useState(null);

@@ -9,6 +9,8 @@ import BandwidthStatus from "../component/BandwidthStatus";
 import "../../styles/StorageStatus.css";
 import "../../styles/BandwidthStatus.css";
 import "../../styles/creatorDashboard.css";
+import { FanTierManager } from '../component/FanSubscriptionManager';
+import { EmbedCodeGenerator } from '../pages/EmbeddablePlayer';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
 

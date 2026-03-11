@@ -139,6 +139,7 @@ import { BrowseStemsPage, SellStemsPage } from "./pages/StemsStore";
 import { Dashboard } from "./pages/Dashboard";
 import CollabFeed from './pages/CollabFeed';
 import EmbeddablePlayer from './pages/EmbeddablePlayer';
+import ClipView from './pages/ClipView';
 
 // ─── Routes where Navbar + Sidebar should NOT appear ───────────────────────
 // The homepage, login, and signup are fully standalone pages with their own layout.
@@ -337,7 +338,8 @@ const AppShell = ({ user }) => {
               {/* 404 Fallback */}
               <Route path="*" element={<h1>Not found!</h1>} />
                       <Route path="/collab" element={<CollabFeed />} />
-                    <Route path="/embed/:type/:id" element={<EmbeddablePlayer />} />
+                    <Route path="/embed/:type/:id" element={<EmbeddablePlayer /><Route path="/clip/:token" element={<ClipView />} />
+          } />
           </Routes>
             <FloatingVideoCall currentUser={user} />
           </main>
