@@ -3634,32 +3634,13 @@ const RecordingStudio = ({ user }) => {
         )}
         {/* ──────── VOICE MIDI VIEW ──────── */}
         
-  // ── Helper: land an AudioBuffer/ArrayBuffer on the next empty Arrange track ──
-  const landBufferOnTrack = useCallback((audioBuffer, trackName) => {
-    let targetIdx = tracks.findIndex(t => !t.audioBuffer);
-    if (targetIdx === -1 && tracks.length < maxTracks) {
-      targetIdx = tracks.length;
-      setTracks(prev => [...prev, DEFAULT_TRACK(targetIdx)]);
-    }
-    if (targetIdx === -1) {
-      setStatus("⚠ No empty tracks — clear a track first");
-      return;
-    }
-    const blob = new Blob([audioBuffer], { type: "audio/wav" });
-    const audioUrl = URL.createObjectURL(blob);
-    updateTrack(targetIdx, { audioBuffer, audio_url: audioUrl, name: trackName });
-    createRegionFromImport(targetIdx, audioBuffer, trackName, audioUrl);
-    setStatus(`✓ "${trackName}" → Track ${targetIdx + 1}`);
-    setViewMode("arrange");
-  }, [tracks, maxTracks, updateTrack, createRegionFromImport]);
-
         {viewMode === "synth" && (
           <div className="daw-synth-view" style={{ flex: 1, overflow: "auto", height: "100%" }}>
             <SynthCreator
               onClose={() => setViewMode("arrange")}
-              onAssignToTrack={(preset, audioBuffer) => {
-                if (!audioBuffer) { setStatus("🎛️ Use Assign to Track in Synth Creator"); return; }
-                landBufferOnTrack(audioBuffer, preset?.name || "Synth");
+              onAssignToTrack={(preset) => {
+                addTrack && addTrack();
+                setStatus && setStatus(`🎛️ Synth "${preset.name}" assigned as new instrument track`);
               }}
             />
           </div>
@@ -3670,13 +3651,8 @@ const RecordingStudio = ({ user }) => {
             <DrumDesigner
               onClose={() => setViewMode("beatmaker")}
               onAssignToPad={(data) => {
-                if (data.audioBuffer) window.__spx_sampler_export = { buffer: data.audioBuffer, name: (data.type || "Drum").toUpperCase(), timestamp: Date.now() };
-                setStatus(`🥁 ${(data.type||"Drum").toUpperCase()} → Beat Maker pad`);
+                setStatus && setStatus(`🥁 ${data.type.toUpperCase()} exported — load WAV into a pad`);
                 setViewMode("beatmaker");
-              }}
-              onAssignToTrack={(data) => {
-                if (!data.audioBuffer) { setStatus("🥁 Use Send to Track in Drum Designer"); return; }
-                landBufferOnTrack(data.audioBuffer, (data.type || "Drum").toUpperCase());
               }}
             />
           </div>
@@ -3686,9 +3662,9 @@ const RecordingStudio = ({ user }) => {
           <div className="daw-instrbuilder-view" style={{ flex: 1, overflow: "auto", height: "100%" }}>
             <InstrumentBuilder
               onClose={() => setViewMode("arrange")}
-              onAssignToTrack={(preset, audioBuffer) => {
-                if (!audioBuffer) { setStatus("🎸 Use Assign to Track in Instrument Builder"); return; }
-                landBufferOnTrack(audioBuffer, preset?.instrName || "Instrument");
+              onAssignToTrack={(preset) => {
+                setStatus && setStatus(`🎸 Instrument ready — assigned to track`);
+                setViewMode("arrange");
               }}
             />
           </div>

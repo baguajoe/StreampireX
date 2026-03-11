@@ -737,7 +737,7 @@ const DrumDesigner = ({ onClose, onAssignToPad }) => {
             {exporting ? '⏳' : '⬇ WAV'}
           </button>
           {onAssignToPad && (
-            <button className="dd-btn dd-btn-pad" onClick={async () => { const buf = await exportWAV(); onAssignToPad({ type: drumType, params: p, audioBuffer: buf }); }}>
+            <button className="dd-btn dd-btn-pad" onClick={() => { exportWAV(); onAssignToPad({ type: drumType, params: p }); }}>
               🎛 → PAD
             </button>
           )}

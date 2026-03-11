@@ -747,16 +747,12 @@ const SynthCreator = ({ onClose, onAssignToPad, onAssignToTrack }) => {
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 5000);
       setStatus('WAV exported!');
-      setExporting(false);
-      setTimeout(() => setStatus(''), 2000);
-      return buf;
     } catch (e) {
       console.error(e);
       setStatus('Export failed');
-      setExporting(false);
-      setTimeout(() => setStatus(''), 2000);
-      return null;
     }
+    setExporting(false);
+    setTimeout(() => setStatus(''), 2000);
   };
 
   // ── Mini keyboard ──
