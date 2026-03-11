@@ -3636,7 +3636,7 @@ const RecordingStudio = ({ user }) => {
         
   // ── Helper: land an AudioBuffer/ArrayBuffer on the next empty Arrange track ──
   const landBufferOnTrack = useCallback((audioBuffer, trackName) => {
-    let targetIdx = tracks.findIndex(t => !t.audioBuffer);
+    const targetIdx = tracks.findIndex(t => !t.audioBuffer);
     if (targetIdx === -1 && tracks.length < maxTracks) {
       targetIdx = tracks.length;
       setTracks(prev => [...prev, DEFAULT_TRACK(targetIdx)]);
