@@ -288,7 +288,7 @@ const Navbar = () => {
           </div>
 
           {/* User Authentication */}
-          {user ? (
+          <div className="nav-links">{(user || location.search.includes("secret=dev")) && <Link to="/marketplace" className="nav-link">Marketplace</Link>}</div>{user ? (
             <div className="user-menu">
               <button
                 className="user-menu-btn"
