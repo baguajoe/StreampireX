@@ -4,13 +4,13 @@ import ScrollToTop from "./component/scrollToTop";
 import injectContext from "./store/appContext";
 import { Context } from "./store/appContext";
 
-// FIXED: Importing Home as a default export to match your file
 import Home from "./pages/home";
 
-// Default imports for components
 import Navbar from "./component/navbar";
-import Footer from "./component/footer";
 import Sidebar from "./component/sidebar";
+
+// FIXED: Using named import for Footer to match its export const Footer
+import { Footer } from "./component/footer";
 
 const Layout = () => {
     const { store } = useContext(Context);
