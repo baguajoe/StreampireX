@@ -166,33 +166,6 @@ const Home = () => {
 			</section>
 
 			{/* 🛍️ MERCH & POD SECTION */}
-			<section className="merch-pod-spotlight" style={{ padding: "80px 20px", background: "#111720", textAlign: "center" }}>
-				<h2 style={{ color: "#00ffc8", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "2.5rem", fontWeight: 800 }}>🛍️ Built-in Merch Store & POD</h2>
-				<p className="text-muted">Design gear, sell worldwide, keep 90%.</p>
-				<div className="row g-4 mt-4">
-					<div className="col-md-4">
-						<div className="p-4" style={{ background: "rgba(0,255,200,0.03)", border: "1px solid rgba(0,255,200,0.1)", borderRadius: "15px" }}>
-							<span style={{ fontSize: "3rem" }}>👕</span>
-							<h4>Global POD</h4>
-							<p className="small text-muted">Upload art. We handle printing and shipping for shirts and hoodies worldwide.</p>
-						</div>
-					</div>
-					<div className="col-md-4">
-						<div className="p-4" style={{ background: "rgba(0,255,200,0.03)", border: "1px solid rgba(0,255,200,0.1)", borderRadius: "15px" }}>
-							<span style={{ fontSize: "3rem" }}>📦</span>
-							<h4>Physical Stock</h4>
-							<p className="small text-muted">Sell your own inventory with integrated shipping labels and tracking.</p>
-						</div>
-					</div>
-					<div className="col-md-4">
-						<div className="p-4" style={{ background: "rgba(0,255,200,0.03)", border: "1px solid rgba(0,255,200,0.1)", borderRadius: "15px" }}>
-							<span style={{ fontSize: "3rem" }}>🎹</span>
-							<h4>Digital Merch</h4>
-							<p className="small text-muted">Sell beats, sample packs, and presets directly in your store.</p>
-						</div>
-					</div>
-				</div>
-			</section>
 
 			{/* 🛍️ MERCH & PRINT-ON-DEMAND SPOTLIGHT */}
 			<section className="merch-pod-spotlight" style={{ padding: "80px 20px", background: "#111720", textAlign: "center" }}>
