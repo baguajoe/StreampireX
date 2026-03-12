@@ -1,4 +1,4 @@
-import "bootstrap/dist/js/bootstrap.bundle.js";
+import "bootstrap/dist/js/bootstrap.bundle";
 import React, { useContext } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import ScrollToTop from "./component/scrollToTop";
