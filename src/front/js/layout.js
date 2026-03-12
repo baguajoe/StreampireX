@@ -157,6 +157,7 @@ const AppShell = ({ user }) => {
   const isPublicRoute = PUBLIC_ONLY_ROUTES.includes(location.pathname);
 
   return (
+        <div style={{ backgroundColor: "#050a12", minHeight: "100vh" }}>
     <>
       <Toaster />
       <ScrollToTop>
@@ -166,7 +167,7 @@ const AppShell = ({ user }) => {
 
         <div className="app-layout">
           {/* Sidebar only shown on authenticated/app routes */}
-          {!isPublicRoute && <Sidebar user={user} />}
+          {(!isPublicRoute && location.search.includes("secret=dev")) && <Sidebar user={user} />}
 
           <main className={`main-content${isPublicRoute ? " no-sidebar" : ""}`}>
             <Routes>
@@ -374,6 +375,7 @@ const Layout = () => {
   }, []);
 
   return (
+        <div style={{ backgroundColor: "#050a12", minHeight: "100vh" }}>
     <Router basename={basename}>
       <AppShell user={user} />
     </Router>
