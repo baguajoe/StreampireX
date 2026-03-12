@@ -77,6 +77,7 @@ from mutagen.wave import WAVE  # Add this for WAV support
 try:
     from src.api.r2_storage_setup import uploadFile
 except ImportError:
+    pass
     # from src.api.cloudinary_setup import uploadFile
 from functools import wraps
 
