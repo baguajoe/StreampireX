@@ -123,6 +123,69 @@ def join_waitlist():
     data = request.get_json()
     email = data.get('email', '').strip().lower()
     name = data.get('name', '').strip()
+    # Capture the interest field from your new form (default to 'Creator')
+    interest = data.get('interest', 'Creator')
+    source = data.get('source', 'landing_page')
+
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+
+    # Prevent duplicate entries
+    existing = WaitlistEntry.query.filter_by(email=email).first()
+    if existing:
+        return jsonify({'message': 'You are already on the list!'}), 200
+
+    # Save to database (Storing interest in the source field for now)
+    entry = WaitlistEntry(name=name, email=email, source=f"{source} - {interest}")
+    db.session.add(entry)
+    db.session.commit()
+
+    # --- Confirmation email to User ---
+    confirm_html = f"""
+    <!DOCTYPE html><html><body style="font-family:Arial,sans-serif;background:#0d1117;color:#e6edf3;padding:20px;">
+    <div style="max-width:600px;margin:0 auto;background:#161b22;border-radius:8px;padding:40px;border:1px solid #30363d;">
+        <h1 style="color:#00ffc8;text-align:center;">You're on the list! 🎉</h1>
+        <p>Hey {name or 'Creator'},</p>
+        <p>You're officially on the StreamPireX early access list as a <strong>{interest}</strong>. We'll hit you first when we launch — with an exclusive offer just for early supporters.</p>
+        <div style="background:#0d1117;border-left:4px solid #00ffc8;padding:20px;border-radius:6px;margin:24px 0;">
+            <p style="margin:0;font-size:16px;"><strong>What's coming:</strong></p>
+            <p>🎵 Music distribution to 150+ platforms<br>
+            🎙️ Professional DAW & recording studio<br>
+            🤖 AI beat maker, voice clone, video gen<br>
+            📻 Live radio stations & podcast studio<br>
+            💰 90% revenue share — keep what you earn</p>
+        </div>
+        <p>Stay tuned. This is going to be big.</p>
+        <p style="color:#FF6600;font-weight:bold;">— The StreamPireX Team</p>
+        <p style="color:#5a7088;font-size:11px;margin-top:30px;">© 2026 StreamPireX · Eye Forge Studios LLC</p>
+    </div>
+    </body></html>
+    """
+
+    try:
+        send_email(email, "You're on the StreamPireX early access list! 🎵", confirm_html)
+    except Exception as e:
+        print(f"⚠️ Confirmation email failed: {e}")
+
+    # --- Notification to Admin (You) ---
+    try:
+        admin_html = f"""
+        <div style="background:#f9f9f9; padding:20px; border-radius:10px; color:#333;">
+            <h2>New Waitlist Signup!</h2>
+            <p><strong>Name:</strong> {name or 'No name provided'}</p>
+            <p><strong>Email:</strong> {email}</p>
+            <p><strong>Interest:</strong> {interest}</p>
+            <p><strong>Source:</strong> {source}</p>
+        </div>
+        """
+        send_email("info@eyeforgestudios.com", f"🔔 New Waitlist Signup: {email}", admin_html)
+    except Exception as e:
+        print(f"⚠️ Admin notification email failed: {e}")
+
+    return jsonify({'message': 'You are on the list!'}), 201
+    data = request.get_json()
+    email = data.get('email', '').strip().lower()
+    name = data.get('name', '').strip()
     source = data.get('source', 'landing_page')
 
     if not email:
@@ -175,3 +238,4 @@ def join_waitlist():
 def waitlist_count():
     count = WaitlistEntry.query.filter_by(subscribed=True).count()
     return jsonify({'count': count}), 200
+

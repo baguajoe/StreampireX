@@ -275,9 +275,32 @@ const WaitlistForm = () => {
     const [name, setName] = React.useState("");
     const [interest, setInterest] = React.useState("Creator");
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        alert(`Thanks ${name}! You've joined the waitlist for ${interest}.`);
+
+        // This tells the frontend to talk to your Python backend
+        const backendUrl = process.env.BACKEND_URL || "";
+
+        try {
+            const response = await fetch(`${backendUrl}/api/waitlist`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: name,
+                    email: email,
+                    interest: interest
+                })
+            });
+
+            if (response.ok) {
+                alert("Success! You've been added to the waitlist and an email is being sent.");
+            } else {
+                alert("The server received the data but couldn't send the email. Check your Python logs.");
+            }
+        } catch (error) {
+            console.error("Connection error:", error);
+            alert("Could not connect to the backend. Is your Python server running?");
+        }
     };
 
     return (
