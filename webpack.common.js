@@ -38,8 +38,8 @@ module.exports = {
     ]
   },
   resolve: {
-    extensions: ['*', '.js']
-  },
+    extensions: [".js", ".jsx"] // Removed the "*" and added the dot
+},
   plugins: [
     new HtmlWebpackPlugin({
         favicon: '4geeks.ico',
