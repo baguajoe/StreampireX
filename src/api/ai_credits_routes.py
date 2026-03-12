@@ -138,7 +138,7 @@ CREDIT_PACKS = {
         'popular': False, 'icon': '⚡',
     },
     'creator': {
-        'id': 'creator', 'name': 'Creator Pack', 'credits': 75,
+        'id': 'creator', 'name': 'Pro Pack', 'credits': 75,
         'price': 11.99, 'per_credit': 0.16, 'savings': '20% off',
         'popular': True, 'icon': '🎥',
     },
@@ -155,20 +155,28 @@ CREDIT_PACKS = {
 }
 
 TIER_FREE_CREDITS = {
-    'free': 0, 'starter': 50, 'creator': 200, 'pro': 1000,
+    'free': 0,
+    'starter': 0,
+    'pro': 0,
+    'studio': 0,
 }
 
 DAILY_LIMITS = {
-    'ai_video_generation':    {'free': 0, 'starter': 3, 'creator': 10, 'pro': 50},
-    'voice_clone_create':     {'free': 0, 'starter': 0, 'creator': 2, 'pro': 10},
-    'voice_clone_tts':        {'free': 0, 'starter': 0, 'creator': 20, 'pro': 100},
-    'ai_radio_dj_tts':        {'free': 0, 'starter': 0, 'creator': 50, 'pro': 500},
-    'ai_content_generation':  {'free': 0, 'starter': 10, 'creator': 50, 'pro': 200},
-    'ai_auto_captions':       {'free': 0, 'starter': 3, 'creator': 10, 'pro': 50},
-    'ai_image_generation':    {'free': 0, 'starter': 5, 'creator': 20, 'pro': 100},
+    'ai_video_generation':    {'free': 0, 'starter': 3, 'pro': 10, 'studio': 50},
+    'voice_clone_create':     {'free': 0, 'starter': 0, 'pro': 2, 'studio': 10},
+    'voice_clone_tts':        {'free': 0, 'starter': 0, 'pro': 20, 'studio': 100},
+    'ai_radio_dj_tts':        {'free': 0, 'starter': 0, 'pro': 50, 'studio': 500},
+    'ai_content_generation':  {'free': 0, 'starter': 10, 'pro': 50, 'studio': 200},
+    'ai_auto_captions':       {'free': 0, 'starter': 3, 'pro': 10, 'studio': 50},
+    'ai_image_generation':    {'free': 0, 'starter': 5, 'pro': 20, 'studio': 100},
 }
 
-TIER_ORDER = {'free': 0, 'starter': 1, 'creator': 2, 'pro': 3}
+TIER_ORDER = {
+    'free': 0,
+    'starter': 1,
+    'pro': 2,
+    'studio': 3,
+}
 
 
 # =============================================================================
@@ -249,10 +257,19 @@ def get_or_create_credits(user_id):
 def get_user_tier(user_id):
     sub = Subscription.query.filter_by(user_id=user_id, status='active').first()
     if sub and sub.plan:
-        name = sub.plan.name.lower()
-        for tier in ['pro', 'creator', 'starter']:
-            if tier in name:
-                return tier
+        name = (sub.plan.name or '').lower()
+
+        if 'studio' in name:
+            return 'studio'
+        if 'pro' in name:
+            return 'pro'
+        if 'starter' in name:
+            return 'starter'
+
+        # Distribution-only plans should not imply creator AI tier access
+        if 'standalone artist' in name or 'label' in name:
+            return 'free'
+
     return 'free'
 
 
@@ -300,11 +317,19 @@ def deduct_user_credits(user_id, feature, metadata=None):
     Returns: (success, credit, error)
     """
     cost = AI_FEATURE_COSTS.get(feature, 0)
+    credit = get_or_create_credits(user_id)
 
     if cost == 0:
-        return True, get_or_create_credits(user_id), None
+        usage = AICreditUsage(
+            user_id=user_id,
+            feature=feature,
+            credits_used=0,
+            metadata_json=json.dumps(metadata) if metadata else None,
+        )
+        db.session.add(usage)
+        db.session.commit()
+        return True, credit, None
 
-    credit = get_or_create_credits(user_id)
     credit = check_and_reset_monthly_credits(credit, user_id)
 
     if not check_tier_access(user_id, feature):
@@ -322,7 +347,9 @@ def deduct_user_credits(user_id, feature, metadata=None):
         return False, credit, 'Deduction failed'
 
     usage = AICreditUsage(
-        user_id=user_id, feature=feature, credits_used=cost,
+        user_id=user_id,
+        feature=feature,
+        credits_used=cost,
         metadata_json=json.dumps(metadata) if metadata else None,
     )
     db.session.add(usage)
@@ -452,6 +479,7 @@ def get_credit_balance():
             'tier_free_credits': TIER_FREE_CREDITS.get(tier, 0),
             'features': features,
             'packs': list(CREDIT_PACKS.values()),
+            'can_purchase': True,
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -489,7 +517,7 @@ def use_credits():
                 'credits_needed': cost, 'balance': credit.balance,
                 'upgrade_required': needs_upgrade,
                 'min_tier': min_tier if needs_upgrade else None,
-                'can_purchase': tier != 'free',
+                'can_purchase': True,
                 'packs': list(CREDIT_PACKS.values()),
             }), 403 if needs_upgrade else 429
 
@@ -646,8 +674,7 @@ def purchase_credits():
             return jsonify({'error': f'Unknown pack: {pack_id}'}), 400
 
         tier = get_user_tier(user_id)
-        if tier == 'free':
-            return jsonify({'error': 'Upgrade to a paid plan first', 'upgrade_required': True}), 403
+        # Free users are allowed to buy AI credits. Credit purchases fund AI usage.
 
         pack = CREDIT_PACKS[pack_id]
         user = User.query.get(user_id)
@@ -704,7 +731,7 @@ def get_credit_packs():
     try:
         user_id = get_jwt_identity()
         tier = get_user_tier(user_id)
-        return jsonify({'success': True, 'packs': list(CREDIT_PACKS.values()), 'tier': tier, 'can_purchase': tier != 'free'}), 200
+        return jsonify({'success': True, 'packs': list(CREDIT_PACKS.values()), 'tier': tier, 'can_purchase': True}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -751,6 +778,11 @@ def handle_ai_credit_purchase(session):
         purchase = CreditPackPurchase.query.filter_by(
             stripe_checkout_session_id=session['id']
         ).first()
+
+        if purchase and purchase.status == 'completed':
+            current_app.logger.info(f"AI credit purchase already processed for session={session['id']}")
+            return
+
         if purchase:
             purchase.status = 'completed'
             purchase.completed_at = datetime.utcnow()

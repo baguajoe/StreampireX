@@ -1,6 +1,7 @@
+import logo from "../../img/StreampireX.png";
 // =============================================================================
 import WaitlistSection from "../component/WaitlistSection";
-// Home.js — StreamPireX Landing Page (Updated Mar 2026)
+// home.js — StreamPireX Landing Page (Updated Mar 2026)
 // =============================================================================
 // Section order (ranked by community size & revenue impact):
 //   Hero → Problem/Solution → Cost Comparison →
@@ -30,7 +31,7 @@ const Home = () => {
 			    ================================================================ */}
 			<header className="hero">
 				<div className="hero-content">
-					<h1><img src="/static/img/StreampireX.png" alt="StreamPireX" style={{height:"60px"}} /></h1>
+					<h1><img src="/img/StreampireX.png" alt="StreamPireX" style={{ height: "60px" }} /></h1>
 					<p className="hero-tagline">The AI-Powered All-In-One Creator Platform</p>
 					<p>
 						Replace 15+ tools with one platform. Recording studio, MPC-style beat maker,
@@ -49,8 +50,8 @@ const Home = () => {
 							<h3 className="welcome-text">
 								Welcome back, {user.username || user.display_name}! 🎉
 							</h3>
-							<Link to="/creator-dashboard" className="btn btn-primary">Go to Dashboard</Link>
-							<Link to="/home-feed" className="btn btn-outline-light">View Feed</Link>
+							
+							
 						</div>
 					)}
 				</div>
@@ -129,7 +130,7 @@ const Home = () => {
 							<li>📡 Streaming Platform — $15/mo</li>
 							<li>🎙️ Podcast Hosting — $12/mo</li>
 							<li>📻 Radio Hosting — $20/mo</li>
-							<li>🎵 Distribution — $20–50/yr</li>
+							<li>🎵 Distribution — $21.99 - $79.99/yr</li>
 							<li>📋 EPK Hosting — $10–20/mo</li>
 							<li>🛍️ Merch / Course Platform — $15–39/mo</li>
 							<li>📊 Analytics Tools — $10/mo</li>
@@ -157,9 +158,67 @@ const Home = () => {
 							<li>🎮 Gaming Hub + Social Network</li>
 						</ul>
 						<p className="comparison-total">Starting at $19.99/month — Keep 90%</p>
-											<div style={{textAlign:"center",marginTop:"20px"}}>
-												<a href="/compare.html" target="_blank" rel="noopener noreferrer" style={{display:"inline-block",padding:"12px 28px",border:"2px solid #00ffc8",color:"#00ffc8",background:"rgba(0,255,200,0.06)",borderRadius:"6px",fontSize:"14px",fontWeight:700,textDecoration:"none"}}>📊 See Full Platform Comparison →</a>
-											</div>
+						<div style={{ textAlign: "center", marginTop: "20px" }}>
+							<a href="/compare" target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", padding: "12px 28px", border: "2px solid #00ffc8", color: "#00ffc8", background: "rgba(0,255,200,0.06)", borderRadius: "6px", fontSize: "14px", fontWeight: 700, textDecoration: "none" }}>📊 See Full Platform Comparison →</a>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* 🛍️ MERCH & POD SECTION */}
+			<section className="merch-pod-spotlight" style={{ padding: "80px 20px", background: "#111720", textAlign: "center" }}>
+				<h2 style={{ color: "#00ffc8", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "2.5rem", fontWeight: 800 }}>🛍️ Built-in Merch Store & POD</h2>
+				<p className="text-muted">Design gear, sell worldwide, keep 90%.</p>
+				<div className="row g-4 mt-4">
+					<div className="col-md-4">
+						<div className="p-4" style={{ background: "rgba(0,255,200,0.03)", border: "1px solid rgba(0,255,200,0.1)", borderRadius: "15px" }}>
+							<span style={{ fontSize: "3rem" }}>👕</span>
+							<h4>Global POD</h4>
+							<p className="small text-muted">Upload art. We handle printing and shipping for shirts and hoodies worldwide.</p>
+						</div>
+					</div>
+					<div className="col-md-4">
+						<div className="p-4" style={{ background: "rgba(0,255,200,0.03)", border: "1px solid rgba(0,255,200,0.1)", borderRadius: "15px" }}>
+							<span style={{ fontSize: "3rem" }}>📦</span>
+							<h4>Physical Stock</h4>
+							<p className="small text-muted">Sell your own inventory with integrated shipping labels and tracking.</p>
+						</div>
+					</div>
+					<div className="col-md-4">
+						<div className="p-4" style={{ background: "rgba(0,255,200,0.03)", border: "1px solid rgba(0,255,200,0.1)", borderRadius: "15px" }}>
+							<span style={{ fontSize: "3rem" }}>🎹</span>
+							<h4>Digital Merch</h4>
+							<p className="small text-muted">Sell beats, sample packs, and presets directly in your store.</p>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* 🛍️ MERCH & PRINT-ON-DEMAND SPOTLIGHT */}
+			<section className="merch-pod-spotlight" style={{ padding: "80px 20px", background: "#111720", textAlign: "center" }}>
+				<h2 style={{ color: "#00ffc8", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "2.5rem", fontWeight: 800 }}>🛍️ Built-in Merch Store & POD</h2>
+				<p className="text-muted mb-5">Design gear, sell worldwide, keep 90%. No inventory required.</p>
+				<div className="row g-4">
+					<div className="col-md-4">
+						<div className="p-4" style={{ background: "rgba(0,255,200,0.03)", border: "1px solid rgba(0,255,200,0.1)", borderRadius: "15px" }}>
+							<span style={{ fontSize: "3rem" }}>👕</span>
+							<h4>Global POD</h4>
+							<p className="small text-muted">Upload art. We handle printing and shipping for shirts and hoodies worldwide. Zero upfront cost.</p>
+						</div>
+					</div>
+					<div className="col-md-4">
+						<div className="p-4" style={{ background: "rgba(0,255,200,0.03)", border: "1px solid rgba(0,255,200,0.1)", borderRadius: "15px" }}>
+							<span style={{ fontSize: "3rem" }}>📦</span>
+							<h4>Physical Stock</h4>
+							<p className="small text-muted">Manage your own inventory with integrated shipping labels and tracking.</p>
+						</div>
+					</div>
+					<div className="col-md-4">
+						<div className="p-4" style={{ background: "rgba(0,255,200,0.03)", border: "1px solid rgba(0,255,200,0.1)", borderRadius: "15px" }}>
+							<span style={{ fontSize: "3rem" }}>🎹</span>
+							<h4>Digital Merch</h4>
+							<p className="small text-muted">Sell beats, sample packs, and presets directly in your store. Instant delivery.</p>
+						</div>
 					</div>
 				</div>
 			</section>
@@ -235,7 +294,7 @@ const Home = () => {
 				<p className="section-subtitle">
 					Build your audience where your tools live. Free on every plan — no separate app needed.
 				</p>
-				<div className="social-features-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1.5rem",maxWidth:"1100px",margin:"2.5rem auto"}}>
+				<div className="social-features-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "1.5rem", maxWidth: "1100px", margin: "2.5rem auto" }}>
 					<div className="social-feature">
 						<span className="social-icon">🏠</span>
 						<h4>Home Feed</h4>
@@ -285,7 +344,7 @@ const Home = () => {
 					3 billion gamers globally. Squad finder, team rooms, chatrooms, streaming, and monetization —
 					all inside the same platform where you make music, edit videos, and run your creative business.
 				</p>
-				<div className="gaming-features-grid" style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"1.5rem",maxWidth:"1100px",margin:"2.5rem auto"}}>
+				<div className="gaming-features-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "1.5rem", maxWidth: "1100px", margin: "2.5rem auto" }}>
 					<div className="gaming-feature">
 						<span className="gaming-icon">🔍</span>
 						<h4>Squad Finder</h4>
@@ -399,7 +458,7 @@ const Home = () => {
 					<div className="feature-card highlight">
 						<div className="feature-icon">🎬</div>
 						<h4>AI Video Studio</h4>
-						<p>Generate videos from text or images with Kling v1.6 AI. Music videos, promo clips, visualizers, EPK commercials. Credits-based.</p>
+						<p>Generate videos from text or images with Kling v1.6 AI. Music videos, promo clips, visualizers, EPK commercials. Pay-as-you-go credits.</p>
 						<span className="feature-tag ai-tag">AI</span>
 					</div>
 					<div className="feature-card">
@@ -611,7 +670,7 @@ const Home = () => {
 						<div className="ai-feature-icon">🎬</div>
 						<div className="ai-badge">AI</div>
 						<h4>AI Video Studio</h4>
-						<p>Generate videos from text prompts or images using Kling v1.6 AI. Create music videos, visualizers, promo clips, and EPK commercials. 5 cinematic styles. Credits-based.</p>
+						<p>Generate videos from text prompts or images using Kling v1.6 AI. Create music videos, visualizers, promo clips, and EPK commercials. 5 cinematic styles. Pay-as-you-go credits.</p>
 						<div className="ai-feature-stats">
 							<span>Text → Video</span>
 							<span>Image → Video</span>
@@ -923,36 +982,93 @@ const Home = () => {
 			{/* ================================================================
 			    PRICING PREVIEW
 			    ================================================================ */}
+
 			<section className="pricing-preview">
 				<h2>💎 Simple, Transparent Pricing</h2>
-				<p className="section-subtitle">Start free. Upgrade when you're ready. No hidden fees. EPK is free on all plans.</p>
+				<p className="section-subtitle">
+					Start free. Upgrade when you're ready. No hidden fees.
+				</p>
+
+				<h3 style={{ marginTop: "20px" }}>Creator Platform</h3>
+
 				<div className="pricing-preview-grid">
 					<div className="pricing-preview-card">
 						<h4>Free</h4>
 						<div className="preview-price">$0</div>
-						<p>Full video editor, 4 studio tracks, AI stem separation, beat store browsing, beat maker, EPK builder, collab hub, gaming hub, social feed, 5GB storage</p>
+						<p>
+							Video editor, 4 studio tracks, beat maker, AI stem separation,
+							EPK builder, social feed, gaming hub, collab hub, 5GB storage
+						</p>
 					</div>
+
 					<div className="pricing-preview-card starter">
 						<h4>Starter</h4>
 						<div className="preview-price">$19.99<span>/mo</span></div>
-						<p>8 studio tracks, AI mastering (3/mo), AI mix assistant, beat selling, 5 podcast episodes, live streaming, radio, 25GB</p>
+						<div className="preview-subprice">$199/year</div>
+						<p>
+							8 studio tracks, AI mastering (3/mo), AI mix assistant,
+							beat selling, 5 podcast episodes, live streaming, radio, 25GB
+						</p>
 					</div>
+
 					<div className="pricing-preview-card pro popular">
 						<div className="preview-popular">Most Popular</div>
 						<h4>Pro</h4>
 						<div className="preview-price">$34.99<span>/mo</span></div>
-						<p>16 tracks, AI mastering (15/mo), AI Radio DJ, unlimited podcasts, 4K export, beat store + courses, AI video credits, 100GB</p>
+						<div className="preview-subprice">$349/year</div>
+						<p>
+							16 tracks, AI mastering (15/mo), AI Radio DJ, unlimited podcasts,
+							4K export, beat store + courses, 100GB
+						</p>
 					</div>
+
+
 					<div className="pricing-preview-card studio">
 						<h4>Studio</h4>
 						<div className="preview-price">$49.99<span>/mo</span></div>
-						<p>32 tracks, unlimited AI mastering, voice cloning, 8K, music distribution, simulcast, AI commercial generator, Synth Creator, Drum Designer, unlimited everything</p>
+						<div className="preview-subprice">$499/year</div>
+						<p>
+							32 studio tracks, unlimited AI mastering, AI voice cloning,
+							8K video export, simulcast streaming, AI commercial generator,
+							Synth Creator, Drum Designer, and advanced creator tools.
+						</p>
+
 					</div>
 				</div>
+
+				<h3 style={{ marginTop: "40px" }}>Music Distribution</h3>
+
+				<div className="pricing-preview-grid">
+					<div className="pricing-preview-card">
+						<h4>Standalone Artist</h4>
+						<div className="preview-price">$21.99<span>/year</span></div>
+						<p>
+							Distribution for 1 artist to Spotify, Apple Music, Amazon,
+							TikTok, and 150+ platforms.
+						</p>
+					</div>
+
+					<div className="pricing-preview-card">
+						<h4>Label</h4>
+						<div className="preview-price">$79.99<span>/year</span></div>
+						<p>
+							Distribution plan for up to 5 artists under one label account.
+						</p>
+					</div>
+				</div>
+
 				<div className="pricing-preview-cta">
 					<a href="#waitlist" className="btn btn-primary">Join the Waitlist</a>
 				</div>
+
+				<div style={{ marginTop: "20px" }}>
+					<h4 style={{ marginBottom: "8px" }}>AI Credits</h4>
+					<p style={{ opacity: 0.85 }}>
+						AI tools use pay-as-you-go credits, so creators only pay for the AI they actually use.
+					</p>
+				</div>
 			</section>
+
 
 			{/* ================================================================
 			    EARNINGS COMPARISON
@@ -1059,12 +1175,12 @@ const Home = () => {
 			</section>
 
 
-                        {/* ================================================================
+			{/* ================================================================
                             EARLY ACCESS / WAITLIST
                             ================================================================ */}
-                        <section style={{ background: "linear-gradient(135deg, #0d1117 0%, #161b22 100%)", padding: "80px 20px", textAlign: "center", borderTop: "1px solid #30363d" }}>
-                          <div id="waitlist"><WaitlistSection /></div>
-                        </section>
+			<section style={{ background: "linear-gradient(135deg, #0d1117 0%, #161b22 100%)", padding: "80px 20px", textAlign: "center", borderTop: "1px solid #30363d" }}>
+				<div id="waitlist"><WaitlistSection /></div>
+			</section>
 			{/* ================================================================
 			    FOOTER
 			    ================================================================ */}

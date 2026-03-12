@@ -1,0 +1,1 @@
+                <AppShell user={store.user} />

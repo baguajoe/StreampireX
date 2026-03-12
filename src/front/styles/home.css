@@ -2036,3 +2036,9 @@
   max-width: 700px;
   margin: 0 auto 2rem;
 }
+
+.preview-subprice {
+  margin-top: 6px;
+  font-size: 0.95rem;
+  opacity: 0.8;
+}

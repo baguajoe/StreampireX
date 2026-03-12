@@ -1,165 +1,817 @@
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
-
-const C = () => <span style={{color:"#00ffc8",fontWeight:700}}>✓</span>;
-const X = () => <span style={{color:"#2a3a4a",fontWeight:700}}>—</span>;
-const P = () => <span style={{color:"#e09b30",fontWeight:700}}>~</span>;
-const New = ({label="NEW"}) => <span style={{background:"#FF6600",color:"#fff",fontSize:"9px",fontWeight:700,padding:"1px 5px",borderRadius:"3px",marginLeft:"6px"}}>{label}</span>;
-
-const Table = ({cols,rows}) => (
-  <div style={{overflowX:"auto",marginTop:"16px"}}>
-    <table style={{width:"100%",borderCollapse:"collapse",fontSize:"12px"}}>
-      <thead><tr>{cols.map((c,i)=><th key={i} style={{padding:"8px 10px",textAlign:"left",fontFamily:"monospace",fontSize:"10px",fontWeight:700,color:i===1?"#00ffc8":"#4e6070",background:i===1?"rgba(0,255,200,0.06)":"#0a0f17",borderBottom:"1px solid rgba(255,255,255,0.06)",whiteSpace:"nowrap"}}>{c}</th>)}</tr></thead>
-      <tbody>{rows.map((row,ri)=><tr key={ri} style={{background:row.new?"rgba(255,102,0,0.04)":ri%2===0?"#0a0f17":"#0d1420"}}>{row.cells.map((cell,ci)=><td key={ci} style={{padding:"7px 10px",borderBottom:"1px solid rgba(255,255,255,0.03)",color:ci===0?"#dde5ef":ci===1?"#00ffc8":"#4e6070",background:ci===1?"rgba(0,255,200,0.04)":"transparent",fontFamily:ci===0?"inherit":"monospace",fontSize:ci===0?"12px":"11px",fontWeight:ci===1?700:400}}>{ci===0&&row.new?<>{cell}<New label={row.newLabel||"NEW"}/></>:cell}</td>)}</tr>)}</tbody>
-    </table>
-  </div>
-);
-
-const Section = ({num,name,badge,cols,rows}) => (
-  <div style={{background:"#0a0f17",border:"1px solid rgba(255,255,255,0.055)",borderRadius:"8px",padding:"24px",marginBottom:"20px"}}>
-    <div style={{display:"flex",alignItems:"baseline",gap:"12px",flexWrap:"wrap",marginBottom:"4px"}}>
-      <span style={{fontFamily:"monospace",fontSize:"22px",color:"#00ffc8",fontWeight:900}}>{num}</span>
-      <span style={{fontSize:"18px",color:"#dde5ef",fontWeight:700}}>{name}</span>
-      <span style={{fontSize:"10px",color:"#4e6070",fontFamily:"monospace"}}>{badge}</span>
-    </div>
-    <Table cols={cols} rows={rows}/>
-  </div>
-);
+import "../../styles/compare.css";
 
 const ComparePage = () => {
-  useEffect(()=>{document.title="StreamPireX vs The Competition";},[]);
+    useEffect(() => {
+        document.title = "StreamPireX — Full Platform Competitive Analysis";
+    }, []);
 
-  const s = (cols,rows) => ({cols,rows});
+    return (
+        <div className="compare-body">
+            {/* STICKY NAV */}
+            <nav className="sticky-nav">
+                <span className="nav-brand">SPX</span>
+                <a href="#daw">DAW</a>
+                <a href="#sampler">BEAT MAKER</a>
+                <a href="#video">VIDEO</a>
+                <a href="#podcast">PODCAST</a>
+                <a href="#radio">RADIO</a>
+                <a href="#synth">SYNTH</a>
+                <a href="#drums">DRUMS</a>
+                <a href="#distribution">DISTRIBUTION</a>
+                <a href="#streaming">STREAMING</a>
+                <a href="#epk">EPK &amp; SOCIAL</a>
+                <a href="#revenue">REVENUE</a>
+                <a href="#pricing">PRICING</a>
 
-  const sections = [
-    s(["Feature","SPX","BandLab","Soundtrap","LANDR","Studio One","Suno"],[
-      {cells:["Multi-track DAW in browser",<C/>,<C/>,<C/>,<X/>,<X/>,<X/>]},
-      {cells:["WAM 2.0 plugin system",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["Voice-to-MIDI",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["Audio-to-MIDI",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["Mic simulator",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["Per-channel AI analysis",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["AI Mix Assistant",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["AI Mastering · 50 genre profiles",<C/>,<C/>,<X/>,<C/>,<X/>,<X/>]},
-      {cells:["Real-time collab",<C/>,<C/>,<C/>,<X/>,<X/>,<X/>]},
-      {cells:["90% revenue share",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["Price","INCL.","free","$5/mo","$11/mo","$10/mo","$8/mo"]},
-    ]),
-    s(["Feature","SPX","BandLab","MPC Beats","FL Web","Splice"],[
-      {cells:["MPC-style sampler · 16 pads",<C/>,<C/>,<C/>,<C/>,<X/>]},
-      {cells:["Step sequencer · 64 steps",<C/>,<C/>,<C/>,<C/>,<X/>]},
-      {cells:["4-bus routing",<C/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["Per-pad AI stem separation",<C/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["Hum to Song (AI)",<C/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["Text to Song (AI)",<C/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["Beat licensing PDF auto-gen",<C/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["Beat store built-in",<C/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["Price","INCL.","free","free","free","$8/mo"]},
-    ]),
-    s(["Feature","SPX","CapCut","Descript","Runway","Adobe","DaVinci"],[
-      {cells:["Multi-track timeline",<C/>,<C/>,<C/>,<P/>,<C/>,<C/>]},
-      {cells:["Particle emitter",<C/>,<X/>,<X/>,<X/>,<P/>,<C/>]},
-      {cells:["AI background removal",<C/>,<C/>,<X/>,<C/>,<C/>,<C/>]},
-      {cells:["Auto-captions (AI)",<C/>,<C/>,<C/>,<X/>,<C/>,<X/>]},
-      {cells:["AI video gen · text→video",<C/>,<C/>,<X/>,<C/>,<X/>,<X/>]},
-      {cells:["Stem-aware audio editing",<C/>,<X/>,<C/>,<X/>,<X/>,<X/>]},
-      {cells:["Shareable 60s clip creation",<C/>,<C/>,<X/>,<X/>,<X/>,<X/>],new:true},
-      {cells:["Embeddable player widget",<C/>,<X/>,<C/>,<X/>,<X/>,<X/>],new:true},
-      {cells:["Monetization built-in",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["Price","INCL.","free/$","free/$","$76/mo","$55/mo","free/$"]},
-    ]),
-    s(["Feature","SPX","BandLab","LANDR","CapCut","Descript","Runway"],[
-      {cells:["AI mastering · 50 genre profiles",<C/>,<C/>,<C/>,<X/>,<X/>,<X/>]},
-      {cells:["AI stem separation — FREE",<C/>,<X/>,<P/>,<X/>,<P/>,<X/>]},
-      {cells:["AI Radio DJ · 7 personas",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["AI Voice Clone",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["Voice to MIDI",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["Audio to MIDI",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["AI song / beat generation",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["AI video generation",<C/>,<X/>,<X/>,<C/>,<X/>,<C/>]},
-      {cells:["EPK AI commercial generator",<C/>,<X/>,<X/>,<X/>,<X/>,<P/>]},
-      {cells:["Credits-based AI billing",<C/>,<X/>,<X/>,<P/>,<X/>,<P/>]},
-    ]),
-    s(["Feature","SPX","BandLab","DistroKid","Patreon","Beatstars","Twitch","Spotify"],[
-      {cells:["Music distribution · 150+ DSPs",<C/>,<C/>,<C/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["90% revenue share",<C/>,<X/>,<P/>,<X/>,<P/>,<X/>,<X/>]},
-      {cells:["Beat store",<C/>,<X/>,<X/>,<X/>,<C/>,<X/>,<X/>]},
-      {cells:["Beat licensing PDF",<C/>,<X/>,<X/>,<X/>,<P/>,<X/>,<X/>],new:true},
-      {cells:["Fan subscription tiers",<C/>,<X/>,<X/>,<C/>,<X/>,<P/>,<X/>],new:true},
-      {cells:["Collab request feed",<C/>,<C/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true},
-      {cells:["Live streaming",<C/>,<C/>,<X/>,<X/>,<X/>,<C/>,<X/>]},
-      {cells:["Podcast hosting + RSS",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>,<P/>]},
-      {cells:["24/7 AI Radio station",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["EPK builder",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["Fan tipping",<C/>,<C/>,<X/>,<C/>,<X/>,<C/>,<X/>]},
-      {cells:["DAW + Video + Beat Maker",<span style={{color:"#00ffc8",fontWeight:700}}>ALL 3</span>,<X/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-    ]),
-    s(["Feature","SPX","Live365","Shoutcast","RadioKing","Zeno.FM","Mixcloud","Spreaker"],[
-      {cells:["24/7 broadcast hosting",<C/>,<C/>,<C/>,<C/>,<C/>,<C/>,<C/>]},
-      {cells:["AI DJ · 7 personas",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["Voice clone as station DJ",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["AI song intro narration",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["AI station ID automation",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["AI reads requests on air",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["Fan shoutout automation",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["Fan tipping on station",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["Record track → air same platform",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["Listener discovery page",<C/>,<C/>,<C/>,<C/>,<C/>,<C/>,<C/>]},
-      {cells:["Price","INCL.","$49+/mo","free/ltd","$39+/mo","free/ltd","$15+/mo","$20+/mo"]},
-    ]),
-    s(["Feature","SPX","Riverside.fm","Descript","Buzzsprout","Anchor/Spotify","Spreaker"],[
-      {cells:["WAV / lossless recording",<C/>,<C/>,<C/>,<X/>,<X/>,<X/>]},
-      {cells:["Remote guests WebRTC (up to 3)",<C/>,<C/>,<C/>,<X/>,<X/>,<P/>]},
-      {cells:["Local 4K video per guest",<C/>,<C/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["AI transcription + text editing",<C/>,<X/>,<C/>,<X/>,<X/>,<X/>]},
-      {cells:["Filler word / pause removal",<C/>,<X/>,<C/>,<X/>,<X/>,<X/>]},
-      {cells:["Async guest recording link",<C/>,<C/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["Teleprompter overlay",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["Soundboard (8 slots)",<C/>,<X/>,<X/>,<X/>,<X/>,<P/>]},
-      {cells:["Open in DAW after recording",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["AI Voice Clone intros/outros",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>],new:true,newLabel:"ONLY SPX"},
-      {cells:["90% revenue share",<C/>,<X/>,<X/>,<X/>,<X/>,<X/>]},
-      {cells:["Price","INCL.","$15-$29/mo","$12-$24/mo","$12-$24/mo","free/ltd","$20+/mo"]},
-    ]),
-  ];
+                <Link
+                    to="/"
+                    style={{
+                        marginLeft: "auto",
+                        color: "var(--teal)",
+                        textDecoration: "none",
+                        fontFamily: "JetBrains Mono, monospace",
+                        fontSize: "11px",
+                        whiteSpace: "nowrap",
+                        padding: "14px 16px"
+                    }}
+                >
+                    ← BACK
+                </Link>
+            </nav>
 
-  const names = ["01 — Recording Studio DAW","02 — Sampler + Beat Maker","03 — Video Editor","04 — AI Tools Suite","05 — Monetization + Ecosystem","06 — Radio Station","07 — Podcast Studio"];
-  const badges = ["vs BandLab · Soundtrap · LANDR · Studio One · Suno","vs BandLab · MPC Beats · FL Web · Splice","vs CapCut · Descript · Runway · Adobe · DaVinci","vs BandLab · LANDR · CapCut · Descript · Runway","vs BandLab · DistroKid · Patreon · Beatstars · Twitch · Spotify","vs Live365 · Shoutcast · RadioKing · Zeno.FM · Mixcloud · Spreaker","vs Riverside.fm · Descript · Buzzsprout · Anchor · Spreaker"];
+            <div className="wrap">
+                {/* HERO */}
+                <div className="hero-header">
+                    <div>
+                        <div className="eyebrow">// Full Platform Competitive Analysis — March 2026</div>
+                        <h1>
+                            StreamPireX
+                            <br />
+                            vs <em>Everyone</em>
+                        </h1>
+                        <p className="hero-sub">
+                            DAW · Beat Maker · Video Editor · Podcast Studio · Radio Stations · Music
+                            Distribution · Live Streaming · EPK Builder · AI Tools · Social Network ·
+                            Gaming Hub — all in one platform vs 20+ competitors across every category.
+                        </p>
+                    </div>
 
-  return (
-    <div style={{background:"#05080d",minHeight:"100vh",color:"#dde5ef",fontFamily:"sans-serif",padding:"0 0 60px"}}>
-      <div style={{background:"#0a0f17",borderBottom:"1px solid rgba(255,255,255,0.06)",padding:"40px",textAlign:"center",marginBottom:"32px"}}>
-        <div style={{fontSize:"clamp(40px,8vw,80px)",fontWeight:900,letterSpacing:"4px",color:"#00ffc8",lineHeight:1}}>STREAMPIREX</div>
-        <div style={{fontSize:"11px",color:"#4e6070",fontFamily:"monospace",letterSpacing:"2px",marginTop:"6px",marginBottom:"24px"}}>WHY WE WIN — PLATFORM COMPARISON</div>
-        <div style={{display:"flex",justifyContent:"center",gap:"16px",flexWrap:"wrap",marginBottom:"20px"}}>
-          {[["90%","Revenue Share"],["$19.99","Starting/mo"],["15+","Tools Replaced"],["150+","DSPs"]].map(([v,l])=>(
-            <div key={l} style={{background:"rgba(0,255,200,0.06)",border:"1px solid rgba(0,255,200,0.15)",borderRadius:"8px",padding:"12px 20px",textAlign:"center"}}>
-              <div style={{fontSize:"28px",fontWeight:900,color:"#00ffc8",lineHeight:1}}>{v}</div>
-              <div style={{fontSize:"10px",color:"#4e6070",fontFamily:"monospace",marginTop:"4px"}}>{l}</div>
+                    <div className="hero-stats">
+                        <div className="h-stat">
+                            <div className="sv">90%</div>
+                            <div className="sl">Revenue to Creator</div>
+                        </div>
+                        <div className="h-stat orange">
+                            <div className="sv orange">15+</div>
+                            <div className="sl">Tools Replaced</div>
+                        </div>
+                        <div className="h-stat">
+                            <div className="sv">$0</div>
+                            <div className="sl">Free Tier Forever</div>
+                        </div>
+                        <div className="h-stat orange">
+                            <div className="sv orange">$350</div>
+                            <div className="sl">Monthly Cost Saved</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* LEGEND */}
+                <div className="legend">
+                    <span><span className="y">✓</span> Full feature</span>
+                    <span><span className="p">~</span> Partial / limited</span>
+                    <span><span className="n">✗</span> Not available</span>
+                    <span><span className="b b-free">FREE</span> Free on all plans</span>
+                    <span><span className="b b-ai">AI</span> AI-powered</span>
+                    <span><span className="b b-new">NEW</span> Recently added</span>
+                    <span><span className="b b-unique">UNIQUE</span> Only on SPX</span>
+                    <span style={{ color: "var(--muted)", fontSize: "10px" }}>
+                        * = desktop/paid app benchmark
+                    </span>
+                </div>
+
+                {/* 1. RECORDING STUDIO / DAW */}
+                <div className="sec-head" id="daw">
+                    <h2>🎚️ Recording Studio — DAW Core</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">
+                        vs BandLab · LANDR · Soundtrap · Studio One · Suno · Fender · Tonalic
+                    </div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>BandLab</th>
+                                <th>LANDR</th>
+                                <th>Soundtrap</th>
+                                <th>Studio One*</th>
+                                <th>Suno</th>
+                                <th>Fender Play</th>
+                                <th>Tonalic</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="cat"><td colSpan="9">🎙️ Core DAW Capabilities</td></tr>
+                            <tr><td>Multi-track recording</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Arrange / Timeline view</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Mixer / Console view</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Piano Roll</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>15+ FX per track (EQ, Comp, Reverb, Delay…)</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Multiband Compressor</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Parametric EQ (visual graph)</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Pitch Correction (auto-tune)</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Audio-to-MIDI conversion</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Key Finder</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Mic Simulator</td><td className="spx"><span className="y">✓</span> <span className="b b-new">NEW</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Vocal Processor</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Speaker / Mix Translator (22 presets)</td><td className="spx"><span className="y">✓</span> <span className="b b-new">NEW</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">Plugin</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>WAM Plugin Support</td><td className="spx"><span className="y">✓</span> <span className="b b-new">NEW</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>MIDI export</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Real-time DAW collaboration</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+
+                            <tr className="cat"><td colSpan="9">🤖 AI Studio Tools</td></tr>
+                            <tr><td>AI Mix Assistant (auto-level, EQ conflict)</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>AI Mastering (50 genre profiles)</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>AI Stem Separation — Demucs (FREE)</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="n">✗</span></td><td><span className="p">Paid</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Voice to MIDI (pitch + drum triggers)</td><td className="spx"><span className="y">✓</span> <span className="b b-new">NEW</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Hum to Song (AI full arrangement)</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Text to Song (AI generation)</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>AI Song Generation (no production needed)</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+
+                            <tr className="cat"><td colSpan="9">🌍 Platform &amp; Distribution</td></tr>
+                            <tr><td>Browser-based (no download)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Music distribution built-in</td><td className="spx"><span className="y">✓</span> 150+</td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>90% revenue share</td><td className="spx" style={{ color: "var(--teal)", fontWeight: 800 }}>✓ 90%</td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p className="footnote">
+                    * Studio One = industry-standard desktop DAW (paid benchmark, $99–$399). Suno =
+                    AI song generator (no editing/mixing). Fender Play = guitar learning app. Tonalic
+                    = music theory/key detection only.
+                </p>
+
+                {/* 2. SAMPLER + BEAT MAKER */}
+                <div className="sec-head" id="sampler">
+                    <h2>🥁 Sampler + Beat Maker</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">
+                        vs BandLab · MPC Beats · FL Studio Web · Loopcloud · Splice
+                    </div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>BandLab</th>
+                                <th>MPC Beats</th>
+                                <th>FL Studio Web</th>
+                                <th>Loopcloud</th>
+                                <th>Splice</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="cat"><td colSpan="7">🎹 Core Beat Making</td></tr>
+                            <tr><td>MPC-style 16 pads</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>64-step sequencer</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td></tr>
+                            <tr><td>Dedicated drum kit tab</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Chop engine (transient detect)</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Time stretch per pad</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Pitch shift per pad</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Per-pad FX chain</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>8 velocity layers per pad</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Song Mode / Arranger</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Clip Launcher</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>4-bus routing</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Per-step automation lanes</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Note repeat / roll</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Scale lock / chord mode</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Live loop recording</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Tape stop / filter sweep FX</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Bounce beat to DAW arrange</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Export WAV / MP3 / MIDI / Stems</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+
+                            <tr className="cat"><td colSpan="7">🤖 AI Beat Features</td></tr>
+                            <tr><td>Per-pad AI stem separation</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Hum / Text to Song (AI)</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>AI beat suggestion</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Beat Store (sell beats + licenses)</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Cloud save / load</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* 3. VIDEO EDITOR */}
+                <div className="sec-head" id="video">
+                    <h2>🎬 Video Editor</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">vs CapCut · Descript · Runway ML · Adobe Premiere · DaVinci</div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>CapCut</th>
+                                <th>Descript</th>
+                                <th>Runway ML</th>
+                                <th>Adobe Pr.</th>
+                                <th>DaVinci</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="cat"><td colSpan="7">🎞️ Editing Core</td></tr>
+                            <tr><td>Multi-track timeline</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>7 editing tools</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>24 blend modes</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Bezier motion paths</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Particle emitter</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>40+ video effects</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Audio FX (EQ/comp/gate)</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Template library</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>4K export</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Real-time collaboration</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+
+                            <tr className="cat"><td colSpan="7">🤖 AI Video Features</td></tr>
+                            <tr><td>AI background removal</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Motion tracking</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Audio ducking (auto)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>AI scene detection</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>AI auto-captions</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Silence removal (AI)</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>AI thumbnail generator</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>AI video gen (text/image → video)</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Stem-aware audio editing</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Monetization built-in</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p className="footnote">
+                    Runway ML = $76/mo (AI video generation only, no DAW). CapCut has no music
+                    production. DaVinci has no AI music tools, distribution, or monetization.
+                </p>
+
+                {/* 4. PODCAST STUDIO */}
+                <div className="sec-head" id="podcast">
+                    <h2>🎙️ Podcast Studio</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">
+                        vs Riverside.fm · Buzzsprout · Anchor · Patreon · Transistor · Podbean
+                    </div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>Riverside.fm</th>
+                                <th>Buzzsprout</th>
+                                <th>Anchor (Spotify)</th>
+                                <th>Patreon</th>
+                                <th>Transistor</th>
+                                <th>Podbean</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="cat"><td colSpan="8">🎤 Recording &amp; Production</td></tr>
+                            <tr><td>Record in-browser</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Remote guest recording</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Video podcast support</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>AI transcription / captions</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Built-in audio editor / DAW</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="p">Basic</span></td><td><span className="n">✗</span></td><td><span className="p">Basic</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">Basic</span></td></tr>
+                            <tr><td>Noise reduction / audio cleanup</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+
+                            <tr className="cat"><td colSpan="8">📡 Hosting &amp; Distribution</td></tr>
+                            <tr><td>RSS feed generation</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Apple / Spotify / Google distribution</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Unlimited episodes</td><td className="spx"><span className="y">✓</span> Creator+</td><td><span className="p">Paid</span></td><td><span className="p">Paid</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">Paid</span></td></tr>
+                            <tr><td>Analytics &amp; listener data</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+
+                            <tr className="cat"><td colSpan="8">💰 Monetization</td></tr>
+                            <tr><td>Paid / subscription episodes</td><td className="spx"><span className="y">✓</span></td><td><span className="p">Add-on</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Listener tipping</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Merch + digital product sales</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Creator revenue share</td><td className="spx" style={{ color: "var(--teal)", fontWeight: 800 }}>90%</td><td>100%</td><td>100%</td><td>100%</td><td>88–95%</td><td>100%</td><td>~80%</td></tr>
+                            <tr><td>Membership / fan club tiers</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+
+                            <tr className="cat"><td colSpan="8">🎯 Platform Extras</td></tr>
+                            <tr><td>Music production tools included</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Video editor included</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Social feed + community</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Music distribution included</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Collab rooms (remote co-hosting)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p className="footnote">
+                    Patreon = membership platform (monetization only, no podcast hosting or
+                    recording). Anchor = Spotify's free podcast tool (limited monetization, no
+                    production tools). Riverside.fm = $24/mo for recording only.
+                </p>
+
+                {/* 5. RADIO STATIONS */}
+                <div className="sec-head" id="radio">
+                    <h2>📻 Radio Stations &amp; Broadcasting</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">vs Live365 · Spreaker · Mixcloud · Shoutcast · Airtime Pro</div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>Live365</th>
+                                <th>Spreaker</th>
+                                <th>Mixcloud</th>
+                                <th>Shoutcast</th>
+                                <th>Airtime Pro</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="cat"><td colSpan="7">📡 Station Creation &amp; Broadcast</td></tr>
+                            <tr><td>Create your own 24/7 radio station</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Auto DJ (unattended broadcast)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>AI DJ with 7 personas</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>AI voice cloning for station</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Listener request system</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td></tr>
+                            <tr><td>Show scheduling</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Live broadcasting</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Listener analytics</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td></tr>
+
+                            <tr className="cat"><td colSpan="7">💰 Monetization &amp; Platform</td></tr>
+                            <tr><td>Listener tipping</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Music production tools included</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Social network + community</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Music distribution from same platform</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Pricing (starting)</td><td className="spx" style={{ color: "var(--teal)", fontWeight: 700 }}>$12.99/mo</td><td>$15.99/mo</td><td>$7/mo</td><td>$15/mo</td><td>Free/$10</td><td>$19.99/mo</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p className="footnote">
+                    Live365 = radio hosting only ($15.99–$49.99/mo). Spreaker = podcast/radio
+                    hybrid, no music production. Mixcloud = DJ mix hosting, not a full station
+                    builder. Shoutcast = stream server only.
+                </p>
+
+                {/* 6. SYNTH */}
+                <div className="sec-head" id="synth">
+                    <h2>🎹 Synth &amp; Sound Design</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">vs Vital · Arturia · Ableton · Chrome Music Lab · Moog Web</div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>Vital (web)</th>
+                                <th>Arturia</th>
+                                <th>Ableton</th>
+                                <th>Chrome Music Lab</th>
+                                <th>Moog Model D Web</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="cat"><td colSpan="7">🔊 Synthesis Engine</td></tr>
+                            <tr><td>Multi-oscillator synth engine (browser)</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span> Desktop</td><td><span className="n">✗</span> Desktop</td><td><span className="p">Basic</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>128 GM instruments (full family)</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>ADSR envelope per voice</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Velocity-sensitive filter with envelope</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>16 MIDI channels</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>64-voice polyphony + voice stealing</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Pitch bend + mod wheel + sustain</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Built-in reverb send</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td></tr>
+
+                            <tr className="cat"><td colSpan="7">🎛️ Instrument Families</td></tr>
+                            <tr><td>Piano / Chromatic Percussion</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Organ / Guitar / Bass</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Strings / Ensemble / Brass / Reed</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Synth Lead / Synth Pad / Synth FX</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="p">Lead only</span></td></tr>
+                            <tr><td>Ethnic / Percussive / Sound FX</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+
+                            <tr className="cat"><td colSpan="7">🔌 Integration &amp; Platform</td></tr>
+                            <tr><td>External MIDI controller support (Web MIDI)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Virtual piano keyboard (browser)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Computer keyboard → MIDI</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Voice to MIDI (sing → notes)</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Routes into DAW arrange / piano roll</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Sample library browser (500k+ sounds)</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="n">✗</span></td><td><span className="p">Paid</span></td><td><span className="p">Paid</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>WAM plugin support</td><td className="spx"><span className="y">✓</span> <span className="b b-new">NEW</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Music distribution built-in</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Pricing</td><td className="spx" style={{ color: "var(--teal)", fontWeight: 700 }}>$0 free tier</td><td>Free / $80 desktop</td><td>$99–$599</td><td>$99/yr</td><td>Free</td><td>Free (web)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p className="footnote">
+                    Vital = spectral warping wavetable synth (desktop/web, no DAW). Arturia =
+                    hardware + software synth collection, desktop only. Ableton = industry-standard
+                    desktop DAW with built-in synths. Chrome Music Lab = educational toy, not
+                    production-ready. Moog Model D Web = single synth, no DAW or distribution.
+                </p>
+
+                {/* 7. DRUM MACHINE */}
+                <div className="sec-head" id="drums">
+                    <h2>🥁 Drum Machine &amp; Percussion</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">
+                        vs Roland Cloud · Hydrogen · DrumBit · Beatmaker 3 · iZotope Neutron
+                    </div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>Roland Cloud (TR-808/909)</th>
+                                <th>Hydrogen</th>
+                                <th>DrumBit</th>
+                                <th>Beatmaker 3</th>
+                                <th>Groove Pizza</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="cat"><td colSpan="7">🎛️ Drum Machine Core</td></tr>
+                            <tr><td>Step sequencer (64 steps)</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">Basic</span></td></tr>
+                            <tr><td>GM drum map (22 sounds: kick, snare, hats, toms, cymbals, cowbell…)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td></tr>
+                            <tr><td>Synthesized drum tones (noise + tone layers)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>MPC-style 16 velocity pads</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>8 velocity layers per pad</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Per-pad FX chain</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Per-pad AI stem separation</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Note repeat / roll</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Tape stop / filter sweep FX</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Live loop recording</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>4-bus routing</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Per-step automation</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+
+                            <tr className="cat"><td colSpan="7">🔗 Integration &amp; Sample Library</td></tr>
+                            <tr><td>Sample library browser (500k+ Freesound CC)</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">Paid</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Bounce pattern to DAW arrange</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Export WAV / MP3 / MIDI / Stems</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>External MIDI controller (Akai, Roland)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Browser-based (no download)</td><td className="spx"><span className="y">✓</span></td><td><span className="p">Partial</span></td><td><span className="n">✗</span> Desktop</td><td><span className="y">✓</span></td><td><span className="n">✗</span> iOS only</td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Music distribution built-in</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Beat store (sell your beats)</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Pricing</td><td className="spx" style={{ color: "var(--teal)", fontWeight: 700 }}>$0 free tier</td><td>$9.99–$19.99/mo</td><td>Free (desktop)</td><td>Free (web)</td><td>$14.99 (iOS)</td><td>Free (web)</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p className="footnote">
+                    Roland Cloud = subscription for TR-808/909/707 browser plugins, no DAW or
+                    distribution. Hydrogen = open-source desktop drum machine. DrumBit = simple
+                    browser step sequencer. Beatmaker 3 = iOS only, no web/desktop. Groove Pizza =
+                    educational NYU tool.
+                </p>
+
+                {/* 8. DISTRIBUTION */}
+                <div className="sec-head" id="distribution">
+                    <h2>🌍 Music Distribution</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">vs DistroKid · TuneCore · CD Baby · LANDR · Amuse</div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>DistroKid</th>
+                                <th>TuneCore</th>
+                                <th>CD Baby</th>
+                                <th>LANDR</th>
+                                <th>Amuse</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Distribute to 150+ platforms</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Spotify, Apple Music, Tidal, Amazon</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>TikTok / YouTube distribution</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Revenue share to creator</td><td className="spx" style={{ color: "var(--teal)", fontWeight: 800 }}>~90%</td><td>~80%</td><td>~80%</td><td>~80–91%</td><td>~80%</td><td>100%</td></tr>
+                            <tr><td>Unlimited releases (plan)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">Per release fee</span></td><td><span className="p">Per release fee</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Music production tools included</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">Basic</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>AI Mastering included</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Podcast distribution too</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Beat store included</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Annual pricing (dist only)</td><td className="spx">$12.99/mo</td><td>$22.99/yr</td><td>$14.99/yr+</td><td>$9.95/release</td><td>$23.99/yr</td><td>Free / $59.99/yr</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* 9. LIVE STREAMING */}
+                <div className="sec-head" id="streaming">
+                    <h2>📡 Live Streaming</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">vs Restream · StreamYard · Twitch · YouTube Live · Kick</div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>Restream</th>
+                                <th>StreamYard</th>
+                                <th>Twitch</th>
+                                <th>YouTube Live</th>
+                                <th>Kick</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Live streaming (OBS/WebRTC)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Simulcast multi-platform</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>VOD recording</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Live chat + donations</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Creator revenue share</td><td className="spx" style={{ color: "var(--teal)", fontWeight: 800 }}>90%</td><td>100%</td><td>100%</td><td>50%</td><td>55%</td><td>95%</td></tr>
+                            <tr><td>Music production tools included</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Music distribution included</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Gaming hub + squad finder</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Pricing (starting)</td><td className="spx" style={{ color: "var(--teal)", fontWeight: 700 }}>$0 free tier</td><td>$49/mo</td><td>$49/mo</td><td>Free</td><td>Free</td><td>Free</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* 10. EPK */}
+                <div className="sec-head" id="epk">
+                    <h2>📋 EPK, Collab Hub &amp; Social Network</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">vs Sonicbids · ReverbNation · SoundCloud · Bandcamp · Musosoup</div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>Sonicbids</th>
+                                <th>ReverbNation</th>
+                                <th>SoundCloud</th>
+                                <th>Bandcamp</th>
+                                <th>Musosoup</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>EPK builder (free)</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="p">$7–20/mo</span></td><td><span className="p">$19.95/mo</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td></tr>
+                            <tr><td>Collab marketplace</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Social feed + stories + DMs</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Waveform timestamped comments</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Apply with EPK to collabs</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>AI commercial generator</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Music production tools included</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Gaming hub</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Pricing</td><td className="spx" style={{ color: "var(--teal)", fontWeight: 700 }}>FREE</td><td>$10–20/mo</td><td>$19.95/mo</td><td>Free / $11</td><td>Free (15% cut)</td><td>Free / £3.50/mo</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* 9. COMMERCE & MARKETPLACE */}
+                <div className="sec-head" id="merch">
+                    <h2>🛍️ Merch &amp; Digital Marketplace</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">vs Shopify · Fourthwall · Gumroad · Bandcamp</div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>Shopify</th>
+                                <th>Fourthwall</th>
+                                <th>Gumroad</th>
+                                <th>Bandcamp</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="cat"><td colSpan="6">👕 Physical Merch (Print-on-Demand)</td></tr>
+                            <tr><td>Integrated POD Designer</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="p">~</span> Needs App</td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Global Fulfillment (140+ hubs)</td><td className="spx"><span className="y">✓</span> <span className="b b-new">NEW</span></td><td><span className="p">~</span> 3rd Party</td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Zero Upfront Inventory Cost</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Live Stream "Gifting" / Store Integration</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="p">~</span> Add-on</td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+
+                            <tr className="cat"><td colSpan="6">💾 Digital Storefront (Assets &amp; Education)</td></tr>
+                            <tr><td>Sell Sample Packs / Stems / Presets</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>MPC-to-Store Export (Direct)</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>8K Course &amp; Workshop Hosting</td><td className="spx"><span className="y">✓</span> <span className="b b-ai">AI</span></td><td><span className="p">~</span> Needs App</td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Automated Digital Licensing</td><td className="spx"><span className="y">✓</span> <span className="b b-new">NEW</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+
+                            <tr className="cat"><td colSpan="6">💰 Fees &amp; Payouts (The Bottom Line)</td></tr>
+                            <tr><td>Monthly Subscription Fee</td><td className="spx" style={{ color: "var(--teal)" }}>$0 / $19.99</td><td>$39.00+</td><td>$0.00</td><td>$0.00</td><td>$0.00</td></tr>
+                            <tr><td>Transaction Fee / Platform Take</td><td className="spx" style={{ fontWeight: 800 }}>10%</td><td>~5% + Sub</td><td>~5%</td><td>10%</td><td>15%</td></tr>
+                            <tr><td>"Waveform" Social Buy Link</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* REVENUE */}
+                <div className="sec-head" id="revenue">
+                    <h2>💰 Revenue Share Comparison</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">Creator Earnings</div>
+                </div>
+                <div className="rev-grid">
+                    <div className="rev-card spx">
+                        <h4>StreamPireX</h4>
+                        <div className="rev-bar-bg"><div className="rev-bar" style={{ width: "90%" }}></div></div>
+                        <div className="rev-pct">90%</div>
+                        <div className="rev-note">All revenue types</div>
+                    </div>
+                    <div className="rev-card">
+                        <h4>Kick</h4>
+                        <div className="rev-bar-bg"><div className="rev-bar" style={{ width: "95%" }}></div></div>
+                        <div className="rev-pct">95%</div>
+                        <div className="rev-note">Streaming only</div>
+                    </div>
+                    <div className="rev-card">
+                        <h4>BeatStars</h4>
+                        <div className="rev-bar-bg"><div className="rev-bar" style={{ width: "70%" }}></div></div>
+                        <div className="rev-pct">70%</div>
+                        <div className="rev-note">Beat sales only</div>
+                    </div>
+                    <div className="rev-card">
+                        <h4>Patreon</h4>
+                        <div className="rev-bar-bg"><div className="rev-bar" style={{ width: "88%" }}></div></div>
+                        <div className="rev-pct">88–95%</div>
+                        <div className="rev-note">Memberships only</div>
+                    </div>
+                    <div className="rev-card">
+                        <h4>YouTube</h4>
+                        <div className="rev-bar-bg"><div className="rev-bar" style={{ width: "55%" }}></div></div>
+                        <div className="rev-pct">55%</div>
+                        <div className="rev-note">Ad revenue</div>
+                    </div>
+                    <div className="rev-card">
+                        <h4>Twitch</h4>
+                        <div className="rev-bar-bg"><div className="rev-bar" style={{ width: "50%" }}></div></div>
+                        <div className="rev-pct">50%</div>
+                        <div className="rev-note">Subscriptions</div>
+                    </div>
+                    <div className="rev-card">
+                        <h4>Spotify</h4>
+                        <div className="rev-bar-bg"><div className="rev-bar" style={{ width: "30%" }}></div></div>
+                        <div className="rev-pct">~30%</div>
+                        <div className="rev-note">Streaming royalties</div>
+                    </div>
+                    <div className="rev-card">
+                        <h4>Sonicbids / EPK.fm</h4>
+                        <div className="rev-bar-bg"><div className="rev-bar" style={{ width: "0%" }}></div></div>
+                        <div className="rev-pct">0%</div>
+                        <div className="rev-note">$10–20/mo fee, no revenue</div>
+                    </div>
+                </div>
+
+                {/* PRICING */}
+                {/* 💎 PRICING COMPARISON GRID */}
+                <div className="sec-head" id="pricing">
+                    <h2>💎 Pricing vs What You'd Pay Separately</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">Cost Analysis — Updated Feb 2026</div>
+                </div>
+
+                <div className="price-grid">
+                    {/* StreamPireX Pro - The Value King */}
+                    <div className="price-card spx">
+                        <h3>StreamPireX Pro</h3>
+                        <div className="price-amt">$34.99<span style={{ fontSize: "1rem", color: "var(--muted)" }}>/mo</span></div>
+                        <div className="price-sub">Everything. One login. 90% revenue share.</div>
+                        <ul>
+                            <li>Full DAW + MPC Sampler + AI Mix</li>
+                            <li><strong>Included:</strong> Music Distribution (150+ hubs)</li>
+                            <li><strong>NEW:</strong> Merch Designer & Global POD Fulfillment</li>
+                            <li><strong>NEW:</strong> Digital Store (Beats, Stems, Courses)</li>
+                            <li>4K Video Editor + AI Video Studio</li>
+                            <li>Unlimited Podcasts + AI Radio DJ</li>
+                            <li>Social Network + Gaming Hub</li>
+                            <li>100GB Storage + Priority Support</li>
+                        </ul>
+                    </div>
+
+                    {/* StreamPireX Studio - The Ultimate Suite */}
+                    <div className="price-card spx" style={{ borderStyle: 'double', borderWidth: '4px' }}>
+                        <h3>StreamPireX Studio</h3>
+                        <div className="price-amt">$49.99<span style={{ fontSize: "1rem", color: "var(--muted)" }}>/mo</span></div>
+                        <div className="price-sub">Total Creator Autonomy. Built for Agencies.</div>
+                        <ul>
+                            <li><strong>32 Studio Tracks</strong> + Unlimited AI Mastering</li>
+                            <li><strong>AI Credits</strong> / month</li>
+                            <li>8K Video Export + 24/7 AI Voice Cloning</li>
+                            <li>Native Marketplace (Physical & Digital)</li>
+                            <li>Unlimited Storage + Team Collaboration</li>
+                            <li>Early Access to Beta Production Tools</li>
+                        </ul>
+                    </div>
+
+                    {/* Competitor: Commerce Stack */}
+                    <div className="price-card competitor">
+                        <h3>Marketplace Stack</h3>
+                        <div className="price-amt">$40–70/mo</div>
+                        <div className="price-sub">Shopify + BeatStars + Gumroad</div>
+                        <ul>
+                            <li>Separate fees for Merch & Digital</li>
+                            <li>Transaction fees up to 15%</li>
+                            <li>No built-in content creation tools</li>
+                            <li>Fragmented dashboards & analytics</li>
+                        </ul>
+                    </div>
+
+                    {/* Competitor: Production Stack */}
+                    <div className="price-card competitor">
+                        <h3>Creative Stack</h3>
+                        <div className="price-amt">$50–110/mo</div>
+                        <div className="price-sub">FL Studio + DistroKid + Splice</div>
+                        <ul>
+                            <li>DAW (Desktop only) + Sound library</li>
+                            <li>Separate annual distribution fees</li>
+                            <li>No video editing or podcast tools</li>
+                            <li>No native social marketplace exposure</li>
+                        </ul>
+                    </div>
+
+                    {/* Competitor: Content Stack */}
+                    <div className="price-card competitor">
+                        <h3>Broadcast Stack</h3>
+                        <div className="price-amt">$60–120/mo</div>
+                        <div className="price-sub">Riverside + Restream + CapCut</div>
+                        <ul>
+                            <li>Streaming & Video editing focus</li>
+                            <li>No music production or mixing</li>
+                            <li>High monthly AI credit surcharges</li>
+                            <li>No revenue-generating store hooks</li>
+                        </ul>
+                    </div>
+
+                    {/* The Bottom Line */}
+                    <div className="price-card loss">
+                        <h3>All Tools Combined</h3>
+                        <div className="price-amt">$210–420+/mo</div>
+                        <div className="price-sub">18+ separate subscriptions</div>
+                        <ul>
+                            <li>Crippling subscription fatigue</li>
+                            <li>Zero integration between creative tools</li>
+                            <li>Split audience data & analytics</li>
+                            <li>Multiple platform fee deductions</li>
+                        </ul>
+                    </div>
+                </div>
+
+                {/* WINNER */}
+                <div className="winner">
+                    <div className="winner-icon">🏆</div>
+                    <div className="winner-body">
+                        <h3>StreamPireX Wins on Every Axis</h3>
+                        <p>
+                            No other platform combines a browser-based DAW, MPC beat maker with
+                            64-step sequencer, AI mix assistant, AI mastering, free AI stem
+                            separation, voice-to-MIDI, hum-to-song, text-to-song, WAM plugins,
+                            speaker simulator, beat store, music distribution to 150+ platforms,
+                            podcast studio, 24/7 radio with AI DJ + voice cloning, live streaming,
+                            video editor, AI video generation, EPK builder, collab marketplace,
+                            social network, and gaming hub — all under one subscription starting at
+                            $12.99/month with 90% revenue share. The closest stack of competitors
+                            costs $170–350+/month across 15 separate tools with no integration
+                            between them.
+                        </p>
+                    </div>
+                    <a
+                        href="https://streampirex.com"
+                        className="winner-cta"
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        Join the Waitlist →
+                    </a>
+                </div>
+
+                <div className="pg-footer">
+                    <span>StreamPireX</span> Full Platform Competitive Analysis — Updated March 2026
+                    — by Eye Forge Studios LLC
+                    <br />
+                    <span
+                        style={{
+                            color: "var(--muted)",
+                            fontSize: "10px",
+                            marginTop: "6px",
+                            display: "block"
+                        }}
+                    >
+                        ✓ = Full feature available &nbsp;|&nbsp; ~ = Partial/limited &nbsp;|&nbsp;
+                        ✗ = Not available &nbsp;|&nbsp; * = Desktop app benchmark
+                    </span>
+                </div>
             </div>
-          ))}
         </div>
-        <Link to="/" style={{color:"#4e6070",fontSize:"11px",fontFamily:"monospace",textDecoration:"none"}}>← Back to StreamPireX</Link>
-      </div>
-      <div style={{maxWidth:"1200px",margin:"0 auto",padding:"0 20px"}}>
-        {sections.map((sec,i)=><Section key={i} num={names[i].split(" — ")[0]} name={names[i].split(" — ")[1]} badge={badges[i]} cols={sec.cols} rows={sec.rows}/>)}
-        <div style={{background:"linear-gradient(135deg,rgba(0,255,200,0.06),rgba(255,102,0,0.04))",border:"1px solid rgba(0,255,200,0.15)",borderRadius:"10px",padding:"32px 40px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"24px",marginTop:"8px"}}>
-          <div style={{maxWidth:"600px"}}>
-            <div style={{fontSize:"20px",fontWeight:700,color:"#dde5ef",marginBottom:"8px"}}>The <em style={{color:"#00ffc8"}}>only platform</em> combining DAW · Beat Maker · Video Editor · AI Suite · Distribution · Live Streaming · Podcast · 24/7 Radio · Fan Subscriptions · EPK · Gaming — under one roof.</div>
-            <div style={{fontSize:"12px",color:"#4e6070"}}>Replace 15+ subscriptions costing $170–$350/mo. Keep 90% of everything you earn.</div>
-          </div>
-          <div style={{textAlign:"center"}}>
-            <div style={{fontSize:"48px",fontWeight:900,color:"#00ffc8",lineHeight:1}}>$19.99<span style={{fontSize:"22px"}}>/mo</span></div>
-            <div style={{fontSize:"10px",color:"#4e6070",fontFamily:"monospace",marginBottom:"12px"}}>Starter · Creator $34.99 · Pro $49.99</div>
-            <Link to="/signup" style={{display:"inline-block",padding:"10px 24px",background:"#00ffc8",color:"#0d1117",borderRadius:"5px",fontWeight:700,fontSize:"13px",textDecoration:"none"}}>Get Started Free →</Link>
-          </div>
-        </div>
-      </div>
-      <div style={{textAlign:"center",marginTop:"24px",fontSize:"11px",color:"#4e6070",fontFamily:"monospace"}}>
-        <span style={{color:"#00ffc8"}}>✓</span> Full &nbsp; <span style={{color:"#e09b30"}}>~</span> Partial &nbsp; — None
-      </div>
-    </div>
-  );
+    );
 };
 
 export default ComparePage;

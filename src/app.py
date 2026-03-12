@@ -275,9 +275,11 @@ def init_pricing():
     ]
     
     for plan_data in plans_data:
+        valid_columns = {c.name for c in PricingPlan.__table__.columns}
+        filtered_data = {k: v for k, v in plan_data.items() if k in valid_columns}
         existing_plan = PricingPlan.query.filter_by(name=plan_data["name"]).first()
         if not existing_plan:
-            plan = PricingPlan(**plan_data)
+            plan = PricingPlan(**filtered_data)
             db.session.add(plan)
             print(f"✅ Created {plan_data['name']} plan")
         else:

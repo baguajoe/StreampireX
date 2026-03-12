@@ -666,12 +666,6 @@ const Sidebar = ({ user }) => {
             📚 <span className="sidebar-label">Creator Academy</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </MenuItem>
-          <MenuItem to="/jam-tracks" className={isActive("/jam-tracks") ? "active" : ""}>
-            🎸 <span className="sidebar-label">Jam Tracks</span>
-          </MenuItem>
-          <MenuItem to="/quick-record" className={isActive("/quick-record") ? "active" : ""}>
-            ⚡ <span className="sidebar-label">Quick Record</span>
-          </MenuItem>
         </>
       )}
 

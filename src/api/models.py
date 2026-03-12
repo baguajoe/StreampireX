@@ -2882,10 +2882,10 @@ def seed_video_editing_plans():
             "advanced_effects_enabled": False,
         },
         {
-            "name": "Basic",
-            "description": "Enhanced video editing with HD export",
-            "price_monthly": 9.99,
-            "price_yearly": 99.99,
+            "name": "Starter",
+            "description": "Enhanced video editing with 1080p export",
+            "price_monthly": 19.99,
+            "price_yearly": 199.00,
             "video_clip_max_size": 2 * 1024 * 1024 * 1024,   # 2GB
             "audio_clip_max_size": 500 * 1024 * 1024,        # 500MB
             "project_total_max_size": 10 * 1024 * 1024 * 1024, # 10GB
@@ -2900,10 +2900,10 @@ def seed_video_editing_plans():
             "advanced_effects_enabled": False,
         },
         {
-            "name": "Premium",
-            "description": "Professional video editing with 4K export",
-            "price_monthly": 29.99,
-            "price_yearly": 299.99,
+            "name": "Pro",
+            "description": "Professional video editing with advanced 4K export",
+            "price_monthly": 34.99,
+            "price_yearly": 349.00,
             "video_clip_max_size": 5 * 1024 * 1024 * 1024,   # 5GB
             "audio_clip_max_size": 1024 * 1024 * 1024,       # 1GB
             "project_total_max_size": 50 * 1024 * 1024 * 1024, # 50GB
@@ -2911,17 +2911,17 @@ def seed_video_editing_plans():
             "max_tracks_per_project": 20,
             "max_projects": 50,
             "export_formats": ["mp4", "mov", "avi", "webm", "mkv"],
-            "max_export_quality": "4k",
+            "max_export_quality": "4K",
             "platform_export_enabled": True,
             "allowed_platforms": ["youtube", "instagram", "tiktok", "facebook", "twitter"],
             "audio_separation_enabled": True,
             "advanced_effects_enabled": True,
         },
         {
-            "name": "Professional",
-            "description": "Enterprise-grade video editing with unlimited projects",
-            "price_monthly": 99.99,
-            "price_yearly": 999.99,
+            "name": "Studio",
+            "description": "Ultimate creator suite with advanced editing and unlimited scale",
+            "price_monthly": 49.99,
+            "price_yearly": 499.00,
             "video_clip_max_size": 20 * 1024 * 1024 * 1024,  # 20GB
             "audio_clip_max_size": 2 * 1024 * 1024 * 1024,   # 2GB
             "project_total_max_size": 500 * 1024 * 1024 * 1024, # 500GB
@@ -2929,7 +2929,7 @@ def seed_video_editing_plans():
             "max_tracks_per_project": -1,  # Unlimited
             "max_projects": -1,  # Unlimited
             "export_formats": ["mp4", "mov", "avi", "webm", "mkv", "prores"],
-            "max_export_quality": "8k",
+            "max_export_quality": "8K",
             "platform_export_enabled": True,
             "allowed_platforms": ["youtube", "instagram", "tiktok", "facebook", "twitter", "vimeo", "linkedin"],
             "audio_separation_enabled": True,
@@ -2939,22 +2939,60 @@ def seed_video_editing_plans():
         }
     ]
     
+    valid_columns = {c.name for c in PricingPlan.__table__.columns}
+
     for plan_data in plans_data:
+        filtered_data = {k: v for k, v in plan_data.items() if k in valid_columns}
         existing_plan = PricingPlan.query.filter_by(name=plan_data["name"]).first()
         
         if existing_plan:
             # Update existing plan
-            for key, value in plan_data.items():
-                if hasattr(existing_plan, key):
-                    setattr(existing_plan, key, value)
+            for key, value in filtered_data.items():
+                setattr(existing_plan, key, value)
         else:
             # Create new plan
-            new_plan = PricingPlan(**plan_data)
+            new_plan = PricingPlan(**filtered_data)
             db.session.add(new_plan)
     
     db.session.commit()
     print("Video editing pricing plans seeded successfully!")
 
+
+class AIJob(db.Model):
+    __tablename__ = 'ai_jobs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    feature = db.Column(db.String(50), nullable=False, index=True)
+    status = db.Column(db.String(20), default='queued', nullable=False, index=True)
+    credits_used = db.Column(db.Integer, default=0, nullable=False)
+    input_json = db.Column(db.Text, nullable=True)
+    output_url = db.Column(db.String(500), nullable=True)
+    provider = db.Column(db.String(50), nullable=True)
+    error_message = db.Column(db.Text, nullable=True)
+    refunded = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    started_at = db.Column(db.DateTime, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+
+    user = db.relationship('User', backref=db.backref('ai_jobs', lazy=True))
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "feature": self.feature,
+            "status": self.status,
+            "credits_used": self.credits_used,
+            "input_json": self.input_json,
+            "output_url": self.output_url,
+            "provider": self.provider,
+            "error_message": self.error_message,
+            "refunded": self.refunded,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+        }
 
 class SonoSuiteUser(db.Model):
     __table_args__ = {'extend_existing': True}
@@ -7575,3 +7613,73 @@ class WaitlistEntry(db.Model):
     source = db.Column(db.String(80), default='landing_page')
     subscribed = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=db.func.now())
+
+
+# ─────────────────────────────────────────────────────────────
+# Creator Merchandise Product
+# ─────────────────────────────────────────────────────────────
+class CreatorProduct(db.Model):
+    __tablename__ = "creator_products"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, default="")
+
+    printful_product_id = db.Column(db.Integer, nullable=False)
+    printful_variant_id = db.Column(db.Integer, nullable=False)
+
+    retail_price = db.Column(db.Float, nullable=False)
+
+    artwork_url = db.Column(db.String(500))
+    mockup_url = db.Column(db.String(500))
+
+    category = db.Column(db.String(100), default="Apparel")
+
+    is_active = db.Column(db.Boolean, default=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "name": self.name,
+            "description": self.description,
+            "price": self.retail_price,
+            "mockup_url": self.mockup_url,
+            "category": self.category,
+            "is_active": self.is_active
+        }
+
+
+# ─────────────────────────────────────────────────────────────
+# Merchandise Order
+# ─────────────────────────────────────────────────────────────
+class MerchOrder(db.Model):
+    __tablename__ = "merch_orders"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    product_id = db.Column(db.Integer, db.ForeignKey("creator_products.id"), nullable=False)
+    creator_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+    quantity = db.Column(db.Integer, default=1)
+
+    retail_price = db.Column(db.Float, nullable=False)
+    platform_fee = db.Column(db.Float, default=0.0)
+
+    stripe_payment_intent = db.Column(db.String(200))
+    printful_order_id = db.Column(db.String(100))
+
+    shipping_name = db.Column(db.String(200))
+    shipping_address = db.Column(db.String(300))
+    shipping_city = db.Column(db.String(100))
+    shipping_state = db.Column(db.String(50))
+    shipping_country = db.Column(db.String(10), default="US")
+    shipping_zip = db.Column(db.String(20))
+
+    status = db.Column(db.String(50), default="pending")
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
