@@ -541,3 +541,4 @@
 /* ── Theme Variables ── */
 :root { --bg-primary: #0d1117; --bg-secondary: #161b22; --bg-tertiary: #21262d; --text-primary: #e6edf3; --text-secondary: #8b949e; --border-color: #30363d; --accent-teal: #00ffc8; --accent-orange: #FF6600; }
 [data-theme="light"] { --bg-primary: #ffffff; --bg-secondary: #f6f8fa; --bg-tertiary: #eaeef2; --text-primary: #1f2328; --text-secondary: #57606a; --border-color: #d0d7de; --accent-teal: #00a896; --accent-orange: #e05c00; }
+html { scroll-behavior: smooth; }

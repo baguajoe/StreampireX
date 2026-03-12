@@ -1,6 +1,6 @@
-import "bootstrap/dist/js/bootstrap.bundle";
 import React, { useContext } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import "bootstrap/dist/js/bootstrap.bundle";
 import ScrollToTop from "./component/scrollToTop";
 import injectContext from "./store/appContext";
 import { Context } from "./store/appContext";
@@ -9,8 +9,6 @@ import Home from "./pages/home";
 
 import Navbar from "./component/navbar";
 import Sidebar from "./component/sidebar";
-
-// FIXED: Using named import for Footer to match its export const Footer
 import { Footer } from "./component/footer";
 
 const Layout = () => {
