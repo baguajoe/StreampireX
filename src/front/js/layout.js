@@ -4,7 +4,7 @@ import ScrollToTop from "./component/scrollToTop";
 import injectContext from "./store/appContext";
 import { Context } from "./store/appContext";
 
-// Corrected path to your pages folder
+// FIXED: Importing Home as a default export to match your file
 import Home from "./pages/home";
 
 // Default imports for components
