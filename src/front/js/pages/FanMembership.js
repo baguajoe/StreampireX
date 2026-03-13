@@ -255,8 +255,9 @@ export const CreatorMembershipManager = () => {
 // =============================================================================
 // FAN VIEW — Subscribe to a creator
 // =============================================================================
-export const FanMembershipPage = () => {
-  const { creatorId } = useParams();
+export const FanMembershipPage = ({ embeddedCreatorId } = {}) => {
+  const params = useParams();
+  const creatorId = embeddedCreatorId || params.creatorId;
   const navigate = useNavigate();
   const [tiers, setTiers]           = useState([]);
   const [creator, setCreator]       = useState(null);
