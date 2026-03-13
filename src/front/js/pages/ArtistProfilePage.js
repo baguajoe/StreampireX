@@ -1451,14 +1451,16 @@ const ArtistProfilePage = () => {
               )}
               <button onClick={handleShare} className="share-btn">🔗 Share</button>
               {!isOwnProfile && !isBlocked && (
-                <FanMembershipWidget creatorId={id} isOwnProfile={isOwnProfile} />
-      <TipJar
-                  creatorId={id}
-                  creatorName={artistInfo.artistName}
-                  contentType="artist"
-                  contentId={id}
-                  buttonStyle="inline"
-                />
+                <>
+                  <FanMembershipWidget creatorId={id} isOwnProfile={isOwnProfile} />
+                  <TipJar
+                    creatorId={id}
+                    creatorName={artistInfo.artistName}
+                    contentType="artist"
+                    contentId={id}
+                    buttonStyle="inline"
+                  />
+                </>
               )}
               {!isOwnProfile && (
                 <div className="more-menu-container">
