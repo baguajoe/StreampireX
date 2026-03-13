@@ -48,6 +48,7 @@ import FloatingVideoCall from "./component/FloatingVideoCall";
 import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import AIMasteringPage from "./pages/AIMasteringPage";
 import AIRadioDJPage from "./pages/AIRadioDJPage";
+import DJMixer from "./pages/DJMixer";
 import AIRadioDJ from "./component/AIRadioDJ";
 import AIContentWriter from "./pages/AIContentWriter";
 import AIStemSeparation from "./pages/AIStemSeparation";
@@ -503,6 +504,7 @@ const AppShell = ({ user }) => {
                                 <Route path="/radio-schedule" element={<RadioSchedule />} />
                                 <Route path="/airadio-dj-page" element={<AIRadioDJPage />} />
                                 <Route path="/airadio-dj" element={<AIRadioDJ />} />
+                                <Route path="/dj-mixer" element={<DJMixer />} />
 
                                 {/* ---------------- Video / Reels / Live ---------------- */}
                                 <Route path="/browse-videos" element={<BrowseVideosPage />} />

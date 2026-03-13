@@ -584,6 +584,9 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/airadio-dj" className={isActive("/airadio-dj") ? "active" : ""}>
             🤖 <span className="sidebar-label">AI Radio DJ</span>
           </MenuItem>
+          <MenuItem to="/dj-mixer" className={isActive("/dj-mixer") ? "active" : ""}>
+            🎛 <span className="sidebar-label">DJ Mixer</span>
+          </MenuItem>
         </>
       )}
 
