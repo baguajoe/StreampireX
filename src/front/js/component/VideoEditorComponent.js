@@ -457,6 +457,7 @@ const getAvailableResolutions = async () => {
 const buildClipData = (clip) => {
   return {
     public_id: clip.cloudinary_public_id || clip.public_id || clip.id,
+    url: clip.r2_url || clip.file_url || clip.cloudinary_public_id || clip.src || clip.url || null,
     trim: clip.inPoint !== undefined && clip.outPoint !== undefined ? {
       start: clip.inPoint,
       end: clip.outPoint

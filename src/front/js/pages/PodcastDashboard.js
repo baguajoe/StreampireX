@@ -6,6 +6,7 @@ import LoadingSpinner from "../component/LoadingSpinner";
 import EmptyState from "../component/EmptyState";
 import { showToast } from "../utils/toast";
 import "../../styles/PodcastDashboard.css";
+import PodcastRSSPanel from "../component/PodcastRSSPanel";
 
 const PodcastDashboard = () => {
   const { store } = useContext(Context);
@@ -427,6 +428,7 @@ const PodcastDashboard = () => {
                       🗑️ Delete
                     </button>
                   </div>
+                  <PodcastRSSPanel podcastId={podcast.id} isCreator={true} />
                 </div>
               </div>
             ))}
