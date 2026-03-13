@@ -1,0 +1,1501 @@
+/* =============================================================================
+   VideoEditor.css — SPX Video Editor  •  Futuristic Creator UI
+   Location: src/front/styles/VideoEditor.css
+   Replace existing VideoEditor.css entirely.
+
+   Design direction:
+   ─ "Neural Cinema" — not Premiere's grey tomb, not Final Cut's brushed metal.
+     Think: deep space mission control. The editor is a spacecraft cockpit.
+     Dark void base, electric teal instruments, amber/orange alerts,
+     plasma-glow monitors, scanline textures on inactive surfaces.
+   ─ Orbitron for all uppercase labels/headers (instrument panel feel)
+   ─ JetBrains Mono for timecodes, numbers, technical readouts
+   ─ Inter for prose labels and body text
+============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ─────────────────────────────────────────────
+   DESIGN TOKENS
+───────────────────────────────────────────── */
+:root {
+  /* Void / hull */
+  --ve-void:       #04060c;
+  --ve-hull:       #080e1a;
+  --ve-surface:    #0c1424;
+  --ve-surface-2:  #101c30;
+  --ve-surface-3:  #152035;
+  --ve-panel:      #0a1220;
+
+  /* Borders */
+  --ve-border:     rgba(255,255,255,0.06);
+  --ve-border-2:   rgba(255,255,255,0.10);
+  --ve-glow-teal:  rgba(0,255,200,0.18);
+  --ve-glow-amber: rgba(255,160,50,0.18);
+
+  /* Accent palette */
+  --ve-teal:       #00ffc8;
+  --ve-teal-dim:   rgba(0,255,200,0.08);
+  --ve-teal-mid:   rgba(0,255,200,0.15);
+  --ve-amber:      #ffa028;
+  --ve-amber-dim:  rgba(255,160,40,0.1);
+  --ve-red:        #ff3b60;
+  --ve-blue:       #3b8fff;
+  --ve-purple:     #8b61ff;
+  --ve-green:      #00e87a;
+
+  /* Text */
+  --ve-text:       #d0dde8;
+  --ve-text-2:     #7a9ab0;
+  --ve-text-3:     #3a5870;
+  --ve-text-label: #4a7a90;
+
+  /* Monitor screen */
+  --ve-screen-bg:  #000810;
+  --ve-screen-border: rgba(0,255,200,0.22);
+
+  /* Timeline */
+  --ve-timeline-bg: #060c18;
+  --ve-track-video: rgba(0,255,200,0.12);
+  --ve-track-audio: rgba(59,143,255,0.12);
+  --ve-track-text:  rgba(139,97,255,0.12);
+  --ve-clip-video:  #00ffc8;
+  --ve-clip-audio:  #3b8fff;
+
+  --ve-radius:     10px;
+  --ve-radius-sm:  6px;
+  --ve-radius-xs:  4px;
+  --ve-radius-pill: 999px;
+
+  --ve-font-mono:  'JetBrains Mono', 'Courier New', monospace;
+  --ve-font-hud:   'Orbitron', sans-serif;
+  --ve-font-body:  'Inter', system-ui, sans-serif;
+}
+
+/* ─────────────────────────────────────────────
+   GLOBAL RESET FOR EDITOR
+───────────────────────────────────────────── */
+.video-editor-pro *,
+.video-editor-pro *::before,
+.video-editor-pro *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ─────────────────────────────────────────────
+   OUTER SHELL
+───────────────────────────────────────────── */
+.video-editor-page {
+  background: var(--ve-void);
+  min-height: 100vh;
+}
+
+.video-editor-pro {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-height: 100vh;
+  background: var(--ve-void);
+  color: var(--ve-text);
+  font-family: var(--ve-font-body);
+  overflow: hidden;
+  position: relative;
+
+  /* Subtle grid overlay — spacecraft interior paneling */
+  background-image:
+    linear-gradient(rgba(0,255,200,0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,200,0.012) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ─────────────────────────────────────────────
+   MENU / NAVBAR
+───────────────────────────────────────────── */
+.editor-navbar {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  min-height: 38px;
+  background: var(--ve-hull);
+  border-bottom: 1px solid var(--ve-border-2);
+  padding: 0 8px;
+  gap: 0;
+  position: relative;
+  z-index: 100;
+  flex-shrink: 0;
+
+  /* Top edge glow */
+  box-shadow: inset 0 1px 0 rgba(0,255,200,0.08), 0 1px 0 rgba(0,0,0,0.5);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px 0 8px;
+  margin-right: 4px;
+  border-right: 1px solid var(--ve-border);
+  font-family: var(--ve-font-hud);
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: var(--ve-teal);
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 12px rgba(0,255,200,0.4);
+}
+
+.menu-container { position: relative; }
+
+.menu-button {
+  background: transparent;
+  border: none;
+  color: var(--ve-text-2);
+  font-size: 0.78rem;
+  font-family: var(--ve-font-body);
+  font-weight: 500;
+  padding: 0 10px;
+  height: 38px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  letter-spacing: 0.02em;
+  position: relative;
+}
+
+.menu-button:hover,
+.menu-button.active {
+  color: var(--ve-teal);
+  background: var(--ve-teal-dim);
+}
+
+.menu-button.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ve-teal);
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--ve-surface-2);
+  border: 1px solid var(--ve-border-2);
+  border-radius: 0 0 var(--ve-radius-sm) var(--ve-radius-sm);
+  min-width: 200px;
+  z-index: 200;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.6), 0 0 0 1px var(--ve-glow-teal);
+  overflow: hidden;
+  animation: ve-dropdown-in 0.12s ease-out;
+}
+
+@keyframes ve-dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  color: var(--ve-text-2);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  gap: 12px;
+}
+
+.menu-item:hover {
+  background: var(--ve-teal-dim);
+  color: var(--ve-teal);
+}
+
+.menu-item .shortcut {
+  font-family: var(--ve-font-mono);
+  font-size: 0.7rem;
+  color: var(--ve-text-3);
+  opacity: 0.7;
+}
+
+.menu-separator {
+  height: 1px;
+  background: var(--ve-border);
+  margin: 4px 0;
+}
+
+/* ─────────────────────────────────────────────
+   TOOLBAR
+───────────────────────────────────────────── */
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  min-height: 36px;
+  background: var(--ve-panel);
+  border-bottom: 1px solid var(--ve-border);
+  padding: 0 8px;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--ve-radius-xs);
+  color: var(--ve-text-3);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.14s;
+  white-space: nowrap;
+  font-family: var(--ve-font-body);
+}
+
+.toolbar-btn:hover {
+  background: var(--ve-teal-dim);
+  border-color: var(--ve-glow-teal);
+  color: var(--ve-teal);
+}
+
+.toolbar-btn.active,
+.toolbar-btn--active {
+  background: var(--ve-teal-mid);
+  border-color: var(--ve-teal);
+  color: var(--ve-teal);
+  box-shadow: 0 0 8px rgba(0,255,200,0.15);
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 20px;
+  background: var(--ve-border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* Timecode display in toolbar */
+.toolbar-timecode {
+  font-family: var(--ve-font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ve-teal);
+  background: var(--ve-screen-bg);
+  border: 1px solid var(--ve-border-2);
+  border-radius: var(--ve-radius-xs);
+  padding: 4px 10px;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 8px rgba(0,255,200,0.3);
+  min-width: 90px;
+  text-align: center;
+}
+
+.toolbar-fps-select {
+  background: var(--ve-screen-bg);
+  border: 1px solid var(--ve-border-2);
+  border-radius: var(--ve-radius-xs);
+  color: var(--ve-teal);
+  font-size: 0.72rem;
+  font-family: var(--ve-font-mono);
+  font-weight: 600;
+  padding: 4px 6px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+}
+
+/* ─────────────────────────────────────────────
+   TOOL RAIL (left vertical bar)
+───────────────────────────────────────────── */
+.tool-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 38px;
+  min-width: 38px;
+  background: var(--ve-panel);
+  border-right: 1px solid var(--ve-border);
+  padding: 6px 0;
+  gap: 2px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.tool-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--ve-radius-xs);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ve-text-3);
+  cursor: pointer;
+  transition: all 0.14s;
+  position: relative;
+}
+
+.tool-btn:hover {
+  background: var(--ve-teal-dim);
+  color: var(--ve-teal);
+  border-color: var(--ve-glow-teal);
+}
+
+.tool-btn.active {
+  background: var(--ve-teal-mid);
+  color: var(--ve-teal);
+  border-color: var(--ve-teal);
+  box-shadow: 0 0 10px rgba(0,255,200,0.2);
+}
+
+/* ─────────────────────────────────────────────
+   MAIN WORKSPACE LAYOUT
+───────────────────────────────────────────── */
+.editor-workspace {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* LEFT PANEL — media bin / project */
+.editor-left-panel {
+  width: 220px;
+  min-width: 160px;
+  max-width: 300px;
+  background: var(--ve-panel);
+  border-right: 1px solid var(--ve-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* RIGHT PANEL — effects / inspector */
+.editor-right-panel {
+  width: 220px;
+  min-width: 160px;
+  max-width: 300px;
+  background: var(--ve-panel);
+  border-left: 1px solid var(--ve-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* CENTER PANEL */
+.editor-center-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--ve-void);
+}
+
+/* ─────────────────────────────────────────────
+   PANEL HEADER
+───────────────────────────────────────────── */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  height: 28px;
+  min-height: 28px;
+  background: var(--ve-hull);
+  border-bottom: 1px solid var(--ve-border);
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-family: var(--ve-font-hud);
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--ve-text-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ─────────────────────────────────────────────
+   MONITOR AREA  ⭐ THE MAIN FIX
+   Two monitors side-by-side, videos perfectly centered
+───────────────────────────────────────────── */
+.preview-area-container {
+  display: flex;
+  gap: 2px;
+  flex: 1;
+  min-height: 0;
+  background: var(--ve-void);
+  padding: 8px 8px 6px;
+}
+
+/* When only one monitor is visible (program only) */
+.preview-area-container.single-monitor {
+  padding: 8px 24px 6px;
+}
+
+.preview-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.preview-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--ve-surface);
+  border: 1px solid var(--ve-border-2);
+  border-radius: var(--ve-radius);
+  overflow: hidden;
+  min-height: 0;
+  position: relative;
+
+  /* Monitor housing glow */
+  box-shadow:
+    0 0 0 1px rgba(0,255,200,0.05),
+    inset 0 0 30px rgba(0,0,0,0.4);
+
+  transition: box-shadow 0.25s;
+}
+
+.preview-container:hover {
+  box-shadow:
+    0 0 0 1px var(--ve-glow-teal),
+    inset 0 0 30px rgba(0,0,0,0.3),
+    0 8px 32px rgba(0,0,0,0.4);
+}
+
+/* Monitor label bar */
+.monitor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  height: 26px;
+  min-height: 26px;
+  background: var(--ve-hull);
+  border-bottom: 1px solid var(--ve-border);
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.monitor-header .monitor-label {
+  font-family: var(--ve-font-hud);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--ve-text-label);
+  text-transform: uppercase;
+}
+
+.monitor-header .monitor-timecode {
+  font-family: var(--ve-font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ve-teal);
+  text-shadow: 0 0 8px rgba(0,255,200,0.25);
+  letter-spacing: 0.06em;
+}
+
+/* ⭐ THE SCREEN — where video actually renders, perfectly centered */
+.preview-screen {
+  flex: 1;
+  min-height: 0;
+  background: var(--ve-screen-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+
+  /* CRT-style scanlines on inactive screen */
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,255,200,0.018) 2px,
+      rgba(0,255,200,0.018) 4px
+    );
+}
+
+/* ⭐ VIDEO / IMAGE fills screen, centered, no overflow */
+.preview-screen video,
+.preview-screen img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: auto;
+  /* hardware accelerated centering */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* wrapper div that VideoEditorComponent renders around media */
+.preview-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.preview-content video,
+.preview-content img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  position: static;
+  transform: none;
+}
+
+/* Placeholder state */
+.preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  color: var(--ve-text-3);
+  user-select: none;
+}
+
+.preview-placeholder svg {
+  opacity: 0.25;
+  color: var(--ve-teal);
+}
+
+.preview-placeholder p {
+  font-family: var(--ve-font-hud);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ve-text-3);
+  opacity: 0.5;
+}
+
+.preview-resolution {
+  font-family: var(--ve-font-mono);
+  font-size: 0.62rem;
+  color: var(--ve-text-3);
+  opacity: 0.4;
+  letter-spacing: 0.04em;
+}
+
+/* Monitor controls bar */
+.preview-controls {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  min-height: 28px;
+  background: var(--ve-hull);
+  border-top: 1px solid var(--ve-border);
+  padding: 0 6px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.preview-control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--ve-radius-xs);
+  color: var(--ve-text-3);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.preview-control-btn:hover {
+  background: var(--ve-teal-dim);
+  color: var(--ve-teal);
+  border-color: var(--ve-glow-teal);
+}
+
+.zoom-display {
+  font-family: var(--ve-font-mono);
+  font-size: 0.65rem;
+  color: var(--ve-text-2);
+  padding: 0 4px;
+  min-width: 28px;
+  text-align: center;
+}
+
+.preview-spacer { flex: 1; }
+
+/* ─────────────────────────────────────────────
+   PLAYBACK TRANSPORT
+───────────────────────────────────────────── */
+.transport-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  min-height: 38px;
+  background: var(--ve-hull);
+  border-top: 1px solid var(--ve-border);
+  border-bottom: 1px solid var(--ve-border);
+  gap: 4px;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.transport-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--ve-surface-3);
+  border: 1px solid var(--ve-border-2);
+  border-radius: var(--ve-radius-xs);
+  color: var(--ve-text-2);
+  cursor: pointer;
+  transition: all 0.14s;
+}
+
+.transport-btn:hover {
+  background: var(--ve-teal-dim);
+  border-color: var(--ve-teal);
+  color: var(--ve-teal);
+  box-shadow: 0 0 8px rgba(0,255,200,0.15);
+}
+
+.transport-btn.play-btn {
+  width: 34px;
+  height: 34px;
+  background: var(--ve-teal-mid);
+  border-color: var(--ve-teal);
+  color: var(--ve-teal);
+  border-radius: var(--ve-radius-sm);
+}
+
+.transport-btn.play-btn:hover {
+  background: var(--ve-teal);
+  color: var(--ve-void);
+  box-shadow: 0 0 16px rgba(0,255,200,0.35);
+}
+
+.transport-timecode {
+  font-family: var(--ve-font-mono);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ve-teal);
+  min-width: 80px;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(0,255,200,0.25);
+  letter-spacing: 0.06em;
+}
+
+.transport-duration {
+  font-family: var(--ve-font-mono);
+  font-size: 0.7rem;
+  color: var(--ve-text-3);
+  min-width: 60px;
+  letter-spacing: 0.04em;
+}
+
+/* ─────────────────────────────────────────────
+   TIMELINE
+───────────────────────────────────────────── */
+.timeline-section {
+  display: flex;
+  flex-direction: column;
+  background: var(--ve-timeline-bg);
+  border-top: 1px solid var(--ve-border);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.timeline-container {
+  display: flex;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Track label column */
+.track-labels {
+  width: 160px;
+  min-width: 140px;
+  flex-shrink: 0;
+  background: var(--ve-panel);
+  border-right: 1px solid var(--ve-border-2);
+}
+
+.track-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--ve-border);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ve-text-2);
+  background: var(--ve-panel);
+  user-select: none;
+}
+
+.track-label .track-name {
+  flex: 1;
+  truncate: true;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--ve-font-body);
+  font-size: 0.7rem;
+}
+
+.track-label .track-controls {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.track-ctrl-btn {
+  width: 16px;
+  height: 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--ve-text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  transition: all 0.12s;
+  padding: 0;
+}
+
+.track-ctrl-btn:hover { color: var(--ve-teal); }
+.track-ctrl-btn.muted { color: var(--ve-amber); }
+.track-ctrl-btn.locked { color: var(--ve-red); }
+
+/* Track type color bar */
+.track-label[data-type="video"]  { border-left: 2px solid var(--ve-teal); }
+.track-label[data-type="audio"]  { border-left: 2px solid var(--ve-blue); }
+.track-label[data-type="text"]   { border-left: 2px solid var(--ve-purple); }
+.track-label[data-type="effects"]{ border-left: 2px solid var(--ve-amber); }
+
+/* Timeline ruler */
+.timeline-ruler {
+  height: 24px;
+  background: var(--ve-hull);
+  border-bottom: 1px solid var(--ve-border);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  font-family: var(--ve-font-mono);
+  font-size: 0.58rem;
+  color: var(--ve-text-3);
+}
+
+/* Timeline tracks area */
+.timeline-tracks {
+  flex: 1;
+  overflow: auto;
+  min-width: 0;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ve-border-2) transparent;
+}
+
+/* Individual track row */
+.timeline-track {
+  height: 36px;
+  min-height: 36px;
+  border-bottom: 1px solid var(--ve-border);
+  position: relative;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 99px,
+    var(--ve-border) 99px,
+    var(--ve-border) 100px
+  );
+}
+
+.timeline-track[data-type="video"] { background-color: rgba(0,255,200,0.02); }
+.timeline-track[data-type="audio"] { background-color: rgba(59,143,255,0.02); }
+.timeline-track[data-type="text"]  { background-color: rgba(139,97,255,0.02); }
+
+/* Clip blocks on timeline */
+.timeline-clip {
+  position: absolute;
+  top: 3px;
+  height: 30px;
+  border-radius: var(--ve-radius-xs);
+  cursor: pointer;
+  overflow: hidden;
+  transition: filter 0.15s, box-shadow 0.15s;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  user-select: none;
+}
+
+.timeline-clip:hover {
+  filter: brightness(1.15);
+  z-index: 10;
+}
+
+.timeline-clip.selected {
+  box-shadow: 0 0 0 2px var(--ve-teal), 0 0 12px rgba(0,255,200,0.2);
+  z-index: 20;
+}
+
+.timeline-clip[data-type="video"] {
+  background: linear-gradient(135deg, rgba(0,255,200,0.25), rgba(0,200,160,0.15));
+  border: 1px solid rgba(0,255,200,0.35);
+}
+
+.timeline-clip[data-type="audio"] {
+  background: linear-gradient(135deg, rgba(59,143,255,0.25), rgba(40,100,220,0.15));
+  border: 1px solid rgba(59,143,255,0.35);
+}
+
+.timeline-clip-name {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--ve-font-body);
+}
+
+/* Playhead */
+.timeline-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--ve-teal);
+  z-index: 50;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(0,255,200,0.4);
+}
+
+.timeline-playhead::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid var(--ve-teal);
+}
+
+/* ─────────────────────────────────────────────
+   MEDIA BIN / PROJECT PANEL
+───────────────────────────────────────────── */
+.media-bin {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ve-border-2) transparent;
+}
+
+.media-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--ve-radius-xs);
+  cursor: pointer;
+  transition: background 0.12s;
+  border: 1px solid transparent;
+}
+
+.media-item:hover {
+  background: var(--ve-teal-dim);
+  border-color: var(--ve-glow-teal);
+}
+
+.media-item.selected {
+  background: var(--ve-teal-mid);
+  border-color: var(--ve-teal);
+}
+
+.media-item-thumb {
+  width: 36px;
+  height: 24px;
+  background: var(--ve-screen-bg);
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ve-text-3);
+}
+
+.media-item-thumb img,
+.media-item-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.media-item-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ve-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.media-item-meta {
+  font-size: 0.62rem;
+  color: var(--ve-text-3);
+  font-family: var(--ve-font-mono);
+  margin-top: 1px;
+}
+
+/* ─────────────────────────────────────────────
+   EFFECTS PANEL
+───────────────────────────────────────────── */
+.effects-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ve-border-2) transparent;
+}
+
+.effect-category {
+  margin-bottom: 8px;
+}
+
+.effect-category-title {
+  font-family: var(--ve-font-hud);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ve-text-label);
+  text-transform: uppercase;
+  padding: 6px 4px 4px;
+  border-bottom: 1px solid var(--ve-border);
+  margin-bottom: 4px;
+}
+
+.effect-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border-radius: var(--ve-radius-xs);
+  cursor: pointer;
+  font-size: 0.72rem;
+  color: var(--ve-text-2);
+  transition: all 0.12s;
+  border: 1px solid transparent;
+}
+
+.effect-item:hover {
+  background: var(--ve-teal-dim);
+  color: var(--ve-teal);
+  border-color: var(--ve-glow-teal);
+}
+
+/* ─────────────────────────────────────────────
+   INSPECTOR / CLIP PROPERTIES
+───────────────────────────────────────────── */
+.inspector-section {
+  padding: 10px;
+  border-bottom: 1px solid var(--ve-border);
+}
+
+.inspector-label {
+  font-family: var(--ve-font-hud);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ve-text-label);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.inspector-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  gap: 8px;
+}
+
+.inspector-key {
+  font-size: 0.7rem;
+  color: var(--ve-text-2);
+  flex-shrink: 0;
+  min-width: 60px;
+}
+
+.inspector-value {
+  flex: 1;
+  min-width: 0;
+}
+
+.inspector-input {
+  width: 100%;
+  background: var(--ve-screen-bg);
+  border: 1px solid var(--ve-border-2);
+  border-radius: var(--ve-radius-xs);
+  padding: 4px 6px;
+  color: var(--ve-teal);
+  font-family: var(--ve-font-mono);
+  font-size: 0.7rem;
+  outline: none;
+  transition: border-color 0.14s;
+}
+
+.inspector-input:focus {
+  border-color: var(--ve-teal);
+  box-shadow: 0 0 0 2px rgba(0,255,200,0.1);
+}
+
+/* ─────────────────────────────────────────────
+   COLOR GRADING PANEL
+───────────────────────────────────────────── */
+.color-panel {
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.color-wheel-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0;
+  position: relative;
+}
+
+.color-wheel-wrap::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(
+    hsl(0,80%,50%), hsl(60,80%,50%), hsl(120,80%,50%),
+    hsl(180,80%,50%), hsl(240,80%,50%), hsl(300,80%,50%), hsl(360,80%,50%)
+  );
+  filter: blur(8px);
+  opacity: 0.12;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.slider-row label {
+  font-size: 0.68rem;
+  color: var(--ve-text-2);
+  min-width: 52px;
+  font-family: var(--ve-font-body);
+}
+
+.slider-row input[type="range"] {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  -webkit-appearance: none;
+  background: linear-gradient(90deg, var(--ve-teal) var(--val, 50%), var(--ve-border-2) var(--val, 50%));
+  outline: none;
+  cursor: pointer;
+}
+
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ve-teal);
+  box-shadow: 0 0 6px rgba(0,255,200,0.4);
+  cursor: pointer;
+  transition: transform 0.12s;
+}
+
+.slider-row input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.3);
+}
+
+.slider-row .slider-val {
+  font-family: var(--ve-font-mono);
+  font-size: 0.62rem;
+  color: var(--ve-teal);
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ─────────────────────────────────────────────
+   EXPORT / RENDER BUTTON
+───────────────────────────────────────────── */
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, var(--ve-teal), #00d9aa);
+  color: #021410;
+  border: none;
+  border-radius: var(--ve-radius-sm);
+  font-family: var(--ve-font-hud);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.18s;
+  text-transform: uppercase;
+  box-shadow: 0 4px 14px rgba(0,255,200,0.2);
+}
+
+.export-btn:hover {
+  box-shadow: 0 6px 22px rgba(0,255,200,0.35);
+  transform: translateY(-1px);
+}
+
+.save-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  background: var(--ve-teal-mid);
+  border: 1px solid var(--ve-teal);
+  border-radius: var(--ve-radius-sm);
+  color: var(--ve-teal);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.save-btn:hover {
+  background: var(--ve-teal);
+  color: var(--ve-void);
+}
+
+/* ─────────────────────────────────────────────
+   AUDIO MIXER
+───────────────────────────────────────────── */
+.audio-mixer {
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.channel-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 44px;
+  padding: 8px 6px;
+  background: var(--ve-surface-3);
+  border-radius: var(--ve-radius-sm);
+  border: 1px solid var(--ve-border);
+}
+
+.channel-fader-wrap {
+  position: relative;
+  height: 80px;
+  width: 16px;
+  background: var(--ve-screen-bg);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--ve-border-2);
+}
+
+.channel-fader-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(0deg, var(--ve-blue), rgba(59,143,255,0.3));
+  transition: height 0.1s;
+}
+
+.channel-label {
+  font-family: var(--ve-font-mono);
+  font-size: 0.55rem;
+  color: var(--ve-text-2);
+  text-align: center;
+  writing-mode: initial;
+}
+
+/* ─────────────────────────────────────────────
+   SOURCE MONITOR MODAL (floating)
+───────────────────────────────────────────── */
+.source-monitor-modal {
+  position: fixed;
+  background: var(--ve-surface);
+  border: 1px solid var(--ve-border-2);
+  border-radius: var(--ve-radius);
+  z-index: 1000;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7), 0 0 0 1px var(--ve-glow-teal);
+  overflow: hidden;
+  resize: both;
+  min-width: 400px;
+  min-height: 300px;
+}
+
+.source-monitor-modal .preview-screen {
+  min-height: 280px;
+}
+
+/* ─────────────────────────────────────────────
+   ADD TO TIMELINE CTA
+───────────────────────────────────────────── */
+.add-to-timeline-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: linear-gradient(135deg, var(--ve-teal), #00d9aa);
+  color: #021410;
+  border: none;
+  border-radius: var(--ve-radius-xs);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--ve-font-body);
+  box-shadow: 0 2px 8px rgba(0,255,200,0.2);
+}
+
+.add-to-timeline-btn:hover {
+  box-shadow: 0 4px 14px rgba(0,255,200,0.35);
+  transform: translateY(-1px);
+}
+
+/* ─────────────────────────────────────────────
+   MUTE / VOLUME PILL IN MONITOR HEADER
+───────────────────────────────────────────── */
+.monitor-mute-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: var(--ve-radius-pill);
+  border: none;
+  font-size: 0.62rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.14s;
+}
+
+.monitor-mute-btn.muted {
+  background: rgba(255,59,96,0.2);
+  color: #ff8090;
+  border: 1px solid rgba(255,59,96,0.3);
+}
+
+.monitor-mute-btn.unmuted {
+  background: var(--ve-teal-dim);
+  color: var(--ve-teal);
+  border: 1px solid var(--ve-glow-teal);
+}
+
+/* ─────────────────────────────────────────────
+   KEYBOARD SHORTCUTS MODAL
+───────────────────────────────────────────── */
+.shortcuts-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  backdrop-filter: blur(4px);
+}
+
+.shortcuts-modal-inner {
+  background: var(--ve-surface-2);
+  border: 1px solid var(--ve-border-2);
+  border-radius: var(--ve-radius);
+  padding: 24px;
+  max-width: 600px;
+  width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px var(--ve-glow-teal);
+}
+
+/* ─────────────────────────────────────────────
+   SCROLLBARS
+───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--ve-border-2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--ve-text-3); }
+
+/* ─────────────────────────────────────────────
+   CONTEXT MENU
+───────────────────────────────────────────── */
+.context-menu {
+  position: fixed;
+  background: var(--ve-surface-2);
+  border: 1px solid var(--ve-border-2);
+  border-radius: var(--ve-radius-sm);
+  min-width: 170px;
+  z-index: 3000;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5), 0 0 0 1px var(--ve-glow-teal);
+  overflow: hidden;
+  animation: ve-dropdown-in 0.1s ease;
+}
+
+.context-menu-item {
+  padding: 8px 14px;
+  font-size: 0.78rem;
+  color: var(--ve-text-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.1s;
+}
+
+.context-menu-item:hover {
+  background: var(--ve-teal-dim);
+  color: var(--ve-teal);
+}
+
+.context-menu-item.danger:hover {
+  background: rgba(255,59,96,0.1);
+  color: #ff8090;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background: var(--ve-border);
+  margin: 3px 0;
+}
+
+/* ─────────────────────────────────────────────
+   AUDIO PREVIEW IN SOURCE MONITOR
+───────────────────────────────────────────── */
+.audio-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  color: var(--ve-text-2);
+}
+
+.audio-preview p {
+  font-size: 0.8rem;
+  color: var(--ve-text-2);
+}
+
+/* ─────────────────────────────────────────────
+   STATUS BAR (bottom)
+───────────────────────────────────────────── */
+.editor-statusbar {
+  display: flex;
+  align-items: center;
+  height: 22px;
+  min-height: 22px;
+  background: var(--ve-hull);
+  border-top: 1px solid var(--ve-border);
+  padding: 0 10px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.statusbar-item {
+  font-family: var(--ve-font-mono);
+  font-size: 0.58rem;
+  color: var(--ve-text-3);
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statusbar-item.ok   { color: var(--ve-green); }
+.statusbar-item.warn { color: var(--ve-amber); }
+.statusbar-item.err  { color: var(--ve-red); }
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .editor-left-panel,
+  .editor-right-panel { display: none; }
+  .preview-area-container { padding: 4px; }
+}
+
+@media (max-width: 600px) {
+  .editor-toolbar { overflow-x: auto; }
+  .tool-rail { display: none; }
+}
+
+/* ─────────────────────────────────────────────
+   ANIMATIONS
+───────────────────────────────────────────── */
+@keyframes ve-pulse-teal {
+  0%, 100% { box-shadow: 0 0 6px rgba(0,255,200,0.2); }
+  50%       { box-shadow: 0 0 16px rgba(0,255,200,0.4); }
+}
+
+.recording-indicator {
+  animation: ve-pulse-teal 1.2s ease-in-out infinite;
+  color: var(--ve-red) !important;
+}
+
+/* ─────────────────────────────────────────────
+   IMPORT NOTE
+   Replace or augment your existing VideoEditor.css.
+   Ensure VideoEditorComponent.js imports this:
+     import "../../styles/VideoEditor.css";
+   The key monitor centering fix is .preview-screen
+   with flex center + video absolute translate(-50%,-50%).
+   If inline styles on .preview-screen override this,
+   remove the inline style from the JSX.
+============================================================================= */
