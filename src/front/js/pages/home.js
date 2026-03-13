@@ -5,6 +5,12 @@ import logo from "../../img/StreampireX.png";
 import WaitlistSection from "../component/WaitlistSection";
 import "../../styles/home.css";
 
+// Screenshot imports — place these files in src/front/img/
+import screenshotDashboard from "../../img/streampirex-home-dashboard.png";
+import screenshotDAW from "../../img/streampirex-home-daw.png";
+import screenshotPodcast from "../../img/streampirex-home-podcast_studio.png";
+import screenshotVideoEditor from "../../img/streampirex-home-video_editor.png";
+
 // =============================================================================
 // home.js — StreamPireX Landing Page (Updated Mar 2026)
 // =============================================================================
@@ -98,8 +104,13 @@ const Home = () => {
 					</div>
 				</div>
 
-				<div className="hero-image-placeholder">
-					🎛️ 32-Track DAW Screenshot Area
+				{/* Dashboard screenshot — shown in hero */}
+				<div className="hero-image-placeholder" style={{ padding: 0, overflow: "hidden", borderRadius: "12px", border: "1px solid rgba(0,255,200,0.15)" }}>
+					<img
+						src={screenshotDashboard}
+						alt="StreamPireX Creator Dashboard"
+						style={{ width: "100%", display: "block", maxHeight: "420px", objectFit: "cover", objectPosition: "top" }}
+					/>
 				</div>
 			</header>
 
@@ -536,6 +547,33 @@ const Home = () => {
 					Professional results. Zero experience needed. Powered by AI.
 				</p>
 
+				{/* DAW screenshot — shown above AI feature cards */}
+				<div style={{
+					maxWidth: "1100px",
+					margin: "0 auto 3rem auto",
+					borderRadius: "12px",
+					overflow: "hidden",
+					border: "1px solid rgba(0,255,200,0.15)",
+					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
+				}}>
+					<img
+						src={screenshotDAW}
+						alt="StreamPireX Beat Maker & DAW"
+						style={{ width: "100%", display: "block" }}
+					/>
+					<div style={{
+						padding: "12px 20px",
+						background: "rgba(0,255,200,0.04)",
+						borderTop: "1px solid rgba(0,255,200,0.1)",
+						color: "#00ffc8",
+						fontSize: "13px",
+						fontWeight: 600,
+						letterSpacing: "0.5px"
+					}}>
+						🎛️ Beat Maker & MPC Sampler — Live in browser. No download required.
+					</div>
+				</div>
+
 				<div className="ai-features-grid">
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🎚️</div>
@@ -778,6 +816,33 @@ const Home = () => {
 					The complete workstation: create, broadcast, host, and distribute from one place.
 				</p>
 
+				{/* Podcast Studio screenshot */}
+				<div style={{
+					maxWidth: "1100px",
+					margin: "0 auto 3rem auto",
+					borderRadius: "12px",
+					overflow: "hidden",
+					border: "1px solid rgba(0,255,200,0.15)",
+					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
+				}}>
+					<img
+						src={screenshotPodcast}
+						alt="StreamPireX Podcast Studio"
+						style={{ width: "100%", display: "block" }}
+					/>
+					<div style={{
+						padding: "12px 20px",
+						background: "rgba(0,255,200,0.04)",
+						borderTop: "1px solid rgba(0,255,200,0.1)",
+						color: "#00ffc8",
+						fontSize: "13px",
+						fontWeight: 600,
+						letterSpacing: "0.5px"
+					}}>
+						🎙️ Podcast Studio — Record with remote guests, distribute to Spotify & Apple Podcasts, monetize.
+					</div>
+				</div>
+
 				<div className="feature-grid">
 					<div className="feature-card highlight">
 						<div className="feature-icon">🎚️</div>
@@ -958,6 +1023,33 @@ const Home = () => {
 						<h4>Creator Academy</h4>
 						<p>Courses and tutorials on music production, streaming, marketing, and growing your audience.</p>
 						<span className="feature-tag new">NEW</span>
+					</div>
+				</div>
+
+				{/* Video Editor screenshot — shown below feature grid */}
+				<div style={{
+					maxWidth: "1100px",
+					margin: "3rem auto 0 auto",
+					borderRadius: "12px",
+					overflow: "hidden",
+					border: "1px solid rgba(0,255,200,0.15)",
+					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
+				}}>
+					<img
+						src={screenshotVideoEditor}
+						alt="StreamPireX Video Editor"
+						style={{ width: "100%", display: "block" }}
+					/>
+					<div style={{
+						padding: "12px 20px",
+						background: "rgba(0,255,200,0.04)",
+						borderTop: "1px solid rgba(0,255,200,0.1)",
+						color: "#00ffc8",
+						fontSize: "13px",
+						fontWeight: 600,
+						letterSpacing: "0.5px"
+					}}>
+						🎬 Professional Video Editor — Multi-track timeline, color grading, effects, and export. Free on all plans.
 					</div>
 				</div>
 			</section>

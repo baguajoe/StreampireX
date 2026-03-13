@@ -3,6 +3,7 @@ import {
     BrowserRouter as Router,
     Routes,
     Route,
+    Navigate,
     useLocation,
     Link
 } from "react-router-dom";
@@ -68,6 +69,8 @@ import SongExtender from "./pages/SongExtender";
 import HumToSong from "./pages/HumToSong";
 import CreatorSampleMarketplace from "./pages/CreatorSampleMarketplace";
 import CreatorAcademy from "./pages/CreatorAcademy";
+import CourseBuilder from "./pages/CourseBuilder";
+import CoursePlayer from "./pages/CoursePlayer";
 import CollabMarketplace from "./pages/CollabMarketplace";
 import JamTrackLibrary from "./pages/JamTrackLibrary";
 import QuickCaptureMode from "./pages/QuickCaptureMode";
@@ -102,6 +105,7 @@ import { Footer } from "./component/footer";
 import Navbar from "./component/navbar";
 import DiscoverCreators from "./pages/DiscoverCreators";
 import MerchStore from "./pages/MerchStore";
+import MusicStore from "./pages/MusicStore";
 import AnnouncementBar from "./component/AnnouncementBar";
 import Sidebar from "./component/sidebar";
 import { BackendURL } from "./component/backendURL";
@@ -231,7 +235,7 @@ const PublicNavbar = () => {
                     <button
                         onClick={() => {
                             const code = prompt("Enter Developer Access Code:");
-                            if (code === "777") { // You can change '777' to your secret code
+                            if (code === "777") {
                                 window.location.href = "/dev-login";
                             } else {
                                 alert("Unauthorized access.");
@@ -278,7 +282,6 @@ const WaitlistForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // This tells the frontend to talk to your Python backend
         const backendUrl = process.env.BACKEND_URL || "";
 
         try {
@@ -379,7 +382,7 @@ const AppShell = ({ user }) => {
     const containerClass =
         isPublicPage || isAuthPage ? "container-fluid p-0" : "container-fluid";
     const handleDevAccess = (e) => {
-        const secretCode = "777"; // You can change this to any code you want
+        const secretCode = "777";
         const input = prompt("Enter Developer Access Code:");
 
         if (input === secretCode) {
@@ -417,10 +420,13 @@ const AppShell = ({ user }) => {
                                 <Route path="/dev-login" element={<Login />} />
 
                                 {/* ---------------- Core App ---------------- */}
-                                <Route path="/dashboard" element={<Dashboard />} />
-                                <Route path="/creator-dashboard" element={<CreatorDashboard />} />
-                                <Route path="/seller-dashboard" element={<SellerDashboard />} />
-                                <Route path="/artist-dashboard" element={<ArtistDashboard />} />
+                                <Route path="/dashboard/*" element={<Dashboard />} />
+                                <Route path="/creator-dashboard" element={<Navigate to="/dashboard" replace />} />
+                                <Route path="/seller-dashboard" element={<Navigate to="/dashboard" replace />} />
+                                <Route path="/artist-dashboard" element={<Navigate to="/dashboard" replace />} />
+                                <Route path="/podcast-dashboard" element={<PodcastDashboard />} />
+                                <Route path="/radio-station-dashboard" element={<RadioStationDashboard />} />
+                                <Route path="/video-channel-dashboard" element={<VideoChannelDashboard />} />
                                 <Route path="/sales-dashboard" element={<SalesDashboard />} />
                                 <Route path="/payout-dashboard" element={<PayoutDashboard />} />
                                 <Route path="/notifications" element={<NotificationsPage />} />
@@ -464,17 +470,20 @@ const AppShell = ({ user }) => {
                                 <Route path="/creator-sample-marketplace" element={<CreatorSampleMarketplace />} />
                                 <Route path="/jam-track-library" element={<JamTrackLibrary />} />
 
+                                {/* ---------------- Music Store ---------------- */}
+                                <Route path="/music-store" element={<MusicStore />} />
+
                                 {/* ---------------- Marketplace / Merch ---------------- */}
                                 <Route path="/marketplace" element={<Marketplace />} />
                                 <Route path="/storefront" element={<StorefrontPage />} />
                                 <Route path="/merch-store" element={<MerchStore />} />
+                                <Route path="/store/:username" element={<MerchStore />} />
                                 <Route path="/product/:id" element={<ProductDetailPage />} />
                                 <Route path="/cart" element={<ShoppingCart />} />
                                 <Route path="/checkout" element={<CheckoutPage />} />
                                 <Route path="/orders" element={<OrderHistoryPage />} />
 
                                 {/* ---------------- Radio / Podcast ---------------- */}
-                                <Route path="/podcast-dashboard" element={<PodcastDashboard />} />
                                 <Route path="/podcast-create" element={<PodcastCreate />} />
                                 <Route path="/podcast-studio" element={<PodcastStudio />} />
                                 <Route path="/podcast-guest-join" element={<PodcastGuestJoin />} />
@@ -486,7 +495,6 @@ const AppShell = ({ user }) => {
                                 <Route path="/podcast-profile/:id" element={<PodcastProfile />} />
                                 <Route path="/podcast-category/:category" element={<PodcastCategoryPage />} />
                                 <Route path="/browse-podcast-categories" element={<BrowsePodcastCategories />} />
-                                <Route path="/radio-station-dashboard" element={<RadioStationDashboard />} />
                                 <Route path="/radio-stations" element={<RadioStationPage />} />
                                 <Route path="/create-radio-station" element={<CreateRadioStation />} />
                                 <Route path="/browse-radio-stations" element={<BrowseRadioStations />} />
@@ -501,7 +509,6 @@ const AppShell = ({ user }) => {
                                 <Route path="/video-upload" element={<VideoUpload />} />
                                 <Route path="/video/:id" element={<VideoDetails />} />
                                 <Route path="/video-editor" element={<VideoEditor />} />
-                                <Route path="/video-channel-dashboard" element={<VideoChannelDashboard />} />
                                 <Route path="/video-channel/:id" element={<VideoChannelProfile />} />
                                 <Route path="/my-video-channel" element={<MyVideoChannel />} />
                                 <Route path="/user-video-channel/:id" element={<UserVideoChannelPage />} />
@@ -542,8 +549,13 @@ const AppShell = ({ user }) => {
 
                                 {/* ---------------- Community / Membership ---------------- */}
                                 <Route path="/creator-academy" element={<CreatorAcademy />} />
+                                <Route path="/course-builder" element={<CourseBuilder />} />
+                                <Route path="/course-builder/:courseId" element={<CourseBuilder />} />
+                                <Route path="/course/:courseId" element={<CoursePlayer />} />
                                 <Route path="/creator-memberships" element={<CreatorMembershipManager />} />
+                                <Route path="/creator/membership" element={<CreatorMembershipManager />} />
                                 <Route path="/fan-memberships" element={<FanMembershipPage />} />
+                                <Route path="/fan-membership/:creatorId" element={<FanMembershipPage />} />
                                 <Route path="/team-room/:id" element={<TeamRoomPage />} />
                                 <Route path="/create-team-room" element={<CreateTeamRoomPage />} />
                                 <Route path="/gamer-profile/:id" element={<GamerProfilePage />} />

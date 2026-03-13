@@ -1193,10 +1193,10 @@ const ArtistDashboard = () => {
           </div>
 
           <div className="header-actions">
-            <Link to="/profile/artist" className="btn-secondary">
+            <Link to="/artist-dashboard" className="btn-secondary">
               <FaEye /> View Profile
             </Link>
-            <Link to="/profile/artist/edit" className="btn-secondary">
+            <Link to="/artist-dashboard/edit" className="btn-secondary">
               <FaCog /> Settings
             </Link>
           </div>

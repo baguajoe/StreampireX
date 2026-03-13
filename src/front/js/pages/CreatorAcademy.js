@@ -1,404 +1,302 @@
-/**
- * CreatorAcademy.js
- * StreamPireX — Creator Academy (closes LANDR 200+ courses gap)
- *
- * Features:
- *  - 18 courses across 8 categories: Production, Mixing, Mastering, Theory,
- *    Distribution, Marketing, Equipment, Business
- *  - Progress tracking per course
- *  - Skill level filter: Beginner / Intermediate / Advanced
- *  - Free lessons for all tiers + premium for Creator/Pro
- *  - Search across all courses
- *  - Featured + New badges
- *  - Course detail modal with lesson list
- *
- * Route: /academy
- * Integration: <Route path="/academy" element={<CreatorAcademy />} />
- */
+// =============================================================================
+// CreatorAcademy.js — Marketplace / Browse Page
+// =============================================================================
+// Location: src/front/js/pages/CreatorAcademy.js
+// Route: /creator-academy
+// =============================================================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
-// ---------------------------------------------------------------------------
-// Data
-// ---------------------------------------------------------------------------
 const CATEGORIES = [
-  { id:'all',          label:'All',          icon:'📚' },
-  { id:'production',   label:'Production',   icon:'🎛' },
-  { id:'mixing',       label:'Mixing',       icon:'🎚' },
-  { id:'mastering',    label:'Mastering',    icon:'💿' },
-  { id:'theory',       label:'Music Theory', icon:'♩'  },
-  { id:'distribution', label:'Distribution', icon:'🚀' },
-  { id:'marketing',    label:'Marketing',    icon:'📣' },
-  { id:'equipment',    label:'Equipment',    icon:'🎙' },
-  { id:'business',     label:'Business',     icon:'💼' },
+  { id: "",                  label: "All",               icon: "🌟" },
+  { id: "music-production",  label: "Music Production",  icon: "🎹" },
+  { id: "podcasting",        label: "Podcasting",        icon: "🎙️" },
+  { id: "beat-making",       label: "Beat Making",       icon: "🥁" },
+  { id: "mixing-mastering",  label: "Mixing & Mastering",icon: "🎚️" },
+  { id: "live-streaming",    label: "Live Streaming",    icon: "📡" },
+  { id: "video-editing",     label: "Video Editing",     icon: "🎬" },
+  { id: "content-strategy",  label: "Content Strategy",  icon: "📱" },
+  { id: "music-business",    label: "Music Business",    icon: "💰" },
+  { id: "songwriting",       label: "Songwriting",       icon: "✍️" },
+  { id: "branding",          label: "Artist Branding",   icon: "🎨" },
 ];
 
-const LEVELS = ['All Levels','Beginner','Intermediate','Advanced'];
-
-const COURSES = [
-  { id:'c1',  category:'production',   title:'Beat Making Fundamentals',           instructor:'DJ ProduceIt',     level:'Beginner',     lessonCount:12, duration:'2h 30m', free:true,  featured:true,  isNew:false, color:'#00ffc8', progress:0,
-    description:'Learn to build professional beats from scratch using the StreamPireX Beat Maker.',
-    lessons:['Intro to the Beat Maker','Loading Drum Kits','Programming Patterns','Working with 808s','Adding Melody Loops','Arrangement Basics','Layering Sounds','Using Swing & Groove','Sampling Techniques','Mixing Your Beat','Exporting Stems','Full Beat Walkthrough'] },
-
-  { id:'c2',  category:'production',   title:'Advanced Sound Design',              instructor:'SynthMaster K',    level:'Advanced',     lessonCount:18, duration:'4h 15m', free:false, featured:false, isNew:true,  color:'#FF6600', progress:0,
-    description:'Deep dive into synthesis, modulation, and creating unique sounds from scratch.',
-    lessons:['Subtractive Synthesis','FM Synthesis Basics','Wavetable Design','Modulation Routing','LFOs & Envelopes','Filter Techniques','Granular Concepts','Layering Synths','Resampling','Creating Pads','Designing Leads','Bass Design','FX Chains','Parallel Processing','Sound Morphing','Arp & Sequencer','Presets vs Scratch','Full Patch Walkthrough'] },
-
-  { id:'c3',  category:'production',   title:'Sample Flipping Techniques',         instructor:'ChopKing',         level:'Intermediate', lessonCount:8,  duration:'1h 45m', free:true,  featured:false, isNew:false, color:'#7C3AED', progress:60,
-    description:'Master the art of chopping, flipping, and resampling classic loops.',
-    lessons:['Finding Samples','Chopping in the DAW','Pitch Correction','Layering Chops','Drum Programming Over Samples','Adding Chord Stabs','Filtering & EQ','Full Flip Walkthrough'] },
-
-  { id:'c4',  category:'production',   title:'Trap Production A-Z',                instructor:'808 Baron',        level:'Beginner',     lessonCount:20, duration:'5h', free:false, featured:true,  isNew:false, color:'#FFD700', progress:30,
-    description:'Complete guide to trap production from drum patterns to final mixdown.',
-    lessons:['Trap History','Setting Up Your Session','Hi-Hat Patterns','Kick & Snare Fundamentals','808 Slides & Pitch','Melody & Chords','Building a Hook','Verse Arrangement','Bridge & Drop','Layering Instruments','Mixing Trap Drums','Low End Theory','Vocal Chops','Ad-libs & FX','Reference Tracks','Mixdown Prep','Stems Export','Mastering for Trap','Submitting to Labels','Full Beat Session'] },
-
-  { id:'c5',  category:'mixing',       title:'EQ Masterclass',                     instructor:'Mix Engineer Pro', level:'Intermediate', lessonCount:10, duration:'2h', free:true,  featured:true,  isNew:false, color:'#00c8ff', progress:100,
-    description:'Everything about equalization: corrective, creative, and surgical techniques.',
-    lessons:['What is EQ?','Frequency Spectrum Overview','Corrective EQ','Subtractive EQ','Additive EQ','High-Pass & Low-Pass','Mid-Side EQ','Dynamic EQ','Linear Phase EQ','Full Mix EQ Chain'] },
-
-  { id:'c6',  category:'mixing',       title:'Compression Deep Dive',              instructor:'Dynamics Dave',    level:'Intermediate', lessonCount:9,  duration:'1h 50m', free:false, featured:false, isNew:false, color:'#f97316', progress:0,
-    description:'Master every compressor parameter and real-world workflow technique.',
-    lessons:['Attack & Release','Ratio & Threshold','Knee Settings','Parallel Compression','Sidechain Techniques','Bus Compression','Multiband Compression','Limiting vs Compression','Full Chain Walkthrough'] },
-
-  { id:'c7',  category:'mixing',       title:'Stereo Width & Imaging',             instructor:'PanoramaQ',        level:'Advanced',     lessonCount:7,  duration:'1h 30m', free:false, featured:false, isNew:true,  color:'#a855f7', progress:0,
-    description:'Build wide, immersive mixes that translate on every playback system.',
-    lessons:['Mid-Side Basics','Haas Effect','Stereo Spreaders','Width on Drums','Width on Synths','Mono Compatibility','Full Mix Imaging Check'] },
-
-  { id:'c8',  category:'mixing',       title:'Mixing Vocals Like a Pro',           instructor:'VocalEngineer',    level:'Beginner',     lessonCount:15, duration:'3h 10m', free:true,  featured:false, isNew:false, color:'#22d3ee', progress:40,
-    description:'The complete vocal chain: tuning, compression, EQ, reverb, and effects.',
-    lessons:['Gain Staging Vocals','Pitch Correction Basics','Melodyne Workflow','De-essing','EQ for Vocals','Compression for Vocals','Parallel Vocal Compression','Reverb & Delay','Vocal Doubling','Harmonies','Adlibs Mix','Vocal Bus','Automation','Cohesion with Instruments','Full Vocal Mix'] },
-
-  { id:'c9',  category:'mastering',    title:'Mastering for Streaming Platforms',  instructor:'LUFS Labs',        level:'Intermediate', lessonCount:8,  duration:'1h 45m', free:true,  featured:true,  isNew:false, color:'#00ffc8', progress:0,
-    description:'Hit the right loudness targets for Spotify, Apple Music, and YouTube.',
-    lessons:['LUFS Explained','True Peak Limiting','Loudness Normalization','Spotify Target (-14 LUFS)','Apple Music Target (-16 LUFS)','YouTube Target (-13 LUFS)','Mastering Chain Setup','Export Formats & Bit Depth'] },
-
-  { id:'c10', category:'mastering',    title:'Reference Mastering Workflow',       instructor:'AudioRefPro',      level:'Advanced',     lessonCount:6,  duration:'1h 20m', free:false, featured:false, isNew:true,  color:'#FF6600', progress:0,
-    description:'Analytically match your masters to commercial reference tracks.',
-    lessons:['Choosing References','Spectrum Analysis','LUFS Matching','EQ Matching','Dynamic Range Comparison','Full Reference Session'] },
-
-  { id:'c11', category:'theory',       title:'Music Theory for Producers',         instructor:'TheoryHedz',       level:'Beginner',     lessonCount:16, duration:'3h 30m', free:true,  featured:true,  isNew:false, color:'#FFD700', progress:20,
-    description:'Chords, scales, progressions, and everything a modern producer needs.',
-    lessons:['Notes & Intervals','Major Scale','Minor Scale','Modes Overview','Triads & Chords','Chord Inversions','Common Progressions','ii-V-I in Jazz','Roman Numerals','Rhythm Basics','Time Signatures','Syncopation','Melody Writing','Countermelody','Transposition','Full Theory Review'] },
-
-  { id:'c12', category:'theory',       title:'Advanced Harmony & Chord Progressions', instructor:'JazzMode',    level:'Advanced',     lessonCount:12, duration:'2h 40m', free:false, featured:false, isNew:false, color:'#7C3AED', progress:0,
-    description:'Jazz harmony, reharmonization, and modal music applied to modern production.',
-    lessons:['7th Chords Expanded','Extended Chords (9,11,13)','Altered Chords','Tritone Substitution','Reharmonization','Modal Harmony','Borrowed Chords','Secondary Dominants','Chromatic Mediant','Voice Leading','Negative Harmony','Full Harmony Session'] },
-
-  { id:'c13', category:'distribution', title:'Release Music Independently',        instructor:'IndieLabel101',    level:'Beginner',     lessonCount:10, duration:'2h', free:true,  featured:true,  isNew:false, color:'#00c8ff', progress:80,
-    description:'Step-by-step: distribute your music through StreamPireX & SonoSuite.',
-    lessons:['Setting Up Your Profile','Metadata Best Practices','Artwork Requirements','ISRC & UPC Codes','Choosing Release Date','Streaming Platform Overview','Pre-Save Campaigns','Release Strategy','Royalty Collection','Post-Release Analytics'] },
-
-  { id:'c14', category:'distribution', title:'Playlist Pitching Strategy',         instructor:'PlaylistPro',      level:'Intermediate', lessonCount:8,  duration:'1h 30m', free:false, featured:false, isNew:true,  color:'#34d399', progress:0,
-    description:'Get your music onto Spotify editorial and independent playlists.',
-    lessons:['Spotify for Artists Setup','Editorial Pitch Process','Independent Playlist Curators','Playlist Research Tools','Pitch Email Templates','Timing Your Pitch','Following Up','Tracking Results'] },
-
-  { id:'c15', category:'marketing',    title:'Build a Fan Base on Social Media',   instructor:'FanGrowth',        level:'Beginner',     lessonCount:14, duration:'2h 50m', free:true,  featured:false, isNew:false, color:'#f97316', progress:0,
-    description:'TikTok, Instagram Reels, YouTube Shorts — grow your audience organically.',
-    lessons:['Content Strategy Basics','Hook in 3 Seconds','Behind-the-Scenes Content','Studio Vlogs','Beat Videos','Lyric Videos','Collab Content','Cross-Platform Strategy','Hashtag Strategy','Optimal Posting Times','Engaging with Comments','Stories & Lives','Paid Promotion Basics','Analytics Deep Dive'] },
-
-  { id:'c16', category:'marketing',    title:'Artist Branding & EPK Creation',     instructor:'BrandYourSound',   level:'Beginner',     lessonCount:9,  duration:'1h 40m', free:false, featured:false, isNew:false, color:'#FF6600', progress:0,
-    description:'Build a compelling artist brand and professional Electronic Press Kit.',
-    lessons:['Defining Your Sound & Brand','Artist Name & Logo','Photography Brief','Bio Writing','EPK Structure','Streaming Links & Stats','Press & Media Mentions','Booking Info','Distributing Your EPK'] },
-
-  { id:'c17', category:'equipment',    title:'Home Studio Setup Guide',            instructor:'GearHeadMusic',    level:'Beginner',     lessonCount:11, duration:'2h 15m', free:true,  featured:false, isNew:false, color:'#00ffc8', progress:0,
-    description:'Build a professional-sounding home studio on any budget.',
-    lessons:['Room Acoustics Basics','Acoustic Treatment DIY','Choosing an Interface','Microphone Types','Studio Monitors vs Headphones','DAW Selection','Cables & Connections','MIDI Controllers','Budget Setup ($300)','Mid-Range Setup ($1000)','Pro Setup ($3000+)'] },
-
-  { id:'c18', category:'business',     title:'Music Licensing & Sync Deals',       instructor:'LicenseLawyer',    level:'Intermediate', lessonCount:10, duration:'2h', free:false, featured:true,  isNew:true,  color:'#FFD700', progress:0,
-    description:'License your music for TV, film, video games, and advertising.',
-    lessons:['What is Sync Licensing?','Master vs Sync License','PROs & Royalty Collection','Music Libraries Overview','Pitching to Supervisors','Licensing Agreements','Rate Negotiation','Work-for-Hire vs Licensing','Building a Sync Portfolio','Full Case Study'] },
+const SORTS = [
+  { id: "newest",     label: "Newest" },
+  { id: "popular",    label: "Most Popular" },
+  { id: "free",       label: "Free Only" },
+  { id: "price_asc",  label: "Price: Low–High" },
+  { id: "price_desc", label: "Price: High–Low" },
 ];
 
-// ---------------------------------------------------------------------------
-// CourseCard
-// ---------------------------------------------------------------------------
-function CourseCard({ course, onOpen }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div
-      onClick={() => onOpen(course)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background:'#161b22',
-        border:`1px solid ${hovered ? course.color : '#21262d'}`,
-        borderRadius:8, overflow:'hidden', cursor:'pointer',
-        transition:'border-color 0.2s', display:'flex', flexDirection:'column',
-      }}
-    >
-      {/* Color stripe header */}
-      <div style={{
-        height:6,
-        background: course.progress === 100 ? '#00ffc8' : course.progress > 0 ? `linear-gradient(to right, #00ffc8 ${course.progress}%, #21262d ${course.progress}%)` : `${course.color}44`,
-      }} />
+const MOCK_COURSES = [
+  { id: 1, title: "Complete Beat Making with StreamPireX", creator_name: "BeatMaestro", category: "beat-making", price: 29.99, enrollment_count: 1240, avg_rating: 4.8, review_count: 89, lesson_count: 24, thumbnail_url: "", tags: ["beginner", "fl studio", "hip hop"], published: true },
+  { id: 2, title: "Launch Your Podcast in 7 Days", creator_name: "PodPro", category: "podcasting", price: 0, enrollment_count: 3100, avg_rating: 4.6, review_count: 204, lesson_count: 14, thumbnail_url: "", tags: ["free", "beginner", "podcast"], published: true },
+  { id: 3, title: "Mixing & Mastering Masterclass", creator_name: "StudioGuru", category: "mixing-mastering", price: 49.99, enrollment_count: 780, avg_rating: 4.9, review_count: 67, lesson_count: 32, thumbnail_url: "", tags: ["advanced", "mixing", "mastering"], published: true },
+  { id: 4, title: "Music Business 101: Get Paid for Your Art", creator_name: "IndustryInsider", category: "music-business", price: 39.99, enrollment_count: 520, avg_rating: 4.7, review_count: 45, lesson_count: 18, thumbnail_url: "", tags: ["business", "royalties", "distribution"], published: true },
+  { id: 5, title: "Live Streaming for Creators", creator_name: "StreamQueen", category: "live-streaming", price: 19.99, enrollment_count: 960, avg_rating: 4.5, review_count: 71, lesson_count: 12, thumbnail_url: "", tags: ["streaming", "obs", "engagement"], published: true },
+  { id: 6, title: "Songwriting from Scratch", creator_name: "LyricSmith", category: "songwriting", price: 0, enrollment_count: 2200, avg_rating: 4.4, review_count: 130, lesson_count: 16, thumbnail_url: "", tags: ["free", "songwriting", "beginner"], published: true },
+  { id: 7, title: "Pro Music Production in the Browser", creator_name: "WebDAWKing", category: "music-production", price: 34.99, enrollment_count: 670, avg_rating: 4.7, review_count: 52, lesson_count: 28, thumbnail_url: "", tags: ["browser", "intermediate", "daw"], published: true },
+  { id: 8, title: "Artist Branding: Build Your Identity", creator_name: "BrandBuildr", category: "branding", price: 24.99, enrollment_count: 430, avg_rating: 4.6, review_count: 38, lesson_count: 10, thumbnail_url: "", tags: ["branding", "design", "social media"], published: true },
+];
 
-      <div style={{ padding:'10px 12px', flex:1, display:'flex', flexDirection:'column' }}>
-        {/* Badges */}
-        <div style={{ display:'flex', gap:4, marginBottom:6, flexWrap:'wrap' }}>
-          {course.featured && (
-            <span style={{ fontSize:9, padding:'1px 5px', borderRadius:3, background:'#FFD70022', border:'1px solid #FFD700', color:'#FFD700', fontFamily:'JetBrains Mono,monospace' }}>FEATURED</span>
-          )}
-          {course.isNew && (
-            <span style={{ fontSize:9, padding:'1px 5px', borderRadius:3, background:'#00ffc822', border:'1px solid #00ffc8', color:'#00ffc8', fontFamily:'JetBrains Mono,monospace' }}>NEW</span>
-          )}
-          {!course.free && (
-            <span style={{ fontSize:9, padding:'1px 5px', borderRadius:3, background:'#FF660022', border:'1px solid #FF6600', color:'#FF6600', fontFamily:'JetBrains Mono,monospace' }}>PRO</span>
-          )}
-          {course.progress === 100 && (
-            <span style={{ fontSize:9, padding:'1px 5px', borderRadius:3, background:'#00ffc822', border:'1px solid #00ffc8', color:'#00ffc8', fontFamily:'JetBrains Mono,monospace' }}>✓ DONE</span>
-          )}
-        </div>
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
 
-        {/* Title */}
-        <div style={{ fontSize:12, fontWeight:700, color:'#e6edf3', marginBottom:4, fontFamily:'JetBrains Mono,monospace', lineHeight:1.3 }}>
-          {course.title}
-        </div>
-        <div style={{ fontSize:10, color:'#8b949e', marginBottom:6 }}>by {course.instructor}</div>
+const CreatorAcademy = () => {
+  const navigate = useNavigate();
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [category, setCategory] = useState("");
+  const [sort, setSort] = useState("newest");
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [myEnrollments, setMyEnrollments] = useState([]);
 
-        {/* Description */}
-        <div style={{ fontSize:10, color:'#8b949e', lineHeight:1.5, flex:1,
-          display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
-          {course.description}
-        </div>
+  const token = localStorage.getItem("token") || sessionStorage.getItem("token");
 
-        {/* Meta */}
-        <div style={{ display:'flex', justifyContent:'space-between', marginTop:8, fontSize:10 }}>
-          <span style={{ color: course.level==='Beginner' ? '#00ffc8' : course.level==='Intermediate' ? '#FFD700' : '#FF6600' }}>
-            {course.level}
-          </span>
-          <span style={{ color:'#8b949e' }}>{course.lessonCount} lessons · {course.duration}</span>
-        </div>
-
-        {/* Progress bar */}
-        {course.progress > 0 && (
-          <div style={{ marginTop:6, height:3, background:'#21262d', borderRadius:2 }}>
-            <div style={{ height:'100%', borderRadius:2, width:`${course.progress}%`,
-              background: course.progress === 100 ? '#00ffc8' : '#FFD700', transition:'width 0.3s' }} />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// CourseDetail Modal
-// ---------------------------------------------------------------------------
-function CourseDetail({ course, onClose, onStartLesson }) {
-  const [activeLesson, setActiveLesson] = useState(0);
-  if (!course) return null;
-
-  return (
-    <div style={{
-      position:'fixed', inset:0, zIndex:1000, background:'#00000099',
-      display:'flex', alignItems:'center', justifyContent:'center', padding:20,
-    }} onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{
-        background:'#1f2937', border:`2px solid ${course.color}`,
-        borderRadius:12, width:'100%', maxWidth:640, maxHeight:'85vh',
-        overflow:'auto', fontFamily:'JetBrains Mono,monospace',
-      }}>
-        {/* Header */}
-        <div style={{ background:`${course.color}22`, padding:'14px 16px', borderBottom:`1px solid ${course.color}44`, display:'flex', justifyContent:'space-between' }}>
-          <div>
-            <div style={{ fontSize:16, fontWeight:900, color:course.color }}>{course.title}</div>
-            <div style={{ fontSize:11, color:'#8b949e', marginTop:2 }}>by {course.instructor} · {course.level} · {course.lessonCount} lessons · {course.duration}</div>
-          </div>
-          <button onClick={onClose} style={{ background:'none', border:'none', color:'#8b949e', fontSize:20, cursor:'pointer' }}>×</button>
-        </div>
-
-        <div style={{ padding:'14px 16px' }}>
-          <p style={{ fontSize:12, color:'#e6edf3', lineHeight:1.7, marginBottom:14 }}>{course.description}</p>
-
-          {/* Start button */}
-          {course.free ? (
-            <button onClick={() => onStartLesson(course, 0)} style={{
-              width:'100%', background:`${course.color}22`, border:`1px solid ${course.color}`,
-              color:course.color, borderRadius:6, padding:'10px', cursor:'pointer',
-              fontFamily:'inherit', fontSize:13, fontWeight:700, marginBottom:14,
-            }}>▶ {course.progress > 0 ? 'Continue Course' : 'Start Course'}</button>
-          ) : (
-            <div style={{ marginBottom:14 }}>
-              <div style={{ fontSize:11, color:'#8b949e', marginBottom:6 }}>
-                🔒 This course requires a Creator or Pro subscription
-              </div>
-              <button style={{
-                width:'100%', background:'#FF660022', border:'1px solid #FF6600',
-                color:'#FF6600', borderRadius:6, padding:'10px', cursor:'pointer',
-                fontFamily:'inherit', fontSize:12, fontWeight:700,
-              }}>Upgrade to Unlock</button>
-            </div>
-          )}
-
-          {/* Lesson list */}
-          <div style={{ fontSize:10, color:'#8b949e', letterSpacing:2, marginBottom:8 }}>LESSONS</div>
-          {(course.lessons || []).map((lesson, i) => (
-            <div key={i} style={{
-              display:'flex', alignItems:'center', gap:10, padding:'7px 10px',
-              borderRadius:6, marginBottom:3, cursor:'pointer',
-              background: i === activeLesson ? `${course.color}11` : 'transparent',
-              border:`1px solid ${i === activeLesson ? course.color + '44' : 'transparent'}`,
-            }} onClick={() => setActiveLesson(i)}>
-              <div style={{
-                width:20, height:20, borderRadius:'50%', fontSize:9, fontWeight:700,
-                display:'flex', alignItems:'center', justifyContent:'center',
-                background: i < Math.floor((course.progress / 100) * course.lessonCount)
-                  ? course.color : '#21262d',
-                color: i < Math.floor((course.progress / 100) * course.lessonCount)
-                  ? '#0d1117' : '#8b949e',
-                flexShrink:0,
-              }}>
-                {i < Math.floor((course.progress / 100) * course.lessonCount) ? '✓' : i + 1}
-              </div>
-              <span style={{ fontSize:11, color: i === activeLesson ? course.color : '#e6edf3' }}>
-                {lesson}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Main Component
-// ---------------------------------------------------------------------------
-export default function CreatorAcademy() {
-  const [category, setCategory] = useState('all');
-  const [level, setLevel] = useState('All Levels');
-  const [search, setSearch] = useState('');
-  const [filterFree, setFilterFree] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState(null);
-  const [courses, setCourses] = useState(COURSES);
-
-  const handleStartLesson = (course, lessonIndex) => {
-    // In real app: track progress via /api/academy/progress
-    alert(`Starting: "${course.lessons[lessonIndex]}"\n\nIn production this opens the video player / lesson viewer.`);
-    setCourses(prev => prev.map(c =>
-      c.id === course.id ? { ...c, progress: Math.max(c.progress, Math.round(((lessonIndex + 1) / c.lessonCount) * 100)) } : c
-    ));
-  };
-
-  const filtered = useMemo(() => {
-    return courses.filter(c => {
-      if (category !== 'all' && c.category !== category) return false;
-      if (level !== 'All Levels' && c.level !== level) return false;
-      if (filterFree && !c.free) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return c.title.toLowerCase().includes(q) ||
-          c.instructor.toLowerCase().includes(q) ||
-          c.description.toLowerCase().includes(q);
+  const fetchCourses = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page, per_page: 12, sort });
+      if (category) params.set("category", category);
+      if (query) params.set("q", query);
+      const res = await fetch(`${BACKEND_URL}/api/academy/courses?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCourses(data.courses);
+        setTotalPages(data.pages);
+        setLoading(false);
+        return;
       }
-      return true;
-    });
-  }, [courses, category, level, search, filterFree]);
+    } catch (e) {}
+    // Fallback mock
+    let filtered = [...MOCK_COURSES];
+    if (category) filtered = filtered.filter((c) => c.category === category);
+    if (query) filtered = filtered.filter((c) => c.title.toLowerCase().includes(query.toLowerCase()));
+    if (sort === "popular") filtered.sort((a, b) => b.enrollment_count - a.enrollment_count);
+    else if (sort === "free") filtered = filtered.filter((c) => c.price === 0);
+    else if (sort === "price_asc") filtered.sort((a, b) => a.price - b.price);
+    else if (sort === "price_desc") filtered.sort((a, b) => b.price - a.price);
+    setCourses(filtered);
+    setTotalPages(1);
+    setLoading(false);
+  }, [category, sort, query, page]);
 
-  const totalCompleted = courses.filter(c => c.progress === 100).length;
-  const inProgress = courses.filter(c => c.progress > 0 && c.progress < 100).length;
+  useEffect(() => { fetchCourses(); }, [fetchCourses]);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${BACKEND_URL}/api/academy/my-enrollments`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json()).then((d) => setMyEnrollments((d || []).map((e) => e.course_id))).catch(() => {});
+  }, [token]);
+
+  const isEnrolled = (id) => myEnrollments.includes(id);
 
   return (
-    <div style={{
-      background:'#0d1117', color:'#e6edf3', minHeight:'100vh',
-      fontFamily:'JetBrains Mono,monospace',
-    }}>
-      {/* Header */}
-      <div style={{ background:'#161b22', borderBottom:'1px solid #21262d', padding:'16px 20px' }}>
-        <div style={{ maxWidth:1100, margin:'0 auto' }}>
-          <div style={{ fontSize:22, fontWeight:900, color:'#00ffc8', letterSpacing:1, marginBottom:4 }}>
-            🎓 CREATOR ACADEMY
+    <div style={A.page}>
+      {/* Hero */}
+      <div style={A.hero}>
+        <div style={A.heroContent}>
+          <div style={A.heroTag}>🎓 Creator Academy</div>
+          <h1 style={A.heroTitle}>Learn From Real Creators</h1>
+          <p style={A.heroSub}>
+            Courses built by working artists, producers & streamers. All revenue goes directly to creators — StreamPireX takes only 10%.
+          </p>
+          <div style={A.heroActions}>
+            <button style={A.heroBtn} onClick={() => navigate("/course-builder")}>
+              + Teach a Course
+            </button>
+            {token && (
+              <button style={A.heroBtnOutline} onClick={() => navigate("/my-learning")}>
+                My Learning
+              </button>
+            )}
           </div>
-          <div style={{ fontSize:12, color:'#8b949e', marginBottom:12 }}>
-            {courses.length} courses · {totalCompleted} completed · {inProgress} in progress
-          </div>
-
-          {/* Search & Filters */}
-          <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-            <input
-              style={{
-                flex:1, minWidth:200, background:'#21262d', border:'1px solid #30363d',
-                borderRadius:6, color:'#e6edf3', padding:'6px 10px',
-                fontFamily:'inherit', fontSize:12, outline:'none',
-              }}
-              placeholder="Search courses..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            <select
-              value={level}
-              onChange={e => setLevel(e.target.value)}
-              style={{
-                background:'#21262d', border:'1px solid #30363d', borderRadius:6,
-                color:'#e6edf3', padding:'6px 10px', fontFamily:'inherit', fontSize:12,
-              }}
-            >
-              {LEVELS.map(l => <option key={l}>{l}</option>)}
-            </select>
-            <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, cursor:'pointer' }}>
-              <input
-                type="checkbox"
-                checked={filterFree}
-                onChange={e => setFilterFree(e.target.checked)}
-                style={{ accentColor:'#00ffc8' }}
-              />
-              Free Only
-            </label>
-          </div>
+        </div>
+        <div style={A.heroStats}>
+          <div style={A.heroStat}><span style={A.heroStatNum}>90%</span><span style={A.heroStatLabel}>Creator payout</span></div>
+          <div style={A.heroStatDiv} />
+          <div style={A.heroStat}><span style={A.heroStatNum}>12</span><span style={A.heroStatLabel}>Categories</span></div>
+          <div style={A.heroStatDiv} />
+          <div style={A.heroStat}><span style={A.heroStatNum}>∞</span><span style={A.heroStatLabel}>Lifetime access</span></div>
         </div>
       </div>
 
-      <div style={{ maxWidth:1100, margin:'0 auto', padding:'16px 20px' }}>
-        {/* Category tabs */}
-        <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setCategory(cat.id)}
-              style={{
-                background: category === cat.id ? '#00ffc822' : '#21262d',
-                border:`1px solid ${category === cat.id ? '#00ffc8' : '#30363d'}`,
-                color: category === cat.id ? '#00ffc8' : '#8b949e',
-                borderRadius:6, padding:'5px 12px', cursor:'pointer',
-                fontFamily:'inherit', fontSize:11,
-              }}
-            >
-              {cat.icon} {cat.label}
+      {/* Category tabs */}
+      <div style={A.catStrip}>
+        {CATEGORIES.map((c) => (
+          <button
+            key={c.id}
+            style={{ ...A.catBtn, ...(category === c.id ? A.catBtnActive : {}) }}
+            onClick={() => { setCategory(c.id); setPage(1); }}
+          >
+            <span>{c.icon}</span> {c.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Search + sort */}
+      <div style={A.searchBar}>
+        <div style={A.searchWrap}>
+          <span style={A.searchIcon}>🔍</span>
+          <input
+            style={A.searchInput}
+            placeholder="Search courses..."
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+          />
+        </div>
+        <div style={A.sortRow}>
+          {SORTS.map((s) => (
+            <button key={s.id} style={{ ...A.sortBtn, ...(sort === s.id ? A.sortBtnActive : {}) }} onClick={() => setSort(s.id)}>
+              {s.label}
             </button>
           ))}
         </div>
-
-        {/* Results count */}
-        <div style={{ fontSize:11, color:'#8b949e', marginBottom:12 }}>
-          {filtered.length} course{filtered.length !== 1 ? 's' : ''} found
-        </div>
-
-        {/* Course grid */}
-        {filtered.length === 0 ? (
-          <div style={{ textAlign:'center', padding:'40px 20px', color:'#8b949e' }}>
-            No courses match your filters.
-          </div>
-        ) : (
-          <div style={{
-            display:'grid',
-            gridTemplateColumns:'repeat(auto-fill, minmax(260px, 1fr))',
-            gap:14,
-          }}>
-            {filtered.map(course => (
-              <CourseCard key={course.id} course={course} onOpen={setSelectedCourse} />
-            ))}
-          </div>
-        )}
       </div>
 
-      {/* Course detail modal */}
-      {selectedCourse && (
-        <CourseDetail
-          course={selectedCourse}
-          onClose={() => setSelectedCourse(null)}
-          onStartLesson={handleStartLesson}
-        />
+      {/* Course grid */}
+      {loading ? (
+        <div style={A.loadingGrid}>
+          {Array.from({ length: 8 }).map((_, i) => <div key={i} style={A.skeleton} />)}
+        </div>
+      ) : courses.length === 0 ? (
+        <div style={A.empty}>
+          <span style={A.emptyIcon}>📚</span>
+          <p>No courses found. Be the first to <Link to="/course-builder" style={{ color: "#00ffc8" }}>teach one!</Link></p>
+        </div>
+      ) : (
+        <div style={A.grid}>
+          {courses.map((course) => (
+            <CourseCard key={course.id} course={course} enrolled={isEnrolled(course.id)} navigate={navigate} />
+          ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={A.pagination}>
+          <button style={A.pageBtn} onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>← Prev</button>
+          <span style={A.pageInfo}>{page} / {totalPages}</span>
+          <button style={A.pageBtn} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>Next →</button>
+        </div>
       )}
     </div>
   );
-}
+};
+
+// ── Course Card ──
+const CourseCard = ({ course, enrolled, navigate }) => {
+  const starBar = (n) => Array.from({ length: 5 }).map((_, i) => (
+    <span key={i} style={{ color: i < Math.round(n) ? "#FFD700" : "#2a3a48", fontSize: "0.8rem" }}>★</span>
+  ));
+
+  const CATEGORY_COLORS = {
+    "music-production": "#7b61ff", "beat-making": "#FF6600", "podcasting": "#00ffc8",
+    "mixing-mastering": "#4a9eff", "live-streaming": "#ff3366", "video-editing": "#ff9f00",
+    "music-business": "#00d4aa", "songwriting": "#e040fb", "branding": "#ff6680",
+  };
+  const catColor = CATEGORY_COLORS[course.category] || "#00ffc8";
+
+  return (
+    <div style={A.card} onClick={() => navigate(`/course/${course.id}`)}>
+      {/* Thumbnail */}
+      <div style={{ ...A.cardThumb, background: course.thumbnail_url ? `url(${course.thumbnail_url}) center/cover` : `linear-gradient(135deg, ${catColor}22, ${catColor}08)` }}>
+        {!course.thumbnail_url && <span style={{ ...A.thumbIcon, color: catColor }}>🎓</span>}
+        <div style={{ ...A.catPill, background: catColor + "22", color: catColor }}>
+          {CATEGORIES.find((c) => c.id === course.category)?.icon} {course.category?.replace(/-/g, " ")}
+        </div>
+        {course.price === 0 && <div style={A.freeBadge}>FREE</div>}
+        {enrolled && <div style={A.enrolledBadge}>✓ Enrolled</div>}
+      </div>
+
+      {/* Body */}
+      <div style={A.cardBody}>
+        <h3 style={A.cardTitle}>{course.title}</h3>
+        <div style={A.cardCreator}>by {course.creator_name}</div>
+
+        <div style={A.cardRating}>
+          {starBar(course.avg_rating)}
+          <span style={A.ratingNum}>{course.avg_rating?.toFixed(1)}</span>
+          <span style={A.ratingCount}>({course.review_count})</span>
+        </div>
+
+        <div style={A.cardMeta}>
+          <span>{course.lesson_count} lessons</span>
+          <span>•</span>
+          <span>{course.enrollment_count?.toLocaleString()} students</span>
+        </div>
+
+        {course.tags?.slice(0, 3).map((t) => (
+          <span key={t} style={A.tag}>{t}</span>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div style={A.cardFoot}>
+        <span style={{ ...A.price, color: course.price === 0 ? "#00ffc8" : "#e0eaf0" }}>
+          {course.price === 0 ? "Free" : `$${course.price}`}
+        </span>
+        <button style={{ ...A.enrollBtn, background: enrolled ? "rgba(0,255,200,0.1)" : "linear-gradient(135deg, #00ffc8, #00d9aa)", color: enrolled ? "#00ffc8" : "#041014" }}>
+          {enrolled ? "Continue →" : course.price === 0 ? "Enroll Free" : "Buy Course"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const A = {
+  page: { background: "#07090f", minHeight: "100vh", color: "#e0eaf0", fontFamily: "system-ui, sans-serif", paddingBottom: "60px" },
+  hero: { padding: "48px 40px 36px", background: "linear-gradient(180deg, rgba(0,255,200,0.05) 0%, transparent 100%)", borderBottom: "1px solid rgba(255,255,255,0.05)" },
+  heroContent: { maxWidth: "680px", marginBottom: "28px" },
+  heroTag: { display: "inline-block", padding: "4px 14px", background: "rgba(0,255,200,0.1)", color: "#00ffc8", borderRadius: "999px", fontSize: "0.78rem", fontWeight: "700", marginBottom: "14px" },
+  heroTitle: { fontSize: "2.4rem", fontWeight: "900", margin: "0 0 12px", lineHeight: 1.15 },
+  heroSub: { color: "#5a7080", fontSize: "1rem", lineHeight: 1.6, margin: "0 0 24px" },
+  heroActions: { display: "flex", gap: "12px" },
+  heroBtn: { padding: "13px 28px", background: "linear-gradient(135deg, #00ffc8, #00d9aa)", border: "none", borderRadius: "12px", color: "#041014", fontWeight: "800", fontSize: "0.95rem", cursor: "pointer" },
+  heroBtnOutline: { padding: "13px 24px", background: "transparent", border: "1px solid rgba(0,255,200,0.3)", borderRadius: "12px", color: "#00ffc8", fontWeight: "700", fontSize: "0.9rem", cursor: "pointer" },
+  heroStats: { display: "flex", alignItems: "center", gap: "24px" },
+  heroStat: { display: "flex", flexDirection: "column", gap: "2px" },
+  heroStatNum: { fontSize: "1.8rem", fontWeight: "900", color: "#00ffc8" },
+  heroStatLabel: { fontSize: "0.76rem", color: "#4a6070", textTransform: "uppercase", letterSpacing: "0.06em" },
+  heroStatDiv: { width: "1px", height: "40px", background: "rgba(255,255,255,0.07)" },
+  catStrip: { display: "flex", gap: "8px", overflowX: "auto", padding: "16px 40px", scrollbarWidth: "none", borderBottom: "1px solid rgba(255,255,255,0.04)" },
+  catBtn: { display: "flex", alignItems: "center", gap: "6px", padding: "8px 16px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "999px", color: "#6a8090", fontSize: "0.82rem", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.18s" },
+  catBtnActive: { background: "rgba(0,255,200,0.1)", borderColor: "rgba(0,255,200,0.28)", color: "#00ffc8" },
+  searchBar: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 40px", gap: "20px", flexWrap: "wrap" },
+  searchWrap: { display: "flex", alignItems: "center", gap: "10px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "12px", padding: "10px 14px", flex: 1, maxWidth: "360px" },
+  searchIcon: { fontSize: "1rem" },
+  searchInput: { background: "none", border: "none", outline: "none", color: "#e0eaf0", fontSize: "0.9rem", flex: 1 },
+  sortRow: { display: "flex", gap: "6px", flexWrap: "wrap" },
+  sortBtn: { padding: "7px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "8px", color: "#6a8090", fontSize: "0.78rem", fontWeight: "700", cursor: "pointer" },
+  sortBtnActive: { background: "rgba(0,255,200,0.1)", borderColor: "rgba(0,255,200,0.24)", color: "#00ffc8" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px", padding: "24px 40px" },
+  loadingGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px", padding: "24px 40px" },
+  skeleton: { height: "360px", background: "rgba(255,255,255,0.03)", borderRadius: "18px", animation: "pulse 1.5s ease infinite" },
+  empty: { textAlign: "center", padding: "80px 20px", color: "#5a7080", fontSize: "1rem" },
+  emptyIcon: { fontSize: "3rem", display: "block", marginBottom: "12px" },
+  card: { background: "rgba(14,20,30,0.9)", borderRadius: "18px", border: "1px solid rgba(255,255,255,0.06)", overflow: "hidden", cursor: "pointer", transition: "transform 0.18s, box-shadow 0.18s", display: "flex", flexDirection: "column" },
+  cardThumb: { height: "160px", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.02)" },
+  thumbIcon: { fontSize: "2.8rem" },
+  catPill: { position: "absolute", bottom: "8px", left: "8px", padding: "3px 10px", borderRadius: "999px", fontSize: "0.7rem", fontWeight: "700", textTransform: "capitalize" },
+  freeBadge: { position: "absolute", top: "8px", right: "8px", background: "#00ffc8", color: "#041014", fontWeight: "900", fontSize: "0.72rem", padding: "3px 10px", borderRadius: "999px" },
+  enrolledBadge: { position: "absolute", top: "8px", left: "8px", background: "rgba(0,255,200,0.18)", color: "#00ffc8", fontWeight: "800", fontSize: "0.72rem", padding: "3px 10px", borderRadius: "999px" },
+  cardBody: { flex: 1, padding: "14px 16px 10px" },
+  cardTitle: { fontSize: "0.95rem", fontWeight: "800", margin: "0 0 4px", lineHeight: 1.35, color: "#e0eaf0" },
+  cardCreator: { color: "#4a6070", fontSize: "0.78rem", marginBottom: "8px" },
+  cardRating: { display: "flex", alignItems: "center", gap: "4px", marginBottom: "6px" },
+  ratingNum: { color: "#FFD700", fontWeight: "700", fontSize: "0.82rem" },
+  ratingCount: { color: "#4a6070", fontSize: "0.76rem" },
+  cardMeta: { color: "#4a6070", fontSize: "0.76rem", display: "flex", gap: "6px", marginBottom: "8px" },
+  tag: { display: "inline-block", padding: "2px 8px", background: "rgba(255,255,255,0.05)", borderRadius: "4px", fontSize: "0.68rem", color: "#6a8090", marginRight: "4px", marginBottom: "4px" },
+  cardFoot: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.04)" },
+  price: { fontWeight: "900", fontSize: "1rem" },
+  enrollBtn: { padding: "8px 16px", border: "none", borderRadius: "8px", fontWeight: "800", fontSize: "0.8rem", cursor: "pointer" },
+  pagination: { display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", padding: "24px" },
+  pageBtn: { padding: "10px 20px", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: "10px", color: "#8090a0", fontWeight: "700", cursor: "pointer", fontSize: "0.88rem" },
+  pageInfo: { color: "#5a7080", fontSize: "0.88rem" },
+};
+
+export default CreatorAcademy;

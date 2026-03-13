@@ -101,7 +101,7 @@ const ArtistProfilePage = () => {
   };
 
   const currentUserId = getCurrentUserId();
-  // If no id in URL (e.g. /profile/artist), it's the user's own profile
+  // If no id in URL (e.g. /artist-dashboard), it's the user's own profile
   const isOwnProfile = !id || (currentUserId && String(currentUserId) === String(id));
   const effectiveId = id || currentUserId; // Use currentUserId when no URL param
 
@@ -110,8 +110,8 @@ const ArtistProfilePage = () => {
 
   const profileModes = [
     { id: "regular", label: "👤 Regular Profile", path: "/user/" + id },
-    { id: "gamer", label: "🎮 Gamer Profile", path: "/profile/gamer" },
-    { id: "artist", label: "🎵 Artist Profile", path: "/profile/artist" }
+    { id: "gamer", label: "🎮 Gamer Profile", path: "/gamer-profile" },
+    { id: "artist", label: "🎵 Artist Profile", path: "/artist-dashboard" }
   ];
 
   // Helper function for safe image URLs
@@ -210,7 +210,7 @@ const ArtistProfilePage = () => {
 
       // 1. Fetch user profile data
       try {
-        const profileRes = await fetch(`${BACKEND_URL}/api/profile/artist/${id}`, {
+        const profileRes = await fetch(`${BACKEND_URL}/api/artist-dashboard/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -1615,18 +1615,16 @@ const ArtistProfilePage = () => {
             </section>
 
             {isOwnProfile && (
-              <section className="artist-tools-card">
-                <h3>🛠️ Artist Tools</h3>
-                <div className="tools-list">
-                  {activeTab !== "overview" && (
-                    <button onClick={openUploader} className="tool-btn">⬆️ Upload Music</button>
-                  )}
-                  <Link to="/artist/analytics" className="tool-btn">📊 View Analytics</Link>
-                  <Link to="/artist/promote" className="tool-btn">📢 Promote Track</Link>
-                  <Link to="/artist/collaborate" className="tool-btn">🤝 Find Collaborators</Link>
-                  <Link to="/artist/monetize" className="tool-btn">💰 Monetization</Link>
-                </div>
-              </section>
+            <section className="artist-tools-card">
+              <h3>🛠️ Artist Tools</h3>
+              <div className="tools-list">
+                <button onClick={() => setActiveTab("analytics")} className="tool-btn">📊 View Analytics</button>
+                <Link to="/artist-dashboard" className="tool-btn">🏠 Studio Dashboard</Link>
+                <Link to="/music-distribution" className="tool-btn">🌍 Release Distribution</Link>
+                <Link to="/epk-collab-hub" className="tool-btn">📋 Manage EPKs</Link>
+                <Link to="/edit-artist-profile" className="tool-btn">✏️ Edit Public Profile</Link>
+              </div>
+            </section>
             )}
 
             <section className="recent-activity-card">
@@ -1657,7 +1655,7 @@ const ArtistProfilePage = () => {
 
       {isOwnProfile && (
         <div className="edit-profile-section">
-          <Link to="/profile/artist/edit" className="edit-profile-btn">✏️ Edit Artist Profile</Link>
+          <Link to="/artist-dashboard/edit" className="edit-profile-btn">✏️ Edit Artist Profile</Link>
         </div>
       )}
     </div>

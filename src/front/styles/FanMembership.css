@@ -1,0 +1,722 @@
+/* =============================================================================
+   FanMembership.css — Patreon-style membership UI
+   Location: src/front/styles/FanMembership.css
+   Import in FanMembership.js:
+     import "../../styles/FanMembership.css";
+   Also works embedded in ArtistPage or CreatorDashboard tab.
+
+   Replaces the inline S object styles in FanMembership.js.
+   After adding this file, swap the inline style props to classNames.
+   Quick swap reference at bottom of this file.
+============================================================================= */
+
+/* ── Fonts (already loaded by platform) ── */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;600;700;800&display=swap');
+
+/* ─────────────────────────────────────────────
+   ROOT TOKENS  (matches platform palette)
+───────────────────────────────────────────── */
+:root {
+  --fm-bg:          #07090f;
+  --fm-surface:     #0d1520;
+  --fm-surface-2:   #111c2a;
+  --fm-border:      rgba(255,255,255,0.07);
+  --fm-border-glow: rgba(0,255,200,0.18);
+  --fm-teal:        #00ffc8;
+  --fm-teal-dim:    rgba(0,255,200,0.12);
+  --fm-orange:      #ff6b35;
+  --fm-purple:      #7b61ff;
+  --fm-gold:        #fbbf24;
+  --fm-pink:        #f472b6;
+  --fm-text:        #e0eaf0;
+  --fm-text-muted:  #5a7080;
+  --fm-text-dim:    #3a5060;
+  --fm-danger:      #ff3b30;
+  --fm-success:     #00ffc8;
+  --fm-radius:      14px;
+  --fm-radius-sm:   8px;
+  --fm-radius-pill: 999px;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE WRAPPER
+   Used by both CreatorMembershipManager
+   and FanMembershipPage
+───────────────────────────────────────────── */
+.fm-page {
+  min-height: 100vh;
+  background: var(--fm-bg);
+  color: var(--fm-text);
+  font-family: 'Inter', system-ui, sans-serif;
+  padding: 40px 32px;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+/* When embedded inside a tab (dashboard / artist page),
+   remove full-page padding */
+.fm-page--embedded {
+  padding: 24px 0;
+  min-height: unset;
+  background: transparent;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE TITLE
+───────────────────────────────────────────── */
+.fm-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--fm-teal);
+  margin: 0 0 24px;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fm-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--fm-border-glow), transparent);
+}
+
+/* ─────────────────────────────────────────────
+   REVENUE METRICS GRID
+───────────────────────────────────────────── */
+.fm-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.fm-metric {
+  background: var(--fm-surface);
+  border: 1px solid var(--fm-border);
+  border-radius: var(--fm-radius);
+  padding: 18px 16px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.fm-metric:hover {
+  border-color: var(--fm-border-glow);
+  transform: translateY(-2px);
+}
+
+.fm-metric::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at top center, rgba(0,255,200,0.04), transparent 70%);
+  pointer-events: none;
+}
+
+.fm-metric__value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.fm-metric__value--teal   { color: var(--fm-teal); }
+.fm-metric__value--purple { color: var(--fm-purple); }
+.fm-metric__value--gold   { color: var(--fm-gold); }
+
+.fm-metric__label {
+  font-size: 0.7rem;
+  color: var(--fm-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+/* ─────────────────────────────────────────────
+   TAB BAR  (Tiers / Subscribers)
+───────────────────────────────────────────── */
+.fm-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--fm-border);
+}
+
+.fm-tab {
+  padding: 9px 20px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--fm-border);
+  border-radius: var(--fm-radius-sm);
+  color: var(--fm-text-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.fm-tab:hover {
+  background: var(--fm-teal-dim);
+  color: var(--fm-text);
+}
+
+.fm-tab--active {
+  background: var(--fm-teal-dim);
+  border-color: var(--fm-border-glow);
+  color: var(--fm-teal);
+}
+
+/* ─────────────────────────────────────────────
+   TIER CARD
+───────────────────────────────────────────── */
+.fm-tier-card {
+  background: var(--fm-surface);
+  border: 1px solid var(--fm-border);
+  border-left: 4px solid var(--fm-teal); /* overridden per tier via inline color */
+  border-radius: var(--fm-radius);
+  padding: 22px 20px;
+  margin-bottom: 14px;
+  transition: transform 0.18s, box-shadow 0.18s;
+  position: relative;
+  overflow: hidden;
+}
+
+.fm-tier-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+}
+
+.fm-tier-card--dimmed {
+  opacity: 0.55;
+}
+
+.fm-tier-card--active-sub {
+  border-color: var(--fm-teal) !important;
+  background: rgba(0,255,200,0.04);
+  box-shadow: 0 0 0 1px rgba(0,255,200,0.12), 0 8px 24px rgba(0,255,200,0.08);
+}
+
+/* Subtle scanline texture on hover */
+.fm-tier-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(255,255,255,0.008) 3px,
+    rgba(255,255,255,0.008) 4px
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.fm-tier-card:hover::after { opacity: 1; }
+
+/* Card top row */
+.fm-tier-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.fm-tier-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.fm-tier-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.fm-tier-name {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--fm-text);
+}
+
+.fm-tier-price {
+  font-size: 1.5rem;
+  font-weight: 900;
+  margin-top: 4px;
+}
+
+.fm-tier-price span {
+  font-size: 0.78rem;
+  color: var(--fm-text-muted);
+  font-weight: 400;
+}
+
+.fm-tier-count {
+  font-size: 0.72rem;
+  color: var(--fm-text-muted);
+  background: rgba(255,255,255,0.04);
+  padding: 4px 10px;
+  border-radius: var(--fm-radius-pill);
+  border: 1px solid var(--fm-border);
+}
+
+/* Benefits list */
+.fm-tier-benefits {
+  margin: 0 0 16px;
+  padding: 0 0 0 4px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fm-tier-benefits li {
+  font-size: 0.84rem;
+  color: #b0c0cc;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.fm-tier-benefits li::before {
+  content: '✓';
+  color: var(--fm-teal);
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ─────────────────────────────────────────────
+   TIER EDIT FORM (inside creator manager)
+───────────────────────────────────────────── */
+.fm-form {
+  background: var(--fm-surface-2);
+  border: 1px solid var(--fm-border-glow);
+  border-radius: var(--fm-radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.fm-form__title {
+  color: var(--fm-teal);
+  font-weight: 800;
+  font-size: 0.9rem;
+  margin: 0;
+  letter-spacing: 0.04em;
+}
+
+.fm-label {
+  font-size: 0.7rem;
+  color: var(--fm-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.fm-input,
+.fm-textarea,
+.fm-select {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--fm-border);
+  border-radius: var(--fm-radius-sm);
+  padding: 10px 14px;
+  color: var(--fm-text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.18s;
+  box-sizing: border-box;
+}
+
+.fm-input:focus,
+.fm-textarea:focus,
+.fm-select:focus {
+  border-color: var(--fm-border-glow);
+  box-shadow: 0 0 0 2px rgba(0,255,200,0.08);
+}
+
+.fm-textarea {
+  resize: vertical;
+  min-height: 90px;
+  line-height: 1.6;
+}
+
+.fm-input--price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--fm-teal);
+}
+
+/* Color swatches */
+.fm-color-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fm-color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.fm-color-swatch:hover  { transform: scale(1.15); }
+.fm-color-swatch--active { border-color: #fff; transform: scale(1.15); }
+
+/* Form action row */
+.fm-form__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ─────────────────────────────────────────────
+   BUTTONS
+───────────────────────────────────────────── */
+.fm-btn {
+  padding: 11px 22px;
+  border: none;
+  border-radius: var(--fm-radius-sm);
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.18s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.fm-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Primary — teal CTA */
+.fm-btn--primary {
+  background: linear-gradient(135deg, var(--fm-teal), #00d9aa);
+  color: #041014;
+  box-shadow: 0 6px 18px rgba(0,255,200,0.18);
+}
+
+.fm-btn--primary:hover:not(:disabled) {
+  box-shadow: 0 10px 28px rgba(0,255,200,0.28);
+  transform: translateY(-1px);
+}
+
+/* Full width variant */
+.fm-btn--full {
+  width: 100%;
+  padding: 13px;
+  font-size: 0.95rem;
+  margin-top: 6px;
+}
+
+/* Ghost */
+.fm-btn--ghost {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--fm-border);
+  color: var(--fm-text-muted);
+}
+
+.fm-btn--ghost:hover:not(:disabled) {
+  background: rgba(255,255,255,0.08);
+  color: var(--fm-text);
+}
+
+/* Danger */
+.fm-btn--danger {
+  background: rgba(255,59,48,0.1);
+  border: 1px solid rgba(255,59,48,0.25);
+  color: #ff8090;
+}
+
+.fm-btn--danger:hover:not(:disabled) {
+  background: rgba(255,59,48,0.18);
+}
+
+/* ─────────────────────────────────────────────
+   CURRENT MEMBER BANNER
+───────────────────────────────────────────── */
+.fm-member-banner {
+  background: rgba(0,255,200,0.05);
+  border: 1px solid var(--fm-border-glow);
+  border-radius: var(--fm-radius);
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.fm-member-banner__title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--fm-teal);
+  margin-bottom: 4px;
+}
+
+.fm-member-banner__sub {
+  font-size: 0.78rem;
+  color: var(--fm-text-muted);
+  margin-bottom: 14px;
+}
+
+/* ─────────────────────────────────────────────
+   CREATOR HEADER (fan subscribe view)
+───────────────────────────────────────────── */
+.fm-creator-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.fm-creator-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 3px solid var(--fm-teal);
+  object-fit: cover;
+  box-shadow: 0 0 20px rgba(0,255,200,0.2);
+  margin-bottom: 12px;
+}
+
+.fm-creator-name {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--fm-text);
+  margin-bottom: 6px;
+}
+
+.fm-creator-tagline {
+  font-size: 0.88rem;
+  color: var(--fm-text-muted);
+}
+
+/* ─────────────────────────────────────────────
+   SUBSCRIBERS TABLE
+───────────────────────────────────────────── */
+.fm-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--fm-radius);
+  border: 1px solid var(--fm-border);
+}
+
+.fm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.fm-table thead tr {
+  border-bottom: 1px solid var(--fm-border);
+}
+
+.fm-table th {
+  padding: 12px 14px;
+  color: var(--fm-text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-align: left;
+  background: rgba(255,255,255,0.02);
+}
+
+.fm-table th:last-child,
+.fm-table td:last-child { text-align: right; }
+
+.fm-table tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  transition: background 0.15s;
+}
+
+.fm-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+.fm-table tbody tr:last-child { border-bottom: none; }
+
+.fm-table td {
+  padding: 12px 14px;
+  color: var(--fm-text);
+}
+
+.fm-table td.muted { color: var(--fm-text-muted); }
+
+/* Status pills */
+.fm-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--fm-radius-pill);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.fm-status--active   { background: rgba(0,255,200,0.1);  color: var(--fm-teal); }
+.fm-status--cancelled{ background: rgba(255,59,48,0.1);   color: #ff8090; }
+.fm-status--paused   { background: rgba(251,191,36,0.1);  color: var(--fm-gold); }
+
+/* Tier badge */
+.fm-tier-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--fm-radius-pill);
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(0,255,200,0.1);
+  color: var(--fm-teal);
+  border: 1px solid rgba(0,255,200,0.18);
+}
+
+/* ─────────────────────────────────────────────
+   SECTION HEADER ROW (Tiers tab)
+───────────────────────────────────────────── */
+.fm-section-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.fm-section-hint {
+  font-size: 0.8rem;
+  color: var(--fm-text-muted);
+}
+
+/* ─────────────────────────────────────────────
+   EMPTY STATE
+───────────────────────────────────────────── */
+.fm-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--fm-text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.fm-empty__icon { font-size: 2.8rem; }
+.fm-empty__text { font-size: 0.9rem; }
+
+/* ─────────────────────────────────────────────
+   STATUS / TOAST MESSAGE
+───────────────────────────────────────────── */
+.fm-status-msg {
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  border-radius: var(--fm-radius-sm);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.fm-status-msg--success {
+  background: rgba(0,255,200,0.08);
+  color: var(--fm-teal);
+  border: 1px solid rgba(0,255,200,0.2);
+}
+
+.fm-status-msg--error {
+  background: rgba(255,59,48,0.08);
+  color: #ff8090;
+  border: 1px solid rgba(255,59,48,0.2);
+}
+
+/* ─────────────────────────────────────────────
+   MINI WIDGET — used when embedded in ArtistPage
+   Shows top 2-3 tiers inline with a subscribe CTA
+───────────────────────────────────────────── */
+.fm-widget {
+  background: var(--fm-surface);
+  border: 1px solid var(--fm-border);
+  border-radius: var(--fm-radius);
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.fm-widget__title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--fm-teal);
+  margin: 0 0 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fm-widget__tiers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.fm-widget__tier {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--fm-border);
+  border-radius: var(--fm-radius-sm);
+  padding: 14px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.fm-widget__tier:hover {
+  border-color: var(--fm-border-glow);
+  background: var(--fm-teal-dim);
+  transform: translateY(-2px);
+}
+
+.fm-widget__tier-icon  { font-size: 1.4rem; display: block; margin-bottom: 6px; }
+.fm-widget__tier-name  { font-size: 0.8rem; font-weight: 700; color: var(--fm-text); margin-bottom: 4px; }
+.fm-widget__tier-price { font-size: 0.88rem; font-weight: 900; color: var(--fm-teal); }
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .fm-page    { padding: 24px 16px; }
+  .fm-metrics { grid-template-columns: 1fr; }
+  .fm-tier-header { flex-direction: column; gap: 8px; }
+  .fm-widget__tiers { grid-template-columns: 1fr 1fr; }
+}
+
+/* ─────────────────────────────────────────────
+   KEYFRAMES
+───────────────────────────────────────────── */
+@keyframes fm-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+.fm-loading { animation: fm-pulse 1.4s ease infinite; color: var(--fm-text-muted); }
+
+/* =============================================================================
+   QUICK SWAP GUIDE — replace inline S.* with classNames in FanMembership.js
+   ─────────────────────────────────────────────────────────────────────────
+   S.page          → className="fm-page"
+   S.card          → className="fm-tier-card"
+   S.metric        → className="fm-metric"
+   S.btnTeal       → className="fm-btn fm-btn--primary"
+   S.btnTeal (full)→ className="fm-btn fm-btn--primary fm-btn--full"
+   S.btnGray       → className="fm-btn fm-btn--ghost"
+   S.tab(active)   → className="fm-tab fm-tab--active"
+   S.tab(!active)  → className="fm-tab"
+
+   Add to FanMembership.js imports:
+     import "../../styles/FanMembership.css";
+
+   Then remove the entire const S = { ... } block.
+============================================================================= */

@@ -803,7 +803,7 @@ const EPKCollabHub = () => {
                         })}
                       </div>
                     ) : (
-                      <div className="ech-empty-small">No albums yet. <a href="/profile/artist">Create an album</a> to feature it.</div>
+                      <div className="ech-empty-small">No albums yet. <a href="/artist-dashboard">Create an album</a> to feature it.</div>
                     )}
                   </div>
 

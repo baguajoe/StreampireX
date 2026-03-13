@@ -1,787 +1,1007 @@
-// src/front/js/pages/CreatorDashboard.js - Two Column Layout with Bottom Quick Actions
-import React, { useEffect, useState } from "react";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
-import { Line, Doughnut } from 'react-chartjs-2';
+// src/front/js/pages/CreatorDashboard.js
+// ═══════════════════════════════════════════════════════════════
+//  StreamPireX — CREATOR COMMAND CENTER
+//  Full-spectrum monitoring: earnings, content, audience,
+//  beats, radio, podcasts, store, storage, fan memberships
+// ═══════════════════════════════════════════════════════════════
+import React, { useEffect, useState, useCallback, useRef } from "react";
+import {
+  Chart as ChartJS, CategoryScale, LinearScale, PointElement,
+  LineElement, BarElement, Title, Tooltip, Legend, ArcElement, Filler
+} from 'chart.js';
+import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import { Link } from "react-router-dom";
+
+// ── existing components kept ──────────────────────────────────
 import ProductUploadForm from "../component/ProductUploadForm";
 import StorageStatus from "../component/StorageStatus";
 import BandwidthStatus from "../component/BandwidthStatus";
+import { FanTierManager } from '../pages/FanMembership';
+import { EmbedCodeGenerator } from '../pages/EmbeddablePlayer';
+
+// ── styles ────────────────────────────────────────────────────
 import "../../styles/StorageStatus.css";
 import "../../styles/BandwidthStatus.css";
 import "../../styles/creatorDashboard.css";
-import { FanTierManager } from '../component/FanSubscriptionManager';
-import { EmbedCodeGenerator } from '../pages/EmbeddablePlayer';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
+ChartJS.register(
+  CategoryScale, LinearScale, PointElement, LineElement, BarElement,
+  Title, Tooltip, Legend, ArcElement, Filler
+);
 
+// ─────────────────────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────────────────────
+const B   = process.env.REACT_APP_BACKEND_URL || "";
+const tok = () => localStorage.getItem("token") || sessionStorage.getItem("token") || "";
+const hdrs = () => ({ Authorization: `Bearer ${tok()}` });
+const fmt$ = (n) => `$${parseFloat(n || 0).toFixed(2)}`;
+const fmtN = (n) => (n || 0).toLocaleString();
+
+// ─────────────────────────────────────────────────────────────
+//  DESIGN TOKENS  (dark cyber aesthetic — no class conflicts)
+// ─────────────────────────────────────────────────────────────
+const C = {
+  bg:        "#07090f",
+  surface:   "#0d1117",
+  border:    "rgba(255,255,255,0.06)",
+  teal:      "#00ffc8",
+  orange:    "#ff6600",
+  violet:    "#7b61ff",
+  sky:       "#00cfff",
+  rose:      "#ff3b6b",
+  amber:     "#fbbf24",
+  pink:      "#f472b6",
+  mint:      "#34d399",
+  text:      "#e6edf3",
+  muted:     "#8b949e",
+  dim:       "#4a6080",
+  card:      "linear-gradient(135deg,rgba(255,255,255,0.026) 0%,rgba(255,255,255,0.010) 100%)",
+};
+
+// ─────────────────────────────────────────────────────────────
+//  SUB-COMPONENTS
+// ─────────────────────────────────────────────────────────────
+
+/** Glowing KPI tile */
+const KPI = ({ icon, label, value, color = C.teal, change, onClick }) => (
+  <div
+    onClick={onClick}
+    style={{
+      background: C.card,
+      border: `1px solid ${color}1a`,
+      borderRadius: 16,
+      padding: "20px 22px",
+      position: "relative",
+      overflow: "hidden",
+      cursor: onClick ? "pointer" : "default",
+      transition: "transform .18s,box-shadow .18s",
+      userSelect: "none",
+    }}
+    onMouseEnter={e => {
+      e.currentTarget.style.transform = "translateY(-3px)";
+      e.currentTarget.style.boxShadow = `0 10px 36px ${color}1e`;
+    }}
+    onMouseLeave={e => {
+      e.currentTarget.style.transform = "translateY(0)";
+      e.currentTarget.style.boxShadow = "none";
+    }}
+  >
+    {/* ambient glow blob */}
+    <div style={{
+      position:"absolute", top:-24, right:-24, width:80, height:80,
+      borderRadius:"50%", background:color, opacity:0.07, filter:"blur(22px)",
+      pointerEvents:"none",
+    }} />
+    <div style={{ fontSize:22, marginBottom:8, color }}>{icon}</div>
+    <div style={{ fontSize:"0.66rem", color:C.dim, letterSpacing:1.1, textTransform:"uppercase", marginBottom:4 }}>{label}</div>
+    <div style={{ fontSize:"1.85rem", fontWeight:800, color:C.text, lineHeight:1 }}>{value ?? "—"}</div>
+    {change !== undefined && (
+      <div style={{ fontSize:"0.7rem", marginTop:6, color: change >= 0 ? C.teal : "#ff3b30" }}>
+        {change >= 0 ? "▲" : "▼"} {Math.abs(change)}% vs prior period
+      </div>
+    )}
+  </div>
+);
+
+/** Section header with accent bar */
+const SH = ({ title, action }) => (
+  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:18 }}>
+    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+      <div style={{ width:3, height:20, background:`linear-gradient(180deg,${C.teal},${C.violet})`, borderRadius:2 }} />
+      <span style={{ fontSize:"0.9rem", fontWeight:700, color:C.text, letterSpacing:.4 }}>{title}</span>
+    </div>
+    {action}
+  </div>
+);
+
+/** Card wrapper */
+const Card = ({ children, style = {} }) => (
+  <div style={{
+    background: C.card,
+    border: `1px solid ${C.border}`,
+    borderRadius: 18,
+    padding: "22px 24px",
+    marginBottom: 18,
+    ...style,
+  }}>
+    {children}
+  </div>
+);
+
+/** Quick action pill-link */
+const QA = ({ to, icon, label, color = C.teal }) => (
+  <Link to={to} style={{
+    display:"flex", flexDirection:"column", alignItems:"center", gap:8,
+    padding:"15px 10px", borderRadius:13,
+    background:`linear-gradient(135deg,${color}12,${color}06)`,
+    border:`1px solid ${color}2a`,
+    textDecoration:"none", color:C.muted, fontSize:"0.72rem", fontWeight:700,
+    transition:"all .18s",
+  }}
+    onMouseEnter={e => { e.currentTarget.style.background=`linear-gradient(135deg,${color}22,${color}0e)`; e.currentTarget.style.transform="translateY(-2px)"; }}
+    onMouseLeave={e => { e.currentTarget.style.background=`linear-gradient(135deg,${color}12,${color}06)`; e.currentTarget.style.transform="translateY(0)"; }}
+  >
+    <span style={{ fontSize:22 }}>{icon}</span>
+    <span style={{ whiteSpace:"nowrap" }}>{label}</span>
+  </Link>
+);
+
+/** Small badge */
+const Badge = ({ label, color = C.teal }) => (
+  <span style={{
+    display:"inline-block", padding:"2px 8px", borderRadius:5,
+    fontSize:"0.63rem", fontWeight:800, letterSpacing:.5,
+    background:`${color}1e`, color,
+  }}>{label}</span>
+);
+
+/** Ghost button */
+const Btn = ({ children, onClick, disabled, color = C.teal, style = {} }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    style={{
+      padding:"7px 15px", borderRadius:8, border:`1px solid ${color}33`,
+      background:"transparent", color, cursor:"pointer",
+      fontFamily:"inherit", fontSize:"0.72rem", fontWeight:700,
+      transition:"all .15s", opacity: disabled ? .5 : 1,
+      ...style,
+    }}
+    onMouseEnter={e => !disabled && (e.currentTarget.style.background = `${color}14`)}
+    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+  >{children}</button>
+);
+
+/** Table heading / cell */
+const TH = ({ children }) => (
+  <th style={{
+    padding:"9px 13px", textAlign:"left", fontSize:"0.64rem", fontWeight:800,
+    color:C.dim, textTransform:"uppercase", letterSpacing:.9,
+    borderBottom:`1px solid #1a2433`,
+  }}>{children}</th>
+);
+const TD = ({ children, style = {} }) => (
+  <td style={{ padding:"10px 13px", fontSize:"0.81rem", color:C.muted, borderBottom:"1px solid #0c1420", ...style }}>{children}</td>
+);
+
+// ─────────────────────────────────────────────────────────────
+//  SHARED CHART OPTIONS
+// ─────────────────────────────────────────────────────────────
+const chartBase = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    y: { beginAtZero:true, grid:{ color:"#151e2b" }, ticks:{ color:C.dim, font:{size:10} } },
+    x: { grid:{ color:"#151e2b" }, ticks:{ color:C.dim, font:{size:10} } },
+  },
+};
+const donutOpts = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{ legend:{ position:"bottom", labels:{ color:C.muted, padding:12, font:{size:11} } } },
+  cutout:"68%",
+};
+
+// ─────────────────────────────────────────────────────────────
+//  ALL TABS
+// ─────────────────────────────────────────────────────────────
+const TABS = [
+  { id:"overview",    label:"Overview",     icon:"◈" },
+  { id:"earnings",    label:"Earnings",     icon:"◎" },
+  { id:"content",     label:"Content",      icon:"◧" },
+  { id:"audience",    label:"Audience",     icon:"◉" },
+  { id:"store",       label:"Store",        icon:"◫" },
+  { id:"upload",      label:"Upload",       icon:"⬆" },
+  { id:"fans",        label:"Fan Tiers",    icon:"★" },
+  { id:"embed",       label:"Embed",        icon:"⊞" },
+  { id:"activity",    label:"Activity",     icon:"◌" },
+];
+
+// ─────────────────────────────────────────────────────────────
+//  MAIN COMPONENT
+// ─────────────────────────────────────────────────────────────
 const CreatorDashboard = () => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [profile, setProfile] = useState({});
-  const [socialShares, setSocialShares] = useState({});
-  const [contentBreakdown, setContentBreakdown] = useState({});
-  const [earnings, setEarnings] = useState({});
-  const [myProducts, setMyProducts] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [monthlyGrowth, setMonthlyGrowth] = useState({
-    labels: [],
-    engagement: []
-  });
-  const [loading, setLoading] = useState(true);
-  const [activityLoading, setActivityLoading] = useState(false);
+  const [activeTab, setActiveTab]   = useState("overview");
+  const [period,    setPeriod]      = useState("30d");
+  const [loading,   setLoading]     = useState(true);
+  const [syncing,   setSyncing]     = useState(false);
 
-  useEffect(() => {
-    fetchOverviewData();
-    
-    // Auto-refresh activity every 30 seconds
-    const activityInterval = setInterval(() => {
-      fetchRecentActivity();
-    }, 30000);
-    
-    return () => clearInterval(activityInterval);
-  }, []);
+  // ── data state ──
+  const [profile,       setProfile]       = useState({});
+  const [earnings,      setEarnings]      = useState({});
+  const [overview,      setOverview]      = useState({});
+  const [revenueData,   setRevenueData]   = useState([]);
+  const [playsData,     setPlaysData]     = useState([]);
+  const [audienceData,  setAudienceData]  = useState([]);
+  const [topContent,    setTopContent]    = useState([]);
+  const [beatSales,     setBeatSales]     = useState([]);
+  const [myProducts,    setMyProducts]    = useState([]);
+  const [podcasts,      setPodcasts]      = useState([]);
+  const [tracks,        setTracks]        = useState([]);
+  const [radioStations, setRadioStations] = useState([]);
+  const [recentActivity,setRecentActivity]= useState([]);
+  const [contentBD,     setContentBD]     = useState({});
+  const [monthlyGrowth, setMonthlyGrowth] = useState({ labels:[], engagement:[], plays:[], followers:[] });
+  const [socialShares,  setSocialShares]  = useState({});
+  const [activityBusy,  setActivityBusy] = useState(false);
 
-  const fetchOverviewData = async () => {
+  // ── fetch all ──────────────────────────────────────────────
+  const fetchAll = useCallback(async () => {
+    if (!tok()) return;
     try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const headers = { Authorization: `Bearer ${token}` };
+      const eps = [
+        `/api/profile`,
+        `/api/analytics/overview?period=${period}`,
+        `/api/earnings`,
+        `/api/analytics/revenue?period=${period}`,
+        `/api/analytics/plays?period=${period}`,
+        `/api/analytics/audience?period=${period}`,
+        `/api/analytics/top-content?period=${period}`,
+        `/api/analytics/beat-sales?period=${period}`,
+        `/api/marketplace/my-products`,
+        `/api/podcast/dashboard`,
+        `/api/music/tracks`,
+        `/api/radio/my-stations`,
+        `/api/recent-activity`,
+        `/api/content-breakdown`,
+        `/api/monthly-growth`,
+        `/api/social-shares`,
+      ];
 
-      // Fetch all data in parallel
+      const res = await Promise.allSettled(
+        eps.map(ep => fetch(`${B}${ep}`, { headers: hdrs() }).then(r => r.ok ? r.json() : null))
+      );
+
       const [
-        profileRes,
-        sharesRes,
-        contentRes,
-        earningsRes,
-        productsRes,
-        activityRes,
-        growthRes
-      ] = await Promise.allSettled([
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/profile`, { headers }),
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/social-shares`, { headers }),
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/content-breakdown`, { headers }),
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/earnings`, { headers }),
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/my-products`, { headers }),
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/recent-activity`, { headers }),
-        fetch(`${process.env.REACT_APP_BACKEND_URL}/api/monthly-growth`, { headers })
-      ]);
+        profileR, overviewR, earningsR, revR, playsR,
+        audR, topR, beatR, prodR, podR,
+        trackR, radioR, actR, contentR, growthR, sharesR
+      ] = res.map(r => r.status === "fulfilled" ? r.value : null);
 
-      // Process profile
-      if (profileRes.status === 'fulfilled' && profileRes.value.ok) {
-        const profileData = await profileRes.value.json();
-        setProfile(profileData);
-      }
+      if (profileR)  setProfile(profileR);
+      if (overviewR) setOverview(overviewR);
+      if (earningsR) setEarnings(earningsR);
+      if (revR?.monthly)    setRevenueData(revR.monthly);
+      if (playsR?.daily)    setPlaysData(playsR.daily);
+      if (audR?.daily)      setAudienceData(audR.daily || []);
+      if (topR?.tracks)     setTopContent(topR.tracks || []);
+      if (beatR?.sales)     setBeatSales(beatR.sales || []);
+      if (prodR?.products)  setMyProducts(prodR.products);
+      if (podR)   setPodcasts(Array.isArray(podR) ? podR : podR.podcasts || []);
+      if (trackR) setTracks(Array.isArray(trackR) ? trackR : trackR.tracks || []);
+      if (radioR) setRadioStations(Array.isArray(radioR) ? radioR : radioR.stations || []);
+      if (actR?.activities) setRecentActivity(actR.activities);
 
-      // Process social shares
-      if (sharesRes.status === 'fulfilled' && sharesRes.value.ok) {
-        const sharesData = await sharesRes.value.json();
-        setSocialShares(sharesData.platform_breakdown || sharesData);
-      }
-
-      // Process content breakdown
-      if (contentRes.status === 'fulfilled' && contentRes.value.ok) {
-        const contentData = await contentRes.value.json();
-        // Handle both response formats
-        if (contentData.breakdown) {
-          setContentBreakdown({
-            podcasts: contentData.breakdown.podcasts?.count || 0,
-            radioStations: contentData.breakdown.radio_stations?.count || 0,
-            musicTracks: contentData.breakdown.tracks?.count || 0,
-            liveStreams: contentData.breakdown.videos?.count || 0,
-            products: contentData.breakdown.products?.count || 0
-          });
-        } else {
-          setContentBreakdown(contentData);
-        }
-      }
-
-      // Process earnings
-      if (earningsRes.status === 'fulfilled' && earningsRes.value.ok) {
-        const earningsData = await earningsRes.value.json();
-        setEarnings(earningsData);
-      }
-
-      // Process products
-      if (productsRes.status === 'fulfilled' && productsRes.value.ok) {
-        const productsData = await productsRes.value.json();
-        setMyProducts(productsData.products || []);
-      }
-
-      // Process recent activity
-      if (activityRes.status === 'fulfilled' && activityRes.value.ok) {
-        const activityData = await activityRes.value.json();
-        setRecentActivity(activityData.activities || []);
-      }
-
-      // Process monthly growth - THIS IS THE FIX!
-      if (growthRes.status === 'fulfilled' && growthRes.value.ok) {
-        const growthData = await growthRes.value.json();
-        setMonthlyGrowth({
-          labels: growthData.labels || [],
-          engagement: growthData.engagement || [],
-          plays: growthData.plays || [],
-          followers: growthData.followers || []
+      if (contentR?.breakdown) {
+        setContentBD({
+          podcasts:      contentR.breakdown.podcasts?.count || 0,
+          radioStations: contentR.breakdown.radio_stations?.count || 0,
+          musicTracks:   contentR.breakdown.tracks?.count || 0,
+          liveStreams:   contentR.breakdown.videos?.count || 0,
         });
       }
-
-    } catch (error) {
-      console.error("Error fetching data:", error);
+      if (growthR) {
+        setMonthlyGrowth({
+          labels:     growthR.labels || [],
+          engagement: growthR.engagement || [],
+          plays:      growthR.plays || [],
+          followers:  growthR.followers || [],
+        });
+      }
+      if (sharesR) setSocialShares(sharesR.platform_breakdown || sharesR);
+    } catch(e) {
+      console.error("Dashboard fetch:", e);
     } finally {
       setLoading(false);
+      setSyncing(false);
     }
-  };
+  }, [period]);
 
-  const fetchRecentActivity = async () => {
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // auto-refresh activity every 30s
+  useEffect(() => {
+    const iv = setInterval(async () => {
+      try {
+        const r = await fetch(`${B}/api/recent-activity`, { headers: hdrs() });
+        if (r.ok) { const d = await r.json(); if (d.activities) setRecentActivity(d.activities); }
+      } catch {}
+    }, 30000);
+    return () => clearInterval(iv);
+  }, []);
+
+  const refreshActivity = async () => {
+    setActivityBusy(true);
     try {
-      setActivityLoading(true);
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/recent-activity`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setRecentActivity(data.activities || []);
-      }
-    } catch (error) {
-      console.error("Error refreshing activity:", error);
-    } finally {
-      setActivityLoading(false);
-    }
+      const r = await fetch(`${B}/api/recent-activity`, { headers: hdrs() });
+      if (r.ok) { const d = await r.json(); if (d.activities) setRecentActivity(d.activities); }
+    } catch {}
+    setActivityBusy(false);
   };
 
-  const shareBreakdownData = {
-    labels: ['Facebook', 'Twitter', 'Instagram', 'TikTok'],
-    datasets: [{
-      data: [
+  const onProductUploaded = () => {
+    fetch(`${B}/api/marketplace/my-products`, { headers: hdrs() })
+      .then(r => r.json())
+      .then(d => { if (d.products) setMyProducts(d.products); })
+      .catch(() => {});
+    refreshActivity();
+  };
+
+  // ── derived numbers ──────────────────────────────────────
+  const productRev = myProducts.reduce((s, p) => s + ((p.sales_count||0) * (p.price||0) * 0.9), 0);
+  const totalRev   =
+    productRev +
+    (earnings.content || 0) +
+    (earnings.tips    || 0) +
+    (earnings.ads     || 0) +
+    (earnings.subscriptions || 0) +
+    (earnings.donations     || 0);
+
+  const totalSales = myProducts.reduce((s, p) => s + (p.sales_count || 0), 0);
+
+  // ── chart datasets ───────────────────────────────────────
+  const growthChart = {
+    labels: monthlyGrowth.labels.length ? monthlyGrowth.labels : ["Jan","Feb","Mar","Apr","May","Jun"],
+    datasets:[{
+      label:"Engagement",
+      data: monthlyGrowth.engagement.length ? monthlyGrowth.engagement : [0,0,0,0,0,0],
+      borderColor:C.teal, backgroundColor:"rgba(0,255,200,0.07)",
+      tension:.4, fill:true, pointRadius:3, pointBackgroundColor:C.teal,
+    }],
+  };
+
+  const revChart = {
+    labels: revenueData.map(d => d.month || d.date || ""),
+    datasets:[{
+      label:"Revenue",
+      data: revenueData.map(d => d.revenue || 0),
+      backgroundColor:"rgba(255,102,0,.72)", borderRadius:6,
+    }],
+  };
+
+  const playsChart = {
+    labels: playsData.map(d => d.date || ""),
+    datasets:[{
+      label:"Plays",
+      data: playsData.map(d => d.plays || 0),
+      borderColor:C.violet, backgroundColor:"rgba(123,97,255,.1)",
+      tension:.4, fill:true, pointRadius:2,
+    }],
+  };
+
+  const contentDonut = {
+    labels:["Music","Podcasts","Radio","Videos","Products"],
+    datasets:[{
+      data:[
+        contentBD.musicTracks || tracks.length || 0,
+        contentBD.podcasts    || podcasts.length || 0,
+        contentBD.radioStations || radioStations.length || 0,
+        contentBD.liveStreams || 0,
+        myProducts.length || 0,
+      ],
+      backgroundColor:[C.sky, C.rose, C.violet, C.mint, C.orange],
+      borderWidth:0,
+    }],
+  };
+
+  const sharesDonut = {
+    labels:["Facebook","Twitter","Instagram","TikTok"],
+    datasets:[{
+      data:[
         socialShares.facebook || 0,
-        socialShares.twitter || 0,
-        socialShares.instagram || 0,
-        socialShares.tiktok || 0
+        socialShares.twitter  || 0,
+        socialShares.instagram|| 0,
+        socialShares.tiktok   || 0,
       ],
-      backgroundColor: ['#1877F2', '#1DA1F2', '#E4405F', '#000000'],
-      borderWidth: 0
-    }]
+      backgroundColor:["#1877F2","#1DA1F2","#E4405F","#111"],
+      borderWidth:0,
+    }],
   };
 
-  const contentBreakdownData = {
-    labels: ['Podcasts', 'Radio Stations', 'Music Tracks', 'Live Streams', 'Products'],
-    datasets: [{
-      data: [
-        contentBreakdown.podcasts || 0,
-        contentBreakdown.radioStations || 0,
-        contentBreakdown.musicTracks || 0,
-        contentBreakdown.liveStreams || 0,
-        myProducts.length || 0
-      ],
-      backgroundColor: ['#FF6B6B', '#00ffc8', '#45B7D1', '#96CEB4', '#FF6600'],
-      borderWidth: 0
-    }]
+  const audChart = {
+    labels: audienceData.map(d => d.date || ""),
+    datasets:[{
+      label:"Followers",
+      data: audienceData.map(d => d.followers || d.count || 0),
+      borderColor:C.violet, backgroundColor:"rgba(123,97,255,.1)",
+      tension:.4, fill:true, pointRadius:2,
+    }],
   };
 
-  // REAL DATA from /api/monthly-growth - No more hardcoded values!
-  const monthlyGrowthData = {
-    labels: monthlyGrowth.labels.length > 0 
-      ? monthlyGrowth.labels 
-      : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [{
-      label: 'Total Engagement',
-      data: monthlyGrowth.engagement.length > 0 
-        ? monthlyGrowth.engagement 
-        : [0, 0, 0, 0, 0, 0],
-      borderColor: '#00ffc8',
-      backgroundColor: 'rgba(0, 255, 200, 0.1)',
-      tension: 0.4,
-      fill: true
-    }]
+  const actIcon = t => ({ podcast:"🎙️",music:"🎵",radio:"📻",livestream:"📹",
+    product:"🛍️",tip:"💰",follower:"👤",sale:"💵",beat:"🥁" }[t] || "◌");
+
+  // ── inline styles ─────────────────────────────────────────
+  const S = {
+    topbar:{
+      background:"rgba(7,9,15,.97)",
+      backdropFilter:"blur(22px)",
+      borderBottom:`1px solid rgba(0,255,200,.07)`,
+      padding:"14px 28px",
+      display:"flex", alignItems:"center", justifyContent:"space-between",
+      flexWrap:"wrap", gap:10,
+      position:"sticky", top:0, zIndex:200,
+    },
+    tabBtn: (a) => ({
+      padding:"7px 14px", borderRadius:8, border:"none",
+      cursor:"pointer", fontFamily:"inherit", fontSize:"0.73rem", fontWeight:700,
+      letterSpacing:.5,
+      background: a ? `linear-gradient(135deg,${C.teal},#00b89f)` : "transparent",
+      color: a ? "#07090f" : C.dim,
+      transition:"all .17s",
+    }),
+    perBtn: (a) => ({
+      padding:"4px 11px", borderRadius:6, border:"none",
+      cursor:"pointer", fontFamily:"inherit", fontSize:"0.7rem", fontWeight:700,
+      background: a ? `${C.teal}22` : "transparent",
+      color: a ? C.teal : C.dim,
+      transition:"all .13s",
+    }),
+    body:{ padding:"26px 28px", maxWidth:1440, margin:"0 auto" },
   };
 
-  const getActivityIcon = (type) => {
-    switch (type) {
-      case 'podcast': return '🎙️';
-      case 'music': return '🎵';
-      case 'radio': return '📻';
-      case 'livestream': return '📹';
-      case 'product': return '🛍️';
-      case 'tip': return '💰';
-      case 'follower': return '👤';
-      case 'sale': return '💵';
-      default: return '📄';
-    }
-  };
+  // ── loading screen ────────────────────────────────────────
+  if (loading) return (
+    <div style={{
+      minHeight:"100vh", background:C.bg, display:"flex",
+      alignItems:"center", justifyContent:"center",
+      fontFamily:"'JetBrains Mono',monospace",
+    }}>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ fontSize:"2.4rem", color:C.teal, marginBottom:14,
+          animation:"cdPulse 1.4s ease-in-out infinite" }}>◈</div>
+        <div style={{ color:C.teal, fontSize:"0.8rem", letterSpacing:3 }}>LOADING COMMAND CENTER</div>
+      </div>
+      <style>{`@keyframes cdPulse{0%,100%{opacity:1}50%{opacity:.3}}`}</style>
+    </div>
+  );
 
-  const handleProductUploaded = () => {
-    const token = localStorage.getItem("token");
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/marketplace/my-products`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.products) {
-        setMyProducts(data.products);
-      }
-    })
-    .catch(error => console.error("Error refreshing products:", error));
-    
-    // Also refresh activity
-    fetchRecentActivity();
-  };
+  // ─────────────────────────────────────────────────────────
+  //  RENDER
+  // ─────────────────────────────────────────────────────────
+  return (
+    <div style={{ minHeight:"100vh", background:C.bg, color:C.muted,
+      fontFamily:"'JetBrains Mono','Fira Code','Courier New',monospace" }}>
 
-  const calculateTotalEarnings = () => {
-    const productEarnings = myProducts.reduce((total, product) => {
-      return total + ((product.sales_count || 0) * (product.price || 0) * 0.9);
-    }, 0);
-    
-    return {
-      products: productEarnings,
-      content: earnings.content || 0,
-      tips: earnings.tips || 0,
-      ads: earnings.ads || 0,
-      subscriptions: earnings.subscriptions || 0,
-      donations: earnings.donations || 0,
-      total: productEarnings + (earnings.content || 0)
-    };
-  };
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&display=swap');
+        *{box-sizing:border-box}
+        @keyframes cdIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+        .cd-tab{animation:cdIn .22s ease}
+        ::-webkit-scrollbar{width:4px;height:4px}
+        ::-webkit-scrollbar-track{background:#0a1018}
+        ::-webkit-scrollbar-thumb{background:#1a2533;border-radius:3px}
+        .cd-tr:hover td{background:rgba(0,255,200,.018)!important}
+        .cd-qa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(102px,1fr));gap:10px}
+        .cd-kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px;margin-bottom:22px}
+        .cd-2col{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;margin-bottom:18px}
+        .cd-half{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        @media(max-width:900px){.cd-2col{grid-template-columns:1fr!important}.cd-half{grid-template-columns:1fr!important}}
+      `}</style>
 
-  const totalEarnings = calculateTotalEarnings();
+      {/* ═══════════════ TOP BAR ══════════════════ */}
+      <div style={S.topbar}>
 
-  // Check if there's any data to show in charts
-  const hasShareData = (socialShares.facebook || 0) + (socialShares.twitter || 0) + 
-                       (socialShares.instagram || 0) + (socialShares.tiktok || 0) > 0;
-  
-  const hasContentData = (contentBreakdown.podcasts || 0) + (contentBreakdown.radioStations || 0) + 
-                         (contentBreakdown.musicTracks || 0) + (contentBreakdown.liveStreams || 0) + 
-                         myProducts.length > 0;
+        {/* identity */}
+        <div style={{ display:"flex", alignItems:"center", gap:13 }}>
+          <img
+            src={profile.profile_picture || "https://via.placeholder.com/42"}
+            alt="avatar"
+            style={{ width:42, height:42, borderRadius:11,
+              border:`2px solid ${C.teal}44`, objectFit:"cover" }}
+          />
+          <div>
+            <div style={{ fontSize:"0.92rem", fontWeight:800, color:C.text }}>
+              {profile.display_name || profile.username || "Creator"}
+            </div>
+            <div style={{ fontSize:"0.63rem", color:C.teal, letterSpacing:1.6 }}>
+              COMMAND CENTER · {fmtN(profile.followers)} FOLLOWERS
+            </div>
+          </div>
+        </div>
 
-  const hasGrowthData = monthlyGrowth.engagement.length > 0 && 
-                        monthlyGrowth.engagement.some(val => val > 0);
+        {/* tab buttons */}
+        <div style={{ display:"flex", gap:3, flexWrap:"wrap" }}>
+          {TABS.map(t => (
+            <button key={t.id} style={S.tabBtn(activeTab===t.id)} onClick={() => setActiveTab(t.id)}>
+              <span style={{ marginRight:5, opacity:.75 }}>{t.icon}</span>{t.label}
+            </button>
+          ))}
+        </div>
 
-  if (loading) {
-    return (
-      <div className="creator-dashboard">
-        <div className="loading-state">
-          <div className="loading-spinner"></div>
-          <p>Loading your dashboard...</p>
+        {/* period + sync */}
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ display:"flex", gap:2 }}>
+            {["7d","30d","90d","1y"].map(p => (
+              <button key={p} style={S.perBtn(period===p)} onClick={() => setPeriod(p)}>{p}</button>
+            ))}
+          </div>
+          <Btn onClick={() => { setSyncing(true); fetchAll(); }} disabled={syncing}>
+            {syncing ? "⟳" : "↺"} SYNC
+          </Btn>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="creator-dashboard">
-      {/* Header Section */}
-      <header className="dashboard-header">
-        <div className="creator-profile-overview">
-          <img
-            src={profile.profile_picture || "https://via.placeholder.com/80"}
-            alt="Creator Profile"
-            className="profile-avatar"
-          />
-          <div className="profile-info">
-            <h1>{profile.display_name || profile.username || 'Creator'}</h1>
-            <p className="profile-subtitle">{profile.bio || 'Content Creator'}</p>
-            <div className="profile-stats">
-              <span className="stat">
-                <strong>{profile.followers || 0}</strong> Followers
-              </span>
-              <span className="stat">
-                <strong>{profile.following || 0}</strong> Following
-              </span>
-              <span className="stat">
-                <strong>{myProducts.length}</strong> Products
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="earnings-overview">
-          <div className="earnings-card">
-            <h3>Total Earnings</h3>
-            <div className="earnings-amount">${totalEarnings.total.toFixed(2)}</div>
-            <div className="earnings-breakdown">
-              <small>Products: ${totalEarnings.products.toFixed(2)}</small>
-              <small>Content: ${totalEarnings.content.toFixed(2)}</small>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* ═══════════════ BODY ══════════════════════ */}
+      <div style={S.body}>
 
-      {/* Navigation Tabs */}
-      <nav className="dashboard-nav">
-        <button 
-          className={`nav-tab ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
-        >
-          📊 Overview
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'products' ? 'active' : ''}`}
-          onClick={() => setActiveTab('products')}
-        >
-          🛍️ My Products ({myProducts.length})
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'upload' ? 'active' : ''}`}
-          onClick={() => setActiveTab('upload')}
-        >
-          ⬆️ Upload Product
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'analytics' ? 'active' : ''}`}
-          onClick={() => setActiveTab('analytics')}
-        >
-          📈 Analytics
-        </button>
-      </nav>
+        {/* ─────────────── OVERVIEW ─────────────── */}
+        {activeTab === "overview" && (
+          <div className="cd-tab">
 
-      {/* Main Content */}
-      <div className="dashboard-content">
-        {/* Overview Tab - Charts First, Quick Actions at Bottom */}
-        {activeTab === 'overview' && (
-          <div className="overview-tab">
-            
-            {/* Usage & Limits Section - Storage and Bandwidth */}
-            <section className="usage-section">
-              <h2>📊 Usage & Limits</h2>
-              <div className="usage-grid">
-                <StorageStatus />
-                <BandwidthStatus />
-              </div>
-            </section>
-
-            {/* Analytics Charts Section */}
-            <section className="analytics-section">
-              <div className="charts-grid">
-                <div className="chart-container">
-                  <h3>Social Media Shares</h3>
-                  {hasShareData ? (
-                    <div className="chart-wrapper">
-                      <Doughnut 
-                        data={shareBreakdownData} 
-                        options={{ 
-                          responsive: true, 
-                          maintainAspectRatio: false, 
-                          plugins: { 
-                            legend: { 
-                              position: 'bottom',
-                              labels: { color: '#c9d1d9', padding: 15 }
-                            } 
-                          } 
-                        }} 
-                      />
-                    </div>
-                  ) : (
-                    <div className="chart-empty">
-                      <p>📤 No social shares yet</p>
-                      <small>Share your content to see analytics here</small>
-                    </div>
-                  )}
+            {/* hero earnings banner */}
+            <Card style={{
+              background:`linear-gradient(135deg,${C.teal}0a,${C.violet}0a)`,
+              border:`1px solid ${C.teal}18`,
+              display:"flex", alignItems:"center", justifyContent:"space-between",
+              flexWrap:"wrap", gap:20, marginBottom:18,
+            }}>
+              <div>
+                <div style={{ fontSize:"0.64rem", color:C.dim, letterSpacing:1, textTransform:"uppercase", marginBottom:6 }}>
+                  Total Platform Earnings
                 </div>
-
-                <div className="chart-container">
-                  <h3>Content Breakdown</h3>
-                  {hasContentData ? (
-                    <div className="chart-wrapper">
-                      <Doughnut 
-                        data={contentBreakdownData} 
-                        options={{ 
-                          responsive: true, 
-                          maintainAspectRatio: false, 
-                          plugins: { 
-                            legend: { 
-                              position: 'bottom',
-                              labels: { color: '#c9d1d9', padding: 15 }
-                            } 
-                          } 
-                        }} 
-                      />
-                    </div>
-                  ) : (
-                    <div className="chart-empty">
-                      <p>📁 No content yet</p>
-                      <small>Upload content to see breakdown here</small>
-                    </div>
-                  )}
+                <div style={{ fontSize:"2.9rem", fontWeight:800, color:C.teal, lineHeight:1 }}>
+                  {fmt$(totalRev)}
+                </div>
+                <div style={{ fontSize:"0.68rem", color:C.dim, marginTop:8, lineHeight:2 }}>
+                  Products {fmt$(productRev)} · Tips {fmt$(earnings.tips)} · Ads {fmt$(earnings.ads)} · Subs {fmt$(earnings.subscriptions)} · Donations {fmt$(earnings.donations)}
                 </div>
               </div>
-
-              <div className="growth-chart">
-                <h3>Monthly Growth Trend</h3>
-                {hasGrowthData ? (
-                  <div className="chart-wrapper">
-                    <Line 
-                      data={monthlyGrowthData} 
-                      options={{ 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
-                        plugins: { 
-                          legend: { display: false } 
-                        }, 
-                        scales: { 
-                          y: { 
-                            beginAtZero: true,
-                            grid: { color: '#374151' },
-                            ticks: { color: '#8b949e' }
-                          },
-                          x: {
-                            grid: { color: '#374151' },
-                            ticks: { color: '#8b949e' }
-                          }
-                        } 
-                      }} 
-                    />
-                  </div>
-                ) : (
-                  <div className="chart-wrapper">
-                    <Line 
-                      data={monthlyGrowthData} 
-                      options={{ 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
-                        plugins: { 
-                          legend: { display: false } 
-                        }, 
-                        scales: { 
-                          y: { 
-                            beginAtZero: true,
-                            grid: { color: '#374151' },
-                            ticks: { color: '#8b949e' }
-                          },
-                          x: {
-                            grid: { color: '#374151' },
-                            ticks: { color: '#8b949e' }
-                          }
-                        } 
-                      }} 
-                    />
-                    <p className="chart-hint">Engagement data will appear as you grow</p>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* Recent Activity Section */}
-            <section className="recent-activity">
-              <div className="section-header">
-                <h2>Recent Activity</h2>
-                <button 
-                  className="refresh-btn" 
-                  onClick={fetchRecentActivity}
-                  disabled={activityLoading}
-                  title="Refresh Activity"
-                >
-                  {activityLoading ? '⏳' : '🔄'}
-                </button>
-              </div>
-              <div className="activity-list">
-                {recentActivity.length > 0 ? recentActivity.slice(0, 10).map((activity, index) => (
-                  <div key={index} className="activity-item">
-                    <span className="activity-icon">{getActivityIcon(activity.type)}</span>
-                    <div className="activity-content">
-                      <p className="activity-text">{activity.text}</p>
-                      <span className="activity-time">{activity.time}</span>
-                    </div>
-                  </div>
-                )) : (
-                  <div className="no-activity">
-                    <p>🎬 No recent activity yet.</p>
-                    <p>Start creating content to see activity here!</p>
-                  </div>
-                )}
-              </div>
-              {recentActivity.length > 10 && (
-                <button 
-                  className="view-all-btn"
-                  onClick={() => setActiveTab('analytics')}
-                >
-                  View All Activity ({recentActivity.length})
-                </button>
-              )}
-            </section>
-
-            {/* Quick Actions - AT THE BOTTOM */}
-            <section className="quick-actions-section">
-              <h2>Quick Actions</h2>
-              <div className="quick-actions-grid">
-                <Link to="/podcast-create" className="quick-action-card">
-                  <div className="action-icon">🎙️</div>
-                  <h3>Create Podcast</h3>
-                  <p>Start a new show</p>
-                </Link>
-
-                <Link to="/upload-music" className="quick-action-card">
-                  <div className="action-icon">🎵</div>
-                  <h3>Upload Music</h3>
-                  <p>Share your tracks</p>
-                </Link>
-
-                <Link to="/create-radio" className="quick-action-card">
-                  <div className="action-icon">📻</div>
-                  <h3>Create Radio</h3>
-                  <p>Start broadcasting</p>
-                </Link>
-
-                <button 
-                  onClick={() => setActiveTab('upload')}
-                  className="quick-action-card"
-                >
-                  <div className="action-icon">🛍️</div>
-                  <h3>Sell Product</h3>
-                  <p>Upload to marketplace</p>
-                </button>
-              </div>
-            </section>
-          </div>
-        )}
-
-        {/* My Products Tab */}
-        {activeTab === 'products' && (
-          <div className="products-tab">
-            <div className="products-header">
-              <h2>My Products</h2>
-              <button 
-                className="btn-primary"
-                onClick={() => setActiveTab('upload')}
-              >
-                + Upload New Product
-              </button>
-            </div>
-
-            {myProducts.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">🛍️</div>
-                <h3>No products yet</h3>
-                <p>Start selling by uploading your first product</p>
-                <button 
-                  className="btn-primary"
-                  onClick={() => setActiveTab('upload')}
-                >
-                  Upload Product
-                </button>
-              </div>
-            ) : (
-              <div className="products-grid">
-                {myProducts.map(product => (
-                  <div key={product.id} className="product-card">
-                    <div className="product-image">
-                      <img 
-                        src={product.image_url || '/placeholder-product.jpg'} 
-                        alt={product.title}
-                        onError={(e) => e.target.src = '/placeholder-product.jpg'}
-                      />
-                      <div className="product-status">
-                        <span className={`status-badge ${product.is_active ? 'active' : 'inactive'}`}>
-                          {product.is_active ? 'Live' : 'Draft'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="product-info">
-                      <h3 className="product-title">{product.title}</h3>
-                      <p className="product-description">{product.description}</p>
-                      
-                      <div className="product-stats">
-                        <div className="stat">
-                          <span className="stat-label">Price</span>
-                          <span className="stat-value">${product.price}</span>
-                        </div>
-                        <div className="stat">
-                          <span className="stat-label">Sales</span>
-                          <span className="stat-value">{product.sales_count || 0}</span>
-                        </div>
-                        <div className="stat">
-                          <span className="stat-label">Revenue</span>
-                          <span className="stat-value">
-                            ${((product.sales_count || 0) * product.price * 0.9).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="product-actions">
-                        <button className="btn-edit">✏️ Edit</button>
-                        <button className="btn-view">👁️ View</button>
-                      </div>
-                    </div>
+              <div style={{ display:"flex", gap:32 }}>
+                {[
+                  { label:"Followers", val:fmtN(profile.followers), color:C.violet },
+                  { label:"Following", val:fmtN(profile.following), color:C.sky },
+                  { label:"Products",  val:fmtN(myProducts.length), color:C.orange },
+                ].map(s => (
+                  <div key={s.label} style={{ textAlign:"center" }}>
+                    <div style={{ fontSize:"1.7rem", fontWeight:800, color:s.color }}>{s.val}</div>
+                    <div style={{ fontSize:"0.64rem", color:C.dim, letterSpacing:1, textTransform:"uppercase", marginTop:3 }}>{s.label}</div>
                   </div>
                 ))}
               </div>
+            </Card>
+
+            {/* KPI row */}
+            <div className="cd-kpi-grid">
+              <KPI icon="▶" label="Total Plays"     value={fmtN(overview.total_plays)}                        color={C.teal}   change={overview.plays_change} />
+              <KPI icon="◎" label="Total Revenue"   value={fmt$(overview.total_revenue || totalRev)}          color={C.orange} change={overview.revenue_change} />
+              <KPI icon="◉" label="Followers"        value={fmtN(profile.followers)}                          color={C.violet} />
+              <KPI icon="♪" label="Music Tracks"    value={fmtN(tracks.length || contentBD.musicTracks)}      color={C.sky} />
+              <KPI icon="🎙" label="Podcasts"        value={fmtN(podcasts.length || contentBD.podcasts)}       color={C.rose} />
+              <KPI icon="⬡" label="Beat Sales"      value={fmtN(beatSales.length)}                            color={C.amber} />
+              <KPI icon="◈" label="Radio Stations"  value={fmtN(radioStations.length || contentBD.radioStations)} color={C.violet} />
+              <KPI icon="▣" label="Video Views"     value={fmtN(overview.video_views)}                        color={C.mint} />
+            </div>
+
+            {/* charts row */}
+            <div className="cd-2col">
+              <Card>
+                <SH title="ENGAGEMENT TREND" />
+                <div style={{ height:200 }}><Line data={growthChart} options={chartBase} /></div>
+              </Card>
+              <Card>
+                <SH title="CONTENT MIX" />
+                <div style={{ height:200 }}><Doughnut data={contentDonut} options={donutOpts} /></div>
+              </Card>
+              <Card>
+                <SH title="SOCIAL SHARES" />
+                <div style={{ height:200 }}><Doughnut data={sharesDonut} options={donutOpts} /></div>
+              </Card>
+            </div>
+
+            {/* storage + bandwidth */}
+            <Card>
+              <SH title="STORAGE & BANDWIDTH" />
+              <div className="cd-half">
+                <StorageStatus />
+                <BandwidthStatus />
+              </div>
+            </Card>
+
+            {/* quick actions */}
+            <Card>
+              <SH title="QUICK ACTIONS" />
+              <div className="cd-qa-grid">
+                <QA to="/upload-music"       icon="🎵" label="Upload Music"    color={C.sky} />
+                <QA to="/podcast-create"     icon="🎙️" label="New Podcast"    color={C.rose} />
+                <QA to="/create-radio"       icon="📻" label="Create Radio"   color={C.violet} />
+                <QA to="/upload-video"       icon="📹" label="Upload Video"   color={C.mint} />
+                <QA to="/live-streams"       icon="🔴" label="Go Live"        color={C.orange} />
+                <QA to="/sell-beats"         icon="🥁" label="Sell Beats"     color={C.amber} />
+                <QA to="/recording-studio"   icon="🎚️" label="Studio"         color={C.teal} />
+                <QA to="/ai-mastering"       icon="🤖" label="AI Master"      color={C.violet} />
+                <QA to="/merch-store"        icon="👕" label="Merch Store"    color={C.pink} />
+                <QA to="/marketplace"        icon="🛍️" label="Marketplace"   color={C.orange} />
+                <QA to="/music-distribution" icon="🌍" label="Distribute"    color={C.sky} />
+                <QA to="/collab-marketplace" icon="🤝" label="Collab Hub"    color={C.violet} />
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* ─────────────── EARNINGS ─────────────── */}
+        {activeTab === "earnings" && (
+          <div className="cd-tab">
+            <div className="cd-kpi-grid">
+              <KPI icon="🛍️" label="Product Sales"   value={fmt$(productRev)}              color={C.orange} />
+              <KPI icon="💰" label="Tips"             value={fmt$(earnings.tips)}            color={C.teal} />
+              <KPI icon="📣" label="Ad Revenue"       value={fmt$(earnings.ads)}             color={C.amber} />
+              <KPI icon="⭐" label="Subscriptions"   value={fmt$(earnings.subscriptions)}   color={C.violet} />
+              <KPI icon="🎁" label="Donations"        value={fmt$(earnings.donations)}       color={C.pink} />
+              <KPI icon="🎵" label="Content Revenue"  value={fmt$(earnings.content)}         color={C.mint} />
+            </div>
+
+            <Card>
+              <SH title="MONTHLY REVENUE" />
+              <div style={{ height:260 }}>
+                {revenueData.length
+                  ? <Bar data={revChart} options={chartBase} />
+                  : <div style={{ textAlign:"center", padding:80, color:C.dim }}>No revenue data for this period</div>}
+              </div>
+            </Card>
+
+            {beatSales.length > 0 && (
+              <Card>
+                <SH title="BEAT SALES" />
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                    <thead><tr>
+                      {["Beat","License","Buyer","Date","Amount","Your Cut (90%)"].map(h => <TH key={h}>{h}</TH>)}
+                    </tr></thead>
+                    <tbody>
+                      {beatSales.slice(0,30).map((s,i) => (
+                        <tr key={i} className="cd-tr">
+                          <TD style={{ color:C.text, fontWeight:700 }}>{s.beat_title}</TD>
+                          <TD><Badge label={s.license_type} color={C.teal} /></TD>
+                          <TD style={{ color:C.muted }}>{s.buyer_name || "Anonymous"}</TD>
+                          <TD style={{ color:C.dim }}>{new Date(s.purchased_at).toLocaleDateString()}</TD>
+                          <TD style={{ color:C.orange }}>{fmt$(s.amount_paid)}</TD>
+                          <TD style={{ color:C.teal, fontWeight:700 }}>{fmt$(s.producer_earnings)}</TD>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+
+            {myProducts.length > 0 && (
+              <Card>
+                <SH title="PRODUCT REVENUE"
+                  action={<Link to="/dashboard/store" style={{ fontSize:"0.7rem", color:C.teal, textDecoration:"none" }}>View All →</Link>}
+                />
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                    <thead><tr>
+                      {["Product","Price","Sales","Revenue (90%)","Status"].map(h => <TH key={h}>{h}</TH>)}
+                    </tr></thead>
+                    <tbody>
+                      {[...myProducts].sort((a,b)=>(b.sales_count||0)-(a.sales_count||0)).slice(0,10).map(p => (
+                        <tr key={p.id} className="cd-tr">
+                          <TD style={{ color:C.text, fontWeight:700 }}>{p.title}</TD>
+                          <TD style={{ color:C.amber }}>{fmt$(p.price)}</TD>
+                          <TD>{fmtN(p.sales_count)}</TD>
+                          <TD style={{ color:C.teal, fontWeight:700 }}>{fmt$((p.sales_count||0)*(p.price||0)*.9)}</TD>
+                          <TD><Badge label={p.is_active?"LIVE":"DRAFT"} color={p.is_active?C.teal:C.dim} /></TD>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
             )}
           </div>
         )}
 
-        {/* Upload Product Tab */}
-        {activeTab === 'upload' && (
-          <div className="upload-tab">
-            <div className="upload-header">
-              <h2>Upload New Product</h2>
-              <p>Add products to your marketplace and start earning</p>
+        {/* ─────────────── CONTENT ─────────────── */}
+        {activeTab === "content" && (
+          <div className="cd-tab">
+            <div className="cd-kpi-grid">
+              <KPI icon="🎵" label="Music Tracks"   value={fmtN(tracks.length)}         color={C.sky} />
+              <KPI icon="🎙️" label="Podcasts"       value={fmtN(podcasts.length)}        color={C.rose} />
+              <KPI icon="📻" label="Radio Stations" value={fmtN(radioStations.length)}   color={C.violet} />
+              <KPI icon="🛍️" label="Products"       value={fmtN(myProducts.length)}      color={C.orange} />
             </div>
-            <ProductUploadForm onUpload={handleProductUploaded} />
+
+            {/* top content */}
+            {topContent.length > 0 && (
+              <Card>
+                <SH title="TOP PERFORMING CONTENT" />
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                    <thead><tr>
+                      {["#","Title","Type","Plays","Revenue","Likes"].map(h => <TH key={h}>{h}</TH>)}
+                    </tr></thead>
+                    <tbody>
+                      {topContent.slice(0,20).map((c,i) => (
+                        <tr key={i} className="cd-tr">
+                          <TD style={{ color:C.dim }}>{i+1}</TD>
+                          <TD style={{ color:C.text, fontWeight:700 }}>{c.title}</TD>
+                          <TD><Badge label={c.type||"track"} color={C.violet} /></TD>
+                          <TD style={{ color:C.teal }}>{fmtN(c.plays)}</TD>
+                          <TD style={{ color:C.orange }}>{fmt$(c.revenue)}</TD>
+                          <TD>{fmtN(c.likes)}</TD>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+
+            {/* music tracks */}
+            {tracks.length > 0 && (
+              <Card>
+                <SH title="MUSIC TRACKS"
+                  action={<Link to="/dashboard/music" style={{ fontSize:"0.7rem", color:C.sky, textDecoration:"none" }}>Manage →</Link>}
+                />
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                    <thead><tr>{["Title","Genre","Plays","Likes","Status"].map(h=><TH key={h}>{h}</TH>)}</tr></thead>
+                    <tbody>
+                      {tracks.slice(0,10).map(t => (
+                        <tr key={t.id} className="cd-tr">
+                          <TD style={{ color:C.text, fontWeight:700 }}>{t.title}</TD>
+                          <TD style={{ color:C.muted }}>{t.genre||"—"}</TD>
+                          <TD style={{ color:C.teal }}>{fmtN(t.play_count||t.plays)}</TD>
+                          <TD>{fmtN(t.likes_count||t.likes)}</TD>
+                          <TD><Badge label={t.is_published?"LIVE":"DRAFT"} color={t.is_published?C.teal:C.dim} /></TD>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+
+            {/* podcasts */}
+            {podcasts.length > 0 && (
+              <Card>
+                <SH title="PODCASTS"
+                  action={<Link to="/dashboard/podcasts" style={{ fontSize:"0.7rem", color:C.rose, textDecoration:"none" }}>Manage →</Link>}
+                />
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                    <thead><tr>{["Title","Episodes","Listeners","Revenue","Status"].map(h=><TH key={h}>{h}</TH>)}</tr></thead>
+                    <tbody>
+                      {podcasts.slice(0,8).map(p => (
+                        <tr key={p.id} className="cd-tr">
+                          <TD style={{ color:C.text, fontWeight:700 }}>{p.title}</TD>
+                          <TD>{fmtN(p.episode_count||p.episodes?.length)}</TD>
+                          <TD style={{ color:C.violet }}>{fmtN(p.total_listens)}</TD>
+                          <TD style={{ color:C.orange }}>{fmt$(p.monthly_revenue)}</TD>
+                          <TD><Badge label={(p.status||"draft").toUpperCase()} color={p.status==="published"?C.teal:C.dim} /></TD>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+
+            {/* radio */}
+            {radioStations.length > 0 && (
+              <Card>
+                <SH title="RADIO STATIONS"
+                  action={<Link to="/dashboard/radio" style={{ fontSize:"0.7rem", color:C.violet, textDecoration:"none" }}>Manage →</Link>}
+                />
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                    <thead><tr>{["Station","Category","Listeners","Status"].map(h=><TH key={h}>{h}</TH>)}</tr></thead>
+                    <tbody>
+                      {radioStations.slice(0,8).map(r => (
+                        <tr key={r.id} className="cd-tr">
+                          <TD style={{ color:C.text, fontWeight:700 }}>{r.name}</TD>
+                          <TD style={{ color:C.muted }}>{r.category||"—"}</TD>
+                          <TD style={{ color:C.violet }}>{fmtN(r.listener_count)}</TD>
+                          <TD><Badge label={r.is_live?"◉ LIVE":"◌ OFF"} color={r.is_live?C.teal:C.dim} /></TD>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
           </div>
         )}
 
-        {/* Analytics Tab */}
-        {activeTab === 'analytics' && (
-          <div className="analytics-tab">
-            <h2>Analytics & Insights</h2>
-            
-            <div className="analytics-grid">
-              <div className="analytics-card">
-                <h3>📦 Product Performance</h3>
-                <div className="metric">
-                  <span className="metric-label">Total Products</span>
-                  <span className="metric-value">{myProducts.length}</span>
-                </div>
-                <div className="metric">
-                  <span className="metric-label">Total Sales</span>
-                  <span className="metric-value">
-                    {myProducts.reduce((total, product) => total + (product.sales_count || 0), 0)}
-                  </span>
-                </div>
-                <div className="metric">
-                  <span className="metric-label">Average Price</span>
-                  <span className="metric-value">
-                    ${myProducts.length > 0 ? 
-                      (myProducts.reduce((total, product) => total + product.price, 0) / myProducts.length).toFixed(2) 
-                      : '0.00'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="analytics-card">
-                <h3>💰 Revenue Breakdown</h3>
-                <div className="revenue-chart">
-                  <div className="revenue-item">
-                    <span className="revenue-label">Product Sales</span>
-                    <span className="revenue-value">${totalEarnings.products.toFixed(2)}</span>
-                  </div>
-                  <div className="revenue-item">
-                    <span className="revenue-label">Tips</span>
-                    <span className="revenue-value">${(earnings.tips || 0).toFixed(2)}</span>
-                  </div>
-                  <div className="revenue-item">
-                    <span className="revenue-label">Ad Revenue</span>
-                    <span className="revenue-value">${(earnings.ads || 0).toFixed(2)}</span>
-                  </div>
-                  <div className="revenue-item">
-                    <span className="revenue-label">Subscriptions</span>
-                    <span className="revenue-value">${(earnings.subscriptions || 0).toFixed(2)}</span>
-                  </div>
-                  <div className="revenue-item">
-                    <span className="revenue-label">Donations</span>
-                    <span className="revenue-value">${(earnings.donations || 0).toFixed(2)}</span>
-                  </div>
-                  <div className="revenue-item total">
-                    <span className="revenue-label">Total Earnings</span>
-                    <span className="revenue-value">${totalEarnings.total.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="analytics-card">
-                <h3>📊 Content Stats</h3>
-                <div className="metric">
-                  <span className="metric-label">Podcasts</span>
-                  <span className="metric-value">{contentBreakdown.podcasts || 0}</span>
-                </div>
-                <div className="metric">
-                  <span className="metric-label">Music Tracks</span>
-                  <span className="metric-value">{contentBreakdown.musicTracks || 0}</span>
-                </div>
-                <div className="metric">
-                  <span className="metric-label">Radio Stations</span>
-                  <span className="metric-value">{contentBreakdown.radioStations || 0}</span>
-                </div>
-                <div className="metric">
-                  <span className="metric-label">Live Streams</span>
-                  <span className="metric-value">{contentBreakdown.liveStreams || 0}</span>
-                </div>
-              </div>
-
-              <div className="analytics-card">
-                <h3>🏆 Top Performing Products</h3>
-                <div className="top-products">
-                  {myProducts
-                    .sort((a, b) => (b.sales_count || 0) - (a.sales_count || 0))
-                    .slice(0, 3)
-                    .map((product, index) => (
-                      <div key={product.id} className="top-product">
-                        <span className="top-rank">#{index + 1}</span>
-                        <img 
-                          src={product.image_url || '/placeholder-product.jpg'} 
-                          alt={product.title}
-                          className="top-product-image"
-                          onError={(e) => e.target.src = '/placeholder-product.jpg'}
-                        />
-                        <div className="top-product-info">
-                          <h4>{product.title}</h4>
-                          <p>{product.sales_count || 0} sales</p>
-                        </div>
-                      </div>
-                    ))}
-                  {myProducts.length === 0 && (
-                    <p className="no-products">No products to show yet</p>
-                  )}
-                </div>
-              </div>
+        {/* ─────────────── AUDIENCE ─────────────── */}
+        {activeTab === "audience" && (
+          <div className="cd-tab">
+            <div className="cd-kpi-grid">
+              <KPI icon="👥" label="Followers"    value={fmtN(profile.followers)}    color={C.violet} />
+              <KPI icon="➡" label="Following"    value={fmtN(profile.following)}    color={C.sky} />
+              <KPI icon="🎧" label="Total Plays"  value={fmtN(overview.total_plays)} color={C.teal} />
+              <KPI icon="❤" label="Total Likes"  value={fmtN(overview.total_likes)} color={C.pink} />
             </div>
 
-            {/* Monthly Growth Chart in Analytics */}
-            <div className="analytics-chart-section">
-              <h3>📈 Monthly Engagement</h3>
-              <div className="analytics-chart-wrapper">
-                <Line 
-                  data={monthlyGrowthData} 
-                  options={{ 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { 
-                      legend: { display: false } 
-                    }, 
-                    scales: { 
-                      y: { 
-                        beginAtZero: true,
-                        grid: { color: '#374151' },
-                        ticks: { color: '#8b949e' }
-                      },
-                      x: {
-                        grid: { color: '#374151' },
-                        ticks: { color: '#8b949e' }
-                      }
-                    } 
-                  }} 
-                />
+            <Card>
+              <SH title="PLAYS OVER TIME" />
+              <div style={{ height:260 }}>
+                {playsData.length
+                  ? <Line data={playsChart} options={chartBase} />
+                  : <div style={{ textAlign:"center", padding:80, color:C.dim }}>No play data yet</div>}
               </div>
+            </Card>
+
+            <Card>
+              <SH title="FOLLOWER GROWTH" />
+              <div style={{ height:230 }}>
+                {audienceData.length
+                  ? <Line data={audChart} options={chartBase} />
+                  : <div style={{ textAlign:"center", padding:80, color:C.dim }}>No audience data yet</div>}
+              </div>
+            </Card>
+
+            <div className="cd-half">
+              <Card>
+                <SH title="SOCIAL SHARES" />
+                <div style={{ height:220 }}><Doughnut data={sharesDonut} options={donutOpts} /></div>
+              </Card>
+              <Card>
+                <SH title="CONTENT DISTRIBUTION" />
+                <div style={{ height:220 }}><Doughnut data={contentDonut} options={donutOpts} /></div>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* ─────────────── STORE ─────────────── */}
+        {activeTab === "store" && (
+          <div className="cd-tab">
+            <div className="cd-kpi-grid">
+              <KPI icon="📦" label="Total Products" value={fmtN(myProducts.length)} color={C.orange} />
+              <KPI icon="💵" label="Total Sales"    value={fmtN(totalSales)}        color={C.teal} />
+              <KPI icon="💰" label="Revenue (90%)"  value={fmt$(productRev)}        color={C.amber} />
+              <KPI icon="🥁" label="Beat Sales"     value={fmtN(beatSales.length)}  color={C.violet} />
             </div>
 
-            {/* Full Activity Log */}
-            <div className="full-activity-section">
-              <div className="section-header">
-                <h3>📋 Complete Activity Log</h3>
-                <button 
-                  className="refresh-btn" 
-                  onClick={fetchRecentActivity}
-                  disabled={activityLoading}
-                >
-                  {activityLoading ? '⏳' : '🔄'}
-                </button>
+            <div style={{ display:"flex", gap:10, justifyContent:"flex-end", marginBottom:16 }}>
+              <Btn onClick={() => setActiveTab("upload")} color={C.teal}>+ Upload Product</Btn>
+              <Link to="/sell-beats" style={{ textDecoration:"none" }}>
+                <Btn color={C.violet} style={{ cursor:"pointer" }}>+ Sell Beat</Btn>
+              </Link>
+            </div>
+
+            {myProducts.length > 0 ? (
+              <Card>
+                <SH title="MY PRODUCTS" />
+                <div style={{ overflowX:"auto" }}>
+                  <table style={{ width:"100%", borderCollapse:"collapse" }}>
+                    <thead><tr>
+                      {["Product","Price","Sales","Revenue (90%)","Status","Actions"].map(h=><TH key={h}>{h}</TH>)}
+                    </tr></thead>
+                    <tbody>
+                      {[...myProducts].sort((a,b)=>(b.sales_count||0)-(a.sales_count||0)).map(p => (
+                        <tr key={p.id} className="cd-tr">
+                          <TD style={{ color:C.text, fontWeight:700 }}>{p.title}</TD>
+                          <TD style={{ color:C.amber }}>{fmt$(p.price)}</TD>
+                          <TD>{fmtN(p.sales_count)}</TD>
+                          <TD style={{ color:C.teal, fontWeight:700 }}>{fmt$((p.sales_count||0)*(p.price||0)*.9)}</TD>
+                          <TD><Badge label={p.is_active?"LIVE":"DRAFT"} color={p.is_active?C.teal:C.dim} /></TD>
+                          <TD>
+                            <Btn style={{ marginRight:6, padding:"3px 9px", fontSize:"0.66rem" }}>✏️ Edit</Btn>
+                            <Btn color={C.violet} style={{ padding:"3px 9px", fontSize:"0.66rem" }}>👁️ View</Btn>
+                          </TD>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            ) : (
+              <Card style={{ textAlign:"center", padding:60 }}>
+                <div style={{ fontSize:40, marginBottom:14 }}>🛍️</div>
+                <div style={{ color:C.dim, marginBottom:20 }}>No products yet.</div>
+                <Btn onClick={() => setActiveTab("upload")}>Upload First Product</Btn>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* ─────────────── UPLOAD ─────────────── */}
+        {activeTab === "upload" && (
+          <div className="cd-tab">
+            <Card>
+              <SH title="UPLOAD NEW PRODUCT" />
+              <p style={{ color:C.dim, fontSize:"0.8rem", marginBottom:20 }}>
+                Add to your marketplace and start earning. You keep 90%.
+              </p>
+              <ProductUploadForm onUpload={onProductUploaded} />
+            </Card>
+          </div>
+        )}
+
+        {/* ─────────────── FAN TIERS ─────────────── */}
+        {activeTab === "fans" && (
+          <div className="cd-tab">
+            <Card>
+              <SH title="FAN MEMBERSHIP TIERS"
+                action={<Badge label="Patreon-style" color={C.amber} />}
+              />
+              <p style={{ color:C.dim, fontSize:"0.8rem", marginBottom:20 }}>
+                Create up to 5 tiers. Fans pay monthly. Gated content unlocks per tier.
+              </p>
+              <FanTierManager />
+            </Card>
+          </div>
+        )}
+
+        {/* ─────────────── EMBED ─────────────── */}
+        {activeTab === "embed" && (
+          <div className="cd-tab">
+            <Card>
+              <SH title="EMBED CODE GENERATOR"
+                action={<Badge label="Share anywhere" color={C.sky} />}
+              />
+              <p style={{ color:C.dim, fontSize:"0.8rem", marginBottom:20 }}>
+                Get embeddable player code for any track, podcast, or radio station.
+              </p>
+              <EmbedCodeGenerator />
+            </Card>
+          </div>
+        )}
+
+        {/* ─────────────── ACTIVITY ─────────────── */}
+        {activeTab === "activity" && (
+          <div className="cd-tab">
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+              <div>
+                <div style={{ fontSize:"0.92rem", fontWeight:700, color:C.text }}>Activity Log</div>
+                <div style={{ fontSize:"0.68rem", color:C.dim, marginTop:3 }}>Auto-refreshes every 30 seconds</div>
               </div>
-              {recentActivity.length === 0 ? (
-                <p className="no-activity">No activity recorded yet.</p>
-              ) : (
-                <div className="full-activity-list">
-                  {recentActivity.map((activity, index) => (
-                    <div key={index} className="full-activity-item">
-                      <span className="activity-icon-large">{getActivityIcon(activity.type)}</span>
-                      <div className="activity-details">
-                        <p className="activity-text">{activity.text}</p>
-                      </div>
-                      <span className="activity-timestamp">{activity.time}</span>
-                    </div>
-                  ))}
+              <Btn onClick={refreshActivity} disabled={activityBusy}>
+                {activityBusy ? "⟳" : "↺"} REFRESH
+              </Btn>
+            </div>
+
+            <Card>
+              {recentActivity.length > 0 ? recentActivity.map((a,i) => (
+                <div key={i} style={{
+                  display:"flex", alignItems:"center", gap:15,
+                  padding:"13px 0",
+                  borderBottom: i < recentActivity.length-1 ? "1px solid #0c1420" : "none",
+                }}>
+                  <div style={{
+                    width:38, height:38, borderRadius:10, flexShrink:0,
+                    background:`${C.teal}0c`, display:"flex",
+                    alignItems:"center", justifyContent:"center", fontSize:18,
+                  }}>
+                    {actIcon(a.type)}
+                  </div>
+                  <div style={{ flex:1, fontSize:"0.83rem", color:C.muted }}>{a.text}</div>
+                  <div style={{ fontSize:"0.68rem", color:C.dim, whiteSpace:"nowrap" }}>{a.time}</div>
+                </div>
+              )) : (
+                <div style={{ textAlign:"center", padding:60 }}>
+                  <div style={{ fontSize:36, marginBottom:12, color:C.dim }}>◌</div>
+                  <div style={{ color:C.dim }}>No activity yet. Start creating!</div>
                 </div>
               )}
-            </div>
+            </Card>
           </div>
         )}
+
       </div>
     </div>
   );

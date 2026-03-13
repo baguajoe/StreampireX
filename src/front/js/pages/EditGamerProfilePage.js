@@ -56,7 +56,7 @@ const EditGamerProfilePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     await updateGamerProfile(formData, token);
-    navigate("/profile/gamer");
+    navigate("/gamer-profile");
   };
 
   return (

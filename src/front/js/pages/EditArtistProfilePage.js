@@ -239,7 +239,7 @@ const EditArtistProfilePage = () => {
       if (response.ok) {
         setMessage("✅ Artist profile updated successfully!");
         setTimeout(() => {
-          navigate("/profile/artist");
+          navigate("/artist-dashboard");
         }, 2000);
       } else {
         throw new Error(data.error || "Failed to update profile");
@@ -487,7 +487,7 @@ const EditArtistProfilePage = () => {
         <div className="form-actions">
           <button
             type="button"
-            onClick={() => navigate("/profile/artist")}
+            onClick={() => navigate("/artist-dashboard")}
             className="btn-secondary"
             disabled={saving}
           >

@@ -1,6 +1,20 @@
 // src/front/js/component/sidebar.js
-// Collapsible sidebar — Reordered by community size & free access
-// Order: Profiles → Feed → Gaming → Content → Music → AI Tools → Radio → Store → Dashboard → Account
+// StreamPireX Sidebar — Cleaned up March 2026
+//
+// CHANGES FROM PREVIOUS VERSION:
+//  ✅ Removed: AI Thumbnail Maker (stub — use AI Video Studio instead)
+//  ✅ Removed: AI Promo Generator (stub — use AI Video Studio + AI Content Writer instead)
+//  ✅ Removed: Collaborator Splits (moved to Creator Dashboard tabs)
+//  ✅ Removed: Payout Dashboard (moved to Creator Dashboard tabs)
+//  ✅ Removed: Sell Beats (merged into unified Music Store)
+//  ✅ Removed: Stems Store / Sell Stems (merged into unified Music Store)
+//  ✅ Renamed: Beat Store → "Music Store" (beats + stems, unified)
+//  ✅ Added: Merch Store (Printful) in Store section
+//  ✅ Added: Creator Academy moved to Store section (was in AI Tools)
+//  ✅ Added: Hum to Song + Text to Song in Music section (for artists)
+//  ✅ Content: removed duplicate podcast entries (kept Podcast Studio, Browse Podcasts only)
+//  ✅ Music: removed Video Series (belongs in Content, not Music)
+
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import styled from "styled-components";
@@ -70,7 +84,6 @@ const SectionHeader = styled.h4`
   &::after { content: ''; flex: 1; height: 1px; background: rgba(255,167,38,0.3); }
 `;
 
-// Free badge for sections available on free tier
 const FreeBadge = styled.span`
   background: rgba(0, 255, 200, 0.15);
   color: #00ffc8;
@@ -231,16 +244,16 @@ const Sidebar = ({ user }) => {
   const [gamingNotifications, setGamingNotifications] = useState({ chatrooms: 0, teamRoom: 0, squads: 0 });
 
   // ── Section collapse states ──
-  const [showProfiles, setShowProfiles] = useState(true);
-  const [showFeed, setShowFeed] = useState(true);
-  const [showGaming, setShowGaming] = useState(true);
-  const [showContent, setShowContent] = useState(true);
-  const [showMusic, setShowMusic] = useState(true);
-  const [showAI, setShowAI] = useState(true);
-  const [showRadio, setShowRadio] = useState(false);
-  const [showStore, setShowStore] = useState(true);
+  const [showProfiles,  setShowProfiles]  = useState(true);
+  const [showFeed,      setShowFeed]      = useState(true);
+  const [showGaming,    setShowGaming]    = useState(true);
+  const [showContent,   setShowContent]   = useState(true);
+  const [showMusic,     setShowMusic]     = useState(true);
+  const [showAI,        setShowAI]        = useState(true);
+  const [showRadio,     setShowRadio]     = useState(false);
+  const [showStore,     setShowStore]     = useState(true);
   const [showDashboard, setShowDashboard] = useState(true);
-  const [showAccount, setShowAccount] = useState(false);
+  const [showAccount,   setShowAccount]   = useState(false);
 
   const hasArtistProfile =
     user?.is_artist === true ||
@@ -262,7 +275,7 @@ const Sidebar = ({ user }) => {
     localStorage.setItem("sidebar_collapsed", collapsed);
   }, [collapsed]);
 
-  // Persist section states
+  // Persist section open/closed states
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("sidebar_sections") || "{}");
@@ -290,7 +303,7 @@ const Sidebar = ({ user }) => {
   return (
     <SidebarContainer className={`sidebar${collapsed ? ' collapsed' : ''}`}>
 
-      {/* Toggle Button */}
+      {/* ── Collapse toggle ── */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -319,10 +332,9 @@ const Sidebar = ({ user }) => {
         </span>
       </button>
 
-      {/* ============================== */}
-      {/* #1  👤 PROFILES — FREE         */}
-      {/* Social + Artist + Gamer up top */}
-      {/* ============================== */}
+      {/* ============================================================ */}
+      {/* #1  👤 PROFILES                                              */}
+      {/* ============================================================ */}
       <SectionHeader className="sidebar-section-header" onClick={() => setShowProfiles(!showProfiles)}>
         👤 <span className="sidebar-section-text">Profiles</span>
         <FreeBadge className="sidebar-label">FREE</FreeBadge>
@@ -332,58 +344,42 @@ const Sidebar = ({ user }) => {
       </SectionHeader>
 
       {showProfiles && (
-  <>
-    {/* Social Profile — points to /profile */}
-    <ProfileMenuItem
-      to="/profile"
-      className={isActive("/profile") && !isActive("/profile/") ? "active" : ""}
-    >
-      👤 <span className="sidebar-label">Social Profile</span>
-      <MenuHint className="sidebar-hint">free</MenuHint>
-    </ProfileMenuItem>
+        <>
+          <ProfileMenuItem to="/profile" className={isActive("/profile") && !isActive("/profile/") ? "active" : ""}>
+            👤 <span className="sidebar-label">Social Profile</span>
+            <MenuHint className="sidebar-hint">free</MenuHint>
+          </ProfileMenuItem>
 
-    {/* Artist Page — Updated to match Layout.js path */}
-    {hasArtistProfile && (
-      <ProfileMenuItem
-        to="/artist-dashboard" 
-        className={isActive("/artist-dashboard") ? "active" : ""}
-      >
-        🎵 <span className="sidebar-label">Artist Page</span>
-        <MenuHint className="sidebar-hint">free</MenuHint>
-      </ProfileMenuItem>
-    )}
+          {hasArtistProfile && (
+            <ProfileMenuItem to={`/artist-profile/${user?.id}`} className={isActive(`/artist-profile/${user?.id}`) ? "active" : ""}>
+              🎵 <span className="sidebar-label">Artist Page</span>
+              <MenuHint className="sidebar-hint">free</MenuHint>
+            </ProfileMenuItem>
+          )}
 
-    {/* Gamer Profile — Updated to match Layout.js path */}
-    {hasGamerProfile && (
-      <ProfileMenuItem
-        to={`/gamer-profile/${user?.id}`}
-        className={isActive("/gamer-profile") ? "active" : ""}
-      >
-        🎮 <span className="sidebar-label">Gamer Profile</span>
-        <MenuHint className="sidebar-hint">free</MenuHint>
-      </ProfileMenuItem>
-    )}
+          {hasGamerProfile && (
+            <ProfileMenuItem to={`/gamer-profile/${user?.id}`} className={isActive("/gamer-profile") ? "active" : ""}>
+              🎮 <span className="sidebar-label">Gamer Profile</span>
+              <MenuHint className="sidebar-hint">free</MenuHint>
+            </ProfileMenuItem>
+          )}
 
-    {/* Video Channel — Updated to match Layout.js path */}
-    <ProfileMenuItem
-      to="/my-video
-      -channel"
-      className={isActive("/my-video-channel") ? "active" : ""}
-    >
-      📹 <span className="sidebar-label">Video Channel</span>
-      <MenuHint className="sidebar-hint">free</MenuHint>
-    </ProfileMenuItem>
+          <ProfileMenuItem to="/my-video-channel" className={isActive("/my-video-channel") ? "active" : ""}>
+            📹 <span className="sidebar-label">Video Channel</span>
+            <MenuHint className="sidebar-hint">free</MenuHint>
+          </ProfileMenuItem>
 
-    {(!hasArtistProfile || !hasGamerProfile) && (
-      <CreateProfileLink to="/settings" className="sidebar-create-link">
-        ➕ Add Profile Type...
-      </CreateProfileLink>
-    )}
-  </>
-)}
-      {/* ============================== */}
-      {/* #2  🏠 FEED & DISCOVER — FREE  */}
-      {/* ============================== */}
+          {(!hasArtistProfile || !hasGamerProfile) && (
+            <CreateProfileLink to="/settings" className="sidebar-create-link">
+              ➕ Add Profile Type...
+            </CreateProfileLink>
+          )}
+        </>
+      )}
+
+      {/* ============================================================ */}
+      {/* #2  🏠 FEED & DISCOVER                                       */}
+      {/* ============================================================ */}
       <SectionHeader className="sidebar-section-header" onClick={() => setShowFeed(!showFeed)}>
         🏠 <span className="sidebar-section-text">Feed</span>
         <FreeBadge className="sidebar-label">FREE</FreeBadge>
@@ -394,27 +390,27 @@ const Sidebar = ({ user }) => {
 
       {showFeed && (
         <>
-          <MenuItem to="/home-feed" className={isActive("/home-feed") ? "active" : ""}>
+          <MenuItem to="/home-feed"        className={isActive("/home-feed") ? "active" : ""}>
             🏠 <span className="sidebar-label">Home Feed</span>
           </MenuItem>
-          <MenuItem to="/discover-users" className={isActive("/discover-users") ? "active" : ""}>
+          <MenuItem to="/discover-users"   className={isActive("/discover-users") ? "active" : ""}>
             🔍 <span className="sidebar-label">Discover Users</span>
           </MenuItem>
-          <MenuItem to="/content-library" className={isActive("/content-library") ? "active" : ""}>
+          <MenuItem to="/content-library"  className={isActive("/content-library") ? "active" : ""}>
             📚 <span className="sidebar-label">Content Library</span>
           </MenuItem>
-          <MenuItem to="/search" className={isActive("/search") ? "active" : ""}>
+          <MenuItem to="/search"           className={isActive("/search") ? "active" : ""}>
             🔎 <span className="sidebar-label">Search</span>
           </MenuItem>
-          <MenuItem to="/explore" className={isActive("/explore") ? "active" : ""}>
+          <MenuItem to="/explore"          className={isActive("/explore") ? "active" : ""}>
             🌐 <span className="sidebar-label">Explore</span>
           </MenuItem>
         </>
       )}
 
-      {/* ============================== */}
-      {/* #3  🎮 GAMING — FREE           */}
-      {/* ============================== */}
+      {/* ============================================================ */}
+      {/* #3  🎮 GAMING                                                */}
+      {/* ============================================================ */}
       <GamingSectionHeader onClick={() => setShowGaming(!showGaming)}>
         <span>
           🎮 <span className="sidebar-label">Gaming</span>
@@ -427,30 +423,24 @@ const Sidebar = ({ user }) => {
 
       {showGaming && (
         <>
-          <GamingMenuItem to="/gamers-chatroom" className={isActive("/gamers/chat") ? "active" : ""}>
+          <GamingMenuItem to="/gamers-chatroom" className={isActive("/gamers-chatroom") ? "active" : ""}>
             💬 <span className="sidebar-label">Gamer Chatrooms</span>
-            {gamingNotifications.chatrooms > 0 && (
-              <NotificationBadge>{gamingNotifications.chatrooms}</NotificationBadge>
-            )}
+            {gamingNotifications.chatrooms > 0 && <NotificationBadge>{gamingNotifications.chatrooms}</NotificationBadge>}
           </GamingMenuItem>
           <GamingMenuItem to="/squad-finder" className={isActive("/squad-finder") ? "active" : ""}>
             🔍 <span className="sidebar-label">Find Squads</span>
-            {gamingNotifications.squads > 0 && (
-              <NotificationBadge>{gamingNotifications.squads}</NotificationBadge>
-            )}
+            {gamingNotifications.squads > 0 && <NotificationBadge>{gamingNotifications.squads}</NotificationBadge>}
           </GamingMenuItem>
           <GamingMenuItem to="/team-room" className={isActive("/team-room") ? "active" : ""}>
             🧑‍🤝‍🧑 <span className="sidebar-label">Team Room</span>
-            {gamingNotifications.teamRoom > 0 && (
-              <NotificationBadge>{gamingNotifications.teamRoom}</NotificationBadge>
-            )}
+            {gamingNotifications.teamRoom > 0 && <NotificationBadge>{gamingNotifications.teamRoom}</NotificationBadge>}
           </GamingMenuItem>
         </>
       )}
 
-      {/* ============================== */}
-      {/* #4  🎬 CONTENT                 */}
-      {/* ============================== */}
+      {/* ============================================================ */}
+      {/* #4  🎬 CONTENT                                               */}
+      {/* ============================================================ */}
       <SectionHeader className="sidebar-section-header" onClick={() => setShowContent(!showContent)}>
         🎬 <span className="sidebar-section-text">Content</span>
         <span className="sidebar-arrow" style={{ fontSize: '0.6rem', marginLeft: 'auto' }}>
@@ -460,36 +450,35 @@ const Sidebar = ({ user }) => {
 
       {showContent && (
         <>
-          <MenuItem to="/video-editor" className={isActive("/video-editor") ? "active" : ""}>
+          <MenuItem to="/video-editor"    className={isActive("/video-editor") ? "active" : ""}>
             🎬 <span className="sidebar-label">Video Editor</span>
             <MenuHint className="sidebar-hint">free</MenuHint>
           </MenuItem>
-          <MenuItem to="/browse-videos" className={isActive("/videos") ? "active" : ""}>
+          <MenuItem to="/browse-videos"   className={isActive("/browse-videos") ? "active" : ""}>
             🎞️ <span className="sidebar-label">Browse Videos</span>
           </MenuItem>
-          <MenuItem to="/upload-video" className={isActive("/upload-video") ? "active" : ""}>
+          <MenuItem to="/upload-video"    className={isActive("/upload-video") ? "active" : ""}>
             📤 <span className="sidebar-label">Upload Video</span>
           </MenuItem>
-          <MenuItem to="/reels" className={isActive("/reels") ? "active" : ""}>
+          <MenuItem to="/reels"           className={isActive("/reels") ? "active" : ""}>
             🎞️ <span className="sidebar-label">Reels</span>
           </MenuItem>
-          <MenuItem to="/my-reels" className={isActive("/my-reels") ? "active" : ""}>
-            📂 <span className="sidebar-label">My Reels</span>
-          </MenuItem>
-          <MenuItem to="/upload-reel" className={isActive("/upload-reel") ? "active" : ""}>
+          <MenuItem to="/upload-reel"     className={isActive("/upload-reel") ? "active" : ""}>
             ⬆️ <span className="sidebar-label">Upload Reel</span>
           </MenuItem>
-          <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
+          <MenuItem to="/live-streams"    className={isActive("/live-streams") ? "active" : ""}>
             📡 <span className="sidebar-label">Live Streams</span>
           </MenuItem>
-          <MenuItem to="/podcast-studio" className={isActive("/podcast-studio") ? "active" : ""}>
+          {/* Podcast — single entry point; Create + Browse are inside the studio */}
+          <MenuItem to="/podcast-studio"  className={isActive("/podcast-studio") ? "active" : ""}>
             🎙️ <span className="sidebar-label">Podcast Studio</span>
-          </MenuItem>
-          <MenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>
-            🎙️ <span className="sidebar-label">Create Podcast</span>
           </MenuItem>
           <MenuItem to="/browse-podcast-categories" className={isActive("/browse-podcast-categories") ? "active" : ""}>
             🎧 <span className="sidebar-label">Browse Podcasts</span>
+          </MenuItem>
+          <MenuItem to="/video-series/new" className={isActive("/video-series") ? "active" : ""}>
+            📺 <span className="sidebar-label">Video Series</span>
+            <MenuHint className="sidebar-hint">NEW</MenuHint>
           </MenuItem>
           <MenuItem to="/collab-marketplace" className={isActive("/collab-marketplace") ? "active" : ""}>
             🤝 <span className="sidebar-label">Collab Marketplace</span>
@@ -498,9 +487,9 @@ const Sidebar = ({ user }) => {
         </>
       )}
 
-      {/* ============================== */}
-      {/* #5  🎤 MUSIC (artists only)    */}
-      {/* ============================== */}
+      {/* ============================================================ */}
+      {/* #5  🎤 MUSIC  (artist profiles only)                         */}
+      {/* ============================================================ */}
       {hasArtistProfile && (
         <>
           <SectionHeader className="sidebar-section-header" onClick={() => setShowMusic(!showMusic)}>
@@ -512,42 +501,42 @@ const Sidebar = ({ user }) => {
 
           {showMusic && (
             <>
-              <MenuItem to="/recording-studio" className={isActive("/recording-studio") ? "active" : ""}>
+              <MenuItem to="/recording-studio"    className={isActive("/recording-studio") ? "active" : ""}>
                 🎛️ <span className="sidebar-label">Recording Studio</span>
                 <MenuHint className="sidebar-hint">DAW</MenuHint>
               </MenuItem>
-              <MenuItem to="/epk-collab-hub" className={isActive("/epk-hub") ? "active" : ""}>
+              <MenuItem to="/epk-collab-hub"      className={isActive("/epk-collab-hub") ? "active" : ""}>
                 📋 <span className="sidebar-label">EPK & Collabs</span>
                 <MenuHint className="sidebar-hint">FREE</MenuHint>
               </MenuItem>
-              <MenuItem to="/ai-mastering" className={isActive("/ai-mastering") ? "active" : ""}>
+              <MenuItem to="/ai-mastering"        className={isActive("/ai-mastering") ? "active" : ""}>
                 🎚️ <span className="sidebar-label">AI Mastering</span>
               </MenuItem>
-              <MenuItem to="/music-distribution" className={isActive("/music-distribution") ? "active" : ""}>
+              <MenuItem to="/hum-to-song"         className={isActive("/hum-to-song") ? "active" : ""}>
+                🎤 <span className="sidebar-label">Hum to Song</span>
+                <MenuHint className="sidebar-hint">AI</MenuHint>
+              </MenuItem>
+              <MenuItem to="/ai-text-to-song"     className={isActive("/ai-text-to-song") ? "active" : ""}>
+                🎵 <span className="sidebar-label">Text to Song</span>
+                <MenuHint className="sidebar-hint">AI</MenuHint>
+              </MenuItem>
+              <MenuItem to="/music-distribution"  className={isActive("/music-distribution") ? "active" : ""}>
                 🌍 <span className="sidebar-label">Music Distribution</span>
               </MenuItem>
-              <MenuItem to="/collaborator-splits" className={isActive("/collaborator-splits") ? "active" : ""}>
-                👥 <span className="sidebar-label">Collaborator Splits</span>
-              </MenuItem>
-              <MenuItem to="/video-series/new" className={isActive("/video-series") ? "active" : ""}>
-                🎬 <span className="sidebar-label">Video Series</span>
-                <MenuHint className="sidebar-hint">NEW</MenuHint>
-              </MenuItem>
-              <MenuItem to="/creator/membership" className={isActive("/creator/membership") ? "active" : ""}>
+              <MenuItem to="/creator/membership"  className={isActive("/creator/membership") ? "active" : ""}>
                 ⭐ <span className="sidebar-label">Fan Membership</span>
                 <MenuHint className="sidebar-hint">NEW</MenuHint>
-              </MenuItem>
-              <MenuItem to="/payout-dashboard" className={isActive("/payouts") ? "active" : ""}>
-                💵 <span className="sidebar-label">Payout Dashboard</span>
               </MenuItem>
             </>
           )}
         </>
       )}
 
-      {/* ============================== */}
-      {/* #6  🤖 AI TOOLS                */}
-      {/* ============================== */}
+      {/* ============================================================ */}
+      {/* #6  🤖 AI TOOLS                                              */}
+      {/* Removed: AI Thumbnail Maker, AI Promo Generator (stubs)      */}
+      {/* Removed: Hum to Song + Text to Song (moved to Music section) */}
+      {/* ============================================================ */}
       <AISectionHeader className="sidebar-section-header" onClick={() => setShowAI(!showAI)}>
         🤖 <span className="sidebar-section-text">AI Tools</span>
         <span className="sidebar-arrow" style={{ fontSize: '0.6rem', marginLeft: 'auto' }}>
@@ -565,34 +554,18 @@ const Sidebar = ({ user }) => {
             🎬 <span className="sidebar-label">AI Video Studio</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </AIMenuItem>
-          <AIMenuItem to="/hum-to-song" className={isActive("/hum-to-song") ? "active" : ""}>
-            🎤 <span className="sidebar-label">Hum to Song</span>
-            <MenuHint className="sidebar-hint">NEW</MenuHint>
-          </AIMenuItem>
-          <AIMenuItem to="/ai-text-to-song" className={isActive("/ai-text-to-song") ? "active" : ""}>
-            🎵 <span className="sidebar-label">Text to Song</span>
-            <MenuHint className="sidebar-hint">NEW</MenuHint>
-          </AIMenuItem>
           <AIMenuItem to="/voice-clone-services" className={isActive("/voice-clone-services") ? "active" : ""}>
             🎤 <span className="sidebar-label">AI Voice Clone</span>
           </AIMenuItem>
           <AIMenuItem to="/ai-content-writer" className={isActive("/ai-content-writer") ? "active" : ""}>
             ✍️ <span className="sidebar-label">AI Content Writer</span>
           </AIMenuItem>
-          <AIMenuItem to="/ai-thumbnail-maker" className={isActive("/ai-thumbnail-maker") ? "active" : ""}>
-            🖼️ <span className="sidebar-label">AI Thumbnail Maker</span>
-            <MenuHint className="sidebar-hint">NEW</MenuHint>
-          </AIMenuItem>
-          <AIMenuItem to="/ai-promo-generator" className={isActive("/ai-promo-generator") ? "active" : ""}>
-            📣 <span className="sidebar-label">AI Promo Generator</span>
-            <MenuHint className="sidebar-hint">NEW</MenuHint>
-          </AIMenuItem>
         </>
       )}
 
-      {/* ============================== */}
-      {/* #7  📻 RADIO                   */}
-      {/* ============================== */}
+      {/* ============================================================ */}
+      {/* #7  📻 RADIO                                                 */}
+      {/* ============================================================ */}
       <SectionHeader className="sidebar-section-header" onClick={() => setShowRadio(!showRadio)}>
         📻 <span className="sidebar-section-text">Radio</span>
         <span className="sidebar-arrow" style={{ fontSize: '0.6rem', marginLeft: 'auto' }}>
@@ -608,15 +581,19 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/create-radio" className={isActive("/create-radio") ? "active" : ""}>
             ➕ <span className="sidebar-label">Create Station</span>
           </MenuItem>
-          <MenuItem to="/airadio-dj" className={isActive("/ai-radio-dj") ? "active" : ""}>
+          <MenuItem to="/airadio-dj" className={isActive("/airadio-dj") ? "active" : ""}>
             🤖 <span className="sidebar-label">AI Radio DJ</span>
           </MenuItem>
         </>
       )}
 
-      {/* ============================== */}
-      {/* #8  🛍️ STORE                   */}
-      {/* ============================== */}
+      {/* ============================================================ */}
+      {/* #8  🛍️ STORE                                                 */}
+      {/* Beat Store + Stems + Sell Beats + Sell Stems → Music Store   */}
+      {/* Added: Merch Store (Printful)                                */}
+      {/* Added: Creator Academy                                       */}
+      {/* Removed: Sample Market (still accessible via Music Store)   */}
+      {/* ============================================================ */}
       <SectionHeader className="sidebar-section-header" onClick={() => setShowStore(!showStore)}>
         🛍️ <span className="sidebar-section-text">Store</span>
         <span className="sidebar-arrow" style={{ fontSize: '0.6rem', marginLeft: 'auto' }}>
@@ -626,46 +603,40 @@ const Sidebar = ({ user }) => {
 
       {showStore && (
         <>
-          <MenuItem to="/beat-store" className={isActive("/beat-store") ? "active" : ""}>
-            🎹 <span className="sidebar-label">Beat Store</span>
-            <MenuHint className="sidebar-hint">free browse</MenuHint>
+          {/* Unified beats + stems + selling — one page handles all of it */}
+          <MenuItem to="/music-store" className={isActive("/music-store") ? "active" : ""}>
+            🎹 <span className="sidebar-label">Music Store</span>
+            <MenuHint className="sidebar-hint">beats + stems</MenuHint>
           </MenuItem>
           <MenuItem to="/marketplace" className={isActive("/marketplace") ? "active" : ""}>
             🛒 <span className="sidebar-label">Marketplace</span>
           </MenuItem>
-          <MenuItem to="/sell-beats" className={isActive("/sell-beats") ? "active" : ""}>
-            💰 <span className="sidebar-label">Sell Beats</span>
-          </MenuItem>
-          <MenuItem to="/browse-producers" className={isActive("/producers") ? "active" : ""}>
+          <MenuItem to="/browse-producers" className={isActive("/browse-producers") ? "active" : ""}>
             🎤 <span className="sidebar-label">Browse Producers</span>
-          </MenuItem>
-          <MenuItem to="/browse-stems" className={isActive("/browse-stems") ? "active" : ""}>
-            🎵 <span className="sidebar-label">Stems Store</span>
-            <MenuHint className="sidebar-hint">NEW</MenuHint>
-          </MenuItem>
-          <MenuItem to="/sell-stems" className={isActive("/sell-stems") ? "active" : ""}>
-            💰 <span className="sidebar-label">Sell Stems</span>
-          </MenuItem>
-          <MenuItem to="/creator-sample-marketplace" className={isActive("/creator-sample-marketplace") ? "active" : ""}>
-            🎼 <span className="sidebar-label">Sample Market</span>
-            <MenuHint className="sidebar-hint">NEW</MenuHint>
           </MenuItem>
           <MenuItem to="/storefront" className={isActive("/storefront") ? "active" : ""}>
             🏪 <span className="sidebar-label">My Storefront</span>
           </MenuItem>
+          {/* Merch Store — Printful print-on-demand */}
+          <MenuItem to="/merch-store" className={isActive("/merch-store") ? "active" : ""}>
+            👕 <span className="sidebar-label">Merch Store</span>
+            <MenuHint className="sidebar-hint">Printful</MenuHint>
+          </MenuItem>
           <MenuItem to="/orders" className={isActive("/orders") ? "active" : ""}>
             📦 <span className="sidebar-label">Orders</span>
           </MenuItem>
-          <MenuItem to="/academy" className={isActive("/academy") ? "active" : ""}>
-            📚 <span className="sidebar-label">Creator Academy</span>
+          {/* Creator Academy — learn from real creators */}
+          <MenuItem to="/creator-academy" className={isActive("/creator-academy") ? "active" : ""}>
+            🎓 <span className="sidebar-label">Creator Academy</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </MenuItem>
         </>
       )}
 
-      {/* ============================== */}
-      {/* #9  📊 DASHBOARD               */}
-      {/* ============================== */}
+      {/* ============================================================ */}
+      {/* #9  📊 DASHBOARD                                             */}
+      {/* Collab Splits + Payout Dashboard live as tabs inside here    */}
+      {/* ============================================================ */}
       <SectionHeader className="sidebar-section-header" onClick={() => setShowDashboard(!showDashboard)}>
         📊 <span className="sidebar-section-text">Dashboard</span>
         <span className="sidebar-arrow" style={{ fontSize: '0.6rem', marginLeft: 'auto' }}>
@@ -680,9 +651,9 @@ const Sidebar = ({ user }) => {
         </DashboardLink>
       )}
 
-      {/* ============================== */}
-      {/* #10 ⚙️ ACCOUNT                 */}
-      {/* ============================== */}
+      {/* ============================================================ */}
+      {/* #10 ⚙️ ACCOUNT                                               */}
+      {/* ============================================================ */}
       <SectionHeader className="sidebar-section-header" onClick={() => setShowAccount(!showAccount)}>
         ⚙️ <span className="sidebar-section-text">Account</span>
         <span className="sidebar-arrow" style={{ fontSize: '0.6rem', marginLeft: 'auto' }}>
@@ -692,10 +663,10 @@ const Sidebar = ({ user }) => {
 
       {showAccount && (
         <>
-          <MenuItem to="/settings" className={isActive("/settings") ? "active" : ""}>
+          <MenuItem to="/settings"      className={isActive("/settings") ? "active" : ""}>
             ⚙️ <span className="sidebar-label">Settings</span>
           </MenuItem>
-          <MenuItem to="/support" className={isActive("/support") ? "active" : ""}>
+          <MenuItem to="/support"       className={isActive("/support") ? "active" : ""}>
             🛠️ <span className="sidebar-label">Tech Support</span>
           </MenuItem>
           <MenuItem to="/notifications" className={isActive("/notifications") ? "active" : ""}>
@@ -704,13 +675,14 @@ const Sidebar = ({ user }) => {
         </>
       )}
 
-      {/* ============================== */}
-      {/* 📊 USAGE STATUS                */}
-      {/* ============================== */}
+      {/* ============================================================ */}
+      {/* 📊 USAGE STATUS                                              */}
+      {/* ============================================================ */}
       <UsageSection className="sidebar-usage-section">
         <StorageStatus compact={true} />
         <BandwidthStatus compact={true} />
       </UsageSection>
+
     </SidebarContainer>
   );
 };

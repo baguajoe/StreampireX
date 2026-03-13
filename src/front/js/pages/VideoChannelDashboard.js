@@ -436,7 +436,7 @@ const VideoChannelDashboard = () => {
             <Link to="/upload-video" className="action-btn primary">
               📤 Upload Video
             </Link>
-            <Link to="/profile/video" className="action-btn secondary">
+            <Link to="/my-video-channel" className="action-btn secondary">
               ⚙️ Channel Settings
             </Link>
           </div>
