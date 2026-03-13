@@ -60,7 +60,7 @@ const Login = () => {
         </button>
 
         <p>
-          Please click <Link to="/register">here</Link> to sign up!
+          Please click <Link to="/signup">here</Link> to sign up!
         </p>
       </form>
     </div>

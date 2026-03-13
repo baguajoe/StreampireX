@@ -826,7 +826,7 @@ const HomeFeed = () => {
             <p>Shop products</p>
           </Link>
 
-          <Link to="/gamers/chat" className="quick-action-card">
+          <Link to="/gamers-chatroom" className="quick-action-card">
             <div className="action-icon">🎮</div>
             <h3>Gamer Chat</h3>
             <p>Join the community</p>

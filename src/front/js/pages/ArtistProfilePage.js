@@ -1178,7 +1178,7 @@ const ArtistProfilePage = () => {
             <ProfileEPKSection userId={effectiveId} />
             {isOwnProfile && (
               <div style={{ textAlign: 'center', marginTop: '20px' }}>
-                <Link to="/epk-hub" className="btn btn-primary">✏️ Edit My EPKs</Link>
+                <Link to="/epk-collab-hub" className="btn btn-primary">✏️ Edit My EPKs</Link>
               </div>
             )}
           </div>

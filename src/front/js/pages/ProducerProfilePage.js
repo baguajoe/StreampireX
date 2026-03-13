@@ -107,7 +107,7 @@ const ProducerProfilePage = () => {
   };
 
   if (!producer && !loading) {
-    return <div className="pp-page"><div className="pp-not-found"><h2>Producer not found</h2><Link to="/producers">← Browse Producers</Link></div></div>;
+    return <div className="pp-page"><div className="pp-not-found"><h2>Producer not found</h2><Link to="/browse-producers">← Browse Producers</Link></div></div>;
   }
 
   return (

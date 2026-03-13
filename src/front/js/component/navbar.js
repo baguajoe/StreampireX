@@ -160,7 +160,7 @@ const Navbar = () => {
 
           <Link
             className={`nav-link ${isActive('/videos') ? 'active' : ''}`}
-            to="/videos"
+            to="/browse-videos"
             onClick={closeMobileMenu}
           >
             <span className="nav-icon">📹</span>

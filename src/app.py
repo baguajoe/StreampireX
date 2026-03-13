@@ -13,7 +13,8 @@ from src.api.fan_subscription_routes import fan_sub_bp
 from src.api.beat_licensing_routes import beat_license_bp
 from src.api.clip_sharing_routes import clip_bp
 from src.api.collab_request_routes import collab_bp
-
+from api.printful_routes import printful_bp
+from api.printful_oauth_routes import printful_oauth_bp
 from dotenv import load_dotenv
 
 # Load environment variables from .env
@@ -34,6 +35,8 @@ from flask_cors import CORS
 from flask_socketio import emit, join_room
 from flask_caching import Cache
 from flask_apscheduler import APScheduler
+from flask_migrate import Migrate
+from api.extensions import db
 import cloudinary
 import click
 from flask.cli import with_appcontext
@@ -343,6 +346,8 @@ app.register_blueprint(series_bp)
 app.register_blueprint(comment_bp)
 from src.api.wam_plugin_routes import wam_plugin_bp
 app.register_blueprint(wam_plugin_bp)
+app.register_blueprint(printful_bp, url_prefix='/api/printful')
+
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)
@@ -538,7 +543,6 @@ def restrict_admin_to_basic_auth():
 from src.api.sample_marketplace_routes import marketplace_bp
 from src.api.jam_tracks_routes import jam_tracks_bp
 from src.api.collab_marketplace_routes import collab_marketplace_bp
-from src.api.printful_oauth_routes import printful_oauth_bp
 from src.api.printful_unified_routes import printful_unified_bp
 from src.api.reference_mastering_routes import reference_mastering_bp
 from src.api.suno_gap_routes import suno_gap_bp

@@ -131,7 +131,7 @@ const BrowseRadioStations = () => {
             {stations.map((station) => (
               <Link
                 key={station.id}
-                to={`/radio/station/${station.id}`}
+                to={`/radio-station/${station.id}`}
                 className="radio-card"
               >
                 {station.isOfficial && <span className="radio-badge official">OFFICIAL</span>}

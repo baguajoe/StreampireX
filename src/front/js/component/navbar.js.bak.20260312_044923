@@ -19,7 +19,7 @@ const Navbar = () => {
 
                 <div className="d-flex align-items-center">
                     <Link to="/login" className="nav-link text-white me-3 fw-bold">Login</Link>
-                    <Link to="/join" className="btn" style={{ backgroundColor: "#00f2ea", color: "#050a12", fontWeight: "bold", borderRadius: "20px", padding: "0.4rem 1.2rem" }}>Join Waitlist</Link>
+                    <Link to="/signup" className="btn" style={{ backgroundColor: "#00f2ea", color: "#050a12", fontWeight: "bold", borderRadius: "20px", padding: "0.4rem 1.2rem" }}>Join Waitlist</Link>
                 </div>
             </div>
         </nav>

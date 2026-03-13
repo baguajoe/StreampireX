@@ -420,13 +420,13 @@ const LabelDashboard = () => {
               </button>
             </Link>
 
-            <Link to="/revenue-dashboard" style={{ textDecoration: 'none' }}>
+            <Link to="/sales-dashboard" style={{ textDecoration: 'none' }}>
               <button className="action-btn info">
                 💸 Revenue Dashboard
               </button>
             </Link>
 
-            <Link to="/distribution" style={{ textDecoration: 'none' }}>
+            <Link to="/music-distribution" style={{ textDecoration: 'none' }}>
               <button className="action-btn secondary">
                 📡 Distribution Status
               </button>

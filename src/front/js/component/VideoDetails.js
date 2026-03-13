@@ -204,7 +204,7 @@ const VideoDetail = () => {
         <div className="error-state">
           <h2>Video Not Found</h2>
           <p>{error || 'The video you\'re looking for doesn\'t exist or has been removed.'}</p>
-          <Link to="/videos" className="back-btn">← Back to Videos</Link>
+          <Link to="/browse-videos" className="back-btn">← Back to Videos</Link>
         </div>
       </div>
     );

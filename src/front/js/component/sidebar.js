@@ -433,7 +433,7 @@ const Sidebar = ({ user }) => {
 
       {showGaming && (
         <>
-          <GamingMenuItem to="/gamers/chat" className={isActive("/gamers/chat") ? "active" : ""}>
+          <GamingMenuItem to="/gamers-chatroom" className={isActive("/gamers/chat") ? "active" : ""}>
             💬 <span className="sidebar-label">Gamer Chatrooms</span>
             {gamingNotifications.chatrooms > 0 && (
               <NotificationBadge>{gamingNotifications.chatrooms}</NotificationBadge>
@@ -470,7 +470,7 @@ const Sidebar = ({ user }) => {
             🎬 <span className="sidebar-label">Video Editor</span>
             <MenuHint className="sidebar-hint">free</MenuHint>
           </MenuItem>
-          <MenuItem to="/videos" className={isActive("/videos") ? "active" : ""}>
+          <MenuItem to="/browse-videos" className={isActive("/videos") ? "active" : ""}>
             🎞️ <span className="sidebar-label">Browse Videos</span>
           </MenuItem>
           <MenuItem to="/upload-video" className={isActive("/upload-video") ? "active" : ""}>
@@ -522,7 +522,7 @@ const Sidebar = ({ user }) => {
                 🎛️ <span className="sidebar-label">Recording Studio</span>
                 <MenuHint className="sidebar-hint">DAW</MenuHint>
               </MenuItem>
-              <MenuItem to="/epk-hub" className={isActive("/epk-hub") ? "active" : ""}>
+              <MenuItem to="/epk-collab-hub" className={isActive("/epk-hub") ? "active" : ""}>
                 📋 <span className="sidebar-label">EPK & Collabs</span>
                 <MenuHint className="sidebar-hint">FREE</MenuHint>
               </MenuItem>
@@ -543,7 +543,7 @@ const Sidebar = ({ user }) => {
                 ⭐ <span className="sidebar-label">Fan Membership</span>
                 <MenuHint className="sidebar-hint">NEW</MenuHint>
               </MenuItem>
-              <MenuItem to="/payouts" className={isActive("/payouts") ? "active" : ""}>
+              <MenuItem to="/payout-dashboard" className={isActive("/payouts") ? "active" : ""}>
                 💵 <span className="sidebar-label">Payout Dashboard</span>
               </MenuItem>
             </>
@@ -563,7 +563,7 @@ const Sidebar = ({ user }) => {
 
       {showAI && (
         <>
-          <AIMenuItem to="/ai-stems" className={isActive("/ai-stems") ? "active" : ""}>
+          <AIMenuItem to="/ai-stem-separation" className={isActive("/ai-stem-separation") ? "active" : ""}>
             🎵 <span className="sidebar-label">AI Stem Separation</span>
             <MenuHint className="sidebar-hint">FREE</MenuHint>
           </AIMenuItem>
@@ -575,21 +575,21 @@ const Sidebar = ({ user }) => {
             🎤 <span className="sidebar-label">Hum to Song</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </AIMenuItem>
-          <AIMenuItem to="/ai-song" className={isActive("/ai-song") ? "active" : ""}>
+          <AIMenuItem to="/ai-text-to-song" className={isActive("/ai-text-to-song") ? "active" : ""}>
             🎵 <span className="sidebar-label">Text to Song</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </AIMenuItem>
-          <AIMenuItem to="/voice-services" className={isActive("/voice-services") ? "active" : ""}>
+          <AIMenuItem to="/voice-clone-services" className={isActive("/voice-clone-services") ? "active" : ""}>
             🎤 <span className="sidebar-label">AI Voice Clone</span>
           </AIMenuItem>
-          <AIMenuItem to="/ai-writer" className={isActive("/ai-writer") ? "active" : ""}>
+          <AIMenuItem to="/ai-content-writer" className={isActive("/ai-content-writer") ? "active" : ""}>
             ✍️ <span className="sidebar-label">AI Content Writer</span>
           </AIMenuItem>
-          <AIMenuItem to="/ai-thumbnail" className={isActive("/ai-thumbnail") ? "active" : ""}>
+          <AIMenuItem to="/ai-thumbnail-maker" className={isActive("/ai-thumbnail-maker") ? "active" : ""}>
             🖼️ <span className="sidebar-label">AI Thumbnail Maker</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </AIMenuItem>
-          <AIMenuItem to="/ai-promo" className={isActive("/ai-promo") ? "active" : ""}>
+          <AIMenuItem to="/ai-promo-generator" className={isActive("/ai-promo-generator") ? "active" : ""}>
             📣 <span className="sidebar-label">AI Promo Generator</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </AIMenuItem>
@@ -614,7 +614,7 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/create-radio" className={isActive("/create-radio") ? "active" : ""}>
             ➕ <span className="sidebar-label">Create Station</span>
           </MenuItem>
-          <MenuItem to="/ai-radio-dj" className={isActive("/ai-radio-dj") ? "active" : ""}>
+          <MenuItem to="/airadio-dj" className={isActive("/ai-radio-dj") ? "active" : ""}>
             🤖 <span className="sidebar-label">AI Radio DJ</span>
           </MenuItem>
         </>
@@ -642,17 +642,17 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/sell-beats" className={isActive("/sell-beats") ? "active" : ""}>
             💰 <span className="sidebar-label">Sell Beats</span>
           </MenuItem>
-          <MenuItem to="/producers" className={isActive("/producers") ? "active" : ""}>
+          <MenuItem to="/browse-producers" className={isActive("/producers") ? "active" : ""}>
             🎤 <span className="sidebar-label">Browse Producers</span>
           </MenuItem>
-          <MenuItem to="/stems" className={isActive("/stems") ? "active" : ""}>
+          <MenuItem to="/browse-stems" className={isActive("/stems") ? "active" : ""}>
             🎵 <span className="sidebar-label">Stems Store</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </MenuItem>
           <MenuItem to="/stems/sell" className={isActive("/stems/sell") ? "active" : ""}>
             💰 <span className="sidebar-label">Sell Stems</span>
           </MenuItem>
-          <MenuItem to="/sample-marketplace" className={isActive("/sample-marketplace") ? "active" : ""}>
+          <MenuItem to="/creator-sample-marketplace" className={isActive("/sample-marketplace") ? "active" : ""}>
             🎼 <span className="sidebar-label">Sample Market</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </MenuItem>

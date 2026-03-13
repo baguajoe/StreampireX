@@ -1138,17 +1138,17 @@ const Home = () => {
 							<Link to="/beats">Beat Store</Link>
 							<Link to="/podcast-studio">Podcast Studio</Link>
 							<Link to="/video-editor">Video Editor</Link>
-							<Link to="/epk-hub">EPK Builder</Link>
+							<Link to="/epk-collab-hub">EPK Builder</Link>
 						</div>
 						<div className="footer-col">
 							<h5>AI Tools</h5>
 							<Link to="/ai-mastering">AI Mastering</Link>
-							<Link to="/ai-stems">AI Stem Separation</Link>
+							<Link to="/ai-stem-separation">AI Stem Separation</Link>
 							<Link to="/ai-video-studio">AI Video Studio</Link>
 							<Link to="/hum-to-song">Hum to Song</Link>
-							<Link to="/ai-song">Text to Song</Link>
-							<Link to="/ai-radio-dj">AI Radio DJ</Link>
-							<Link to="/voice-services">AI Voice Clone</Link>
+							<Link to="/ai-text-to-song">Text to Song</Link>
+							<Link to="/airadio-dj">AI Radio DJ</Link>
+							<Link to="/voice-clone-services">AI Voice Clone</Link>
 						</div>
 						<div className="footer-col">
 							<h5>Community</h5>

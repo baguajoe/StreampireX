@@ -54,7 +54,7 @@ const WAMPluginBrowserModal = ({ onAddWAM, onClose }) => {
       }}>
         <span style={{ fontWeight: 700, color: S.teal, fontSize: '0.9rem' }}>🔌 WAM Plugins</span>
         <Link
-          to="/plugin-store"
+          to="/wam-plugin-store"
           style={{ color: S.orange, fontSize: '0.75rem', textDecoration: 'none' }}>
           Browse Store →
         </Link>
@@ -67,7 +67,7 @@ const WAMPluginBrowserModal = ({ onAddWAM, onClose }) => {
             <p style={{ color: S.dim, fontSize: '0.82rem', margin: '0 0 12px' }}>
               No WAM plugins installed yet.
             </p>
-            <Link to="/plugin-store" style={{
+            <Link to="/wam-plugin-store" style={{
               background:    S.teal, color: '#000', fontWeight: 700,
               borderRadius:  6, padding: '6px 16px',
               fontSize:      '0.78rem', textDecoration: 'none',
@@ -128,7 +128,7 @@ const WAMPluginBrowserModal = ({ onAddWAM, onClose }) => {
           borderTop:    `1px solid ${S.border}`,
           background:   S.bg,
         }}>
-          <Link to="/plugin-store" style={{
+          <Link to="/wam-plugin-store" style={{
             color:          S.dim,
             fontSize:       '0.73rem',
             textDecoration: 'none',

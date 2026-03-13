@@ -12,7 +12,7 @@
 //   <Route path="/plugin-store" element={<WAMPluginStore />} />
 //
 // ADD NAV LINK in DAW sidebar or Plugins view tab:
-//   <Link to="/plugin-store">🔌 Plugin Store</Link>
+//   <Link to="/wam-plugin-store">🔌 Plugin Store</Link>
 // =============================================================================
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -395,7 +395,7 @@ const WAMPluginStore = () => {
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Link to="/daw" style={{ color: S.dim, textDecoration: 'none', fontSize: '0.8rem' }}>
+            <Link to="/recording-studio" style={{ color: S.dim, textDecoration: 'none', fontSize: '0.8rem' }}>
               ← DAW
             </Link>
             <span style={{ color: S.border }}>|</span>
