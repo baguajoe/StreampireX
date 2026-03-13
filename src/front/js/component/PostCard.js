@@ -157,6 +157,18 @@ const PostCard = ({
             </div>
 
             {/* Post Content - Normal or Edit Mode */}
+            {(post.members_only || post.tier_required) && !post.viewer_is_member ? (
+            <div className="post-locked-gate">
+              <div className="post-lock-icon">🔒</div>
+              <div className="post-lock-text">
+                <strong>Members Only</strong>
+                <p>Subscribe to this creator to unlock this post.</p>
+                <a href={`/fan-membership/${post.user_id}`} className="post-lock-btn">
+                  💎 Become a Member
+                </a>
+              </div>
+            </div>
+          ) : (
             <div className="post-content">
                 {isEditing ? (
                     <div className="post-edit-mode">

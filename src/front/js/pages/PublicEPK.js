@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { FanMembershipPage } from './FanMembership';
 import '../../styles/PublicEPK.css';
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL || '';
@@ -202,7 +203,11 @@ const EPKView = ({ epk, compact = false }) => {
 
       {/* Contact / Socials */}
       {!compact && (
-        <div className="pepk-section pepk-contact">
+        <div className="pepk-section pepk-membership">
+        <h3 className="pepk-section-title">💎 Support This Artist</h3>
+        <FanMembershipPage embeddedCreatorId={epk.user_id} />
+      </div>
+      <div className="pepk-section pepk-contact">
           {epk.website && (
             <a href={epk.website} target="_blank" rel="noopener noreferrer" className="pepk-link">🌐 Website</a>
           )}

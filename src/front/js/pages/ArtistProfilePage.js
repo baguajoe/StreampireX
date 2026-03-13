@@ -5,6 +5,7 @@ import UploadTrackModal from "../component/UploadTrackModal";
 import TipJar from "../component/TipJar";
 import BeatsTab from "../component/BeatsTab";
 import { ProfileEPKSection } from "./PublicEPK";
+import { FanMembershipPage } from "./FanMembership";
 import "../../styles/ArtistProfile.css";
 
 const ArtistProfilePage = () => {
@@ -1450,7 +1451,8 @@ const ArtistProfilePage = () => {
               )}
               <button onClick={handleShare} className="share-btn">🔗 Share</button>
               {!isOwnProfile && !isBlocked && (
-                <TipJar
+                <FanMembershipWidget creatorId={id} isOwnProfile={isOwnProfile} />
+      <TipJar
                   creatorId={id}
                   creatorName={artistInfo.artistName}
                   contentType="artist"
@@ -1658,6 +1660,18 @@ const ArtistProfilePage = () => {
           <Link to="/artist-dashboard/edit" className="edit-profile-btn">✏️ Edit Artist Profile</Link>
         </div>
       )}
+    </div>
+  );
+};
+
+
+// Fan Membership Widget — inserted above export
+const FanMembershipWidget = ({ creatorId, isOwnProfile }) => {
+  if (!creatorId) return null;
+  if (isOwnProfile) return null;
+  return (
+    <div style={{ margin: '24px 0' }}>
+      <FanMembershipPage embeddedCreatorId={creatorId} />
     </div>
   );
 };

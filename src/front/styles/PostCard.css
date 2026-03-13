@@ -303,3 +303,10 @@
         width: 100%;
     }
 }
+/* ─── Membership Gate ─── */
+.post-locked-gate { display: flex; align-items: center; gap: 16px; padding: 20px; margin: 12px 0; background: linear-gradient(135deg, #0d0d1a, #1a1a2e); border: 1px solid #2a2a4a; border-radius: 12px; }
+.post-lock-icon { font-size: 32px; flex-shrink: 0; }
+.post-lock-text strong { display: block; color: #fff; font-size: 15px; margin-bottom: 4px; }
+.post-lock-text p { color: #888; font-size: 13px; margin: 0 0 10px; }
+.post-lock-btn { display: inline-block; padding: 7px 16px; background: linear-gradient(135deg, #7b61ff, #00ffc8); color: #000; font-weight: 700; font-size: 12px; border-radius: 20px; text-decoration: none; }
+.post-lock-btn:hover { opacity: 0.85; }

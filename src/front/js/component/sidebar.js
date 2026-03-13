@@ -633,6 +633,9 @@ const Sidebar = ({ user }) => {
             🎓 <span className="sidebar-label">Creator Academy</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </MenuItem>
+          <MenuItem to="/my-learning" className={isActive("/my-learning") ? "active" : ""}>
+            🎓 <span className="sidebar-label">My Learning</span>
+          </MenuItem>
         </>
       )}
 
