@@ -3197,7 +3197,10 @@ class Audio(db.Model):
     album_id = db.Column(db.Integer, db.ForeignKey('album.id'), nullable=True)  # Proper album relationship
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    status = db.Column(db.String(20), default='active')  # 'active', 'archived', 'deleted', etc.
+    status = db.Column(db.String(20), default='active')
+    audio_type = db.Column(db.String(50), default='original')
+    bpm_detected = db.Column(db.Float, nullable=True)
+    key_detected = db.Column(db.String(50), nullable=True)  # 'active', 'archived', 'deleted', etc.
     
     # Relationships
     user = db.relationship('User', backref=db.backref('audio_tracks', lazy=True))
