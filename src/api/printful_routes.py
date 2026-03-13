@@ -172,7 +172,7 @@ def create_store_product():
 
 
 # ── 6. Get a creator's store products (public) ────────────────────────────────
-@printful_bp.route('/api/store/<username>/products', methods=['GET'])
+@printful_bp.route('/store/<username>/products', methods=['GET'])
 def get_creator_store(username):
     from api.models import User, CreatorProduct
 
@@ -199,7 +199,7 @@ def get_creator_store(username):
 
 
 # ── 7. Fan checkout — Stripe payment + Printful order ────────────────────────
-@printful_bp.route('/api/store/checkout', methods=['POST'])
+@printful_bp.route('/store/checkout', methods=['POST'])
 def store_checkout():
     from api.models import db, CreatorProduct, User, MerchOrder
 
@@ -265,7 +265,7 @@ def store_checkout():
 
 
 # ── 8. Webhook — after Stripe confirms payment, submit to Printful ────────────
-@printful_bp.route('/api/store/fulfillment', methods=['POST'])
+@printful_bp.route('/store/fulfillment', methods=['POST'])
 def fulfill_order():
     """Called after successful Stripe payment to submit order to Printful"""
     from api.models import db, CreatorProduct, MerchOrder
