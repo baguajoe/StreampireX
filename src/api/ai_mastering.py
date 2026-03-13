@@ -43,11 +43,11 @@ except Exception:
     print("⚠️ Matchering not installed — Phase 2 disabled. Run: pip install matchering")
 
 # Internal imports
-from src.api.models import db, Audio
+from api.models import db, Audio
 try:
-    from src.api.r2_storage_setup import uploadFile
+    from api.r2_storage_setup import uploadFile
 except Exception:
-    from src.api.cloudinary_setup import uploadFile
+    from api.cloudinary_setup import uploadFile
 
 ai_mastering_bp = Blueprint('ai_mastering', __name__)
 

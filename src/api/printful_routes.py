@@ -65,7 +65,7 @@ def get_variants(product_id):
 def generate_mockup():
     """Generate a product mockup with creator's artwork"""
     from flask_jwt_extended import jwt_required, get_jwt_identity
-    from src.api.models import db, User
+    from api.models import db, User
 
     data = request.get_json()
     variant_id = data.get("variant_id")
@@ -134,7 +134,7 @@ def get_mockup_result(task_key):
 @printful_bp.route('/api/printful/store/product', methods=['POST'])
 def create_store_product():
     from flask_jwt_extended import jwt_required, get_jwt_identity
-    from src.api.models import db, User, CreatorProduct
+    from api.models import db, User, CreatorProduct
 
     # Get current user
     auth = request.headers.get("Authorization", "")
@@ -174,7 +174,7 @@ def create_store_product():
 # ── 6. Get a creator's store products (public) ────────────────────────────────
 @printful_bp.route('/api/store/<username>/products', methods=['GET'])
 def get_creator_store(username):
-    from src.api.models import User, CreatorProduct
+    from api.models import User, CreatorProduct
 
     user = User.query.filter_by(username=username).first()
     if not user:
@@ -201,7 +201,7 @@ def get_creator_store(username):
 # ── 7. Fan checkout — Stripe payment + Printful order ────────────────────────
 @printful_bp.route('/api/store/checkout', methods=['POST'])
 def store_checkout():
-    from src.api.models import db, CreatorProduct, User, MerchOrder
+    from api.models import db, CreatorProduct, User, MerchOrder
 
     data = request.get_json()
     product_id = data.get("product_id")
@@ -268,7 +268,7 @@ def store_checkout():
 @printful_bp.route('/api/store/fulfillment', methods=['POST'])
 def fulfill_order():
     """Called after successful Stripe payment to submit order to Printful"""
-    from src.api.models import db, CreatorProduct, MerchOrder
+    from api.models import db, CreatorProduct, MerchOrder
 
     data = request.get_json()
     order_id = data.get("order_id")
@@ -321,7 +321,7 @@ def fulfill_order():
 # ── 9. Creator's order dashboard ─────────────────────────────────────────────
 @printful_bp.route('/api/printful/my-products', methods=['GET'])
 def my_products():
-    from src.api.models import CreatorProduct, MerchOrder
+    from api.models import CreatorProduct, MerchOrder
     from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
     auth = request.headers.get("Authorization", "")

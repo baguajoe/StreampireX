@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from .models import db, User
-from src.api.beat_store_models import BeatLicense
+from api.beat_store_models import BeatLicense
 
 beat_license_bp = Blueprint('beat_licensing', __name__)
 

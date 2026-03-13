@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 import os
 import requests as req
 
-from src.api.models import db, User
+from api.models import db, User
 
 printful_oauth_bp = Blueprint("printful_oauth", __name__)
 

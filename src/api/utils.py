@@ -3,7 +3,7 @@
 from flask import jsonify, url_for, current_app
 from flask_jwt_extended import get_jwt_identity
 from flask_mail import Mail, Message
-from src.api.models import User
+from api.models import User
 
 def calculate_split(amount, revenue_type):
     """

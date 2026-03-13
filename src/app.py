@@ -7,12 +7,12 @@ import os
 # ✅ CRITICAL: Add parent directory to path BEFORE any local imports
 src_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(src_dir)
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
-from src.api.fan_subscription_routes import fan_sub_bp
-from src.api.beat_licensing_routes import beat_license_bp
-from src.api.clip_sharing_routes import clip_bp
-from src.api.collab_request_routes import collab_bp
+# if parent_dir not in sys.path:
+#     sys.path.insert(0, parent_dir)
+from api.fan_subscription_routes import fan_sub_bp
+from api.beat_licensing_routes import beat_license_bp
+from api.clip_sharing_routes import clip_bp
+from api.collab_request_routes import collab_bp
 from api.printful_routes import printful_bp
 from api.printful_oauth_routes import printful_oauth_bp
 from api.r2_upload_routes import r2_upload_bp
@@ -28,7 +28,7 @@ if not os.getenv("JWT_SECRET_KEY"):
     print("⚠️  JWT_SECRET_KEY not found, using fallback (SET THIS IN PRODUCTION!)")
 
 # ✅ NOW import from src - path is set up
-from src.api.email_service import init_mail
+from api.email_service import init_mail
 from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_migrate import Migrate
 from flask_mail import Mail, Message as MailMessage
@@ -42,54 +42,54 @@ from api.extensions import db
 import cloudinary
 import click
 from flask.cli import with_appcontext
-from src.api.ai_mastering import ai_mastering_bp
-from src.api.ai_mastering_phase3 import ai_mastering_phase3_bp
-from src.api.ai_radio_dj import ai_radio_dj_bp
-from src.api.ai_content_routes import ai_content_bp
-from src.api.recording_studio_routes import recording_studio_bp
-from src.api.beat_store_routes import beat_store_bp
-from src.api.ai_chord_generator import ai_chord_generator_bp
-from src.api.ai_video_tools import ai_video_tools_bp
-from src.api.epk_collab import epk_collab_bp
+from api.ai_mastering import ai_mastering_bp
+from api.ai_mastering_phase3 import ai_mastering_phase3_bp
+from api.ai_radio_dj import ai_radio_dj_bp
+from api.ai_content_routes import ai_content_bp
+from api.recording_studio_routes import recording_studio_bp
+from api.beat_store_routes import beat_store_bp
+from api.ai_chord_generator import ai_chord_generator_bp
+from api.ai_video_tools import ai_video_tools_bp
+from api.epk_collab import epk_collab_bp
 
 # Import your blueprints - use src prefix
-from src.api.routes import api
-from src.api.cache import cache
-from src.api.models import LiveChat, User, RadioStation, PricingPlan, SonoSuiteUser, Message, Conversation, MicSimPreset, MicSimRecording
-from src.api.sound_kit_models import SoundKit, SoundKitSample, SoundKitLike  # 🎛️ Sound Kit Models
-from src.api.utils import APIException, generate_sitemap
-from src.api.admin import setup_admin
-from src.api.commands import setup_commands
-from src.api.socketio import init_socketio
-from src.api.extensions import db
-from src.api.messages_routes import messages_bp  # Add src. prefix 
-from src.api.video_editor_routes import video_editor_bp
-from src.api.follow_routes import follow_bp  # ADD THIS
-from src.api.video_tier_routes import video_tier_bp  # ADD THIS
-from src.api.notifications import notifications_bp
-from src.api.ai_mix_assistant import ai_mix_assistant_bp
-from src.api.ai_stem_separation import ai_stem_separation_bp
-from src.api.ai_video_generation_routes import ai_video_gen_bp
-from src.api.mic_simulator_routes import mic_simulator_bp  # 🎙️ Mic Simulator
-from src.api.freesound_api import freesound_bp  # 🔊 Freesound.org Sample Browser
-from src.api.sound_kit_routes import sound_kit_bp  # 🎛️ Sound Kit Management
-from src.api.playlist_routes import playlist_bp
-from src.api.voice_clone_services import voice_clone_services_bp
-from src.api.podcast_studio_routes import podcast_studio_bp
-from src.api.podcast_studio_ai_routes import podcast_ai_bp
-from src.api.podcast_studio_phase2_routes import podcast_phase2_bp
-from src.api.podcast_socket_events import register_podcast_socket_events
-from src.api.support_routes import support_bp
-from src.api.ai_credits_routes import ai_credits_bp
-from src.api.sampler_storage_routes import sampler_storage_bp
-from src.api.epk_collab import epk_collab_bp
-from src.api.contact_routes import contact_bp
-from src.api.sonosuite_routes import sonosuite_bp
-from src.api.analytics_routes import analytics_bp
-from src.api.looperman_routes import looperman_bp
-from src.api.fan_membership_routes import fan_membership_bp
-from src.api.series_routes import series_bp
-from src.api.comment_routes import comment_bp
+from api.routes import api
+from api.cache import cache
+from api.models import LiveChat, User, RadioStation, PricingPlan, SonoSuiteUser, Message, Conversation, MicSimPreset, MicSimRecording
+from api.sound_kit_models import SoundKit, SoundKitSample, SoundKitLike  # 🎛️ Sound Kit Models
+from api.utils import APIException, generate_sitemap
+from api.admin import setup_admin
+from api.commands import setup_commands
+from api.socketio import init_socketio
+from api.extensions import db
+from api.messages_routes import messages_bp  # Add src. prefix 
+from api.video_editor_routes import video_editor_bp
+from api.follow_routes import follow_bp  # ADD THIS
+from api.video_tier_routes import video_tier_bp  # ADD THIS
+from api.notifications import notifications_bp
+from api.ai_mix_assistant import ai_mix_assistant_bp
+from api.ai_stem_separation import ai_stem_separation_bp
+from api.ai_video_generation_routes import ai_video_gen_bp
+from api.mic_simulator_routes import mic_simulator_bp  # 🎙️ Mic Simulator
+from api.freesound_api import freesound_bp  # 🔊 Freesound.org Sample Browser
+from api.sound_kit_routes import sound_kit_bp  # 🎛️ Sound Kit Management
+from api.playlist_routes import playlist_bp
+from api.voice_clone_services import voice_clone_services_bp
+from api.podcast_studio_routes import podcast_studio_bp
+from api.podcast_studio_ai_routes import podcast_ai_bp
+from api.podcast_studio_phase2_routes import podcast_phase2_bp
+from api.podcast_socket_events import register_podcast_socket_events
+from api.support_routes import support_bp
+from api.ai_credits_routes import ai_credits_bp
+from api.sampler_storage_routes import sampler_storage_bp
+from api.epk_collab import epk_collab_bp
+from api.contact_routes import contact_bp
+from api.sonosuite_routes import sonosuite_bp
+from api.analytics_routes import analytics_bp
+from api.looperman_routes import looperman_bp
+from api.fan_membership_routes import fan_membership_bp
+from api.series_routes import series_bp
+from api.comment_routes import comment_bp
 
 
 # ✅ Environment setup
@@ -346,7 +346,7 @@ app.register_blueprint(looperman_bp)
 app.register_blueprint(fan_membership_bp)
 app.register_blueprint(series_bp)
 app.register_blueprint(comment_bp)
-from src.api.wam_plugin_routes import wam_plugin_bp
+from api.wam_plugin_routes import wam_plugin_bp
 app.register_blueprint(wam_plugin_bp)
 app.register_blueprint(printful_bp, url_prefix='/api/printful')
 
@@ -542,13 +542,13 @@ def restrict_admin_to_basic_auth():
 
 # ✅ FIXED: Run the app with better error handling
 
-from src.api.sample_marketplace_routes import marketplace_bp
-from src.api.jam_tracks_routes import jam_tracks_bp
-from src.api.collab_marketplace_routes import collab_marketplace_bp
-from src.api.printful_unified_routes import printful_unified_bp
-from src.api.reference_mastering_routes import reference_mastering_bp
-from src.api.suno_gap_routes import suno_gap_bp
-from src.api.rss_routes import rss_bp
+from api.sample_marketplace_routes import marketplace_bp
+from api.jam_tracks_routes import jam_tracks_bp
+from api.collab_marketplace_routes import collab_marketplace_bp
+from api.printful_unified_routes import printful_unified_bp
+from api.reference_mastering_routes import reference_mastering_bp
+from api.suno_gap_routes import suno_gap_bp
+from api.rss_routes import rss_bp
 
 
 app.register_blueprint(marketplace_bp)
@@ -566,7 +566,8 @@ app.register_blueprint(rss_bp, url_prefix='/api/podcast')
 
 app.register_blueprint(r2_upload_bp)
 app.register_blueprint(academy_bp, url_prefix='/api/academy')
-app.register_blueprint(printful_bp)
+# app.register_blueprint(printful_bp)  # duplicate removed
+if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3001))
     
     print(f"🚀 Starting SpectraSphere on port {PORT}")

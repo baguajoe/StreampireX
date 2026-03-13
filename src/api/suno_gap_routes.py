@@ -3,7 +3,7 @@ import uuid
 import requests
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from src.api.models import db, User
+from api.models import db, User
 
 suno_gap_bp = Blueprint('suno_gap', __name__)
 

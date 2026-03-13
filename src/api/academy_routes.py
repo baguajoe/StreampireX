@@ -9,7 +9,8 @@
 
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from .models import db, User, Course, Lesson, Enrollment, CourseReview
+from .models import db, User
+from .academy_models import Course, Lesson, Enrollment, CourseReview
 from datetime import datetime
 import uuid, os
 

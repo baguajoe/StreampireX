@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from flask import Blueprint, Response, request, abort
 from feedgen.feed import FeedGenerator
-from src.api.models import RadioStation, db
+from api.models import RadioStation, db
 
 rss_bp = Blueprint('rss_feed', __name__)
 

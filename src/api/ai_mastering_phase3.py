@@ -27,11 +27,11 @@ import librosa
 import soundfile as sf
 
 # Internal imports
-from src.api.models import db, Audio, User
+from api.models import db, Audio, User
 try:
-    from src.api.r2_storage_setup import uploadFile
+    from api.r2_storage_setup import uploadFile
 except ImportError:
-    from src.api.cloudinary_setup import uploadFile
+    from api.cloudinary_setup import uploadFile
 
 ai_mastering_phase3_bp = Blueprint('ai_mastering_phase3', __name__)
 
@@ -1196,7 +1196,7 @@ def api_smart_master():
 
         # Step 4: Call existing Phase 1/2 mastering
         # Import the master function from your existing ai_mastering.py
-        from src.api.ai_mastering import master_audio
+        from api.ai_mastering import master_audio
         
         output_path = os.path.join(temp_dir, "mastered_output.wav")
         result = master_audio(temp_path, output_path, preset_key)
@@ -1297,7 +1297,7 @@ def api_profile_reference_master():
                 return jsonify({"error": f"Profile '{profile_id}' not found"}), 404
 
             # Use Phase 1 mastering with closest preset
-            from src.api.ai_mastering import master_audio
+            from api.ai_mastering import master_audio
             preset_map = {
                 "Hip-Hop": "boom_bap", "R&B": "rnb", "Pop": "pop",
                 "EDM": "edm", "Lo-Fi": "lo_fi", "Rock": "rock",

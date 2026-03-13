@@ -18,7 +18,7 @@
 
 # AI Credit System
 try:
-    from src.api.ai_credits_routes import deduct_user_credits, check_tier_access, AI_FEATURE_COSTS
+    from api.ai_credits_routes import deduct_user_credits, check_tier_access, AI_FEATURE_COSTS
     _HAS_CREDITS = True
 except ImportError:
     _HAS_CREDITS = False
@@ -48,11 +48,11 @@ import uuid
 
 # R2 storage (primary) with Cloudinary fallback
 try:
-    from src.api.r2_storage_setup import uploadFile
+    from api.r2_storage_setup import uploadFile
 except ImportError:
-    from src.api.cloudinary_setup import uploadFile
+    from api.cloudinary_setup import uploadFile
 
-from src.api.models import db, User
+from api.models import db, User
 
 voice_clone_services_bp = Blueprint('voice_clone_services', __name__)
 
@@ -69,7 +69,7 @@ def get_user_voice_id(user_id):
     """
     try:
         # Check radio stations for existing cloned voice
-        from src.api.models import RadioStation
+        from api.models import RadioStation
         stations = RadioStation.query.filter_by(user_id=user_id).all()
         for station in stations:
             if station.playlist_schedule:

@@ -207,7 +207,7 @@ def _upload_audio_file(file, user_id, project_id, track_index, file_type="track"
 
     # ── Try Cloudflare R2 first ───────────────────────────────────────────────
     try:
-        from src.api.r2_storage_setup import r2_client, R2_BUCKET, R2_PUBLIC_URL
+        from api.r2_storage_setup import r2_client, R2_BUCKET, R2_PUBLIC_URL
         if r2_client and R2_BUCKET and R2_PUBLIC_URL:
             r2_key = f"studio/{user_id}/{project_id}/{file_type}_{track_index}_{unique_id}.{ext}"
             r2_client.upload_fileobj(
@@ -286,7 +286,7 @@ def _try_delete_file(url):
 
     # ── Try R2 ───────────────────────────────────────────────────────────────
     try:
-        from src.api.r2_storage_setup import r2_client, R2_BUCKET, R2_PUBLIC_URL
+        from api.r2_storage_setup import r2_client, R2_BUCKET, R2_PUBLIC_URL
         if r2_client and R2_BUCKET and R2_PUBLIC_URL and url.startswith(R2_PUBLIC_URL):
             key = url.replace(R2_PUBLIC_URL.rstrip("/") + "/", "")
             r2_client.delete_object(Bucket=R2_BUCKET, Key=key)
@@ -335,7 +335,7 @@ def _try_delete_file(url):
 def get_projects():
     """Get all recording projects for current user"""
     try:
-        from src.api.models import RecordingProject
+        from api.models import RecordingProject
 
         user_id = get_jwt_identity()
         projects = (
@@ -357,7 +357,7 @@ def get_projects():
 def create_project():
     """Create a new recording project"""
     try:
-        from src.api.models import db, RecordingProject
+        from api.models import db, RecordingProject
 
         user_id = get_jwt_identity()
         data = request.get_json() or {}
@@ -407,7 +407,7 @@ def create_project():
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -422,7 +422,7 @@ def create_project():
 def get_project(project_id):
     """Get a single project with all track data"""
     try:
-        from src.api.models import RecordingProject
+        from api.models import RecordingProject
 
         user_id = get_jwt_identity()
         project = RecordingProject.query.filter_by(id=project_id, user_id=user_id).first()
@@ -443,7 +443,7 @@ def get_project(project_id):
 def update_project(project_id):
     """Update project metadata and track state"""
     try:
-        from src.api.models import db, RecordingProject
+        from api.models import db, RecordingProject
 
         user_id = get_jwt_identity()
         project = RecordingProject.query.filter_by(id=project_id, user_id=user_id).first()
@@ -506,7 +506,7 @@ def update_project(project_id):
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -521,7 +521,7 @@ def update_project(project_id):
 def delete_project(project_id):
     """Delete a project and its tracks"""
     try:
-        from src.api.models import db, RecordingProject
+        from api.models import db, RecordingProject
 
         user_id = get_jwt_identity()
         project = RecordingProject.query.filter_by(id=project_id, user_id=user_id).first()
@@ -555,7 +555,7 @@ def delete_project(project_id):
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -577,7 +577,7 @@ def upload_track_audio():
       - track_name (optional)
     """
     try:
-        from src.api.models import db, RecordingProject
+        from api.models import db, RecordingProject
 
         user_id = get_jwt_identity()
         file = request.files.get("file")
@@ -641,7 +641,7 @@ def upload_track_audio():
     except Exception as e:
         print(f"Track upload error: {e}")
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -656,7 +656,7 @@ def upload_track_audio():
 def import_audio_to_track():
     """Import an existing audio file (mp3, wav, etc.) into a track"""
     try:
-        from src.api.models import db, RecordingProject
+        from api.models import db, RecordingProject
 
         user_id = get_jwt_identity()
         file = request.files.get("file")
@@ -716,7 +716,7 @@ def import_audio_to_track():
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -733,7 +733,7 @@ def mixdown_project(project_id):
     Client mixes offline (OfflineAudioContext) then uploads the mixed file here.
     """
     try:
-        from src.api.models import db, RecordingProject
+        from api.models import db, RecordingProject
 
         user_id = get_jwt_identity()
         project = RecordingProject.query.filter_by(id=project_id, user_id=user_id).first()
@@ -761,7 +761,7 @@ def mixdown_project(project_id):
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -776,7 +776,7 @@ def mixdown_project(project_id):
 def delete_track_audio():
     """Clear audio from a specific track"""
     try:
-        from src.api.models import db, RecordingProject
+        from api.models import db, RecordingProject
 
         user_id = get_jwt_identity()
         data = request.get_json() or {}
@@ -814,7 +814,7 @@ def delete_track_audio():
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass

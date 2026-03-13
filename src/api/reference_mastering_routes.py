@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from src.api.models import db, User
+from api.models import db, User
 
 reference_mastering_bp = Blueprint('reference_mastering', __name__)
 

@@ -4,7 +4,7 @@ from flask_jwt_extended import create_access_token
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import JSON
-from src.api.extensions import db
+from api.extensions import db
 from datetime import datetime, timedelta
 
 import json
@@ -2258,7 +2258,7 @@ class MasteringJob(db.Model):
 # =============================================================================
 # Usage in any route:
 #
-#   from src.api.models import check_mastering_limit
+#   from api.models import check_mastering_limit
 #   allowed, remaining, limit = check_mastering_limit(user_id)
 #   if not allowed:
 #       return jsonify({

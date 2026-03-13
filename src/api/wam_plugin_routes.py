@@ -8,7 +8,7 @@ INSTALL:
   Copy to: src/api/wam_plugin_routes.py
 
 REGISTER IN app.py:
-  from src.api.wam_plugin_routes import wam_plugin_bp
+  from api.wam_plugin_routes import wam_plugin_bp
   app.register_blueprint(wam_plugin_bp)
 """
 

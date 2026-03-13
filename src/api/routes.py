@@ -4,7 +4,7 @@ eventlet.monkey_patch()
 
 from flask import Flask, request, jsonify, url_for, Blueprint, send_from_directory, send_file, Response, current_app, session
 from flask_jwt_extended import jwt_required, get_jwt_identity,create_access_token
-from src.api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert, PodcastPlayHistory, PlayHistory, PostLike, PostComment, Photo, ClipSave, ClipComment, ClipCommentLike, UserWallet, WalletTransaction, CreatorPaymentSettings, StoryComment, Story, StoryView, StoryHighlight, ArchivedShow
+from api.models import db, User, PodcastEpisode, PodcastSubscription, StreamingHistory, RadioPlaylist, RadioStation, LiveStream, LiveChat, CreatorMembershipTier, CreatorDonation, AdRevenue, UserSubscription, Video, VideoPlaylist, VideoPlaylistVideo, Audio, PlaylistAudio, Podcast, ShareAnalytics, Like, Favorite, FavoritePage, Comment, Notification, PricingPlan, Subscription, Product, RadioDonation, Role, RadioSubscription, MusicLicensing, PodcastHost, PodcastChapter, RadioSubmission, Collaboration, LicensingOpportunity, Music, IndieStation, IndieStationTrack, IndieStationFollower, EventTicket, LiveStudio,PodcastClip, TicketPurchase, Analytics, Payout, Revenue, Payment, Order, RefundRequest, Purchase, Artist, Album, ListeningPartyAttendee, ListeningParty, Engagement, Earnings, Popularity, LiveEvent, Tip, Stream, Share, RadioFollower, VRAccessTicket, PodcastPurchase, MusicInteraction, Message, Conversation, Group, UserSettings, TrackRelease, Release, Collaborator, Category, Post,Follow, Label, Squad, Game, InnerCircle, MusicDistribution, DistributionAnalytics, DistributionSubmission, SonoSuiteUser, VideoChannel, VideoClip, ChannelSubscription,ClipLike,SocialAccount,SocialPost,SocialAnalytics, VideoRoom, UserPresence, VideoChatSession, CommunicationPreferences, VideoChannel, VideoClip, ChannelSubscription, ClipLike, AudioEffects, EffectPreset, VideoEffects, PodcastAccess, PodcastPurchase, StationFollow, VideoLike, PlayHistory, AudioLike, ArtistFollow, BandwidthLog, TranscodeJob, VideoQuality, Concert, PodcastPlayHistory, PlayHistory, PostLike, PostComment, Photo, ClipSave, ClipComment, ClipCommentLike, UserWallet, WalletTransaction, CreatorPaymentSettings, StoryComment, Story, StoryView, StoryHighlight, ArchivedShow
 # ADD these imports
 from .steam_service import SteamService
 from datetime import datetime
@@ -29,13 +29,13 @@ from flask_cors import CORS, cross_origin
 from flask_apscheduler import APScheduler
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import or_, and_
-from src.api.subscription_utils import get_user_plan, plan_required, check_content_limit
-from src.api.revenue_split import calculate_split, calculate_ad_revenue
-from src.api.reports_utils import generate_monthly_report
-from src.api.utils.revelator_api import submit_release_to_revelator
+from api.subscription_utils import get_user_plan, plan_required, check_content_limit
+from api.revenue_split import calculate_split, calculate_ad_revenue
+from api.reports_utils import generate_monthly_report
+from api.utils.revelator_api import submit_release_to_revelator
 from rq import Queue
 from redis import Redis
-from src.api.utils.tasks import send_release_to_revelator
+from api.utils.tasks import send_release_to_revelator
 from .subscription_utils import get_user_plan, plan_required, check_content_limit
 from mutagen import File
 # Add this import at the top of your routes.py file
@@ -75,10 +75,10 @@ from mutagen.mp3 import MP3  # Add this line for MP3 support
 from mutagen.mp4 import MP4  # Add this for MP4/M4A support
 from mutagen.wave import WAVE  # Add this for WAV support
 try:
-    from src.api.r2_storage_setup import uploadFile
+    from api.r2_storage_setup import uploadFile
 except ImportError:
     pass
-    # from src.api.cloudinary_setup import uploadFile
+    # from api.cloudinary_setup import uploadFile
 from functools import wraps
 
 from pedalboard import (
@@ -88,7 +88,7 @@ from pedalboard import (
     PeakFilter
 )
 
-from src.api.email_service import (
+from api.email_service import (
     send_order_fulfillment_notification, 
     send_subscription_notification,
     send_distribution_notification
@@ -100,7 +100,7 @@ from decimal import Decimal
 
 # ✅ FIXED: Only import the functions you need, not the SocketIO class
 from flask_socketio import join_room, emit, leave_room
-from src.api.cache import cache  # Assuming Flask-Caching is set up
+from api.cache import cache  # Assuming Flask-Caching is set up
 from apscheduler.schedulers.background import BackgroundScheduler
 scheduler = APScheduler()
 
@@ -22114,7 +22114,7 @@ def handle_checkout_completed(session):
             handle_tip_payment_success(session)
         # AI Video Credit Pack Purchase
         if metadata.get('type') in ('credit_pack_purchase', 'ai_credit_purchase'):
-            from src.api.ai_video_credits_routes import handle_credit_pack_payment
+            from api.ai_video_credits_routes import handle_credit_pack_payment
             handle_credit_pack_payment(session)
             return
             return
@@ -24023,7 +24023,7 @@ def get_merch_products():
 @api.route('/merch/create', methods=['POST'])
 @jwt_required()
 def create_merch_item():
-    from src.api.models import db, Product
+    from api.models import db, Product
     new_p = Product(title="Custom Hoodie", price=55.0, category="merch", is_printful=True, creator_id=get_jwt_identity())
     db.session.add(new_p)
     db.session.commit()
@@ -24035,7 +24035,7 @@ def create_merch_item():
 @api.route('/merch/order', methods=['POST'])
 @jwt_required()
 def place_merch_order():
-    from src.api.models import db, Order
+    from api.models import db, Order
     data = request.get_json()
     new_o = Order(
         product_id=data.get('product_id'), 

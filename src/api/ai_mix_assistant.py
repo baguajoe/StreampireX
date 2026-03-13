@@ -538,7 +538,7 @@ def analyze_mix():
             if not project_id:
                 return jsonify({"error": "project_id is required"}), 400
 
-            from src.api.models import RecordingProject
+            from api.models import RecordingProject
             project = RecordingProject.query.filter_by(id=project_id, user_id=user_id).first()
             if not project:
                 return jsonify({"error": "Project not found"}), 404

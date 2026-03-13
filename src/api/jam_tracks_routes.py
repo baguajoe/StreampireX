@@ -2,7 +2,7 @@ import os
 import uuid
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from src.api.models import db, User
+from api.models import db, User
 
 jam_tracks_bp = Blueprint('jam_tracks', __name__)
 

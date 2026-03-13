@@ -5,7 +5,7 @@ Add this to your Flask backend (e.g., follow_routes.py)
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from src.api.models import db, User, Follow, Block
+from api.models import db, User, Follow, Block
 from datetime import datetime
 
 # Assuming you have these models - adjust imports as needed

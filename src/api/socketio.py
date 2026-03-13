@@ -884,7 +884,7 @@ daw_sessions = {}
 @socketio.on('daw:create_session')
 def on_daw_create_session(data):
     import json
-    from src.api.models import DAWSession, db
+    from api.models import DAWSession, db
     session_id = data['sessionId']
     join_room(session_id)
     collaborators = [{'id': data['hostId'], 'username': data['hostName']}]
@@ -919,7 +919,7 @@ def on_daw_create_session(data):
 @socketio.on('daw:join_session')
 def on_daw_join_session(data):
     import json
-    from src.api.models import DAWSession, db
+    from api.models import DAWSession, db
     session_id = data['sessionId']
     join_room(session_id)
     if session_id not in daw_sessions:
@@ -949,7 +949,7 @@ def on_daw_join_session(data):
 @socketio.on('daw:leave_session')
 def on_daw_leave_session(data):
     import json
-    from src.api.models import DAWSession, db
+    from api.models import DAWSession, db
     session_id = data.get('sessionId')
     if session_id:
         leave_room(session_id)
@@ -977,7 +977,7 @@ def on_daw_leave_session(data):
 @socketio.on('daw:op')
 def on_daw_op(data):
     import json
-    from src.api.models import DAWSession, db
+    from api.models import DAWSession, db
     session_id = data.get('sessionId')
     if session_id:
         emit('daw:op', data, room=session_id, include_self=False)

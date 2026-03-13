@@ -22,7 +22,7 @@
 
 # AI Credit System
 try:
-    from src.api.ai_credits_routes import deduct_user_credits, check_tier_access, AI_FEATURE_COSTS
+    from api.ai_credits_routes import deduct_user_credits, check_tier_access, AI_FEATURE_COSTS
     _HAS_CREDITS = True
 except ImportError:
     _HAS_CREDITS = False
@@ -53,11 +53,11 @@ import requests
 from collections import defaultdict
 
 # Internal imports
-from src.api.models import db, Audio, RadioStation, User
+from api.models import db, Audio, RadioStation, User
 try:
-    from src.api.r2_storage_setup import uploadFile
+    from api.r2_storage_setup import uploadFile
 except ImportError:
-    from src.api.cloudinary_setup import uploadFile
+    from api.cloudinary_setup import uploadFile
 
 ai_radio_dj_bp = Blueprint('ai_radio_dj', __name__)
 

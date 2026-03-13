@@ -17,9 +17,9 @@ epk_collab_bp = Blueprint('epk_collab', __name__)
 # =============================================================================
 
 def get_models():
-    from src.api.models import db, User
+    from api.models import db, User
     try:
-        from src.api.models import EPK, CollabRequest, CollabApplication
+        from api.models import EPK, CollabRequest, CollabApplication
     except ImportError:
         EPK = None
         CollabRequest = None
@@ -209,10 +209,10 @@ def generate_epk_commercial():
     use_photo = data.get('use_photo', True)
 
     try:
-        from src.api.ai_credits_routes import deduct_user_credits, get_user_tier
+        from api.ai_credits_routes import deduct_user_credits, get_user_tier
     except ImportError:
         try:
-            from src.api.ai_video_credits_routes import get_or_create_credits, get_user_tier
+            from api.ai_video_credits_routes import get_or_create_credits, get_user_tier
             def deduct_user_credits(user_id, amount):
                 credit = get_or_create_credits(user_id)
                 if credit.balance < amount:
@@ -306,7 +306,7 @@ def generate_epk_commercial():
         if generation_type == 'image' and source_image_url:
             input_params['image'] = source_image_url
 
-        from src.api.models import AIVideoGeneration
+        from api.models import AIVideoGeneration
         generation = AIVideoGeneration(
             user_id=uid,
             prompt=prompt,
@@ -331,7 +331,7 @@ def generate_epk_commercial():
             video_response = req.get(video_url_replicate, timeout=120)
             if video_response.status_code == 200:
                 try:
-                    from src.api.r2_storage_setup import uploadFile as r2Upload
+                    from api.r2_storage_setup import uploadFile as r2Upload
                     video_bytes = BytesIO(video_response.content)
                     video_bytes.name = f"epk_commercial_{uid}_{gen_id}.mp4"
                     r2_url = r2Upload(video_bytes, video_bytes.name)
@@ -374,7 +374,7 @@ def generate_epk_commercial():
             generation.error = str(gen_err)
             db.session.commit()
             try:
-                from src.api.ai_credits_routes import refund_user_credits
+                from api.ai_credits_routes import refund_user_credits
                 refund_user_credits(uid, credit_cost)
             except ImportError:
                 credit.balance += credit_cost
@@ -418,7 +418,7 @@ def send_collab_message():
         if cr:
             prefix = f"[Re: Collab -- {cr.title}]\n\n"
     elif context_type == 'collab_application' and context_id and CollabRequest:
-        from src.api.models import CollabApplication as CA
+        from api.models import CollabApplication as CA
         app = CA.query.get(context_id)
         if app and app.request:
             prefix = f"[Re: Application for -- {app.request.title}]\n\n"
@@ -428,7 +428,7 @@ def send_collab_message():
     full_message = prefix + message_text
 
     try:
-        from src.api.models import DirectMessage, Conversation
+        from api.models import DirectMessage, Conversation
 
         conv = Conversation.query.filter(
             ((Conversation.user1_id == uid) & (Conversation.user2_id == recipient_id)) |
@@ -480,7 +480,7 @@ def auto_populate_epk():
     result = {"tracks": [], "albums": [], "videos": [], "stats": {}, "profile": {}}
 
     try:
-        from src.api.models import Audio
+        from api.models import Audio
         tracks = Audio.query.filter_by(user_id=uid).order_by(Audio.plays.desc()).limit(20).all()
         result['tracks'] = [{
             "id": t.id,
@@ -495,7 +495,7 @@ def auto_populate_epk():
         print(f"EPK auto-populate tracks error: {e}")
 
     try:
-        from src.api.models import Album
+        from api.models import Album
         albums = Album.query.filter_by(user_id=uid).order_by(Album.created_at.desc()).limit(10).all()
         result['albums'] = [{
             "id": a.id,
@@ -508,7 +508,7 @@ def auto_populate_epk():
         print(f"EPK auto-populate albums error: {e}")
 
     try:
-        from src.api.models import Video
+        from api.models import Video
         videos = Video.query.filter_by(user_id=uid).order_by(Video.uploaded_at.desc()).limit(10).all()
         result['videos'] = [{
             "id": v.id,
@@ -521,7 +521,7 @@ def auto_populate_epk():
         print(f"EPK auto-populate videos error: {e}")
 
     try:
-        from src.api.models import Audio, Follower
+        from api.models import Audio, Follower
         total_streams = db.session.query(db.func.sum(Audio.plays)).filter(Audio.user_id == uid).scalar() or 0
         total_likes = db.session.query(db.func.sum(Audio.likes)).filter(Audio.user_id == uid).scalar() or 0
         followers = Follower.query.filter_by(followed_id=uid).count()
@@ -587,13 +587,13 @@ def upload_epk_media():
 
     try:
         try:
-            from src.api.r2_storage_setup import uploadFile
+            from api.r2_storage_setup import uploadFile
             result = uploadFile(file, file.filename)
             url = result if isinstance(result, str) else result.get('secure_url', result.get('url', ''))
         except (ImportError, Exception) as r2_err:
             print(f"R2 upload failed, trying Cloudinary: {r2_err}")
             try:
-                from src.api.cloudinary_setup import uploadFile as cloudUpload
+                from api.cloudinary_setup import uploadFile as cloudUpload
                 file.seek(0)
                 result = cloudUpload(file, file.filename)
                 url = result.get('secure_url', '') if isinstance(result, dict) else str(result)

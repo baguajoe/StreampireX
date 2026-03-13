@@ -8,7 +8,7 @@
 #   1. Register at https://freesound.org/apiv2/apply/
 #   2. Set env var: FREESOUND_API_KEY=your_api_key_here
 #   3. Register blueprint in app.py:
-#      from src.api.freesound_api import freesound_bp
+#      from api.freesound_api import freesound_bp
 #      app.register_blueprint(freesound_bp)
 # =============================================================================
 

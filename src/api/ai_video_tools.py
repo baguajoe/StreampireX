@@ -20,11 +20,11 @@ from datetime import datetime
 import os, subprocess, json, tempfile, traceback, uuid, math
 
 try:
-    from src.api.r2_storage_setup import uploadFile
+    from api.r2_storage_setup import uploadFile
 except ImportError:
-    from src.api.cloudinary_setup import uploadFile
+    from api.cloudinary_setup import uploadFile
 
-from src.api.models import db, User
+from api.models import db, User
 
 ai_video_tools_bp = Blueprint('ai_video_tools', __name__)
 

@@ -10,7 +10,7 @@ from datetime import datetime
 from sqlalchemy import or_, and_, desc, func
 
 # Import your models - adjust path if needed
-from src.api.models import db, User, Message, Conversation
+from api.models import db, User, Message, Conversation
 
 messages_bp = Blueprint('messages', __name__)
 

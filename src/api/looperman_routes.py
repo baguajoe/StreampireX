@@ -7,7 +7,7 @@
 # This Flask blueprint proxies requests server-side and returns JSON.
 #
 # Registration (in app.py or __init__.py):
-#   from src.api.looperman_routes import looperman_bp
+#   from api.looperman_routes import looperman_bp
 #   app.register_blueprint(looperman_bp)
 #
 # Looperman API base: https://www.looperman.com/api

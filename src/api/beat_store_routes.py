@@ -4,13 +4,13 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 import os, json, stripe
 
-from src.api.models import db, User, Audio
-from src.api.beat_store_models import Beat, BeatLicense, BeatPurchase, DEFAULT_LICENSE_TEMPLATES
+from api.models import db, User, Audio
+from api.beat_store_models import Beat, BeatLicense, BeatPurchase, DEFAULT_LICENSE_TEMPLATES
 
 try:
-    from src.api.r2_storage_setup import uploadFile, getSignedUrl
+    from api.r2_storage_setup import uploadFile, getSignedUrl
 except ImportError:
-    from src.api.cloudinary_setup import uploadFile
+    from api.cloudinary_setup import uploadFile
     getSignedUrl = None
 
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')

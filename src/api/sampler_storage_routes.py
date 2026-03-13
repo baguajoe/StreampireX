@@ -61,7 +61,7 @@ def _upload_sampler_file(file, user_id, project_id, file_type="sample", pad_inde
 
     # ── Try Cloudflare R2 first ──────────────────────────────────────────────
     try:
-        from src.api.r2_storage_setup import r2_client, R2_BUCKET, R2_PUBLIC_URL
+        from api.r2_storage_setup import r2_client, R2_BUCKET, R2_PUBLIC_URL
         if r2_client and R2_BUCKET and R2_PUBLIC_URL:
             r2_key = f"sampler/{user_id}/{project_id}/{file_type}_{pad_index}_{unique_id}.{ext}"
             r2_client.upload_fileobj(
@@ -80,7 +80,7 @@ def _upload_sampler_file(file, user_id, project_id, file_type="sample", pad_inde
 
     # ── Try R2 via uploadFile helper (alternate import path) ─────────────────
     try:
-        from src.api.r2_storage_setup import uploadFile as r2_upload
+        from api.r2_storage_setup import uploadFile as r2_upload
         file.seek(0)
         url = r2_upload(file, f"sampler_{file_type}_{pad_index}_{unique_id}.{ext}")
         if url:
@@ -150,7 +150,7 @@ def _try_delete_file(url):
 
     # ── Try R2 ───────────────────────────────────────────────────────────────
     try:
-        from src.api.r2_storage_setup import r2_client, R2_BUCKET, R2_PUBLIC_URL
+        from api.r2_storage_setup import r2_client, R2_BUCKET, R2_PUBLIC_URL
         if r2_client and R2_BUCKET and R2_PUBLIC_URL and url.startswith(R2_PUBLIC_URL):
             key = url.replace(R2_PUBLIC_URL.rstrip("/") + "/", "")
             r2_client.delete_object(Bucket=R2_BUCKET, Key=key)
@@ -160,7 +160,7 @@ def _try_delete_file(url):
 
     # ── Try R2 deleteFile helper ─────────────────────────────────────────────
     try:
-        from src.api.r2_storage_setup import deleteFile as r2_delete
+        from api.r2_storage_setup import deleteFile as r2_delete
         if r2_delete(url):
             return
     except Exception:
@@ -262,7 +262,7 @@ def _serialize_kit(kit):
 def create_sampler_project():
     """Create a new sampler project"""
     try:
-        from src.api.models import db, SamplerProject
+        from api.models import db, SamplerProject
 
         user_id = get_jwt_identity()
         data = request.get_json() or {}
@@ -292,7 +292,7 @@ def create_sampler_project():
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -304,7 +304,7 @@ def create_sampler_project():
 def list_sampler_projects():
     """List all sampler projects for current user"""
     try:
-        from src.api.models import SamplerProject
+        from api.models import SamplerProject
 
         user_id = get_jwt_identity()
         projects = (
@@ -327,7 +327,7 @@ def list_sampler_projects():
 def get_sampler_project(project_id):
     """Get a single sampler project with full pad/pattern data"""
     try:
-        from src.api.models import SamplerProject
+        from api.models import SamplerProject
 
         user_id = get_jwt_identity()
         project = SamplerProject.query.filter_by(id=project_id, user_id=user_id).first()
@@ -345,7 +345,7 @@ def get_sampler_project(project_id):
 def update_sampler_project(project_id):
     """Update sampler project (manual save or auto-save)"""
     try:
-        from src.api.models import db, SamplerProject
+        from api.models import db, SamplerProject
 
         user_id = get_jwt_identity()
         project = SamplerProject.query.filter_by(id=project_id, user_id=user_id).first()
@@ -390,7 +390,7 @@ def update_sampler_project(project_id):
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -402,7 +402,7 @@ def update_sampler_project(project_id):
 def delete_sampler_project(project_id):
     """Delete sampler project and clean up R2/Cloudinary/local files"""
     try:
-        from src.api.models import db, SamplerProject
+        from api.models import db, SamplerProject
 
         user_id = get_jwt_identity()
         project = SamplerProject.query.filter_by(id=project_id, user_id=user_id).first()
@@ -426,7 +426,7 @@ def delete_sampler_project(project_id):
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -442,7 +442,7 @@ def delete_sampler_project(project_id):
 def upload_sample(project_id):
     """Upload a sample audio file for a specific pad → R2"""
     try:
-        from src.api.models import db, SamplerProject
+        from api.models import db, SamplerProject
 
         user_id = get_jwt_identity()
         project = SamplerProject.query.filter_by(id=project_id, user_id=user_id).first()
@@ -484,7 +484,7 @@ def upload_sample(project_id):
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -496,7 +496,7 @@ def upload_sample(project_id):
 def delete_sample(project_id):
     """Delete a sample from a specific pad"""
     try:
-        from src.api.models import db, SamplerProject
+        from api.models import db, SamplerProject
 
         user_id = get_jwt_identity()
         project = SamplerProject.query.filter_by(id=project_id, user_id=user_id).first()
@@ -522,7 +522,7 @@ def delete_sample(project_id):
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -538,7 +538,7 @@ def delete_sample(project_id):
 def upload_bounce(project_id):
     """Upload the rendered beat export to R2"""
     try:
-        from src.api.models import db, SamplerProject
+        from api.models import db, SamplerProject
 
         user_id = get_jwt_identity()
         project = SamplerProject.query.filter_by(id=project_id, user_id=user_id).first()
@@ -561,7 +561,7 @@ def upload_bounce(project_id):
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -577,7 +577,7 @@ def upload_bounce(project_id):
 def save_kit():
     """Save current pad configuration as a reusable drum kit"""
     try:
-        from src.api.models import db, SamplerKit
+        from api.models import db, SamplerKit
 
         user_id = get_jwt_identity()
         data = request.get_json() or {}
@@ -598,7 +598,7 @@ def save_kit():
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -610,7 +610,7 @@ def save_kit():
 def list_kits():
     """List user's kits + optionally public kits"""
     try:
-        from src.api.models import SamplerKit
+        from api.models import SamplerKit
         from sqlalchemy import or_
 
         user_id = get_jwt_identity()
@@ -634,7 +634,7 @@ def list_kits():
 def get_kit(kit_id):
     """Load a specific drum kit"""
     try:
-        from src.api.models import db, SamplerKit
+        from api.models import db, SamplerKit
 
         user_id = get_jwt_identity()
         kit = SamplerKit.query.filter_by(id=kit_id).first()
@@ -657,7 +657,7 @@ def get_kit(kit_id):
 def delete_kit(kit_id):
     """Delete a drum kit"""
     try:
-        from src.api.models import db, SamplerKit
+        from api.models import db, SamplerKit
 
         user_id = get_jwt_identity()
         kit = SamplerKit.query.filter_by(id=kit_id, user_id=user_id).first()
@@ -671,7 +671,7 @@ def delete_kit(kit_id):
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -687,7 +687,7 @@ def delete_kit(kit_id):
 def share_project(project_id):
     """Generate or update share settings for a project"""
     try:
-        from src.api.models import db, SamplerProject
+        from api.models import db, SamplerProject
 
         user_id = get_jwt_identity()
         project = SamplerProject.query.filter_by(id=project_id, user_id=user_id).first()
@@ -714,7 +714,7 @@ def share_project(project_id):
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -725,7 +725,7 @@ def share_project(project_id):
 def load_shared_project(share_token):
     """Load a shared project by token (no auth required for view)"""
     try:
-        from src.api.models import db, SamplerProject
+        from api.models import db, SamplerProject
 
         project = SamplerProject.query.filter_by(share_token=share_token).first()
         if not project:
@@ -755,7 +755,7 @@ def load_shared_project(share_token):
 def save_shared_project(share_token):
     """Collaborator save — requires edit permission"""
     try:
-        from src.api.models import db, SamplerProject
+        from api.models import db, SamplerProject
 
         user_id = get_jwt_identity()
         project = SamplerProject.query.filter_by(share_token=share_token).first()
@@ -789,7 +789,7 @@ def save_shared_project(share_token):
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -804,7 +804,7 @@ def save_shared_project(share_token):
 def browse_community():
     """Browse public beats — no auth required"""
     try:
-        from src.api.models import SamplerProject
+        from api.models import SamplerProject
 
         page = int(request.args.get("page", 1))
         per_page = min(int(request.args.get("per_page", 20)), 50)
@@ -848,7 +848,7 @@ def browse_community():
 def fork_project(project_id):
     """Fork a public/shared project into current user's account"""
     try:
-        from src.api.models import db, SamplerProject
+        from api.models import db, SamplerProject
 
         user_id = get_jwt_identity()
         original = SamplerProject.query.filter_by(id=project_id).first()
@@ -887,7 +887,7 @@ def fork_project(project_id):
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass
@@ -903,7 +903,7 @@ def fork_project(project_id):
 def toggle_like(project_id):
     """Toggle like on a beat (simple increment/decrement)"""
     try:
-        from src.api.models import db, SamplerProject
+        from api.models import db, SamplerProject
 
         project = SamplerProject.query.filter_by(id=project_id).first()
         if not project:
@@ -921,7 +921,7 @@ def toggle_like(project_id):
 
     except Exception as e:
         try:
-            from src.api.models import db
+            from api.models import db
             db.session.rollback()
         except Exception:
             pass

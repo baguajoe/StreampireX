@@ -7,7 +7,7 @@
 # =============================================================================
 
 from datetime import datetime
-from . import db  # use existing db instance
+from .models import db
 
 
 class Course(db.Model):

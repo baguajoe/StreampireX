@@ -9,7 +9,7 @@ Models:
 - BeatPurchase: Purchase records with license agreement tracking
 """
 
-from src.api.models import db
+from api.models import db
 from datetime import datetime
 
 

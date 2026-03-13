@@ -8,7 +8,7 @@
 #   - SoundKitSample: Individual sample in a kit (audio file + metadata)
 # =============================================================================
 
-from src.api.extensions import db
+from api.extensions import db
 from datetime import datetime
 
 

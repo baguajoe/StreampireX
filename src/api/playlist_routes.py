@@ -11,7 +11,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from sqlalchemy import desc
 
-from src.api.models import db, User, Audio, PlaylistAudio
+from api.models import db, User, Audio, PlaylistAudio
 
 playlist_bp = Blueprint('playlists', __name__)
 

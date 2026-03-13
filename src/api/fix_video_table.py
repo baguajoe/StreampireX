@@ -11,7 +11,7 @@ load_dotenv()
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Now import from src
-from src.api.models import db
+from api.models import db
 from src.app import app
 
 def add_missing_columns():

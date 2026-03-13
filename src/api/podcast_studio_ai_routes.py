@@ -37,7 +37,7 @@ os.makedirs(CHUNK_STORAGE, exist_ok=True)
 
 # R2 primary storage flag
 try:
-    from src.api.r2_storage_setup import uploadFile as r2_upload
+    from api.r2_storage_setup import uploadFile as r2_upload
     _USE_R2 = True
 except ImportError:
     _USE_R2 = False
@@ -75,7 +75,7 @@ def transcribe_audio():
 
         # Save transcript to database if episode_id provided
         if episode_id:
-            from src.api.models import db, PodcastEpisode
+            from api.models import db, PodcastEpisode
             episode = PodcastEpisode.query.filter_by(
                 id=episode_id, user_id=user_id
             ).first()
@@ -268,7 +268,7 @@ def apply_text_edits():
 
             # Update transcript in database
             if episode_id:
-                from src.api.models import db, PodcastEpisode
+                from api.models import db, PodcastEpisode
                 episode = PodcastEpisode.query.filter_by(
                     id=episode_id, user_id=user_id
                 ).first()
@@ -487,7 +487,7 @@ def magic_audio():
 
             # Update episode if provided
             if episode_id:
-                from src.api.models import db, PodcastEpisode
+                from api.models import db, PodcastEpisode
                 episode = PodcastEpisode.query.filter_by(
                     id=episode_id, user_id=user_id
                 ).first()
@@ -536,7 +536,7 @@ def generate_show_notes():
 
     # If no transcript provided, fetch from database
     if not transcript and episode_id:
-        from src.api.models import PodcastEpisode
+        from api.models import PodcastEpisode
         episode = PodcastEpisode.query.filter_by(
             id=episode_id, user_id=user_id
         ).first()
@@ -557,7 +557,7 @@ def generate_show_notes():
 
         # Save to database
         if episode_id:
-            from src.api.models import db, PodcastEpisode, PodcastChapter
+            from api.models import db, PodcastEpisode, PodcastChapter
             episode = PodcastEpisode.query.filter_by(
                 id=episode_id, user_id=user_id
             ).first()

@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
 from sqlalchemy import desc
-from src.api.models import db, Notification, User
+from api.models import db, Notification, User
 
 notifications_bp = Blueprint('notifications', __name__)
 

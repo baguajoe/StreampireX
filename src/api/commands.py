@@ -1,6 +1,6 @@
 
 import click
-from src.api.models import db, User
+from api.models import db, User
 
 """
 In this file, you can add as many commands as you want using the @app.cli.command decorator
@@ -35,7 +35,7 @@ def setup_commands(app):
     @app.cli.command("update-prices")
     def update_prices():
         """Update pricing tiers to new 2026 prices"""
-        from src.api.models import db, PricingPlan
+        from api.models import db, PricingPlan
         renames = [
             ("Creator", "Pro",     34.99, 349.00),
             ("Pro",     "Studio",  49.99, 499.00),

@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 import requests
 import os
-from src.api.models import db, User, Product
+from api.models import db, User, Product
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 printful_unified_bp = Blueprint('printful_unified', __name__)

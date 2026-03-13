@@ -31,11 +31,11 @@ import subprocess
 import uuid
 
 # Internal imports
-from src.api.models import db, Audio, User, StemSeparationJob
+from api.models import db, Audio, User, StemSeparationJob
 try:
-    from src.api.r2_storage_setup import uploadFile
+    from api.r2_storage_setup import uploadFile
 except ImportError:
-    from src.api.cloudinary_setup import uploadFile
+    from api.cloudinary_setup import uploadFile
 
 ai_stem_separation_bp = Blueprint('ai_stem_separation', __name__)
 

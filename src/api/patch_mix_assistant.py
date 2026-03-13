@@ -106,7 +106,7 @@ def patch_credits():
 R2_IMPORT = """
 # R2 storage for mix analysis reports
 try:
-    from src.api.r2_storage import upload_to_r2
+    from api.r2_storage import upload_to_r2
     _HAS_R2 = True
 except ImportError:
     _HAS_R2 = False

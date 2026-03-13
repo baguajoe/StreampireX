@@ -24,14 +24,14 @@ import cloudinary.uploader
 
 # R2 primary storage
 try:
-    from src.api.r2_storage_setup import uploadFile as r2_upload
+    from api.r2_storage_setup import uploadFile as r2_upload
     _USE_R2 = True
 except ImportError:
     _USE_R2 = False
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from src.api.extensions import db
-from src.api.sound_kit_models import SoundKit, SoundKitSample, SoundKitLike
+from api.extensions import db
+from api.sound_kit_models import SoundKit, SoundKitSample, SoundKitLike
 
 sound_kit_bp = Blueprint('sound_kit', __name__)
 
