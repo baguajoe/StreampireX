@@ -1,23 +1,29 @@
-import logo from "../../img/StreampireX.png";
-// =============================================================================
-import WaitlistSection from "../component/WaitlistSection";
-// home.js — StreamPireX Landing Page (Updated Mar 2026)
-// =============================================================================
-// Section order (ranked by community size & revenue impact):
-//   Hero → Problem/Solution → Cost Comparison →
-//   FREE Features Banner →
-//   Social Network Spotlight (free, biggest user base) →
-//   Gaming Hub Spotlight (free, 3B+ market) →
-//   Core Features Grid →
-//   AI Tools → EPK & Collabs → Beat Store → Podcast →
-//   How It Works → Creator Types → Why StreamPireX →
-//   Pricing → Earnings → Social Proof → Final CTA → Footer
-// =============================================================================
-
 import React, { useContext } from "react";
 import { Context } from "../store/appContext";
 import { Link } from "react-router-dom";
+import logo from "../../img/StreampireX.png";
+import WaitlistSection from "../component/WaitlistSection";
 import "../../styles/home.css";
+
+// =============================================================================
+// home.js — StreamPireX Landing Page (Updated Mar 2026)
+// =============================================================================
+// New page structure:
+// 1. Hero: The Hook
+// 2. Problem / Solution: The Empathy
+// 3. Cost Comparison: The Logic
+// 4. FREE Features Banner: The Lead Magnet
+// 5. Social Network Spotlight: The Community
+// 6. Gaming Hub Spotlight: The Scale
+// 7. Creator Commerce: Beats, Merch & Digital Products
+// 8. AI-Assisted Production Suite: The Speed
+// 9. Industry Hub: EPK & Collaborations
+// 10. Unified Studio, Radio & Distribution: The Close
+//
+// Supporting sections kept:
+// How It Works → Creator Types → Why StreamPireX → Pricing → Earnings
+// → Social Proof → Final CTA → Waitlist → Footer
+// =============================================================================
 
 const Home = () => {
 	const { store } = useContext(Context);
@@ -27,14 +33,25 @@ const Home = () => {
 		<div className="streampirex-home">
 
 			{/* ================================================================
-			    HERO
+			    1. HERO: THE HOOK
 			    ================================================================ */}
 			<header className="hero">
 				<div className="hero-content">
-					<h1><img src="/img/StreampireX.png" alt="StreamPireX" style={{ height: "60px" }} /></h1>
-					<p className="hero-tagline">The AI-Powered All-In-One Creator Platform</p>
+					<h1>
+						<img
+							src={logo}
+							alt="StreamPireX"
+							style={{ height: "60px" }}
+						/>
+					</h1>
+
+					<p className="hero-tagline">
+						The AI-Powered All-In-One Creator Platform
+					</p>
+
 					<p>
-						Replace 15+ tools with one platform. Recording studio, MPC-style beat maker,
+						Replace 15+ tools with a single workspace. From first recording to
+						global distribution. Recording studio, MPC-style beat maker,
 						AI mastering, voice-to-MIDI, beat store, podcast studio, music distribution,
 						video editing, live streaming, EPK builder, collab marketplace, gaming
 						communities, and monetization — keep 90% of your earnings.
@@ -50,13 +67,15 @@ const Home = () => {
 							<h3 className="welcome-text">
 								Welcome back, {user.username || user.display_name}! 🎉
 							</h3>
-							
-							
 						</div>
 					)}
 				</div>
 
 				<div className="hero-stats">
+					<div className="stat-item">
+						<span className="stat-number">32</span>
+						<span className="stat-label">Track Pro DAW</span>
+					</div>
 					<div className="stat-item">
 						<span className="stat-number">150+</span>
 						<span className="stat-label">Distribution Platforms</span>
@@ -77,47 +96,53 @@ const Home = () => {
 						<span className="stat-number">📋</span>
 						<span className="stat-label">EPK & Collabs</span>
 					</div>
-					<div className="stat-item">
-						<span className="stat-number">🎹</span>
-						<span className="stat-label">Beat Store & MPC</span>
-					</div>
 				</div>
 
-				<div className="hero-image-placeholder">🎸</div>
+				<div className="hero-image-placeholder">
+					🎛️ 32-Track DAW Screenshot Area
+				</div>
 			</header>
 
 			{/* ================================================================
-			    PROBLEM / SOLUTION  — moved up, hooks visitors fast
+			    2. PROBLEM / SOLUTION: THE EMPATHY
 			    ================================================================ */}
 			<section className="problem-solution">
 				<div className="problem">
 					<h3>😫 The Creator Problem</h3>
 					<p>
-						Juggling 15+ apps for distribution, editing, streaming, analytics, and payments.
-						Losing 30–50% of earnings to platform fees. No ownership of your audience.
-						Paying $100+/month across separate tools. No simple way to mix or master without
-						expensive software. Separate platforms for beat sales, podcast hosting, EPK
-						hosting, and merch. No way to find collaborators without leaving the platform.
+						Fee fatigue. App jumping. Losing 30–50% of revenue to corporate giants.
+						Juggling 15+ apps for production, distribution, editing, hosting,
+						streaming, analytics, scheduling, licensing, and payments. Paying
+						$100–$350+ per month across disconnected tools. No audience ownership.
+						No simple way to mix or master without expensive software. Separate
+						platforms for beat sales, podcast hosting, EPK hosting, merch, and
+						collaboration.
 					</p>
 				</div>
+
 				<div className="solution">
 					<h3>✨ The StreamPireX Solution</h3>
 					<p>
-						One AI-powered platform for everything. Record, mix, and master with AI help. Build synths, design drums, and create custom instruments directly in the DAW.
-						Make beats with the MPC sampler. Sell beats with auto-generated license agreements.
-						Host and monetize podcasts. Distribute to 150+ platforms. Stream live. Run 24/7
-						radio with an AI DJ. Edit video. Build your EPK and find collaborators. Generate
-						AI promo commercials. Build gaming communities. Keep 90% of your earnings — all
-						starting at $19.99/month.
+						A unified ecosystem where your tools, audience, and marketplace live
+						together. Record, mix, and master with AI help. Build synths, design
+						drums, and create custom instruments directly in the DAW. Make beats
+						with the MPC sampler. Sell beats with auto-generated license agreements.
+						Host and monetize podcasts. Stream live. Run 24/7 radio with an AI DJ.
+						Edit video. Build your EPK. Find collaborators. Sell merch and digital
+						products. Distribute to 150+ platforms. Keep 90% of your money.
 					</p>
 				</div>
 			</section>
 
 			{/* ================================================================
-			    COST COMPARISON
+			    3. COST COMPARISON: THE LOGIC
 			    ================================================================ */}
 			<section className="comparison-section">
 				<h2>💸 Stop Paying for 15 Separate Tools</h2>
+				<p className="section-subtitle">
+					Save creators thousands of dollars annually.
+				</p>
+
 				<div className="comparison-grid">
 					<div className="comparison-card old">
 						<h4>❌ Without StreamPireX</h4>
@@ -138,6 +163,7 @@ const Home = () => {
 						</ul>
 						<p className="comparison-total">Total: $170–$350+/month</p>
 					</div>
+
 					<div className="comparison-card new">
 						<h4>✅ StreamPireX All-in-One</h4>
 						<ul>
@@ -158,54 +184,42 @@ const Home = () => {
 							<li>🎮 Gaming Hub + Social Network</li>
 						</ul>
 						<p className="comparison-total">Starting at $19.99/month — Keep 90%</p>
+
 						<div style={{ textAlign: "center", marginTop: "20px" }}>
-							<a href="/compare" target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", padding: "12px 28px", border: "2px solid #00ffc8", color: "#00ffc8", background: "rgba(0,255,200,0.06)", borderRadius: "6px", fontSize: "14px", fontWeight: 700, textDecoration: "none" }}>📊 See Full Platform Comparison →</a>
-						</div>
-					</div>
-				</div>
-			</section>
-
-			{/* 🛍️ MERCH & POD SECTION */}
-
-			{/* 🛍️ MERCH & PRINT-ON-DEMAND SPOTLIGHT */}
-			<section className="merch-pod-spotlight" style={{ padding: "80px 20px", background: "#111720", textAlign: "center" }}>
-				<h2 style={{ color: "#00ffc8", fontFamily: "'Barlow Condensed', sans-serif", fontSize: "2.5rem", fontWeight: 800 }}>🛍️ Built-in Merch Store & POD</h2>
-				<p className="text-muted mb-5">Design gear, sell worldwide, keep 90%. No inventory required.</p>
-				<div className="row g-4">
-					<div className="col-md-4">
-						<div className="p-4" style={{ background: "rgba(0,255,200,0.03)", border: "1px solid rgba(0,255,200,0.1)", borderRadius: "15px" }}>
-							<span style={{ fontSize: "3rem" }}>👕</span>
-							<h4>Global POD</h4>
-							<p className="small text-muted">Upload art. We handle printing and shipping for shirts and hoodies worldwide. Zero upfront cost.</p>
-						</div>
-					</div>
-					<div className="col-md-4">
-						<div className="p-4" style={{ background: "rgba(0,255,200,0.03)", border: "1px solid rgba(0,255,200,0.1)", borderRadius: "15px" }}>
-							<span style={{ fontSize: "3rem" }}>📦</span>
-							<h4>Physical Stock</h4>
-							<p className="small text-muted">Manage your own inventory with integrated shipping labels and tracking.</p>
-						</div>
-					</div>
-					<div className="col-md-4">
-						<div className="p-4" style={{ background: "rgba(0,255,200,0.03)", border: "1px solid rgba(0,255,200,0.1)", borderRadius: "15px" }}>
-							<span style={{ fontSize: "3rem" }}>🎹</span>
-							<h4>Digital Merch</h4>
-							<p className="small text-muted">Sell beats, sample packs, and presets directly in your store. Instant delivery.</p>
+							<a
+								href="/compare"
+								target="_blank"
+								rel="noopener noreferrer"
+								style={{
+									display: "inline-block",
+									padding: "12px 28px",
+									border: "2px solid #00ffc8",
+									color: "#00ffc8",
+									background: "rgba(0,255,200,0.06)",
+									borderRadius: "6px",
+									fontSize: "14px",
+									fontWeight: 700,
+									textDecoration: "none"
+								}}
+							>
+								📊 See Full Platform Comparison →
+							</a>
 						</div>
 					</div>
 				</div>
 			</section>
 
 			{/* ================================================================
-			    FREE FEATURES BANNER — NEW SECTION
+			    4. FREE FEATURES BANNER: THE LEAD MAGNET
 			    ================================================================ */}
 			<section className="free-features-banner">
 				<div className="free-banner-inner">
 					<div className="free-banner-header">
 						<span className="free-badge-large">🆓 FREE FOREVER</span>
-						<h2>Start Creating Without Spending a Dime</h2>
-						<p>No credit card. No trial. No catch. These are yours the moment you sign up.</p>
+						<h2>Genuinely Free. No Credit Card. No Catch.</h2>
+						<p>Start creating without spending a dime. These are yours the moment you sign up.</p>
 					</div>
+
 					<div className="free-features-grid">
 						<div className="free-feature-item">
 							<span className="free-feature-icon">👤</span>
@@ -229,8 +243,8 @@ const Home = () => {
 						</div>
 						<div className="free-feature-item">
 							<span className="free-feature-icon">🎛️</span>
-							<h4>Recording Studio</h4>
-							<p>4-track DAW with full FX chain, arranger, piano roll, AI mix assistant, Synth Creator, Drum Designer, and Instrument Builder</p>
+							<h4>4-Track DAW</h4>
+							<p>4-track recording studio with FX chain, arranger, piano roll, and creator workflow tools</p>
 						</div>
 						<div className="free-feature-item">
 							<span className="free-feature-icon">🥁</span>
@@ -253,21 +267,34 @@ const Home = () => {
 							<p>Stream and license beats from producers worldwide — free to browse</p>
 						</div>
 					</div>
+
 					<div className="free-banner-cta">
-						<a href="#waitlist" className="btn btn-primary btn-lg">Join the Waitlist — Be First</a>
+						<a href="#waitlist" className="btn btn-primary btn-lg">
+							Join the Waitlist — Be First
+						</a>
 					</div>
 				</div>
 			</section>
 
 			{/* ================================================================
-			    SOCIAL NETWORK SPOTLIGHT — moved up (free + biggest user base)
+			    5. SOCIAL NETWORK SPOTLIGHT: THE COMMUNITY
 			    ================================================================ */}
 			<section className="social-network-spotlight">
 				<h2>👥 Your Social Network. Your Audience. Your Platform.</h2>
 				<p className="section-subtitle">
-					Build your audience where your tools live. Free on every plan — no separate app needed.
+					Build and own your fan base directly where your tools live.
 				</p>
-				<div className="social-features-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "1.5rem", maxWidth: "1100px", margin: "2.5rem auto" }}>
+
+				<div
+					className="social-features-grid"
+					style={{
+						display: "grid",
+						gridTemplateColumns: "repeat(3,1fr)",
+						gap: "1.5rem",
+						maxWidth: "1100px",
+						margin: "2.5rem auto"
+					}}
+				>
 					<div className="social-feature">
 						<span className="social-icon">🏠</span>
 						<h4>Home Feed</h4>
@@ -299,6 +326,7 @@ const Home = () => {
 						<p>Global search across tracks, beats, creators, videos, podcasts, and radio stations.</p>
 					</div>
 				</div>
+
 				<div className="social-cta">
 					<a href="#waitlist" className="btn btn-primary">Join the Waitlist</a>
 					<a href="#waitlist" className="btn btn-outline-light">Request Early Access</a>
@@ -306,18 +334,28 @@ const Home = () => {
 			</section>
 
 			{/* ================================================================
-			    GAMING HUB SPOTLIGHT — moved up (free + 3B gamers globally)
+			    6. GAMING HUB SPOTLIGHT: THE SCALE
 			    ================================================================ */}
 			<section className="gaming-hub-spotlight">
 				<div className="gaming-header">
 					<h2>🎮 Gaming Hub — Built for the Community</h2>
 					<span className="gaming-free-tag">FREE on All Plans</span>
 				</div>
+
 				<p className="section-subtitle">
-					3 billion gamers globally. Squad finder, team rooms, chatrooms, streaming, and monetization —
-					all inside the same platform where you make music, edit videos, and run your creative business.
+					Instant access to the 3B+ global gaming market for fans, content, and collabs.
 				</p>
-				<div className="gaming-features-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "1.5rem", maxWidth: "1100px", margin: "2.5rem auto" }}>
+
+				<div
+					className="gaming-features-grid"
+					style={{
+						display: "grid",
+						gridTemplateColumns: "repeat(3,1fr)",
+						gap: "1.5rem",
+						maxWidth: "1100px",
+						margin: "2.5rem auto"
+					}}
+				>
 					<div className="gaming-feature">
 						<span className="gaming-icon">🔍</span>
 						<h4>Squad Finder</h4>
@@ -325,8 +363,8 @@ const Home = () => {
 					</div>
 					<div className="gaming-feature">
 						<span className="gaming-icon">🧑‍🤝‍🧑</span>
-						<h4>Team Rooms</h4>
-						<p>Private rooms for your squad — voice chat, strategy, scheduling, and coordination. 1 free team room.</p>
+						<h4>Private Team Rooms</h4>
+						<p>Private rooms for your squad — voice chat, strategy, scheduling, and coordination.</p>
 					</div>
 					<div className="gaming-feature">
 						<span className="gaming-icon">💬</span>
@@ -349,6 +387,7 @@ const Home = () => {
 						<p>Track your community growth, stream views, squad requests, and engagement — Starter+.</p>
 					</div>
 				</div>
+
 				<div className="gaming-cta">
 					<a href="#waitlist" className="btn btn-gaming">Join the Waitlist</a>
 					<a href="#waitlist" className="btn btn-outline-gaming">Request Early Access</a>
@@ -356,188 +395,146 @@ const Home = () => {
 			</section>
 
 			{/* ================================================================
-			    CORE FEATURES GRID
+			    7. CREATOR COMMERCE: BEATS, MERCH & DIGITAL PRODUCTS
 			    ================================================================ */}
-			<section className="features">
-				<h2>🎯 Everything You Need to Create &amp; Earn</h2>
-				<p className="section-subtitle">Professional creator tools, simplified.</p>
+			<section className="beat-store-spotlight">
+				<h2>🛍️ Creator Commerce: Beats, Merch &amp; Digital Products</h2>
+				<p className="section-subtitle">
+					The revenue engine for producers, artists, podcasters, and creator brands.
+				</p>
 
-				<div className="feature-grid">
-					<div className="feature-card highlight">
-						<div className="feature-icon">🎚️</div>
-						<h4>Recording Studio</h4>
-						<p>Multi-track DAW with full effects chain, arranger view, and AI mix analysis.</p>
-						<span className="feature-tag new">DAW</span>
+				<div className="beat-store-features-grid">
+					<div className="beat-store-feature">
+						<span className="bs-icon">🎧</span>
+						<h4>Pro Beat Storefront</h4>
+						<p>Stream watermarked previews free. Buy Basic, Premium, Exclusive, or Stems licenses with instant download.</p>
 					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🥁</div>
-						<h4>Beat Maker &amp; Sampler</h4>
-						<p>MPC-style pads with 8 velocity layers, 4-bus routing, automation lanes, FL-style slice sequencing, and inline AI stem separation.</p>
-						<span className="feature-tag new">NEW</span>
+					<div className="beat-store-feature">
+						<span className="bs-icon">📜</span>
+						<h4>Auto License Agreements</h4>
+						<p>Every purchase generates a full license agreement — distribution limits, streaming caps, credit terms, and usage rights.</p>
 					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🤖</div>
-						<h4>AI Mix Assistant</h4>
-						<p>Auto-leveling, EQ conflict detection, compression guidance, and one-click fixes.</p>
-						<span className="feature-tag ai-tag">AI</span>
+					<div className="beat-store-feature">
+						<span className="bs-icon">👕</span>
+						<h4>Global Print-on-Demand</h4>
+						<p>Integrated POD for apparel with worldwide fulfillment, printing, and shipping.</p>
 					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🎛️</div>
-						<h4>AI Mastering</h4>
-						<p>50 genre profiles, auto-detect BPM/key/mood, instant studio-quality masters.</p>
-						<span className="feature-tag ai-tag">AI</span>
+					<div className="beat-store-feature">
+						<span className="bs-icon">📦</span>
+						<h4>Physical Stock</h4>
+						<p>Manage your own inventory with integrated shipping labels, tracking, and storefront support.</p>
 					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">📋</div>
-						<h4>EPK Builder &amp; Collab Hub</h4>
-						<p>Build your Electronic Press Kit, find collaborators, message artists, and generate AI promo commercials — unified.</p>
-						<span className="feature-tag new">FREE</span>
+					<div className="beat-store-feature">
+						<span className="bs-icon">🎹</span>
+						<h4>Digital Products</h4>
+						<p>Sell sample packs, MIDI packs, preset banks, VST skins, drum kits, presets, and downloadable tools.</p>
 					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🎹</div>
-						<h4>Beat Store</h4>
-						<p>Buy, sell, and license beats with auto-generated agreements. Basic to exclusive tiers. Keep 90%.</p>
-						<span className="feature-tag new">NEW</span>
+					<div className="beat-store-feature">
+						<span className="bs-icon">💰</span>
+						<h4>Producer Dashboard</h4>
+						<p>Track plays, sales, and revenue. Manage licenses, set pricing, offer deals, and keep 90%.</p>
 					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🎵</div>
-						<h4>Music Distribution</h4>
-						<p>Spotify, Apple Music, Tidal, Amazon, TikTok, and 150+ more. Keep 90%.</p>
-						<span className="feature-tag">150+</span>
+					<div className="beat-store-feature">
+						<span className="bs-icon">🥁</span>
+						<h4>MPC Beat Maker</h4>
+						<p>16 velocity-sensitive pads, 64-step sequencer, 4-bus routing with per-bus effects, per-step automation, FL-style slicer, and AI stem separation.</p>
 					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🎬</div>
-						<h4>Video Editor</h4>
-						<p>Browser-based multi-track timeline, effects, transitions, templates. Export up to 8K.</p>
-						<span className="feature-tag">Free</span>
+					<div className="beat-store-feature">
+						<span className="bs-icon">📚</span>
+						<h4>Courses & Packs</h4>
+						<p>Sell tutorials, workshops, creator courses, and premium content directly from your storefront.</p>
 					</div>
-					<div className="feature-card">
-						<div className="feature-icon">🔴</div>
-						<h4>Live Streaming</h4>
-						<p>OBS &amp; WebRTC support, live chat, donations, VOD recording, simulcast.</p>
+				</div>
+
+				<div className="beat-store-cta">
+					<a href="#waitlist" className="btn btn-primary">Join the Waitlist</a>
+					<a href="#waitlist" className="btn btn-outline-light">Request Early Access</a>
+				</div>
+			</section>
+
+			{/* ================================================================
+			    EXTRA MERCH / POD SPOTLIGHT KEPT
+			    ================================================================ */}
+			<section
+				className="merch-pod-spotlight"
+				style={{ padding: "80px 20px", background: "#111720", textAlign: "center" }}
+			>
+				<h2
+					style={{
+						color: "#00ffc8",
+						fontFamily: "'Barlow Condensed', sans-serif",
+						fontSize: "2.5rem",
+						fontWeight: 800
+					}}
+				>
+					🛍️ Built-in Merch Store & POD
+				</h2>
+				<p className="text-muted mb-5">
+					Design gear, sell worldwide, keep 90%. No inventory required.
+				</p>
+
+				<div className="row g-4">
+					<div className="col-md-4">
+						<div
+							className="p-4"
+							style={{
+								background: "rgba(0,255,200,0.03)",
+								border: "1px solid rgba(0,255,200,0.1)",
+								borderRadius: "15px"
+							}}
+						>
+							<span style={{ fontSize: "3rem" }}>👕</span>
+							<h4>Global POD</h4>
+							<p className="small text-muted">
+								Upload art. We handle printing and shipping for shirts and hoodies worldwide. Zero upfront cost.
+							</p>
+						</div>
 					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">📻</div>
-						<h4>24/7 Radio Stations</h4>
-						<p>Auto DJ + AI DJ personas, listener requests, scheduling, always-on broadcast.</p>
-						<span className="feature-tag ai-tag">AI</span>
+
+					<div className="col-md-4">
+						<div
+							className="p-4"
+							style={{
+								background: "rgba(0,255,200,0.03)",
+								border: "1px solid rgba(0,255,200,0.1)",
+								borderRadius: "15px"
+							}}
+						>
+							<span style={{ fontSize: "3rem" }}>📦</span>
+							<h4>Physical Stock</h4>
+							<p className="small text-muted">
+								Manage your own inventory with integrated shipping labels and tracking.
+							</p>
+						</div>
 					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🎙️</div>
-						<h4>Podcast Studio</h4>
-						<p>Record, host, distribute to all directories. Video podcasts, remote guest recording, monetization, RSS feeds.</p>
-						<span className="feature-tag new">NEW</span>
-					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🎬</div>
-						<h4>AI Video Studio</h4>
-						<p>Generate videos from text or images with Kling v1.6 AI. Music videos, promo clips, visualizers, EPK commercials. Pay-as-you-go credits.</p>
-						<span className="feature-tag ai-tag">AI</span>
-					</div>
-					<div className="feature-card">
-						<div className="feature-icon">📱</div>
-						<h4>Short-Form Clips</h4>
-						<p>Auto-resize for TikTok, Reels, and Shorts with AI captions and templates.</p>
-					</div>
-					<div className="feature-card">
-						<div className="feature-icon">📤</div>
-						<h4>Cross-Platform Posting</h4>
-						<p>Schedule and publish to YouTube, Instagram, TikTok, X, Facebook, LinkedIn, and more.</p>
-					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🤝</div>
-						<h4>Collab Marketplace</h4>
-						<p>Post collab requests, apply with your EPK, message artists, and find the perfect collaborator by skill, genre, or location.</p>
-						<span className="feature-tag new">NEW</span>
-					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🎤</div>
-						<h4>Voice to MIDI</h4>
-						<p>Sing or beatbox into MIDI. Pitch mode, drum triggers, chord mode, 14 scales, and .mid export.</p>
-						<span className="feature-tag new">NEW</span>
-					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🎵</div>
-						<h4>Hum to Song</h4>
-						<p>Hum a melody and let AI build a full song around it. Stems, arrangement, and mix included.</p>
-						<span className="feature-tag ai-tag">AI</span>
-					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">📝</div>
-						<h4>Text to Song</h4>
-						<p>Describe your vibe in words — genre, mood, tempo, instruments — and AI generates the track.</p>
-						<span className="feature-tag ai-tag">AI</span>
-					</div>
-					<div className="feature-card">
-						<div className="feature-icon">🎤</div>
-						<h4>Voice Chat Rooms</h4>
-						<p>Noise suppression, push-to-talk, and private channels for your community.</p>
-					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🛍️</div>
-						<h4>Creator Marketplace</h4>
-						<p>Sell beats, merch, presets, courses, and digital products with Stripe payments.</p>
-						<span className="feature-tag">90%</span>
-					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">📚</div>
-						<h4>Creator Courses</h4>
-						<p>Build and sell courses, tutorials, and workshops. Drip content to subscribers.</p>
-						<span className="feature-tag new">NEW</span>
-					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🎼</div>
-						<h4>Stems &amp; Sample Marketplace</h4>
-						<p>Buy and sell individual stems, loops, and samples. Keep 90%. Instant R2 delivery.</p>
-						<span className="feature-tag new">NEW</span>
-					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">⚡</div>
-						<h4>Quick Capture Mode</h4>
-						<p>One tap — instant recording. Capture ideas before they disappear. Auto-save to your library.</p>
-						<span className="feature-tag new">NEW</span>
-					</div>
-					<div className="feature-card">
-						<div className="feature-icon">🎟️</div>
-						<h4>Event Ticketing</h4>
-						<p>Sell tickets to live streams, virtual concerts, workshops, and meetups. Stripe-powered.</p>
-					</div>
-					<div className="feature-card">
-						<div className="feature-icon">💳</div>
-						<h4>Fan Tipping</h4>
-						<p>Accept tips on any content — streams, music, videos, radio, beats. Keep 90%.</p>
-					</div>
-					<div className="feature-card">
-						<div className="feature-icon">🏪</div>
-						<h4>Creator Storefront</h4>
-						<p>Your own branded storefront page with products, beats, courses, and subscription tiers.</p>
-					</div>
-					<div className="feature-card">
-						<div className="feature-icon">📊</div>
-						<h4>Creator Analytics</h4>
-						<p>Track plays, views, revenue, beat sales, podcast downloads, audience growth, and content performance.</p>
-					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🖼️</div>
-						<h4>AI Thumbnail Maker</h4>
-						<p>Generate click-worthy thumbnails for your videos, beats, and podcasts with AI — in seconds.</p>
-						<span className="feature-tag ai-tag">AI</span>
-					</div>
-					<div className="feature-card highlight">
-						<div className="feature-icon">🎓</div>
-						<h4>Creator Academy</h4>
-						<p>Courses and tutorials on music production, streaming, marketing, and growing your audience.</p>
-						<span className="feature-tag new">NEW</span>
+
+					<div className="col-md-4">
+						<div
+							className="p-4"
+							style={{
+								background: "rgba(0,255,200,0.03)",
+								border: "1px solid rgba(0,255,200,0.1)",
+								borderRadius: "15px"
+							}}
+						>
+							<span style={{ fontSize: "3rem" }}>🎹</span>
+							<h4>Digital Merch</h4>
+							<p className="small text-muted">
+								Sell beats, sample packs, MIDI packs, presets, and downloadable products directly in your store.
+							</p>
+						</div>
 					</div>
 				</div>
 			</section>
 
 			{/* ================================================================
-			    AI FEATURES (expanded grid)
+			    8. AI-ASSISTED PRODUCTION SUITE: THE SPEED
 			    ================================================================ */}
 			<section className="ai-features-section">
-				<h2>🤖 AI-Powered Creator Tools</h2>
-				<p className="section-subtitle">Professional results. Zero experience needed. Powered by AI.</p>
+				<h2>🤖 AI-Assisted Production Suite</h2>
+				<p className="section-subtitle">
+					Professional results. Zero experience needed. Powered by AI.
+				</p>
 
 				<div className="ai-features-grid">
 					<div className="ai-feature-card">
@@ -551,6 +548,7 @@ const Home = () => {
 							<span>Arrange View</span>
 						</div>
 					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🥁</div>
 						<div className="ai-badge">FREE</div>
@@ -562,6 +560,7 @@ const Home = () => {
 							<span>AI Stems</span>
 						</div>
 					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🤖</div>
 						<div className="ai-badge">AI</div>
@@ -573,6 +572,7 @@ const Home = () => {
 							<span>1-Click Fix</span>
 						</div>
 					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🎛️</div>
 						<div className="ai-badge">AI</div>
@@ -584,6 +584,7 @@ const Home = () => {
 							<span>Instant Results</span>
 						</div>
 					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🎵</div>
 						<div className="ai-badge free-badge">FREE</div>
@@ -595,6 +596,7 @@ const Home = () => {
 							<span>Free All Tiers</span>
 						</div>
 					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🎵</div>
 						<div className="ai-badge">AI</div>
@@ -606,6 +608,7 @@ const Home = () => {
 							<span>Stems Export</span>
 						</div>
 					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">📝</div>
 						<div className="ai-badge">AI</div>
@@ -617,6 +620,7 @@ const Home = () => {
 							<span>Instant Output</span>
 						</div>
 					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">📻</div>
 						<div className="ai-badge">AI</div>
@@ -628,6 +632,7 @@ const Home = () => {
 							<span>24/7 Automation</span>
 						</div>
 					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🎤</div>
 						<div className="ai-badge">PRO</div>
@@ -639,6 +644,7 @@ const Home = () => {
 							<span>Unlimited Use</span>
 						</div>
 					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🎬</div>
 						<div className="ai-badge">AI</div>
@@ -650,6 +656,7 @@ const Home = () => {
 							<span>EPK Commercials</span>
 						</div>
 					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🎤</div>
 						<div className="ai-badge">NEW</div>
@@ -661,6 +668,7 @@ const Home = () => {
 							<span>MIDI Export</span>
 						</div>
 					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🖼️</div>
 						<div className="ai-badge">AI</div>
@@ -672,6 +680,7 @@ const Home = () => {
 							<span>All Content Types</span>
 						</div>
 					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">📝</div>
 						<div className="ai-badge">AI</div>
@@ -683,6 +692,7 @@ const Home = () => {
 							<span>Your Voice</span>
 						</div>
 					</div>
+
 					<div className="ai-feature-card">
 						<div className="ai-feature-icon">🌍</div>
 						<div className="ai-badge">AI</div>
@@ -712,13 +722,14 @@ const Home = () => {
 			</section>
 
 			{/* ================================================================
-			    EPK & COLLAB HUB SPOTLIGHT
+			    9. INDUSTRY HUB: EPK & COLLABORATIONS
 			    ================================================================ */}
 			<section className="epk-collab-spotlight">
-				<h2>📋 EPK Builder &amp; Collaboration Hub</h2>
+				<h2>📋 Industry Hub: EPK &amp; Collaborations</h2>
 				<p className="section-subtitle">
-					Your professional identity, collaboration pipeline, and AI promo generator — unified in one system. Free with every plan.
+					Professional Electronic Press Kits, public URLs, and a collaboration marketplace in one system.
 				</p>
+
 				<div className="epk-features-grid">
 					<div className="epk-feature">
 						<span className="epk-icon">📋</span>
@@ -751,6 +762,7 @@ const Home = () => {
 						<p>Turn your EPK into a promo video with one click. 5 visual styles — cinematic, hype, minimal, documentary, lyric video.</p>
 					</div>
 				</div>
+
 				<div className="epk-cta">
 					<a href="#waitlist" className="btn btn-primary">Join the Waitlist</a>
 					<a href="#waitlist" className="btn btn-outline-light">Request Early Access</a>
@@ -758,49 +770,207 @@ const Home = () => {
 			</section>
 
 			{/* ================================================================
-			    BEAT STORE SPOTLIGHT
+			    10. UNIFIED STUDIO, RADIO & DISTRIBUTION: THE CLOSE
 			    ================================================================ */}
-			<section className="beat-store-spotlight">
-				<h2>🎹 Beat Store &amp; MPC Beat Maker</h2>
+			<section className="features">
+				<h2>🎯 Unified Studio, Radio &amp; Distribution</h2>
 				<p className="section-subtitle">
-					A full marketplace for producers and artists — plus a professional beat-making sampler with 16 pads, 64-step sequencer, and AI stem separation built in.
+					The complete workstation: create, broadcast, host, and distribute from one place.
 				</p>
-				<div className="beat-store-features-grid">
-					<div className="beat-store-feature">
-						<span className="bs-icon">🎧</span>
-						<h4>Preview &amp; License</h4>
-						<p>Stream watermarked previews free. Buy Basic, Premium, Exclusive, or Stems licenses with instant download.</p>
+
+				<div className="feature-grid">
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎚️</div>
+						<h4>32-Track DAW</h4>
+						<p>Multi-track DAW with full effects chain, arranger view, AI mix analysis, Synth Creator, Drum Designer, and creator-grade workflow tools.</p>
+						<span className="feature-tag new">DAW</span>
 					</div>
-					<div className="beat-store-feature">
-						<span className="bs-icon">📜</span>
-						<h4>Auto License Agreements</h4>
-						<p>Every purchase generates a full license agreement — distribution limits, streaming caps, credit terms, and usage rights.</p>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🥁</div>
+						<h4>Beat Maker &amp; Sampler</h4>
+						<p>MPC-style pads with 8 velocity layers, 4-bus routing, automation lanes, FL-style slice sequencing, and inline AI stem separation.</p>
+						<span className="feature-tag new">NEW</span>
 					</div>
-					<div className="beat-store-feature">
-						<span className="bs-icon">🥁</span>
-						<h4>MPC Beat Maker</h4>
-						<p>16 velocity-sensitive pads, 64-step sequencer, 4-bus routing with per-bus effects, per-step automation, FL-style slicer, and AI stem separation. Make beats entirely in-browser.</p>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎵</div>
+						<h4>Music Distribution</h4>
+						<p>Spotify, Apple Music, Tidal, Amazon, TikTok, and 150+ more. One-click push, AI metadata help, and 90% creator revenue.</p>
+						<span className="feature-tag">150+</span>
 					</div>
-					<div className="beat-store-feature">
-						<span className="bs-icon">💰</span>
-						<h4>Producer Dashboard</h4>
-						<p>Track plays, sales, and revenue. Manage licenses, set custom pricing, offer exclusive deals, and share your producer EPK. Keep 90%.</p>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">📻</div>
+						<h4>24/7 Radio Stations</h4>
+						<p>Licensed internet radio with AI DJ personas, listener requests, scheduling, and always-on broadcast tools.</p>
+						<span className="feature-tag ai-tag">AI</span>
 					</div>
-				</div>
-				<div className="beat-store-cta">
-					<a href="#waitlist" className="btn btn-primary">Join the Waitlist</a>
-					<a href="#waitlist" className="btn btn-outline-light">Request Early Access</a>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎙️</div>
+						<h4>Podcast Studio</h4>
+						<p>Record, host, distribute to all directories. Video podcasts, remote guest recording, monetization, RSS hosting, and creator analytics.</p>
+						<span className="feature-tag new">NEW</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎬</div>
+						<h4>Video Editor</h4>
+						<p>Browser-based multi-track timeline, effects, transitions, templates, and export tools for every platform.</p>
+						<span className="feature-tag">Free</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎬</div>
+						<h4>AI Video Studio</h4>
+						<p>Generate videos from text or images with Kling v1.6 AI. Music videos, promo clips, visualizers, and EPK commercials.</p>
+						<span className="feature-tag ai-tag">AI</span>
+					</div>
+
+					<div className="feature-card">
+						<div className="feature-icon">🔴</div>
+						<h4>Live Streaming</h4>
+						<p>OBS &amp; WebRTC support, live chat, donations, VOD recording, and simulcast support.</p>
+					</div>
+
+					<div className="feature-card">
+						<div className="feature-icon">📱</div>
+						<h4>Short-Form Clips</h4>
+						<p>Auto-resize for TikTok, Reels, and Shorts with AI captions and templates.</p>
+					</div>
+
+					<div className="feature-card">
+						<div className="feature-icon">📤</div>
+						<h4>Cross-Platform Posting</h4>
+						<p>Schedule and publish to YouTube, Instagram, TikTok, X, Facebook, LinkedIn, and more.</p>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">📋</div>
+						<h4>EPK Builder &amp; Collab Hub</h4>
+						<p>Build your Electronic Press Kit, find collaborators, message artists, and generate AI promo commercials — unified.</p>
+						<span className="feature-tag new">FREE</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎹</div>
+						<h4>Beat Store</h4>
+						<p>Buy, sell, and license beats with auto-generated agreements. Basic to exclusive tiers. Keep 90%.</p>
+						<span className="feature-tag new">NEW</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🤝</div>
+						<h4>Collab Marketplace</h4>
+						<p>Post collab requests, apply with your EPK, message artists, and find the perfect collaborator by skill, genre, or location.</p>
+						<span className="feature-tag new">NEW</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎤</div>
+						<h4>Voice to MIDI</h4>
+						<p>Sing or beatbox into MIDI. Pitch mode, drum triggers, chord mode, 14 scales, and .mid export.</p>
+						<span className="feature-tag new">NEW</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎵</div>
+						<h4>Hum to Song</h4>
+						<p>Hum a melody and let AI build a full song around it. Stems, arrangement, and mix included.</p>
+						<span className="feature-tag ai-tag">AI</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">📝</div>
+						<h4>Text to Song</h4>
+						<p>Describe your vibe in words — genre, mood, tempo, instruments — and AI generates the track.</p>
+						<span className="feature-tag ai-tag">AI</span>
+					</div>
+
+					<div className="feature-card">
+						<div className="feature-icon">🎤</div>
+						<h4>Voice Chat Rooms</h4>
+						<p>Noise suppression, push-to-talk, and private channels for your community.</p>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🛍️</div>
+						<h4>Creator Marketplace</h4>
+						<p>Sell beats, merch, presets, courses, and digital products with Stripe payments.</p>
+						<span className="feature-tag">90%</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">📚</div>
+						<h4>Creator Courses</h4>
+						<p>Build and sell courses, tutorials, and workshops. Drip content to subscribers.</p>
+						<span className="feature-tag new">NEW</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎼</div>
+						<h4>Stems &amp; Sample Marketplace</h4>
+						<p>Buy and sell individual stems, loops, and samples. Keep 90%. Instant R2 delivery.</p>
+						<span className="feature-tag new">NEW</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">⚡</div>
+						<h4>Quick Capture Mode</h4>
+						<p>One tap — instant recording. Capture ideas before they disappear. Auto-save to your library.</p>
+						<span className="feature-tag new">NEW</span>
+					</div>
+
+					<div className="feature-card">
+						<div className="feature-icon">🎟️</div>
+						<h4>Event Ticketing</h4>
+						<p>Sell tickets to live streams, virtual concerts, workshops, and meetups. Stripe-powered.</p>
+					</div>
+
+					<div className="feature-card">
+						<div className="feature-icon">💳</div>
+						<h4>Fan Tipping</h4>
+						<p>Accept tips on any content — streams, music, videos, radio, beats. Keep 90%.</p>
+					</div>
+
+					<div className="feature-card">
+						<div className="feature-icon">🏪</div>
+						<h4>Creator Storefront</h4>
+						<p>Your own branded storefront page with products, beats, courses, and subscription tiers.</p>
+					</div>
+
+					<div className="feature-card">
+						<div className="feature-icon">📊</div>
+						<h4>Creator Analytics</h4>
+						<p>Track plays, views, revenue, beat sales, podcast downloads, audience growth, and content performance.</p>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🖼️</div>
+						<h4>AI Thumbnail Maker</h4>
+						<p>Generate click-worthy thumbnails for your videos, beats, and podcasts with AI — in seconds.</p>
+						<span className="feature-tag ai-tag">AI</span>
+					</div>
+
+					<div className="feature-card highlight">
+						<div className="feature-icon">🎓</div>
+						<h4>Creator Academy</h4>
+						<p>Courses and tutorials on music production, streaming, marketing, and growing your audience.</p>
+						<span className="feature-tag new">NEW</span>
+					</div>
 				</div>
 			</section>
 
 			{/* ================================================================
-			    PODCAST STUDIO SPOTLIGHT
+			    PODCAST STUDIO SPOTLIGHT KEPT
 			    ================================================================ */}
 			<section className="podcast-studio-spotlight">
 				<h2>🎙️ Podcast Studio — Record, Host &amp; Monetize</h2>
 				<p className="section-subtitle">
 					Everything you need to launch, grow, and earn from your podcast — all in one place.
 				</p>
+
 				<div className="podcast-features-grid">
 					<div className="podcast-feature">
 						<span className="pod-icon">🎤</span>
@@ -833,6 +1003,7 @@ const Home = () => {
 						<p>Real-time collaboration spaces for co-hosting. Invite remote guests with one link. Record multi-party sessions.</p>
 					</div>
 				</div>
+
 				<div className="podcast-studio-cta">
 					<a href="#waitlist" className="btn btn-primary">Join the Waitlist</a>
 					<a href="#waitlist" className="btn btn-outline-light">Request Early Access</a>
@@ -918,6 +1089,7 @@ const Home = () => {
 			<section className="why-choose-streampirex">
 				<h2>Why StreamPireX?</h2>
 				<p>More than just another platform — it's your entire creative business in one place.</p>
+
 				<div className="value-props-grid">
 					<div className="value-prop-card">
 						<span className="value-icon">💰</span>
@@ -955,7 +1127,6 @@ const Home = () => {
 			{/* ================================================================
 			    PRICING PREVIEW
 			    ================================================================ */}
-
 			<section className="pricing-preview">
 				<h2>💎 Simple, Transparent Pricing</h2>
 				<p className="section-subtitle">
@@ -995,7 +1166,6 @@ const Home = () => {
 						</p>
 					</div>
 
-
 					<div className="pricing-preview-card studio">
 						<h4>Studio</h4>
 						<div className="preview-price">$49.99<span>/mo</span></div>
@@ -1005,7 +1175,6 @@ const Home = () => {
 							8K video export, simulcast streaming, AI commercial generator,
 							Synth Creator, Drum Designer, and advanced creator tools.
 						</p>
-
 					</div>
 				</div>
 
@@ -1042,15 +1211,15 @@ const Home = () => {
 				</div>
 			</section>
 
-
 			{/* ================================================================
-			    EARNINGS COMPARISON
+			    EARNINGS COMPARISON / REVENUE COMPARISON
 			    ================================================================ */}
 			<section className="earnings">
 				<h2>💰 Keep More of What You Earn</h2>
 				<p className="section-subtitle">
-					Whether it's music royalties, beat sales, podcast subscriptions, tips, or merch — you keep 90%.
+					Whether it&apos;s music royalties, beat sales, podcast subscriptions, tips, or merch — you keep 90%.
 				</p>
+
 				<div className="earnings-bars">
 					<div className="earnings-row">
 						<span className="platform-name">YouTube</span>
@@ -1058,30 +1227,35 @@ const Home = () => {
 							<div className="bar youtube-bar" style={{ width: "45%" }}>45%</div>
 						</div>
 					</div>
+
 					<div className="earnings-row">
 						<span className="platform-name">Twitch</span>
 						<div className="bar-container">
 							<div className="bar twitch-bar" style={{ width: "50%" }}>50%</div>
 						</div>
 					</div>
+
 					<div className="earnings-row">
 						<span className="platform-name">Spotify</span>
 						<div className="bar-container">
 							<div className="bar spotify-bar" style={{ width: "30%" }}>~30%</div>
 						</div>
 					</div>
+
 					<div className="earnings-row">
 						<span className="platform-name">BeatStars</span>
 						<div className="bar-container">
 							<div className="bar beatstars-bar" style={{ width: "70%" }}>70%</div>
 						</div>
 					</div>
+
 					<div className="earnings-row">
 						<span className="platform-name">Sonicbids/EPK.fm</span>
 						<div className="bar-container">
 							<div className="bar beatstars-bar" style={{ width: "0%" }}>$10–20/mo (no revenue)</div>
 						</div>
 					</div>
+
 					<div className="earnings-row highlight-row">
 						<span className="platform-name">StreamPireX</span>
 						<div className="bar-container">
@@ -1099,17 +1273,26 @@ const Home = () => {
 				<p className="section-subtitle">
 					Musicians, producers, podcasters, gamers, and video creators are building their empires on StreamPireX.
 				</p>
+
 				<div className="social-proof-grid">
 					<div className="proof-card">
-						<div className="proof-quote">"I replaced 8 separate apps with StreamPireX. The beat store and MPC sampler alone pay for my subscription."</div>
+						<div className="proof-quote">
+							&quot;I replaced 8 separate apps with StreamPireX. The beat store and MPC sampler alone pay for my subscription.&quot;
+						</div>
 						<div className="proof-author">— Independent Producer</div>
 					</div>
+
 					<div className="proof-card">
-						<div className="proof-quote">"AI mastering saved me hundreds per month. The EPK builder got me booked at three festivals. I keep 90%."</div>
+						<div className="proof-quote">
+							&quot;AI mastering saved me hundreds per month. The EPK builder got me booked at three festivals. I keep 90%.&quot;
+						</div>
 						<div className="proof-author">— Hip-Hop Artist</div>
 					</div>
+
 					<div className="proof-card">
-						<div className="proof-quote">"Podcast studio + video editor + distribution + collab hub in one platform? No brainer. And the AI DJ is incredible."</div>
+						<div className="proof-quote">
+							&quot;Podcast studio + video editor + distribution + collab hub in one platform? No brainer. And the AI DJ is incredible.&quot;
+						</div>
 						<div className="proof-author">— Podcast Creator</div>
 					</div>
 				</div>
@@ -1126,10 +1309,12 @@ const Home = () => {
 					AI commercial generator, mix assistant, mastering, music distribution, video editing,
 					live streaming, and more — all in one platform. Keep 90% of everything you earn.
 				</p>
+
 				<div className="cta-buttons">
 					<a href="#waitlist" className="btn btn-primary btn-lg">Join the Waitlist</a>
 					<a href="#waitlist" className="btn btn-outline-light btn-lg">Request Early Access</a>
 				</div>
+
 				<div className="cta-secondary-links">
 					<a href="#waitlist" className="cta-link">Build Your EPK</a>
 					<span className="cta-divider">•</span>
@@ -1147,13 +1332,22 @@ const Home = () => {
 				</div>
 			</section>
 
-
 			{/* ================================================================
-                            EARLY ACCESS / WAITLIST
-                            ================================================================ */}
-			<section style={{ background: "linear-gradient(135deg, #0d1117 0%, #161b22 100%)", padding: "80px 20px", textAlign: "center", borderTop: "1px solid #30363d" }}>
-				<div id="waitlist"><WaitlistSection /></div>
+			    EARLY ACCESS / WAITLIST
+			    ================================================================ */}
+			<section
+				style={{
+					background: "linear-gradient(135deg, #0d1117 0%, #161b22 100%)",
+					padding: "80px 20px",
+					textAlign: "center",
+					borderTop: "1px solid #30363d"
+				}}
+			>
+				<div id="waitlist">
+					<WaitlistSection />
+				</div>
 			</section>
+
 			{/* ================================================================
 			    FOOTER
 			    ================================================================ */}
@@ -1163,6 +1357,7 @@ const Home = () => {
 						<h3>StreamPireX</h3>
 						<p>© {new Date().getFullYear()} Eye Forge Studios LLC. The AI-Powered Creator Platform.</p>
 					</div>
+
 					<div className="footer-columns">
 						<div className="footer-col">
 							<h5>Create</h5>
@@ -1172,6 +1367,7 @@ const Home = () => {
 							<Link to="/video-editor">Video Editor</Link>
 							<Link to="/epk-collab-hub">EPK Builder</Link>
 						</div>
+
 						<div className="footer-col">
 							<h5>AI Tools</h5>
 							<Link to="/ai-mastering">AI Mastering</Link>
@@ -1182,6 +1378,7 @@ const Home = () => {
 							<Link to="/airadio-dj">AI Radio DJ</Link>
 							<Link to="/voice-clone-services">AI Voice Clone</Link>
 						</div>
+
 						<div className="footer-col">
 							<h5>Community</h5>
 							<Link to="/home-feed">Social Feed</Link>
@@ -1191,6 +1388,7 @@ const Home = () => {
 							<Link to="/browse-radio-stations">Radio Stations</Link>
 							<Link to="/live-streams">Live Streaming</Link>
 						</div>
+
 						<div className="footer-col">
 							<h5>Company</h5>
 							<Link to="/pricing">Pricing</Link>

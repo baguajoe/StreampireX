@@ -15,6 +15,7 @@ torchaudio = {version = "*", index = "pytorch-cpu"}
 demucs = "*"
 replicate = "*"
 boto3 = "*"
+feedgen = "*"
 
 [dev-packages]
 

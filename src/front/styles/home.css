@@ -2042,3 +2042,132 @@
   font-size: 0.95rem;
   opacity: 0.8;
 }
+/* =========================================================
+   StreamPireX Landing Enhancements (Mar 2026)
+   Non-destructive additions for new layout structure
+   ========================================================= */
+
+/* Hero Logo Support */
+.streampirex-home .hero-logo {
+	max-width: 340px;
+	height: auto;
+	margin-bottom: 1rem;
+	filter: drop-shadow(0 0 18px rgba(0,255,200,0.45));
+}
+
+/* DAW Hero Screenshot Support */
+.streampirex-home .hero-daw-preview {
+	width: 100%;
+	max-width: 900px;
+	border-radius: 16px;
+	margin-top: 2.5rem;
+	box-shadow:
+	0 0 40px rgba(0,255,200,0.15),
+	0 0 10px rgba(0,255,200,0.3);
+	border: 1px solid rgba(0,255,200,0.25);
+	transition: transform 0.35s ease;
+}
+
+.streampirex-home .hero-daw-preview:hover {
+	transform: scale(1.02);
+}
+
+/* Stronger Hero Gradient */
+.streampirex-home .hero {
+	background:
+	radial-gradient(circle at top, rgba(0,255,200,0.08), transparent 60%),
+	linear-gradient(145deg, #0f172a, #020617) !important;
+}
+
+/* Section spacing consistency */
+.streampirex-home section {
+	position: relative;
+}
+
+/* Subtle divider glow between sections */
+.streampirex-home section::after {
+	content: "";
+	position: absolute;
+	bottom: 0;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 120px;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(0,255,200,0.5), transparent);
+}
+
+/* Cost comparison visual emphasis */
+.streampirex-home .comparison-card.new {
+	box-shadow:
+	0 0 30px rgba(0,255,200,0.12),
+	inset 0 0 12px rgba(0,255,200,0.05);
+}
+
+/* FREE banner stronger glow */
+.streampirex-home .free-badge-large {
+	box-shadow: 0 0 12px rgba(0,255,200,0.35);
+}
+
+/* Social cards glow */
+.streampirex-home .social-feature:hover {
+	box-shadow: 0 10px 30px rgba(0,255,200,0.12);
+}
+
+/* Gaming section orange glow */
+.streampirex-home .gaming-feature:hover {
+	box-shadow: 0 10px 30px rgba(255,102,0,0.18);
+}
+
+/* Feature cards smoother hover */
+.streampirex-home .feature-card:hover {
+	transform: translateY(-6px);
+	box-shadow: 0 12px 40px rgba(0,255,200,0.2);
+}
+
+/* Pricing cards lift effect */
+.streampirex-home .pricing-preview-card:hover {
+	transform: translateY(-5px);
+	box-shadow: 0 12px 35px rgba(0,255,200,0.15);
+}
+
+/* CTA glow effect */
+.streampirex-home .btn-primary {
+	box-shadow: 0 0 14px rgba(0,255,200,0.25);
+}
+
+/* Footer subtle divider */
+.streampirex-home .home-footer {
+	border-top: 1px solid rgba(0,255,200,0.15);
+}
+
+/* =============================================
+   Responsive Improvements
+   ============================================= */
+
+@media (max-width: 1200px) {
+
+	.streampirex-home .hero-logo {
+		max-width: 280px;
+	}
+
+}
+
+@media (max-width: 768px) {
+
+	.streampirex-home .hero-logo {
+		max-width: 220px;
+	}
+
+	.streampirex-home .hero-daw-preview {
+		max-width: 100%;
+	}
+
+}
+
+@media (max-width: 480px) {
+
+	.streampirex-home .hero-logo {
+		max-width: 180px;
+	}
+
+}

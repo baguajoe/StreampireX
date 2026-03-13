@@ -546,6 +546,7 @@ from src.api.collab_marketplace_routes import collab_marketplace_bp
 from src.api.printful_unified_routes import printful_unified_bp
 from src.api.reference_mastering_routes import reference_mastering_bp
 from src.api.suno_gap_routes import suno_gap_bp
+from src.api.rss_routes import rss_bp
 
 
 app.register_blueprint(marketplace_bp)
@@ -559,6 +560,7 @@ app.register_blueprint(fan_sub_bp)
 app.register_blueprint(beat_license_bp)
 app.register_blueprint(clip_bp)
 app.register_blueprint(collab_bp)
+app.register_blueprint(rss_bp, url_prefix='/api/podcast')
 
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3001))

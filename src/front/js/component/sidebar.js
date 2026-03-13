@@ -332,61 +332,55 @@ const Sidebar = ({ user }) => {
       </SectionHeader>
 
       {showProfiles && (
-        <>
-          {/* Social Profile — everyone */}
-          <ProfileMenuItem
-            to="/profile"
-            className={
-              isActive("/profile") &&
-              !isActive("/profile/gamer") &&
-              !isActive("/profile/artist") &&
-              !isActive("/profile/video")
-                ? "active" : ""
-            }
-          >
-            👤 <span className="sidebar-label">Social Profile</span>
-            <MenuHint className="sidebar-hint">free</MenuHint>
-          </ProfileMenuItem>
+  <>
+    {/* Social Profile — points to /profile */}
+    <ProfileMenuItem
+      to="/profile"
+      className={isActive("/profile") && !isActive("/profile/") ? "active" : ""}
+    >
+      👤 <span className="sidebar-label">Social Profile</span>
+      <MenuHint className="sidebar-hint">free</MenuHint>
+    </ProfileMenuItem>
 
-          {/* Artist Page */}
-          {hasArtistProfile && (
-            <ProfileMenuItem
-              to="/profile/artist"
-              className={isActive("/profile/artist") ? "active" : ""}
-            >
-              🎵 <span className="sidebar-label">Artist Page</span>
-              <MenuHint className="sidebar-hint">free</MenuHint>
-            </ProfileMenuItem>
-          )}
+    {/* Artist Page — Updated to match Layout.js path */}
+    {hasArtistProfile && (
+      <ProfileMenuItem
+        to="/artist-dashboard" 
+        className={isActive("/artist-dashboard") ? "active" : ""}
+      >
+        🎵 <span className="sidebar-label">Artist Page</span>
+        <MenuHint className="sidebar-hint">free</MenuHint>
+      </ProfileMenuItem>
+    )}
 
-          {/* Gamer Profile */}
-          {hasGamerProfile && (
-            <ProfileMenuItem
-              to="/profile/gamer"
-              className={isActive("/profile/gamer") ? "active" : ""}
-            >
-              🎮 <span className="sidebar-label">Gamer Profile</span>
-              <MenuHint className="sidebar-hint">free</MenuHint>
-            </ProfileMenuItem>
-          )}
+    {/* Gamer Profile — Updated to match Layout.js path */}
+    {hasGamerProfile && (
+      <ProfileMenuItem
+        to={`/gamer-profile/${user?.id}`}
+        className={isActive("/gamer-profile") ? "active" : ""}
+      >
+        🎮 <span className="sidebar-label">Gamer Profile</span>
+        <MenuHint className="sidebar-hint">free</MenuHint>
+      </ProfileMenuItem>
+    )}
 
-          {/* Video Channel */}
-          <ProfileMenuItem
-            to="/profile/video"
-            className={isActive("/profile/video") ? "active" : ""}
-          >
-            📹 <span className="sidebar-label">Video Channel</span>
-            <MenuHint className="sidebar-hint">free</MenuHint>
-          </ProfileMenuItem>
+    {/* Video Channel — Updated to match Layout.js path */}
+    <ProfileMenuItem
+      to="/my-video
+      -channel"
+      className={isActive("/my-video-channel") ? "active" : ""}
+    >
+      📹 <span className="sidebar-label">Video Channel</span>
+      <MenuHint className="sidebar-hint">free</MenuHint>
+    </ProfileMenuItem>
 
-          {(!hasArtistProfile || !hasGamerProfile) && (
-            <CreateProfileLink to="/settings/profiles" className="sidebar-create-link">
-              ➕ Add Profile Type...
-            </CreateProfileLink>
-          )}
-        </>
-      )}
-
+    {(!hasArtistProfile || !hasGamerProfile) && (
+      <CreateProfileLink to="/settings" className="sidebar-create-link">
+        ➕ Add Profile Type...
+      </CreateProfileLink>
+    )}
+  </>
+)}
       {/* ============================== */}
       {/* #2  🏠 FEED & DISCOVER — FREE  */}
       {/* ============================== */}
@@ -632,7 +626,7 @@ const Sidebar = ({ user }) => {
 
       {showStore && (
         <>
-          <MenuItem to="/beats" className={isActive("/beats") ? "active" : ""}>
+          <MenuItem to="/beat-store" className={isActive("/beat-store") ? "active" : ""}>
             🎹 <span className="sidebar-label">Beat Store</span>
             <MenuHint className="sidebar-hint">free browse</MenuHint>
           </MenuItem>
@@ -645,14 +639,14 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/browse-producers" className={isActive("/producers") ? "active" : ""}>
             🎤 <span className="sidebar-label">Browse Producers</span>
           </MenuItem>
-          <MenuItem to="/browse-stems" className={isActive("/stems") ? "active" : ""}>
+          <MenuItem to="/browse-stems" className={isActive("/browse-stems") ? "active" : ""}>
             🎵 <span className="sidebar-label">Stems Store</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </MenuItem>
-          <MenuItem to="/stems/sell" className={isActive("/stems/sell") ? "active" : ""}>
+          <MenuItem to="/sell-stems" className={isActive("/sell-stems") ? "active" : ""}>
             💰 <span className="sidebar-label">Sell Stems</span>
           </MenuItem>
-          <MenuItem to="/creator-sample-marketplace" className={isActive("/sample-marketplace") ? "active" : ""}>
+          <MenuItem to="/creator-sample-marketplace" className={isActive("/creator-sample-marketplace") ? "active" : ""}>
             🎼 <span className="sidebar-label">Sample Market</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </MenuItem>
