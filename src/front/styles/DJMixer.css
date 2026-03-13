@@ -177,3 +177,24 @@
   .dj-main{grid-template-columns:1fr;grid-template-rows:auto auto auto;}
   .dj-waveform{width:100%;}
 }
+/* ─── Live Input / Timecode Panel ─── */
+.dj-input-panel { margin: 6px 0; border: 1px solid #1a1a2e; border-radius: 6px; overflow: hidden; }
+.dj-input-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; background: #0a0a18; flex-wrap: wrap; }
+.dj-input-toggle { background: #12122a; border: 1px solid #2a2a4a; color: #aaa; font-size: 11px; padding: 3px 8px; border-radius: 4px; cursor: pointer; }
+.dj-input-toggle:hover { border-color: #00ffcc; color: #fff; }
+.dj-live-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px; color: #000; letter-spacing: 0.5px; }
+.dj-input-stop { background: transparent; border: 1px solid #ff3366; color: #ff3366; font-size: 11px; padding: 2px 6px; border-radius: 3px; cursor: pointer; margin-left: auto; }
+.dj-input-stop:hover { background: #ff3366; color: #fff; }
+.dj-input-drawer { padding: 8px; background: #080814; border-top: 1px solid #1a1a2e; }
+.dj-input-device-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.dj-device-sel { flex: 1; background: #0f0f22; border: 1px solid #2a2a4a; color: #ccc; font-size: 11px; padding: 4px 6px; border-radius: 4px; font-family: 'Share Tech Mono', monospace; }
+.dj-device-sel:focus { outline: none; border-color: #00ffcc; }
+.dj-input-btns { display: flex; gap: 6px; margin-bottom: 6px; }
+.dj-input-btn { flex: 1; padding: 5px 8px; font-size: 11px; font-weight: 700; border-radius: 4px; cursor: pointer; border: 1px solid var(--ic, #00ffcc); background: transparent; color: var(--ic, #00ffcc); transition: all 0.15s; }
+.dj-input-btn:hover, .dj-input-btn.active { background: var(--ic, #00ffcc); color: #000; }
+.dj-input-btn.tc-btn { border-color: #aa88ff; color: #aa88ff; }
+.dj-input-btn.tc-btn:hover, .dj-input-btn.tc-btn.active { background: #aa88ff; color: #000; }
+.dj-input-hint { font-size: 10px; color: #555; font-family: 'Share Tech Mono', monospace; padding: 2px 0; }
+.dj-signal-wrap { display: flex; align-items: center; gap: 5px; flex: 1; min-width: 80px; }
+.dj-signal-bar { height: 4px; border-radius: 2px; transition: width 0.1s, background 0.2s; }
+.dj-signal-lbl { font-size: 9px; color: #666; font-family: 'Share Tech Mono', monospace; white-space: nowrap; }

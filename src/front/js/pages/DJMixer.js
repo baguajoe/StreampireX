@@ -34,6 +34,70 @@ async function detectBPM(buffer) {
     } catch { return null; }
 }
 
+class TimecodeDecoder {
+    constructor(audioCtx, onResult) {
+        this.ctx = audioCtx; this.onResult = onResult;
+        this.scriptNode = null; this.sourceNode = null; this.stream = null; this.running = false;
+        this.PILOT_FREQ = 1000; this.PHASE_FREQ = 2000; this.WINDOW = 2048;
+        this._lastPilotPhase = null;
+    }
+    async start(deviceId) {
+        try {
+            const constraints = { audio: deviceId ? { deviceId: { exact: deviceId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false } : { echoCancellation: false, noiseSuppression: false, autoGainControl: false } };
+            this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+            this.sourceNode = this.ctx.createMediaStreamSource(this.stream);
+            this.scriptNode = this.ctx.createScriptProcessor(this.WINDOW, 2, 2);
+            this.scriptNode.onaudioprocess = (e) => this._process(e);
+            this.sourceNode.connect(this.scriptNode);
+            this.scriptNode.connect(this.ctx.destination);
+            this.running = true; return true;
+        } catch (err) { console.error("TimecodeDecoder start failed:", err); return false; }
+    }
+    stop() {
+        this.running = false;
+        if (this.scriptNode) { this.scriptNode.disconnect(); this.scriptNode = null; }
+        if (this.sourceNode) { this.sourceNode.disconnect(); this.sourceNode = null; }
+        if (this.stream) { this.stream.getTracks().forEach(t => t.stop()); this.stream = null; }
+    }
+    _process(e) {
+        if (!this.running) return;
+        const L = e.inputBuffer.getChannelData(0);
+        const R = e.inputBuffer.getChannelData(1);
+        const sr = e.inputBuffer.sampleRate;
+        const pilotL = this._goertzel(L, this.PILOT_FREQ, sr);
+        const phaseL = this._goertzel(L, this.PHASE_FREQ, sr);
+        const phaseR = this._goertzel(R, this.PHASE_FREQ, sr);
+        const pilotMag = Math.sqrt(pilotL.re ** 2 + pilotL.im ** 2);
+        const phaseMag = Math.sqrt(phaseL.re ** 2 + phaseL.im ** 2);
+        const THRESHOLD = 0.02;
+        const valid = pilotMag > THRESHOLD && phaseMag > THRESHOLD;
+        if (!valid) { this.onResult({ pitch: 0, position: 0, valid: false, signal: pilotMag }); return; }
+        const pilotPhase = Math.atan2(pilotL.im, pilotL.re);
+        const prevPhase = this._lastPilotPhase !== null ? this._lastPilotPhase : pilotPhase;
+        let phaseDiff = pilotPhase - prevPhase;
+        while (phaseDiff > Math.PI) phaseDiff -= 2 * Math.PI;
+        while (phaseDiff < -Math.PI) phaseDiff += 2 * Math.PI;
+        this._lastPilotPhase = pilotPhase;
+        const expectedDiff = (2 * Math.PI * this.PILOT_FREQ * this.WINDOW) / sr;
+        const pitch = expectedDiff > 0 ? phaseDiff / expectedDiff : 1.0;
+        const clampedPitch = Math.max(-2.0, Math.min(2.0, pitch));
+        const phaseAngleL = Math.atan2(phaseL.im, phaseL.re);
+        const phaseAngleR = Math.atan2(phaseR.im, phaseR.re);
+        let posDiff = phaseAngleL - phaseAngleR;
+        while (posDiff < 0) posDiff += 2 * Math.PI;
+        const position = posDiff / (2 * Math.PI);
+        this.onResult({ pitch: clampedPitch, position, valid: true, signal: pilotMag });
+    }
+    _goertzel(samples, freq, sr) {
+        const k = Math.round(samples.length * freq / sr);
+        const omega = (2 * Math.PI * k) / samples.length;
+        const coeff = 2 * Math.cos(omega);
+        let q0 = 0, q1 = 0, q2 = 0;
+        for (let i = 0; i < samples.length; i++) { q0 = coeff * q1 - q2 + samples[i]; q2 = q1; q1 = q0; }
+        return { re: q1 - q2 * Math.cos(omega), im: q2 * Math.sin(omega) };
+    }
+}
+
 class Deck {
     constructor(id) {
         this.id = id; this.buffer = null; this.source = null; this.gainNode = null;
@@ -54,10 +118,7 @@ class Deck {
         this.gainNode.connect(this.eqLow); this.eqLow.connect(this.eqMid); this.eqMid.connect(this.eqHigh);
         this.eqHigh.connect(this.analyser); this.analyser.connect(out);
     }
-    async loadBuffer(ab) {
-        this.buffer = await getCtx().decodeAudioData(ab); this.pauseOffset = 0;
-        this.bpm = await detectBPM(this.buffer); return this.bpm;
-    }
+    async loadBuffer(ab) { this.buffer = await getCtx().decodeAudioData(ab); this.pauseOffset = 0; this.bpm = await detectBPM(this.buffer); return this.bpm; }
     async loadURL(url) { const r = await fetch(url); return this.loadBuffer(await r.arrayBuffer()); }
     play(off) {
         if (!this.buffer) return; const c = getCtx();
@@ -72,10 +133,7 @@ class Deck {
     pause() { if (!this.playing) return; this.pauseOffset = this.currentTime(); this._stop(); this.playing = false; }
     setCue() { this.cuePoint = this.currentTime(); }
     jumpCue() { this.pauseOffset = this.cuePoint; if (this.playing) this.play(this.cuePoint); }
-    jumpHotcue(i) {
-        if (this.hotcues[i] === null) { this.hotcues[i] = this.currentTime(); return; }
-        this.pauseOffset = this.hotcues[i]; if (this.playing) this.play(this.hotcues[i]);
-    }
+    jumpHotcue(i) { if (this.hotcues[i] === null) { this.hotcues[i] = this.currentTime(); return; } this.pauseOffset = this.hotcues[i]; if (this.playing) this.play(this.hotcues[i]); }
     currentTime() { if (!this.playing) return this.pauseOffset; return Math.min(getCtx().currentTime - this.startTime, this.duration()); }
     duration() { return this.buffer ? this.buffer.duration : 0; }
     setGain(v) { if (this.gainNode) this.gainNode.gain.value = v; }
@@ -100,11 +158,9 @@ const Waveform = React.memo(({ deck, color }) => {
                 const p = deck.currentTime() / deck.duration(), x = p * w;
                 ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.85;
                 ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); ctx.globalAlpha = 1;
-                // cue
-                const cx = (deck.cuePoint / deck.duration()) * w;
+                const cx2 = (deck.cuePoint / deck.duration()) * w;
                 ctx.strokeStyle = "#ffcc00"; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
-                ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke(); ctx.setLineDash([]);
-                // hotcues
+                ctx.beginPath(); ctx.moveTo(cx2, 0); ctx.lineTo(cx2, h); ctx.stroke(); ctx.setLineDash([]);
                 const hcc = ["#ff4466", "#00aaff", "#00ff88", "#ff8800"];
                 deck.hotcues.forEach((hc, i) => {
                     if (hc === null) return; const hx = (hc / deck.duration()) * w;
@@ -138,6 +194,16 @@ const VU = React.memo(({ deck }) => {
     return <canvas ref={cvs} width={18} height={130} className="dj-vu" />;
 });
 
+const SignalMeter = ({ signal, valid }) => {
+    const pct = Math.min(100, Math.round((signal || 0) * 500));
+    return (
+        <div className="dj-signal-wrap" title={`Timecode signal: ${pct}%`}>
+            <div className="dj-signal-bar" style={{ width: `${pct}%`, background: valid ? "#00ff88" : pct > 20 ? "#ffcc00" : "#ff3366" }} />
+            <span className="dj-signal-lbl">{valid ? "◉ TC" : "○ TC"}</span>
+        </div>
+    );
+};
+
 const Knob = ({ label, value, min, max, onChange, color = "#00ffcc" }) => {
     const drag = useRef({ on: false });
     const angle = ((value - min) / (max - min)) * 270 - 135;
@@ -149,9 +215,7 @@ const Knob = ({ label, value, min, max, onChange, color = "#00ffcc" }) => {
     }, [value, min, max, onChange]);
     return (
         <div className="dj-knob-wrap">
-            <div className="dj-knob" onMouseDown={onDown} style={{ "--ka": `${angle}deg`, "--kc": color }}>
-                <div className="dj-knob-dot" />
-            </div>
+            <div className="dj-knob" onMouseDown={onDown} style={{ "--ka": `${angle}deg`, "--kc": color }}><div className="dj-knob-dot" /></div>
             <span className="dj-knob-lbl">{label}</span>
             <span className="dj-knob-val">{value > 0 ? `+${value.toFixed(0)}` : value.toFixed(0)}</span>
         </div>
@@ -193,6 +257,14 @@ export default function DJMixer() {
     const [saveModal, setSaveModal] = useState(false);
     const [mixTitle, setMixTitle] = useState("");
     const [saving, setSaving] = useState(false);
+    const [audioDevices, setAudioDevices] = useState([]);
+    const [liveMode, setLiveMode] = useState({ A: "off", B: "off" });
+    const [liveDevice, setLiveDevice] = useState({ A: "", B: "" });
+    const [tcSignal, setTcSignal] = useState({ A: { signal: 0, valid: false }, B: { signal: 0, valid: false } });
+    const [showDevicePanel, setShowDevicePanel] = useState({ A: false, B: false });
+    const liveStreamRef = useRef({ A: null, B: null });
+    const liveSourceRef = useRef({ A: null, B: null });
+    const tcDecoderRef = useRef({ A: null, B: null });
     const mgRef = useRef(null), xgA = useRef(null), xgB = useRef(null), recRef = useRef(null), chunks = useRef([]), rafRef = useRef(null);
 
     const initAudio = useCallback(() => {
@@ -204,9 +276,21 @@ export default function DJMixer() {
         deckA.setup(ga); deckB.setup(gb); setRdy(true);
     }, [rdy, mvol]);
 
+    useEffect(() => {
+        const enumerate = async () => {
+            try {
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+                const all = await navigator.mediaDevices.enumerateDevices();
+                setAudioDevices(all.filter(d => d.kind === "audioinput"));
+            } catch (e) { console.warn("Device access:", e); }
+        };
+        enumerate();
+        navigator.mediaDevices.addEventListener("devicechange", enumerate);
+        return () => navigator.mediaDevices.removeEventListener("devicechange", enumerate);
+    }, []);
+
     useEffect(() => { if (!xgA.current) return; xgA.current.gain.value = Math.cos(xf * Math.PI / 2); xgB.current.gain.value = Math.sin(xf * Math.PI / 2); }, [xf]);
     useEffect(() => { if (mgRef.current) mgRef.current.gain.value = mvol; }, [mvol]);
-
     useEffect(() => {
         const tick = () => { setProg({ A: deckA.buffer ? Math.min(deckA.currentTime() / deckA.duration(), 1) : 0, B: deckB.buffer ? Math.min(deckB.currentTime() / deckB.duration(), 1) : 0 }); rafRef.current = requestAnimationFrame(tick); };
         tick(); return () => cancelAnimationFrame(rafRef.current);
@@ -225,6 +309,55 @@ export default function DJMixer() {
     }, [store]);
 
     const upd = (id, p) => setDs(prev => ({ ...prev, [id]: { ...prev[id], ...p } }));
+
+    const stopLiveMode = useCallback((id) => {
+        if (tcDecoderRef.current[id]) { tcDecoderRef.current[id].stop(); tcDecoderRef.current[id] = null; }
+        if (liveSourceRef.current[id]) { liveSourceRef.current[id].disconnect(); liveSourceRef.current[id] = null; }
+        if (liveStreamRef.current[id]) { liveStreamRef.current[id].getTracks().forEach(t => t.stop()); liveStreamRef.current[id] = null; }
+        setLiveMode(p => ({ ...p, [id]: "off" }));
+        setTcSignal(p => ({ ...p, [id]: { signal: 0, valid: false } }));
+    }, []);
+
+    const startLiveInput = useCallback(async (id) => {
+        initAudio(); stopLiveMode(id);
+        const deviceId = liveDevice[id];
+        const dk = id === "A" ? deckA : deckB;
+        try {
+            const constraints = { audio: deviceId ? { deviceId: { exact: deviceId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false } : { echoCancellation: false, noiseSuppression: false, autoGainControl: false } };
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            liveStreamRef.current[id] = stream;
+            const source = getCtx().createMediaStreamSource(stream);
+            source.connect(dk.gainNode);
+            liveSourceRef.current[id] = source;
+            setLiveMode(p => ({ ...p, [id]: "input" }));
+        } catch (e) { alert("Could not access audio device: " + e.message); }
+    }, [liveDevice, initAudio, stopLiveMode]);
+
+    const startTimecode = useCallback(async (id) => {
+        initAudio(); stopLiveMode(id);
+        const dk = id === "A" ? deckA : deckB;
+        if (!dk.buffer) { alert("Load a track first, then enable timecode control."); return; }
+        const decoder = new TimecodeDecoder(getCtx(), (result) => {
+            setTcSignal(p => ({ ...p, [id]: { signal: result.signal, valid: result.valid } }));
+            if (!result.valid || !dk.buffer) return;
+            const absPitch = Math.abs(result.pitch);
+            const clampedPitch = Math.max(0.5, Math.min(2.0, absPitch));
+            if (result.pitch === 0) {
+                if (dk.playing) { dk.pause(); upd(id, { playing: false }); }
+            } else if (result.pitch < 0) {
+                dk.pauseOffset = Math.max(0, dk.currentTime() - 0.05);
+                if (dk.playing) dk.play(dk.pauseOffset);
+            } else {
+                if (!dk.playing) { dk.play(); upd(id, { playing: true }); }
+                if (dk.source) dk.source.playbackRate.value = clampedPitch;
+                dk.pitch = clampedPitch;
+                upd(id, { pitch: clampedPitch });
+            }
+        });
+        const ok = await decoder.start(liveDevice[id]);
+        if (ok) { tcDecoderRef.current[id] = decoder; setLiveMode(p => ({ ...p, [id]: "timecode" })); }
+        else { alert("Failed to start timecode — check device permissions."); }
+    }, [liveDevice, initAudio, stopLiveMode]);
 
     const loadLib = async (id, t) => {
         initAudio(); const url = t.audio_url || t.file_url || t.r2_url; if (!url) return;
@@ -282,12 +415,10 @@ export default function DJMixer() {
         r.start(); recRef.current = r; setRec(true);
     };
     const stopRec = () => { if (recRef.current) recRef.current.stop(); setRec(false); };
-
     const dlMix = () => {
         if (!recBlob) return; const a = document.createElement("a");
         a.href = URL.createObjectURL(recBlob); a.download = `${mixTitle || "mix"}_${Date.now()}.webm`; a.click();
     };
-
     const saveMix = async () => {
         if (!recBlob) return; setSaving(true);
         const token = store?.token || localStorage.getItem("token");
@@ -310,6 +441,54 @@ export default function DJMixer() {
 
     const HC_COLORS = ["#ff4466", "#00aaff", "#00ff88", "#ff8800"];
 
+    const renderInputPanel = (id) => {
+        const mode = liveMode[id];
+        const color = id === "A" ? "#00ffcc" : "#ff6b35";
+        const tc = tcSignal[id];
+        const show = showDevicePanel[id];
+        return (
+            <div className="dj-input-panel">
+                <div className="dj-input-row">
+                    <button className="dj-input-toggle" onClick={() => setShowDevicePanel(p => ({ ...p, [id]: !p[id] }))}>🎚 INPUT {show ? "▲" : "▼"}</button>
+                    {mode === "input" && <span className="dj-live-badge" style={{ background: color }}>● LIVE IN</span>}
+                    {mode === "timecode" && <>
+                        <span className="dj-live-badge" style={{ background: tc.valid ? "#00ff88" : "#ff3366" }}>{tc.valid ? "◉ TIMECODE" : "○ NO SIGNAL"}</span>
+                        <SignalMeter signal={tc.signal} valid={tc.valid} />
+                    </>}
+                    {mode !== "off" && <button className="dj-input-stop" onClick={() => stopLiveMode(id)}>✕</button>}
+                </div>
+                {show && (
+                    <div className="dj-input-drawer">
+                        <div className="dj-input-device-row">
+                            <label className="dj-fl">Device</label>
+                            <select className="dj-device-sel" value={liveDevice[id]} onChange={e => setLiveDevice(p => ({ ...p, [id]: e.target.value }))}>
+                                <option value="">Default Input</option>
+                                {audioDevices.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || `Input ${d.deviceId.slice(0, 8)}`}</option>)}
+                            </select>
+                        </div>
+                        <div className="dj-input-btns">
+                            <button className={`dj-input-btn ${mode === "input" ? "active" : ""}`} style={{ "--ic": color }}
+                                onClick={() => mode === "input" ? stopLiveMode(id) : startLiveInput(id)}
+                                title="Route USB turntable/mic through this deck EQ + crossfader">
+                                🎙 {mode === "input" ? "Stop Live Input" : "Live Input"}
+                            </button>
+                            <button className={`dj-input-btn tc-btn ${mode === "timecode" ? "active" : ""}`} style={{ "--ic": color }}
+                                onClick={() => mode === "timecode" ? stopLiveMode(id) : startTimecode(id)}
+                                title="Serato-style timecode vinyl control — needle position + pitch drives the deck">
+                                💿 {mode === "timecode" ? "Stop Timecode" : "Timecode Vinyl"}
+                            </button>
+                        </div>
+                        <div className="dj-input-hint">
+                            {mode === "off" && <span>Connect USB turntable → select device → choose mode</span>}
+                            {mode === "input" && <span>Live audio routed through deck {id} EQ + crossfader</span>}
+                            {mode === "timecode" && <span>{tc.valid ? `Signal locked · pitch control active` : "Put needle on timecode vinyl — waiting for signal"}</span>}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const renderDeck = (id) => {
         const dk = id === "A" ? deckA : deckB, s = ds[id];
         const color = id === "A" ? "#00ffcc" : "#ff6b35";
@@ -330,40 +509,24 @@ export default function DJMixer() {
                     </div>
                     {s.artwork && <img src={s.artwork} alt="" className="dj-art" />}
                 </div>
-
                 <Waveform deck={dk} color={color} />
-
                 <div className="dj-prog-wrap">
                     <div className="dj-prog"><div className="dj-prog-f" style={{ width: `${p * 100}%`, background: color }} /></div>
-                    <div className="dj-prog-t">
-                        <span>{fmt(dk.currentTime())}</span>
-                        <span style={{ color: "#555" }}>-{fmt(dk.duration() - dk.currentTime())}</span>
-                    </div>
+                    <div className="dj-prog-t"><span>{fmt(dk.currentTime())}</span><span style={{ color: "#555" }}>-{fmt(dk.duration() - dk.currentTime())}</span></div>
                 </div>
-
                 <div className="dj-hcues">
                     {[0, 1, 2, 3].map(i => (
-                        <button key={i} className={`dj-hc ${s.hotcues[i] !== null ? "set" : ""}`}
-                            style={{ "--hcc": HC_COLORS[i] }}
+                        <button key={i} className={`dj-hc ${s.hotcues[i] !== null ? "set" : ""}`} style={{ "--hcc": HC_COLORS[i] }}
                             onClick={() => { dk.jumpHotcue(i); upd(id, { hotcues: [...dk.hotcues] }); }}
                             onContextMenu={e => { e.preventDefault(); dk.hotcues[i] = null; upd(id, { hotcues: [...dk.hotcues] }); }}
-                            title={s.hotcues[i] !== null ? `HC${i + 1}: ${fmt(s.hotcues[i])} (right-click=clear)` : `Set HC${i + 1}`}>
-                            {i + 1}
-                        </button>
+                            title={s.hotcues[i] !== null ? `HC${i + 1}: ${fmt(s.hotcues[i])} (right-click=clear)` : `Set HC${i + 1}`}>{i + 1}</button>
                     ))}
                     <button className="dj-btn dj-cue" onClick={() => { dk.setCue(); upd(id, {}); }}>CUE</button>
                     <button className="dj-btn dj-cjump" onClick={() => dk.jumpCue()}>◀CUE</button>
                 </div>
-
                 <div className="dj-transport">
-                    <button className={`dj-play ${s.playing ? "on" : ""}`} style={{ "--pc": color }}
-                        onClick={() => togglePlay(id)} disabled={!s.loaded}>
-                        {s.playing ? "⏸" : "▶"}
-                    </button>
-                    <button className={`dj-btn dj-loop ${s.loop ? "on" : ""}`}
-                        onClick={() => { dk.loop = !dk.loop; if (dk.source) dk.source.loop = dk.loop; upd(id, { loop: dk.loop }); }}>
-                        🔁
-                    </button>
+                    <button className={`dj-play ${s.playing ? "on" : ""}`} style={{ "--pc": color }} onClick={() => togglePlay(id)} disabled={!s.loaded && liveMode[id] === "off"}>{s.playing ? "⏸" : "▶"}</button>
+                    <button className={`dj-btn dj-loop ${s.loop ? "on" : ""}`} onClick={() => { dk.loop = !dk.loop; if (dk.source) dk.source.loop = dk.loop; upd(id, { loop: dk.loop }); }}>🔁</button>
                     <div className="dj-loop-sz">
                         {[1, 2, 4, 8].map(b => (
                             <button key={b} className="dj-lsz" onClick={() => {
@@ -376,29 +539,25 @@ export default function DJMixer() {
                         ))}
                     </div>
                 </div>
-
                 <div className="dj-eq-row">
                     <Knob label="HI" value={s.high} min={-12} max={12} color={color} onChange={v => { dk.setEQ("high", v); upd(id, { high: v }); }} />
                     <Knob label="MID" value={s.mid} min={-12} max={12} color={color} onChange={v => { dk.setEQ("mid", v); upd(id, { mid: v }); }} />
                     <Knob label="LOW" value={s.low} min={-12} max={12} color={color} onChange={v => { dk.setEQ("low", v); upd(id, { low: v }); }} />
                     <VU deck={dk} />
                 </div>
-
                 <div className="dj-faders">
                     <div className="dj-fg">
                         <label className="dj-fl">VOL</label>
-                        <input type="range" className="dj-fader" min="0" max="1.5" step="0.01" value={s.vol} style={{ "--fc": color }}
-                            onChange={e => { const v = parseFloat(e.target.value); dk.setGain(v); upd(id, { vol: v }); }} />
+                        <input type="range" className="dj-fader" min="0" max="1.5" step="0.01" value={s.vol} style={{ "--fc": color }} onChange={e => { const v = parseFloat(e.target.value); dk.setGain(v); upd(id, { vol: v }); }} />
                         <span className="dj-fv">{Math.round(s.vol * 100)}%</span>
                     </div>
                     <div className="dj-fg">
                         <label className="dj-fl">PITCH {((s.pitch - 1) * 100).toFixed(1)}%</label>
-                        <input type="range" className="dj-fader dj-pitch" min="0.85" max="1.15" step="0.001" value={s.pitch}
-                            onChange={e => { const v = parseFloat(e.target.value); dk.pitch = v; if (dk.source) dk.source.playbackRate.value = v; upd(id, { pitch: v }); }} />
+                        <input type="range" className="dj-fader dj-pitch" min="0.85" max="1.15" step="0.001" value={s.pitch} onChange={e => { const v = parseFloat(e.target.value); dk.pitch = v; if (dk.source) dk.source.playbackRate.value = v; upd(id, { pitch: v }); }} />
                         <button className="dj-prst" onClick={() => { dk.pitch = 1; if (dk.source) dk.source.playbackRate.value = 1; upd(id, { pitch: 1 }); }}>⊙</button>
                     </div>
                 </div>
-
+                {renderInputPanel(id)}
                 <div className="dj-load-sec">
                     <DropZone onFile={f => loadFile(id, f)} active={s.loaded} />
                     <div className="dj-load-row">
@@ -407,9 +566,7 @@ export default function DJMixer() {
                     </div>
                     {showUrl[id] && (
                         <div className="dj-url-row">
-                            <input className="dj-url-in" placeholder="Paste direct audio URL…" value={urlI[id]}
-                                onChange={e => setUrlI(p => ({ ...p, [id]: e.target.value }))}
-                                onKeyDown={e => e.key === "Enter" && loadURL(id)} />
+                            <input className="dj-url-in" placeholder="Paste direct audio URL…" value={urlI[id]} onChange={e => setUrlI(p => ({ ...p, [id]: e.target.value }))} onKeyDown={e => e.key === "Enter" && loadURL(id)} />
                             <button className="dj-url-go" onClick={() => loadURL(id)}>Load</button>
                         </div>
                     )}
@@ -425,24 +582,18 @@ export default function DJMixer() {
                 <div className="dj-top-acts">
                     <button className="dj-sync" onClick={syncBPM}>⟳ SYNC</button>
                     <button className="dj-mst-btn" onClick={() => setMaster(m => m === "A" ? "B" : "A")}>MASTER: {master}</button>
-                    {!rec ? <button className="dj-rec" onClick={startRec}>⏺ REC</button>
-                        : <button className="dj-rec on" onClick={stopRec}>⏹ STOP</button>}
+                    {!rec ? <button className="dj-rec" onClick={startRec}>⏺ REC</button> : <button className="dj-rec on" onClick={stopRec}>⏹ STOP</button>}
                     {recBlob && <>
                         <button className="dj-exp" onClick={dlMix}>⬇ Download</button>
                         <button className="dj-exp save" onClick={() => setSaveModal(true)}>☁ Save Mix</button>
                     </>}
                 </div>
             </div>
-
             <div className="dj-main">
                 {renderDeck("A")}
                 <div className="dj-center">
                     <div className="dj-xfw">
-                        <div className="dj-xfl">
-                            <span style={{ color: "#00ffcc" }}>A</span>
-                            <span className="dj-xft">CROSSFADER</span>
-                            <span style={{ color: "#ff6b35" }}>B</span>
-                        </div>
+                        <div className="dj-xfl"><span style={{ color: "#00ffcc" }}>A</span><span className="dj-xft">CROSSFADER</span><span style={{ color: "#ff6b35" }}>B</span></div>
                         <input type="range" className="dj-xfader" min="0" max="1" step="0.005" value={xf} onChange={e => setXf(parseFloat(e.target.value))} />
                         <button className="dj-xfc" onClick={() => setXf(0.5)}>⊙ Center</button>
                     </div>
@@ -455,7 +606,6 @@ export default function DJMixer() {
                 </div>
                 {renderDeck("B")}
             </div>
-
             <div className="dj-library">
                 <div className="dj-lib-hd">
                     <span className="dj-lib-ttl">📂 Library</span>
@@ -463,9 +613,7 @@ export default function DJMixer() {
                 </div>
                 <div className="dj-lib-filters">
                     {["all", "beat", "acapella", "stem", "remix", "mix", "sample", "original"].map(f => (
-                        <button key={f} className={`dj-ff ${lf === f ? "on" : ""}`} onClick={() => setLf(f)}>
-                            {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
-                        </button>
+                        <button key={f} className={`dj-ff ${lf === f ? "on" : ""}`} onClick={() => setLf(f)}>{f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}</button>
                     ))}
                 </div>
                 <div className="dj-lib-rows">
@@ -490,7 +638,6 @@ export default function DJMixer() {
                     ))}
                 </div>
             </div>
-
             {saveModal && (
                 <div className="dj-overlay" onClick={() => setSaveModal(false)}>
                     <div className="dj-modal" onClick={e => e.stopPropagation()}>
