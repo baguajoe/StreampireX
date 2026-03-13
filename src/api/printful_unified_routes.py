@@ -14,14 +14,14 @@ def get_headers(user):
         "Content-Type": "application/json"
     }
 
-@printful_unified_bp.route('/api/printful/catalog', methods=['GET'])
+@printful_unified_bp.route('/catalog', methods=['GET'])
 @jwt_required()
 def get_catalog():
     # Fetch base products from Printful
     response = requests.get(f"{PRINTFUL_API_URL}/products")
     return jsonify(response.json()), response.status_code
 
-@printful_unified_bp.route('/api/printful/mockup', methods=['POST'])
+@printful_unified_bp.route('/mockup', methods=['POST'])
 @jwt_required()
 def generate_mockup():
     user_id = get_jwt_identity()
@@ -40,7 +40,7 @@ def generate_mockup():
     )
     return jsonify(res.json()), res.status_code
 
-@printful_unified_bp.route('/api/printful/publish', methods=['POST'])
+@printful_unified_bp.route('/publish', methods=['POST'])
 @jwt_required()
 def publish_product():
     user_id = get_jwt_identity()

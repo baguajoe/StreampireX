@@ -12,7 +12,7 @@ def printful_headers():
     return {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
 
 # ── 1. Get Printful product catalog ──────────────────────────────────────────
-@printful_bp.route('/api/printful/catalog', methods=['GET'])
+@printful_bp.route('/catalog', methods=['GET'])
 def get_catalog():
     """Return available blank product types from Printful"""
     try:
@@ -33,7 +33,7 @@ def get_catalog():
 
 
 # ── 2. Get variants for a specific product ────────────────────────────────────
-@printful_bp.route('/api/printful/catalog/<int:product_id>/variants', methods=['GET'])
+@printful_bp.route('/catalog/<int:product_id>/variants', methods=['GET'])
 def get_variants(product_id):
     try:
         r = req.get(f"{PRINTFUL_API}/products/{product_id}", headers=printful_headers(), timeout=10)
@@ -61,7 +61,7 @@ def get_variants(product_id):
 
 
 # ── 3. Generate mockup preview ────────────────────────────────────────────────
-@printful_bp.route('/api/printful/mockup', methods=['POST'])
+@printful_bp.route('/mockup', methods=['POST'])
 def generate_mockup():
     """Generate a product mockup with creator's artwork"""
     from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -108,7 +108,7 @@ def generate_mockup():
 
 
 # ── 4. Poll mockup task result ────────────────────────────────────────────────
-@printful_bp.route('/api/printful/mockup/result/<task_key>', methods=['GET'])
+@printful_bp.route('/mockup/result/<task_key>', methods=['GET'])
 def get_mockup_result(task_key):
     try:
         r = req.get(
@@ -131,7 +131,7 @@ def get_mockup_result(task_key):
 
 
 # ── 5. Creator saves a product to their store ─────────────────────────────────
-@printful_bp.route('/api/printful/store/product', methods=['POST'])
+@printful_bp.route('/store/product', methods=['POST'])
 def create_store_product():
     from flask_jwt_extended import jwt_required, get_jwt_identity
     from api.models import db, User, CreatorProduct
@@ -319,7 +319,7 @@ def fulfill_order():
 
 
 # ── 9. Creator's order dashboard ─────────────────────────────────────────────
-@printful_bp.route('/api/printful/my-products', methods=['GET'])
+@printful_bp.route('/my-products', methods=['GET'])
 def my_products():
     from api.models import CreatorProduct, MerchOrder
     from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
