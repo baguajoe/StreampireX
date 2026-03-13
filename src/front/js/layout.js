@@ -72,7 +72,6 @@ import CreatorSampleMarketplace from "./pages/CreatorSampleMarketplace";
 import CreatorAcademy from "./pages/CreatorAcademy";
 import CourseBuilder from "./pages/CourseBuilder";
 import CoursePlayer from "./pages/CoursePlayer";
-import CreatorAcademy from "./pages/CreatorAcademy";
 import CollabMarketplace from "./pages/CollabMarketplace";
 import JamTrackLibrary from "./pages/JamTrackLibrary";
 import QuickCaptureMode from "./pages/QuickCaptureMode";
@@ -551,11 +550,11 @@ const AppShell = ({ user }) => {
                                 <Route path="/public-epk/:slug" element={<PublicEPKPage />} />
 
                                 {/* ---------------- Community / Membership ---------------- */}
-                                <Route path="/creator-academy" element={<CreatorAcademy />} />
                                 <Route path="/course-builder" element={<CourseBuilder />} />
                                 <Route path="/course-builder/:courseId" element={<CourseBuilder />} />
                                 <Route path="/course/:courseId" element={<CoursePlayer />} />
                                 <Route path="/my-learning" element={<CreatorAcademy />} />
+                                <Route path="/creator-academy" element={<CreatorAcademy />} />
                                 <Route path="/checkout/course/:courseId" element={<CoursePlayer />} />
                                 <Route path="/creator-memberships" element={<CreatorMembershipManager />} />
                                 <Route path="/creator/membership" element={<CreatorMembershipManager />} />
