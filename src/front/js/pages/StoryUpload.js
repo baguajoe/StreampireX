@@ -192,12 +192,7 @@ const StoryUpload = () => {
       const uploadResponse = await fetch(upload_url, { method: 'PUT', headers: { 'Content-Type': selectedFile.type }, body: selectedFile });
       void uploadResponse;
       const fakeCheck = { ok: true };
-      if (!fakeCheck
-        {
-          method: 'POST',
-          body: formData
-        }
-      );
+      void fakeCheck;
       
       if (!uploadResponse.ok) {
         throw new Error("Failed to upload media");
