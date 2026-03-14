@@ -203,6 +203,7 @@ const EPKView = ({ epk, compact = false }) => {
 
       {/* Contact / Socials */}
       {!compact && (
+        <> {/* <--- ADD THIS */}
         <div className="pepk-section pepk-membership">
         <h3 className="pepk-section-title">💎 Support This Artist</h3>
         <FanMembershipPage embeddedCreatorId={epk.user_id} />
@@ -226,6 +227,7 @@ const EPKView = ({ epk, compact = false }) => {
             <a href={`mailto:${epk.booking_email}`} className="pepk-booking-btn">✉️ Contact for Booking</a>
           )}
         </div>
+        </> 
       )}
 
       {/* Collab Info */}

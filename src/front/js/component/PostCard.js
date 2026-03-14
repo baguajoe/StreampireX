@@ -213,6 +213,7 @@ const PostCard = ({
                     </>
                 )}
             </div>
+          )}
 
             {/* Post Engagement - Hide when editing */}
             {!isEditing && (
