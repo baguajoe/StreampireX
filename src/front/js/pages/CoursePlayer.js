@@ -26,6 +26,10 @@ const CoursePlayer = () => {
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewBody, setReviewBody] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [narrating, setNarrating] = useState(false);
+  const [narrateAudio, setNarrateAudio] = useState(null);
+  const [narrateError, setNarrateError] = useState("");
+  const audioRef = useRef(null);
   const [loading, setLoading] = useState(true);
 
   const videoRef = useRef(null);
@@ -131,6 +135,37 @@ const CoursePlayer = () => {
   if (!course) return <div style={P.loading}><p style={{ color: "#ff4444" }}>Course not found.</p></div>;
 
   const currentIdx = activeLesson ? lessons.findIndex((l) => l.id === activeLesson.id) : -1;
+
+  const narrateLesson = async () => {
+    if (!currentLesson?.text_content) return;
+    setNarrating(true); setNarrateError(""); setNarrateAudio(null);
+    const token = localStorage.getItem("token");
+    // Strip markdown for cleaner narration
+    const cleanText = currentLesson.text_content
+      .replace(/#{1,6} /g, "")
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/\*([^*]+)\*/g, "$1")
+      .replace(/\|[^\n]+\|/g, "")
+      .replace(/[-•]/g, "")
+      .replace(/
+{3,}/g, "\n\n")
+      .substring(0, 2000);
+    try {
+      const res = await fetch(\`\${BACKEND_URL}/api/voice/narration\`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: \`Bearer \${token}\` },
+        body: JSON.stringify({ text: cleanText, title: currentLesson.title, voice_style: "educational" })
+      });
+      const data = await res.json();
+      if (data.audio_url) {
+        setNarrateAudio(data.audio_url);
+        setTimeout(() => { if (audioRef.current) audioRef.current.play(); }, 100);
+      } else {
+        setNarrateError(data.error || "Could not generate audio");
+      }
+    } catch (e) { setNarrateError("Narration failed — check your AI credits"); }
+    setNarrating(false);
+  };
 
   return (
     <div style={P.page}>
