@@ -79,6 +79,7 @@ class Lesson(db.Model):
     is_free_preview = db.Column(db.Boolean, default=False)
     order           = db.Column(db.Integer, default=1)
     content_type    = db.Column(db.String(20), default="video")  # video | text | audio | quiz
+    image_url       = db.Column(db.String(500), default="")
     text_content    = db.Column(db.Text, default="")
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -89,6 +90,7 @@ class Lesson(db.Model):
             "title":            self.title,
             "description":      self.description,
             "video_url":        self.video_url,
+            "image_url":        self.image_url,
             "duration_secs":    self.duration_secs,
             "is_free_preview":  self.is_free_preview,
             "order":            self.order,

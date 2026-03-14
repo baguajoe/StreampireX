@@ -1,3 +1,4 @@
+import LessonDiagram from '../component/LessonDiagram';
 // =============================================================================
 // CoursePlayer.js — Student: Watch Lessons + Track Progress
 // =============================================================================
@@ -236,6 +237,7 @@ const CoursePlayer = () => {
                   ) : activeLesson.content_type === "text" ? (
                     <div style={P.textLesson}>
                       <h2 style={P.textTitle}>{activeLesson.title}</h2>
+                      <LessonDiagram lesson={activeLesson} />
                       {/* AI Voice Narration Bar */}
                       <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:20, padding:"12px 16px", background:"rgba(0,255,200,0.05)", borderRadius:10, border:"1px solid rgba(0,255,200,0.15)" }}>
                         <span style={{ fontSize:18 }}>🎙</span>
