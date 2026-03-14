@@ -656,6 +656,89 @@ const ToolSlot = ({ id, label, icon, color, enabled, onToggle, expanded, onExpan
 );
 
 const SliderRow = ({ label, value, min, max, step, color, fmt, onChange }) => {
+  const dragging = React.useRef(false);
+  const startY = React.useRef(0);
+  const startVal = React.useRef(value);
+  const size = 44;
+  const r = size / 2;
+  const cx = r, cy = r;
+  const norm = (v) => (v - min) / (max - min);
+  const angle = -135 + norm(value) * 270;
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const arcR = r - 5;
+  const pointerR = r - 7;
+  const px = cx + Math.sin(toRad(angle)) * pointerR;
+  const py = cy - Math.cos(toRad(angle)) * pointerR;
+
+  // Arc path for value fill
+  const startAngle = -135;
+  const endAngle = angle;
+  const arcStart = {
+    x: cx + Math.sin(toRad(startAngle)) * arcR,
+    y: cy - Math.cos(toRad(startAngle)) * arcR,
+  };
+  const arcEnd = {
+    x: cx + Math.sin(toRad(endAngle)) * arcR,
+    y: cy - Math.cos(toRad(endAngle)) * arcR,
+  };
+  const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
+
+  const handleMouseDown = React.useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragging.current = true;
+    startY.current = e.clientY;
+    startVal.current = value;
+    const onMove = (e2) => {
+      if (!dragging.current) return;
+      const dy = startY.current - e2.clientY;
+      const range = max - min;
+      const newVal = Math.min(max, Math.max(min, startVal.current + dy * range / 150));
+      const snapped = Math.round(newVal / step) * step;
+      onChange(parseFloat(snapped.toFixed(4)));
+    };
+    const onUp = () => {
+      dragging.current = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [value, min, max, step, onChange]);
+
+  const handleDoubleClick = (e) => {
+    e.stopPropagation();
+    const mid = (max + min) / 2;
+    onChange(parseFloat((Math.round(mid / step) * step).toFixed(4)));
+  };
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:2, margin:"4px 6px", cursor:"ns-resize", userSelect:"none" }}
+      onMouseDown={handleMouseDown} onDoubleClick={handleDoubleClick}
+      title={label + ": " + fmt(value) + " (drag up/down, double-click to reset)"}>
+      <svg width={size} height={size} viewBox={"0 0 " + size + " " + size}>
+        {/* Track background */}
+        <circle cx={cx} cy={cy} r={arcR} fill="none" stroke="#1a2838" strokeWidth={3}
+          strokeDasharray={arcR * Math.PI * 1.5 + " " + arcR * Math.PI * 0.5}
+          transform={"rotate(-225 " + cx + " " + cy + ")"} />
+        {/* Value arc */}
+        {norm(value) > 0.001 && (
+          <path
+            d={"M " + arcStart.x + " " + arcStart.y + " A " + arcR + " " + arcR + " 0 " + largeArc + " 1 " + arcEnd.x + " " + arcEnd.y}
+            fill="none" stroke={color} strokeWidth={3} strokeLinecap="round" />
+        )}
+        {/* Center dot */}
+        <circle cx={cx} cy={cy} r={3} fill="#0d1117" stroke="#2a3848" strokeWidth={1} />
+        {/* Pointer */}
+        <line x1={cx} y1={cy} x2={px} y2={py} stroke={color} strokeWidth={2} strokeLinecap="round" />
+        {/* Outer glow ring */}
+        <circle cx={cx} cy={cy} r={r - 2} fill="none" stroke={color + "22"} strokeWidth={1} />
+      </svg>
+      <span style={{ color, fontSize:"8px", fontWeight:700, fontFamily:"monospace" }}>{fmt(value)}</span>
+      <span style={{ color:"#5a7088", fontSize:"7px", textAlign:"center", lineHeight:1.2, maxWidth:50 }}>{label}</span>
+    </div>
+  );
+};) => {
   const canvasRef = React.useRef(null);
   const dragging = React.useRef(false);
   const startY = React.useRef(0);

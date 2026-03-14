@@ -51,6 +51,54 @@ const P = ({ label, children, value }) => (
 );
 
 const Slider = ({ min, max, step, value, onChange, color = C.cyan, label = '', fmt }) => {
+  const dragging = React.useRef(false);
+  const startY = React.useRef(0);
+  const startVal = React.useRef(value);
+  const size = 40;
+  const r = size / 2;
+  const cx = r, cy = r;
+  const norm = (v) => (v - min) / (max - min);
+  const angle = -135 + norm(value) * 270;
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const arcR = r - 4;
+  const pointerR = r - 6;
+  const px = cx + Math.sin(toRad(angle)) * pointerR;
+  const py = cy - Math.cos(toRad(angle)) * pointerR;
+  const startAngle = -135;
+  const arcStart = { x: cx + Math.sin(toRad(startAngle)) * arcR, y: cy - Math.cos(toRad(startAngle)) * arcR };
+  const arcEnd = { x: cx + Math.sin(toRad(angle)) * arcR, y: cy - Math.cos(toRad(angle)) * arcR };
+  const largeArc = (angle - startAngle) > 180 ? 1 : 0;
+  const handleMouseDown = React.useCallback((e) => {
+    e.preventDefault(); e.stopPropagation();
+    dragging.current = true; startY.current = e.clientY; startVal.current = value;
+    const onMove = (e2) => {
+      if (!dragging.current) return;
+      const dy = startY.current - e2.clientY;
+      const newVal = Math.min(max, Math.max(min, startVal.current + dy * (max - min) / 150));
+      onChange(parseFloat((Math.round(newVal / step) * step).toFixed(4)));
+    };
+    const onUp = () => { dragging.current = false; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+  }, [value, min, max, step, onChange]);
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
+      <svg width={size} height={size} viewBox={"0 0 " + size + " " + size}
+        onMouseDown={handleMouseDown} style={{ cursor:'ns-resize', userSelect:'none', display:'block' }}>
+        <circle cx={cx} cy={cy} r={arcR} fill="none" stroke="#1a2838" strokeWidth={2.5}
+          strokeDasharray={arcR * Math.PI * 1.5 + " " + arcR * Math.PI * 0.5}
+          transform={"rotate(-225 " + cx + " " + cy + ")"} />
+        {norm(value) > 0.001 && (
+          <path d={"M " + arcStart.x + " " + arcStart.y + " A " + arcR + " " + arcR + " 0 " + largeArc + " 1 " + arcEnd.x + " " + arcEnd.y}
+            fill="none" stroke={color} strokeWidth={2.5} strokeLinecap="round" />
+        )}
+        <circle cx={cx} cy={cy} r={2.5} fill="#0a1018" stroke="#2a3848" strokeWidth={1} />
+        <line x1={cx} y1={cy} x2={px} y2={py} stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+      </svg>
+      {fmt && <span style={{ color, fontSize:'0.58rem', fontFamily:"monospace", fontWeight:700 }}>{fmt(value)}</span>}
+      {label && <span style={{ color:C.txt, fontSize:'0.55rem', textAlign:'center' }}>{label}</span>}
+    </div>
+  );
+}; => {
   const canvasRef = React.useRef(null);
   const dragging = React.useRef(false);
   const startY = React.useRef(0);
