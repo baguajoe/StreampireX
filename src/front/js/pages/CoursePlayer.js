@@ -140,34 +140,33 @@ const CoursePlayer = () => {
     if (!activeLesson?.text_content) return;
     window.speechSynthesis.cancel();
     if (narrating) { setNarrating(false); return; }
-    const cleanText = activeLesson.text_content
+    const raw = activeLesson.text_content || "";
+    const cleanText = raw
       .replace(/#{1,6} /g, "")
       .replace(/\*\*([^*]+)\*\*/g, "$1")
       .replace(/\*([^*]+)\*/g, "$1")
       .replace(/`[^`]+`/g, "")
-      .replace(/\|[^|]+\|/g, "")
-      .replace(/[→•✅🎯🎹]/g, "")
-      .replace(/
-+/g, ". ")
+      .replace(/\n+/g, ". ")
+      .replace(/[^\x00-\x7F]/g, " ")
       .trim();
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.rate = 0.88;
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
     const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v =>
-      v.name.includes("Google US English") ||
-      v.name.includes("Samantha") ||
-      v.name.includes("Alex") ||
-      (v.lang === "en-US" && !v.name.includes("Google"))
-    ) || voices.find(v => v.lang && v.lang.startsWith("en")) || voices[0];
+    const preferred = voices.find(function(v) {
+      return v.name.indexOf("Google US English") > -1 ||
+             v.name.indexOf("Samantha") > -1 ||
+             v.name.indexOf("Alex") > -1 ||
+             (v.lang === "en-US");
+    }) || voices.find(function(v) { return v.lang && v.lang.indexOf("en") === 0; }) || voices[0];
     if (preferred) utterance.voice = preferred;
-    utterance.onstart = () => setNarrating(true);
-    utterance.onend = () => setNarrating(false);
-    utterance.onerror = () => { setNarrating(false); setNarrateError("Speech not available in this browser"); };
+    utterance.onstart = function() { setNarrating(true); };
+    utterance.onend = function() { setNarrating(false); };
+    utterance.onerror = function() { setNarrating(false); setNarrateError("Speech not available"); };
     setNarrateError("");
     window.speechSynthesis.speak(utterance);
-  };
+  }
 
   return (
     <div style={P.page}>
