@@ -432,13 +432,9 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
             <ToolSlot id="hpf" label="High-Pass Filter" icon="⌇" color="#4a9eff"
               enabled={hpf.enabled} onToggle={() => setHpf(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.hpf} onExpand={() => toggleExpand('hpf')}>
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Frequency" value={hpf.freq} min={20} max={300} step={1} color="#4a9eff"
-              </div>
                 fmt={v => `${v}Hz`} onChange={v => setHpf(p => ({ ...p, freq: v }))} />
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Slope" value={hpf.slope} min={1} max={4} step={1} color="#4a9eff"
-              </div>
                 fmt={v => `${v * 12}dB/oct`} onChange={v => setHpf(p => ({ ...p, slope: v }))} />
             </ToolSlot>
 
@@ -446,33 +442,19 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
             <ToolSlot id="eq" label="Mastering EQ" icon="〰" color="#00ffc8"
               enabled={eq.enabled} onToggle={() => setEq(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.eq} onExpand={() => toggleExpand('eq')}>
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Low Shelf" value={eq.lowShelf} min={-6} max={6} step={0.1} color="#00ffc8"
-              </div>
                 fmt={v => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`} onChange={v => setEq(p => ({ ...p, lowShelf: v }))} />
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Low Freq" value={eq.lowFreq} min={40} max={500} step={5} color="#00ffc8"
-              </div>
                 fmt={v => `${v}Hz`} onChange={v => setEq(p => ({ ...p, lowFreq: v }))} />
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Mid Peak" value={eq.midPeak} min={-6} max={6} step={0.1} color="#00ffc8"
-              </div>
                 fmt={v => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`} onChange={v => setEq(p => ({ ...p, midPeak: v }))} />
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Mid Freq" value={eq.midFreq} min={200} max={8000} step={50} color="#00ffc8"
-              </div>
                 fmt={v => v >= 1000 ? `${(v/1000).toFixed(1)}kHz` : `${v}Hz`} onChange={v => setEq(p => ({ ...p, midFreq: v }))} />
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Mid Q" value={eq.midQ} min={0.3} max={4} step={0.1} color="#00ffc8"
-              </div>
                 fmt={v => v.toFixed(1)} onChange={v => setEq(p => ({ ...p, midQ: v }))} />
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="High Shelf" value={eq.highShelf} min={-6} max={6} step={0.1} color="#00ffc8"
-              </div>
                 fmt={v => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`} onChange={v => setEq(p => ({ ...p, highShelf: v }))} />
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="High Freq" value={eq.highFreq} min={4000} max={20000} step={100} color="#00ffc8"
-              </div>
                 fmt={v => `${(v/1000).toFixed(0)}kHz`} onChange={v => setEq(p => ({ ...p, highFreq: v }))} />
             </ToolSlot>
 
@@ -480,17 +462,11 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
             <ToolSlot id="ms" label="Mid / Side" icon="◎" color="#bf5af2"
               enabled={ms.enabled} onToggle={() => setMs(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.ms} onExpand={() => toggleExpand('ms')}>
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Mid Gain" value={ms.midGain} min={-12} max={12} step={0.5} color="#bf5af2"
-              </div>
                 fmt={v => `${v > 0 ? '+' : ''}${v}dB`} onChange={v => setMs(p => ({ ...p, midGain: v }))} />
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Side Gain" value={ms.sideGain} min={-12} max={12} step={0.5} color="#bf5af2"
-              </div>
                 fmt={v => `${v > 0 ? '+' : ''}${v}dB`} onChange={v => setMs(p => ({ ...p, sideGain: v }))} />
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Width" value={ms.sideWidth} min={0} max={2} step={0.01} color="#bf5af2"
-              </div>
                 fmt={v => `${Math.round(v * 100)}%`} onChange={v => setMs(p => ({ ...p, sideWidth: v }))} />
             </ToolSlot>
 
@@ -498,17 +474,11 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
             <ToolSlot id="exciter" label="Harmonic Exciter" icon="✦" color="#ffd60a"
               enabled={exciter.enabled} onToggle={() => setExciter(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.exciter} onExpand={() => toggleExpand('exciter')}>
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Amount" value={exciter.amount} min={0} max={100} step={1} color="#ffd60a"
-              </div>
                 fmt={v => `${v}%`} onChange={v => setExciter(p => ({ ...p, amount: v }))} />
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Freq" value={exciter.freq} min={2000} max={16000} step={100} color="#ffd60a"
-              </div>
                 fmt={v => `${(v/1000).toFixed(1)}kHz`} onChange={v => setExciter(p => ({ ...p, freq: v }))} />
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Blend" value={exciter.blend} min={0} max={1} step={0.01} color="#ffd60a"
-              </div>
                 fmt={v => `${Math.round(v*100)}%`} onChange={v => setExciter(p => ({ ...p, blend: v }))} />
             </ToolSlot>
 
@@ -544,17 +514,11 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                   }}>{k.split(' ')[0]}</button>
                 ))}
               </div>
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Ceiling" value={limiter.ceiling} min={-6} max={0} step={0.1} color="#ff6b6b"
-              </div>
                 fmt={v => `${v.toFixed(1)} dBTP`} onChange={v => setLimiter(p => ({ ...p, ceiling: v }))} />
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Release" value={limiter.release} min={1} max={500} step={1} color="#ff6b6b"
-              </div>
                 fmt={v => `${v}ms`} onChange={v => setLimiter(p => ({ ...p, release: v }))} />
-              <div style={{ display:"flex", flexWrap:"wrap", alignItems:"flex-end", gap:"10px", padding:"8px 4px" }}>
               <SliderRow label="Drive" value={limiter.drive} min={0} max={12} step={0.1} color="#ff6b6b"
-              </div>
                 fmt={v => `${v.toFixed(1)}dB`} onChange={v => setLimiter(p => ({ ...p, drive: v }))} />
             </ToolSlot>
           </div>
