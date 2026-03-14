@@ -1318,236 +1318,29 @@ const ToolSlot = ({ id, label, icon, color, enabled, onToggle, expanded, onExpan
 );
 
 const SliderRow = ({ label, value, min, max, step, color, fmt, onChange }) => {
-  const dragging = React.useRef(false);
-  const startY = React.useRef(0);
-  const startVal = React.useRef(value);
-
-  const size = 44;
-  const r = size / 2;
-  const cx = r;
-  const cy = r;
-  const norm = (v) => (v - min) / (max - min);
-  const angle = -135 + norm(value) * 270;
-  const toRad = (deg) => (deg * Math.PI) / 180;
-  const arcR = r - 5;
-  const pointerR = r - 7;
-  const px = cx + Math.sin(toRad(angle)) * pointerR;
-  const py = cy - Math.cos(toRad(angle)) * pointerR;
-
-  const startAngle = -135;
-  const endAngle = angle;
-  const arcStart = {
-    x: cx + Math.sin(toRad(startAngle)) * arcR,
-    y: cy - Math.cos(toRad(startAngle)) * arcR,
-  };
-  const arcEnd = {
-    x: cx + Math.sin(toRad(endAngle)) * arcR,
-    y: cy - Math.cos(toRad(endAngle)) * arcR,
-  };
-  const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
-
-  const handleMouseDown = React.useCallback((e) => {
+  const handleMouseDown = (e) => {
     e.preventDefault();
-    e.stopPropagation();
-    dragging.current = true;
-    startY.current = e.clientY;
-    startVal.current = value;
-
-    const onMove = (e2) => {
-      if (!dragging.current) return;
-      const dy = startY.current - e2.clientY;
-      const range = max - min;
-      const newVal = Math.min(max, Math.max(min, startVal.current + (dy * range) / 150));
-      const snapped = Math.round(newVal / step) * step;
-      onChange(parseFloat(snapped.toFixed(4)));
+    const startY = e.clientY;
+    const startVal = value;
+    const onMove = (me) => {
+      const delta = (startY - me.clientY) * ((max - min) / 150);
+      onChange(Math.min(max, Math.max(min, startVal + delta)));
     };
-
     const onUp = () => {
-      dragging.current = false;
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
-
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
-  }, [value, min, max, step, onChange]);
-
-  const handleDoubleClick = (e) => {
-    e.stopPropagation();
-    const mid = (max + min) / 2;
-    onChange(parseFloat((Math.round(mid / step) * step).toFixed(4)));
   };
-
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 2,
-        margin: '4px 6px',
-        cursor: 'ns-resize',
-        userSelect: 'none',
-      }}
-      onMouseDown={handleMouseDown}
-      onDoubleClick={handleDoubleClick}
-      title={label + ': ' + fmt(value) + ' (drag up/down, double-click to reset)'}
-    >
-      <svg width={size} height={size} viewBox={'0 0 ' + size + ' ' + size}>
-        <circle
-          cx={cx}
-          cy={cy}
-          r={arcR}
-          fill="none"
-          stroke="#1a2838"
-          strokeWidth={3}
-          strokeDasharray={arcR * Math.PI * 1.5 + ' ' + arcR * Math.PI * 0.5}
-          transform={'rotate(-225 ' + cx + ' ' + cy + ')'}
-        />
-        {norm(value) > 0.001 && (
-          <path
-            d={
-              'M ' +
-              arcStart.x +
-              ' ' +
-              arcStart.y +
-              ' A ' +
-              arcR +
-              ' ' +
-              arcR +
-              ' 0 ' +
-              largeArc +
-              ' 1 ' +
-              arcEnd.x +
-              ' ' +
-              arcEnd.y
-            }
-            fill="none"
-            stroke={color}
-            strokeWidth={3}
-            strokeLinecap="round"
-          />
-        )}
-        <circle cx={cx} cy={cy} r={3} fill="#0d1117" stroke="#2a3848" strokeWidth={1} />
-        <line x1={cx} y1={cy} x2={px} y2={py} stroke={color} strokeWidth={2} strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r={r - 2} fill="none" stroke={color + '22'} strokeWidth={1} />
-      </svg>
-      <span style={{ color, fontSize: '8px', fontWeight: 700, fontFamily: 'monospace' }}>{fmt(value)}</span>
-      <span
-        style={{
-          color: '#5a7088',
-          fontSize: '7px',
-          textAlign: 'center',
-          lineHeight: 1.2,
-          maxWidth: 50,
-        }}
-      >
-        {label}
-      </span>
+    <div style={{ textAlign: 'center', cursor: 'ns-resize' }} onMouseDown={handleMouseDown}>
+      <div style={{ width: 30, height: 30, borderRadius: '50%', border: '2px solid '+color, margin: '0 auto' }} />
+      <div style={{ fontSize: '8px', color: color }}>{fmt(value)}</div>
+      <div style={{ fontSize: '7px', color: '#6e7681' }}>{label}</div>
     </div>
   );
 };
 
-const MasteringVisualizer = ({ value, color, min, max, step, onChange, label, fmt }) => {
-  const canvasRef = React.useRef(null);
-  const dragging = React.useRef(false);
-  const startY = React.useRef(0);
-  const startVal = React.useRef(value);
-
-  const norm = (v) => (v - min) / (max - min);
-
-  React.useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    const r = cx - 3;
-    const startAngle = Math.PI * 0.75;
-    const endAngle = Math.PI * 2.25;
-    const angle = startAngle + norm(value) * (endAngle - startAngle);
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, startAngle, endAngle);
-    ctx.strokeStyle = '#1e2a38';
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, startAngle, angle);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-    ctx.fillStyle = '#0d1117';
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + Math.cos(angle) * (r - 2), cy + Math.sin(angle) * (r - 2));
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, r + 1, 0, Math.PI * 2);
-    ctx.strokeStyle = color + '22';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }, [value, color, min, max]);
-
-  const onMouseDown = (e) => {
-    dragging.current = true;
-    startY.current = e.clientY;
-    startVal.current = value;
-    e.preventDefault();
-  };
-
-  React.useEffect(() => {
-    const onMove = (e) => {
-      if (!dragging.current) return;
-      const dy = startY.current - e.clientY;
-      const range = max - min;
-      const delta = (dy / 120) * range;
-      const newVal = Math.min(max, Math.max(min, startVal.current + delta));
-      const snapped = Math.round(newVal / step) * step;
-      onChange(parseFloat(snapped.toFixed(4)));
-    };
-
-    const onUp = () => {
-      dragging.current = false;
-    };
-
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-  }, [min, max, step, onChange]);
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', margin: '4px 6px' }}>
-      <canvas
-        ref={canvasRef}
-        width={36}
-        height={36}
-        onMouseDown={onMouseDown}
-        style={{ cursor: 'ns-resize', userSelect: 'none' }}
-        title={label + ': ' + fmt(value)}
-      />
-      <span style={{ color, fontSize: '8px', fontWeight: 700, textAlign: 'center' }}>{fmt(value)}</span>
-      <span style={{ color: '#6e7681', fontSize: '7px', textAlign: 'center', lineHeight: 1 }}>{label}</span>
-    </div>
-  );
-};
-
+export const Knob = SliderRow;
 export default MasteringChain;
