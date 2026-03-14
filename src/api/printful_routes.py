@@ -319,9 +319,9 @@ def fulfill_order():
 
 
 # ── 9. Creator's order dashboard ─────────────────────────────────────────────
-@printful_bp.route('/my-products', methods=['GET'])
+@printful_bp.route('/my-products', methods=['GET', 'POST'])
 def my_products():
-    from api.models import CreatorProduct, MerchOrder
+    from api.models import CreatorProduct, MerchOrder, db
     from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
     auth = request.headers.get("Authorization", "")
@@ -333,6 +333,21 @@ def my_products():
         user_id = decoded.get("sub")
     except Exception:
         return jsonify({"error": "Invalid token"}), 401
+
+    if request.method == 'POST':
+        data = request.get_json()
+        product = CreatorProduct(
+            user_id=user_id,
+            name=data.get('name', 'My Product'),
+            printful_product_id=data.get('printful_product_id'),
+            retail_price=data.get('retail_price', 29.99),
+            mockup_url=data.get('mockup_url', ''),
+            category=data.get('category', ''),
+            is_active=data.get('is_active', True)
+        )
+        db.session.add(product)
+        db.session.commit()
+        return jsonify({"id": product.id, "name": product.name, "message": "Published!"}), 201
 
     products = CreatorProduct.query.filter_by(user_id=user_id).all()
     result = []
