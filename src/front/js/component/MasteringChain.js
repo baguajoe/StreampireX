@@ -430,7 +430,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
           <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
             {/* HPF */}
             <ToolSlot id="hpf" label="High-Pass Filter" icon="⌇" color="#4a9eff"
-              enabled={hpf.enabled} onToggle={() =><div style={{ display:"flex", flexWrap:"wrap", gap:"4px", padding:"8px 4px" }}> setHpf(p => ({ ...p, enabled: !p.enabled }))}
+              enabled={hpf.enabled} onToggle={() => setHpf(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.hpf} onExpand={() => toggleExpand('hpf')}>
               <SliderRow label="Frequency" value={hpf.freq} min={20} max={300} step={1} color="#4a9eff"
                 fmt={v => `${v}Hz`} onChange={v => setHpf(p => ({ ...p, freq: v }))} />
@@ -440,7 +440,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
 
             {/* EQ */}
             <ToolSlot id="eq" label="Mastering EQ" icon="〰" color="#00ffc8"
-              enabled={eq.enabled} onToggle={() =><div style={{ display:"flex", flexWrap:"wrap", gap:"4px", padding:"8px 4px" }}> setEq(p => ({ ...p, enabled: !p.enabled }))}
+              enabled={eq.enabled} onToggle={() => setEq(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.eq} onExpand={() => toggleExpand('eq')}>
               <SliderRow label="Low Shelf" value={eq.lowShelf} min={-6} max={6} step={0.1} color="#00ffc8"
                 fmt={v => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`} onChange={v => setEq(p => ({ ...p, lowShelf: v }))} />
@@ -460,7 +460,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
 
             {/* M/S */}
             <ToolSlot id="ms" label="Mid / Side" icon="◎" color="#bf5af2"
-              enabled={ms.enabled} onToggle={() =><div style={{ display:"flex", flexWrap:"wrap", gap:"4px", padding:"8px 4px" }}> setMs(p => ({ ...p, enabled: !p.enabled }))}
+              enabled={ms.enabled} onToggle={() => setMs(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.ms} onExpand={() => toggleExpand('ms')}>
               <SliderRow label="Mid Gain" value={ms.midGain} min={-12} max={12} step={0.5} color="#bf5af2"
                 fmt={v => `${v > 0 ? '+' : ''}${v}dB`} onChange={v => setMs(p => ({ ...p, midGain: v }))} />
@@ -472,7 +472,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
 
             {/* Exciter */}
             <ToolSlot id="exciter" label="Harmonic Exciter" icon="✦" color="#ffd60a"
-              enabled={exciter.enabled} onToggle={() =><div style={{ display:"flex", flexWrap:"wrap", gap:"4px", padding:"8px 4px" }}> setExciter(p => ({ ...p, enabled: !p.enabled }))}
+              enabled={exciter.enabled} onToggle={() => setExciter(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.exciter} onExpand={() => toggleExpand('exciter')}>
               <SliderRow label="Amount" value={exciter.amount} min={0} max={100} step={1} color="#ffd60a"
                 fmt={v => `${v}%`} onChange={v => setExciter(p => ({ ...p, amount: v }))} />
@@ -484,7 +484,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
 
             {/* Widener */}
             <ToolSlot id="widener" label="Stereo Widener" icon="⟺" color="#30d158"
-              enabled={widener.enabled} onToggle={() =><div style={{ display:"flex", flexWrap:"wrap", gap:"4px", padding:"8px 4px" }}> setWidener(p => ({ ...p, enabled: !p.enabled }))}
+              enabled={widener.enabled} onToggle={() => setWidener(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.widener} onExpand={() => toggleExpand('widener')}>
               <SliderRow label="Width" value={widener.width} min={0} max={2} step={0.01} color="#30d158"
                 fmt={v => v === 1 ? 'Normal' : v < 1 ? `${Math.round(v*100)}% (Narrow)` : `${Math.round(v*100)}% (Wide)`}
@@ -503,7 +503,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
 
             {/* True Peak Limiter */}
             <ToolSlot id="limiter" label="True Peak Limiter" icon="⊟" color="#ff6b6b"
-              enabled={limiter.enabled} onToggle={() =><div style={{ display:"flex", flexWrap:"wrap", gap:"4px", padding:"8px 4px" }}> setLimiter(p => ({ ...p, enabled: !p.enabled }))}
+              enabled={limiter.enabled} onToggle={() => setLimiter(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.limiter} onExpand={() => toggleExpand('limiter')}>
               <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
                 {Object.entries(STREAMING_TARGETS).map(([k, v]) => (
