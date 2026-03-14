@@ -7,13 +7,14 @@
 //   1. High-Pass Filter (rumble cut)
 //   2. Parametric EQ (surgical tone shaping)
 //   3. Mid/Side (stereo width control, M/S EQ)
-//   4. Multiband Compressor (dynamic shaping per band)
-//   5. Harmonic Exciter (adds air & presence)
-//   6. Stereo Widener (Haas effect / correlation)
-//   7. True Peak Limiter (inter-sample peak protection)
-//   8. LUFS Loudness Meter (Spotify/Apple/YouTube targets)
-//   9. Spectral Analyzer (frequency visualization)
-//  10. Goniometer (phase/stereo correlation)
+//   4. Harmonic Exciter (adds air & presence)
+//   5. Stereo Widener (Haas effect / correlation)
+//   6. True Peak Limiter (inter-sample peak protection)
+//   7. LUFS Loudness Meter (Spotify/Apple/YouTube targets)
+//   8. Spectral Analyzer (frequency visualization)
+//   9. Goniometer (phase/stereo correlation)
+//
+// All parameters use rotary Knob components (drag up/down, double-click reset).
 //
 // Props:
 //   audioContext  — shared Web Audio context
@@ -23,37 +24,168 @@
 //   isEmbedded    — boolean
 // =============================================================================
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Knob } from "./Knob";
+import React, { useState, useEffect, useRef } from 'react';
+import { Knob } from './Knob';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 const STREAMING_TARGETS = {
-  Spotify:      { lufs: -14, tp: -1.0, label: '-14 LUFS' },
-  'Apple Music':  { lufs: -16, tp: -1.0, label: '-16 LUFS' },
-  YouTube:      { lufs: -14, tp: -1.0, label: '-14 LUFS' },
-  Tidal:        { lufs: -14, tp: -1.0, label: '-14 LUFS' },
-  'Amazon Music': { lufs: -14, tp: -2.0, label: '-14 LUFS' },
-  SoundCloud:   { lufs: -8,  tp: -0.2, label: '-8 LUFS'  },
-  Podcast:      { lufs: -16, tp: -3.0, label: '-16 LUFS' },
+  Spotify:        { lufs: -14, tp: -1.0,  label: '-14 LUFS' },
+  'Apple Music':  { lufs: -16, tp: -1.0,  label: '-16 LUFS' },
+  YouTube:        { lufs: -14, tp: -1.0,  label: '-14 LUFS' },
+  Tidal:          { lufs: -14, tp: -1.0,  label: '-14 LUFS' },
+  'Amazon Music': { lufs: -14, tp: -2.0,  label: '-14 LUFS' },
+  SoundCloud:     { lufs: -8,  tp: -0.2,  label: '-8 LUFS'  },
+  Podcast:        { lufs: -16, tp: -3.0,  label: '-16 LUFS' },
 };
 
-const TOOL_SECTIONS = [
-  { id: 'hpf',      label: 'High-Pass Filter', icon: '⌇', color: '#4a9eff' },
-  { id: 'eq',       label: 'Mastering EQ',     icon: '〰', color: '#00ffc8' },
-  { id: 'ms',       label: 'Mid / Side',       icon: '◎', color: '#bf5af2' },
-  { id: 'exciter',  label: 'Harmonic Exciter', icon: '✦', color: '#ffd60a' },
-  { id: 'widener',  label: 'Stereo Widener',   icon: '⟺', color: '#30d158' },
-  { id: 'limiter',  label: 'True Peak Limiter', icon: '⊟', color: '#ff6b6b' },
-];
+// ─────────────────────────────────────────────────────────────────────────────
+// KnobCell — rotary knob + live value readout + label
+// ─────────────────────────────────────────────────────────────────────────────
+const KnobCell = ({ label, value, min, max, step, fmt, color, onChange, size = 52 }) => (
+  <div
+    style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '1px',
+      width: size + 20,
+      flexShrink: 0,
+    }}
+  >
+    <Knob
+      value={value}
+      min={min}
+      max={max}
+      step={step}
+      fmt={fmt}
+      color={color}
+      size={size}
+      onChange={onChange}
+    />
+    <span
+      style={{
+        color,
+        fontSize: '10px',
+        fontWeight: 700,
+        fontFamily: "'JetBrains Mono', monospace",
+        letterSpacing: '0.02em',
+      }}
+    >
+      {fmt(value)}
+    </span>
+    <span
+      style={{
+        color: '#6e7681',
+        fontSize: '8px',
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        textAlign: 'center',
+        lineHeight: 1.2,
+      }}
+    >
+      {label}
+    </span>
+  </div>
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Component
+// ToolSlot — collapsible section wrapper for each processor
+// ─────────────────────────────────────────────────────────────────────────────
+const ToolSlot = ({ label, icon, color, enabled, onToggle, expanded, onExpand, children }) => (
+  <div
+    style={{
+      marginBottom: '6px',
+      border: `1px solid ${enabled ? `${color}44` : '#1c2128'}`,
+      borderRadius: '8px',
+      background: enabled ? `${color}05` : '#0a0e14',
+      overflow: 'hidden',
+    }}
+  >
+    <div
+      onClick={onExpand}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: '8px 12px',
+        cursor: 'pointer',
+      }}
+    >
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle();
+        }}
+        style={{
+          width: '16px',
+          height: '16px',
+          borderRadius: '50%',
+          flexShrink: 0,
+          background: enabled ? color : '#21262d',
+          border: `1px solid ${enabled ? color : '#30363d'}`,
+          cursor: 'pointer',
+          padding: 0,
+          boxShadow: enabled ? `0 0 8px ${color}88` : 'none',
+        }}
+      />
+      <span style={{ fontSize: '13px' }}>{icon}</span>
+      <span
+        style={{
+          color: enabled ? '#e6edf3' : '#484f58',
+          fontWeight: enabled ? 700 : 400,
+          flex: 1,
+          fontSize: '11px',
+          letterSpacing: '0.05em',
+        }}
+      >
+        {label}
+      </span>
+      {!enabled && (
+        <span style={{ color: '#2d333b', fontSize: '9px' }}>BYPASSED</span>
+      )}
+      <span
+        style={{
+          color: '#484f58',
+          fontSize: '10px',
+          transform: expanded ? 'rotate(180deg)' : 'none',
+          transition: 'transform 0.15s',
+        }}
+      >
+        ▾
+      </span>
+    </div>
+
+    {expanded && (
+      <div
+        style={{
+          padding: '12px 14px 16px',
+          borderTop: `1px solid ${color}22`,
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '6px 8px',
+          alignItems: 'flex-start',
+        }}
+      >
+        {children}
+      </div>
+    )}
+  </div>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MasteringChain
 // ─────────────────────────────────────────────────────────────────────────────
 const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedded }) => {
+
   // ── Tool states ──────────────────────────────────────────────────────────
-  const [hpf, setHpf] = useState({ enabled: true, freq: 30, slope: 2 });
+  const [hpf, setHpf] = useState({
+    enabled: true,
+    freq: 30,
+    slope: 2,
+  });
+
   const [eq, setEq] = useState({
     enabled: true,
     lowShelf: 0,
@@ -63,23 +195,44 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     midQ: 1.0,
     highShelf: 0,
     highFreq: 10000,
-    lowPassEnabled: false,
-    lowPassFreq: 20000
   });
-  const [ms, setMs] = useState({ enabled: false, midGain: 0, sideGain: 0, sideWidth: 1.0 });
-  const [exciter, setExciter] = useState({ enabled: false, amount: 20, freq: 6000, blend: 0.3 });
-  const [widener, setWidener] = useState({ enabled: false, width: 1.0, mono: false });
-  const [limiter, setLimiter] = useState({ enabled: true, ceiling: -0.3, release: 50, drive: 0, truePeak: true });
 
-  // ── Meter states ──────────────────────────────────────────────────────────
-  const [lufs, setLufs] = useState(-20);
-  const [lufsShort, setLufsShort] = useState(-20);
-  const [truePeakVal, setTruePeakVal] = useState(-20);
-  const [correlation, setCorrelation] = useState(1);
+  const [ms, setMs] = useState({
+    enabled: false,
+    midGain: 0,
+    sideGain: 0,
+    sideWidth: 1.0,
+  });
+
+  const [exciter, setExciter] = useState({
+    enabled: false,
+    amount: 20,
+    freq: 6000,
+    blend: 0.3,
+  });
+
+  const [widener, setWidener] = useState({
+    enabled: false,
+    width: 1.0,
+  });
+
+  const [limiter, setLimiter] = useState({
+    enabled: true,
+    ceiling: -0.3,
+    release: 50,
+    drive: 0,
+  });
+
+  // ── Meter states ─────────────────────────────────────────────────────────
+  const [lufs,         setLufs]         = useState(-20);
+  const [lufsShort,    setLufsShort]    = useState(-20);
+  const [truePeakVal,  setTruePeakVal]  = useState(-20);
+  const [correlation,  setCorrelation]  = useState(1);
   const [spectrumData, setSpectrumData] = useState(new Array(64).fill(0));
-  const [gonioData, setGonioData] = useState([]);
-  const [clipping, setClipping] = useState(false);
-  const [target, setTarget] = useState('Spotify');
+  const [gonioData,    setGonioData]    = useState([]);
+  const [clipping,     setClipping]     = useState(false);
+  const [target,       setTarget]       = useState('Spotify');
+
   const [expanded, setExpanded] = useState({
     hpf: true,
     eq: true,
@@ -88,27 +241,28 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     widener: false,
     limiter: true,
   });
+
   const [activeTab, setActiveTab] = useState('chain'); // chain | meters | spectrum | gonio
 
   // ── Audio nodes ──────────────────────────────────────────────────────────
-  const nodesRef = useRef({});
+  const nodesRef     = useRef({});
   const analyserLRef = useRef(null);
   const analyserRRef = useRef(null);
-  const analyserFFT = useRef(null);
-  const animRef = useRef(null);
-  const lufsHistory = useRef([]);
+  const analyserFFT  = useRef(null);
+  const animRef      = useRef(null);
+  const lufsHistory  = useRef([]);
   const lufsShortBuf = useRef([]);
-  const peakHold = useRef(-100);
-  const peakTimer = useRef(null);
+  const peakHold     = useRef(-100);
+  const peakTimer    = useRef(null);
 
   // ── Build audio graph ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!audioContext || !inputNode || !outputNode) return;
 
     const ctx = audioContext;
-    const n = {};
+    const n   = {};
 
-    // HPF
+    // HPF — two cascaded filters for 24dB/oct Butterworth
     n.hpf1 = ctx.createBiquadFilter();
     n.hpf1.type = 'highpass';
     n.hpf1.frequency.value = hpf.freq;
@@ -119,7 +273,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     n.hpf2.frequency.value = hpf.freq;
     n.hpf2.Q.value = 0.707;
 
-    // EQ
+    // EQ — low shelf + peaking mid + high shelf
     n.eqLowShelf = ctx.createBiquadFilter();
     n.eqLowShelf.type = 'lowshelf';
     n.eqLowShelf.frequency.value = eq.lowFreq;
@@ -136,16 +290,14 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     n.eqHighShelf.frequency.value = eq.highFreq;
     n.eqHighShelf.gain.value = eq.highShelf;
 
-    // Exciter
+    // Harmonic exciter — highpass → waveshaper → gain blend
     n.exciterLP = ctx.createBiquadFilter();
     n.exciterLP.type = 'highpass';
     n.exciterLP.frequency.value = exciter.freq;
 
     n.exciterShape = ctx.createWaveShaper();
-
-    n.exciterGain = ctx.createGain();
+    n.exciterGain  = ctx.createGain();
     n.exciterGain.gain.value = (exciter.amount / 100) * 0.5;
-
     n.exciterMix = ctx.createGain();
     n.exciterMix.gain.value = 1;
 
@@ -156,24 +308,24 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     }
     n.exciterShape.curve = excCurve;
 
-    // Stereo widener
-    n.splitter = ctx.createChannelSplitter(2);
-    n.merger = ctx.createChannelMerger(2);
+    // Stereo widener — splitter → per-channel gain → merger
+    n.splitter   = ctx.createChannelSplitter(2);
+    n.merger     = ctx.createChannelMerger(2);
     n.widthGainL = ctx.createGain();
     n.widthGainL.gain.value = widener.width;
     n.widthGainR = ctx.createGain();
     n.widthGainR.gain.value = widener.width;
 
-    // Limiter
+    // True peak limiter — drive gain → dynamics compressor
     n.limiterDrive = ctx.createGain();
     n.limiterDrive.gain.value = Math.pow(10, limiter.drive / 20);
 
     n.limiterComp = ctx.createDynamicsCompressor();
     n.limiterComp.threshold.value = limiter.ceiling;
-    n.limiterComp.knee.value = 0;
-    n.limiterComp.ratio.value = 20;
-    n.limiterComp.attack.value = 0.001;
-    n.limiterComp.release.value = limiter.release / 1000;
+    n.limiterComp.knee.value      = 0;
+    n.limiterComp.ratio.value     = 20;
+    n.limiterComp.attack.value    = 0.001;
+    n.limiterComp.release.value   = limiter.release / 1000;
 
     // Analysers
     n.analyserL = ctx.createAnalyser();
@@ -190,8 +342,9 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
 
     analyserLRef.current = n.analyserL;
     analyserRRef.current = n.analyserR;
-    analyserFFT.current = n.analyserFFT;
+    analyserFFT.current  = n.analyserFFT;
 
+    // Wire the graph
     try {
       inputNode.connect(n.hpf1);
       n.hpf1.connect(n.hpf2);
@@ -202,7 +355,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
       n.exciterLP.connect(n.exciterShape);
       n.exciterShape.connect(n.exciterGain);
       n.exciterGain.connect(n.exciterMix);
-      n.eqHighShelf.connect(n.exciterMix);
+      n.eqHighShelf.connect(n.exciterMix);   // dry blend
       n.exciterMix.connect(n.splitter);
       n.splitter.connect(n.widthGainL, 0);
       n.splitter.connect(n.widthGainR, 1);
@@ -211,8 +364,9 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
       n.merger.connect(n.limiterDrive);
       n.limiterDrive.connect(n.limiterComp);
       n.limiterComp.connect(n.analyserFFT);
-      n.limiterComp.connect(n.splitter);
       n.limiterComp.connect(outputNode);
+      // metering tap after limiter
+      n.limiterComp.connect(n.splitter);
       n.splitter.connect(n.analyserL, 0);
       n.splitter.connect(n.analyserR, 1);
     } catch (e) {
@@ -223,15 +377,13 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
 
     return () => {
       Object.values(n).forEach((node) => {
-        try {
-          node.disconnect();
-        } catch (_) {}
+        try { node.disconnect(); } catch (_) {}
       });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioContext, inputNode, outputNode]);
 
-  // ── Sync params to audio nodes ────────────────────────────────────────────
+  // ── Sync params → audio nodes ─────────────────────────────────────────────
   useEffect(() => {
     const n = nodesRef.current;
     if (!n.hpf1) return;
@@ -244,11 +396,11 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     const n = nodesRef.current;
     if (!n.eqLowShelf) return;
     const t = audioContext?.currentTime ?? 0;
-    n.eqLowShelf?.gain?.setTargetAtTime(eq.lowShelf, t, 0.02);
-    n.eqLowShelf?.frequency?.setTargetAtTime(eq.lowFreq, t, 0.02);
-    n.eqMidPeak?.gain?.setTargetAtTime(eq.midPeak, t, 0.02);
-    n.eqMidPeak?.frequency?.setTargetAtTime(eq.midFreq, t, 0.02);
-    n.eqMidPeak?.Q?.setTargetAtTime(eq.midQ, t, 0.02);
+    n.eqLowShelf?.gain?.setTargetAtTime(eq.lowShelf,   t, 0.02);
+    n.eqLowShelf?.frequency?.setTargetAtTime(eq.lowFreq,   t, 0.02);
+    n.eqMidPeak?.gain?.setTargetAtTime(eq.midPeak,     t, 0.02);
+    n.eqMidPeak?.frequency?.setTargetAtTime(eq.midFreq,    t, 0.02);
+    n.eqMidPeak?.Q?.setTargetAtTime(eq.midQ,           t, 0.02);
     n.eqHighShelf?.gain?.setTargetAtTime(eq.highShelf, t, 0.02);
     n.eqHighShelf?.frequency?.setTargetAtTime(eq.highFreq, t, 0.02);
   }, [eq, audioContext]);
@@ -272,8 +424,8 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     const n = nodesRef.current;
     if (!n.limiterComp || !n.limiterDrive) return;
     const t = audioContext?.currentTime ?? 0;
-    n.limiterComp.threshold.setTargetAtTime(limiter.ceiling, t, 0.01);
-    n.limiterComp.release.setTargetAtTime(limiter.release / 1000, t, 0.01);
+    n.limiterComp.threshold.setTargetAtTime(limiter.ceiling,              t, 0.01);
+    n.limiterComp.release.setTargetAtTime(limiter.release / 1000,         t, 0.01);
     n.limiterDrive.gain.setTargetAtTime(Math.pow(10, limiter.drive / 20), t, 0.01);
   }, [limiter, audioContext]);
 
@@ -281,6 +433,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
   useEffect(() => {
     const tick = () => {
       animRef.current = requestAnimationFrame(tick);
+
       const aL = analyserLRef.current;
       const aR = analyserRRef.current;
       const aF = analyserFFT.current;
@@ -291,63 +444,59 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
       aL.getFloatTimeDomainData(bufL);
       aR.getFloatTimeDomainData(bufR);
 
-      let sumL = 0;
-      let sumR = 0;
-      let peakL = 0;
-      let peakR = 0;
-
+      let sumL = 0, sumR = 0, peakL = 0, peakR = 0;
       for (let i = 0; i < bufL.length; i++) {
-        sumL += bufL[i] * bufL[i];
-        sumR += bufR[i] * bufR[i];
-        peakL = Math.max(peakL, Math.abs(bufL[i]));
-        peakR = Math.max(peakR, Math.abs(bufR[i]));
+        sumL  += bufL[i] * bufL[i];
+        sumR  += bufR[i] * bufR[i];
+        peakL  = Math.max(peakL, Math.abs(bufL[i]));
+        peakR  = Math.max(peakR, Math.abs(bufR[i]));
       }
 
-      const rmsL = Math.sqrt(sumL / bufL.length);
-      const rmsR = Math.sqrt(sumR / bufR.length);
-      const rms = (rmsL + rmsR) / 2;
-
+      const rms      = (Math.sqrt(sumL / bufL.length) + Math.sqrt(sumR / bufR.length)) / 2;
       const momentary = rms > 0.000001 ? 20 * Math.log10(rms) - 0.7 : -100;
 
+      // Short-term LUFS (3 s window ≈ 60 frames at ~20fps)
       lufsShortBuf.current.push(momentary);
       if (lufsShortBuf.current.length > 60) lufsShortBuf.current.shift();
-      const shortSum = lufsShortBuf.current.reduce((a, b) => a + Math.pow(10, b / 10), 0);
+      const shortSum  = lufsShortBuf.current.reduce((a, b) => a + Math.pow(10, b / 10), 0);
       const shortLUFS = lufsShortBuf.current.length
         ? 10 * Math.log10(shortSum / lufsShortBuf.current.length)
         : -100;
 
+      // Integrated LUFS (30 s history)
       lufsHistory.current.push(momentary);
       if (lufsHistory.current.length > 600) lufsHistory.current.shift();
-      const sum = lufsHistory.current.reduce((a, b) => a + Math.pow(10, b / 10), 0);
+      const histSum    = lufsHistory.current.reduce((a, b) => a + Math.pow(10, b / 10), 0);
       const integrated = lufsHistory.current.length
-        ? 10 * Math.log10(sum / lufsHistory.current.length)
+        ? 10 * Math.log10(histSum / lufsHistory.current.length)
         : -100;
 
       setLufs(isFinite(integrated) ? integrated : -100);
       setLufsShort(isFinite(shortLUFS) ? shortLUFS : -100);
 
-      const tpLin = Math.max(peakL, peakR, 0.000001);
-      const tp = 20 * Math.log10(tpLin);
+      // True peak
+      const tp = 20 * Math.log10(Math.max(peakL, peakR, 0.000001));
       if (tp > peakHold.current) {
         peakHold.current = tp;
         clearTimeout(peakTimer.current);
-        peakTimer.current = setTimeout(() => {
-          peakHold.current = -100;
-        }, 2000);
+        peakTimer.current = setTimeout(() => { peakHold.current = -100; }, 2000);
       }
-
       setTruePeakVal(tp);
       setClipping(tp > -0.1);
 
+      // Stereo correlation
       let corrSum = 0;
       for (let i = 0; i < Math.min(bufL.length, bufR.length); i++) {
         corrSum += bufL[i] * bufR[i];
       }
       const normL = Math.sqrt(sumL / bufL.length);
       const normR = Math.sqrt(sumR / bufR.length);
-      const corr = (normL * normR > 0) ? corrSum / (bufL.length * normL * normR) : 1;
+      const corr  = (normL * normR > 0)
+        ? corrSum / (bufL.length * normL * normR)
+        : 1;
       setCorrelation(Math.max(-1, Math.min(1, corr)));
 
+      // Spectrum
       if (aF) {
         const freq = new Uint8Array(aF.frequencyBinCount);
         aF.getByteFrequencyData(freq);
@@ -359,31 +508,29 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
         setSpectrumData(out);
       }
 
-      const gonioPoints = [];
+      // Goniometer
       const step = Math.max(1, Math.floor(bufL.length / 60));
+      const gonioPoints = [];
       for (let i = 0; i < bufL.length; i += step) {
-        const m = bufL[i] + bufR[i];
-        const s = bufL[i] - bufR[i];
-        gonioPoints.push({ x: s * 80, y: m * 80 });
+        gonioPoints.push({
+          x: (bufL[i] - bufR[i]) * 80,
+          y: (bufL[i] + bufR[i]) * 80,
+        });
       }
       setGonioData(gonioPoints);
     };
 
     animRef.current = requestAnimationFrame(tick);
-
     return () => {
       cancelAnimationFrame(animRef.current);
       clearTimeout(peakTimer.current);
     };
   }, []);
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Helpers
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────────
   const lufsColor = (val) => {
-    const tgt = STREAMING_TARGETS[target]?.lufs ?? -14;
-    const diff = val - tgt;
-    if (diff > 2) return '#ff6b6b';
+    const diff = val - (STREAMING_TARGETS[target]?.lufs ?? -14);
+    if (diff > 2)  return '#ff6b6b';
     if (diff > -1) return '#00ffc8';
     if (diff > -6) return '#ffd60a';
     return '#4a9eff';
@@ -393,9 +540,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
 
   const tgt = STREAMING_TARGETS[target];
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Render
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div
       style={{
@@ -528,7 +673,14 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ color: '#484f58', fontSize: '9px' }}>PEAK</span>
-          <span style={{ color: clipping ? '#ff2d55' : '#cdd9e5', fontWeight: 700, fontSize: '14px', minWidth: '48px' }}>
+          <span
+            style={{
+              color: clipping ? '#ff2d55' : '#cdd9e5',
+              fontWeight: 700,
+              fontSize: '14px',
+              minWidth: '48px',
+            }}
+          >
             {truePeakVal > -99 ? truePeakVal.toFixed(1) : '—'} dBTP
           </span>
           {clipping && (
@@ -634,10 +786,13 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
 
       {/* ═══ MAIN AREA ═══ */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+
+        {/* ── CHAIN TAB ── */}
         {activeTab === 'chain' && (
           <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
+
+            {/* HIGH-PASS FILTER */}
             <ToolSlot
-              id="hpf"
               label="High-Pass Filter"
               icon="⌇"
               color="#4a9eff"
@@ -646,7 +801,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
               expanded={expanded.hpf}
               onExpand={() => toggleExpand('hpf')}
             >
-              <SliderRow
+              <KnobCell
                 label="Frequency"
                 value={hpf.freq}
                 min={20}
@@ -656,7 +811,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={(v) => `${v}Hz`}
                 onChange={(v) => setHpf((p) => ({ ...p, freq: v }))}
               />
-              <SliderRow
+              <KnobCell
                 label="Slope"
                 value={hpf.slope}
                 min={1}
@@ -668,8 +823,8 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
               />
             </ToolSlot>
 
+            {/* MASTERING EQ */}
             <ToolSlot
-              id="eq"
               label="Mastering EQ"
               icon="〰"
               color="#00ffc8"
@@ -678,7 +833,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
               expanded={expanded.eq}
               onExpand={() => toggleExpand('eq')}
             >
-              <SliderRow
+              <KnobCell
                 label="Low Shelf"
                 value={eq.lowShelf}
                 min={-6}
@@ -688,7 +843,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`}
                 onChange={(v) => setEq((p) => ({ ...p, lowShelf: v }))}
               />
-              <SliderRow
+              <KnobCell
                 label="Low Freq"
                 value={eq.lowFreq}
                 min={40}
@@ -698,7 +853,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={(v) => `${v}Hz`}
                 onChange={(v) => setEq((p) => ({ ...p, lowFreq: v }))}
               />
-              <SliderRow
+              <KnobCell
                 label="Mid Peak"
                 value={eq.midPeak}
                 min={-6}
@@ -708,17 +863,17 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`}
                 onChange={(v) => setEq((p) => ({ ...p, midPeak: v }))}
               />
-              <SliderRow
+              <KnobCell
                 label="Mid Freq"
                 value={eq.midFreq}
                 min={200}
                 max={8000}
                 step={50}
                 color="#00ffc8"
-                fmt={(v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}kHz` : `${v}Hz`)}
+                fmt={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}kHz` : `${v}Hz`}
                 onChange={(v) => setEq((p) => ({ ...p, midFreq: v }))}
               />
-              <SliderRow
+              <KnobCell
                 label="Mid Q"
                 value={eq.midQ}
                 min={0.3}
@@ -728,7 +883,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={(v) => v.toFixed(1)}
                 onChange={(v) => setEq((p) => ({ ...p, midQ: v }))}
               />
-              <SliderRow
+              <KnobCell
                 label="High Shelf"
                 value={eq.highShelf}
                 min={-6}
@@ -738,7 +893,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`}
                 onChange={(v) => setEq((p) => ({ ...p, highShelf: v }))}
               />
-              <SliderRow
+              <KnobCell
                 label="High Freq"
                 value={eq.highFreq}
                 min={4000}
@@ -750,8 +905,8 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
               />
             </ToolSlot>
 
+            {/* MID / SIDE */}
             <ToolSlot
-              id="ms"
               label="Mid / Side"
               icon="◎"
               color="#bf5af2"
@@ -760,7 +915,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
               expanded={expanded.ms}
               onExpand={() => toggleExpand('ms')}
             >
-              <SliderRow
+              <KnobCell
                 label="Mid Gain"
                 value={ms.midGain}
                 min={-12}
@@ -770,7 +925,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={(v) => `${v > 0 ? '+' : ''}${v}dB`}
                 onChange={(v) => setMs((p) => ({ ...p, midGain: v }))}
               />
-              <SliderRow
+              <KnobCell
                 label="Side Gain"
                 value={ms.sideGain}
                 min={-12}
@@ -780,7 +935,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={(v) => `${v > 0 ? '+' : ''}${v}dB`}
                 onChange={(v) => setMs((p) => ({ ...p, sideGain: v }))}
               />
-              <SliderRow
+              <KnobCell
                 label="Width"
                 value={ms.sideWidth}
                 min={0}
@@ -792,8 +947,8 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
               />
             </ToolSlot>
 
+            {/* HARMONIC EXCITER */}
             <ToolSlot
-              id="exciter"
               label="Harmonic Exciter"
               icon="✦"
               color="#ffd60a"
@@ -802,7 +957,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
               expanded={expanded.exciter}
               onExpand={() => toggleExpand('exciter')}
             >
-              <SliderRow
+              <KnobCell
                 label="Amount"
                 value={exciter.amount}
                 min={0}
@@ -812,7 +967,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={(v) => `${v}%`}
                 onChange={(v) => setExciter((p) => ({ ...p, amount: v }))}
               />
-              <SliderRow
+              <KnobCell
                 label="Freq"
                 value={exciter.freq}
                 min={2000}
@@ -822,7 +977,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={(v) => `${(v / 1000).toFixed(1)}kHz`}
                 onChange={(v) => setExciter((p) => ({ ...p, freq: v }))}
               />
-              <SliderRow
+              <KnobCell
                 label="Blend"
                 value={exciter.blend}
                 min={0}
@@ -834,8 +989,8 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
               />
             </ToolSlot>
 
+            {/* STEREO WIDENER */}
             <ToolSlot
-              id="widener"
               label="Stereo Widener"
               icon="⟺"
               color="#30d158"
@@ -844,7 +999,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
               expanded={expanded.widener}
               onExpand={() => toggleExpand('widener')}
             >
-              <SliderRow
+              <KnobCell
                 label="Width"
                 value={widener.width}
                 min={0}
@@ -855,37 +1010,42 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                   v === 1
                     ? 'Normal'
                     : v < 1
-                      ? `${Math.round(v * 100)}% (Narrow)`
-                      : `${Math.round(v * 100)}% (Wide)`
+                    ? `${Math.round(v * 100)}% ↙`
+                    : `${Math.round(v * 100)}% ↗`
                 }
                 onChange={(v) => setWidener((p) => ({ ...p, width: v }))}
               />
-              <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                {[0, 0.5, 1.0, 1.5, 2.0].map((w) => (
+              <div style={{ display: 'flex', gap: '5px', alignSelf: 'flex-end', paddingBottom: '22px' }}>
+                {[
+                  { w: 0,   lbl: 'MONO'   },
+                  { w: 0.5, lbl: 'NARROW' },
+                  { w: 1,   lbl: 'NORMAL' },
+                  { w: 1.5, lbl: 'WIDE'   },
+                  { w: 2,   lbl: 'MAX'    },
+                ].map(({ w, lbl }) => (
                   <button
                     key={w}
                     onClick={() => setWidener((p) => ({ ...p, width: w }))}
                     style={{
-                      flex: 1,
                       background: widener.width === w ? '#30d15822' : 'none',
                       border: `1px solid ${widener.width === w ? '#30d158' : '#21262d'}`,
                       color: widener.width === w ? '#30d158' : '#484f58',
                       borderRadius: '4px',
-                      padding: '3px 0',
+                      padding: '3px 7px',
                       cursor: 'pointer',
                       fontFamily: 'inherit',
                       fontSize: '8px',
                       fontWeight: 800,
                     }}
                   >
-                    {w === 0 ? 'MONO' : w === 1 ? 'NORMAL' : w === 0.5 ? 'NARROW' : w === 1.5 ? 'WIDE' : 'MAX'}
+                    {lbl}
                   </button>
                 ))}
               </div>
             </ToolSlot>
 
+            {/* TRUE PEAK LIMITER */}
             <ToolSlot
-              id="limiter"
               label="True Peak Limiter"
               icon="⊟"
               color="#ff6b6b"
@@ -894,7 +1054,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
               expanded={expanded.limiter}
               onExpand={() => toggleExpand('limiter')}
             >
-              <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', gap: '4px', marginBottom: '6px', flexWrap: 'wrap', width: '100%' }}>
                 {Object.entries(STREAMING_TARGETS).map(([k, v]) => (
                   <button
                     key={k}
@@ -907,7 +1067,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                       border: `1px solid ${target === k ? '#ff6b6b' : '#21262d'}`,
                       color: target === k ? '#ff6b6b' : '#484f58',
                       borderRadius: '4px',
-                      padding: '2px 5px',
+                      padding: '2px 6px',
                       cursor: 'pointer',
                       fontFamily: 'inherit',
                       fontSize: '8px',
@@ -918,17 +1078,17 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                   </button>
                 ))}
               </div>
-              <SliderRow
+              <KnobCell
                 label="Ceiling"
                 value={limiter.ceiling}
                 min={-6}
                 max={0}
                 step={0.1}
                 color="#ff6b6b"
-                fmt={(v) => `${v.toFixed(1)} dBTP`}
+                fmt={(v) => `${v.toFixed(1)}dBTP`}
                 onChange={(v) => setLimiter((p) => ({ ...p, ceiling: v }))}
               />
-              <SliderRow
+              <KnobCell
                 label="Release"
                 value={limiter.release}
                 min={1}
@@ -938,7 +1098,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={(v) => `${v}ms`}
                 onChange={(v) => setLimiter((p) => ({ ...p, release: v }))}
               />
-              <SliderRow
+              <KnobCell
                 label="Drive"
                 value={limiter.drive}
                 min={0}
@@ -952,6 +1112,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
           </div>
         )}
 
+        {/* ── METERS TAB ── */}
         {activeTab === 'meters' && (
           <div style={{ flex: 1, display: 'flex', gap: '10px', padding: '12px', overflow: 'hidden' }}>
             <div
@@ -1011,7 +1172,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
               </div>
               {Object.entries(STREAMING_TARGETS).map(([k, v]) => {
                 const diff = lufs - v.lufs;
-                const ok = Math.abs(diff) < 1.5;
+                const ok   = Math.abs(diff) < 1.5;
                 const loud = diff > 1.5;
                 return (
                   <div key={k} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1029,8 +1190,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                         textAlign: 'right',
                       }}
                     >
-                      {diff > 0 ? '+' : ''}
-                      {diff.toFixed(1)} dB
+                      {diff > 0 ? '+' : ''}{diff.toFixed(1)} dB
                     </span>
                   </div>
                 );
@@ -1039,6 +1199,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
           </div>
         )}
 
+        {/* ── SPECTRUM TAB ── */}
         {activeTab === 'spectrum' && (
           <div style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div
@@ -1089,6 +1250,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
           </div>
         )}
 
+        {/* ── GONIO TAB ── */}
         {activeTab === 'gonio' && (
           <div style={{ flex: 1, padding: '12px', display: 'flex', gap: '12px', overflow: 'hidden' }}>
             <div
@@ -1117,50 +1279,10 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                   overflow: 'hidden',
                 }}
               >
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: 0,
-                    right: 0,
-                    height: '1px',
-                    background: '#21262d',
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: '50%',
-                    top: 0,
-                    bottom: 0,
-                    width: '1px',
-                    background: '#21262d',
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    width: '141px',
-                    height: '1px',
-                    background: '#1c2128',
-                    transformOrigin: '0 0',
-                    transform: 'rotate(45deg)',
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    width: '141px',
-                    height: '1px',
-                    background: '#1c2128',
-                    transformOrigin: '0 0',
-                    transform: 'rotate(-45deg)',
-                  }}
-                />
+                <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '1px', background: '#21262d' }} />
+                <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', background: '#21262d' }} />
+                <div style={{ position: 'absolute', top: '50%', left: '50%', width: '141px', height: '1px', background: '#1c2128', transformOrigin: '0 0', transform: 'rotate(45deg)' }} />
+                <div style={{ position: 'absolute', top: '50%', left: '50%', width: '141px', height: '1px', background: '#1c2128', transformOrigin: '0 0', transform: 'rotate(-45deg)' }} />
 
                 {gonioData.slice(-120).map((pt, i) => (
                   <div
@@ -1178,55 +1300,12 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                   />
                 ))}
 
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '4px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    color: '#2d333b',
-                    fontSize: '8px',
-                  }}
-                >
-                  M
-                </span>
-                <span
-                  style={{
-                    position: 'absolute',
-                    bottom: '4px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    color: '#2d333b',
-                    fontSize: '8px',
-                  }}
-                >
-                  M-
-                </span>
-                <span
-                  style={{
-                    position: 'absolute',
-                    left: '4px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: '#2d333b',
-                    fontSize: '8px',
-                  }}
-                >
-                  L
-                </span>
-                <span
-                  style={{
-                    position: 'absolute',
-                    right: '4px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: '#2d333b',
-                    fontSize: '8px',
-                  }}
-                >
-                  R
-                </span>
+                <span style={{ position: 'absolute', top: '4px',    left: '50%',  transform: 'translateX(-50%)', color: '#2d333b', fontSize: '8px' }}>M</span>
+                <span style={{ position: 'absolute', bottom: '4px', left: '50%',  transform: 'translateX(-50%)', color: '#2d333b', fontSize: '8px' }}>M-</span>
+                <span style={{ position: 'absolute', left: '4px',   top: '50%',   transform: 'translateY(-50%)', color: '#2d333b', fontSize: '8px' }}>L</span>
+                <span style={{ position: 'absolute', right: '4px',  top: '50%',   transform: 'translateY(-50%)', color: '#2d333b', fontSize: '8px' }}>R</span>
               </div>
+
               <div style={{ marginTop: '10px', color: '#6e7681', fontSize: '9px', textAlign: 'center' }}>
                 Correlation:{' '}
                 <span
@@ -1250,72 +1329,5 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
     </div>
   );
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Sub-components
-// ─────────────────────────────────────────────────────────────────────────────
-const ToolSlot = ({ id, label, icon, color, enabled, onToggle, expanded, onExpand, children }) => (
-  <div
-    style={{
-      marginBottom: '4px',
-      border: `1px solid ${enabled ? `${color}44` : '#1c2128'}`,
-      borderRadius: '7px',
-      background: enabled ? `${color}08` : '#0a0e14',
-      overflow: 'hidden',
-    }}
-  >
-    <div
-      onClick={onExpand}
-      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', cursor: 'pointer' }}
-    >
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-        style={{
-          width: '16px',
-          height: '16px',
-          borderRadius: '50%',
-          flexShrink: 0,
-          background: enabled ? color : '#21262d',
-          border: `1px solid ${enabled ? color : '#30363d'}`,
-          cursor: 'pointer',
-          padding: 0,
-          boxShadow: enabled ? `0 0 8px ${color}88` : 'none',
-        }}
-      />
-      <span style={{ fontSize: '13px' }}>{icon}</span>
-      <span style={{ color: enabled ? '#e6edf3' : '#484f58', fontWeight: enabled ? 700 : 400, flex: 1 }}>
-        {label}
-      </span>
-      {!enabled && <span style={{ color: '#2d333b', fontSize: '9px' }}>BYPASSED</span>}
-      <span
-        style={{
-          color: '#484f58',
-          fontSize: '10px',
-          transform: expanded ? 'rotate(180deg)' : 'none',
-          transition: 'transform 0.15s',
-        }}
-      >
-        ▾
-      </span>
-    </div>
-    {expanded && (
-      <div
-        style={{
-          padding: '8px 10px 10px',
-          borderTop: '1px solid #1c2128',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'flex-end',
-          gap: '12px',
-        }}
-      >
-        {children}
-      </div>
-    )}
-  </div>
-);
 
 export default MasteringChain;
