@@ -430,17 +430,17 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
           <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
             {/* HPF */}
             <ToolSlot id="hpf" label="High-Pass Filter" icon="⌇" color="#4a9eff"
-              enabled={hpf.enabled} onToggle={() => setHpf(p => ({ ...p, enabled: !p.enabled }))}
+              enabled={hpf.enabled} onToggle={() =><div style={{ display:"flex", flexWrap:"wrap", gap:"4px", padding:"8px 4px" }}> setHpf(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.hpf} onExpand={() => toggleExpand('hpf')}>
               <SliderRow label="Frequency" value={hpf.freq} min={20} max={300} step={1} color="#4a9eff"
                 fmt={v => `${v}Hz`} onChange={v => setHpf(p => ({ ...p, freq: v }))} />
               <SliderRow label="Slope" value={hpf.slope} min={1} max={4} step={1} color="#4a9eff"
                 fmt={v => `${v * 12}dB/oct`} onChange={v => setHpf(p => ({ ...p, slope: v }))} />
-            </ToolSlot>
+            </div></ToolSlot>
 
             {/* EQ */}
             <ToolSlot id="eq" label="Mastering EQ" icon="〰" color="#00ffc8"
-              enabled={eq.enabled} onToggle={() => setEq(p => ({ ...p, enabled: !p.enabled }))}
+              enabled={eq.enabled} onToggle={() =><div style={{ display:"flex", flexWrap:"wrap", gap:"4px", padding:"8px 4px" }}> setEq(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.eq} onExpand={() => toggleExpand('eq')}>
               <SliderRow label="Low Shelf" value={eq.lowShelf} min={-6} max={6} step={0.1} color="#00ffc8"
                 fmt={v => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`} onChange={v => setEq(p => ({ ...p, lowShelf: v }))} />
@@ -456,11 +456,11 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={v => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`} onChange={v => setEq(p => ({ ...p, highShelf: v }))} />
               <SliderRow label="High Freq" value={eq.highFreq} min={4000} max={20000} step={100} color="#00ffc8"
                 fmt={v => `${(v/1000).toFixed(0)}kHz`} onChange={v => setEq(p => ({ ...p, highFreq: v }))} />
-            </ToolSlot>
+            </div></ToolSlot>
 
             {/* M/S */}
             <ToolSlot id="ms" label="Mid / Side" icon="◎" color="#bf5af2"
-              enabled={ms.enabled} onToggle={() => setMs(p => ({ ...p, enabled: !p.enabled }))}
+              enabled={ms.enabled} onToggle={() =><div style={{ display:"flex", flexWrap:"wrap", gap:"4px", padding:"8px 4px" }}> setMs(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.ms} onExpand={() => toggleExpand('ms')}>
               <SliderRow label="Mid Gain" value={ms.midGain} min={-12} max={12} step={0.5} color="#bf5af2"
                 fmt={v => `${v > 0 ? '+' : ''}${v}dB`} onChange={v => setMs(p => ({ ...p, midGain: v }))} />
@@ -468,11 +468,11 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={v => `${v > 0 ? '+' : ''}${v}dB`} onChange={v => setMs(p => ({ ...p, sideGain: v }))} />
               <SliderRow label="Width" value={ms.sideWidth} min={0} max={2} step={0.01} color="#bf5af2"
                 fmt={v => `${Math.round(v * 100)}%`} onChange={v => setMs(p => ({ ...p, sideWidth: v }))} />
-            </ToolSlot>
+            </div></ToolSlot>
 
             {/* Exciter */}
             <ToolSlot id="exciter" label="Harmonic Exciter" icon="✦" color="#ffd60a"
-              enabled={exciter.enabled} onToggle={() => setExciter(p => ({ ...p, enabled: !p.enabled }))}
+              enabled={exciter.enabled} onToggle={() =><div style={{ display:"flex", flexWrap:"wrap", gap:"4px", padding:"8px 4px" }}> setExciter(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.exciter} onExpand={() => toggleExpand('exciter')}>
               <SliderRow label="Amount" value={exciter.amount} min={0} max={100} step={1} color="#ffd60a"
                 fmt={v => `${v}%`} onChange={v => setExciter(p => ({ ...p, amount: v }))} />
@@ -480,11 +480,11 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={v => `${(v/1000).toFixed(1)}kHz`} onChange={v => setExciter(p => ({ ...p, freq: v }))} />
               <SliderRow label="Blend" value={exciter.blend} min={0} max={1} step={0.01} color="#ffd60a"
                 fmt={v => `${Math.round(v*100)}%`} onChange={v => setExciter(p => ({ ...p, blend: v }))} />
-            </ToolSlot>
+            </div></ToolSlot>
 
             {/* Widener */}
             <ToolSlot id="widener" label="Stereo Widener" icon="⟺" color="#30d158"
-              enabled={widener.enabled} onToggle={() => setWidener(p => ({ ...p, enabled: !p.enabled }))}
+              enabled={widener.enabled} onToggle={() =><div style={{ display:"flex", flexWrap:"wrap", gap:"4px", padding:"8px 4px" }}> setWidener(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.widener} onExpand={() => toggleExpand('widener')}>
               <SliderRow label="Width" value={widener.width} min={0} max={2} step={0.01} color="#30d158"
                 fmt={v => v === 1 ? 'Normal' : v < 1 ? `${Math.round(v*100)}% (Narrow)` : `${Math.round(v*100)}% (Wide)`}
@@ -499,11 +499,11 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                   }}>{w === 0 ? 'MONO' : w === 1 ? 'NORMAL' : w === 0.5 ? 'NARROW' : w === 1.5 ? 'WIDE' : 'MAX'}</button>
                 ))}
               </div>
-            </ToolSlot>
+            </div></ToolSlot>
 
             {/* True Peak Limiter */}
             <ToolSlot id="limiter" label="True Peak Limiter" icon="⊟" color="#ff6b6b"
-              enabled={limiter.enabled} onToggle={() => setLimiter(p => ({ ...p, enabled: !p.enabled }))}
+              enabled={limiter.enabled} onToggle={() =><div style={{ display:"flex", flexWrap:"wrap", gap:"4px", padding:"8px 4px" }}> setLimiter(p => ({ ...p, enabled: !p.enabled }))}
               expanded={expanded.limiter} onExpand={() => toggleExpand('limiter')}>
               <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
                 {Object.entries(STREAMING_TARGETS).map(([k, v]) => (
@@ -520,7 +520,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={v => `${v}ms`} onChange={v => setLimiter(p => ({ ...p, release: v }))} />
               <SliderRow label="Drive" value={limiter.drive} min={0} max={12} step={0.1} color="#ff6b6b"
                 fmt={v => `${v.toFixed(1)}dB`} onChange={v => setLimiter(p => ({ ...p, drive: v }))} />
-            </ToolSlot>
+            </div></ToolSlot>
           </div>
         )}
 
@@ -655,14 +655,106 @@ const ToolSlot = ({ id, label, icon, color, enabled, onToggle, expanded, onExpan
   </div>
 );
 
-const SliderRow = ({ label, value, min, max, step, color, fmt, onChange }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '7px' }}>
-    <label style={{ color: '#6e7681', fontSize: '9px', minWidth: '64px' }}>{label}</label>
-    <input type="range" min={min} max={max} step={step} value={value}
-      onChange={e => onChange(parseFloat(e.target.value))}
-      style={{ flex: 1, accentColor: color }} />
-    <span style={{ color, fontSize: '9px', minWidth: '52px', textAlign: 'right', fontWeight: 700 }}>{fmt(value)}</span>
-  </div>
-);
+const SliderRow = ({ label, value, min, max, step, color, fmt, onChange }) => {
+  const canvasRef = React.useRef(null);
+  const dragging = React.useRef(false);
+  const startY = React.useRef(0);
+  const startVal = React.useRef(value);
+
+  const norm = (v) => (v - min) / (max - min);
+  const denorm = (n) => min + n * (max - min);
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const r = cx - 3;
+    const startAngle = Math.PI * 0.75;
+    const endAngle = Math.PI * 2.25;
+    const angle = startAngle + norm(value) * (endAngle - startAngle);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Track background
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.strokeStyle = '#1e2a38';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Value arc
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, angle);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Center dot
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#0d1117';
+    ctx.fill();
+
+    // Pointer line
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(angle) * (r - 2), cy + Math.sin(angle) * (r - 2));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // Outer ring glow
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 1, 0, Math.PI * 2);
+    ctx.strokeStyle = color + '22';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }, [value, color, min, max]);
+
+  const onMouseDown = (e) => {
+    dragging.current = true;
+    startY.current = e.clientY;
+    startVal.current = value;
+    e.preventDefault();
+  };
+
+  React.useEffect(() => {
+    const onMove = (e) => {
+      if (!dragging.current) return;
+      const dy = startY.current - e.clientY;
+      const range = max - min;
+      const delta = (dy / 120) * range;
+      const newVal = Math.min(max, Math.max(min, startVal.current + delta));
+      const snapped = Math.round(newVal / step) * step;
+      onChange(parseFloat(snapped.toFixed(4)));
+    };
+    const onUp = () => { dragging.current = false; };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [min, max, step, onChange]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', margin: '4px 6px' }}>
+      <canvas
+        ref={canvasRef}
+        width={36} height={36}
+        onMouseDown={onMouseDown}
+        style={{ cursor: 'ns-resize', userSelect: 'none' }}
+        title={label + ': ' + fmt(value)}
+      />
+      <span style={{ color, fontSize: '8px', fontWeight: 700, textAlign: 'center' }}>{fmt(value)}</span>
+      <span style={{ color: '#6e7681', fontSize: '7px', textAlign: 'center', lineHeight: 1 }}>{label}</span>
+    </div>
+  );
+};
 
 export default MasteringChain;
