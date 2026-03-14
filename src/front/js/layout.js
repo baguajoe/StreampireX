@@ -106,6 +106,7 @@ import { Footer } from "./component/footer";
 import Navbar from "./component/navbar";
 import DiscoverCreators from "./pages/DiscoverCreators";
 import MerchStore from "./pages/MerchStore";
+import MerchDesigner from "./pages/MerchDesigner";
 import MusicStore from "./pages/MusicStore";
 import AnnouncementBar from "./component/AnnouncementBar";
 import Sidebar from "./component/sidebar";
@@ -477,6 +478,7 @@ const AppShell = ({ user }) => {
                                 {/* ---------------- Marketplace / Merch ---------------- */}
                                 <Route path="/marketplace" element={<Marketplace />} />
                                 <Route path="/storefront" element={<StorefrontPage />} />
+                                <Route path="/merch-designer" element={<MerchDesigner />} />
                                 <Route path="/merch-store" element={<MerchStore />} />
                                 <Route path="/store/:username" element={<MerchStore />} />
                                 <Route path="/product/:id" element={<ProductDetailPage />} />

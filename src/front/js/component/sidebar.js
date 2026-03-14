@@ -625,6 +625,10 @@ const Sidebar = ({ user }) => {
             👕 <span className="sidebar-label">Merch Store</span>
             <MenuHint className="sidebar-hint">Printful</MenuHint>
           </MenuItem>
+          <MenuItem to="/merch-designer" className={isActive("/merch-designer") ? "active" : ""}>
+            🎨 <span className="sidebar-label">Merch Designer</span>
+            <MenuHint className="sidebar-hint">NEW</MenuHint>
+          </MenuItem>
           <MenuItem to="/orders" className={isActive("/orders") ? "active" : ""}>
             📦 <span className="sidebar-label">Orders</span>
           </MenuItem>
