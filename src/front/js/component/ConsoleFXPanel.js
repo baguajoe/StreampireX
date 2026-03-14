@@ -98,7 +98,7 @@ const Slider = ({ min, max, step, value, onChange, color = C.cyan, label = '', f
       {label && <span style={{ color:C.txt, fontSize:'0.55rem', textAlign:'center' }}>{label}</span>}
     </div>
   );
-;
+
 const Sel = ({ value, onChange, options }) => (
   <select value={value} onChange={(e) => onChange(e.target.value)}
     style={{ width: "100%", padding: "2px 4px", background: "#0f1820", border: "1px solid #1a2838", borderRadius: 3, color: C.white, fontSize: "0.65rem", fontFamily: "inherit", outline: "none" }}>
