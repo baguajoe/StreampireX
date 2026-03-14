@@ -247,6 +247,16 @@ const CoursePlayer = () => {
                       </div>
                       {narrateError && <div style={{ color:"#ff8888", fontSize:12, marginBottom:12 }}>{narrateError}</div>}
                       
+                      {activeLesson.image_url && (
+                        <div style={{ width:"100%", borderRadius:12, overflow:"hidden", marginBottom:24, maxHeight:320, background:"#0d1117" }}>
+                          <img
+                            src={activeLesson.image_url}
+                            alt={activeLesson.title}
+                            style={{ width:"100%", height:320, objectFit:"cover", display:"block", opacity:0.92 }}
+                            onError={(e) => { e.target.style.display = "none"; }}
+                          />
+                        </div>
+                      )}
                       {activeLesson.text_content ? (
                         <div style={P.textBody}>{activeLesson.text_content}</div>
                       ) : (
