@@ -14,25 +14,32 @@ def printful_headers():
 # ── 1. Get Printful product catalog ──────────────────────────────────────────
 @printful_bp.route('/catalog', methods=['GET'])
 def get_catalog():
-    """Return available blank product types from Printful"""
-    try:
-        r = req.get(f"{PRINTFUL_API}/products", headers=printful_headers(), timeout=10)
-        data = r.json()
-        products = []
-        for p in data.get("result", []):
-            products.append({
-                "id": p["id"],
-                "name": p["title"],
-                "image": p.get("image", ""),
-                "category": p.get("type", ""),
-                "base_price": p.get("avg_fulfillment_time", 0)
-            })
-        return jsonify({"products": products})
-    except Exception as e:
-        return jsonify({"error": str(e), "products": []}), 500
+    """Hardcoded product catalog with real Printful product images"""
+    products = [
+        {"id": 71,  "name": "Classic T-Shirt",    "image": "https://images.printful.com/catalog/71", "category": "T-Shirts",    "base_price": 9.75,  "colors": ["Black","White","Navy","Red","Gray"], "sizes": ["S","M","L","XL","2XL"]},
+        {"id": 14,  "name": "Women's T-Shirt",    "image": "https://images.printful.com/catalog/14", "category": "T-Shirts",    "base_price": 10.75, "colors": ["Black","White","Pink","Navy","Red"],  "sizes": ["S","M","L","XL"]},
+        {"id": 12,  "name": "Men's T-Shirt",      "image": "https://images.printful.com/catalog/12", "category": "T-Shirts",    "base_price": 9.75,  "colors": ["Black","White","Navy","Red","Gray"], "sizes": ["S","M","L","XL","2XL","3XL"]},
+        {"id": 71,  "name": "Unisex T-Shirt",     "image": "https://images.printful.com/catalog/71", "category": "T-Shirts",    "base_price": 9.75,  "colors": ["Black","White","Navy","Red","Gray"], "sizes": ["XS","S","M","L","XL","2XL"]},
+        {"id": 350, "name": "Tank Top",           "image": "https://images.printful.com/catalog/350","category": "T-Shirts",    "base_price": 10.95, "colors": ["Black","White","Navy"],              "sizes": ["S","M","L","XL"]},
+        {"id": 586, "name": "Long Sleeve Tee",    "image": "https://images.printful.com/catalog/586","category": "T-Shirts",    "base_price": 12.95, "colors": ["Black","White","Navy","Red"],        "sizes": ["S","M","L","XL","2XL"]},
+        {"id": 380, "name": "Pullover Hoodie",    "image": "https://images.printful.com/catalog/380","category": "Hoodies",     "base_price": 18.95, "colors": ["Black","White","Navy","Gray"],       "sizes": ["S","M","L","XL","2XL"]},
+        {"id": 420, "name": "Zip Hoodie",         "image": "https://images.printful.com/catalog/420","category": "Hoodies",     "base_price": 22.95, "colors": ["Black","White","Navy","Gray"],       "sizes": ["S","M","L","XL","2XL"]},
+        {"id": 505, "name": "Women's Hoodie",     "image": "https://images.printful.com/catalog/505","category": "Hoodies",     "base_price": 20.95, "colors": ["Black","White","Pink","Gray"],       "sizes": ["S","M","L","XL"]},
+        {"id": 146, "name": "Dad Hat",            "image": "https://images.printful.com/catalog/146","category": "Hats",        "base_price": 10.45, "colors": ["Black","White","Navy","Khaki"],      "sizes": ["One Size"]},
+        {"id": 473, "name": "Embroidered Hat",    "image": "https://images.printful.com/catalog/473","category": "Hats",        "base_price": 13.95, "colors": ["Black","Navy","White"],              "sizes": ["One Size"]},
+        {"id": 325, "name": "Snapback Hat",       "image": "https://images.printful.com/catalog/325","category": "Hats",        "base_price": 12.45, "colors": ["Black","White","Navy","Red"],        "sizes": ["One Size"]},
+        {"id": 362, "name": "Tote Bag",           "image": "https://images.printful.com/catalog/362","category": "Bags",        "base_price": 8.95,  "colors": ["Natural","Black"],                  "sizes": ["One Size"]},
+        {"id": 155, "name": "Drawstring Bag",     "image": "https://images.printful.com/catalog/155","category": "Bags",        "base_price": 9.95,  "colors": ["Black","White","Navy"],              "sizes": ["One Size"]},
+        {"id": 358, "name": "Mug 11oz",           "image": "https://images.printful.com/catalog/358","category": "Mugs",        "base_price": 6.95,  "colors": ["White"],                            "sizes": ["11oz"]},
+        {"id": 559, "name": "Mug 15oz",           "image": "https://images.printful.com/catalog/559","category": "Mugs",        "base_price": 8.95,  "colors": ["White"],                            "sizes": ["15oz"]},
+        {"id": 200, "name": "Phone Case",         "image": "https://images.printful.com/catalog/200","category": "Accessories", "base_price": 11.95, "colors": ["Clear","Black"],                    "sizes": ["iPhone","Samsung"]},
+        {"id": 561, "name": "Sticker",            "image": "https://images.printful.com/catalog/561","category": "Accessories", "base_price": 2.49,  "colors": ["White"],                            "sizes": ["3x3","4x4","6x6"]},
+        {"id": 268, "name": "Fanny Pack",         "image": "https://images.printful.com/catalog/268","category": "Accessories", "base_price": 16.95, "colors": ["Black","Navy"],                     "sizes": ["One Size"]},
+        {"id": 160, "name": "Poster",             "image": "https://images.printful.com/catalog/160","category": "Posters",     "base_price": 7.95,  "colors": ["White"],                            "sizes": ["12x16","18x24","24x36"]},
+        {"id": 255, "name": "Canvas Print",       "image": "https://images.printful.com/catalog/255","category": "Posters",     "base_price": 18.95, "colors": ["White"],                            "sizes": ["8x10","12x16","16x20"]},
+    ]
+    return jsonify({"products": products})
 
-
-# ── 2. Get variants for a specific product ────────────────────────────────────
 @printful_bp.route('/catalog/<int:product_id>/variants', methods=['GET'])
 def get_variants(product_id):
     try:
