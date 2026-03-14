@@ -98,45 +98,7 @@ const Slider = ({ min, max, step, value, onChange, color = C.cyan, label = '', f
       {label && <span style={{ color:C.txt, fontSize:'0.55rem', textAlign:'center' }}>{label}</span>}
     </div>
   );
-}; => {
-  const canvasRef = React.useRef(null);
-  const dragging = React.useRef(false);
-  const startY = React.useRef(0);
-  const startVal = React.useRef(value);
-  const norm = (v) => (v - min) / (max - min);
-  React.useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const cx = 18, cy = 18, r = 15;
-    const sa = Math.PI * 0.75, ea = Math.PI * 2.25;
-    const angle = sa + norm(value) * (ea - sa);
-    ctx.clearRect(0, 0, 36, 36);
-    ctx.beginPath(); ctx.arc(cx, cy, r, sa, ea); ctx.strokeStyle = '#1e2a38'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
-    ctx.beginPath(); ctx.arc(cx, cy, r, sa, angle); ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(angle) * 13, cy + Math.sin(angle) * 13); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
-  }, [value, color, min, max]);
-  const onMouseDown = (e) => { dragging.current = true; startY.current = e.clientY; startVal.current = value; e.preventDefault(); };
-  React.useEffect(() => {
-    const onMove = (e) => {
-      if (!dragging.current) return;
-      const delta = ((startY.current - e.clientY) / 120) * (max - min);
-      const newVal = Math.min(max, Math.max(min, startVal.current + delta));
-      onChange(parseFloat((Math.round(newVal / step) * step).toFixed(4)));
-    };
-    const onUp = () => { dragging.current = false; };
-    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [min, max, step, onChange]);
-  return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' }}>
-      <canvas ref={canvasRef} width={36} height={36} onMouseDown={onMouseDown} style={{ cursor:'ns-resize' }} />
-      {fmt && <span style={{ color, fontSize:'8px', fontWeight:700 }}>{fmt(value)}</span>}
-      {label && <span style={{ color:'#6e7681', fontSize:'7px' }}>{label}</span>}
-    </div>
-  );
-};
-
+;
 const Sel = ({ value, onChange, options }) => (
   <select value={value} onChange={(e) => onChange(e.target.value)}
     style={{ width: "100%", padding: "2px 4px", background: "#0f1820", border: "1px solid #1a2838", borderRadius: 3, color: C.white, fontSize: "0.65rem", fontFamily: "inherit", outline: "none" }}>
