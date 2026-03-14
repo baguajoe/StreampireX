@@ -19,6 +19,40 @@ import ParametricEQGraph from './ParametricEQGraph';
 import PluginRackPanel from './audio/components/plugins/PluginRackPanel';
 
 // ─── Native effect slot definitions ──────────────────────────────────────────
+const Knob = ({ min, max, step, value, onChange, color = '#00ffc8', size = 36 }) => {
+  const canvasRef = React.useRef(null);
+  const dragging = React.useRef(false);
+  const startY = React.useRef(0);
+  const startVal = React.useRef(value);
+  const norm = (v) => (v - min) / (max - min);
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const cx = canvas.width / 2, cy = canvas.height / 2, r = cx - 3;
+    const sa = Math.PI * 0.75, ea = Math.PI * 2.25;
+    const angle = sa + norm(value) * (ea - sa);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath(); ctx.arc(cx, cy, r, sa, ea); ctx.strokeStyle = '#1e2a38'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, r, sa, angle); ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(angle) * (r - 2), cy + Math.sin(angle) * (r - 2)); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+  }, [value, color, min, max]);
+  const onMouseDown = (e) => { dragging.current = true; startY.current = e.clientY; startVal.current = value; e.preventDefault(); };
+  React.useEffect(() => {
+    const onMove = (e) => {
+      if (!dragging.current) return;
+      const delta = ((startY.current - e.clientY) / 120) * (max - min);
+      const newVal = Math.min(max, Math.max(min, startVal.current + delta));
+      onChange(parseFloat((Math.round(newVal / step) * step).toFixed(4)));
+    };
+    const onUp = () => { dragging.current = false; };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [min, max, step, onChange]);
+  return <canvas ref={canvasRef} width={size} height={size} onMouseDown={onMouseDown} style={{ cursor: 'ns-resize', userSelect: 'none', display: 'block' }} />;
+};
+
 const NATIVE_SLOTS = [
   {
     key: 'eq', label: 'Parametric EQ', icon: '〰', color: '#00ffc8', category: 'tone', hasGraph: true,
@@ -373,21 +407,17 @@ const UnifiedFXChain = ({
                             </div>
                           )}
 
-                          {/* Sliders */}
+                          {/* Knobs */}
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:'12px', padding:'8px 4px', alignItems:'flex-end' }}>
                           {slot.params.map(({ p, l, min, max, step, fmt }) => (
-                            <div key={p} style={S.paramRow}>
-                              <label style={S.paramLabel}>{l}</label>
-                              <input
-                                type="range" min={min} max={max} step={step}
-                                value={fx[p] ?? min}
-                                onChange={e => setParam(slot.key, p, parseFloat(e.target.value))}
-                                style={{ flex: 1, accentColor: slot.color }}
-                              />
-                              <span style={S.paramValue(slot.color)}>
-                                {fmt(fx[p] ?? min)}
-                              </span>
+                            <div key={p} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'2px' }}>
+                              <Knob min={min} max={max} step={step} value={fx[p] ?? min} color={slot.color}
+                                onChange={v => setParam(slot.key, p, v)} size={36} />
+                              <span style={{ color: slot.color, fontSize:'8px', fontWeight:700 }}>{fmt(fx[p] ?? min)}</span>
+                              <span style={{ color:'#6e7681', fontSize:'7px' }}>{l}</span>
                             </div>
                           ))}
+                          </div>
 
                         </div>
                       )}

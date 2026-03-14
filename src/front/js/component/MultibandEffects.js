@@ -244,7 +244,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
         {/* Master makeup */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ color: '#6e7681', fontSize: '10px', letterSpacing: '0.08em' }}>MASTER</span>
-          <input type="range" min="-12" max="12" step="0.5" value={masterMakeup} onChange={e => setMasterMakeup(parseFloat(e.target.value))} style={{ width: '72px', accentColor: '#00ffc8' }} />
+          <Knob min={-12} max={12} step={0.5} value={masterMakeup} onChange={setMasterMakeup} color="#00ffc8" size={36} />
           <span style={{ color: '#00ffc8', minWidth: '40px', fontWeight: 700, fontSize: '11px' }}>{masterMakeup > 0 ? '+' : ''}{masterMakeup}dB</span>
         </div>
 
