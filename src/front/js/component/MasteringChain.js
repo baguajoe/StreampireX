@@ -687,7 +687,7 @@ const ToolSlot = ({ id, label, icon, color, enabled, onToggle, expanded, onExpan
       {!enabled && <span style={{ color: '#2d333b', fontSize: '9px' }}>BYPASSED</span>}
       <span style={{ color: '#484f58', fontSize: '10px', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>▾</span>
     </div>
-    {expanded && <div style={{ padding: '0 10px 10px', borderTop: '1px solid #1c2128' }}>{children}</div>}
+    {expanded && <div style={{ padding: '8px 10px 10px', borderTop: '1px solid #1c2128', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '12px' }}>{children}</div>}
   </div>
 );
 
