@@ -436,7 +436,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={v => `${v}Hz`} onChange={v => setHpf(p => ({ ...p, freq: v }))} />
               <SliderRow label="Slope" value={hpf.slope} min={1} max={4} step={1} color="#4a9eff"
                 fmt={v => `${v * 12}dB/oct`} onChange={v => setHpf(p => ({ ...p, slope: v }))} />
-            </div></ToolSlot>
+            </ToolSlot>
 
             {/* EQ */}
             <ToolSlot id="eq" label="Mastering EQ" icon="〰" color="#00ffc8"
@@ -456,7 +456,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={v => `${v > 0 ? '+' : ''}${v.toFixed(1)}dB`} onChange={v => setEq(p => ({ ...p, highShelf: v }))} />
               <SliderRow label="High Freq" value={eq.highFreq} min={4000} max={20000} step={100} color="#00ffc8"
                 fmt={v => `${(v/1000).toFixed(0)}kHz`} onChange={v => setEq(p => ({ ...p, highFreq: v }))} />
-            </div></ToolSlot>
+            </ToolSlot>
 
             {/* M/S */}
             <ToolSlot id="ms" label="Mid / Side" icon="◎" color="#bf5af2"
@@ -468,7 +468,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={v => `${v > 0 ? '+' : ''}${v}dB`} onChange={v => setMs(p => ({ ...p, sideGain: v }))} />
               <SliderRow label="Width" value={ms.sideWidth} min={0} max={2} step={0.01} color="#bf5af2"
                 fmt={v => `${Math.round(v * 100)}%`} onChange={v => setMs(p => ({ ...p, sideWidth: v }))} />
-            </div></ToolSlot>
+            </ToolSlot>
 
             {/* Exciter */}
             <ToolSlot id="exciter" label="Harmonic Exciter" icon="✦" color="#ffd60a"
@@ -480,7 +480,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={v => `${(v/1000).toFixed(1)}kHz`} onChange={v => setExciter(p => ({ ...p, freq: v }))} />
               <SliderRow label="Blend" value={exciter.blend} min={0} max={1} step={0.01} color="#ffd60a"
                 fmt={v => `${Math.round(v*100)}%`} onChange={v => setExciter(p => ({ ...p, blend: v }))} />
-            </div></ToolSlot>
+            </ToolSlot>
 
             {/* Widener */}
             <ToolSlot id="widener" label="Stereo Widener" icon="⟺" color="#30d158"
@@ -499,7 +499,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                   }}>{w === 0 ? 'MONO' : w === 1 ? 'NORMAL' : w === 0.5 ? 'NARROW' : w === 1.5 ? 'WIDE' : 'MAX'}</button>
                 ))}
               </div>
-            </div></ToolSlot>
+            </ToolSlot>
 
             {/* True Peak Limiter */}
             <ToolSlot id="limiter" label="True Peak Limiter" icon="⊟" color="#ff6b6b"
@@ -520,7 +520,7 @@ const MasteringChain = ({ audioContext, inputNode, outputNode, onClose, isEmbedd
                 fmt={v => `${v}ms`} onChange={v => setLimiter(p => ({ ...p, release: v }))} />
               <SliderRow label="Drive" value={limiter.drive} min={0} max={12} step={0.1} color="#ff6b6b"
                 fmt={v => `${v.toFixed(1)}dB`} onChange={v => setLimiter(p => ({ ...p, drive: v }))} />
-            </div></ToolSlot>
+            </ToolSlot>
           </div>
         )}
 
