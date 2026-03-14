@@ -1,4 +1,4 @@
-import { Knob } from './MasteringChain';
+
 // =============================================================================
 // MultibandEffects.js — 3-Band Multiband Compressor + Effects
 // =============================================================================
@@ -17,6 +17,7 @@ import { Knob } from './MasteringChain';
 // =============================================================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Knob } from "./Knob";
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const dbToLin = (db) => Math.pow(10, db / 20);

@@ -24,6 +24,7 @@
 // =============================================================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Knob } from "./Knob";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -1317,30 +1318,4 @@ const ToolSlot = ({ id, label, icon, color, enabled, onToggle, expanded, onExpan
   </div>
 );
 
-const SliderRow = ({ label, value, min, max, step, color, fmt, onChange }) => {
-  const handleMouseDown = (e) => {
-    e.preventDefault();
-    const startY = e.clientY;
-    const startVal = value;
-    const onMove = (me) => {
-      const delta = (startY - me.clientY) * ((max - min) / 150);
-      onChange(Math.min(max, Math.max(min, startVal + delta)));
-    };
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  };
-  return (
-    <div style={{ textAlign: 'center', cursor: 'ns-resize' }} onMouseDown={handleMouseDown}>
-      <div style={{ width: 30, height: 30, borderRadius: '50%', border: '2px solid '+color, margin: '0 auto' }} />
-      <div style={{ fontSize: '8px', color: color }}>{fmt(value)}</div>
-      <div style={{ fontSize: '7px', color: '#6e7681' }}>{label}</div>
-    </div>
-  );
-};
-
-export const Knob = SliderRow;
 export default MasteringChain;
