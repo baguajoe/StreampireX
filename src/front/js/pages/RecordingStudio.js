@@ -2409,6 +2409,25 @@ const RecordingStudio = ({ user }) => {
     }
   };
 
+  // ── Helper: land an AudioBuffer on the next empty Arrange track ──
+  const landBufferOnTrack = useCallback((audioBuffer, trackName) => {
+    const foundIdx = tracks.findIndex(t => !t.audioBuffer);
+    const targetIdx = (foundIdx === -1 && tracks.length < maxTracks) ? tracks.length : foundIdx;
+    if (foundIdx === -1 && tracks.length < maxTracks) {
+      setTracks(prev => [...prev, DEFAULT_TRACK(targetIdx)]);
+    }
+    if (targetIdx === -1) {
+      setStatus("⚠ No empty tracks — clear a track first");
+      return;
+    }
+    const blob = new Blob([audioBuffer], { type: "audio/wav" });
+    const audioUrl = URL.createObjectURL(blob);
+    updateTrack(targetIdx, { audioBuffer, audio_url: audioUrl, name: trackName });
+    createRegionFromImport(targetIdx, audioBuffer, trackName, audioUrl);
+    setStatus(`✓ "${trackName}" → Track ${targetIdx + 1}`);
+    setViewMode("arrange");
+  }, [tracks, maxTracks, updateTrack, createRegionFromImport]);
+
   // ===================== RENDER =====================
   const afx = activeEffectsTrack !== null ? tracks[activeEffectsTrack] : null;
 
