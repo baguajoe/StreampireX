@@ -14,6 +14,9 @@ import DrumPadTab from './tabs/DrumPadTab';
 import SamplerTab from './tabs/SamplerTab';
 import StemSeparatorTab from './tabs/StemSeparatorTab';
 import ChopView from './ChopView';
+import SynthCreator from './SynthCreator';
+import DrumDesigner from './DrumDesigner';
+import InstrumentBuilder from './InstrumentBuilder';
 
 // =============================================================================
 // CONSTANTS
@@ -2657,6 +2660,9 @@ const SamplerBeatMaker = ({
           { id: 'humtosong', label: '🎵 Hum to Song', title: 'Hum a melody to generate a beat' },
           { id: 'texttosong', label: '✍️ Text to Song', title: 'Text prompt to generated song' },
           { id: 'stems', label: '✂️ Stems', title: 'AI Stem Separator' },
+          { id: 'synth', label: '🎛️ Synth', title: 'Subtractive Synthesizer' },
+          { id: 'drumdesign', label: '🥁 Drum Design', title: 'Drum Synthesis Designer' },
+          { id: 'instrument', label: '🎸 Instrument', title: 'Custom Instrument Builder' },
         ].map(tab => (
           <button
             key={tab.id}
@@ -2849,6 +2855,33 @@ const SamplerBeatMaker = ({
         {activeTab === 'texttosong' && (
           <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
             {textToSongComponent || <div style={{ color: '#5a7088', padding: '40px', textAlign: 'center' }}>✍️ Text to Song — open via AI Tools sidebar</div>}
+          </div>
+        )}
+
+        {/* ── SYNTH CREATOR TAB ── */}
+        {activeTab === 'synth' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
+            <SynthCreator onAssignToPad={(buffer, name) => {
+              if (typeof onLoadSample === 'function') onLoadSample(buffer, name, null, null);
+            }} />
+          </div>
+        )}
+
+        {/* ── DRUM DESIGNER TAB ── */}
+        {activeTab === 'drumdesign' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
+            <DrumDesigner onAssignToPad={(buffer, name) => {
+              if (typeof onLoadSample === 'function') onLoadSample(buffer, name, null, null);
+            }} />
+          </div>
+        )}
+
+        {/* ── INSTRUMENT BUILDER TAB ── */}
+        {activeTab === 'instrument' && (
+          <div style={{ flex: 1, minHeight: 0, overflow: 'auto', background: '#0a0e1a' }}>
+            <InstrumentBuilder onAssignToPad={(buffer, name) => {
+              if (typeof onLoadSample === 'function') onLoadSample(buffer, name, null, null);
+            }} />
           </div>
         )}
 
