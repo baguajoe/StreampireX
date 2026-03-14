@@ -3076,8 +3076,7 @@ const RecordingStudio = ({ user }) => {
                   </div>
                 </div>
 
-                <ChannelStripAIMix track={t} trackIndex={i} userTier={userTier} onApplyVolume={handleAIApplyVolume} onApplyPan={handleAIApplyPan} onApplyEffect={updateEffect} onStatus={setStatus} />
-                    <div className="daw-ch-name">
+                <div className="daw-ch-name">
                   <div style={{ fontWeight: 700, fontSize: "0.62rem", color: "#ddeeff" }}>MASTER</div>
                   <div className="daw-ch-number">Stereo Out</div>
                 </div>
