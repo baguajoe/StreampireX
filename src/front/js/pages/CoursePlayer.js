@@ -240,12 +240,12 @@ const CoursePlayer = () => {
                         <span style={{ fontSize:18 }}>🎙</span>
                         <span style={{ color:"#888", fontSize:13, flex:1 }}>Listen to this lesson</span>
                         <button onClick={narrateLesson} disabled={narrating} style={{ padding:"7px 16px", background:narrating?"#333":"rgba(0,255,200,0.15)", border:"1px solid #00ffc8", color:narrating?"#666":"#00ffc8", borderRadius:8, cursor:narrating?"not-allowed":"pointer", fontSize:13, fontWeight:700 }}>
-                          {narrating ? "⏳ Generating..." : narrateAudio ? "🔄 Regenerate" : "▶ Listen"}
+                          {narrating ? "⏳ Generating..." : narrateAudio ? "🔄 Regenerate" : narrating ? "⏹ Stop" : "▶ Listen"}
                         </button>
                         {narrateAudio && <button onClick={() => setNarrateAudio(null)} style={{ padding:"7px 10px", background:"transparent", border:"1px solid #333", color:"#666", borderRadius:8, cursor:"pointer", fontSize:12 }}>✕</button>}
                       </div>
                       {narrateError && <div style={{ color:"#ff8888", fontSize:12, marginBottom:12 }}>{narrateError}</div>}
-                      {narrateAudio && <audio ref={audioRef} controls src={narrateAudio} style={{ width:"100%", borderRadius:8, marginBottom:16 }} />}
+                      
                       {activeLesson.text_content ? (
                         <div style={P.textBody}>{activeLesson.text_content}</div>
                       ) : (
