@@ -93,6 +93,7 @@ from api.looperman_routes import looperman_bp
 from api.fan_membership_routes import fan_membership_bp
 from api.series_routes import series_bp
 from api.film_routes import film_bp
+from api.film_models import Theatre, Film, Screening, FilmReview, FestivalSubmission
 from api.comment_routes import comment_bp
 
 
@@ -349,7 +350,7 @@ app.register_blueprint(analytics_bp)
 app.register_blueprint(looperman_bp)
 app.register_blueprint(fan_membership_bp)
 app.register_blueprint(series_bp)
-app.register_blueprint(film_bp)
+app.register_blueprint(film_bp, url_prefix='/api/film')
 app.register_blueprint(comment_bp)
 from api.wam_plugin_routes import wam_plugin_bp
 app.register_blueprint(wam_plugin_bp)
