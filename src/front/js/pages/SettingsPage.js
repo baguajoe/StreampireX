@@ -520,6 +520,152 @@ const SettingsPage = () => {
           </div>
         </div>
 
+        {/* ===== FILM & SERIES SETTINGS ===== */}
+        <div className="settings-section">
+          <h2>🎬 Film &amp; Series Settings</h2>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>Default Film Visibility</label>
+              <span>Who can see your films by default</span>
+            </div>
+            <select className="setting-select" defaultValue="public">
+              <option value="public">Public</option>
+              <option value="followers">Followers Only</option>
+              <option value="ticket">Ticket Required</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>Auto-Notify Theatre Followers</label>
+              <span>Notify followers when you schedule a screening</span>
+            </div>
+            <button className="toggle-btn active">ON</button>
+          </div>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>Allow Film Comments</label>
+              <span>Let viewers comment on your films</span>
+            </div>
+            <button className="toggle-btn active">ON</button>
+          </div>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>Allow Star Ratings</label>
+              <span>Let viewers rate your films</span>
+            </div>
+            <button className="toggle-btn active">ON</button>
+          </div>
+        </div>
+
+        {/* ===== PODCAST SETTINGS ===== */}
+        <div className="settings-section">
+          <h2>🎙️ Podcast Settings</h2>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>Default Episode Visibility</label>
+              <span>Who can listen to your episodes by default</span>
+            </div>
+            <select className="setting-select" defaultValue="public">
+              <option value="public">Public</option>
+              <option value="subscribers">Subscribers Only</option>
+              <option value="paid">Paid Only</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>Auto-Distribute New Episodes</label>
+              <span>Push to Spotify, Apple Podcasts automatically</span>
+            </div>
+            <button className="toggle-btn active">ON</button>
+          </div>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>Allow Episode Comments</label>
+              <span>Let listeners comment on episodes</span>
+            </div>
+            <button className="toggle-btn active">ON</button>
+          </div>
+        </div>
+
+        {/* ===== CREATOR ACADEMY SETTINGS ===== */}
+        <div className="settings-section">
+          <h2>🎓 Creator Academy Settings</h2>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>Default Course Visibility</label>
+              <span>Who can see your courses by default</span>
+            </div>
+            <select className="setting-select" defaultValue="public">
+              <option value="public">Public</option>
+              <option value="unlisted">Unlisted</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>Allow Student Reviews</label>
+              <span>Let students leave ratings and reviews</span>
+            </div>
+            <button className="toggle-btn active">ON</button>
+          </div>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>Issue Completion Certificates</label>
+              <span>Auto-issue certificate when student completes course</span>
+            </div>
+            <button className="toggle-btn active">ON</button>
+          </div>
+        </div>
+
+        {/* ===== CREATOR NOTIFICATIONS ===== */}
+        <div className="settings-section">
+          <h2>🔔 Creator Notifications</h2>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>🎬 New Theatre Follower</label>
+              <span>When someone follows your virtual theatre</span>
+            </div>
+            <button className="toggle-btn active">ON</button>
+          </div>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>🎬 Film Sale / Ticket</label>
+              <span>When someone rents, buys or tickets your film</span>
+            </div>
+            <button className="toggle-btn active">ON</button>
+          </div>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>🎙️ New Podcast Subscriber</label>
+              <span>When someone subscribes to your podcast</span>
+            </div>
+            <button className="toggle-btn active">ON</button>
+          </div>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>🎓 New Course Enrollment</label>
+              <span>When someone enrolls in your course</span>
+            </div>
+            <button className="toggle-btn active">ON</button>
+          </div>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>🎓 Course Sale</label>
+              <span>When someone purchases your paid course</span>
+            </div>
+            <button className="toggle-btn active">ON</button>
+          </div>
+          <div className="setting-item">
+            <div className="setting-info">
+              <label>🏆 Film Festival Results</label>
+              <span>When monthly festival winners are announced</span>
+            </div>
+            <button className="toggle-btn active">ON</button>
+          </div>
+        </div>
+
         {/* Danger Zone */}
         <div className="settings-section danger-zone">
           <h2>⚠️ Danger Zone</h2>
