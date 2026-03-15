@@ -2,35 +2,21 @@
 // MultibandEffects.js — 3-Band Multiband Compressor + Effects
 // =============================================================================
 // Location: src/front/js/component/MultibandEffects.js
-//
-// Premium DAW-grade UI featuring:
-//  • Canvas-based animated spectrum analyzer
-//  • Per-band gain reduction meters with peak hold
-//  • Real Web Audio DynamicsCompressor + WaveShaper per band
-//  • Crossover frequency knobs with live filter updates
-//  • Saturation / soft-clip per band
-//  • Solo / Mute per band with correct priority
-//  • Preset system per band (Gentle / Punch / Limit / Air)
-//  • Master makeup gain rotary knob
-//  • Oscilloscope output display
-//
-// All parameters use rotary Knob components (drag up/down, double-click reset).
+// Visual redesign: larger knobs, high-contrast band panels, bold meters,
+// clear typography, generous spacing.
 // =============================================================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Knob } from './Knob';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
 const dbToLin = (db) => Math.pow(10, db / 20);
 
 function makeSoftClip(amount) {
-  const n     = 512;
+  const n = 512;
   const curve = new Float32Array(n);
-  const k     = amount * 80;
+  const k = amount * 80;
   for (let i = 0; i < n; i++) {
-    const x  = (i * 2) / n - 1;
+    const x = (i * 2) / n - 1;
     curve[i] = k === 0
       ? x
       : ((1 + k / 100) * x) / (1 + (k / 100) * Math.abs(x));
@@ -38,23 +24,20 @@ function makeSoftClip(amount) {
   return curve;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────────────────────
 const BAND_DEFS = [
   {
     id: 'low',  label: 'LOW',  freqRange: '20 – 250 Hz',
-    color: '#ff6b6b', glow: '#ff6b6b44',
+    color: '#ff6b6b', glow: '#ff6b6b33',
     xover: 250,   threshold: -24, ratio: 4,   attack: 0.010, release: 0.150, makeup: 0, sat: 0,
   },
   {
     id: 'mid',  label: 'MID',  freqRange: '250 Hz – 4 kHz',
-    color: '#00ffc8', glow: '#00ffc844',
+    color: '#00ffc8', glow: '#00ffc833',
     xover: 4000,  threshold: -18, ratio: 3,   attack: 0.005, release: 0.100, makeup: 0, sat: 0,
   },
   {
     id: 'high', label: 'HIGH', freqRange: '4 kHz – 20 kHz',
-    color: '#4a9eff', glow: '#4a9eff44',
+    color: '#4a9eff', glow: '#4a9eff33',
     xover: 20000, threshold: -12, ratio: 2.5, attack: 0.002, release: 0.080, makeup: 0, sat: 0,
   },
 ];
@@ -68,17 +51,29 @@ const PRESETS = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// KnobCell — rotary knob + live value readout + label
+// KnobCell — large rotary knob with prominent value + label
 // ─────────────────────────────────────────────────────────────────────────────
-const KnobCell = ({ label, value, min, max, step, fmt, color, onChange, size = 48 }) => (
+const KnobCell = ({ label, value, min, max, step, fmt, color, onChange, size = 64 }) => (
   <div
     style={{
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      gap: '1px',
-      width: size + 20,
-      flexShrink: 0,
+      gap: '4px',
+      padding: '10px 8px 8px',
+      background: 'rgba(255,255,255,0.03)',
+      borderRadius: '10px',
+      border: `1px solid rgba(255,255,255,0.06)`,
+      minWidth: size + 24,
+      transition: 'background 0.15s, border-color 0.15s',
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.background = `${color}10`;
+      e.currentTarget.style.borderColor = `${color}44`;
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)';
     }}
   >
     <Knob
@@ -94,21 +89,22 @@ const KnobCell = ({ label, value, min, max, step, fmt, color, onChange, size = 4
     <span
       style={{
         color,
-        fontSize: '10px',
-        fontWeight: 700,
+        fontSize: '12px',
+        fontWeight: 800,
         fontFamily: "'JetBrains Mono', monospace",
+        letterSpacing: '0.03em',
+        textShadow: `0 0 10px ${color}88`,
       }}
     >
       {fmt(value)}
     </span>
     <span
       style={{
-        color: '#6e7681',
-        fontSize: '8px',
+        color: '#8b949e',
+        fontSize: '9px',
         textTransform: 'uppercase',
-        letterSpacing: '0.08em',
+        letterSpacing: '0.12em',
         textAlign: 'center',
-        lineHeight: 1.2,
       }}
     >
       {label}
@@ -120,12 +116,11 @@ const KnobCell = ({ label, value, min, max, step, fmt, color, onChange, size = 4
 // MultibandEffects
 // ─────────────────────────────────────────────────────────────────────────────
 const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onClose, isEmbedded }) => {
-
   const [bands,        setBands]        = useState(BAND_DEFS.map((b) => ({ ...b })));
   const [activeBand,   setActiveBand]   = useState(0);
   const [masterMakeup, setMasterMakeup] = useState(0);
   const [enabled,      setEnabled]      = useState(true);
-  const [viewMode,     setViewMode]     = useState('detail'); // detail | scope
+  const [viewMode,     setViewMode]     = useState('detail');
   const [grLevels,     setGrLevels]     = useState([0, 0, 0]);
   const [outLevels,    setOutLevels]    = useState([0, 0, 0]);
   const [peakHold,     setPeakHold]     = useState([0, 0, 0]);
@@ -140,7 +135,7 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
   const specCanvasRef  = useRef(null);
   const scopeCanvasRef = useRef(null);
 
-  // ── Build audio graph ──────────────────────────────────────────────────
+  // ── Build audio graph ────────────────────────────────────────────────────
   useEffect(() => {
     if (!audioContext || !inputNode || !outputNode || builtRef.current) return;
 
@@ -151,56 +146,33 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
 
     const nodes = BAND_DEFS.map((def, i) => {
       const filters = [];
-
       if (i === 0) {
-        const lp1 = audioContext.createBiquadFilter();
-        lp1.type = 'lowpass'; lp1.frequency.value = def.xover; lp1.Q.value = 0.707;
-        const lp2 = audioContext.createBiquadFilter();
-        lp2.type = 'lowpass'; lp2.frequency.value = def.xover; lp2.Q.value = 0.707;
+        const lp1 = audioContext.createBiquadFilter(); lp1.type = 'lowpass';  lp1.frequency.value = def.xover; lp1.Q.value = 0.707;
+        const lp2 = audioContext.createBiquadFilter(); lp2.type = 'lowpass';  lp2.frequency.value = def.xover; lp2.Q.value = 0.707;
         filters.push(lp1, lp2);
       } else if (i === 1) {
-        const hp = audioContext.createBiquadFilter();
-        hp.type = 'highpass'; hp.frequency.value = BAND_DEFS[0].xover; hp.Q.value = 0.707;
-        const lp = audioContext.createBiquadFilter();
-        lp.type = 'lowpass'; lp.frequency.value = def.xover; lp.Q.value = 0.707;
+        const hp = audioContext.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = BAND_DEFS[0].xover; hp.Q.value = 0.707;
+        const lp = audioContext.createBiquadFilter(); lp.type = 'lowpass';  lp.frequency.value = def.xover;          lp.Q.value = 0.707;
         filters.push(hp, lp);
       } else {
-        const hp1 = audioContext.createBiquadFilter();
-        hp1.type = 'highpass'; hp1.frequency.value = BAND_DEFS[1].xover; hp1.Q.value = 0.707;
-        const hp2 = audioContext.createBiquadFilter();
-        hp2.type = 'highpass'; hp2.frequency.value = BAND_DEFS[1].xover; hp2.Q.value = 0.707;
+        const hp1 = audioContext.createBiquadFilter(); hp1.type = 'highpass'; hp1.frequency.value = BAND_DEFS[1].xover; hp1.Q.value = 0.707;
+        const hp2 = audioContext.createBiquadFilter(); hp2.type = 'highpass'; hp2.frequency.value = BAND_DEFS[1].xover; hp2.Q.value = 0.707;
         filters.push(hp1, hp2);
       }
 
-      const comp = audioContext.createDynamicsCompressor();
-      comp.threshold.value = def.threshold;
-      comp.ratio.value     = def.ratio;
-      comp.attack.value    = def.attack;
-      comp.release.value   = def.release;
-      comp.knee.value      = 6;
+      const comp     = audioContext.createDynamicsCompressor();
+      comp.threshold.value = def.threshold; comp.ratio.value = def.ratio;
+      comp.attack.value    = def.attack;    comp.release.value = def.release; comp.knee.value = 6;
 
-      const sat     = audioContext.createWaveShaper();
-      sat.curve     = makeSoftClip(def.sat);
-      sat.oversample = '4x';
-
-      const gain    = audioContext.createGain();
-      gain.gain.value = dbToLin(def.makeup);
-
-      const mute    = audioContext.createGain();
-      mute.gain.value = 1;
-
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 1024;
-      analyser.smoothingTimeConstant = 0.6;
+      const sat      = audioContext.createWaveShaper(); sat.curve = makeSoftClip(def.sat); sat.oversample = '4x';
+      const gain     = audioContext.createGain();       gain.gain.value = dbToLin(def.makeup);
+      const mute     = audioContext.createGain();       mute.gain.value = 1;
+      const analyser = audioContext.createAnalyser();   analyser.fftSize = 1024; analyser.smoothingTimeConstant = 0.6;
 
       inputNode.connect(filters[0]);
       for (let j = 0; j < filters.length - 1; j++) filters[j].connect(filters[j + 1]);
       filters[filters.length - 1].connect(comp);
-      comp.connect(sat);
-      sat.connect(gain);
-      gain.connect(mute);
-      mute.connect(analyser);
-      analyser.connect(sum);
+      comp.connect(sat); sat.connect(gain); gain.connect(mute); mute.connect(analyser); analyser.connect(sum);
 
       return { filters, comp, sat, gain, mute, analyser };
     });
@@ -209,74 +181,45 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
     builtRef.current = true;
     startAnimation();
 
-    return () => {
-      cancelAnimationFrame(animRef.current);
-      teardown();
-    };
+    return () => { cancelAnimationFrame(animRef.current); teardown(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioContext, inputNode, outputNode]);
 
-  // ── Sync band params → nodes ───────────────────────────────────────────
   useEffect(() => {
     if (!graphRef.current) return;
     graphRef.current.forEach((node, i) => {
-      const b = bands[i];
-      if (!node) return;
-      node.comp.threshold.value = b.threshold;
-      node.comp.ratio.value     = b.ratio;
-      node.comp.attack.value    = b.attack;
-      node.comp.release.value   = b.release;
-      node.gain.gain.value      = dbToLin(b.makeup);
-      node.sat.curve            = makeSoftClip(b.sat);
-      if (i === 0) {
-        node.filters.forEach((f) => (f.frequency.value = b.xover));
-      } else if (i === 1) {
-        node.filters[0].frequency.value = bands[0].xover;
-        node.filters[1].frequency.value = b.xover;
-      } else {
-        node.filters.forEach((f) => (f.frequency.value = bands[1].xover));
-      }
+      const b = bands[i]; if (!node) return;
+      node.comp.threshold.value = b.threshold; node.comp.ratio.value = b.ratio;
+      node.comp.attack.value    = b.attack;    node.comp.release.value = b.release;
+      node.gain.gain.value = dbToLin(b.makeup); node.sat.curve = makeSoftClip(b.sat);
+      if (i === 0)      node.filters.forEach((f) => (f.frequency.value = b.xover));
+      else if (i === 1) { node.filters[0].frequency.value = bands[0].xover; node.filters[1].frequency.value = b.xover; }
+      else              node.filters.forEach((f) => (f.frequency.value = bands[1].xover));
     });
   }, [bands]);
 
-  // ── Solo / Mute ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!graphRef.current) return;
     const soloIdx = bands.findIndex((b) => b.solo);
     graphRef.current.forEach((node, i) => {
       if (!node) return;
-      node.mute.gain.value =
-        enabled && (soloIdx >= 0 ? i === soloIdx : !bands[i].mute) ? 1 : 0;
+      node.mute.gain.value = enabled && (soloIdx >= 0 ? i === soloIdx : !bands[i].mute) ? 1 : 0;
     });
   }, [bands, enabled]);
 
-  // ── Master makeup ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (masterGainRef.current) {
-      masterGainRef.current.gain.value = dbToLin(masterMakeup);
-    }
+    if (masterGainRef.current) masterGainRef.current.gain.value = dbToLin(masterMakeup);
   }, [masterMakeup]);
 
-  // ── Teardown ───────────────────────────────────────────────────────────
   const teardown = () => {
     if (!graphRef.current) return;
     graphRef.current.forEach((n) => {
-      try {
-        n.filters.forEach((f) => f.disconnect());
-        n.comp.disconnect();
-        n.sat.disconnect();
-        n.gain.disconnect();
-        n.mute.disconnect();
-        n.analyser.disconnect();
-      } catch (_) {}
+      try { n.filters.forEach((f) => f.disconnect()); n.comp.disconnect(); n.sat.disconnect(); n.gain.disconnect(); n.mute.disconnect(); n.analyser.disconnect(); } catch (_) {}
     });
-    try { sumNodeRef.current?.disconnect(); } catch (_) {}
-    try { masterGainRef.current?.disconnect(); } catch (_) {}
-    graphRef.current = null;
-    builtRef.current = false;
+    try { sumNodeRef.current?.disconnect(); masterGainRef.current?.disconnect(); } catch (_) {}
+    graphRef.current = null; builtRef.current = false;
   };
 
-  // ── Animation / metering ───────────────────────────────────────────────
   const startAnimation = () => {
     const floatBuf = new Float32Array(1024);
     const byteBuf  = new Uint8Array(512);
@@ -285,28 +228,17 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
       animRef.current = requestAnimationFrame(tick);
       if (!graphRef.current) return;
 
-      const gr  = [];
-      const out = [];
-
+      const gr = [], out = [];
       graphRef.current.forEach((node, i) => {
         if (!node) { gr.push(0); out.push(0); return; }
-
         gr.push(Math.abs(node.comp.reduction ?? 0));
         node.analyser.getFloatTimeDomainData(floatBuf);
-
         let peak = 0;
-        for (let j = 0; j < floatBuf.length; j++) {
-          peak = Math.max(peak, Math.abs(floatBuf[j]));
-        }
+        for (let j = 0; j < floatBuf.length; j++) peak = Math.max(peak, Math.abs(floatBuf[j]));
         out.push(Math.min(1, peak));
-
         const t = performance.now();
-        if (peak > peakVals.current[i]) {
-          peakVals.current[i]  = peak;
-          peakTimers.current[i] = t + 1500;
-        } else if (t > peakTimers.current[i]) {
-          peakVals.current[i] = Math.max(0, peakVals.current[i] - 0.002);
-        }
+        if (peak > peakVals.current[i]) { peakVals.current[i] = peak; peakTimers.current[i] = t + 1500; }
+        else if (t > peakTimers.current[i]) { peakVals.current[i] = Math.max(0, peakVals.current[i] - 0.002); }
       });
 
       setGrLevels([...gr]);
@@ -318,33 +250,26 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
     animRef.current = requestAnimationFrame(tick);
   };
 
-  // ── Canvas drawing ─────────────────────────────────────────────────────
   const drawCanvases = (floatBuf, byteBuf) => {
-    // Spectrum
     const sc = specCanvasRef.current;
     if (sc && graphRef.current) {
       const ctx = sc.getContext('2d');
       const w = sc.width, h = sc.height;
-      ctx.fillStyle = '#0a0e14';
+      ctx.fillStyle = '#080c10';
       ctx.fillRect(0, 0, w, h);
 
-      // grid
-      ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+      // grid lines
+      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
       ctx.lineWidth = 1;
-      for (let x = 0; x < w; x += w / 10) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-      }
-      for (let y = 0; y < h; y += h / 5) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-      }
+      for (let x = 0; x < w; x += w / 8)  { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+      for (let y = 0; y < h; y += h / 4)   { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
 
       const bcolors = ['#ff6b6b', '#00ffc8', '#4a9eff'];
       graphRef.current.forEach((node, bi) => {
         if (!node) return;
         node.analyser.getByteFrequencyData(byteBuf);
-
         const grad = ctx.createLinearGradient(0, 0, 0, h);
-        grad.addColorStop(0, bcolors[bi] + 'bb');
+        grad.addColorStop(0, bcolors[bi] + 'aa');
         grad.addColorStop(1, bcolors[bi] + '00');
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -354,12 +279,8 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
           if (i === 0) ctx.moveTo(x, h);
           ctx.lineTo(x, y);
         }
-        ctx.lineTo(w, h);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.strokeStyle = bcolors[bi];
-        ctx.lineWidth   = 1;
+        ctx.lineTo(w, h); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = bcolors[bi]; ctx.lineWidth = 1.5;
         ctx.beginPath();
         for (let i = 0; i < byteBuf.length; i++) {
           const x = (i / byteBuf.length) * w;
@@ -370,112 +291,110 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
       });
     }
 
-    // Oscilloscope
     const oc = scopeCanvasRef.current;
     if (oc && graphRef.current && graphRef.current[0]) {
       const ctx = oc.getContext('2d');
       const w = oc.width, h = oc.height;
-      ctx.fillStyle = '#0a0e14';
-      ctx.fillRect(0, 0, w, h);
-
-      ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-      ctx.lineWidth = 0.5;
+      ctx.fillStyle = '#080c10'; ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5;
       ctx.beginPath(); ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); ctx.stroke();
-
       graphRef.current[0].analyser.getFloatTimeDomainData(floatBuf);
-      ctx.strokeStyle = '#00ffc8';
-      ctx.lineWidth   = 1.5;
-      ctx.shadowColor = '#00ffc8';
-      ctx.shadowBlur  = 8;
+      ctx.strokeStyle = '#00ffc8'; ctx.lineWidth = 2; ctx.shadowColor = '#00ffc8'; ctx.shadowBlur = 10;
       ctx.beginPath();
       for (let i = 0; i < floatBuf.length; i++) {
         const x = (i / floatBuf.length) * w;
         const y = (0.5 + floatBuf[i] * 0.5) * h;
         i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       }
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+      ctx.stroke(); ctx.shadowBlur = 0;
     }
   };
 
   const updateBand = useCallback(
-    (idx, key, val) =>
-      setBands((prev) => prev.map((b, i) => (i === idx ? { ...b, [key]: val } : b))),
+    (idx, key, val) => setBands((prev) => prev.map((b, i) => (i === idx ? { ...b, [key]: val } : b))),
     []
   );
 
   const applyPreset = (name) => {
-    const p = PRESETS[name];
-    if (!p) return;
+    const p = PRESETS[name]; if (!p) return;
     setBands((prev) => prev.map((b, i) => (i === activeBand ? { ...b, ...p } : b)));
   };
 
   const b         = bands[activeBand];
   const bandColor = BAND_DEFS[activeBand].color;
+  const bandGlow  = BAND_DEFS[activeBand].glow;
 
-  // ── Render ─────────────────────────────────────────────────────────────
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        background: 'linear-gradient(180deg, #0d1117 0%, #0a0e14 100%)',
-        color: '#cdd9e5',
+        background: '#0b0f14',
+        color: '#e6edf3',
         fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
         fontSize: '11px',
         overflow: 'hidden',
         position: 'relative',
       }}
     >
-      {/* Top accent bar */}
+      {/* Top accent line */}
       <div
         style={{
           position: 'absolute',
           top: 0, left: 0, right: 0,
           height: '2px',
-          background: `linear-gradient(90deg, transparent 0%, ${bandColor}99 50%, transparent 100%)`,
-          transition: 'background 0.4s ease',
+          background: `linear-gradient(90deg, transparent 0%, ${bandColor} 50%, transparent 100%)`,
+          transition: 'background 0.5s',
           zIndex: 10,
         }}
       />
 
-      {/* ── HEADER ── */}
+      {/* ══ HEADER ══ */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
-          padding: '8px 14px',
-          borderBottom: '1px solid #1c2128',
-          background: '#161b22',
+          gap: '12px',
+          padding: '10px 16px',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          background: 'rgba(255,255,255,0.02)',
           flexShrink: 0,
           zIndex: 5,
         }}
       >
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <rect x="1"  y="6" width="4" height="11" rx="1" fill="#ff6b6b" />
-          <rect x="7"  y="2" width="4" height="15" rx="1" fill="#00ffc8" />
-          <rect x="13" y="8" width="4" height="9"  rx="1" fill="#4a9eff" />
+        {/* Icon */}
+        <svg width="22" height="22" viewBox="0 0 18 18" fill="none">
+          <rect x="1"  y="6" width="4" height="11" rx="1.5" fill="#ff6b6b" />
+          <rect x="7"  y="2" width="4" height="15" rx="1.5" fill="#00ffc8" />
+          <rect x="13" y="8" width="4" height="9"  rx="1.5" fill="#4a9eff" />
         </svg>
-        <span style={{ color: '#e6edf3', fontWeight: 800, fontSize: '12px', letterSpacing: '0.12em' }}>
-          MULTIBAND
-        </span>
-        <span style={{ color: '#484f58', fontSize: '10px' }}>3-Band Compressor + Saturation</span>
+
+        <div>
+          <div style={{ color: '#e6edf3', fontWeight: 800, fontSize: '13px', letterSpacing: '0.12em' }}>
+            MULTIBAND
+          </div>
+          <div style={{ color: '#6e7681', fontSize: '9px', letterSpacing: '0.08em', marginTop: '1px' }}>
+            3-BAND COMPRESSOR + SATURATION
+          </div>
+        </div>
+
         {trackName && (
           <div
             style={{
-              padding: '2px 8px',
-              background: '#21262d',
-              borderRadius: '4px',
+              padding: '3px 10px',
+              background: 'rgba(255,255,255,0.06)',
+              borderRadius: '6px',
               color: '#8b949e',
               fontSize: '10px',
+              border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
             {trackName}
           </div>
         )}
+
         <div style={{ flex: 1 }} />
 
         {/* View toggle */}
@@ -483,10 +402,10 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
           style={{
             display: 'flex',
             gap: '2px',
-            background: '#0d1117',
-            borderRadius: '6px',
-            padding: '2px',
-            border: '1px solid #21262d',
+            background: 'rgba(0,0,0,0.4)',
+            borderRadius: '8px',
+            padding: '3px',
+            border: '1px solid rgba(255,255,255,0.08)',
           }}
         >
           {['detail', 'scope'].map((v) => (
@@ -494,58 +413,69 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
               key={v}
               onClick={() => setViewMode(v)}
               style={{
-                background: viewMode === v ? '#21262d' : 'none',
+                background: viewMode === v ? 'rgba(255,255,255,0.1)' : 'none',
                 border: 'none',
                 color: viewMode === v ? '#e6edf3' : '#6e7681',
-                borderRadius: '4px',
-                padding: '3px 12px',
+                borderRadius: '5px',
+                padding: '4px 14px',
                 cursor: 'pointer',
                 fontSize: '10px',
                 fontFamily: 'inherit',
-                transition: 'all 0.1s',
+                fontWeight: viewMode === v ? 700 : 400,
+                transition: 'all 0.12s',
+                letterSpacing: '0.06em',
               }}
             >
-              {v === 'detail' ? 'Bands' : 'Scope'}
+              {v === 'detail' ? 'BANDS' : 'SCOPE'}
             </button>
           ))}
         </div>
 
-        {/* Master makeup — rotary knob */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ color: '#6e7681', fontSize: '10px', letterSpacing: '0.08em' }}>MASTER</span>
+        {/* Master makeup */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '6px 12px',
+            background: 'rgba(0,255,200,0.05)',
+            borderRadius: '8px',
+            border: '1px solid rgba(0,255,200,0.15)',
+          }}
+        >
+          <span style={{ color: '#6e7681', fontSize: '9px', letterSpacing: '0.1em' }}>MASTER</span>
           <Knob
-            min={-12}
-            max={12}
-            step={0.5}
+            min={-12} max={12} step={0.5}
             value={masterMakeup}
             onChange={setMasterMakeup}
             color="#00ffc8"
-            size={36}
+            size={40}
             fmt={(v) => `${v > 0 ? '+' : ''}${v.toFixed(1)}`}
           />
-          <span style={{ color: '#00ffc8', minWidth: '40px', fontWeight: 700, fontSize: '11px' }}>
+          <span style={{ color: '#00ffc8', fontWeight: 800, fontSize: '12px', minWidth: '44px' }}>
             {masterMakeup > 0 ? '+' : ''}{masterMakeup}dB
           </span>
         </div>
 
-        {/* Enable / Bypass */}
+        {/* Enable/bypass */}
         <button
           onClick={() => setEnabled((p) => !p)}
           style={{
-            background: enabled ? '#00ffc8' : '#161b22',
-            color: enabled ? '#0d1117' : '#484f58',
-            border: `1px solid ${enabled ? '#00ffc8' : '#30363d'}`,
-            borderRadius: '5px',
-            padding: '4px 14px',
+            background: enabled ? '#00ffc8' : 'rgba(255,255,255,0.05)',
+            color: enabled ? '#0b0f14' : '#6e7681',
+            border: `1px solid ${enabled ? '#00ffc8' : 'rgba(255,255,255,0.1)'}`,
+            borderRadius: '7px',
+            padding: '6px 18px',
             cursor: 'pointer',
             fontFamily: 'inherit',
             fontSize: '10px',
             fontWeight: 800,
+            letterSpacing: '0.1em',
             transition: 'all 0.15s',
-            boxShadow: enabled ? '0 0 14px #00ffc844' : 'none',
+            boxShadow: enabled ? '0 0 20px rgba(0,255,200,0.3)' : 'none',
           }}
         >
-          {enabled ? 'ON' : 'BYPASS'}
+          {enabled ? '● ON' : '○ BYPASS'}
         </button>
 
         {onClose && (
@@ -553,22 +483,32 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
             onClick={onClose}
             style={{
               background: 'none',
-              border: '1px solid #30363d',
+              border: '1px solid rgba(255,255,255,0.1)',
               color: '#6e7681',
-              borderRadius: '4px',
-              padding: '3px 9px',
+              borderRadius: '6px',
+              padding: '5px 10px',
               cursor: 'pointer',
               fontFamily: 'inherit',
-              fontSize: '11px',
+              fontSize: '13px',
+              transition: 'all 0.12s',
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#ff6b6b'; e.currentTarget.style.color = '#ff6b6b'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#6e7681'; }}
           >
             ✕
           </button>
         )}
       </div>
 
-      {/* ── BAND SELECTOR ROW ── */}
-      <div style={{ display: 'flex', gap: '8px', padding: '10px 14px 0', flexShrink: 0 }}>
+      {/* ══ BAND TABS ══ */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '0',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          flexShrink: 0,
+        }}
+      >
         {bands.map((band, i) => {
           const def      = BAND_DEFS[i];
           const isActive = activeBand === i;
@@ -582,95 +522,92 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
               onClick={() => setActiveBand(i)}
               style={{
                 flex: 1,
-                border: `1px solid ${isActive ? def.color : '#21262d'}`,
-                borderRadius: '8px',
-                padding: '8px 10px 6px',
+                padding: '12px 16px',
                 cursor: 'pointer',
-                background: isActive ? `${def.color}08` : '#161b22',
+                background: isActive ? `${def.color}0d` : 'transparent',
+                borderBottom: `3px solid ${isActive ? def.color : 'transparent'}`,
                 transition: 'all 0.15s',
-                boxShadow: isActive
-                  ? `0 0 20px ${def.glow}, inset 0 1px 0 ${def.color}33`
-                  : 'none',
+                borderRight: i < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+              {/* Band top row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                 <div
                   style={{
-                    width: '7px',
-                    height: '7px',
+                    width: '8px',
+                    height: '8px',
                     borderRadius: '50%',
                     background: def.color,
-                    flexShrink: 0,
-                    boxShadow: isActive ? `0 0 8px ${def.color}` : 'none',
+                    boxShadow: isActive ? `0 0 10px ${def.color}` : 'none',
                     transition: 'box-shadow 0.3s',
+                    flexShrink: 0,
                   }}
                 />
-                <span style={{ color: def.color, fontWeight: 800, fontSize: '11px' }}>{def.label}</span>
                 <span
                   style={{
-                    color: '#3d444d',
-                    fontSize: '9px',
-                    flex: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
+                    color: isActive ? def.color : '#6e7681',
+                    fontWeight: 800,
+                    fontSize: '13px',
+                    letterSpacing: '0.1em',
+                    transition: 'color 0.15s',
                   }}
                 >
-                  {def.freqRange}
+                  {def.label}
                 </span>
+                <span style={{ color: '#484f58', fontSize: '9px', flex: 1 }}>{def.freqRange}</span>
+
+                {/* Solo / Mute */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setBands((prev) =>
-                      prev.map((b, j) => ({ ...b, solo: j === i ? !b.solo : false }))
-                    );
+                    setBands((prev) => prev.map((b, j) => ({ ...b, solo: j === i ? !b.solo : false })));
                   }}
                   style={{
-                    background: band.solo ? '#FF6600' : 'none',
-                    border: `1px solid ${band.solo ? '#FF6600' : '#30363d'}`,
-                    color: band.solo ? '#fff' : '#484f58',
-                    borderRadius: '3px',
-                    padding: '0 5px',
+                    background: band.solo ? '#FF6600' : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${band.solo ? '#FF6600' : 'rgba(255,255,255,0.1)'}`,
+                    color: band.solo ? '#fff' : '#6e7681',
+                    borderRadius: '4px',
+                    padding: '2px 7px',
                     cursor: 'pointer',
                     fontSize: '9px',
                     fontFamily: 'inherit',
-                    lineHeight: '14px',
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
                   }}
                 >
                   S
                 </button>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    updateBand(i, 'mute', !band.mute);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); updateBand(i, 'mute', !band.mute); }}
                   style={{
-                    background: band.mute ? '#ff6b6b' : 'none',
-                    border: `1px solid ${band.mute ? '#ff6b6b' : '#30363d'}`,
-                    color: band.mute ? '#fff' : '#484f58',
-                    borderRadius: '3px',
-                    padding: '0 5px',
+                    background: band.mute ? '#ff4444' : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${band.mute ? '#ff4444' : 'rgba(255,255,255,0.1)'}`,
+                    color: band.mute ? '#fff' : '#6e7681',
+                    borderRadius: '4px',
+                    padding: '2px 7px',
                     cursor: 'pointer',
                     fontSize: '9px',
                     fontFamily: 'inherit',
-                    lineHeight: '14px',
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
                   }}
                 >
                   M
                 </button>
               </div>
 
-              {/* Per-band meters */}
-              <div style={{ display: 'flex', gap: '4px', height: '48px', alignItems: 'flex-end' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                  <span style={{ color: '#3d444d', fontSize: '8px' }}>GR</span>
+              {/* Meters row */}
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-end', height: '52px' }}>
+                {/* GR meter */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                  <span style={{ color: '#484f58', fontSize: '8px', letterSpacing: '0.08em' }}>GR</span>
                   <div
                     style={{
-                      width: '8px',
+                      width: '10px',
                       height: '40px',
-                      background: '#0d1117',
-                      border: '1px solid #21262d',
-                      borderRadius: '2px',
+                      background: 'rgba(0,0,0,0.4)',
+                      border: `1px solid rgba(255,255,255,0.08)`,
+                      borderRadius: '3px',
                       display: 'flex',
                       flexDirection: 'column-reverse',
                       overflow: 'hidden',
@@ -679,25 +616,27 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                     <div
                       style={{
                         height: `${grH}%`,
-                        background: `linear-gradient(to top, ${def.color}, ${def.color}44)`,
+                        background: `linear-gradient(to top, ${def.color}, ${def.color}66)`,
                         transition: 'height 0.05s linear',
+                        boxShadow: grH > 10 ? `0 0 6px ${def.color}88` : 'none',
                       }}
                     />
                   </div>
-                  <span style={{ color: def.color, fontSize: '8px', fontWeight: 700 }}>
+                  <span style={{ color: def.color, fontSize: '9px', fontWeight: 700 }}>
                     -{grLevels[i].toFixed(1)}
                   </span>
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                  <span style={{ color: '#3d444d', fontSize: '8px' }}>OUT</span>
+                {/* OUT meter */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                  <span style={{ color: '#484f58', fontSize: '8px', letterSpacing: '0.08em' }}>OUT</span>
                   <div
                     style={{
                       width: '100%',
                       height: '40px',
-                      background: '#0d1117',
-                      border: '1px solid #21262d',
-                      borderRadius: '2px',
+                      background: 'rgba(0,0,0,0.4)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '3px',
                       position: 'relative',
                       overflow: 'hidden',
                     }}
@@ -705,69 +644,67 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                     <div
                       style={{
                         position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
+                        bottom: 0, left: 0, right: 0,
                         height: `${outH}%`,
                         background: `linear-gradient(to top, ${def.color}cc, ${def.color}22)`,
                         transition: 'height 0.05s linear',
                       }}
                     />
+                    {/* Peak hold line */}
                     <div
                       style={{
                         position: 'absolute',
-                        left: 0,
-                        right: 0,
+                        left: 0, right: 0,
                         bottom: `${pkH}%`,
-                        height: '1px',
+                        height: '2px',
                         background: def.color,
-                        opacity: 0.9,
-                        boxShadow: `0 0 4px ${def.color}`,
+                        boxShadow: `0 0 6px ${def.color}`,
                       }}
                     />
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                <span style={{ color: '#3d444d', fontSize: '8px' }}>{band.threshold}dB</span>
-                <span style={{ color: '#3d444d', fontSize: '8px' }}>{band.ratio.toFixed(1)}:1</span>
+              {/* Threshold / ratio readout */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+                <span style={{ color: '#6e7681', fontSize: '9px' }}>{band.threshold}dB</span>
+                <span style={{ color: '#6e7681', fontSize: '9px' }}>{band.ratio.toFixed(1)}:1</span>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* ── SPECTRUM CANVAS ── */}
-      <div style={{ padding: '8px 14px 0', flexShrink: 0 }}>
+      {/* ══ SPECTRUM CANVAS ══ */}
+      <div style={{ padding: '10px 16px 0', flexShrink: 0 }}>
         <canvas
           ref={specCanvasRef}
           width={900}
-          height={56}
+          height={64}
           style={{
             width: '100%',
-            height: '56px',
-            borderRadius: '6px',
+            height: '64px',
+            borderRadius: '8px',
             display: 'block',
-            border: '1px solid #1c2128',
+            border: '1px solid rgba(255,255,255,0.06)',
           }}
         />
       </div>
 
-      {/* ── MAIN CONTENT ── */}
-      <div style={{ flex: 1, overflow: 'hidden', padding: '10px 14px' }}>
+      {/* ══ MAIN CONTENT ══ */}
+      <div style={{ flex: 1, overflow: 'hidden', padding: '12px 16px' }}>
 
         {/* ─ DETAIL VIEW ─ */}
         {viewMode === 'detail' && (
-          <div style={{ display: 'flex', gap: '14px', height: '100%' }}>
+          <div style={{ display: 'flex', gap: '16px', height: '100%' }}>
 
-            {/* Left: all knobs */}
+            {/* Left: knobs */}
             <div
               style={{
                 flex: 2,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '10px',
+                gap: '14px',
                 overflowY: 'auto',
               }}
             >
@@ -776,30 +713,40 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  paddingBottom: '8px',
-                  borderBottom: `1px solid ${bandColor}33`,
+                  gap: '10px',
+                  padding: '10px 14px',
+                  background: `${bandColor}0a`,
+                  borderRadius: '10px',
+                  border: `1px solid ${bandColor}33`,
                 }}
               >
                 <div
                   style={{
-                    width: '10px',
-                    height: '10px',
+                    width: '12px',
+                    height: '12px',
                     borderRadius: '50%',
                     background: bandColor,
-                    boxShadow: `0 0 10px ${bandColor}`,
+                    boxShadow: `0 0 14px ${bandColor}`,
                   }}
                 />
-                <span style={{ color: bandColor, fontWeight: 800, fontSize: '13px', letterSpacing: '0.1em' }}>
+                <span
+                  style={{
+                    color: bandColor,
+                    fontWeight: 800,
+                    fontSize: '15px',
+                    letterSpacing: '0.1em',
+                    textShadow: `0 0 20px ${bandColor}66`,
+                  }}
+                >
                   {BAND_DEFS[activeBand].label} BAND
                 </span>
-                <span style={{ color: '#484f58', fontSize: '10px' }}>
+                <span style={{ color: '#6e7681', fontSize: '11px' }}>
                   {BAND_DEFS[activeBand].freqRange}
                 </span>
               </div>
 
               {/* Knob grid */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 8px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                 {activeBand < 2 && (
                   <KnobCell
                     label={activeBand === 0 ? 'Low Xover' : 'Mid Xover'}
@@ -808,100 +755,59 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                     max={activeBand === 0 ? 1000 : 10000}
                     step={activeBand === 0 ? 10 : 100}
                     color={bandColor}
-                    fmt={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}kHz` : `${v}Hz`}
+                    fmt={(v) => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${v}Hz`}
                     onChange={(v) => updateBand(activeBand, 'xover', v)}
+                    size={64}
                   />
                 )}
-                <KnobCell
-                  label="Threshold"
-                  value={b.threshold}
-                  min={-60}
-                  max={0}
-                  step={0.5}
-                  color={bandColor}
-                  fmt={(v) => `${v}dB`}
-                  onChange={(v) => updateBand(activeBand, 'threshold', v)}
-                />
-                <KnobCell
-                  label="Ratio"
-                  value={b.ratio}
-                  min={1}
-                  max={20}
-                  step={0.1}
-                  color={bandColor}
-                  fmt={(v) => `${v.toFixed(1)}:1`}
-                  onChange={(v) => updateBand(activeBand, 'ratio', v)}
-                />
-                <KnobCell
-                  label="Attack"
-                  value={b.attack}
-                  min={0.001}
-                  max={0.3}
-                  step={0.001}
-                  color={bandColor}
-                  fmt={(v) => `${Math.round(v * 1000)}ms`}
-                  onChange={(v) => updateBand(activeBand, 'attack', v)}
-                />
-                <KnobCell
-                  label="Release"
-                  value={b.release}
-                  min={0.01}
-                  max={1}
-                  step={0.01}
-                  color={bandColor}
-                  fmt={(v) => `${Math.round(v * 1000)}ms`}
-                  onChange={(v) => updateBand(activeBand, 'release', v)}
-                />
-                <KnobCell
-                  label="Makeup Gain"
-                  value={b.makeup}
-                  min={-12}
-                  max={24}
-                  step={0.5}
-                  color={bandColor}
-                  fmt={(v) => `${v > 0 ? '+' : ''}${v}dB`}
-                  onChange={(v) => updateBand(activeBand, 'makeup', v)}
-                />
-                <KnobCell
-                  label="Saturation"
-                  value={b.sat}
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  color={bandColor}
-                  fmt={(v) => `${Math.round(v * 100)}%`}
-                  onChange={(v) => updateBand(activeBand, 'sat', v)}
-                />
+                <KnobCell label="Threshold"  value={b.threshold} min={-60}   max={0}   step={0.5}  color={bandColor} fmt={(v) => `${v}dB`}                             onChange={(v) => updateBand(activeBand, 'threshold', v)} size={64} />
+                <KnobCell label="Ratio"       value={b.ratio}     min={1}     max={20}  step={0.1}  color={bandColor} fmt={(v) => `${v.toFixed(1)}:1`}                   onChange={(v) => updateBand(activeBand, 'ratio', v)}     size={64} />
+                <KnobCell label="Attack"      value={b.attack}    min={0.001} max={0.3} step={0.001}color={bandColor} fmt={(v) => `${Math.round(v * 1000)}ms`}            onChange={(v) => updateBand(activeBand, 'attack', v)}    size={64} />
+                <KnobCell label="Release"     value={b.release}   min={0.01}  max={1}   step={0.01} color={bandColor} fmt={(v) => `${Math.round(v * 1000)}ms`}            onChange={(v) => updateBand(activeBand, 'release', v)}   size={64} />
+                <KnobCell label="Makeup Gain" value={b.makeup}    min={-12}   max={24}  step={0.5}  color={bandColor} fmt={(v) => `${v > 0 ? '+' : ''}${v}dB`}           onChange={(v) => updateBand(activeBand, 'makeup', v)}    size={64} />
+                <KnobCell label="Saturation"  value={b.sat}       min={0}     max={1}   step={0.01} color={bandColor} fmt={(v) => `${Math.round(v * 100)}%`}              onChange={(v) => updateBand(activeBand, 'sat', v)}       size={64} />
               </div>
 
               {/* Presets */}
               <div>
-                <div style={{ color: '#484f58', fontSize: '9px', letterSpacing: '0.1em', marginBottom: '6px' }}>
+                <div
+                  style={{
+                    color: '#484f58',
+                    fontSize: '9px',
+                    letterSpacing: '0.15em',
+                    marginBottom: '8px',
+                    fontWeight: 700,
+                  }}
+                >
                   PRESETS
                 </div>
-                <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {Object.keys(PRESETS).map((name) => (
                     <button
                       key={name}
                       onClick={() => applyPreset(name)}
                       style={{
-                        background: 'none',
-                        border: `1px solid ${bandColor}44`,
+                        background: 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${bandColor}33`,
                         color: bandColor,
-                        borderRadius: '5px',
-                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        padding: '6px 16px',
                         cursor: 'pointer',
                         fontSize: '10px',
                         fontFamily: 'inherit',
+                        fontWeight: 700,
+                        letterSpacing: '0.08em',
                         transition: 'all 0.12s',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background  = bandColor + '22';
-                        e.currentTarget.style.boxShadow = `0 0 8px ${bandColor}44`;
+                        e.currentTarget.style.background = `${bandColor}22`;
+                        e.currentTarget.style.boxShadow = `0 0 12px ${bandColor}44`;
+                        e.currentTarget.style.borderColor = bandColor;
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background  = 'none';
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
                         e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.borderColor = `${bandColor}33`;
                       }}
                     >
                       {name}
@@ -911,18 +817,28 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
               </div>
             </div>
 
-            {/* Right: big GR meter + crossover summary */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ color: '#484f58', fontSize: '9px', letterSpacing: '0.1em', textAlign: 'center' }}>
+            {/* Right: GR meter + crossover summary */}
+            <div style={{ flex: '0 0 130px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div
+                style={{
+                  color: '#6e7681',
+                  fontSize: '9px',
+                  letterSpacing: '0.15em',
+                  textAlign: 'center',
+                  fontWeight: 700,
+                }}
+              >
                 GAIN REDUCTION
               </div>
+
+              {/* Big GR meter */}
               <div
                 style={{
                   flex: 1,
                   position: 'relative',
-                  background: '#0a0e14',
-                  border: '1px solid #1c2128',
-                  borderRadius: '8px',
+                  background: 'rgba(0,0,0,0.4)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: '10px',
                   overflow: 'hidden',
                 }}
               >
@@ -936,59 +852,69 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                       right: 0,
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px',
+                      gap: '5px',
                     }}
                   >
-                    <div style={{ width: '10px', height: '1px', background: '#21262d' }} />
-                    <span style={{ color: '#3d444d', fontSize: '8px' }}>-{db}</span>
+                    <div style={{ width: '12px', height: '1px', background: 'rgba(255,255,255,0.1)' }} />
+                    <span style={{ color: '#484f58', fontSize: '8px' }}>-{db}</span>
                   </div>
                 ))}
                 <div
                   style={{
                     position: 'absolute',
                     top: 0,
-                    left: '32px',
+                    left: '36px',
                     right: '8px',
                     height: `${Math.min(100, grLevels[activeBand] / 24 * 100)}%`,
-                    background: `linear-gradient(to bottom, ${bandColor}ee, ${bandColor}22)`,
+                    background: `linear-gradient(to bottom, ${bandColor}, ${bandColor}44)`,
                     borderRadius: '0 0 6px 6px',
                     transition: 'height 0.05s linear',
-                    boxShadow: `0 0 16px ${BAND_DEFS[activeBand].glow}`,
+                    boxShadow: `0 4px 20px ${bandColor}66`,
                   }}
                 />
-                <div style={{ position: 'absolute', bottom: '10px', left: 0, right: 0, textAlign: 'center' }}>
-                  <div style={{ color: bandColor, fontWeight: 800, fontSize: '20px', lineHeight: 1 }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '12px',
+                    left: 0,
+                    right: 0,
+                    textAlign: 'center',
+                  }}
+                >
+                  <div
+                    style={{
+                      color: bandColor,
+                      fontWeight: 800,
+                      fontSize: '22px',
+                      lineHeight: 1,
+                      textShadow: `0 0 20px ${bandColor}`,
+                    }}
+                  >
                     -{grLevels[activeBand].toFixed(1)}
                   </div>
-                  <div style={{ color: '#484f58', fontSize: '9px' }}>dB GR</div>
+                  <div style={{ color: '#6e7681', fontSize: '9px', marginTop: '2px' }}>dB GR</div>
                 </div>
               </div>
 
               {/* Crossover summary */}
               <div
                 style={{
-                  background: '#0a0e14',
-                  border: '1px solid #1c2128',
-                  borderRadius: '6px',
-                  padding: '8px 10px',
-                  fontSize: '9px',
-                  color: '#484f58',
+                  background: 'rgba(0,0,0,0.3)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                  <span>LOW XO</span>
-                  <span style={{ color: '#ff6b6b', fontWeight: 700 }}>
-                    {bands[0].xover >= 1000
-                      ? `${(bands[0].xover / 1000).toFixed(1)}kHz`
-                      : `${bands[0].xover}Hz`}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', alignItems: 'center' }}>
+                  <span style={{ color: '#6e7681', fontSize: '9px', letterSpacing: '0.08em' }}>LOW XO</span>
+                  <span style={{ color: '#ff6b6b', fontWeight: 700, fontSize: '11px' }}>
+                    {bands[0].xover >= 1000 ? `${(bands[0].xover / 1000).toFixed(1)}kHz` : `${bands[0].xover}Hz`}
                   </span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>MID XO</span>
-                  <span style={{ color: '#00ffc8', fontWeight: 700 }}>
-                    {bands[1].xover >= 1000
-                      ? `${(bands[1].xover / 1000).toFixed(1)}kHz`
-                      : `${bands[1].xover}Hz`}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#6e7681', fontSize: '9px', letterSpacing: '0.08em' }}>MID XO</span>
+                  <span style={{ color: '#00ffc8', fontWeight: 700, fontSize: '11px' }}>
+                    {bands[1].xover >= 1000 ? `${(bands[1].xover / 1000).toFixed(1)}kHz` : `${bands[1].xover}Hz`}
                   </span>
                 </div>
               </div>
@@ -998,8 +924,8 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
 
         {/* ─ SCOPE VIEW ─ */}
         {viewMode === 'scope' && (
-          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ color: '#484f58', fontSize: '9px', letterSpacing: '0.1em' }}>
+          <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ color: '#6e7681', fontSize: '9px', letterSpacing: '0.12em', fontWeight: 700 }}>
               OSCILLOSCOPE — LOW BAND OUTPUT
             </div>
             <canvas
@@ -1009,8 +935,8 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
               style={{
                 width: '100%',
                 flex: 1,
-                borderRadius: '8px',
-                border: '1px solid #1c2128',
+                borderRadius: '10px',
+                border: '1px solid rgba(255,255,255,0.06)',
                 display: 'block',
               }}
             />
@@ -1021,23 +947,23 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
                   onClick={() => setActiveBand(i)}
                   style={{
                     flex: 1,
-                    background: '#0a0e14',
-                    border: `1px solid ${activeBand === i ? def.color : '#1c2128'}`,
-                    borderRadius: '6px',
-                    padding: '8px 10px',
+                    background: activeBand === i ? `${def.color}0d` : 'rgba(0,0,0,0.3)',
+                    border: `1px solid ${activeBand === i ? def.color : 'rgba(255,255,255,0.06)'}`,
+                    borderRadius: '8px',
+                    padding: '10px 12px',
                     textAlign: 'center',
                     cursor: 'pointer',
                     transition: 'all 0.15s',
-                    boxShadow: activeBand === i ? `0 0 14px ${def.glow}` : 'none',
+                    boxShadow: activeBand === i ? `0 0 16px ${def.glow}` : 'none',
                   }}
                 >
-                  <div style={{ color: def.color, fontSize: '10px', marginBottom: '4px', fontWeight: 700 }}>
+                  <div style={{ color: def.color, fontSize: '11px', marginBottom: '4px', fontWeight: 700, letterSpacing: '0.1em' }}>
                     {def.label}
                   </div>
-                  <div style={{ color: '#e6edf3', fontSize: '18px', fontWeight: 800 }}>
+                  <div style={{ color: '#e6edf3', fontSize: '20px', fontWeight: 800 }}>
                     -{grLevels[i].toFixed(1)}
                   </div>
-                  <div style={{ color: '#484f58', fontSize: '9px' }}>dB GR</div>
+                  <div style={{ color: '#6e7681', fontSize: '9px', marginTop: '2px' }}>dB GR</div>
                 </div>
               ))}
             </div>
@@ -1045,31 +971,38 @@ const MultibandEffects = ({ audioContext, inputNode, outputNode, trackName, onCl
         )}
       </div>
 
-      {/* ── FOOTER ── */}
+      {/* ══ FOOTER ══ */}
       <div
         style={{
-          borderTop: '1px solid #1c2128',
-          padding: '5px 14px',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          padding: '6px 16px',
           display: 'flex',
-          gap: '12px',
-          color: '#3d444d',
+          gap: '14px',
+          color: '#484f58',
           fontSize: '9px',
           flexShrink: 0,
-          background: '#0a0e14',
-          letterSpacing: '0.07em',
+          background: 'rgba(0,0,0,0.3)',
+          letterSpacing: '0.08em',
+          alignItems: 'center',
         }}
       >
-        <span style={{ color: '#484f58' }}>3-BAND MULTIBAND COMPRESSOR</span>
+        <span style={{ color: '#6e7681', fontWeight: 700 }}>3-BAND MULTIBAND COMPRESSOR</span>
         <span>•</span>
-        <span style={{ color: '#ff6b6b88' }}>
+        <span style={{ color: '#ff6b6b99' }}>
           LOW XO: {bands[0].xover >= 1000 ? `${(bands[0].xover / 1000).toFixed(1)}k` : bands[0].xover}Hz
         </span>
         <span>•</span>
-        <span style={{ color: '#00ffc888' }}>
+        <span style={{ color: '#00ffc899' }}>
           MID XO: {bands[1].xover >= 1000 ? `${(bands[1].xover / 1000).toFixed(1)}k` : bands[1].xover}Hz
         </span>
         <div style={{ flex: 1 }} />
-        <span style={{ color: enabled ? '#00ffc8' : '#3d444d', fontWeight: 700 }}>
+        <span
+          style={{
+            color: enabled ? '#00ffc8' : '#484f58',
+            fontWeight: 800,
+            letterSpacing: '0.1em',
+          }}
+        >
           {enabled ? '● ACTIVE' : '○ BYPASSED'}
         </span>
       </div>

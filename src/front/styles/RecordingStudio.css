@@ -1890,3 +1890,59 @@
   font-size: 0.65rem;
   color: #ff6600;
 }
+/* ── Console channel alignment: all sections have fixed height so faders line up ── */
+.daw-channel {
+  display: flex;
+  flex-direction: column;
+}
+
+.daw-ch-routing {
+  min-height: 56px;
+  box-sizing: border-box;
+}
+
+.daw-ch-inserts {
+  min-height: 120px;
+  box-sizing: border-box;
+}
+
+.daw-ch-controls {
+  min-height: 28px;
+  box-sizing: border-box;
+}
+
+.daw-ch-pan {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.daw-ch-fader-area {
+  flex: 1;
+}
+
+.daw-ch-fader-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 4px;
+}
+
+/* Master channel — match same section heights even without content */
+.master-channel .daw-ch-routing {
+  min-height: 56px;
+}
+
+.master-channel .daw-ch-inserts {
+  min-height: 120px;
+}
+
+.master-channel .daw-ch-controls {
+  min-height: 28px;
+}
+
+.master-channel .daw-ch-pan {
+  min-height: 48px;
+}

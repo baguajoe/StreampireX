@@ -3049,27 +3049,28 @@ const RecordingStudio = ({ user }) => {
                 {/* ── Master Stereo Meter + Fader SIDE BY SIDE ── */}
                 <div className="daw-ch-fader-area">
                   <div className="daw-ch-fader-row">
-                    <CubaseMeter
-                      leftLevel={masterMeterLevels?.left || 0}
-                      rightLevel={masterMeterLevels?.right || 0}
-                      height={180}
-                      showScale={true}
-                    />
-
-                  </div>
-                  <div className="daw-ch-fader">
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={masterVolume}
-                      onChange={(e) => {
-                        const v = parseFloat(e.target.value);
-                        setMasterVolume(v);
-                        if (masterGainRef.current) masterGainRef.current.gain.value = v;
-                      }}
-                    />
+                    <div className="daw-ch-meter" title="Level">
+                      <CubaseMeter
+                        leftLevel={masterMeterLevels?.left || 0}
+                        rightLevel={masterMeterLevels?.right || 0}
+                        height={180}
+                        showScale={true}
+                      />
+                    </div>
+                    <div className="daw-ch-fader">
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={masterVolume}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value);
+                          setMasterVolume(v);
+                          if (masterGainRef.current) masterGainRef.current.gain.value = v;
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="daw-ch-vol-display">
