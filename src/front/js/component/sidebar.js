@@ -769,6 +769,12 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/browse-producers" className={isActive("/browse-producers") ? "active" : ""}>
             🎤 <span className="sidebar-label">Browse Producers</span>
           </MenuItem>
+          <MenuItem to="/browse-stems" className={isActive("/browse-stems") ? "active" : ""}>
+            🎵 <span className="sidebar-label">Stem Store</span>
+          </MenuItem>
+          <MenuItem to="/sell-stems" className={isActive("/sell-stems") ? "active" : ""}>
+            💰 <span className="sidebar-label">Sell Stems</span>
+          </MenuItem>
           <MenuItem to="/orders" className={isActive("/orders") ? "active" : ""}>
             📦 <span className="sidebar-label">Orders</span>
           </MenuItem>
