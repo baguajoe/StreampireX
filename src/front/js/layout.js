@@ -158,6 +158,16 @@ import CollabFeed from "./pages/CollabFeed";
 import EmbeddablePlayer from "./pages/EmbeddablePlayer";
 import ClipView from "./pages/ClipView";
 
+// --- Film & Series ---
+import FilmUploadForm     from "./pages/FilmUploadForm";
+import FilmDetailPage     from "./pages/FilmDetailPage";
+import BrowseFilmsPage    from "./pages/BrowseFilmsPage";
+import FilmTheatrePage    from "./pages/FilmTheatrePage";
+import VirtualTheatreRoom from "./pages/VirtualTheatreRoom";
+import ShortFilmHub       from "./pages/ShortFilmHub";
+import ScreeningScheduler from "./pages/ScreeningScheduler";
+import FilmFestivalBoard  from "./pages/FilmFestivalBoard";
+
 /* -------------------------------------------------------------------------- */
 /* Public landing navbar for Home + Compare + Dev Login + Waitlist            */
 /* -------------------------------------------------------------------------- */
@@ -578,6 +588,17 @@ const AppShell = ({ user }) => {
                                 {/* ---------------- Misc ---------------- */}
                                 <Route path="/tip-jar" element={<TipJarPage />} />
                                 <Route path="/sonosuite-redirect" element={<SonosuiteRedirect />} />
+
+                                {/* ---------------- Film & Series ---------------- */}
+                                <Route path="/film-upload"         element={<FilmUploadForm />} />
+                                <Route path="/film/:id"             element={<FilmDetailPage />} />
+                                <Route path="/browse-films"         element={<BrowseFilmsPage />} />
+                                <Route path="/my-theatre"           element={<FilmTheatrePage />} />
+                                <Route path="/theatre/:id"          element={<FilmTheatrePage />} />
+                                <Route path="/screening/:id"        element={<VirtualTheatreRoom />} />
+                                <Route path="/short-films"          element={<ShortFilmHub />} />
+                                <Route path="/screening-scheduler"  element={<ScreeningScheduler />} />
+                                <Route path="/film-festival"        element={<FilmFestivalBoard />} />
 
                                 {/* ---------------- Fallback ---------------- */}
                                 <Route path="*" element={<Home />} />

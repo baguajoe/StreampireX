@@ -2170,4 +2170,462 @@
 		max-width: 180px;
 	}
 
+}/* =============================================================================
+   home_film_additions.css — Film & Series + Creator Academy Home Sections
+   Location: Add to bottom of src/front/styles/home.css
+   ============================================================================= */
+
+/* =============================================
+   FILM & SERIES SPOTLIGHT
+   ============================================= */
+
+.streampirex-home .film-series-spotlight {
+  padding: 5rem 2rem;
+  background: linear-gradient(180deg, #0d1117 0%, #0a1628 50%, #0d1117 100%);
+  border-top: 2px solid rgba(255, 107, 107, 0.3);
+  border-bottom: 2px solid rgba(255, 107, 107, 0.3);
+}
+
+.streampirex-home .film-section-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.streampirex-home .film-section-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.streampirex-home .film-badge-tag {
+  display: inline-block;
+  background: linear-gradient(135deg, #ff6b6b, #ff4757);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.82rem;
+  padding: 0.3rem 1rem;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+}
+
+.streampirex-home .film-section-header h2 {
+  font-size: 2.2rem;
+  color: #ff6b6b !important;
+  margin-bottom: 0.5rem;
+  background: transparent !important;
+}
+
+/* Film features grid */
+.streampirex-home .film-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 4rem;
+}
+
+@media (max-width: 900px) {
+  .streampirex-home .film-features-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .streampirex-home .film-features-grid { grid-template-columns: 1fr; }
+}
+
+.streampirex-home .film-feature-item {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: border-color 0.2s, transform 0.2s;
+  position: relative;
+}
+
+.streampirex-home .film-feature-item:hover {
+  border-color: #ff6b6b;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(255, 107, 107, 0.12);
+}
+
+.streampirex-home .film-feature-icon {
+  display: block;
+  font-size: 2.2rem;
+  margin-bottom: 0.75rem;
+}
+
+.streampirex-home .film-feature-item h4 {
+  color: #ff6b6b !important;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  background: transparent !important;
+}
+
+.streampirex-home .film-feature-item p {
+  color: #9ca3af !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.streampirex-home .film-feature-tag {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.streampirex-home .film-feature-tag.free {
+  background: rgba(0,255,200,0.15);
+  color: #00ffc8;
+  border: 1px solid rgba(0,255,200,0.3);
+}
+
+.streampirex-home .film-feature-tag.new {
+  background: rgba(255,107,107,0.15);
+  color: #ff6b6b;
+  border: 1px solid rgba(255,107,107,0.3);
+}
+
+.streampirex-home .film-feature-tag.pro {
+  background: rgba(255,167,38,0.15);
+  color: #ffa726;
+  border: 1px solid rgba(255,167,38,0.3);
+}
+
+/* Virtual Theatre Preview */
+.streampirex-home .film-theatre-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+  margin-bottom: 3rem;
+  background: rgba(255,107,107,0.04);
+  border: 1px solid rgba(255,107,107,0.15);
+  border-radius: 16px;
+  padding: 2.5rem;
+}
+
+@media (max-width: 900px) {
+  .streampirex-home .film-theatre-preview { grid-template-columns: 1fr; }
+}
+
+.streampirex-home .film-theatre-left h3 {
+  color: #ff6b6b !important;
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  background: transparent !important;
+}
+
+.streampirex-home .film-theatre-left p {
+  color: #c9d1d9 !important;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin-bottom: 1.25rem;
+  background: transparent !important;
+}
+
+.streampirex-home .film-theatre-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.streampirex-home .film-theatre-features li {
+  color: #d1d5db !important;
+  font-size: 0.88rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: transparent !important;
+}
+
+/* Theatre Mockup */
+.streampirex-home .film-theatre-mockup {
+  background: #050a12;
+  border: 1px solid rgba(255,107,107,0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 0.75rem;
+}
+
+.streampirex-home .mockup-topbar {
+  background: #0d1117;
+  border-bottom: 1px solid #1a2332;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.streampirex-home .mockup-logo   { font-weight: 800; color: #00ffc8; }
+.streampirex-home .mockup-title  { font-weight: 700; color: #e6edf3; flex: 1; }
+.streampirex-home .mockup-live   { background: #ff4757; color: #fff; border-radius: 4px; padding: 2px 6px; font-size: 0.65rem; font-weight: 800; }
+.streampirex-home .mockup-viewers{ color: #8b949e; }
+
+.streampirex-home .mockup-screen {
+  background: #000;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.streampirex-home .mockup-play-icon {
+  font-size: 3rem;
+  color: rgba(255,255,255,0.3);
+}
+
+.streampirex-home .mockup-sync {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0,255,200,0.15);
+  color: #00ffc8;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.streampirex-home .mockup-controls {
+  background: #0d1117;
+  border-top: 1px solid #1a2332;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #ffd700;
+  font-weight: 700;
+}
+
+.streampirex-home .mockup-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.streampirex-home .mockup-btns button {
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  color: #c9d1d9;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 0.68rem;
+}
+
+.streampirex-home .mockup-chat {
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.streampirex-home .mockup-msg {
+  font-size: 0.72rem;
+  color: #c9d1d9;
+}
+
+.streampirex-home .mockup-msg.host { color: #ffd700; }
+
+.streampirex-home .mockup-name {
+  font-weight: 700;
+  color: #00ffc8;
+  margin-right: 6px;
+}
+
+.streampirex-home .mockup-msg.host .mockup-name { color: #ffd700; }
+
+/* Film Pricing Callout */
+.streampirex-home .film-pricing-callout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: rgba(255,107,107,0.05);
+  border: 1px solid rgba(255,107,107,0.2);
+  border-radius: 12px;
+  padding: 2rem;
+  flex-wrap: wrap;
+}
+
+.streampirex-home .film-pricing-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.4rem;
+}
+
+.streampirex-home .film-pricing-icon {
+  font-size: 2rem;
+}
+
+.streampirex-home .film-pricing-item strong {
+  color: #ff6b6b !important;
+  font-size: 1rem;
+  font-weight: 800;
+  background: transparent !important;
+}
+
+.streampirex-home .film-pricing-item span {
+  color: #9ca3af;
+  font-size: 0.82rem;
+  max-width: 180px;
+}
+
+.streampirex-home .film-pricing-divider {
+  color: rgba(255,107,107,0.4);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* =============================================
+   CREATOR ACADEMY SPOTLIGHT
+   ============================================= */
+
+.streampirex-home .creator-academy-spotlight {
+  padding: 5rem 2rem;
+  background: linear-gradient(180deg, #0d1117 0%, #111827 100%);
+  text-align: center;
+  border-top: 2px solid rgba(167,139,250,0.2);
+  border-bottom: 2px solid rgba(167,139,250,0.2);
+}
+
+.streampirex-home .creator-academy-spotlight h2 {
+  color: #a78bfa !important;
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+  background: transparent !important;
+}
+
+.streampirex-home .academy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 2.5rem auto;
+}
+
+@media (max-width: 768px) {
+  .streampirex-home .academy-grid { grid-template-columns: 1fr; }
+}
+
+.streampirex-home .academy-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 14px;
+  padding: 2rem;
+  text-align: left;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.streampirex-home .academy-card.creator-side {
+  border-color: rgba(167,139,250,0.3);
+}
+
+.streampirex-home .academy-card.creator-side:hover {
+  border-color: #a78bfa;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(167,139,250,0.12);
+}
+
+.streampirex-home .academy-card.student-side {
+  border-color: rgba(0,255,200,0.2);
+}
+
+.streampirex-home .academy-card.student-side:hover {
+  border-color: #00ffc8;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(0,255,200,0.1);
+}
+
+.streampirex-home .academy-card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.streampirex-home .academy-emoji {
+  font-size: 2rem;
+}
+
+.streampirex-home .academy-card h4 {
+  color: #e6edf3 !important;
+  font-size: 1.05rem;
+  font-weight: 700;
+  background: transparent !important;
+}
+
+.streampirex-home .academy-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.streampirex-home .academy-features li {
+  color: #d1d5db !important;
+  font-size: 0.88rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: transparent !important;
+}
+
+.streampirex-home .academy-features li:last-child {
+  border-bottom: none;
+}
+
+/* Academy Categories */
+.streampirex-home .academy-categories {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.streampirex-home .academy-cat {
+  background: rgba(167,139,250,0.1);
+  color: #a78bfa;
+  border: 1px solid rgba(167,139,250,0.25);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.streampirex-home .academy-cat:hover {
+  background: rgba(167,139,250,0.2);
+}
+
+/* =============================================
+   RESPONSIVE FIXES
+   ============================================= */
+
+@media (max-width: 768px) {
+  .streampirex-home .film-section-header h2 {
+    font-size: 1.7rem;
+  }
+
+  .streampirex-home .film-theatre-preview {
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .streampirex-home .film-pricing-callout {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .streampirex-home .film-pricing-divider {
+    transform: rotate(90deg);
+  }
+
+  .streampirex-home .creator-academy-spotlight h2 {
+    font-size: 1.7rem;
+  }
 }

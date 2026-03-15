@@ -63,6 +63,7 @@ from api.utils import APIException, generate_sitemap
 from api.admin import setup_admin
 from api.commands import setup_commands
 from api.socketio import init_socketio
+from api.film_screening_socket import register_screening_events
 from api.extensions import db
 from api.messages_routes import messages_bp  # Add src. prefix 
 from api.video_editor_routes import video_editor_bp
@@ -91,6 +92,7 @@ from api.analytics_routes import analytics_bp
 from api.looperman_routes import looperman_bp
 from api.fan_membership_routes import fan_membership_bp
 from api.series_routes import series_bp
+from api.film_routes import film_bp
 from api.comment_routes import comment_bp
 
 
@@ -347,6 +349,7 @@ app.register_blueprint(analytics_bp)
 app.register_blueprint(looperman_bp)
 app.register_blueprint(fan_membership_bp)
 app.register_blueprint(series_bp)
+app.register_blueprint(film_bp)
 app.register_blueprint(comment_bp)
 from api.wam_plugin_routes import wam_plugin_bp
 app.register_blueprint(wam_plugin_bp)
@@ -355,6 +358,7 @@ app.register_blueprint(printful_bp, url_prefix='/api/printful')
 
 # ✅ Initialize WebRTC SocketIO from separate module
 socketio = init_socketio(app)
+register_screening_events(socketio)
 app.socketio = socketio
 
 # ✅ Register podcast socket events AFTER socketio is created

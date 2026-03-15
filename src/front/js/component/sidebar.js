@@ -189,6 +189,30 @@ const AIMenuItem = styled(MenuItem)`
   &.active { background: rgba(124,58,237,0.15); border-left-color: #a78bfa; color: #a78bfa; box-shadow: inset 0 0 10px rgba(124,58,237,0.15); }
 `;
 
+const FilmSectionHeader = styled.h4`
+  color: #ff6b6b;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 20px 15px 8px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+  &:hover { color: #ff8e8e; }
+  &::after { content: ''; flex: 1; height: 1px; background: rgba(255,107,107,0.3); }
+`;
+
+const FilmMenuItem = styled(MenuItem)`
+  &:hover { background: rgba(255,107,107,0.1); border-left-color: #ff6b6b; color: #ff6b6b; }
+  &.active { background: rgba(255,107,107,0.15); border-left-color: #ff6b6b; color: #ff6b6b; box-shadow: inset 0 0 10px rgba(255,107,107,0.15); }
+`;
+
 const AISectionHeader = styled.h4`
   color: #a78bfa;
   font-size: 0.7rem;
@@ -254,6 +278,7 @@ const Sidebar = ({ user }) => {
   const [showStore,     setShowStore]     = useState(true);
   const [showDashboard, setShowDashboard] = useState(true);
   const [showAccount,   setShowAccount]   = useState(false);
+  const [showFilm,      setShowFilm]      = useState(false);
 
   const hasArtistProfile =
     user?.is_artist === true ||
