@@ -672,7 +672,7 @@ const Sidebar = ({ user }) => {
           <AcademyMenuItem to="/my-learning" className={isActive("/my-learning") ? "active" : ""}>
             📚 <span className="sidebar-label">My Learning</span>
           </AcademyMenuItem>
-          <AcademyMenuItem to="/create-course" className={isActive("/create-course") ? "active" : ""}>
+          <AcademyMenuItem to="/course-builder" className={isActive("/course-builder") ? "active" : ""}>
             ➕ <span className="sidebar-label">Create Course</span>
           </AcademyMenuItem>
         </>
