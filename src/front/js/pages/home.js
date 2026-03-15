@@ -1581,7 +1581,7 @@ const Home = () => {
 				<div className="footer-content">
 					<div className="footer-brand">
 						<h3>StreamPireX</h3>
-						<p>© {new Date().getFullYear()} Eye Forge Studios LLC. The AI-Powered Creator Platform.</p>
+						<p>© {new Date().getFullYear()} Eye Forge Studios LLC. The Creator Platform Built for Every Voice.</p>
 					</div>
 
 					<div className="footer-columns">
