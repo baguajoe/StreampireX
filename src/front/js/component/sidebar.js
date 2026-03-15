@@ -511,7 +511,7 @@ const Sidebar = ({ user }) => {
             🎛️ <span className="sidebar-label">Recording Studio</span>
             <MenuHint className="sidebar-hint">DAW</MenuHint>
           </MenuItem>
-          <MenuItem to="/beats" className={isActive("/beats") ? "active" : ""}>
+          <MenuItem to="/beat-store" className={isActive("/beat-store") ? "active" : ""}>
             🥁 <span className="sidebar-label">Beat Maker</span>
             <MenuHint className="sidebar-hint">MPC</MenuHint>
           </MenuItem>
@@ -613,6 +613,9 @@ const Sidebar = ({ user }) => {
           <PodcastMenuItem to="/podcast-studio" className={isActive("/podcast-studio") ? "active" : ""}>
             🎙️ <span className="sidebar-label">Podcast Studio</span>
           </PodcastMenuItem>
+          <PodcastMenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>
+            ➕ <span className="sidebar-label">Create Podcast</span>
+          </PodcastMenuItem>
           <PodcastMenuItem to="/browse-podcast-categories" className={isActive("/browse-podcast-categories") ? "active" : ""}>
             🎧 <span className="sidebar-label">Browse Podcasts</span>
           </PodcastMenuItem>
@@ -642,7 +645,7 @@ const Sidebar = ({ user }) => {
             🔍 <span className="sidebar-label">Find Squads</span>
             {gamingNotifications.squads > 0 && <NotificationBadge>{gamingNotifications.squads}</NotificationBadge>}
           </GamingMenuItem>
-          <GamingMenuItem to="/team-room" className={isActive("/team-room") ? "active" : ""}>
+          <GamingMenuItem to="/create-team-room" className={isActive("/create-team-room") ? "active" : ""}>
             🧑‍🤝‍🧑 <span className="sidebar-label">Team Room</span>
             {gamingNotifications.teamRoom > 0 && <NotificationBadge>{gamingNotifications.teamRoom}</NotificationBadge>}
           </GamingMenuItem>
@@ -698,7 +701,7 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/browse-videos" className={isActive("/browse-videos") ? "active" : ""}>
             🎞️ <span className="sidebar-label">Browse Videos</span>
           </MenuItem>
-          <MenuItem to="/upload-video" className={isActive("/upload-video") ? "active" : ""}>
+          <MenuItem to="/video-upload" className={isActive("/video-upload") ? "active" : ""}>
             📤 <span className="sidebar-label">Upload Video</span>
           </MenuItem>
           <MenuItem to="/reels" className={isActive("/reels") ? "active" : ""}>
