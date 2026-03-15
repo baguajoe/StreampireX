@@ -776,22 +776,6 @@ const Sidebar = ({ user }) => {
       )}
 
       {/* ============================================================ */}
-      {/* #10 🤖 AI TOOLS                                              */}
-      {/* ============================================================ */}
-      <AISectionHeader className="sidebar-section-header" onClick={() => setShowAI(!showAI)}>
-        🤖 <span className="sidebar-section-text">AI Tools</span>
-        <span className="sidebar-arrow" style={{ fontSize: '0.6rem', marginLeft: 'auto' }}>
-          {showAI ? '▼' : '▶'}
-        </span>
-      </AISectionHeader>
-
-      {showAI && (
-        <>
-
-        </>
-      )}
-
-      {/* ============================================================ */}
       {/* #11 ⚙️ ACCOUNT                                               */}
       {/* ============================================================ */}
       <SectionHeader className="sidebar-section-header" onClick={() => setShowAccount(!showAccount)}>
