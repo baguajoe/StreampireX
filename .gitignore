@@ -23,3 +23,14 @@ __pycache__/
 *.pyc
 venv/node_modules/
 venv/
+
+# Build output
+dist_manual/
+public/bundle.js
+
+# Dependencies
+node_modules/
+websocket-server/node_modules/
+
+# Bak files
+*.bak
