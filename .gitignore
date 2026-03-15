@@ -34,3 +34,12 @@ websocket-server/node_modules/
 
 # Bak files
 *.bak
+uploads/
+*.bak
+test-results.json
+test-results.xml
+playwright-report/
+homepage-screenshot.png
+debug-initial-state.png
+*.bak*
+*_printful
