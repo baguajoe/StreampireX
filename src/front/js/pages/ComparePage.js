@@ -22,6 +22,8 @@ const ComparePage = () => {
                 <a href="#distribution">DISTRIBUTION</a>
                 <a href="#streaming">STREAMING</a>
                 <a href="#epk">EPK &amp; SOCIAL</a>
+                <a href="#film">FILM</a>
+                <a href="#academy">ACADEMY</a>
                 <a href="#revenue">REVENUE</a>
                 <a href="#pricing">PRICING</a>
 
@@ -765,13 +767,98 @@ const ComparePage = () => {
                     </div>
                 </div>
 
+
+                {/* 11. FILM & SERIES */}
+                <div className="sec-head" id="film">
+                    <h2>🎬 Film &amp; Series Platform</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">vs Vimeo · Mubi · Eventive · Reelhouse · YouTube</div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>Vimeo</th>
+                                <th>Mubi</th>
+                                <th>Eventive</th>
+                                <th>Reelhouse</th>
+                                <th>YouTube</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="cat"><td colSpan="7">🎭 Theatre &amp; Upload</td></tr>
+                            <tr><td>Upload films (free)</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="p">~</span> Storage limits</td><td><span className="n">✗</span> Curated only</td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Virtual theatre profile</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE</span></td><td><span className="p">~</span> Portfolio</td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span> Channel</td></tr>
+                            <tr><td>IMDB-style credits (SAG, cast, crew)</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Festival laurels display</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr className="cat"><td colSpan="7">🎟️ Screenings &amp; Live Events</td></tr>
+                            <tr><td>Schedule live premiere events</td><td className="spx"><span className="y">✓</span> <span className="b b-new">NEW</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Synchronized playback for all viewers</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Filmmaker controls playback for audience</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Live chat during screening</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td></tr>
+                            <tr><td>Q&amp;A mode after screening</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Ticket sales (free + paid)</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr className="cat"><td colSpan="7">💰 Monetization</td></tr>
+                            <tr><td>Rent film (48hr)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Buy film (permanent)</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Fan membership gated films</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td></tr>
+                            <tr><td>Creator revenue share</td><td className="spx" style={{color:"var(--teal)",fontWeight:800}}>90%</td><td>~85%</td><td>~70%</td><td>~90%</td><td>~80%</td><td>~55%</td></tr>
+                            <tr className="cat"><td colSpan="7">🏆 Community &amp; Festival</td></tr>
+                            <tr><td>Monthly short film festival</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Community voting</td><td className="spx"><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Music production tools included</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Pricing</td><td className="spx" style={{color:"var(--teal)",fontWeight:700}}>$0 free to upload</td><td>$12–$75/mo</td><td>$10.99/mo viewer</td><td>Custom</td><td>$20/mo</td><td>Free</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* 12. CREATOR ACADEMY */}
+                <div className="sec-head" id="academy">
+                    <h2>🎓 Creator Academy</h2>
+                    <div className="sec-line"></div>
+                    <div className="sec-tag">vs Teachable · Thinkific · Udemy · Skillshare · Kajabi</div>
+                </div>
+                <div className="tbl-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th className="spx">StreamPireX</th>
+                                <th>Teachable</th>
+                                <th>Thinkific</th>
+                                <th>Udemy</th>
+                                <th>Skillshare</th>
+                                <th>Kajabi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="cat"><td colSpan="7">📚 Course Building</td></tr>
+                            <tr><td>Build structured courses</td><td className="spx"><span className="y">✓</span> <span className="b b-free">FREE tier</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Student progress tracking</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Course reviews &amp; ratings</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td></tr>
+                            <tr className="cat"><td colSpan="7">💰 Monetization</td></tr>
+                            <tr><td>Sell paid courses</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Revenue share to creator</td><td className="spx" style={{color:"var(--teal)",fontWeight:800}}>90%</td><td>~93%</td><td>~97%</td><td>37–97%</td><td>~35%</td><td>~100%</td></tr>
+                            <tr><td>Free courses available</td><td className="spx"><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="y">✓</span></td><td><span className="n">✗</span></td><td><span className="y">✓</span></td></tr>
+                            <tr className="cat"><td colSpan="7">🎯 Platform Integration</td></tr>
+                            <tr><td>Music production tools included</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Film platform included</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td></tr>
+                            <tr><td>Beat store + merch also sellable</td><td className="spx"><span className="y">✓</span> <span className="b b-unique">UNIQUE</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="n">✗</span></td><td><span className="p">~</span></td></tr>
+                            <tr><td>Social network + community</td><td className="spx"><span className="y">✓</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td><td><span className="p">~</span></td><td><span className="y">✓</span></td></tr>
+                            <tr><td>Pricing (starting)</td><td className="spx" style={{color:"var(--teal)",fontWeight:700}}>$0 free tier</td><td>$39/mo</td><td>$36/mo</td><td>Free (37% cut)</td><td>$32/mo</td><td>$149/mo</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
                 {/* WINNER */}
                 <div className="winner">
                     <div className="winner-icon">🏆</div>
                     <div className="winner-body">
                         <h3>StreamPireX Wins on Every Axis</h3>
                         <p>
-                            No other platform combines a browser-based DAW, MPC beat maker with
+                            No other platform combines a browser-based DAW, MPC beat maker, AI tools, beat store, music distribution to 150+ platforms, podcast studio, 24/7 radio with AI DJ, live streaming, video editor, AI video generation, EPK builder, collab marketplace, social network, gaming hub — AND a full Film &amp; Series platform with virtual theatres, synchronized live screenings, monthly short film festival, and IMDB-style credits — AND a Creator Academy for building and selling courses — all under one subscription starting at $12.99/month with 90% revenue share., MPC beat maker with
                             64-step sequencer, AI mix assistant, AI mastering, free AI stem
                             separation, voice-to-MIDI, hum-to-song, text-to-song, WAM plugins,
                             speaker simulator, beat store, music distribution to 150+ platforms,

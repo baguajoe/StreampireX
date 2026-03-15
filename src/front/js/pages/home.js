@@ -1105,6 +1105,140 @@ const Home = () => {
 			{/* ================================================================
 			    HOW IT WORKS
 			    ================================================================ */}
+
+			{/* ================================================================
+			    FILM & SERIES — INDEPENDENT FILMMAKER SECTION
+			    ================================================================ */}
+			<section className="film-series-spotlight">
+				<div className="film-section-inner">
+					<div className="film-section-header">
+						<span className="film-badge-tag">🎬 NEW</span>
+						<h2>Film &amp; Series — For Independent Filmmakers</h2>
+						<p className="section-subtitle">
+							StreamPireX is the platform where independent filmmakers publish,
+							monetize, and grow their audience — no Netflix gatekeeping, no studio required.
+						</p>
+					</div>
+
+					<div className="film-features-grid">
+						<div className="film-feature-item">
+							<span className="film-feature-icon">🎭</span>
+							<h4>Virtual Theatre</h4>
+							<p>Your own branded theatre — fans follow, get notified of screenings, and watch your films in your space.</p>
+							<span className="film-feature-tag free">FREE to create</span>
+						</div>
+						<div className="film-feature-item">
+							<span className="film-feature-icon">📽️</span>
+							<h4>Upload Films</h4>
+							<p>Upload feature films, short films, documentaries, and animation. Full IMDB-style metadata, SAG credits, festival laurels.</p>
+							<span className="film-feature-tag free">FREE to upload</span>
+						</div>
+						<div className="film-feature-item">
+							<span className="film-feature-icon">⚡</span>
+							<h4>Short Film Hub</h4>
+							<p>Dedicated short film discovery. Genre tabs, trending section, monthly film festival with community voting.</p>
+							<span className="film-feature-tag new">NEW</span>
+						</div>
+						<div className="film-feature-item">
+							<span className="film-feature-icon">🎟️</span>
+							<h4>Live Premieres</h4>
+							<p>Schedule virtual premiere events. Fans buy tickets, join your screening room, and watch simultaneously in sync.</p>
+							<span className="film-feature-tag pro">Pro feature</span>
+						</div>
+						<div className="film-feature-item">
+							<span className="film-feature-icon">💳</span>
+							<h4>Rent &amp; Buy</h4>
+							<p>Monetize with flexible pricing — free, rent (48hr), buy (permanent), or fan membership gated. You keep 90%.</p>
+							<span className="film-feature-tag pro">Pro feature</span>
+						</div>
+						<div className="film-feature-item">
+							<span className="film-feature-icon">🏆</span>
+							<h4>Monthly Film Festival</h4>
+							<p>Submit short films to our monthly community festival. Categories for drama, comedy, documentary, animation, and student films.</p>
+							<span className="film-feature-tag free">FREE to enter</span>
+						</div>
+					</div>
+
+					<div className="film-pricing-callout">
+						<div className="film-pricing-item">
+							<span className="film-pricing-icon">🆓</span>
+							<strong>Upload Free</strong>
+							<span>Films, shorts, series — upload unlimited on all plans</span>
+						</div>
+						<div className="film-pricing-divider">→</div>
+						<div className="film-pricing-item">
+							<span className="film-pricing-icon">💳</span>
+							<strong>Monetize on Pro</strong>
+							<span>Charge rent/buy, sell tickets, gate behind fan membership</span>
+						</div>
+						<div className="film-pricing-divider">→</div>
+						<div className="film-pricing-item">
+							<span className="film-pricing-icon">💰</span>
+							<strong>Keep 90%</strong>
+							<span>StreamPireX takes 10% — you keep the rest</span>
+						</div>
+					</div>
+
+					<div style={{ textAlign: "center", marginTop: "2rem" }}>
+						<a href="#waitlist" className="btn btn-primary" style={{ marginRight: "12px" }}>Join the Waitlist</a>
+						<Link to="/browse-films" className="btn btn-outline-light">Browse Films</Link>
+					</div>
+				</div>
+			</section>
+
+			{/* ================================================================
+			    CREATOR ACADEMY
+			    ================================================================ */}
+			<section className="creator-academy-spotlight">
+				<h2>🎓 Creator Academy — Learn &amp; Earn</h2>
+				<p className="section-subtitle">
+					Build courses, tutorials, and workshops. Sell to your audience. Keep 90%.
+					Or take courses from real creators and level up your skills.
+				</p>
+
+				<div className="academy-grid">
+					<div className="academy-card creator-side">
+						<div className="academy-card-header">
+							<span className="academy-emoji">🎬</span>
+							<h4>For Creators — Teach What You Know</h4>
+						</div>
+						<ul className="academy-features">
+							<li>✅ Build structured courses with lessons and videos</li>
+							<li>✅ Set your own price — free or paid</li>
+							<li>✅ Track enrollment and completion analytics</li>
+							<li>✅ Keep 90% of every course sale</li>
+							<li>✅ Works for music production, filmmaking, podcasting, gaming</li>
+						</ul>
+						<a href="#waitlist" className="btn btn-primary" style={{ marginTop: "20px", display: "inline-block" }}>Start Teaching</a>
+					</div>
+					<div className="academy-card student-side">
+						<div className="academy-card-header">
+							<span className="academy-emoji">🎓</span>
+							<h4>For Students — Learn from Real Creators</h4>
+						</div>
+						<ul className="academy-features">
+							<li>✅ Browse free and paid courses</li>
+							<li>✅ Learn beat making, mixing, filmmaking, podcasting</li>
+							<li>✅ Track your progress across enrolled courses</li>
+							<li>✅ Free courses available on all plans</li>
+							<li>✅ Paid courses unlock on any paid plan</li>
+						</ul>
+						<Link to="/creator-academy" className="btn btn-outline-light" style={{ marginTop: "20px", display: "inline-block" }}>Browse Courses</Link>
+					</div>
+				</div>
+
+				<div className="academy-categories">
+					<div className="academy-cat">🎚️ Music Production</div>
+					<div className="academy-cat">🥁 Beat Making</div>
+					<div className="academy-cat">🎬 Filmmaking</div>
+					<div className="academy-cat">🎙️ Podcasting</div>
+					<div className="academy-cat">🎤 Vocals &amp; Songwriting</div>
+					<div className="academy-cat">📻 Radio Hosting</div>
+					<div className="academy-cat">🎮 Gaming &amp; Streaming</div>
+					<div className="academy-cat">💰 Creator Business</div>
+				</div>
+			</section>
+
 			<section className="how-it-works">
 				<h2>⚡ Start Creating in 3 Steps</h2>
 				<div className="steps-grid">
