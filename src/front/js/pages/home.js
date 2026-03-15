@@ -52,7 +52,7 @@ const Home = () => {
 					</h1>
 
 					<p className="hero-tagline">
-						The AI-Powered All-In-One Creator Platform
+						Whether You're a Musician, Filmmaker, Podcaster, Gamer, Educator, or Creator — StreamPireX is the Creator Platform Built for Every Voice.
 					</p>
 
 					<p>
