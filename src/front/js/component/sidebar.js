@@ -476,7 +476,7 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/browse-podcast-categories" className={isActive("/browse-podcast-categories") ? "active" : ""}>
             🎧 <span className="sidebar-label">Browse Podcasts</span>
           </MenuItem>
-          <MenuItem to="/video-series/new" className={isActive("/video-series") ? "active" : ""}>
+          <MenuItem to="/video-series-builder" className={isActive("/video-series-builder") ? "active" : ""}>
             📺 <span className="sidebar-label">Video Series</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </MenuItem>
