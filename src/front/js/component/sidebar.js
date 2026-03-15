@@ -664,7 +664,7 @@ const Sidebar = ({ user }) => {
             🔍 <span className="sidebar-label">Find Squads</span>
             {gamingNotifications.squads > 0 && <NotificationBadge>{gamingNotifications.squads}</NotificationBadge>}
           </GamingMenuItem>
-          <GamingMenuItem to="/create-team-room" className={isActive("/create-team-room") ? "active" : ""}>
+          <GamingMenuItem to="/team-room/main" className={isActive("/team-room") ? "active" : ""}>
             🧑‍🤝‍🧑 <span className="sidebar-label">Team Room</span>
             {gamingNotifications.teamRoom > 0 && <NotificationBadge>{gamingNotifications.teamRoom}</NotificationBadge>}
           </GamingMenuItem>

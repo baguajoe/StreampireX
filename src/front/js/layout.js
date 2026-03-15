@@ -573,6 +573,7 @@ const AppShell = ({ user }) => {
                                 <Route path="/fan-memberships" element={<FanMembershipPage />} />
                                 <Route path="/fan-membership/:creatorId" element={<FanMembershipPage />} />
                                 <Route path="/team-room/:id" element={<TeamRoomPage />} />
+                                <Route path="/team-room/main" element={<TeamRoomPage />} />
                                 <Route path="/create-team-room" element={<CreateTeamRoomPage />} />
                                 <Route path="/gamer-profile/:id" element={<GamerProfilePage />} />
                                 <Route path="/edit-gamer-profile" element={<EditGamerProfilePage />} />
