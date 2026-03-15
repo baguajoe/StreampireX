@@ -541,15 +541,7 @@ const Sidebar = ({ user }) => {
             🎹 <span className="sidebar-label">Music Store</span>
             <MenuHint className="sidebar-hint">beats + stems</MenuHint>
           </MenuItem>
-          <MenuItem to="/browse-radio-stations" className={isActive("/browse-radio-stations") ? "active" : ""}>
-            📻 <span className="sidebar-label">Radio Stations</span>
-          </MenuItem>
-          <MenuItem to="/create-radio" className={isActive("/create-radio") ? "active" : ""}>
-            ➕ <span className="sidebar-label">Create Station</span>
-          </MenuItem>
-          <MenuItem to="/airadio-dj" className={isActive("/airadio-dj") ? "active" : ""}>
-            🤖 <span className="sidebar-label">AI Radio DJ</span>
-          </MenuItem>
+
           <MenuItem to="/creator/membership" className={isActive("/creator/membership") ? "active" : ""}>
             ⭐ <span className="sidebar-label">Fan Membership</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
@@ -619,6 +611,33 @@ const Sidebar = ({ user }) => {
           <PodcastMenuItem to="/browse-podcast-categories" className={isActive("/browse-podcast-categories") ? "active" : ""}>
             🎧 <span className="sidebar-label">Browse Podcasts</span>
           </PodcastMenuItem>
+        </>
+      )}
+
+      {/* ============================================================ */}
+      {/* #5b 📻 RADIO                                                 */}
+      {/* ============================================================ */}
+      <SectionHeader className="sidebar-section-header" onClick={() => setShowRadio(!showRadio)}>
+        📻 <span className="sidebar-section-text">Radio</span>
+        <span className="sidebar-arrow" style={{ fontSize: '0.6rem', marginLeft: 'auto' }}>
+          {showRadio ? '▼' : '▶'}
+        </span>
+      </SectionHeader>
+
+      {showRadio && (
+        <>
+          <MenuItem to="/browse-radio-stations" className={isActive("/browse-radio-stations") ? "active" : ""}>
+            📻 <span className="sidebar-label">Browse Stations</span>
+          </MenuItem>
+          <MenuItem to="/create-radio-station" className={isActive("/create-radio-station") ? "active" : ""}>
+            ➕ <span className="sidebar-label">Create Station</span>
+          </MenuItem>
+          <MenuItem to="/airadio-dj" className={isActive("/airadio-dj") ? "active" : ""}>
+            🤖 <span className="sidebar-label">AI Radio DJ</span>
+          </MenuItem>
+          <MenuItem to="/dj-mixer" className={isActive("/dj-mixer") ? "active" : ""}>
+            🎛 <span className="sidebar-label">DJ Mixer</span>
+          </MenuItem>
         </>
       )}
 
@@ -768,9 +787,7 @@ const Sidebar = ({ user }) => {
           <AIMenuItem to="/ai-content-writer" className={isActive("/ai-content-writer") ? "active" : ""}>
             ✍️ <span className="sidebar-label">AI Content Writer</span>
           </AIMenuItem>
-          <AIMenuItem to="/dj-mixer" className={isActive("/dj-mixer") ? "active" : ""}>
-            🎛 <span className="sidebar-label">DJ Mixer</span>
-          </AIMenuItem>
+
         </>
       )}
 
