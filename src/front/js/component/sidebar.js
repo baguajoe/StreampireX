@@ -511,10 +511,6 @@ const Sidebar = ({ user }) => {
             🎛️ <span className="sidebar-label">Recording Studio</span>
             <MenuHint className="sidebar-hint">DAW</MenuHint>
           </MenuItem>
-          <MenuItem to="/beats" className={isActive("/beats") ? "active" : ""}>
-            🥁 <span className="sidebar-label">Beat Maker</span>
-            <MenuHint className="sidebar-hint">MPC</MenuHint>
-          </MenuItem>
           <MenuItem to="/ai-mastering" className={isActive("/ai-mastering") ? "active" : ""}>
             🎚️ <span className="sidebar-label">AI Mastering</span>
           </MenuItem>
