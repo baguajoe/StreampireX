@@ -605,6 +605,9 @@ const Sidebar = ({ user }) => {
           <PodcastMenuItem to="/podcast-studio" className={isActive("/podcast-studio") ? "active" : ""}>
             🎙️ <span className="sidebar-label">Podcast Studio</span>
           </PodcastMenuItem>
+          <PodcastMenuItem to="/voice-clone-services" className={isActive("/voice-clone-services") ? "active" : ""}>
+            🎤 <span className="sidebar-label">AI Voice Clone</span>
+          </PodcastMenuItem>
           <PodcastMenuItem to="/podcast-create" className={isActive("/podcast-create") ? "active" : ""}>
             ➕ <span className="sidebar-label">Create Podcast</span>
           </PodcastMenuItem>
@@ -717,6 +720,9 @@ const Sidebar = ({ user }) => {
             🤖 <span className="sidebar-label">AI Video Studio</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </MenuItem>
+          <MenuItem to="/ai-content-writer" className={isActive("/ai-content-writer") ? "active" : ""}>
+            ✍️ <span className="sidebar-label">AI Content Writer</span>
+          </MenuItem>
           <MenuItem to="/browse-videos" className={isActive("/browse-videos") ? "active" : ""}>
             🎞️ <span className="sidebar-label">Browse Videos</span>
           </MenuItem>
@@ -781,12 +787,6 @@ const Sidebar = ({ user }) => {
 
       {showAI && (
         <>
-          <AIMenuItem to="/voice-clone-services" className={isActive("/voice-clone-services") ? "active" : ""}>
-            🎤 <span className="sidebar-label">AI Voice Clone</span>
-          </AIMenuItem>
-          <AIMenuItem to="/ai-content-writer" className={isActive("/ai-content-writer") ? "active" : ""}>
-            ✍️ <span className="sidebar-label">AI Content Writer</span>
-          </AIMenuItem>
 
         </>
       )}
