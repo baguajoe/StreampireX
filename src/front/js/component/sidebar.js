@@ -511,7 +511,7 @@ const Sidebar = ({ user }) => {
             🎛️ <span className="sidebar-label">Recording Studio</span>
             <MenuHint className="sidebar-hint">DAW</MenuHint>
           </MenuItem>
-          <MenuItem to="/beat-store" className={isActive("/beat-store") ? "active" : ""}>
+          <MenuItem to="/beats" className={isActive("/beats") ? "active" : ""}>
             🥁 <span className="sidebar-label">Beat Maker</span>
             <MenuHint className="sidebar-hint">MPC</MenuHint>
           </MenuItem>
@@ -768,6 +768,12 @@ const Sidebar = ({ user }) => {
           </MenuItem>
           <MenuItem to="/browse-producers" className={isActive("/browse-producers") ? "active" : ""}>
             🎤 <span className="sidebar-label">Browse Producers</span>
+          </MenuItem>
+          <MenuItem to="/beat-store" className={isActive("/beat-store") ? "active" : ""}>
+            🥁 <span className="sidebar-label">Beat Store</span>
+          </MenuItem>
+          <MenuItem to="/sell-beats" className={isActive("/sell-beats") ? "active" : ""}>
+            💰 <span className="sidebar-label">Sell Beats</span>
           </MenuItem>
           <MenuItem to="/browse-stems" className={isActive("/browse-stems") ? "active" : ""}>
             🎵 <span className="sidebar-label">Stem Store</span>
