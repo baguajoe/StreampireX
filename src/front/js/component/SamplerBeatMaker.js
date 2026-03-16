@@ -137,7 +137,28 @@ const SYNTH_MAP = {
   'Riser':'perc','Impact':'808','Bell':'perc','Conga High':'perc','Conga Low':'perc','Guiro':'perc',
 };
 
+// Dr. Dre 2001 Kit — real samples from R2
+const DRE_2001_URLS = {
+  "Kick": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Kick/Kick%20-%20Forgot%20About%20Dre.wav",
+  "Kick 2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Kick/Kick%20-%20Still%20D.R.E..wav",
+  "Kick Alt": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Kick/Kick%20-%20The%20Next%20Episode.wav",
+  "Snare": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Snare/Snare%20-%20Forgot%20About%20Dre.wav",
+  "Snare 2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Snare/Snare%20-%20Still%20D.R.E..wav",
+  "Snare Alt": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Snare/Snare%20-%20The%20Next%20Episode.wav",
+  "Hi Hat": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Hi%20Hat/Hi%20Hat%20-%20Forgot%20About%20Dre.wav",
+  "Hi Hat 2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Hi%20Hat/Hi%20Hat%20-%20Still%20D.R.E..wav",
+  "Hi Hat 3": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Hi%20Hat/Hi%20Hat%20-%20The%20Next%20Episode.wav",
+  "Open Hat": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Open%20Hat/OH%20-%20Still%20D.R.E..wav",
+  "Open Hat 2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Open%20Hat/OH%20-%20The%20Next%20Episode.wav",
+  "Perc": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Perc/Perc%20-%20Forgot%20About%20Dre.wav",
+  "Perc 2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Perc/Perc%20-%20Still%20D.R.E..wav",
+  "Perc 3": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Perc/Perc%20-%20The%20Next%20Episode.wav",
+  "Perc 4": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Perc/Perc%20-%20Bar%20One.wav",
+  "Snare 3": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Snare/Snare%20-%20Bang%20Bang.wav",
+};
+
 const SOUND_LIBRARY = {
+  'West Coast Classic Kit': ["Kick", "Kick 2", "Kick Alt", "Snare", "Snare 2", "Snare Alt", "Hi Hat", "Hi Hat 2", "Hi Hat 3", "Open Hat", "Open Hat 2", "Perc", "Perc 2", "Perc 3", "Perc 4", "Snare 3"],
   'Trap Kit': [
     '808 Deep', '808 Distorted', 'Kick Hard', 'Snare Tight',
     'HH Closed', 'HH Open', 'HH Roll', 'Clap',
@@ -2998,7 +3019,14 @@ const SamplerBeatMaker = ({
                           if (i >= 16) return;
                           updatePad(i, { name: s });
                           const t = SYNTH_MAP[s];
-                          if (t) { const buf = synthDrum(t, ctx); updatePad(i, { buffer: buf, name: s }); }
+                          // Use real R2 URL if available
+                          const realUrl = DRE_2001_URLS[s];
+                          if (realUrl) {
+                            loadSample(i, realUrl);
+                          } else if (t) {
+                            const buf = synthDrum(t, ctx);
+                            updatePad(i, { buffer: buf, name: s });
+                          }
                         });
                         setShowLib(false);
                       }}>⚡ Load All {sounds.length} Sounds</button>
@@ -3010,7 +3038,13 @@ const SamplerBeatMaker = ({
                             const ctx = initCtx();
                             updatePad(i, { name: s });
                             const t = SYNTH_MAP[s];
-                            if (t) { const buf = synthDrum(t, ctx); updatePad(i, { buffer: buf, name: s }); }
+                            const realUrl = DRE_2001_URLS[s];
+                            if (realUrl) {
+                              loadSample(i, realUrl);
+                            } else if (t) {
+                              const buf = synthDrum(t, ctx);
+                              updatePad(i, { buffer: buf, name: s });
+                            }
                           }} style={{background:'#00ffc8',color:'#0d1117',border:'none',borderRadius:4,padding:'3px 10px',cursor:'pointer',fontSize:'0.75rem',fontWeight:700}}>Load</button>
                         </div>
                       ))}
