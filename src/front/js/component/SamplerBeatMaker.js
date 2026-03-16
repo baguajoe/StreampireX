@@ -70,6 +70,73 @@ const DEFAULT_PAD = {
 
 const STEP_COUNTS = [16, 32, 64];
 
+
+// Web Audio drum synthesizer — generates real drum sounds procedurally
+function synthDrum(type, ctx) {
+  const sr = ctx.sampleRate;
+  const buf = ctx.createBuffer(1, sr * 0.8, sr);
+  const d = buf.getChannelData(0);
+  if (type === 'kick') {
+    for (let i = 0; i < sr * 0.5; i++) {
+      const t = i / sr;
+      d[i] = Math.sin(2 * Math.PI * (150 * Math.exp(-25 * t) + 40) * t) * Math.exp(-8 * t);
+    }
+  } else if (type === '808') {
+    for (let i = 0; i < sr * 0.8; i++) {
+      const t = i / sr;
+      d[i] = Math.sin(2 * Math.PI * (80 * Math.exp(-4 * t) + 40) * t) * Math.exp(-2.5 * t);
+    }
+  } else if (type === 'snare') {
+    for (let i = 0; i < sr * 0.3; i++) {
+      const t = i / sr;
+      d[i] = (Math.sin(2 * Math.PI * 180 * t) * 0.4 + (Math.random() * 2 - 1) * 0.6) * Math.exp(-18 * t);
+    }
+  } else if (type === 'hat') {
+    for (let i = 0; i < sr * 0.08; i++) {
+      const t = i / sr;
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-60 * t);
+    }
+  } else if (type === 'openhat') {
+    for (let i = 0; i < sr * 0.35; i++) {
+      const t = i / sr;
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-10 * t);
+    }
+  } else if (type === 'clap') {
+    for (let i = 0; i < sr * 0.2; i++) {
+      const t = i / sr;
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-25 * t) * (1 + Math.sin(2 * Math.PI * 1200 * t));
+    }
+  } else if (type === 'perc') {
+    for (let i = 0; i < sr * 0.25; i++) {
+      const t = i / sr;
+      d[i] = Math.sin(2 * Math.PI * (500 * Math.exp(-15 * t) + 200) * t) * Math.exp(-20 * t);
+    }
+  } else if (type === 'ride') {
+    for (let i = 0; i < sr * 0.5; i++) {
+      const t = i / sr;
+      d[i] = (Math.sin(2 * Math.PI * 4000 * t) * 0.3 + (Math.random() * 2 - 1) * 0.7) * Math.exp(-6 * t);
+    }
+  } else {
+    for (let i = 0; i < sr * 0.2; i++) {
+      d[i] = (Math.random() * 2 - 1) * Math.exp(-20 * i / (sr * 0.2));
+    }
+  }
+  return buf;
+}
+
+const SYNTH_MAP = {
+  '808 Deep':'808','808 Distorted':'808','Kick Hard':'kick','Kick Dusty':'kick',
+  'Kick Soft':'kick','Kick Muffled':'kick','Kick Big':'kick','Kick Log':'kick','Kick Alt':'kick',
+  'Snare Tight':'snare','Snare Vinyl':'snare','Snare Brush':'snare','Snare Tape':'snare',
+  'Snare Build':'snare','Snare Wire':'snare','Snare Ghost':'snare',
+  'HH Closed':'hat','HH Tight':'hat','HH Light':'hat','HH Dusty':'hat','HH Sharp':'hat','HH Roll':'hat',
+  'HH Open':'openhat','Open Hat':'openhat','Crash':'openhat','Ride':'ride',
+  'Clap':'clap','Clap Soft':'clap','Clap Layer':'clap','Fingersnap':'clap','Rim':'perc',
+  'Rim Click':'perc','Rim Soft':'perc','Shaker':'hat','Tambourine':'hat','Vinyl Crackle':'hat',
+  'Perc 1':'perc','Perc Warm':'perc','Perc':'perc','Vox Chop':'perc',
+  'Riser':'perc','Impact':'808','Bell':'perc','Conga High':'perc','Conga Low':'perc','Guiro':'perc',
+};
+
 const SOUND_LIBRARY = {
   'Trap Kit': [
     '808 Deep', '808 Distorted', 'Kick Hard', 'Snare Tight',
@@ -2924,10 +2991,30 @@ const SamplerBeatMaker = ({
                 {selKit === name && (
                   <div className="kit-sounds">
                     {sounds.map((s, i) => <div key={i} className="kit-sound"><span>{s}</span><span className="kit-sound-pad">Pad {i + 1}</span></div>)}
-                    <button className="load-full-kit" onClick={() => {
-                      sounds.forEach((s, i) => { if (i < 16) updatePad(i, { name: s }); });
-                      alert(`"${name}" layout applied. Upload matching audio files to each pad, or connect your sound CDN.`);
-                    }}>Load Kit Layout</button>
+                    <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:8}}>
+                      <button className="load-full-kit" onClick={() => {
+                        const ctx = initCtx();
+                        sounds.forEach((s, i) => {
+                          if (i >= 16) return;
+                          updatePad(i, { name: s });
+                          const t = SYNTH_MAP[s];
+                          if (t) { const buf = synthDrum(t, ctx); updatePad(i, { buffer: buf, name: s }); }
+                        });
+                        setShowLib(false);
+                      }}>⚡ Load All {sounds.length} Sounds</button>
+                      {sounds.map((s, i) => (
+                        <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'4px 8px',background:'rgba(0,255,200,0.04)',borderRadius:6,border:'1px solid rgba(0,255,200,0.1)'}}>
+                          <span style={{flex:1,fontSize:'0.8rem',color:'#c9d1d9'}}>{s}</span>
+                          <span style={{fontSize:'0.7rem',color:'#8b949e',minWidth:40}}>Pad {i+1}</span>
+                          <button onClick={() => {
+                            const ctx = initCtx();
+                            updatePad(i, { name: s });
+                            const t = SYNTH_MAP[s];
+                            if (t) { const buf = synthDrum(t, ctx); updatePad(i, { buffer: buf, name: s }); }
+                          }} style={{background:'#00ffc8',color:'#0d1117',border:'none',borderRadius:4,padding:'3px 10px',cursor:'pointer',fontSize:'0.75rem',fontWeight:700}}>Load</button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
