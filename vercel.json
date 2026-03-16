@@ -4,6 +4,13 @@
   "framework": null,
   "installCommand": "npm install",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/animations/:file*",
+      "destination": "/animations/:file*"
+    },
+    {
+      "source": "/((?!animations).*)",
+      "destination": "/index.html"
+    }
   ]
 }
