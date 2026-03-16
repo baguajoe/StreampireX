@@ -70,6 +70,7 @@ import SongExtender from "./pages/SongExtender";
 import HumToSong from "./pages/HumToSong";
 import CreatorSampleMarketplace from "./pages/CreatorSampleMarketplace";
 import CreatorAcademy from "./pages/CreatorAcademy";
+import MyLearning from "./pages/MyLearning";
 import CourseBuilder from "./pages/CourseBuilder";
 import CoursePlayer from "./pages/CoursePlayer";
 import CollabMarketplace from "./pages/CollabMarketplace";
@@ -565,7 +566,7 @@ const AppShell = ({ user }) => {
                                 <Route path="/course-builder" element={<CourseBuilder />} />
                                 <Route path="/course-builder/:courseId" element={<CourseBuilder />} />
                                 <Route path="/course/:courseId" element={<CoursePlayer />} />
-                                <Route path="/my-learning" element={<CreatorAcademy />} />
+                                <Route path="/my-learning" element={<MyLearning />} />
                                 <Route path="/creator-academy" element={<CreatorAcademy />} />
                                 <Route path="/checkout/course/:courseId" element={<CoursePlayer />} />
                                 <Route path="/creator-memberships" element={<CreatorMembershipManager />} />
