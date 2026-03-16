@@ -108,6 +108,8 @@ const MenuItem = styled(Link)`
   transition: all 0.2s ease;
   white-space: nowrap;
   overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
   &:hover {
     background: rgba(0,255,200,0.1);
     color: #00ffc8;
@@ -598,6 +600,9 @@ const Sidebar = ({ user }) => {
 
       {showPodcast && (
         <>
+          <PodcastMenuItem to="/my-podcasts" className={isActive("/my-podcasts") ? "active" : ""}>
+            🎙️ <span className="sidebar-label">My Podcasts</span>
+          </PodcastMenuItem>
           <PodcastMenuItem to="/podcast-studio" className={isActive("/podcast-studio") ? "active" : ""}>
             🎙️ <span className="sidebar-label">Podcast Studio</span>
           </PodcastMenuItem>
@@ -625,6 +630,9 @@ const Sidebar = ({ user }) => {
 
       {showRadio && (
         <>
+          <MenuItem to="/my-radio-stations" className={isActive("/my-radio-stations") ? "active" : ""}>
+            📻 <span className="sidebar-label">My Stations</span>
+          </MenuItem>
           <MenuItem to="/browse-radio-stations" className={isActive("/browse-radio-stations") ? "active" : ""}>
             📻 <span className="sidebar-label">Browse Stations</span>
           </MenuItem>
@@ -683,7 +691,7 @@ const Sidebar = ({ user }) => {
 
       {showAcademy && (
         <>
-          <AcademyMenuItem to="/creator-academy" className={isActive("/creator-academy") ? "active" : ""}>
+          <AcademyMenuItem to="/creator-academy" className={isActive("/creator-academy") && !isActive("/my-learning") ? "active" : ""}>
             🎓 <span className="sidebar-label">Browse Courses</span>
             <MenuHint className="sidebar-hint">FREE</MenuHint>
           </AcademyMenuItem>
