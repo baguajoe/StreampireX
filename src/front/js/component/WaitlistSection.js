@@ -14,7 +14,8 @@ const WaitlistSection = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, name, source: "landing_page" }),
       });
-      setStatus(res.ok ? "success" : "error");
+      const data = await res.json();
+      setStatus((res.ok || data.message) ? "success" : "error");
     } catch {
       setStatus("error");
     }
