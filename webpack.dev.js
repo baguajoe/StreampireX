@@ -25,12 +25,7 @@ module.exports = merge(common, {
         port,
         hot: true,
         allowedHosts: "all",
-        historyApiFallback: {
-          disableDotRule: true,
-          rewrites: [
-            { from: /^\/animations\/.*\.html$/, to: (context) => context.parsedUrl.pathname }
-          ]
-        },
+        historyApiFallback: true,
         static: [
           { directory: path.resolve(__dirname, "dist") },
           { directory: path.resolve(__dirname, "public"), publicPath: "/" }
