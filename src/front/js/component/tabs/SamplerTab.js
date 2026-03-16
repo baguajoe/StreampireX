@@ -12,6 +12,22 @@ const SamplerTab = ({ engine, handlePadDown, handlePadUp, aiProps }) => {
   const pi = engine.selectedPad;
   const pad = pi !== null ? engine.pads[pi] : null;
 
+  // Delete/Backspace clears the selected pad's sample
+  useEffect(() => {
+    const handleKey = (e) => {
+      if ((e.key === 'Delete' || e.key === 'Backspace') &&
+          document.activeElement.tagName !== 'INPUT' &&
+          document.activeElement.tagName !== 'TEXTAREA') {
+        if (pi !== null && pi !== undefined) {
+          e.preventDefault();
+          if (window.confirm('Clear this pad?')) engine.clearPad(pi);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [pi, engine]);
+
   return (
     <div className="sbm-sampler-tab">
       {/* ── Secondary toolbar ── */}
