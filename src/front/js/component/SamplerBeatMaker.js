@@ -3108,23 +3108,40 @@ const SamplerBeatMaker = ({
                   <div className="kit-sounds">
                     {sounds.map((s, i) => <div key={i} className="kit-sound"><span>{s}</span><span className="kit-sound-pad">Pad {i + 1}</span></div>)}
                     <div style={{display:'flex',flexDirection:'column',gap:6,marginTop:8}}>
-                      <button className="load-full-kit" onClick={() => {
-                        const ctx = initCtx();
-                        sounds.forEach((s, i) => {
-                          if (i >= 16) return;
-                          updatePad(i, { name: s });
-                          const t = SYNTH_MAP[s];
-                          // Use real R2 URL if available
-                          const realUrl = R2_KIT_URLS[s];
-                          if (realUrl) {
-                            loadSample(i, realUrl);
-                          } else if (t) {
-                            const buf = synthDrum(t, ctx);
-                            updatePad(i, { buffer: buf, name: s });
+                      <div style={{display:'flex',gap:6}}>
+                        <button className="load-full-kit" style={{flex:1}} onClick={() => {
+                          const ctx = initCtx();
+                          const isKg = ['Bass & 808 Pack','SUB 808 Kit'].includes(name);
+                          sounds.forEach((s, i) => {
+                            if (i >= 16) return;
+                            updatePad(i, { name: s, programType: isKg ? 'keygroup' : 'drum', rootNote: 48 + i });
+                            const realUrl = R2_KIT_URLS[s];
+                            if (realUrl) {
+                              loadSample(i, realUrl);
+                            } else {
+                              const t = SYNTH_MAP[s];
+                              if (t) { const buf = synthDrum(t, ctx); updatePad(i, { buffer: buf, name: s }); }
+                            }
+                          });
+                          setShowLib(false);
+                        }}>⚡ Load All</button>
+                        <button className="load-full-kit" style={{flex:1,background:'rgba(167,139,250,0.15)',color:'#a78bfa',borderColor:'rgba(167,139,250,0.3)'}} onClick={() => {
+                          const ctx = initCtx();
+                          const firstUrl = R2_KIT_URLS[sounds[0]];
+                          if (!firstUrl && !SYNTH_MAP[sounds[0]]) return;
+                          for (let i = 0; i < 16; i++) {
+                            const rootNote = 36 + i;
+                            updatePad(i, { name: sounds[0] + ' ' + ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'][i % 12], programType: 'keygroup', rootNote, keyRangeLow: rootNote, keyRangeHigh: rootNote });
+                            if (firstUrl) {
+                              loadSample(i, firstUrl);
+                            } else {
+                              const t = SYNTH_MAP[sounds[0]];
+                              if (t) { const buf = synthDrum(t, ctx); updatePad(i, { buffer: buf }); }
+                            }
                           }
-                        });
-                        setShowLib(false);
-                      }}>⚡ Load All {sounds.length} Sounds</button>
+                          setShowLib(false);
+                        }}>🎹 Keygroup</button>
+                      </div>
                       {sounds.map((s, i) => (
                         <div key={i} style={{display:'flex',alignItems:'center',gap:8,padding:'4px 8px',background:'rgba(0,255,200,0.04)',borderRadius:6,border:'1px solid rgba(0,255,200,0.1)'}}>
                           <span style={{flex:1,fontSize:'0.8rem',color:'#c9d1d9'}}>{s}</span>
