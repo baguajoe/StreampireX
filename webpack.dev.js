@@ -25,10 +25,16 @@ module.exports = merge(common, {
         port,
         hot: true,
         allowedHosts: "all",
-        historyApiFallback: true,
-        static: {
-          directory: path.resolve(__dirname, "dist"),
+        historyApiFallback: {
+          disableDotRule: true,
+          rewrites: [
+            { from: /^\/animations\//, to: (context) => context.parsedUrl.pathname }
+          ]
         },
+        static: [
+          { directory: path.resolve(__dirname, "dist") },
+          { directory: path.resolve(__dirname, "public"), publicPath: "/" }
+        ],
         client: {
           webSocketURL: publicUrl
         },
