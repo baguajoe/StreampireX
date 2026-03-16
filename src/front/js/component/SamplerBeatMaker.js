@@ -138,7 +138,7 @@ const SYNTH_MAP = {
 };
 
 // Dr. Dre 2001 Kit — real samples from R2
-const DRE_2001_URLS = {
+const R2_KIT_URLS = {
   "Kick": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Kick/Kick%20-%20Forgot%20About%20Dre.wav",
   "Kick 2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Kick/Kick%20-%20Still%20D.R.E..wav",
   "Kick Alt": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Kick/Kick%20-%20The%20Next%20Episode.wav",
@@ -157,8 +157,103 @@ const DRE_2001_URLS = {
   "Snare 3": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Snare/Snare%20-%20Bang%20Bang.wav",
 };
 
+const R2_KIT_URLS = {
+  "Hi Hat - Ackrite": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Hi%20Hat/Hi%20Hat%20-%20Ackrite.wav",
+  "Hi Hat - Bang Bang": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Hi%20Hat/Hi%20Hat%20-%20Bang%20Bang.wav",
+  "Hi Hat - Bar One": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Hi%20Hat/Hi%20Hat%20-%20Bar%20One.wav",
+  "Kick - Ackrite": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Kick/Kick%20-%20Ackrite.wav",
+  "Kick - Bang Bang 2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Kick/Kick%20-%20Bang%20Bang%202.wav",
+  "Kick - Bang Bang": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Kick/Kick%20-%20Bang%20Bang.wav",
+  "OH - Still D.R.E.": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Open%20Hat/OH%20-%20Still%20D.R.E..wav",
+  "OH - The Next Episode": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Open%20Hat/OH%20-%20The%20Next%20Episode.wav",
+  "Perc - Bar One": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Perc/Perc%20-%20Bar%20One.wav",
+  "Perc - Bitch Niggaz": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Perc/Perc%20-%20Bitch%20Niggaz.wav",
+  "Perc - ED-Ucation": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Perc/Perc%20-%20ED-Ucation.wav",
+  "Snare - Ackrite": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Snare/Snare%20-%20Ackrite.wav",
+  "Snare - Bang Bang 2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Snare/Snare%20-%20Bang%20Bang%202.wav",
+  "Snare - Bang Bang": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Dr.%20Dre%20-%202001%20%28Drum%20Kit%29/Snare/Snare%20-%20Bang%20Bang.wav",
+  "001 Hi Hat (1)": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/HiHat/001%20Hi%20Hat%20%281%29.wav",
+  "002 Hi Hat (2)": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/HiHat/002%20Hi%20Hat%20%282%29.wav",
+  "012 Kick (1)": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Kick/012%20Kick%20%281%29.wav",
+  "013 Kick (2)": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Kick/013%20Kick%20%282%29.wav",
+  "049 Clap Dry": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Snare/049%20Clap%20Dry.wav",
+  "050 Snap Dry": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Snare/050%20Snap%20Dry.wav",
+  "040 Sleigh Bell": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Perc/040%20Sleigh%20Bell.wav",
+  "041 Open Hi Hat 1": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Perc/041%20Open%20Hi%20Hat%201.wav",
+  "01_808": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%2001_808%20SUB%20BOOMS.wav",
+  "10_808": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%2010_808%20SUB%20BOOMS.wav",
+  "BBT_Sub_Bass": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20BBT_Sub_Bass%20SUB%20BOOMS.wav",
+  "BBT_Sub_Bass_OD_1": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20BBT_Sub_Bass_OD_1%20SUB%20BOOMS.wav",
+  "BBT_Sub_Bass_OD_3": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20BBT_Sub_Bass_OD_3%20SUB%20BOOMS.wav",
+  "BPM 140__SUB_BASS": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20BPM%20140__SUB_BASS%20SUB%20BOOMS.wav",
+  "B_808's": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20B_808%27s%20SUB%20BOOMS.wav",
+  "Bpm140_Dm__Sub": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20Bpm140_Dm__Sub%20SUB%20BOOMS.wav",
+  "Bpm140_Em_Sub3": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20Bpm140_Em_Sub3%20SUB%20BOOMS.wav",
+  "Bpm140_Em__Sub1": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20Bpm140_Em__Sub1%20SUB%20BOOMS.wav",
+  "Bpm140_Em__Sub2": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20Bpm140_Em__Sub2%20SUB%20BOOMS.wav",
+  "Bpm140_Em__Sub4": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20Bpm140_Em__Sub4%20SUB%20BOOMS.wav",
+  "DR-660 Kick43": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20DR-660%20Kick43%20SUB%20BOOMS.wav",
+  "JSW_138__SUB_LINE": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20JSW_138__SUB_LINE%20SUB%20BOOMS.wav",
+  "PHA_140_E_Subloop_05": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20PHA_140_E_Subloop_05%20SUB%20BOOMS.wav",
+  "PHA_140_E_Subloop_05 a": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/MPC%201000/MPC%201000%20Drum%20Kit/MPC%201000%20Drum%20Kit/Sub%20808/SUB%20808%20%20SUB%20BOOMS/SUB%20808%20PHA_140_E_Subloop_05%20a%20SUB%20BOOMS.wav",
+  "Clap (Jiggy": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Claps/Clap%20%28Jiggy%29.wav",
+  "Clap (So Is This One": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Claps/Clap%20%28So%20Is%20This%20One%29.wav",
+  "Clap (Thats Right": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Claps/Clap%20%28Thats%20Right%29.wav",
+  "Clap (This A Lil More 2000s Sounding But IDGAF": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Claps/Clap%20%28This%20A%20Lil%20More%202000s%20Sounding%20But%20IDGAF%29.wav",
+  "Clap (This Was Live": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Claps/Clap%20%28This%20Was%20Live%29.wav",
+  "Clap (Why Is Like Every Clap On The Sub A Variation of The 808": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Claps/Clap%20%28Why%20Is%20Like%20Every%20Clap%20On%20The%20Sub%20A%20Variation%20of%20The%20808%29.wav",
+  "Hi-Hat (Coconut Oil": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Hi-Hats/Hi-Hat%20%28Coconut%20Oil%29.wav",
+  "Hi-Hat (Come With Me": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Hi-Hats/Hi-Hat%20%28Come%20With%20Me%29.wav",
+  "Hi-Hat (RnB Hats Sound Like Trash But When U Put Them In A Beat They Dope": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Hi-Hats/Hi-Hat%20%28RnB%20Hats%20Sound%20Like%20Trash%20But%20When%20U%20Put%20Them%20In%20A%20Beat%20They%20Dope%29.wav",
+  "Hi-Hat (Shea Butter": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Hi-Hats/Hi-Hat%20%28Shea%20Butter%29.wav",
+  "Kick (A Lot Of These Sound Similar But They Different": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Kick/Kick%20%28A%20Lot%20Of%20These%20Sound%20Similar%20But%20They%20Different%29.wav",
+  "Kick (Coconut Oil": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Kick/Kick%20%28Coconut%20Oil%29.wav",
+  "Kick (Cryin": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Kick/Kick%20%28Cryin%29.wav",
+  "Kick (Kinda Distorted": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Kick/Kick%20%28Kinda%20Distorted%29.wav",
+  "Kick (Soul": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Kick/Kick%20%28Soul%29.wav",
+  "Kick (Treat Ya Right": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/RnB%20Kits/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/WB5%27s%2090s%20%2B%202000s%20RnB%20Kit/Kick/Kick%20%28Treat%20Ya%20Right%29.wav",
+  "808 Slide": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_808%20Slide.wav",
+  "Bass Zap": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Bass%20Zap.wav",
+  "Brass 808": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Brass%20808.wav",
+  "Buzzy Bass": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Buzzy%20Bass.wav",
+  "Dutty 808": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Dutty%20808.wav",
+  "Envelope Bass": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Envelope%20Bass.wav",
+  "Erosion 808": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Erosion%20808.wav",
+  "Filter Driven Bass": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Filter%20Driven%20Bass.wav",
+  "Nostril 808": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Nostril%20808.wav",
+  "Panned Robot Reese": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Panned%20Robot%20Reese.wav",
+  "Punchy 808": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Punchy%20808.wav",
+  "Rekt 808": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Rekt%20808.wav",
+  "Reverse Bass": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Reverse%20Bass.wav",
+  "Screech Bass": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Screech%20Bass.wav",
+  "Slug Bass": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Slug%20Bass.wav",
+  "Tom 808": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Bass/92elm%20Sample%20Pack%20Vol.%202%20Bass/C_Tom%20808.wav",
+  "Drum Break 100": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%20100-Ele%20K%C3%B5lar%20and%20Kaja%20K%C3%B5lar%20-%20Tulen%20Saarelt%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 78": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2078-Earth%2C%20Wind%20and%20Fire%20-%20Energy%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 79": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2079-Earth%2C%20Wind%20and%20Fire%20-%20Everything%20Is%20Everything%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 85": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2085-Eddie%20Harris%20-%20You%20Are%20The%20One%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 86": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2086-Eddie%20Henderson%20-%20Kudu%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 87": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2087-Eddie%20Henderson%20-%20The%20Kumquat%20Kids%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 88": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2088-Eddie%20Kendricks%20-%20My%20People...Hold%20On%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 89": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2089-Eddie%20Simpson%20-%20Big%20Black%20Funky%20Slave%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 93": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2093-Edmundo%20Ros%20-%20Brazil%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 94": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2094-Edwin%20Birdsong%20-%20Rapper%20Dapper%20Snapper%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 95": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2095-Edwin%20Starr%20-%20Easin_%20In%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 96": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2096-Edwin%20Starr%20-%20Runnin_%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 97": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2097-El%20Coco%20-%20Afrodesia%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 98": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2098-El%20Coco%20-%20Cocomotion%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break 99": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/D%2099-Elaine%20and%20Ellen%20-%20Fill%20Me%20Up%20%28Drum%20Break%20-%20Loop%29.mp3",
+  "Drum Break ?": "https://pub-3a956be9429449469ec53b73495e6b24.r2.dev/drums/Drum%20Loops/E%201-Electric%20Light%20Orchestra%20-%20Dont_%20Bring%20Me%20Down%20%28Drum%20Break%20-%20Loop%29.mp3",
+};
+
 const SOUND_LIBRARY = {
-  'West Coast Classic Kit': ["Kick", "Kick 2", "Kick Alt", "Snare", "Snare 2", "Snare Alt", "Hi Hat", "Hi Hat 2", "Hi Hat 3", "Open Hat", "Open Hat 2", "Perc", "Perc 2", "Perc 3", "Perc 4", "Snare 3"],
+  "West Coast Classic Kit": ["Hi Hat - Ackrite", "Hi Hat - Bang Bang", "Hi Hat - Bar One", "Kick - Ackrite", "Kick - Bang Bang 2", "Kick - Bang Bang", "OH - Still D.R.E.", "OH - The Next Episode", "Perc - Bar One", "Perc - Bitch Niggaz", "Perc - ED-Ucation", "Snare - Ackrite", "Snare - Bang Bang 2", "Snare - Bang Bang"],
+  "MPC Classic Kit": ["001 Hi Hat (1)", "002 Hi Hat (2)", "012 Kick (1)", "013 Kick (2)", "049 Clap Dry", "050 Snap Dry", "040 Sleigh Bell", "041 Open Hi Hat 1"],
+  "SUB 808 Kit": ["01_808", "10_808", "BBT_Sub_Bass", "BBT_Sub_Bass_OD_1", "BBT_Sub_Bass_OD_3", "BPM 140__SUB_BASS", "B_808's", "Bpm140_Dm__Sub", "Bpm140_Em_Sub3", "Bpm140_Em__Sub1", "Bpm140_Em__Sub2", "Bpm140_Em__Sub4", "DR-660 Kick43", "JSW_138__SUB_LINE", "PHA_140_E_Subloop_05", "PHA_140_E_Subloop_05 a"],
+  "90s R&B Kit": ["Clap (Jiggy", "Clap (So Is This One", "Clap (Thats Right", "Clap (This A Lil More 2000s Sounding But IDGAF", "Clap (This Was Live", "Clap (Why Is Like Every Clap On The Sub A Variation of The 808", "Hi-Hat (Coconut Oil", "Hi-Hat (Come With Me", "Hi-Hat (RnB Hats Sound Like Trash But When U Put Them In A Beat They Dope", "Hi-Hat (Shea Butter", "Kick (A Lot Of These Sound Similar But They Different", "Kick (Coconut Oil", "Kick (Cryin", "Kick (Kinda Distorted", "Kick (Soul", "Kick (Treat Ya Right"],
+  "Bass & 808 Pack": ["808 Slide", "Bass Zap", "Brass 808", "Buzzy Bass", "Dutty 808", "Envelope Bass", "Erosion 808", "Filter Driven Bass", "Nostril 808", "Panned Robot Reese", "Punchy 808", "Rekt 808", "Reverse Bass", "Screech Bass", "Slug Bass", "Tom 808"],
+  "Vintage Drum Breaks": ["Drum Break 100", "Drum Break 78", "Drum Break 79", "Drum Break 85", "Drum Break 86", "Drum Break 87", "Drum Break 88", "Drum Break 89", "Drum Break 93", "Drum Break 94", "Drum Break 95", "Drum Break 96", "Drum Break 97", "Drum Break 98", "Drum Break 99", "Drum Break ?"],
+  'Trap Kit': ["Kick", "Kick 2", "Kick Alt", "Snare", "Snare 2", "Snare Alt", "Hi Hat", "Hi Hat 2", "Hi Hat 3", "Open Hat", "Open Hat 2", "Perc", "Perc 2", "Perc 3", "Perc 4", "Snare 3"],
   'Trap Kit': [
     '808 Deep', '808 Distorted', 'Kick Hard', 'Snare Tight',
     'HH Closed', 'HH Open', 'HH Roll', 'Clap',
@@ -3020,7 +3115,7 @@ const SamplerBeatMaker = ({
                           updatePad(i, { name: s });
                           const t = SYNTH_MAP[s];
                           // Use real R2 URL if available
-                          const realUrl = DRE_2001_URLS[s];
+                          const realUrl = R2_KIT_URLS[s];
                           if (realUrl) {
                             loadSample(i, realUrl);
                           } else if (t) {
@@ -3038,7 +3133,7 @@ const SamplerBeatMaker = ({
                             const ctx = initCtx();
                             updatePad(i, { name: s });
                             const t = SYNTH_MAP[s];
-                            const realUrl = DRE_2001_URLS[s];
+                            const realUrl = R2_KIT_URLS[s];
                             if (realUrl) {
                               loadSample(i, realUrl);
                             } else if (t) {
