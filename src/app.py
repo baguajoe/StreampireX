@@ -158,6 +158,7 @@ for origin in allowed_origins:
 
 all_origins = allowed_origins + http_origins
 
+
 CORS(app, resources={
     r"/*": {
         "origins": all_origins,
