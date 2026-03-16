@@ -16,7 +16,7 @@ import { Link } from "react-router-dom";
 import ProductUploadForm from "../component/ProductUploadForm";
 import StorageStatus from "../component/StorageStatus";
 import BandwidthStatus from "../component/BandwidthStatus";
-import { FanTierManager } from '../pages/FanMembership';
+import { CreatorMembershipManager as FanTierManager } from '../pages/FanMembership';
 import { EmbedCodeGenerator } from '../pages/EmbeddablePlayer';
 
 // ── styles ────────────────────────────────────────────────────
