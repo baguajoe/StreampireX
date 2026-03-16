@@ -47,8 +47,9 @@ module.exports = {
     }),
     new Dotenv({ safe: true, systemvars: true }),
     new GenerateSW({
-      clientsClaim:true,
-      skipWaiting:true
+      clientsClaim: true,
+      skipWaiting: true,
+      exclude: [/animations\//]
     })
   ]
 };
