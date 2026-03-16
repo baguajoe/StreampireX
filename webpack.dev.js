@@ -28,7 +28,7 @@ module.exports = merge(common, {
         historyApiFallback: {
           disableDotRule: true,
           rewrites: [
-            { from: /^\/animations\//, to: (context) => context.parsedUrl.pathname }
+            { from: /^\/animations\/.*\.html$/, to: (context) => context.parsedUrl.pathname }
           ]
         },
         static: [
