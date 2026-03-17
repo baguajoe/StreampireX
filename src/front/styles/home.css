@@ -1,22 +1,95 @@
 /* =============================================
    Home.css - StreamPireX Landing Page Styles
-   Color Scheme: #00ffc8 (teal), #FF6600 (orange)
-   Dark theme with gradient backgrounds
-   Updated Feb 2026 — Beat Store, Podcast Studio,
-   Social Proof, Collab Rooms, AI Video Credits
+   Full replacement to match updated home.js
+   Color System: teal #00ffc8, orange #FF6600
    ============================================= */
 
-/* General layout */
+:root {
+	--spx-bg: #0d1117;
+	--spx-bg-2: #111827;
+	--spx-bg-3: #161b22;
+	--spx-bg-4: #0f172a;
+	--spx-panel: #1f2937;
+	--spx-panel-2: #1a2332;
+	--spx-text: #ffffff;
+	--spx-text-soft: #d1d5db;
+	--spx-text-muted: #9ca3af;
+	--spx-text-dim: #6b7280;
+	--spx-line: rgba(0, 255, 200, 0.12);
+	--spx-line-strong: rgba(0, 255, 200, 0.22);
+	--spx-teal: #00ffc8;
+	--spx-orange: #ff6600;
+	--spx-purple: #7c3aed;
+	--spx-red: #ef4444;
+	--spx-radius: 14px;
+	--spx-shadow: 0 0 12px rgba(0, 255, 200, 0.1);
+	--spx-shadow-lg: 0 12px 35px rgba(0, 255, 200, 0.14);
+}
+
 .streampirex-home {
-	background: #0d1117 !important;
-	color: #ffffff !important;
-	font-family: 'Segoe UI', sans-serif;
+	background: linear-gradient(180deg, #07111c 0%, #030914 100%) !important;
+	color: var(--spx-text) !important;
+	font-family: "Segoe UI", sans-serif;
 	min-height: 100vh;
 	line-height: 1.6;
+	width: 100%;
+	overflow-x: hidden;
 }
 
 .streampirex-home * {
 	box-sizing: border-box;
+}
+
+.streampirex-home section,
+.streampirex-home header,
+.streampirex-home footer {
+	position: relative;
+}
+
+.streampirex-home h1,
+.streampirex-home h2,
+.streampirex-home h3,
+.streampirex-home h4,
+.streampirex-home h5,
+.streampirex-home h6,
+.streampirex-home p,
+.streampirex-home span,
+.streampirex-home li,
+.streampirex-home strong {
+	background: transparent !important;
+}
+
+.streampirex-home img {
+	max-width: 100%;
+	display: block;
+}
+
+/* =============================================
+   Shared section heading helpers
+   ============================================= */
+.streampirex-home .section-subtitle {
+	text-align: center;
+	color: var(--spx-text-muted) !important;
+	font-size: 1.05rem;
+	max-width: 760px;
+	margin: 0 auto 2rem;
+}
+
+.streampirex-home section::after,
+.streampirex-home header::after {
+	content: "";
+	position: absolute;
+	left: 50%;
+	bottom: 0;
+	transform: translateX(-50%);
+	width: 120px;
+	height: 1px;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		rgba(0, 255, 200, 0.45),
+		transparent
+	);
 }
 
 /* =============================================
@@ -27,47 +100,70 @@
 	flex-direction: column;
 	align-items: center;
 	text-align: center;
-	padding: 4rem 2rem;
-	background: linear-gradient(145deg, #1f2937, #111827) !important;
-	border-bottom: 2px solid #00ffc8;
+	padding: 4rem 0 3rem 0;
+	background:
+		radial-gradient(circle at top, rgba(0,255,200,0.08), transparent 60%),
+		linear-gradient(145deg, #0f172a, #020617) !important;
+	border-bottom: 2px solid rgba(0,255,200,0.2);
+	overflow: visible;
 }
 
 .streampirex-home .hero-content {
-	max-width: 900px;
+	width: 100%;
+	max-width: 980px;
 	margin: 0 auto;
+	padding: 0 20px;
 }
 
 .streampirex-home .hero h1 {
 	font-size: 2.8rem;
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	font-weight: bold;
 	margin-bottom: 1rem;
-	background: transparent !important;
 }
 
 .streampirex-home .hero p {
-	color: #d1d5db !important;
-	font-size: 1.2rem;
-	max-width: 800px;
+	color: var(--spx-text-soft) !important;
+	font-size: 1.15rem;
+	max-width: 850px;
 	margin: 1rem auto;
-	background: transparent !important;
 }
 
-.streampirex-home .hero-image {
-	width: 270px;
-	height: 270px;
-	object-fit: cover;
-	border-radius: 50%;
-	box-shadow: 0 0 25px #00ffc8;
-	margin-top: 2rem;
+.streampirex-home .hero-logo {
+	max-width: 340px;
+	height: auto;
+	margin: 0 auto 1rem auto;
+	filter: drop-shadow(0 0 18px rgba(0,255,200,0.45));
 }
 
+.streampirex-home .hero-tagline {
+	font-size: 1.5rem !important;
+	color: var(--spx-orange) !important;
+	font-weight: bold;
+	letter-spacing: 1px;
+	text-transform: uppercase;
+	margin-bottom: 0.5rem !important;
+}
+
+.streampirex-home .welcome-text {
+	color: var(--spx-teal) !important;
+	margin-bottom: 1.5rem;
+}
+
+.streampirex-home .hero-image,
 .streampirex-home .hero-image-placeholder {
 	width: 270px;
 	height: 270px;
 	border-radius: 50%;
-	box-shadow: 0 0 25px #00ffc8;
+	box-shadow: 0 0 25px var(--spx-teal);
 	margin-top: 2rem;
+}
+
+.streampirex-home .hero-image {
+	object-fit: cover;
+}
+
+.streampirex-home .hero-image-placeholder {
 	background: linear-gradient(145deg, #1f2937, #374151) !important;
 	display: flex;
 	align-items: center;
@@ -75,50 +171,46 @@
 	font-size: 4rem;
 }
 
-.streampirex-home .welcome-text {
-	color: #00ffc8 !important;
-	margin-bottom: 1.5rem;
-	background: transparent !important;
-}
-
-/* Hero Tagline */
-.streampirex-home .hero-tagline {
-	font-size: 1.5rem !important;
-	color: #FF6600 !important;
-	font-weight: bold;
-	letter-spacing: 1px;
-	text-transform: uppercase;
-	margin-bottom: 0.5rem !important;
-}
-
-/* Hero Stats */
+/* =============================================
+   Hero stats
+   ============================================= */
 .streampirex-home .hero-stats {
-	display: flex;
-	justify-content: center;
-	gap: 4rem;
-	margin-top: 3rem;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 1rem;
+	width: 100%;
+	max-width: 1280px;
+	margin: 2.5rem auto 2rem auto;
+	padding: 0 20px;
 }
 
 .streampirex-home .stat-item {
 	text-align: center;
-	background: transparent !important;
+	background: rgba(10, 18, 28, 0.72) !important;
+	border: 1px solid rgba(0,255,200,0.12);
+	border-radius: 14px;
+	padding: 1.25rem 0.9rem;
+	box-shadow: 0 10px 30px rgba(0,255,200,0.04);
+	min-width: 0;
 }
 
 .streampirex-home .stat-number {
 	display: block;
 	font-size: 2.5rem;
 	font-weight: bold;
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
+	line-height: 1.1;
 }
 
 .streampirex-home .stat-label {
-	color: #9ca3af !important;
+	display: block;
+	color: var(--spx-text-muted) !important;
 	font-size: 0.9rem;
+	margin-top: 0.35rem;
 }
 
 /* =============================================
-   Call to Action Buttons
+   CTA Buttons
    ============================================= */
 .streampirex-home .cta-buttons {
 	display: flex;
@@ -130,8 +222,8 @@
 
 .streampirex-home .cta-buttons .btn,
 .streampirex-home .cta-buttons a {
-	margin: 0.5rem;
-	font-size: 1.1rem;
+	margin: 0.25rem;
+	font-size: 1.05rem;
 	padding: 0.75rem 1.5rem;
 	border: none;
 	border-radius: 8px;
@@ -139,13 +231,14 @@
 	transition: all 0.3s ease;
 	text-decoration: none;
 	display: inline-block;
-	font-weight: 600;
+	font-weight: 700;
 }
 
 .streampirex-home .btn-primary {
 	background: linear-gradient(135deg, #00ffc8, #00d4a8) !important;
 	color: #0d1117 !important;
 	font-weight: bold;
+	box-shadow: 0 0 14px rgba(0,255,200,0.25);
 }
 
 .streampirex-home .btn-primary:hover {
@@ -179,12 +272,83 @@
 }
 
 .streampirex-home .btn-lg {
-	font-size: 1.3rem;
+	font-size: 1.2rem;
 	padding: 1rem 2rem;
 }
 
+.streampirex-home .btn-gaming {
+	background: var(--spx-orange);
+	color: #fff;
+	padding: 0.75rem 1.75rem;
+	border-radius: 8px;
+	font-weight: 700;
+	text-decoration: none;
+	border: 2px solid var(--spx-orange);
+	transition: background 0.2s, color 0.2s;
+}
+
+.streampirex-home .btn-gaming:hover {
+	background: transparent;
+	color: var(--spx-orange);
+}
+
+.streampirex-home .btn-outline-gaming {
+	background: transparent;
+	color: var(--spx-orange);
+	padding: 0.75rem 1.75rem;
+	border-radius: 8px;
+	font-weight: 700;
+	text-decoration: none;
+	border: 2px solid var(--spx-orange);
+	transition: background 0.2s, color 0.2s;
+}
+
+.streampirex-home .btn-outline-gaming:hover {
+	background: var(--spx-orange);
+	color: #fff;
+}
+
 /* =============================================
-   Problem/Solution Section
+   Demo frame support
+   ============================================= */
+.streampirex-home iframe {
+	max-width: 100%;
+}
+
+.demo-container {
+	width: 100%;
+	max-width: 1280px;
+	margin: 40px auto;
+	padding: 0 20px;
+	overflow: visible;
+}
+
+.demo-iframe {
+	width: 100%;
+	height: 700px;
+	border: none;
+	display: block;
+	background: #050813;
+}
+
+.streampirex-home .hero-daw-preview {
+	width: 100%;
+	max-width: 900px;
+	border-radius: 16px;
+	margin-top: 2.5rem;
+	box-shadow:
+		0 0 40px rgba(0,255,200,0.15),
+		0 0 10px rgba(0,255,200,0.3);
+	border: 1px solid rgba(0,255,200,0.25);
+	transition: transform 0.35s ease;
+}
+
+.streampirex-home .hero-daw-preview:hover {
+	transform: scale(1.02);
+}
+
+/* =============================================
+   Problem / Solution
    ============================================= */
 .streampirex-home .problem-solution {
 	display: grid;
@@ -193,13 +357,13 @@
 	padding: 4rem 2rem;
 	max-width: 1200px;
 	margin: 0 auto;
-	background: transparent !important;
 }
 
 .streampirex-home .problem,
 .streampirex-home .solution {
 	padding: 2rem;
 	border-radius: 12px;
+	min-width: 0;
 }
 
 .streampirex-home .problem {
@@ -209,40 +373,430 @@
 
 .streampirex-home .solution {
 	background: linear-gradient(135deg, #064e3b, #022c22) !important;
-	border-left: 4px solid #00ffc8;
+	border-left: 4px solid var(--spx-teal);
 }
 
 .streampirex-home .problem h3 {
 	color: #fca5a5 !important;
 	margin-bottom: 1rem;
-	background: transparent !important;
 }
 
 .streampirex-home .solution h3 {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	margin-bottom: 1rem;
-	background: transparent !important;
 }
 
 .streampirex-home .problem p,
 .streampirex-home .solution p {
-	color: #d1d5db !important;
+	color: var(--spx-text-soft) !important;
 	line-height: 1.6;
-	background: transparent !important;
 }
 
 /* =============================================
-   Section Common Styles
+   Comparison Section
    ============================================= */
-.streampirex-home .section-subtitle {
+.streampirex-home .comparison-section {
+	padding: 4rem 2rem;
+	background: var(--spx-bg-3) !important;
+}
+
+.streampirex-home .comparison-section h2 {
 	text-align: center;
-	color: #9ca3af !important;
+	color: var(--spx-teal) !important;
+	font-size: 2rem;
+	margin-bottom: 0.5rem;
+}
+
+.streampirex-home .comparison-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 2rem;
+	max-width: 1100px;
+	width: 100%;
+	margin: 0 auto;
+}
+
+.streampirex-home .comparison-card {
+	padding: 2rem;
+	border-radius: 12px;
+	width: 100%;
+	min-width: 0;
+}
+
+.streampirex-home .comparison-card.old {
+	background: var(--spx-panel) !important;
+	border: 2px solid #374151;
+}
+
+.streampirex-home .comparison-card.new {
+	background: linear-gradient(135deg, #064e3b, #022c22) !important;
+	border: 2px solid var(--spx-teal);
+	box-shadow:
+		0 0 30px rgba(0,255,200,0.12),
+		inset 0 0 12px rgba(0,255,200,0.05);
+}
+
+.streampirex-home .comparison-card h4 {
+	margin-bottom: 1.5rem;
+	font-size: 1.2rem;
+	color: #ffffff !important;
+}
+
+.streampirex-home .comparison-card ul {
+	list-style: none;
+	padding: 0;
+	margin: 0 0 1.5rem 0;
+}
+
+.streampirex-home .comparison-card li {
+	padding: 0.5rem 0;
+	color: var(--spx-text-soft) !important;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	font-size: 0.95rem;
+}
+
+.streampirex-home .comparison-card li:last-child {
+	border-bottom: none;
+}
+
+.streampirex-home .comparison-total {
+	font-weight: bold;
 	font-size: 1.1rem;
-	margin-bottom: 2rem;
-	max-width: 700px;
-	margin-left: auto;
-	margin-right: auto;
-	background: transparent !important;
+	padding-top: 1rem;
+	border-top: 2px solid rgba(255, 255, 255, 0.2);
+	color: var(--spx-text-soft) !important;
+}
+
+.streampirex-home .comparison-card.new .comparison-total {
+	color: var(--spx-teal) !important;
+}
+
+/* =============================================
+   Free Features Banner
+   ============================================= */
+.streampirex-home .free-features-banner {
+	background: linear-gradient(145deg, #0d1117, #161b22);
+	border-top: 2px solid var(--spx-teal);
+	border-bottom: 2px solid var(--spx-teal);
+	padding: 5rem 2rem;
+}
+
+.streampirex-home .free-banner-inner {
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.streampirex-home .free-banner-header {
+	text-align: center;
+	margin-bottom: 3rem;
+}
+
+.streampirex-home .free-badge-large {
+	display: inline-block;
+	background: var(--spx-teal);
+	color: #0d1117;
+	font-weight: 800;
+	font-size: 0.9rem;
+	padding: 0.4rem 1.2rem;
+	border-radius: 999px;
+	letter-spacing: 0.05em;
+	margin-bottom: 1rem;
+	box-shadow: 0 0 12px rgba(0,255,200,0.35);
+}
+
+.streampirex-home .free-banner-header h2 {
+	font-size: 2.2rem;
+	color: #ffffff;
+	margin-bottom: 0.75rem;
+}
+
+.streampirex-home .free-banner-header p {
+	color: var(--spx-text-muted);
+	font-size: 1.1rem;
+}
+
+.streampirex-home .free-features-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1.5rem;
+	margin-bottom: 3rem;
+}
+
+.streampirex-home .free-feature-item {
+	background: var(--spx-panel);
+	border: 1px solid #374151;
+	border-radius: 12px;
+	padding: 1.5rem;
+	text-align: center;
+	transition: border-color 0.2s, transform 0.2s;
+	min-width: 0;
+}
+
+.streampirex-home .free-feature-item:hover {
+	border-color: var(--spx-teal);
+	transform: translateY(-3px);
+}
+
+.streampirex-home .free-feature-icon {
+	display: block;
+	font-size: 2rem;
+	margin-bottom: 0.75rem;
+}
+
+.streampirex-home .free-feature-item h4 {
+	color: var(--spx-teal);
+	font-size: 1rem;
+	font-weight: 700;
+	margin-bottom: 0.5rem;
+}
+
+.streampirex-home .free-feature-item p {
+	color: var(--spx-text-muted) !important;
+	font-size: 0.9rem !important;
+	line-height: 1.5;
+	margin: 0;
+}
+
+.streampirex-home .free-banner-cta {
+	text-align: center;
+}
+
+/* =============================================
+   Social Network Spotlight
+   ============================================= */
+.streampirex-home .social-network-spotlight {
+	padding: 5rem 2rem;
+	background: #0d1117;
+	border-bottom: 1px solid #1f2937;
+}
+
+.streampirex-home .social-network-spotlight h2 {
+	text-align: center;
+	font-size: 2rem;
+	color: var(--spx-teal);
+	margin-bottom: 0.5rem;
+}
+
+.streampirex-home .social-features-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1.5rem;
+	max-width: 1100px;
+	margin: 2.5rem auto;
+}
+
+.streampirex-home .social-feature {
+	background: #161b22;
+	border: 1px solid #30363d;
+	border-radius: 12px;
+	padding: 1.5rem;
+	text-align: center;
+	transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+	min-width: 0;
+}
+
+.streampirex-home .social-feature:hover {
+	border-color: var(--spx-teal);
+	transform: translateY(-3px);
+	box-shadow: 0 10px 30px rgba(0,255,200,0.12);
+}
+
+.streampirex-home .social-icon {
+	display: block;
+	font-size: 2rem;
+	margin-bottom: 0.75rem;
+}
+
+.streampirex-home .social-feature h4 {
+	color: #ffffff;
+	font-size: 1rem;
+	font-weight: 700;
+	margin-bottom: 0.4rem;
+}
+
+.streampirex-home .social-feature p {
+	color: var(--spx-text-muted) !important;
+	font-size: 0.875rem !important;
+	margin: 0;
+}
+
+.streampirex-home .social-cta {
+	text-align: center;
+	display: flex;
+	gap: 1rem;
+	justify-content: center;
+	margin-top: 2rem;
+	flex-wrap: wrap;
+}
+
+/* =============================================
+   Gaming Hub Spotlight
+   ============================================= */
+.streampirex-home .gaming-hub-spotlight {
+	padding: 5rem 2rem;
+	background: linear-gradient(145deg, #0d1117, #0f1923);
+	border-bottom: 1px solid #1f2937;
+}
+
+.streampirex-home .gaming-header {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.streampirex-home .gaming-header h2 {
+	font-size: 2rem;
+	color: var(--spx-teal);
+	margin: 0;
+}
+
+.streampirex-home .gaming-free-tag {
+	background: var(--spx-orange);
+	color: #fff;
+	font-size: 0.75rem;
+	font-weight: 700;
+	padding: 0.3rem 0.8rem;
+	border-radius: 999px;
+	letter-spacing: 0.05em;
+}
+
+.streampirex-home .gaming-features-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1.5rem;
+	max-width: 1100px;
+	margin: 2.5rem auto;
+}
+
+.streampirex-home .gaming-feature {
+	background: #161b22;
+	border: 1px solid #30363d;
+	border-radius: 12px;
+	padding: 1.5rem;
+	text-align: center;
+	transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+	min-width: 0;
+}
+
+.streampirex-home .gaming-feature:hover {
+	border-color: var(--spx-orange);
+	transform: translateY(-3px);
+	box-shadow: 0 10px 30px rgba(255,102,0,0.18);
+}
+
+.streampirex-home .gaming-icon {
+	display: block;
+	font-size: 2rem;
+	margin-bottom: 0.75rem;
+}
+
+.streampirex-home .gaming-feature h4 {
+	color: #ffffff;
+	font-size: 1rem;
+	font-weight: 700;
+	margin-bottom: 0.4rem;
+}
+
+.streampirex-home .gaming-feature p {
+	color: var(--spx-text-muted) !important;
+	font-size: 0.875rem !important;
+	margin: 0;
+}
+
+.streampirex-home .gaming-cta {
+	text-align: center;
+	display: flex;
+	gap: 1rem;
+	justify-content: center;
+	margin-top: 2rem;
+	flex-wrap: wrap;
+}
+
+/* =============================================
+   Beat Store Spotlight
+   ============================================= */
+.streampirex-home .beat-store-spotlight {
+	padding: 4rem 2rem;
+	background: #111827 !important;
+	text-align: center;
+	border-top: 2px solid rgba(255, 102, 0, 0.2);
+	border-bottom: 2px solid rgba(255, 102, 0, 0.2);
+}
+
+.streampirex-home .beat-store-spotlight h2 {
+	color: var(--spx-orange) !important;
+	font-size: 2.2rem;
+	margin-bottom: 0.5rem;
+}
+
+.streampirex-home .beat-store-features-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 1.5rem;
+	max-width: 1200px;
+	margin: 2.5rem auto 0;
+}
+
+.streampirex-home .beat-store-feature {
+	background: linear-gradient(145deg, #161b22, #1f2937) !important;
+	border: 1px solid rgba(255, 102, 0, 0.2);
+	border-radius: 14px;
+	padding: 2rem 1.5rem;
+	text-align: center;
+	transition: all 0.3s ease;
+	min-width: 0;
+}
+
+.streampirex-home .beat-store-feature:hover {
+	border-color: var(--spx-orange);
+	transform: translateY(-4px);
+	box-shadow: 0 12px 35px rgba(255, 102, 0, 0.15);
+}
+
+.streampirex-home .bs-icon {
+	font-size: 2.5rem;
+	display: block;
+	margin-bottom: 1rem;
+}
+
+.streampirex-home .beat-store-feature h4 {
+	color: var(--spx-orange) !important;
+	font-size: 1.15rem;
+	margin-bottom: 0.75rem;
+}
+
+.streampirex-home .beat-store-feature p {
+	color: var(--spx-text-muted) !important;
+	font-size: 0.9rem;
+	line-height: 1.6;
+}
+
+.streampirex-home .beat-store-cta {
+	display: flex;
+	justify-content: center;
+	gap: 1rem;
+	margin-top: 2.5rem;
+	flex-wrap: wrap;
+}
+
+/* =============================================
+   Merch / POD spotlight
+   ============================================= */
+.streampirex-home .merch-pod-spotlight {
+	border-top: 1px solid rgba(0,255,200,0.1);
+	border-bottom: 1px solid rgba(0,255,200,0.1);
+}
+
+.streampirex-home .merch-pod-spotlight .row {
+	max-width: 1100px;
+	margin: 2rem auto 0 auto;
+}
+
+.streampirex-home .merch-pod-spotlight .small {
+	color: var(--spx-text-muted) !important;
 }
 
 /* =============================================
@@ -257,16 +811,14 @@
 }
 
 .streampirex-home .ai-features-section h2 {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	font-size: 2.2rem;
 	margin-bottom: 0.5rem;
-	background: transparent !important;
 }
 
-/* 9-card grid: wraps naturally */
 .streampirex-home .ai-features-grid {
 	display: grid;
-	grid-template-columns: repeat(4, 1fr);
+	grid-template-columns: repeat(4, minmax(0, 1fr));
 	gap: 1.5rem;
 	max-width: 1200px;
 	margin: 2.5rem auto 0;
@@ -281,10 +833,11 @@
 	position: relative;
 	transition: all 0.3s ease;
 	overflow: hidden;
+	min-width: 0;
 }
 
 .streampirex-home .ai-feature-card::before {
-	content: '';
+	content: "";
 	position: absolute;
 	top: 0;
 	left: 0;
@@ -294,7 +847,7 @@
 }
 
 .streampirex-home .ai-feature-card:hover {
-	border-color: #00ffc8;
+	border-color: var(--spx-teal);
 	transform: translateY(-4px);
 	box-shadow: 0 12px 40px rgba(0, 255, 200, 0.15);
 }
@@ -316,7 +869,6 @@
 	margin-bottom: 0.75rem;
 }
 
-/* FREE badge — green gradient for stem separation */
 .streampirex-home .ai-badge.free-badge {
 	background: linear-gradient(135deg, #10b981, #34d399) !important;
 	color: #0d1117 !important;
@@ -336,14 +888,12 @@
 	color: #ffffff !important;
 	font-size: 1.3rem;
 	margin-bottom: 0.75rem;
-	background: transparent !important;
 }
 
 .streampirex-home .ai-feature-card p {
-	color: #9ca3af !important;
+	color: var(--spx-text-muted) !important;
 	font-size: 0.95rem;
 	line-height: 1.6;
-	background: transparent !important;
 }
 
 .streampirex-home .ai-feature-stats {
@@ -356,7 +906,7 @@
 
 .streampirex-home .ai-feature-stats span {
 	background: rgba(0, 255, 200, 0.1);
-	color: #00ffc8;
+	color: var(--spx-teal);
 	font-size: 0.75rem;
 	padding: 4px 10px;
 	border-radius: 20px;
@@ -364,7 +914,6 @@
 	font-weight: 600;
 }
 
-/* AI Coming Soon */
 .streampirex-home .ai-coming-soon {
 	max-width: 800px;
 	margin: 3rem auto 0;
@@ -378,7 +927,6 @@
 	color: #c084fc !important;
 	margin-bottom: 1rem;
 	font-size: 1.1rem;
-	background: transparent !important;
 }
 
 .streampirex-home .coming-soon-items {
@@ -398,7 +946,37 @@
 	border: 1px solid rgba(124, 58, 237, 0.3);
 }
 
-/* AI Tag on Feature Cards */
+.streampirex-home .ai-also-included {
+	max-width: 1000px;
+	margin: 2.5rem auto 0;
+	padding: 1.5rem;
+	border-radius: 14px;
+	background: rgba(0,255,200,0.04);
+	border: 1px solid rgba(0,255,200,0.12);
+}
+
+.streampirex-home .ai-also-included h4 {
+	color: var(--spx-teal) !important;
+	margin-bottom: 1rem;
+}
+
+.streampirex-home .also-included-items {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.75rem;
+}
+
+.streampirex-home .also-tag {
+	background: rgba(0, 255, 200, 0.08);
+	color: var(--spx-teal);
+	padding: 6px 12px;
+	border-radius: 999px;
+	font-size: 0.82rem;
+	border: 1px solid rgba(0,255,200,0.18);
+	font-weight: 600;
+}
+
 .streampirex-home .feature-tag.ai-tag {
 	background: linear-gradient(135deg, #00ffc8, #00a8ff) !important;
 	color: #0d1117 !important;
@@ -407,148 +985,8 @@
 }
 
 /* =============================================
-   Beat Store Spotlight Section
+   EPK / Collab
    ============================================= */
-.streampirex-home .beat-store-spotlight {
-	padding: 4rem 2rem;
-	background: #111827 !important;
-	text-align: center;
-	border-top: 2px solid rgba(255, 102, 0, 0.2);
-	border-bottom: 2px solid rgba(255, 102, 0, 0.2);
-}
-
-.streampirex-home .beat-store-spotlight h2 {
-	color: #FF6600 !important;
-	font-size: 2.2rem;
-	margin-bottom: 0.5rem;
-	background: transparent !important;
-}
-
-.streampirex-home .beat-store-features-grid {
-	display: grid;
-	grid-template-columns: repeat(4, 1fr);
-	gap: 1.5rem;
-	max-width: 1200px;
-	margin: 2.5rem auto 0;
-}
-
-.streampirex-home .beat-store-feature {
-	background: linear-gradient(145deg, #161b22, #1f2937) !important;
-	border: 1px solid rgba(255, 102, 0, 0.2);
-	border-radius: 14px;
-	padding: 2rem 1.5rem;
-	text-align: center;
-	transition: all 0.3s ease;
-}
-
-.streampirex-home .beat-store-feature:hover {
-	border-color: #FF6600;
-	transform: translateY(-4px);
-	box-shadow: 0 12px 35px rgba(255, 102, 0, 0.15);
-}
-
-.streampirex-home .bs-icon {
-	font-size: 2.5rem;
-	display: block;
-	margin-bottom: 1rem;
-}
-
-.streampirex-home .beat-store-feature h4 {
-	color: #FF6600 !important;
-	font-size: 1.15rem;
-	margin-bottom: 0.75rem;
-	background: transparent !important;
-}
-
-.streampirex-home .beat-store-feature p {
-	color: #9ca3af !important;
-	font-size: 0.9rem;
-	line-height: 1.6;
-	background: transparent !important;
-}
-
-.streampirex-home .beat-store-cta {
-	display: flex;
-	justify-content: center;
-	gap: 1rem;
-	margin-top: 2.5rem;
-}
-
-/* =============================================
-   Podcast Studio Spotlight Section
-   ============================================= */
-.streampirex-home .podcast-studio-spotlight {
-	padding: 4rem 2rem;
-	background: #0f172a !important;
-	text-align: center;
-	border-top: 2px solid rgba(0, 255, 200, 0.15);
-	border-bottom: 2px solid rgba(0, 255, 200, 0.15);
-}
-
-.streampirex-home .podcast-studio-spotlight h2 {
-	color: #00ffc8 !important;
-	font-size: 2.2rem;
-	margin-bottom: 0.5rem;
-	background: transparent !important;
-}
-
-.streampirex-home .podcast-features-grid {
-	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 1.5rem;
-	max-width: 1100px;
-	margin: 2.5rem auto 0;
-}
-
-.streampirex-home .podcast-feature {
-	background: linear-gradient(145deg, #161b22, #1f2937) !important;
-	border: 1px solid rgba(0, 255, 200, 0.12);
-	border-radius: 14px;
-	padding: 2rem 1.5rem;
-	text-align: center;
-	transition: all 0.3s ease;
-}
-
-.streampirex-home .podcast-feature:hover {
-	border-color: #00ffc8;
-	transform: translateY(-4px);
-	box-shadow: 0 12px 35px rgba(0, 255, 200, 0.12);
-}
-
-.streampirex-home .pod-icon {
-	font-size: 2.5rem;
-	display: block;
-	margin-bottom: 1rem;
-}
-
-.streampirex-home .podcast-feature h4 {
-	color: #00ffc8 !important;
-	font-size: 1.15rem;
-	margin-bottom: 0.75rem;
-	background: transparent !important;
-}
-
-.streampirex-home .podcast-feature p {
-	color: #9ca3af !important;
-	font-size: 0.9rem;
-	line-height: 1.6;
-	background: transparent !important;
-}
-
-.streampirex-home .podcast-studio-cta {
-	display: flex;
-	justify-content: center;
-	gap: 1rem;
-	margin-top: 2.5rem;
-}
-
-/* =============================================
-   How It Works Section
-   ============================================= */
-/* ═══════════════════════════════════════════════════════════════
-   EPK & COLLAB HUB SPOTLIGHT
-   ═══════════════════════════════════════════════════════════════ */
-
 .streampirex-home .epk-collab-spotlight {
 	padding: 4rem 2rem;
 	background: linear-gradient(180deg, #0b1120, #111827) !important;
@@ -558,15 +996,14 @@
 }
 
 .streampirex-home .epk-collab-spotlight h2 {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	font-size: 2.2rem;
 	margin-bottom: 0.5rem;
-	background: transparent !important;
 }
 
 .streampirex-home .epk-features-grid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 1.5rem;
 	max-width: 1200px;
 	margin: 2.5rem auto 0;
@@ -579,10 +1016,11 @@
 	padding: 2rem 1.5rem;
 	text-align: center;
 	transition: all 0.3s ease;
+	min-width: 0;
 }
 
 .streampirex-home .epk-feature:hover {
-	border-color: #00ffc8;
+	border-color: var(--spx-teal);
 	transform: translateY(-4px);
 	box-shadow: 0 12px 35px rgba(0, 255, 200, 0.1);
 }
@@ -594,17 +1032,15 @@
 }
 
 .streampirex-home .epk-feature h4 {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	font-size: 1.15rem;
 	margin-bottom: 0.75rem;
-	background: transparent !important;
 }
 
 .streampirex-home .epk-feature p {
-	color: #9ca3af !important;
+	color: var(--spx-text-muted) !important;
 	font-size: 0.9rem;
 	line-height: 1.6;
-	background: transparent !important;
 }
 
 .streampirex-home .epk-cta {
@@ -612,10 +1048,12 @@
 	justify-content: center;
 	gap: 1rem;
 	margin-top: 2.5rem;
+	flex-wrap: wrap;
 }
 
-/* ═══════════════════════════════════════════════════════════════ */
-
+/* =============================================
+   How It Works
+   ============================================= */
 .streampirex-home .how-it-works {
 	padding: 4rem 2rem;
 	background: #111827 !important;
@@ -623,15 +1061,14 @@
 }
 
 .streampirex-home .how-it-works h2 {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	font-size: 2rem;
 	margin-bottom: 2rem;
-	background: transparent !important;
 }
 
 .streampirex-home .steps-grid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 2rem;
 	max-width: 1000px;
 	margin: 0 auto;
@@ -644,6 +1081,7 @@
 	border: 1px solid rgba(0, 255, 200, 0.12);
 	position: relative;
 	transition: transform 0.3s ease, box-shadow 0.3s ease;
+	min-width: 0;
 }
 
 .streampirex-home .step-card:hover {
@@ -669,18 +1107,16 @@
 	color: #ffffff !important;
 	font-size: 1.15rem;
 	margin-bottom: 0.75rem;
-	background: transparent !important;
 }
 
 .streampirex-home .step-card p {
-	color: #9ca3af !important;
+	color: var(--spx-text-muted) !important;
 	font-size: 0.9rem;
 	line-height: 1.6;
-	background: transparent !important;
 }
 
 /* =============================================
-   Features Section
+   Main features section
    ============================================= */
 .streampirex-home .features {
 	padding: 4rem 2rem;
@@ -690,9 +1126,8 @@
 .streampirex-home .features h2 {
 	text-align: center;
 	margin-bottom: 0.5rem;
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	font-size: 2rem;
-	background: transparent !important;
 }
 
 .streampirex-home .feature-grid {
@@ -707,9 +1142,9 @@
 	background: #1f2937 !important;
 	padding: 1.5rem;
 	border-radius: 12px;
-	box-shadow: 0 0 12px rgba(0, 255, 200, 0.1);
+	box-shadow: var(--spx-shadow);
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
-	border-left: 4px solid #00ffc8;
+	border-left: 4px solid var(--spx-teal);
 	position: relative;
 	color: #ffffff !important;
 	width: 100%;
@@ -720,12 +1155,12 @@
 }
 
 .streampirex-home .feature-card:hover {
-	transform: translateY(-5px);
-	box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
+	transform: translateY(-6px);
+	box-shadow: 0 12px 40px rgba(0,255,200,0.2);
 }
 
 .streampirex-home .feature-card.highlight {
-	border-left-color: #FF6600 !important;
+	border-left-color: var(--spx-orange) !important;
 	background: linear-gradient(135deg, #1f2937, #1a2332) !important;
 }
 
@@ -733,28 +1168,25 @@
 	font-size: 2rem;
 	margin-bottom: 1rem;
 	display: block;
-	background: transparent !important;
 }
 
 .streampirex-home .feature-card h4 {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	margin-bottom: 0.5rem;
 	font-size: 1.1rem;
-	background: transparent !important;
 }
 
 .streampirex-home .feature-card p {
-	color: #d1d5db !important;
+	color: var(--spx-text-soft) !important;
 	font-size: 0.9rem;
 	line-height: 1.5;
-	background: transparent !important;
 }
 
 .streampirex-home .feature-tag {
 	position: absolute;
 	top: 1rem;
 	right: 1rem;
-	background: #00ffc8 !important;
+	background: var(--spx-teal) !important;
 	color: #0d1117 !important;
 	padding: 0.25rem 0.75rem;
 	border-radius: 20px;
@@ -764,162 +1196,484 @@
 }
 
 .streampirex-home .feature-tag.new {
-	background: #FF6600 !important;
+	background: var(--spx-orange) !important;
 	color: #ffffff !important;
 }
 
 /* =============================================
-   Comparison Section
+   Podcast Studio Spotlight
    ============================================= */
-.streampirex-home .comparison-section {
-	padding: 4rem 2rem;
-	background: #161b22 !important;
-}
-
-.streampirex-home .comparison-section h2 {
-	text-align: center;
-	color: #00ffc8 !important;
-	font-size: 2rem;
-	margin-bottom: 0.5rem;
-	background: transparent !important;
-}
-
-.streampirex-home .comparison-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 2rem;
-	max-width: 1100px;
-	width: 100%;
-	margin: 0 auto;
-}
-
-.streampirex-home .comparison-card {
-	padding: 2rem;
-	border-radius: 12px;
-	width: 100%;
-	min-width: 0;
-}
-
-.streampirex-home .comparison-card.old {
-	background: #1f2937 !important;
-	border: 2px solid #374151;
-}
-
-.streampirex-home .comparison-card.new {
-	background: linear-gradient(135deg, #064e3b, #022c22) !important;
-	border: 2px solid #00ffc8;
-}
-
-.streampirex-home .comparison-card h4 {
-	margin-bottom: 1.5rem;
-	font-size: 1.2rem;
-	color: #ffffff !important;
-	background: transparent !important;
-}
-
-.streampirex-home .comparison-card ul {
-	list-style: none;
-	padding: 0;
-	margin: 0 0 1.5rem 0;
-}
-
-.streampirex-home .comparison-card li {
-	padding: 0.5rem 0;
-	color: #d1d5db !important;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-	font-size: 0.95rem;
-	background: transparent !important;
-}
-
-.streampirex-home .comparison-card li:last-child {
-	border-bottom: none;
-}
-
-.streampirex-home .comparison-total {
-	font-weight: bold;
-	font-size: 1.1rem;
-	padding-top: 1rem;
-	border-top: 2px solid rgba(255, 255, 255, 0.2);
-	color: #d1d5db !important;
-	background: transparent !important;
-}
-
-.streampirex-home .comparison-card.new .comparison-total {
-	color: #00ffc8 !important;
-}
-
-/* =============================================
-   Why Choose StreamPireX Section
-   ============================================= */
-.streampirex-home .why-choose-streampirex {
+.streampirex-home .podcast-studio-spotlight {
 	padding: 4rem 2rem;
 	background: #0f172a !important;
 	text-align: center;
+	border-top: 2px solid rgba(0, 255, 200, 0.15);
+	border-bottom: 2px solid rgba(0, 255, 200, 0.15);
 }
 
-.streampirex-home .why-choose-streampirex h2 {
-	color: #00ffc8 !important;
-	font-size: 2rem;
-	margin-bottom: 1rem;
-	background: transparent !important;
+.streampirex-home .podcast-studio-spotlight h2 {
+	color: var(--spx-teal) !important;
+	font-size: 2.2rem;
+	margin-bottom: 0.5rem;
 }
 
-.streampirex-home .why-choose-streampirex>p {
-	color: #d1d5db !important;
-	font-size: 1.1rem;
-	margin-bottom: 2rem;
-	max-width: 700px;
-	margin-left: auto;
-	margin-right: auto;
-	background: transparent !important;
-}
-
-.streampirex-home .value-props-grid {
+.streampirex-home .podcast-features-grid {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 1.5rem;
+	max-width: 1100px;
+	margin: 2.5rem auto 0;
+}
+
+.streampirex-home .podcast-feature {
+	background: linear-gradient(145deg, #161b22, #1f2937) !important;
+	border: 1px solid rgba(0, 255, 200, 0.12);
+	border-radius: 14px;
+	padding: 2rem 1.5rem;
+	text-align: center;
+	transition: all 0.3s ease;
+	min-width: 0;
+}
+
+.streampirex-home .podcast-feature:hover {
+	border-color: var(--spx-teal);
+	transform: translateY(-4px);
+	box-shadow: 0 12px 35px rgba(0, 255, 200, 0.12);
+}
+
+.streampirex-home .pod-icon {
+	font-size: 2.5rem;
+	display: block;
+	margin-bottom: 1rem;
+}
+
+.streampirex-home .podcast-feature h4 {
+	color: var(--spx-teal) !important;
+	font-size: 1.15rem;
+	margin-bottom: 0.75rem;
+}
+
+.streampirex-home .podcast-feature p {
+	color: var(--spx-text-muted) !important;
+	font-size: 0.9rem;
+	line-height: 1.6;
+}
+
+.streampirex-home .podcast-studio-cta {
+	display: flex;
+	justify-content: center;
+	gap: 1rem;
+	margin-top: 2.5rem;
+	flex-wrap: wrap;
+}
+
+/* =============================================
+   Film & Series Spotlight
+   ============================================= */
+.streampirex-home .film-series-spotlight {
+	padding: 5rem 2rem;
+	background: linear-gradient(180deg, #0d1117 0%, #0a1628 50%, #0d1117 100%);
+	border-top: 2px solid rgba(255, 107, 107, 0.3);
+	border-bottom: 2px solid rgba(255, 107, 107, 0.3);
+}
+
+.streampirex-home .film-section-inner {
 	max-width: 1200px;
 	margin: 0 auto;
 }
 
-.streampirex-home .value-prop-card {
-	background: #1f2937 !important;
-	padding: 1.5rem;
+.streampirex-home .film-section-header {
+	text-align: center;
+	margin-bottom: 3rem;
+}
+
+.streampirex-home .film-badge-tag {
+	display: inline-block;
+	background: linear-gradient(135deg, #ff6b6b, #ff4757);
+	color: #fff;
+	font-weight: 800;
+	font-size: 0.82rem;
+	padding: 0.3rem 1rem;
+	border-radius: 999px;
+	letter-spacing: 0.05em;
+	margin-bottom: 1rem;
+}
+
+.streampirex-home .film-section-header h2 {
+	font-size: 2.2rem;
+	color: #ff6b6b !important;
+	margin-bottom: 0.5rem;
+}
+
+.streampirex-home .film-features-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1.5rem;
+	margin-bottom: 4rem;
+}
+
+.streampirex-home .film-feature-item {
+	background: #161b22;
+	border: 1px solid #30363d;
 	border-radius: 12px;
-	box-shadow: 0 0 12px rgba(0, 255, 200, 0.1);
-	border-left: 4px solid #00ffc8;
-	transition: transform 0.3s ease, box-shadow 0.3s ease;
-	width: 100%;
+	padding: 1.5rem;
+	text-align: center;
+	transition: border-color 0.2s, transform 0.2s;
+	position: relative;
 	min-width: 0;
 }
 
-.streampirex-home .value-prop-card:hover {
-	transform: translateY(-5px);
-	box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
+.streampirex-home .film-feature-item:hover {
+	border-color: #ff6b6b;
+	transform: translateY(-3px);
+	box-shadow: 0 10px 30px rgba(255, 107, 107, 0.12);
 }
 
-.streampirex-home .value-icon {
-	font-size: 2.5rem;
-	margin-bottom: 1rem;
-	background: transparent !important;
-}
-
-.streampirex-home .value-prop-card h4 {
-	color: #00ffc8 !important;
+.streampirex-home .film-feature-icon {
+	display: block;
+	font-size: 2.2rem;
 	margin-bottom: 0.75rem;
-	font-size: 1.1rem;
-	background: transparent !important;
 }
 
-.streampirex-home .value-prop-card p {
-	color: #d1d5db !important;
+.streampirex-home .film-feature-item h4 {
+	color: #ff6b6b !important;
+	font-size: 1rem;
+	font-weight: 700;
+	margin-bottom: 0.5rem;
+}
+
+.streampirex-home .film-feature-item p {
+	color: var(--spx-text-muted) !important;
+	font-size: 0.875rem !important;
 	line-height: 1.5;
-	font-size: 0.9rem;
-	background: transparent !important;
+	margin-bottom: 0.75rem;
+}
+
+.streampirex-home .film-feature-tag {
+	display: inline-block;
+	border-radius: 4px;
+	padding: 2px 8px;
+	font-size: 0.68rem;
+	font-weight: 700;
+}
+
+.streampirex-home .film-feature-tag.free {
+	background: rgba(0,255,200,0.15);
+	color: var(--spx-teal);
+	border: 1px solid rgba(0,255,200,0.3);
+}
+
+.streampirex-home .film-feature-tag.new {
+	background: rgba(255,107,107,0.15);
+	color: #ff6b6b;
+	border: 1px solid rgba(255,107,107,0.3);
+}
+
+.streampirex-home .film-feature-tag.pro {
+	background: rgba(255,167,38,0.15);
+	color: #ffa726;
+	border: 1px solid rgba(255,167,38,0.3);
+}
+
+.streampirex-home .film-theatre-preview {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 3rem;
+	align-items: center;
+	margin-bottom: 3rem;
+	background: rgba(255,107,107,0.04);
+	border: 1px solid rgba(255,107,107,0.15);
+	border-radius: 16px;
+	padding: 2.5rem;
+}
+
+.streampirex-home .film-theatre-left h3 {
+	color: #ff6b6b !important;
+	font-size: 1.4rem;
+	margin-bottom: 1rem;
+}
+
+.streampirex-home .film-theatre-left p {
+	color: #c9d1d9 !important;
+	font-size: 0.95rem;
+	line-height: 1.7;
+	margin-bottom: 1.25rem;
+}
+
+.streampirex-home .film-theatre-features {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.streampirex-home .film-theatre-features li {
+	color: var(--spx-text-soft) !important;
+	font-size: 0.88rem;
+	padding: 0.4rem 0;
+	border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.streampirex-home .film-theatre-mockup {
+	background: #050a12;
+	border: 1px solid rgba(255,107,107,0.3);
+	border-radius: 12px;
+	overflow: hidden;
+	font-size: 0.75rem;
+}
+
+.streampirex-home .mockup-topbar {
+	background: #0d1117;
+	border-bottom: 1px solid #1a2332;
+	padding: 10px 14px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.streampirex-home .mockup-logo { font-weight: 800; color: var(--spx-teal); }
+.streampirex-home .mockup-title { font-weight: 700; color: #e6edf3; flex: 1; }
+.streampirex-home .mockup-live {
+	background: #ff4757;
+	color: #fff;
+	border-radius: 4px;
+	padding: 2px 6px;
+	font-size: 0.65rem;
+	font-weight: 800;
+}
+.streampirex-home .mockup-viewers { color: #8b949e; }
+
+.streampirex-home .mockup-screen {
+	background: #000;
+	height: 140px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+}
+
+.streampirex-home .mockup-play-icon {
+	font-size: 3rem;
+	color: rgba(255,255,255,0.3);
+}
+
+.streampirex-home .mockup-sync {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	background: rgba(0,255,200,0.15);
+	color: var(--spx-teal);
+	border-radius: 4px;
+	padding: 2px 8px;
+	font-size: 0.65rem;
+	font-weight: 700;
+}
+
+.streampirex-home .mockup-controls {
+	background: #0d1117;
+	border-top: 1px solid #1a2332;
+	padding: 8px 14px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	color: #ffd700;
+	font-weight: 700;
+}
+
+.streampirex-home .mockup-btns {
+	display: flex;
+	gap: 8px;
+}
+
+.streampirex-home .mockup-btns button {
+	background: #21262d;
+	border: 1px solid #30363d;
+	border-radius: 4px;
+	color: #c9d1d9;
+	padding: 4px 8px;
+	cursor: pointer;
+	font-size: 0.68rem;
+}
+
+.streampirex-home .mockup-chat {
+	padding: 10px 14px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.streampirex-home .mockup-msg {
+	font-size: 0.72rem;
+	color: #c9d1d9;
+}
+
+.streampirex-home .mockup-msg.host { color: #ffd700; }
+
+.streampirex-home .mockup-name {
+	font-weight: 700;
+	color: var(--spx-teal);
+	margin-right: 6px;
+}
+
+.streampirex-home .mockup-msg.host .mockup-name { color: #ffd700; }
+
+.streampirex-home .film-pricing-callout {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 1rem;
+	background: rgba(255,107,107,0.05);
+	border: 1px solid rgba(255,107,107,0.2);
+	border-radius: 12px;
+	padding: 2rem;
+	flex-wrap: wrap;
+}
+
+.streampirex-home .film-pricing-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 0.4rem;
+}
+
+.streampirex-home .film-pricing-icon {
+	font-size: 2rem;
+}
+
+.streampirex-home .film-pricing-item strong {
+	color: #ff6b6b !important;
+	font-size: 1rem;
+	font-weight: 800;
+}
+
+.streampirex-home .film-pricing-item span {
+	color: var(--spx-text-muted);
+	font-size: 0.82rem;
+	max-width: 180px;
+}
+
+.streampirex-home .film-pricing-divider {
+	color: rgba(255,107,107,0.4);
+	font-size: 1.5rem;
+	font-weight: 700;
 }
 
 /* =============================================
-   Creator Types Section (8 cards — 4-col grid)
+   Creator Academy
+   ============================================= */
+.streampirex-home .creator-academy-spotlight {
+	padding: 5rem 2rem;
+	background: linear-gradient(180deg, #0d1117 0%, #111827 100%);
+	text-align: center;
+	border-top: 2px solid rgba(167,139,250,0.2);
+	border-bottom: 2px solid rgba(167,139,250,0.2);
+}
+
+.streampirex-home .creator-academy-spotlight h2 {
+	color: #a78bfa !important;
+	font-size: 2.2rem;
+	margin-bottom: 0.5rem;
+}
+
+.streampirex-home .academy-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 2rem;
+	max-width: 1000px;
+	margin: 2.5rem auto;
+}
+
+.streampirex-home .academy-card {
+	background: #161b22;
+	border: 1px solid #30363d;
+	border-radius: 14px;
+	padding: 2rem;
+	text-align: left;
+	transition: border-color 0.2s, transform 0.2s;
+	min-width: 0;
+}
+
+.streampirex-home .academy-card.creator-side {
+	border-color: rgba(167,139,250,0.3);
+}
+
+.streampirex-home .academy-card.creator-side:hover {
+	border-color: #a78bfa;
+	transform: translateY(-3px);
+	box-shadow: 0 10px 30px rgba(167,139,250,0.12);
+}
+
+.streampirex-home .academy-card.student-side {
+	border-color: rgba(0,255,200,0.2);
+}
+
+.streampirex-home .academy-card.student-side:hover {
+	border-color: var(--spx-teal);
+	transform: translateY(-3px);
+	box-shadow: 0 10px 30px rgba(0,255,200,0.1);
+}
+
+.streampirex-home .academy-card-header {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 1.25rem;
+}
+
+.streampirex-home .academy-emoji {
+	font-size: 2rem;
+}
+
+.streampirex-home .academy-card h4 {
+	color: #e6edf3 !important;
+	font-size: 1.05rem;
+	font-weight: 700;
+}
+
+.streampirex-home .academy-features {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.streampirex-home .academy-features li {
+	color: var(--spx-text-soft) !important;
+	font-size: 0.88rem;
+	padding: 0.4rem 0;
+	border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.streampirex-home .academy-features li:last-child {
+	border-bottom: none;
+}
+
+.streampirex-home .academy-categories {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.75rem;
+	max-width: 900px;
+	margin: 0 auto;
+}
+
+.streampirex-home .academy-cat {
+	background: rgba(167,139,250,0.1);
+	color: #a78bfa;
+	border: 1px solid rgba(167,139,250,0.25);
+	border-radius: 20px;
+	padding: 6px 16px;
+	font-size: 0.82rem;
+	font-weight: 600;
+	transition: background 0.2s;
+}
+
+.streampirex-home .academy-cat:hover {
+	background: rgba(167,139,250,0.2);
+}
+
+/* =============================================
+   Creator Types
    ============================================= */
 .streampirex-home .creator-types {
 	padding: 4rem 2rem;
@@ -928,10 +1682,9 @@
 
 .streampirex-home .creator-types h2 {
 	text-align: center;
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	font-size: 2rem;
 	margin-bottom: 2rem;
-	background: transparent !important;
 }
 
 .streampirex-home .creator-grid {
@@ -948,7 +1701,7 @@
 	border-radius: 12px;
 	text-align: center;
 	transition: all 0.3s ease;
-	box-shadow: 0 0 12px rgba(0, 255, 200, 0.1);
+	box-shadow: var(--spx-shadow);
 	border: 1px solid transparent;
 	width: 100%;
 	min-width: 0;
@@ -957,32 +1710,94 @@
 .streampirex-home .creator-card:hover {
 	transform: translateY(-5px);
 	box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
-	border-color: #00ffc8;
+	border-color: var(--spx-teal);
 }
 
 .streampirex-home .creator-emoji {
 	font-size: 2.5rem;
 	display: block;
 	margin-bottom: 1rem;
-	background: transparent !important;
 }
 
 .streampirex-home .creator-card h4 {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	margin-bottom: 0.5rem;
 	font-size: 1rem;
-	background: transparent !important;
 }
 
 .streampirex-home .creator-card p {
-	color: #9ca3af !important;
+	color: var(--spx-text-muted) !important;
 	font-size: 0.85rem;
 	line-height: 1.4;
-	background: transparent !important;
 }
 
 /* =============================================
-   Gaming & Social Features Section
+   Why Choose
+   ============================================= */
+.streampirex-home .why-choose-streampirex {
+	padding: 4rem 2rem;
+	background: #0f172a !important;
+	text-align: center;
+}
+
+.streampirex-home .why-choose-streampirex h2 {
+	color: var(--spx-teal) !important;
+	font-size: 2rem;
+	margin-bottom: 1rem;
+}
+
+.streampirex-home .why-choose-streampirex > p {
+	color: var(--spx-text-soft) !important;
+	font-size: 1.1rem;
+	margin-bottom: 2rem;
+	max-width: 700px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.streampirex-home .value-props-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1.5rem;
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.streampirex-home .value-prop-card {
+	background: #1f2937 !important;
+	padding: 1.5rem;
+	border-radius: 12px;
+	box-shadow: var(--spx-shadow);
+	border-left: 4px solid var(--spx-teal);
+	transition: transform 0.3s ease, box-shadow 0.3s ease;
+	width: 100%;
+	min-width: 0;
+}
+
+.streampirex-home .value-prop-card:hover {
+	transform: translateY(-5px);
+	box-shadow: 0 0 20px rgba(0, 255, 200, 0.2);
+}
+
+.streampirex-home .value-icon {
+	font-size: 2.5rem;
+	margin-bottom: 1rem;
+}
+
+.streampirex-home .value-prop-card h4 {
+	color: var(--spx-teal) !important;
+	margin-bottom: 0.75rem;
+	font-size: 1.1rem;
+}
+
+.streampirex-home .value-prop-card p {
+	color: var(--spx-text-soft) !important;
+	line-height: 1.5;
+	font-size: 0.9rem;
+}
+
+/* =============================================
+   Gaming/Social legacy feature rows
    ============================================= */
 .streampirex-home .gaming-social-features {
 	padding: 4rem 2rem;
@@ -998,11 +1813,10 @@
 }
 
 .streampirex-home .feature-section h3 {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	font-size: 1.3rem;
 	margin-bottom: 1.5rem;
 	text-align: center;
-	background: transparent !important;
 }
 
 .streampirex-home .feature-list {
@@ -1018,33 +1832,30 @@
 	background: #1f2937 !important;
 	padding: 1rem;
 	border-radius: 10px;
-	border-left: 4px solid #00ffc8;
+	border-left: 4px solid var(--spx-teal);
 }
 
 .streampirex-home .feature-item .feature-icon {
 	font-size: 1.5rem;
 	flex-shrink: 0;
 	margin-bottom: 0;
-	background: transparent !important;
 }
 
 .streampirex-home .feature-item strong {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	display: block;
 	margin-bottom: 0.3rem;
-	background: transparent !important;
 	font-size: 0.95rem;
 }
 
 .streampirex-home .feature-item p {
-	color: #d1d5db !important;
+	color: var(--spx-text-soft) !important;
 	margin: 0;
 	font-size: 0.85rem;
-	background: transparent !important;
 }
 
 /* =============================================
-   Earnings Comparison Bars
+   Earnings
    ============================================= */
 .streampirex-home .earnings {
 	padding: 4rem 2rem;
@@ -1053,10 +1864,9 @@
 }
 
 .streampirex-home .earnings h2 {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	font-size: 2rem;
 	margin-bottom: 2rem;
-	background: transparent !important;
 }
 
 .streampirex-home .earnings-bars {
@@ -1074,7 +1884,7 @@
 .streampirex-home .earnings-row .platform-name {
 	width: 110px;
 	text-align: right;
-	color: #9ca3af;
+	color: var(--spx-text-muted);
 	font-size: 0.9rem;
 	font-weight: 600;
 }
@@ -1122,12 +1932,12 @@
 }
 
 .streampirex-home .highlight-row .platform-name {
-	color: #00ffc8;
+	color: var(--spx-teal);
 	font-weight: 700;
 }
 
 /* =============================================
-   Social Proof / Testimonials Section
+   Social proof
    ============================================= */
 .streampirex-home .social-proof {
 	padding: 4rem 2rem;
@@ -1136,15 +1946,14 @@
 }
 
 .streampirex-home .social-proof h2 {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	font-size: 2rem;
 	margin-bottom: 0.5rem;
-	background: transparent !important;
 }
 
 .streampirex-home .social-proof-grid {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 1.5rem;
 	max-width: 1100px;
 	margin: 2rem auto 0;
@@ -1157,32 +1966,31 @@
 	padding: 2rem 1.5rem;
 	text-align: left;
 	transition: all 0.3s ease;
+	min-width: 0;
 }
 
 .streampirex-home .proof-card:hover {
-	border-color: #00ffc8;
+	border-color: var(--spx-teal);
 	transform: translateY(-3px);
 	box-shadow: 0 8px 25px rgba(0, 255, 200, 0.1);
 }
 
 .streampirex-home .proof-quote {
-	color: #d1d5db !important;
+	color: var(--spx-text-soft) !important;
 	font-size: 1rem;
 	line-height: 1.6;
 	font-style: italic;
 	margin-bottom: 1rem;
-	background: transparent !important;
 }
 
 .streampirex-home .proof-author {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	font-size: 0.85rem;
 	font-weight: 600;
-	background: transparent !important;
 }
 
 /* =============================================
-   Final CTA Section
+   Final CTA
    ============================================= */
 .streampirex-home .join-now,
 .streampirex-home .final-cta {
@@ -1193,28 +2001,24 @@
 
 .streampirex-home .join-now h2,
 .streampirex-home .final-cta h2 {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	margin-bottom: 1rem;
 	font-size: 2rem;
-	background: transparent !important;
 }
 
 .streampirex-home .join-now p,
-.streampirex-home .final-cta>p {
-	color: #d1d5db !important;
+.streampirex-home .final-cta > p {
+	color: var(--spx-text-soft) !important;
 	font-size: 1.1rem;
 	margin-bottom: 2rem;
-	background: transparent !important;
 }
 
 .streampirex-home .cta-note {
-	color: #6b7280 !important;
+	color: var(--spx-text-dim) !important;
 	font-size: 0.9rem;
 	margin-top: 1.5rem;
-	background: transparent !important;
 }
 
-/* CTA Secondary Links */
 .streampirex-home .cta-secondary-links {
 	margin-top: 1.5rem;
 	display: flex;
@@ -1225,14 +2029,14 @@
 }
 
 .streampirex-home .cta-link {
-	color: #9ca3af;
+	color: var(--spx-text-muted);
 	font-size: 0.9rem;
 	text-decoration: none;
 	transition: color 0.3s;
 }
 
 .streampirex-home .cta-link:hover {
-	color: #00ffc8;
+	color: var(--spx-teal);
 }
 
 .streampirex-home .cta-divider {
@@ -1241,7 +2045,7 @@
 }
 
 /* =============================================
-   Pricing Preview Section
+   Pricing Preview
    ============================================= */
 .streampirex-home .pricing-preview {
 	padding: 4rem 2rem;
@@ -1252,10 +2056,9 @@
 }
 
 .streampirex-home .pricing-preview h2 {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	font-size: 2rem;
 	margin-bottom: 0.5rem;
-	background: transparent !important;
 }
 
 .streampirex-home .pricing-preview-grid {
@@ -1277,13 +2080,19 @@
 	display: flex;
 	flex-direction: column;
 	justify-content: flex-start;
+	min-width: 0;
+	transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.streampirex-home .pricing-preview-card:hover {
+	transform: translateY(-5px);
+	box-shadow: 0 12px 35px rgba(0,255,200,0.15);
 }
 
 .streampirex-home .pricing-preview-card h4 {
 	color: #ffffff !important;
 	font-size: 1.2rem;
 	margin-bottom: 0.75rem;
-	background: transparent !important;
 }
 
 .streampirex-home .pricing-preview-card.starter {
@@ -1304,23 +2113,21 @@
 .streampirex-home .preview-price {
 	font-size: 2.2rem;
 	font-weight: 900;
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	margin-bottom: 0.75rem;
-	background: transparent !important;
 }
 
 .streampirex-home .preview-price span {
 	font-size: 1rem;
 	font-weight: 700;
-	color: #9ca3af !important;
+	color: var(--spx-text-muted) !important;
 	margin-left: 0.35rem;
 }
 
 .streampirex-home .pricing-preview-card p {
-	color: #d1d5db !important;
+	color: var(--spx-text-soft) !important;
 	font-size: 0.9rem;
 	line-height: 1.5;
-	background: transparent !important;
 }
 
 .streampirex-home .preview-popular {
@@ -1341,12 +2148,18 @@
 	margin-top: 2rem;
 }
 
+.streampirex-home .preview-subprice {
+	margin-top: 6px;
+	font-size: 0.95rem;
+	opacity: 0.8;
+}
+
 /* =============================================
-   Footer (expanded 3-column)
+   Footer
    ============================================= */
 .streampirex-home .home-footer {
 	padding: 3rem 2rem 2rem;
-	border-top: 1px solid #30363d;
+	border-top: 1px solid rgba(0,255,200,0.15);
 	background: #0d1117 !important;
 }
 
@@ -1361,17 +2174,15 @@
 }
 
 .streampirex-home .footer-brand h3 {
-	color: #00ffc8 !important;
+	color: var(--spx-teal) !important;
 	font-size: 1.3rem;
 	margin-bottom: 0.5rem;
-	background: transparent !important;
 }
 
 .streampirex-home .footer-brand p {
-	color: #6b7280 !important;
+	color: var(--spx-text-dim) !important;
 	font-size: 0.85rem;
 	margin: 0;
-	background: transparent !important;
 }
 
 .streampirex-home .footer-columns {
@@ -1387,30 +2198,27 @@
 }
 
 .streampirex-home .footer-col h5 {
-	color: #d1d5db !important;
+	color: var(--spx-text-soft) !important;
 	font-size: 0.9rem;
 	font-weight: 700;
 	margin-bottom: 0.5rem;
-	background: transparent !important;
 }
 
 .streampirex-home .footer-col a {
-	color: #6b7280;
+	color: var(--spx-text-dim);
 	font-size: 0.85rem;
 	text-decoration: none;
 	transition: color 0.3s;
 }
 
 .streampirex-home .footer-col a:hover {
-	color: #00ffc8;
+	color: var(--spx-teal);
 }
 
-/* Legacy footer-links */
 .streampirex-home .footer-content > p {
-	color: #6b7280 !important;
+	color: var(--spx-text-dim) !important;
 	font-size: 0.85rem;
 	margin: 0;
-	background: transparent !important;
 }
 
 .streampirex-home .footer-links {
@@ -1419,21 +2227,19 @@
 }
 
 .streampirex-home .footer-links a {
-	color: #6b7280;
+	color: var(--spx-text-dim);
 	font-size: 0.85rem;
 	text-decoration: none;
 	transition: color 0.3s;
 }
 
 .streampirex-home .footer-links a:hover {
-	color: #00ffc8;
+	color: var(--spx-teal);
 }
 
 /* =============================================
-   Responsive Design
+   Responsive
    ============================================= */
-
-/* Large tablets and small desktops */
 @media (max-width: 1200px) {
 	.streampirex-home .feature-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1457,19 +2263,18 @@
 	}
 
 	.streampirex-home .ai-features-grid {
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 
 	.streampirex-home .beat-store-features-grid {
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 
 	.streampirex-home .epk-features-grid {
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
 
-/* Tablets */
 @media (max-width: 1024px) {
 	.streampirex-home .feature-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1485,7 +2290,7 @@
 	}
 
 	.streampirex-home .ai-features-grid {
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		max-width: 800px;
 		margin-left: auto;
 		margin-right: auto;
@@ -1499,7 +2304,7 @@
 	}
 
 	.streampirex-home .podcast-features-grid {
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		max-width: 700px;
 		margin-left: auto;
 		margin-right: auto;
@@ -1515,12 +2320,38 @@
 	.streampirex-home .creator-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
+
+	.streampirex-home .film-features-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.streampirex-home .film-theatre-preview {
+		grid-template-columns: 1fr;
+	}
+
+	.streampirex-home .academy-grid {
+		grid-template-columns: 1fr;
+	}
 }
 
-/* Mobile */
+@media (max-width: 900px) {
+	.streampirex-home .free-features-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.streampirex-home .social-features-grid,
+	.streampirex-home .gaming-features-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
 @media (max-width: 768px) {
 	.streampirex-home .hero {
-		padding: 2rem 1rem;
+		padding: 2rem 0 2rem 0;
+	}
+
+	.streampirex-home .hero-content {
+		padding: 0 16px;
 	}
 
 	.streampirex-home .hero h1 {
@@ -1531,6 +2362,10 @@
 		font-size: 1.1rem !important;
 	}
 
+	.streampirex-home .hero-logo {
+		max-width: 220px;
+	}
+
 	.streampirex-home .hero-image,
 	.streampirex-home .hero-image-placeholder {
 		width: 200px;
@@ -1539,77 +2374,66 @@
 	}
 
 	.streampirex-home .hero-stats {
-		gap: 2rem;
+		gap: 0.8rem;
+		padding: 0 16px;
 	}
 
-	.streampirex-home .feature-grid {
-		grid-template-columns: 1fr;
+	.streampirex-home .features,
+	.streampirex-home .ai-features-section,
+	.streampirex-home .comparison-section,
+	.streampirex-home .beat-store-spotlight,
+	.streampirex-home .podcast-studio-spotlight,
+	.streampirex-home .why-choose-streampirex,
+	.streampirex-home .creator-types,
+	.streampirex-home .pricing-preview,
+	.streampirex-home .social-proof,
+	.streampirex-home .earnings,
+	.streampirex-home .final-cta,
+	.streampirex-home .how-it-works,
+	.streampirex-home .gaming-hub-spotlight,
+	.streampirex-home .social-network-spotlight,
+	.streampirex-home .free-features-banner,
+	.streampirex-home .film-series-spotlight,
+	.streampirex-home .creator-academy-spotlight,
+	.streampirex-home .epk-collab-spotlight {
+		padding-left: 1rem;
+		padding-right: 1rem;
 	}
 
-	.streampirex-home .features {
-		padding: 2rem 1rem;
-	}
-
-	.streampirex-home .ai-features-section {
-		padding: 2.5rem 1rem;
-	}
-
-	.streampirex-home .ai-features-section h2 {
-		font-size: 1.8rem;
-	}
-
-	.streampirex-home .ai-feature-card {
-		padding: 1.5rem 1rem;
-	}
-
-	.streampirex-home .ai-features-grid {
-		grid-template-columns: 1fr;
-		max-width: 600px;
-		margin-left: auto;
-		margin-right: auto;
-	}
-
-	.streampirex-home .beat-store-features-grid {
-		grid-template-columns: 1fr;
-		max-width: 600px;
-		margin-left: auto;
-		margin-right: auto;
-	}
-
-	.streampirex-home .epk-features-grid {
+	.streampirex-home .feature-grid,
+	.streampirex-home .ai-features-grid,
+	.streampirex-home .beat-store-features-grid,
+	.streampirex-home .epk-features-grid,
+	.streampirex-home .podcast-features-grid,
+	.streampirex-home .value-props-grid,
+	.streampirex-home .pricing-preview-grid {
 		grid-template-columns: 1fr;
 		max-width: 600px;
 		margin-left: auto;
 		margin-right: auto;
 	}
 
-	.streampirex-home .podcast-features-grid {
+	.streampirex-home .free-features-grid,
+	.streampirex-home .social-features-grid,
+	.streampirex-home .gaming-features-grid {
 		grid-template-columns: 1fr;
-		max-width: 600px;
-		margin-left: auto;
-		margin-right: auto;
-	}
-
-	.streampirex-home .earnings-row .platform-name {
-		width: 80px;
-		font-size: 0.8rem;
-	}
-
-	.streampirex-home .final-cta h2 {
-		font-size: 1.8rem;
 	}
 
 	.streampirex-home .creator-grid {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 
+	.streampirex-home .beat-store-cta,
+	.streampirex-home .podcast-studio-cta,
+	.streampirex-home .gaming-cta,
+	.streampirex-home .epk-cta {
+		flex-direction: column;
+		align-items: center;
+	}
+
 	.streampirex-home .join-now,
 	.streampirex-home .final-cta {
 		padding: 2rem 1rem;
-	}
-
-	.streampirex-home .feature-container {
-		grid-template-columns: 1fr;
 	}
 
 	.streampirex-home .footer-content {
@@ -1628,29 +2452,6 @@
 		justify-content: center;
 	}
 
-	.streampirex-home .pricing-preview {
-		padding: 2.5rem 1rem;
-	}
-
-	.streampirex-home .pricing-preview-grid {
-		grid-template-columns: 1fr;
-		max-width: 520px;
-	}
-
-	.streampirex-home .value-props-grid {
-		grid-template-columns: 1fr;
-	}
-
-	.streampirex-home .beat-store-cta,
-	.streampirex-home .podcast-studio-cta {
-		flex-direction: column;
-		align-items: center;
-	}
-
-	.streampirex-home .social-proof-grid {
-		grid-template-columns: 1fr;
-	}
-
 	.streampirex-home .cta-secondary-links {
 		flex-direction: column;
 		gap: 0.75rem;
@@ -1659,9 +2460,31 @@
 	.streampirex-home .cta-divider {
 		display: none;
 	}
+
+	.streampirex-home .film-section-header h2,
+	.streampirex-home .creator-academy-spotlight h2 {
+		font-size: 1.7rem;
+	}
+
+	.streampirex-home .film-pricing-callout {
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.streampirex-home .film-pricing-divider {
+		transform: rotate(90deg);
+	}
 }
 
-/* Small mobile devices */
+@media (max-width: 560px) {
+	.streampirex-home .free-features-grid,
+	.streampirex-home .social-features-grid,
+	.streampirex-home .gaming-features-grid,
+	.streampirex-home .film-features-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
 @media (max-width: 480px) {
 	.streampirex-home .hero h1 {
 		font-size: 1.8rem;
@@ -1673,6 +2496,10 @@
 
 	.streampirex-home .hero-tagline {
 		font-size: 0.95rem !important;
+	}
+
+	.streampirex-home .hero-logo {
+		max-width: 180px;
 	}
 
 	.streampirex-home .hero-image,
@@ -1728,917 +2555,30 @@
 	}
 
 	.streampirex-home .beat-store-spotlight h2,
-	.streampirex-home .podcast-studio-spotlight h2 {
+	.streampirex-home .podcast-studio-spotlight h2,
+	.streampirex-home .ai-features-section h2,
+	.streampirex-home .features h2,
+	.streampirex-home .comparison-section h2,
+	.streampirex-home .pricing-preview h2,
+	.streampirex-home .earnings h2,
+	.streampirex-home .social-proof h2,
+	.streampirex-home .final-cta h2 {
 		font-size: 1.6rem;
 	}
-}
-/* =============================================
-   Free Features Banner — Added Mar 2026
-   ============================================= */
-.streampirex-home .free-features-banner {
-  background: linear-gradient(145deg, #0d1117, #161b22);
-  border-top: 2px solid #00ffc8;
-  border-bottom: 2px solid #00ffc8;
-  padding: 5rem 2rem;
-}
 
-.streampirex-home .free-banner-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.streampirex-home .free-banner-header {
-  text-align: center;
-  margin-bottom: 3rem;
-}
-
-.streampirex-home .free-badge-large {
-  display: inline-block;
-  background: #00ffc8;
-  color: #0d1117;
-  font-weight: 800;
-  font-size: 0.9rem;
-  padding: 0.4rem 1.2rem;
-  border-radius: 999px;
-  letter-spacing: 0.05em;
-  margin-bottom: 1rem;
-}
-
-.streampirex-home .free-banner-header h2 {
-  font-size: 2.2rem;
-  color: #ffffff;
-  margin-bottom: 0.75rem;
-}
-
-.streampirex-home .free-banner-header p {
-  color: #9ca3af;
-  font-size: 1.1rem;
-}
-
-.streampirex-home .free-features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 3rem;
-}
-
-@media (max-width: 900px) {
-  .streampirex-home .free-features-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 560px) {
-  .streampirex-home .free-features-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.streampirex-home .free-feature-item {
-  background: #1f2937;
-  border: 1px solid #374151;
-  border-radius: 12px;
-  padding: 1.5rem;
-  text-align: center;
-  transition: border-color 0.2s, transform 0.2s;
-}
-
-.streampirex-home .free-feature-item:hover {
-  border-color: #00ffc8;
-  transform: translateY(-3px);
-}
-
-.streampirex-home .free-feature-icon {
-  display: block;
-  font-size: 2rem;
-  margin-bottom: 0.75rem;
-}
-
-.streampirex-home .free-feature-item h4 {
-  color: #00ffc8;
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
-.streampirex-home .free-feature-item p {
-  color: #9ca3af !important;
-  font-size: 0.9rem !important;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.streampirex-home .free-banner-cta {
-  text-align: center;
-}
-
-/* =============================================
-   Social Network Spotlight — Added Mar 2026
-   ============================================= */
-.streampirex-home .social-network-spotlight {
-  padding: 5rem 2rem;
-  background: #0d1117;
-  border-bottom: 1px solid #1f2937;
-}
-
-.streampirex-home .social-network-spotlight h2 {
-  text-align: center;
-  font-size: 2rem;
-  color: #00ffc8;
-  margin-bottom: 0.5rem;
-}
-
-.streampirex-home .social-features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  max-width: 1100px;
-  margin: 2.5rem auto;
-}
-
-@media (max-width: 900px) {
-  .streampirex-home .social-features-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 560px) {
-  .streampirex-home .social-features-grid { grid-template-columns: 1fr; }
-}
-
-.streampirex-home .social-feature {
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 12px;
-  padding: 1.5rem;
-  text-align: center;
-  transition: border-color 0.2s, transform 0.2s;
-}
-
-.streampirex-home .social-feature:hover {
-  border-color: #00ffc8;
-  transform: translateY(-3px);
-}
-
-.streampirex-home .social-icon {
-  display: block;
-  font-size: 2rem;
-  margin-bottom: 0.75rem;
-}
-
-.streampirex-home .social-feature h4 {
-  color: #ffffff;
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 0.4rem;
-}
-
-.streampirex-home .social-feature p {
-  color: #9ca3af !important;
-  font-size: 0.875rem !important;
-  margin: 0;
-}
-
-.streampirex-home .social-cta {
-  text-align: center;
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 2rem;
-  flex-wrap: wrap;
-}
-
-/* =============================================
-   Gaming Hub Spotlight — Added Mar 2026
-   ============================================= */
-.streampirex-home .gaming-hub-spotlight {
-  padding: 5rem 2rem;
-  background: linear-gradient(145deg, #0d1117, #0f1923);
-  border-bottom: 1px solid #1f2937;
-}
-
-.streampirex-home .gaming-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.streampirex-home .gaming-header h2 {
-  font-size: 2rem;
-  color: #00ffc8;
-  margin: 0;
-}
-
-.streampirex-home .gaming-free-tag {
-  background: #FF6600;
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.3rem 0.8rem;
-  border-radius: 999px;
-  letter-spacing: 0.05em;
-}
-
-.streampirex-home .gaming-features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  max-width: 1100px;
-  margin: 2.5rem auto;
-}
-
-@media (max-width: 900px) {
-  .streampirex-home .gaming-features-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 560px) {
-  .streampirex-home .gaming-features-grid { grid-template-columns: 1fr; }
-}
-
-.streampirex-home .gaming-feature {
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 12px;
-  padding: 1.5rem;
-  text-align: center;
-  transition: border-color 0.2s, transform 0.2s;
-}
-
-.streampirex-home .gaming-feature:hover {
-  border-color: #FF6600;
-  transform: translateY(-3px);
-}
-
-.streampirex-home .gaming-icon {
-  display: block;
-  font-size: 2rem;
-  margin-bottom: 0.75rem;
-}
-
-.streampirex-home .gaming-feature h4 {
-  color: #ffffff;
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 0.4rem;
-}
-
-.streampirex-home .gaming-feature p {
-  color: #9ca3af !important;
-  font-size: 0.875rem !important;
-  margin: 0;
-}
-
-.streampirex-home .gaming-cta {
-  text-align: center;
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 2rem;
-  flex-wrap: wrap;
-}
-
-.streampirex-home .btn-gaming {
-  background: #FF6600;
-  color: #fff;
-  padding: 0.75rem 1.75rem;
-  border-radius: 8px;
-  font-weight: 700;
-  text-decoration: none;
-  border: 2px solid #FF6600;
-  transition: background 0.2s, color 0.2s;
-}
-
-.streampirex-home .btn-gaming:hover {
-  background: transparent;
-  color: #FF6600;
-}
-
-.streampirex-home .btn-outline-gaming {
-  background: transparent;
-  color: #FF6600;
-  padding: 0.75rem 1.75rem;
-  border-radius: 8px;
-  font-weight: 700;
-  text-decoration: none;
-  border: 2px solid #FF6600;
-  transition: background 0.2s, color 0.2s;
-}
-
-.streampirex-home .btn-outline-gaming:hover {
-  background: #FF6600;
-  color: #fff;
-}
-
-/* Section subtitle shared style */
-.streampirex-home .section-subtitle {
-  text-align: center;
-  color: #9ca3af;
-  font-size: 1.05rem;
-  max-width: 700px;
-  margin: 0 auto 2rem;
-}
-
-.preview-subprice {
-  margin-top: 6px;
-  font-size: 0.95rem;
-  opacity: 0.8;
-}
-/* =========================================================
-   StreamPireX Landing Enhancements (Mar 2026)
-   Non-destructive additions for new layout structure
-   ========================================================= */
-
-/* Hero Logo Support */
-.streampirex-home .hero-logo {
-	max-width: 340px;
-	height: auto;
-	margin-bottom: 1rem;
-	filter: drop-shadow(0 0 18px rgba(0,255,200,0.45));
-}
-
-/* DAW Hero Screenshot Support */
-.streampirex-home .hero-daw-preview {
-	width: 100%;
-	max-width: 900px;
-	border-radius: 16px;
-	margin-top: 2.5rem;
-	box-shadow:
-	0 0 40px rgba(0,255,200,0.15),
-	0 0 10px rgba(0,255,200,0.3);
-	border: 1px solid rgba(0,255,200,0.25);
-	transition: transform 0.35s ease;
-}
-
-.streampirex-home .hero-daw-preview:hover {
-	transform: scale(1.02);
-}
-
-/* Stronger Hero Gradient */
-.streampirex-home .hero {
-	background:
-	radial-gradient(circle at top, rgba(0,255,200,0.08), transparent 60%),
-	linear-gradient(145deg, #0f172a, #020617) !important;
-}
-
-/* Section spacing consistency */
-.streampirex-home section {
-	position: relative;
-}
-
-/* Subtle divider glow between sections */
-.streampirex-home section::after {
-	content: "";
-	position: absolute;
-	bottom: 0;
-	left: 50%;
-	transform: translateX(-50%);
-	width: 120px;
-	height: 1px;
-	background: linear-gradient(90deg, transparent, rgba(0,255,200,0.5), transparent);
-}
-
-/* Cost comparison visual emphasis */
-.streampirex-home .comparison-card.new {
-	box-shadow:
-	0 0 30px rgba(0,255,200,0.12),
-	inset 0 0 12px rgba(0,255,200,0.05);
-}
-
-/* FREE banner stronger glow */
-.streampirex-home .free-badge-large {
-	box-shadow: 0 0 12px rgba(0,255,200,0.35);
-}
-
-/* Social cards glow */
-.streampirex-home .social-feature:hover {
-	box-shadow: 0 10px 30px rgba(0,255,200,0.12);
-}
-
-/* Gaming section orange glow */
-.streampirex-home .gaming-feature:hover {
-	box-shadow: 0 10px 30px rgba(255,102,0,0.18);
-}
-
-/* Feature cards smoother hover */
-.streampirex-home .feature-card:hover {
-	transform: translateY(-6px);
-	box-shadow: 0 12px 40px rgba(0,255,200,0.2);
-}
-
-/* Pricing cards lift effect */
-.streampirex-home .pricing-preview-card:hover {
-	transform: translateY(-5px);
-	box-shadow: 0 12px 35px rgba(0,255,200,0.15);
-}
-
-/* CTA glow effect */
-.streampirex-home .btn-primary {
-	box-shadow: 0 0 14px rgba(0,255,200,0.25);
-}
-
-/* Footer subtle divider */
-.streampirex-home .home-footer {
-	border-top: 1px solid rgba(0,255,200,0.15);
-}
-
-/* =============================================
-   Responsive Improvements
-   ============================================= */
-
-@media (max-width: 1200px) {
-
-	.streampirex-home .hero-logo {
-		max-width: 280px;
+	.streampirex-home .earnings-row {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.45rem;
 	}
 
-}
-
-@media (max-width: 768px) {
-
-	.streampirex-home .hero-logo {
-		max-width: 220px;
+	.streampirex-home .earnings-row .platform-name {
+		width: 100%;
+		text-align: left;
+		font-size: 0.8rem;
 	}
 
-	.streampirex-home .hero-daw-preview {
-		max-width: 100%;
+	.streampirex-home .bar-container {
+		height: 32px;
 	}
-
-}
-
-@media (max-width: 480px) {
-
-	.streampirex-home .hero-logo {
-		max-width: 180px;
-	}
-
-}/* =============================================================================
-   home_film_additions.css — Film & Series + Creator Academy Home Sections
-   Location: Add to bottom of src/front/styles/home.css
-   ============================================================================= */
-
-/* =============================================
-   FILM & SERIES SPOTLIGHT
-   ============================================= */
-
-.streampirex-home .film-series-spotlight {
-  padding: 5rem 2rem;
-  background: linear-gradient(180deg, #0d1117 0%, #0a1628 50%, #0d1117 100%);
-  border-top: 2px solid rgba(255, 107, 107, 0.3);
-  border-bottom: 2px solid rgba(255, 107, 107, 0.3);
-}
-
-.streampirex-home .film-section-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.streampirex-home .film-section-header {
-  text-align: center;
-  margin-bottom: 3rem;
-}
-
-.streampirex-home .film-badge-tag {
-  display: inline-block;
-  background: linear-gradient(135deg, #ff6b6b, #ff4757);
-  color: #fff;
-  font-weight: 800;
-  font-size: 0.82rem;
-  padding: 0.3rem 1rem;
-  border-radius: 999px;
-  letter-spacing: 0.05em;
-  margin-bottom: 1rem;
-}
-
-.streampirex-home .film-section-header h2 {
-  font-size: 2.2rem;
-  color: #ff6b6b !important;
-  margin-bottom: 0.5rem;
-  background: transparent !important;
-}
-
-/* Film features grid */
-.streampirex-home .film-features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 4rem;
-}
-
-@media (max-width: 900px) {
-  .streampirex-home .film-features-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 560px) {
-  .streampirex-home .film-features-grid { grid-template-columns: 1fr; }
-}
-
-.streampirex-home .film-feature-item {
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 12px;
-  padding: 1.5rem;
-  text-align: center;
-  transition: border-color 0.2s, transform 0.2s;
-  position: relative;
-}
-
-.streampirex-home .film-feature-item:hover {
-  border-color: #ff6b6b;
-  transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(255, 107, 107, 0.12);
-}
-
-.streampirex-home .film-feature-icon {
-  display: block;
-  font-size: 2.2rem;
-  margin-bottom: 0.75rem;
-}
-
-.streampirex-home .film-feature-item h4 {
-  color: #ff6b6b !important;
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  background: transparent !important;
-}
-
-.streampirex-home .film-feature-item p {
-  color: #9ca3af !important;
-  font-size: 0.875rem !important;
-  line-height: 1.5;
-  margin-bottom: 0.75rem;
-}
-
-.streampirex-home .film-feature-tag {
-  display: inline-block;
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 0.68rem;
-  font-weight: 700;
-}
-
-.streampirex-home .film-feature-tag.free {
-  background: rgba(0,255,200,0.15);
-  color: #00ffc8;
-  border: 1px solid rgba(0,255,200,0.3);
-}
-
-.streampirex-home .film-feature-tag.new {
-  background: rgba(255,107,107,0.15);
-  color: #ff6b6b;
-  border: 1px solid rgba(255,107,107,0.3);
-}
-
-.streampirex-home .film-feature-tag.pro {
-  background: rgba(255,167,38,0.15);
-  color: #ffa726;
-  border: 1px solid rgba(255,167,38,0.3);
-}
-
-/* Virtual Theatre Preview */
-.streampirex-home .film-theatre-preview {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3rem;
-  align-items: center;
-  margin-bottom: 3rem;
-  background: rgba(255,107,107,0.04);
-  border: 1px solid rgba(255,107,107,0.15);
-  border-radius: 16px;
-  padding: 2.5rem;
-}
-
-@media (max-width: 900px) {
-  .streampirex-home .film-theatre-preview { grid-template-columns: 1fr; }
-}
-
-.streampirex-home .film-theatre-left h3 {
-  color: #ff6b6b !important;
-  font-size: 1.4rem;
-  margin-bottom: 1rem;
-  background: transparent !important;
-}
-
-.streampirex-home .film-theatre-left p {
-  color: #c9d1d9 !important;
-  font-size: 0.95rem;
-  line-height: 1.7;
-  margin-bottom: 1.25rem;
-  background: transparent !important;
-}
-
-.streampirex-home .film-theatre-features {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.streampirex-home .film-theatre-features li {
-  color: #d1d5db !important;
-  font-size: 0.88rem;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  background: transparent !important;
-}
-
-/* Theatre Mockup */
-.streampirex-home .film-theatre-mockup {
-  background: #050a12;
-  border: 1px solid rgba(255,107,107,0.3);
-  border-radius: 12px;
-  overflow: hidden;
-  font-size: 0.75rem;
-}
-
-.streampirex-home .mockup-topbar {
-  background: #0d1117;
-  border-bottom: 1px solid #1a2332;
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.streampirex-home .mockup-logo   { font-weight: 800; color: #00ffc8; }
-.streampirex-home .mockup-title  { font-weight: 700; color: #e6edf3; flex: 1; }
-.streampirex-home .mockup-live   { background: #ff4757; color: #fff; border-radius: 4px; padding: 2px 6px; font-size: 0.65rem; font-weight: 800; }
-.streampirex-home .mockup-viewers{ color: #8b949e; }
-
-.streampirex-home .mockup-screen {
-  background: #000;
-  height: 140px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-.streampirex-home .mockup-play-icon {
-  font-size: 3rem;
-  color: rgba(255,255,255,0.3);
-}
-
-.streampirex-home .mockup-sync {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(0,255,200,0.15);
-  color: #00ffc8;
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 0.65rem;
-  font-weight: 700;
-}
-
-.streampirex-home .mockup-controls {
-  background: #0d1117;
-  border-top: 1px solid #1a2332;
-  padding: 8px 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: #ffd700;
-  font-weight: 700;
-}
-
-.streampirex-home .mockup-btns {
-  display: flex;
-  gap: 8px;
-}
-
-.streampirex-home .mockup-btns button {
-  background: #21262d;
-  border: 1px solid #30363d;
-  border-radius: 4px;
-  color: #c9d1d9;
-  padding: 4px 8px;
-  cursor: pointer;
-  font-size: 0.68rem;
-}
-
-.streampirex-home .mockup-chat {
-  padding: 10px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.streampirex-home .mockup-msg {
-  font-size: 0.72rem;
-  color: #c9d1d9;
-}
-
-.streampirex-home .mockup-msg.host { color: #ffd700; }
-
-.streampirex-home .mockup-name {
-  font-weight: 700;
-  color: #00ffc8;
-  margin-right: 6px;
-}
-
-.streampirex-home .mockup-msg.host .mockup-name { color: #ffd700; }
-
-/* Film Pricing Callout */
-.streampirex-home .film-pricing-callout {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  background: rgba(255,107,107,0.05);
-  border: 1px solid rgba(255,107,107,0.2);
-  border-radius: 12px;
-  padding: 2rem;
-  flex-wrap: wrap;
-}
-
-.streampirex-home .film-pricing-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 0.4rem;
-}
-
-.streampirex-home .film-pricing-icon {
-  font-size: 2rem;
-}
-
-.streampirex-home .film-pricing-item strong {
-  color: #ff6b6b !important;
-  font-size: 1rem;
-  font-weight: 800;
-  background: transparent !important;
-}
-
-.streampirex-home .film-pricing-item span {
-  color: #9ca3af;
-  font-size: 0.82rem;
-  max-width: 180px;
-}
-
-.streampirex-home .film-pricing-divider {
-  color: rgba(255,107,107,0.4);
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-/* =============================================
-   CREATOR ACADEMY SPOTLIGHT
-   ============================================= */
-
-.streampirex-home .creator-academy-spotlight {
-  padding: 5rem 2rem;
-  background: linear-gradient(180deg, #0d1117 0%, #111827 100%);
-  text-align: center;
-  border-top: 2px solid rgba(167,139,250,0.2);
-  border-bottom: 2px solid rgba(167,139,250,0.2);
-}
-
-.streampirex-home .creator-academy-spotlight h2 {
-  color: #a78bfa !important;
-  font-size: 2.2rem;
-  margin-bottom: 0.5rem;
-  background: transparent !important;
-}
-
-.streampirex-home .academy-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  max-width: 1000px;
-  margin: 2.5rem auto;
-}
-
-@media (max-width: 768px) {
-  .streampirex-home .academy-grid { grid-template-columns: 1fr; }
-}
-
-.streampirex-home .academy-card {
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 14px;
-  padding: 2rem;
-  text-align: left;
-  transition: border-color 0.2s, transform 0.2s;
-}
-
-.streampirex-home .academy-card.creator-side {
-  border-color: rgba(167,139,250,0.3);
-}
-
-.streampirex-home .academy-card.creator-side:hover {
-  border-color: #a78bfa;
-  transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(167,139,250,0.12);
-}
-
-.streampirex-home .academy-card.student-side {
-  border-color: rgba(0,255,200,0.2);
-}
-
-.streampirex-home .academy-card.student-side:hover {
-  border-color: #00ffc8;
-  transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(0,255,200,0.1);
-}
-
-.streampirex-home .academy-card-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-
-.streampirex-home .academy-emoji {
-  font-size: 2rem;
-}
-
-.streampirex-home .academy-card h4 {
-  color: #e6edf3 !important;
-  font-size: 1.05rem;
-  font-weight: 700;
-  background: transparent !important;
-}
-
-.streampirex-home .academy-features {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.streampirex-home .academy-features li {
-  color: #d1d5db !important;
-  font-size: 0.88rem;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  background: transparent !important;
-}
-
-.streampirex-home .academy-features li:last-child {
-  border-bottom: none;
-}
-
-/* Academy Categories */
-.streampirex-home .academy-categories {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.75rem;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.streampirex-home .academy-cat {
-  background: rgba(167,139,250,0.1);
-  color: #a78bfa;
-  border: 1px solid rgba(167,139,250,0.25);
-  border-radius: 20px;
-  padding: 6px 16px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  transition: background 0.2s;
-}
-
-.streampirex-home .academy-cat:hover {
-  background: rgba(167,139,250,0.2);
-}
-
-/* =============================================
-   RESPONSIVE FIXES
-   ============================================= */
-
-@media (max-width: 768px) {
-  .streampirex-home .film-section-header h2 {
-    font-size: 1.7rem;
-  }
-
-  .streampirex-home .film-theatre-preview {
-    padding: 1.5rem;
-    gap: 1.5rem;
-  }
-
-  .streampirex-home .film-pricing-callout {
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .streampirex-home .film-pricing-divider {
-    transform: rotate(90deg);
-  }
-
-  .streampirex-home .creator-academy-spotlight h2 {
-    font-size: 1.7rem;
-  }
-}
-.demo-container {
-    width: 100%;
-    max-width: 1100px;
-    margin: 40px auto;
-    overflow: hidden; /* This stops the double scrollbar */
-    border-radius: 12px;
-    border: 1px solid #1a2838;
-}
-.demo-iframe {
-    width: 100%;
-    height: 700px; /* High enough to show the Library and Mixer */
-    border: none;
 }

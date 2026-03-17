@@ -1,164 +1,244 @@
 /* =============================================================================
-   DAWMenuBar.css — StreamPireX DAW Menu Bar
-   Matches RecordingStudio.css dark theme — JetBrains Mono, teal accent
+   DAWMenuBar.css — Professional DAW Menu Bar
+   Matches DAWMenuBar.js
+   StreamPireX modern Cubase/Logic-style theme
    ============================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+:root {
+  --dmb-bg: #0f1720;
+  --dmb-bg-2: #121c27;
+  --dmb-bg-3: #162230;
+  --dmb-bg-4: #1a2636;
 
-/* ── Bar container ── */
-.daw-menubar {
-  display: flex;
-  align-items: center;
-  height: 28px;
-  min-height: 28px;
-  background: #0d1117;
-  border-bottom: 1px solid #1e2a38;
-  border-top: 1px solid #162030;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.65rem;
-  color: #6b7c8d;
-  user-select: none;
-  z-index: 1000;
-  position: relative;
-  flex-shrink: 0;
-  padding: 0 4px;
+  --dmb-line: #243445;
+  --dmb-line-soft: rgba(255, 255, 255, 0.06);
+  --dmb-line-bright: rgba(255, 255, 255, 0.12);
+
+  --dmb-text: #e6f0fa;
+  --dmb-text-soft: #9bb0c6;
+  --dmb-text-dim: #6f8398;
+
+  --dmb-teal: #00ffc8;
+  --dmb-teal-2: #00d6a8;
+  --dmb-blue: #4aa8ff;
+  --dmb-orange: #ff9f0a;
+  --dmb-red: #ff4d6d;
+  --dmb-yellow: #ffd60a;
+  --dmb-purple: #af52de;
+
+  --dmb-shadow-sm: 0 8px 18px rgba(0, 0, 0, 0.22);
+  --dmb-shadow-md: 0 14px 28px rgba(0, 0, 0, 0.3);
+  --dmb-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
+
+  --dmb-radius-xl: 16px;
+  --dmb-radius-lg: 12px;
+  --dmb-radius-md: 10px;
+  --dmb-radius-sm: 8px;
+  --dmb-radius-xs: 6px;
+
+  --dmb-transition: 150ms ease;
+  --dmb-font: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --dmb-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
 }
 
-/* ── Top-level menu items ── */
+/* =============================================================================
+   ROOT BAR
+   ============================================================================= */
+
+.daw-menubar {
+  width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--dmb-line);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)),
+    linear-gradient(180deg, #101924 0%, #0d1620 100%);
+  box-shadow: var(--dmb-shadow-sm);
+  position: relative;
+  z-index: 50;
+  user-select: none;
+  font-family: var(--dmb-font);
+}
+
+/* =============================================================================
+   MENU ITEMS
+   ============================================================================= */
+
 .daw-menubar-item {
   position: relative;
-  padding: 0 10px;
-  height: 100%;
   display: flex;
   align-items: center;
-  cursor: pointer;
-  border-radius: 3px;
-  margin: 0 1px;
-  transition: background 0.1s, color 0.1s;
-}
-
-.daw-menubar-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #c9d1d9;
-}
-
-.daw-menubar-item.open {
-  background: rgba(0, 255, 200, 0.1);
-  color: #00ffc8;
+  height: 32px;
+  padding: 0 2px;
+  border-radius: 8px;
 }
 
 .daw-menubar-label {
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-  text-transform: uppercase;
-  font-size: 0.6rem;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--dmb-text-soft);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition:
+    color var(--dmb-transition),
+    background var(--dmb-transition),
+    border-color var(--dmb-transition),
+    box-shadow var(--dmb-transition),
+    transform var(--dmb-transition);
+  border: 1px solid transparent;
 }
 
-/* ── Dropdown panel ── */
+.daw-menubar-item:hover .daw-menubar-label {
+  color: var(--dmb-text);
+  background: rgba(255,255,255,0.045);
+  border-color: rgba(255,255,255,0.06);
+}
+
+.daw-menubar-item.open .daw-menubar-label {
+  color: #071218;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04)),
+    linear-gradient(135deg, var(--dmb-teal), #63ffe0);
+  border-color: rgba(0,255,200,0.32);
+  box-shadow: 0 10px 24px rgba(0,255,200,0.14);
+}
+
+/* =============================================================================
+   DROPDOWN
+   ============================================================================= */
+
 .daw-menubar-dropdown {
   position: absolute;
-  top: calc(100% + 1px);
+  top: calc(100% + 6px);
   left: 0;
-  min-width: 240px;
-  background: #111a25;
-  border: 1px solid #2a3a4a;
-  border-radius: 6px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.4);
-  padding: 4px 0;
-  z-index: 2000;
-  animation: dawMenuFadeIn 0.08s ease-out;
+  min-width: 260px;
+  max-width: 320px;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)),
+    linear-gradient(180deg, #121c27, #0f1822);
+  box-shadow: var(--dmb-shadow-lg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 200;
+  animation: dmbFadeIn 120ms ease-out;
+  overflow: hidden;
 }
 
-@keyframes dawMenuFadeIn {
-  from { opacity: 0; transform: translateY(-3px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes dmbFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-/* ── Dropdown items ── */
+/* =============================================================================
+   DROPDOWN ITEMS
+   ============================================================================= */
+
 .daw-menubar-dropdown-item {
-  display: flex;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
   align-items: center;
-  padding: 5px 12px;
+  gap: 10px;
+  padding: 0 10px;
+  border-radius: 10px;
+  color: var(--dmb-text);
+  font-size: 0.76rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.07s;
-  gap: 8px;
-  color: #c9d1d9;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.65rem;
+  transition:
+    background var(--dmb-transition),
+    color var(--dmb-transition),
+    border-color var(--dmb-transition),
+    transform var(--dmb-transition),
+    opacity var(--dmb-transition);
+  border: 1px solid transparent;
+  white-space: nowrap;
 }
 
 .daw-menubar-dropdown-item:hover {
-  background: rgba(0, 255, 200, 0.07);
-  color: #fff;
+  background: rgba(74,168,255,0.08);
+  border-color: rgba(74,168,255,0.14);
 }
 
 .daw-menubar-dropdown-item.active {
-  color: #00ffc8;
-}
-
-.daw-menubar-dropdown-item.active:hover {
-  background: rgba(0, 255, 200, 0.12);
+  background:
+    linear-gradient(180deg, rgba(0,255,200,0.12), rgba(0,255,200,0.04));
+  border-color: rgba(0,255,200,0.18);
+  color: #f8ffff;
 }
 
 .daw-menubar-dropdown-item.disabled {
-  opacity: 0.3;
+  opacity: 0.42;
   cursor: not-allowed;
 }
 
 .daw-menubar-dropdown-item.disabled:hover {
   background: transparent;
-  color: #6b7c8d;
+  border-color: transparent;
 }
 
-/* ── Item parts ── */
 .daw-menubar-item-icon {
-  width: 16px;
+  width: 18px;
   text-align: center;
-  font-size: 0.65rem;
-  flex-shrink: 0;
-  color: #00ffc8;
-  opacity: 0.8;
+  color: var(--dmb-text-soft);
+  font-size: 0.8rem;
+  line-height: 1;
 }
 
-.daw-menubar-dropdown-item.disabled .daw-menubar-item-icon {
-  color: inherit;
-  opacity: 0.4;
+.daw-menubar-dropdown-item.active .daw-menubar-item-icon {
+  color: var(--dmb-teal);
 }
 
 .daw-menubar-item-label {
-  flex: 1;
-  white-space: nowrap;
-  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .daw-menubar-item-shortcut {
-  font-size: 0.55rem;
-  color: #374a5a;
-  margin-left: 16px;
-  font-family: 'JetBrains Mono', monospace;
-  background: rgba(255, 255, 255, 0.04);
-  padding: 1px 5px;
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  flex-shrink: 0;
-  letter-spacing: 0.3px;
+  color: var(--dmb-text-dim);
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-family: var(--dmb-mono);
+  letter-spacing: 0.01em;
+  margin-left: 12px;
 }
 
-.daw-menubar-dropdown-item:hover .daw-menubar-item-shortcut {
-  color: #5a7088;
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.08);
-}
+/* =============================================================================
+   SEPARATORS
+   ============================================================================= */
 
-/* ── Separator ── */
 .daw-menubar-separator {
   height: 1px;
-  background: #1e2a38;
-  margin: 3px 10px;
+  margin: 6px 6px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,0.08),
+    transparent
+  );
 }
 
-/* ── Right side info ── */
+/* =============================================================================
+   RIGHT SIDE INFO
+   ============================================================================= */
+
 .daw-menubar-spacer {
   flex: 1;
 }
@@ -167,45 +247,167 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-right: 10px;
-  font-size: 0.6rem;
-  color: #374a5a;
-  font-family: 'JetBrains Mono', monospace;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--dmb-line);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015)),
+    rgba(255,255,255,0.02);
+  color: var(--dmb-text-soft);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 .daw-menubar-project {
-  color: #00ffc8;
-  font-weight: 700;
-  max-width: 150px;
+  color: var(--dmb-text);
+  font-size: 0.72rem;
+  font-weight: 800;
+  max-width: 180px;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  opacity: 0.85;
 }
 
 .daw-menubar-divider {
-  color: #1e2a38;
-  font-weight: 300;
+  color: var(--dmb-text-dim);
+  font-size: 0.72rem;
 }
 
-.daw-menubar-bpm {
-  color: #FF6600;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
+.daw-menubar-bpm,
 .daw-menubar-tracks {
-  color: #4a6070;
+  color: var(--dmb-text-soft);
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: var(--dmb-mono);
+  white-space: nowrap;
 }
 
-/* ── Responsive ── */
+/* =============================================================================
+   SUBTLE POLISH
+   ============================================================================= */
+
+.daw-menubar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0,255,200,0.08),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.daw-menubar-dropdown::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 1100px) {
+  .daw-menubar {
+    flex-wrap: wrap;
+    row-gap: 4px;
+    padding: 6px 8px;
+  }
+
+  .daw-menubar-spacer {
+    display: none;
+  }
+
+  .daw-menubar-info {
+    width: 100%;
+    justify-content: center;
+    order: 99;
+    border-radius: 12px;
+  }
+
+  .daw-menubar-project {
+    max-width: 240px;
+  }
+}
+
 @media (max-width: 768px) {
-  .daw-menubar-info { display: none; }
-  .daw-menubar-item { padding: 0 7px; }
-  .daw-menubar-dropdown { min-width: 200px; }
+  .daw-menubar {
+    gap: 1px;
+    padding: 6px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .daw-menubar-info {
+    min-width: max-content;
+    width: auto;
+  }
+
+  .daw-menubar-label {
+    padding: 0 10px;
+    font-size: 0.72rem;
+  }
+
+  .daw-menubar-dropdown {
+    min-width: 220px;
+    max-width: 280px;
+  }
+
+  .daw-menubar-project {
+    max-width: 140px;
+  }
 }
 
-@media (max-width: 480px) {
-  .daw-menubar { overflow-x: auto; scrollbar-width: none; }
-  .daw-menubar::-webkit-scrollbar { display: none; }
+@media (max-width: 520px) {
+  .daw-menubar-info {
+    display: none;
+  }
+}
+
+/* =============================================================================
+   OPTIONAL MENU STATE COLORS
+   ============================================================================= */
+
+.daw-menubar-dropdown-item[data-kind="danger"] {
+  color: #ffb6c1;
+}
+
+.daw-menubar-dropdown-item[data-kind="danger"]:hover {
+  background: rgba(255,77,109,0.12);
+  border-color: rgba(255,77,109,0.16);
+}
+
+.daw-menubar-dropdown-item[data-kind="accent"] {
+  color: var(--dmb-teal);
+}
+
+/* =============================================================================
+   ACCESSIBILITY / FOCUS
+   ============================================================================= */
+
+.daw-menubar-item:focus-within .daw-menubar-label,
+.daw-menubar-dropdown-item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0,255,200,0.1);
+}
+
+.daw-menubar-dropdown-item:focus-visible {
+  background: rgba(74,168,255,0.08);
+  border-color: rgba(74,168,255,0.16);
+}
+
+/* =============================================================================
+   SMALL GLOW FOR OPEN MENU
+   ============================================================================= */
+
+.daw-menubar-item.open {
+  z-index: 201;
 }

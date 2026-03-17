@@ -37,12 +37,71 @@ import screenshotVideoEditor from "../../img/streampirex-home-video_editor.png";
 // → Social Proof → Final CTA → Waitlist → Footer
 // =============================================================================
 
+const demoStageStyle = {
+	width: "100%",
+	maxWidth: "1280px",
+	margin: "0 auto",
+	padding: "0 20px"
+};
+
+const demoFrameStyle = {
+	width: "100%",
+	borderRadius: "16px",
+	overflow: "hidden",
+	border: "1px solid rgba(0,255,200,0.15)",
+	background: "#050813",
+	boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
+};
+
+const demoCaptionStyle = {
+	padding: "12px 20px",
+	background: "rgba(0,255,200,0.04)",
+	borderTop: "1px solid rgba(0,255,200,0.1)",
+	color: "#00ffc8",
+	fontSize: "13px",
+	fontWeight: 600,
+	letterSpacing: "0.5px"
+};
+
+const DemoFrame = ({
+	srcDoc,
+	title,
+	caption,
+	height = 500,
+	loading = "lazy"
+}) => (
+	<div style={demoStageStyle}>
+		<div style={demoFrameStyle}>
+			<iframe
+				srcDoc={srcDoc}
+				style={{
+					width: "100%",
+					height: `${height}px`,
+					minHeight: `${height}px`,
+					border: "none",
+					display: "block",
+					background: "#050813"
+				}}
+				title={title}
+				loading={loading}
+			/>
+			<div style={demoCaptionStyle}>{caption}</div>
+		</div>
+	</div>
+);
+
 const Home = () => {
 	const { store } = useContext(Context);
 	const user = store.user;
 
 	return (
-		<div className="streampirex-home">
+		<div
+			className="streampirex-home"
+			style={{
+				width: "100%",
+				overflowX: "hidden"
+			}}
+		>
 
 			{/* ================================================================
 			    1. HERO: THE HOOK
@@ -56,7 +115,6 @@ const Home = () => {
 							style={{ height: "60px" }}
 						/>
 					</h1>
-
 
 					{!user ? (
 						<div className="cta-buttons">
@@ -95,46 +153,15 @@ const Home = () => {
 						<span className="stat-label">EPK & Collabs</span>
 					</div>
 				</div>
+
 				{/* Dashboard screenshot — shown in hero */}
-				<div
-					style={{
-						width: "100%",
-						maxWidth: "1100px",
-						margin: "40px auto",
-						borderRadius: "12px",
-						overflow: "hidden",
-						border: "1px solid rgba(0,255,200,0.15)",
-						boxShadow: "0 8px 40px rgba(0,255,200,0.08)",
-						background: "#050813"
-					}}
-				>
-					<iframe
-						srcDoc={recordingStudioSrcDoc}
-						style={{
-							width: "100%",
-							height: "650px",
-							minHeight: "650px",
-							border: "none",
-							display: "block",
-							background: "#050813"
-						}}
-						title="StreamPireX Demo"
-						loading="eager"
-					/>
-					<div
-						style={{
-							padding: "12px 20px",
-							background: "rgba(0,255,200,0.04)",
-							borderTop: "1px solid rgba(0,255,200,0.1)",
-							color: "#00ffc8",
-							fontSize: "13px",
-							fontWeight: 600,
-							letterSpacing: "0.5px"
-						}}
-					>
-						🚀 StreamPireX — The all-in-one creator platform. Replace 15+ tools. Keep 90%.
-					</div>
-				</div>
+				<DemoFrame
+					srcDoc={recordingStudioSrcDoc}
+					title="StreamPireX Demo"
+					height={700}
+					loading="eager"
+					caption="🚀 StreamPireX — The all-in-one creator platform. Replace 15+ tools. Keep 90%."
+				/>
 			</header>
 
 			{/* ================================================================
@@ -486,12 +513,13 @@ const Home = () => {
 				</div>
 
 				{/* DJ Studio Animation */}
-				<div style={{ maxWidth: "1100px", margin: "2.5rem auto 0 auto", borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(0,255,200,0.15)", boxShadow: "0 8px 40px rgba(0,255,200,0.08)" }}>
-					<iframe srcDoc={djStudioSrcDoc} style={{ width: "100%", height: "500px", border: "none", display: "block" }} title="DJ Studio" loading="lazy" />
-					<div style={{ padding: "12px 20px", background: "rgba(0,255,200,0.04)", borderTop: "1px solid rgba(0,255,200,0.1)", color: "#00ffc8", fontSize: "13px", fontWeight: 600, letterSpacing: "0.5px" }}>
-						🎛️ DJ Studio — Two decks, crossfader, EQ, waveforms, BPM sync, hot cues.
-					</div>
-				</div>
+				<DemoFrame
+					srcDoc={djStudioSrcDoc}
+					title="DJ Studio"
+					height={500}
+					loading="lazy"
+					caption="🎛️ DJ Studio — Two decks, crossfader, EQ, waveforms, BPM sync, hot cues."
+				/>
 			</section>
 
 			{/* ================================================================
@@ -579,32 +607,13 @@ const Home = () => {
 				</p>
 
 				{/* DAW screenshot — shown above AI feature cards */}
-				<div style={{
-					maxWidth: "1100px",
-					margin: "0 auto 3rem auto",
-					borderRadius: "12px",
-					overflow: "hidden",
-					border: "1px solid rgba(0,255,200,0.15)",
-					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
-				}}>
-					<iframe
-						srcDoc={beatMakerSrcDoc}
-						style={{ width: "100%", height: "480px", border: "none", display: "block" }}
-						title="StreamPireX Beat Maker & DAW"
-						loading="lazy"
-					/>
-					<div style={{
-						padding: "12px 20px",
-						background: "rgba(0,255,200,0.04)",
-						borderTop: "1px solid rgba(0,255,200,0.1)",
-						color: "#00ffc8",
-						fontSize: "13px",
-						fontWeight: 600,
-						letterSpacing: "0.5px"
-					}}>
-						🎛️ Beat Maker & MPC Sampler — Live in browser. No download required.
-					</div>
-				</div>
+				<DemoFrame
+					srcDoc={beatMakerSrcDoc}
+					title="StreamPireX Beat Maker & DAW"
+					height={480}
+					loading="lazy"
+					caption="🎛️ Beat Maker & MPC Sampler — Live in browser. No download required."
+				/>
 
 				<div className="ai-features-grid">
 					<div className="ai-feature-card">
@@ -849,27 +858,13 @@ const Home = () => {
 				</p>
 
 				{/* Podcast Studio screenshot */}
-				<div style={{
-					maxWidth: "1100px",
-					margin: "0 auto 3rem auto",
-					borderRadius: "12px",
-					overflow: "hidden",
-					border: "1px solid rgba(0,255,200,0.15)",
-					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
-				}}>
-					<iframe srcDoc={podcastStudioSrcDoc} style={{ width: "100%", height: "500px", border: "none", display: "block" }} title="Podcast Studio" loading="lazy" />
-					<div style={{
-						padding: "12px 20px",
-						background: "rgba(0,255,200,0.04)",
-						borderTop: "1px solid rgba(0,255,200,0.1)",
-						color: "#00ffc8",
-						fontSize: "13px",
-						fontWeight: 600,
-						letterSpacing: "0.5px"
-					}}>
-						🎙️ Podcast Studio — Record with remote guests, distribute to Spotify & Apple Podcasts, monetize.
-					</div>
-				</div>
+				<DemoFrame
+					srcDoc={podcastStudioSrcDoc}
+					title="Podcast Studio"
+					height={500}
+					loading="lazy"
+					caption="🎙️ Podcast Studio — Record with remote guests, distribute to Spotify & Apple Podcasts, monetize."
+				/>
 
 				<div className="feature-grid">
 					<div className="feature-card highlight">
@@ -1055,27 +1050,13 @@ const Home = () => {
 				</div>
 
 				{/* Video Editor screenshot — shown below feature grid */}
-				<div style={{
-					maxWidth: "1100px",
-					margin: "3rem auto 0 auto",
-					borderRadius: "12px",
-					overflow: "hidden",
-					border: "1px solid rgba(0,255,200,0.15)",
-					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
-				}}>
-					<iframe srcDoc={videoEditorSrcDoc} style={{ width: "100%", height: "500px", border: "none", display: "block" }} title="Video Editor" loading="lazy" />
-					<div style={{
-						padding: "12px 20px",
-						background: "rgba(0,255,200,0.04)",
-						borderTop: "1px solid rgba(0,255,200,0.1)",
-						color: "#00ffc8",
-						fontSize: "13px",
-						fontWeight: 600,
-						letterSpacing: "0.5px"
-					}}>
-						🎬 Professional Video Editor — Multi-track timeline, color grading, effects, and export. Free on all plans.
-					</div>
-				</div>
+				<DemoFrame
+					srcDoc={videoEditorSrcDoc}
+					title="Video Editor"
+					height={500}
+					loading="lazy"
+					caption="🎬 Professional Video Editor — Multi-track timeline, color grading, effects, and export. Free on all plans."
+				/>
 			</section>
 
 			{/* ================================================================
@@ -1126,12 +1107,13 @@ const Home = () => {
 				</div>
 
 				{/* Radio Station Animation */}
-				<div style={{ maxWidth: "1100px", margin: "2.5rem auto 0 auto", borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(0,255,200,0.15)", boxShadow: "0 8px 40px rgba(0,255,200,0.08)" }}>
-					<iframe srcDoc={radioStationSrcDoc} style={{ width: "100%", height: "500px", border: "none", display: "block" }} title="Radio Station" loading="lazy" />
-					<div style={{ padding: "12px 20px", background: "rgba(0,255,200,0.04)", borderTop: "1px solid rgba(0,255,200,0.1)", color: "#00ffc8", fontSize: "13px", fontWeight: 600, letterSpacing: "0.5px" }}>
-						📻 24/7 Radio Station — Live listener count, song history, live chat, share & embed.
-					</div>
-				</div>
+				<DemoFrame
+					srcDoc={radioStationSrcDoc}
+					title="Radio Station"
+					height={500}
+					loading="lazy"
+					caption="📻 24/7 Radio Station — Live listener count, song history, live chat, share & embed."
+				/>
 			</section>
 
 			{/* ================================================================
