@@ -925,18 +925,17 @@ const LIB_DATA = [
 ];
 
 const libListEl = document.getElementById('libList');
-libListEl.innerHTML = LIB_DATA.map(track => `
-    libListEl.innerHTML = LIB_DATA.map(function(track) {
-      return '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px; border-bottom:1px solid #1a1a2e;">' +
-               '<span style="font-size:12px; color:#c0d0e0;">' + track.name + '</span>' +
-               '<button onclick="loadFromLibrary(\'' + track.name + '\', \'' + track.color + '\')" ' +
-                       'style="background:rgba(0,255,200,0.1); border:1px solid #00ffc8; color:#00ffc8; font-size:9px; padding:3px 8px; border-radius:4px; cursor:pointer;">LOAD</button>' +
-             '</div>';
-    }).join('');
-}
+    if (libListEl) {
+      libListEl.innerHTML = LIB_DATA.map(function(track) {
+        return '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px; border-bottom:1px solid #1a1a2e;">' +
+                 '<span style="font-size:12px; color:#c0d0e0;">' + track.name + '</span>' +
+                 '<button onclick="loadFromLibrary(\'' + track.name + '\', \'' + track.color + '\')" ' +
+                         'style="background:rgba(0,255,200,0.1); border:1px solid #00ffc8; color:#00ffc8; font-size:9px; padding:3px 8px; border-radius:4px; cursor:pointer;">LOAD</button>' +
+               '</div>';
+      }).join('');
+    }
 
-setTimeout(togglePlay, 600);
-
+    setTimeout(togglePlay, 600);
 </script>
 </body>
 </html>`;
