@@ -428,6 +428,6 @@ renderTracks();
 window.addEventListener('load', () => setTimeout(() => { if(!isPlaying) togglePlay(); }, 800));
 </script>
 </body>
-</html>\`;
+</html>;`
 
 export default html;
