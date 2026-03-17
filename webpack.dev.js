@@ -25,7 +25,15 @@ module.exports = merge(common, {
         port,
         hot: true,
         allowedHosts: "all",
-        historyApiFallback: true,
+        historyApiFallback: {
+            rewrites: [
+              { from: /^\/manifest\.json$/, to: '/manifest.json' },
+              { from: /^\/animations\/.*$/, to: (context) => context.parsedUrl.pathname },
+              { from: /^\/icons\/.*$/, to: (context) => context.parsedUrl.pathname },
+              { from: /^\/favicon\.ico$/, to: '/favicon.ico' },
+              { from: /./, to: '/index.html' }
+            ]
+        },
         static: [
           { directory: path.resolve(__dirname, "dist") },
           { directory: path.resolve(__dirname, "public"), publicPath: "/" }
