@@ -25,7 +25,7 @@ html, body {
   flex-direction: column;
   
   /* FORCE WIDER DIMENSIONS */
-  width: 95vw;            /* 95% of screen width */
+  width: 100%;            /* 95% of screen width */
   min-width: 1000px;      /* Won't go smaller than 1000px */
   height: 750px;          /* Increased height to fit Mixer + Library */
   

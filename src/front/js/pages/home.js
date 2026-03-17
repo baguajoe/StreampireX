@@ -94,12 +94,24 @@ const Home = () => {
 						<span className="stat-number">📋</span>
 						<span className="stat-label">EPK & Collabs</span>
 					</div>
+					{/* Dashboard screenshot — shown in hero */}
+					<div className="demo-container">
+						<iframe
+							srcDoc={recordingStudioSrcDoc}
+							className="demo-iframe"
+							title="StreamPireX Demo"
+							loading="lazy"
+						/>
+						<div className="demo-caption">
+							🚀 StreamPireX — The all-in-one creator platform. Replace 15+ tools. Keep 90%.
+						</div>
+					</div>
 				</div>
 
 				{/* Dashboard screenshot — shown in hero */}
-				<div style={{ maxWidth:"1100px", margin:"0 auto", borderRadius:"12px", overflow:"hidden", border:"1px solid rgba(0,255,200,0.15)", boxShadow:"0 8px 40px rgba(0,255,200,0.08)" }}>
-					<iframe srcDoc={recordingStudioSrcDoc} style={{ width:"100%", height:"500px", border:"none", display:"block" }} title="StreamPireX Demo" loading="lazy"/>
-					<div style={{ padding:"12px 20px", background:"rgba(0,255,200,0.04)", borderTop:"1px solid rgba(0,255,200,0.1)", color:"#00ffc8", fontSize:"13px", fontWeight:600, letterSpacing:"0.5px" }}>
+				<div style={{ maxWidth: "1100px", margin: "0 auto", borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(0,255,200,0.15)", boxShadow: "0 8px 40px rgba(0,255,200,0.08)" }}>
+					<iframe srcDoc={recordingStudioSrcDoc} style={{ width: "100%", height: "500px", border: "none", display: "block" }} title="StreamPireX Demo" loading="lazy" />
+					<div style={{ padding: "12px 20px", background: "rgba(0,255,200,0.04)", borderTop: "1px solid rgba(0,255,200,0.1)", color: "#00ffc8", fontSize: "13px", fontWeight: 600, letterSpacing: "0.5px" }}>
 						🚀 StreamPireX — The all-in-one creator platform. Replace 15+ tools. Keep 90%.
 					</div>
 				</div>
@@ -454,9 +466,9 @@ const Home = () => {
 				</div>
 
 				{/* DJ Studio Animation */}
-				<div style={{ maxWidth:"1100px", margin:"2.5rem auto 0 auto", borderRadius:"12px", overflow:"hidden", border:"1px solid rgba(0,255,200,0.15)", boxShadow:"0 8px 40px rgba(0,255,200,0.08)" }}>
-					<iframe srcDoc={djStudioSrcDoc} style={{ width:"100%", height:"500px", border:"none", display:"block" }} title="DJ Studio" loading="lazy"/>
-					<div style={{ padding:"12px 20px", background:"rgba(0,255,200,0.04)", borderTop:"1px solid rgba(0,255,200,0.1)", color:"#00ffc8", fontSize:"13px", fontWeight:600, letterSpacing:"0.5px" }}>
+				<div style={{ maxWidth: "1100px", margin: "2.5rem auto 0 auto", borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(0,255,200,0.15)", boxShadow: "0 8px 40px rgba(0,255,200,0.08)" }}>
+					<iframe srcDoc={djStudioSrcDoc} style={{ width: "100%", height: "500px", border: "none", display: "block" }} title="DJ Studio" loading="lazy" />
+					<div style={{ padding: "12px 20px", background: "rgba(0,255,200,0.04)", borderTop: "1px solid rgba(0,255,200,0.1)", color: "#00ffc8", fontSize: "13px", fontWeight: 600, letterSpacing: "0.5px" }}>
 						🎛️ DJ Studio — Two decks, crossfader, EQ, waveforms, BPM sync, hot cues.
 					</div>
 				</div>
@@ -556,10 +568,10 @@ const Home = () => {
 					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
 				}}>
 					<iframe
-					        srcDoc={beatMakerSrcDoc}
-					        style={{ width: "100%", height: "480px", border: "none", display: "block" }}
-					        title="StreamPireX Beat Maker & DAW"
-					        loading="lazy"
+						srcDoc={beatMakerSrcDoc}
+						style={{ width: "100%", height: "480px", border: "none", display: "block" }}
+						title="StreamPireX Beat Maker & DAW"
+						loading="lazy"
 					/>
 					<div style={{
 						padding: "12px 20px",
@@ -825,7 +837,7 @@ const Home = () => {
 					border: "1px solid rgba(0,255,200,0.15)",
 					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
 				}}>
-						<iframe srcDoc={podcastStudioSrcDoc} style={{ width:"100%", height:"500px", border:"none", display:"block" }} title="Podcast Studio" loading="lazy"/>
+					<iframe srcDoc={podcastStudioSrcDoc} style={{ width: "100%", height: "500px", border: "none", display: "block" }} title="Podcast Studio" loading="lazy" />
 					<div style={{
 						padding: "12px 20px",
 						background: "rgba(0,255,200,0.04)",
@@ -1031,7 +1043,7 @@ const Home = () => {
 					border: "1px solid rgba(0,255,200,0.15)",
 					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
 				}}>
-						<iframe srcDoc={videoEditorSrcDoc} style={{ width:"100%", height:"500px", border:"none", display:"block" }} title="Video Editor" loading="lazy"/>
+					<iframe srcDoc={videoEditorSrcDoc} style={{ width: "100%", height: "500px", border: "none", display: "block" }} title="Video Editor" loading="lazy" />
 					<div style={{
 						padding: "12px 20px",
 						background: "rgba(0,255,200,0.04)",
@@ -1094,9 +1106,9 @@ const Home = () => {
 				</div>
 
 				{/* Radio Station Animation */}
-				<div style={{ maxWidth:"1100px", margin:"2.5rem auto 0 auto", borderRadius:"12px", overflow:"hidden", border:"1px solid rgba(0,255,200,0.15)", boxShadow:"0 8px 40px rgba(0,255,200,0.08)" }}>
-					<iframe srcDoc={radioStationSrcDoc} style={{ width:"100%", height:"500px", border:"none", display:"block" }} title="Radio Station" loading="lazy"/>
-					<div style={{ padding:"12px 20px", background:"rgba(0,255,200,0.04)", borderTop:"1px solid rgba(0,255,200,0.1)", color:"#00ffc8", fontSize:"13px", fontWeight:600, letterSpacing:"0.5px" }}>
+				<div style={{ maxWidth: "1100px", margin: "2.5rem auto 0 auto", borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(0,255,200,0.15)", boxShadow: "0 8px 40px rgba(0,255,200,0.08)" }}>
+					<iframe srcDoc={radioStationSrcDoc} style={{ width: "100%", height: "500px", border: "none", display: "block" }} title="Radio Station" loading="lazy" />
+					<div style={{ padding: "12px 20px", background: "rgba(0,255,200,0.04)", borderTop: "1px solid rgba(0,255,200,0.1)", color: "#00ffc8", fontSize: "13px", fontWeight: 600, letterSpacing: "0.5px" }}>
 						📻 24/7 Radio Station — Live listener count, song history, live chat, share & embed.
 					</div>
 				</div>
