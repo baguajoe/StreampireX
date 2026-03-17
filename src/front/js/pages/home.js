@@ -94,6 +94,7 @@ const Home = () => {
 						<span className="stat-number">📋</span>
 						<span className="stat-label">EPK & Collabs</span>
 					</div>
+				</div>
 				{/* Dashboard screenshot — shown in hero */}
 				<div style={{ maxWidth: "1100px", margin: "40px auto", borderRadius: "12px", overflow: "hidden", border: "1px solid rgba(0,255,200,0.15)", boxShadow: "0 8px 40px rgba(0,255,200,0.08)" }}>
 					<iframe
