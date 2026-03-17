@@ -92,7 +92,7 @@ const Home = () => {
 
 				{/* Dashboard screenshot — shown in hero */}
 				<div style={{ maxWidth:"1600px", margin:"0 auto", borderRadius:"12px", overflow:"hidden", border:"1px solid rgba(0,255,200,0.15)", boxShadow:"0 8px 40px rgba(0,255,200,0.08)" }}>
-					<iframe src="/animations/recording_studio_dev.html?v=4" style={{ width:"100%", height:"760px", border:"none", display:"block" }} title="StreamPireX Demo" />
+					<iframe src="/animations/recording_studio_dev.html?v=6" style={{ width:"100%", height:"760px", border:"none", display:"block" }} title="StreamPireX Demo" />
 					<div style={{ padding:"12px 20px", background:"rgba(0,255,200,0.04)", borderTop:"1px solid rgba(0,255,200,0.1)", color:"#00ffc8", fontSize:"13px", fontWeight:600, letterSpacing:"0.5px" }}>
 						🚀 StreamPireX — The all-in-one creator platform. Replace 15+ tools. Keep 90%.
 					</div>
@@ -449,7 +449,7 @@ const Home = () => {
 
 				{/* DJ Studio Animation */}
 				<div style={{ maxWidth:"1600px", margin:"2.5rem auto 0 auto", borderRadius:"12px", overflow:"hidden", border:"1px solid rgba(0,255,200,0.15)", boxShadow:"0 8px 40px rgba(0,255,200,0.08)" }}>
-					<iframe src="/animations/dj_studio.html" style={{ width:"100%", height:"500px", border:"none", display:"block" }} title="DJ Studio" loading="lazy"/>
+					<iframe src="/animations/dj_studio.html?v=6" style={{ width:"100%", height:"620px", border:"none", display:"block" }} title="DJ Studio" loading="lazy"/>
 					<div style={{ padding:"12px 20px", background:"rgba(0,255,200,0.04)", borderTop:"1px solid rgba(0,255,200,0.1)", color:"#00ffc8", fontSize:"13px", fontWeight:600, letterSpacing:"0.5px" }}>
 						🎛️ DJ Studio — Two decks, crossfader, EQ, waveforms, BPM sync, hot cues.
 					</div>
@@ -819,7 +819,7 @@ const Home = () => {
 					border: "1px solid rgba(0,255,200,0.15)",
 					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
 				}}>
-						<iframe src="/animations/podcast_studio.html" style={{ width:"100%", height:"380px", border:"none", display:"block" }} title="Podcast Studio" loading="lazy"/>
+						<iframe src="/animations/podcast_studio.html?v=6" style={{ width:"100%", height:"560px", border:"none", display:"block" }} title="Podcast Studio" loading="lazy"/>
 					<div style={{
 						padding: "12px 20px",
 						background: "rgba(0,255,200,0.04)",
@@ -1025,7 +1025,7 @@ const Home = () => {
 					border: "1px solid rgba(0,255,200,0.15)",
 					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
 				}}>
-						<iframe src="/animations/video_editor.html" style={{ width:"100%", height:"540px", border:"none", display:"block" }} title="Video Editor" loading="lazy"/>
+						<iframe src="/animations/video_editor.html?v=6" style={{ width:"100%", height:"640px", border:"none", display:"block" }} title="Video Editor" loading="lazy"/>
 					<div style={{
 						padding: "12px 20px",
 						background: "rgba(0,255,200,0.04)",
@@ -1089,7 +1089,7 @@ const Home = () => {
 
 				{/* Radio Station Animation */}
 				<div style={{ maxWidth:"1600px", margin:"2.5rem auto 0 auto", borderRadius:"12px", overflow:"hidden", border:"1px solid rgba(0,255,200,0.15)", boxShadow:"0 8px 40px rgba(0,255,200,0.08)" }}>
-					<iframe src="/animations/radio_station.html" style={{ width:"100%", height:"600px", border:"none", display:"block" }} title="Radio Station" loading="lazy"/>
+					<iframe src="/animations/radio_station.html?v=6" style={{ width:"100%", height:"680px", border:"none", display:"block" }} title="Radio Station" loading="lazy"/>
 					<div style={{ padding:"12px 20px", background:"rgba(0,255,200,0.04)", borderTop:"1px solid rgba(0,255,200,0.1)", color:"#00ffc8", fontSize:"13px", fontWeight:600, letterSpacing:"0.5px" }}>
 						📻 24/7 Radio Station — Live listener count, song history, live chat, share & embed.
 					</div>
