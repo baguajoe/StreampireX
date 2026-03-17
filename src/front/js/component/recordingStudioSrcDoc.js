@@ -188,7 +188,7 @@ const html = `<!DOCTYPE html>
     padding: 10px 16px;
     font-size: 13px;
     color: var(--text);
-    max-width: 260px;
+    max-width:none;_old_max-width: 260px;
     line-height: 1.5;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     opacity: 0;
