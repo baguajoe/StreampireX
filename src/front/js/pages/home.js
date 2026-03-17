@@ -51,17 +51,6 @@ const Home = () => {
 						/>
 					</h1>
 
-					<p className="hero-tagline">
-						Whether You're a Musician, Filmmaker, Podcaster, Gamer, Educator, or Creator — StreamPireX is the Creator Platform Built for Every Voice.
-					</p>
-
-					<p>
-						Replace 15+ tools with a single workspace. From first recording to
-						global distribution. Recording studio, MPC-style beat maker,
-						AI mastering, voice-to-MIDI, beat store, podcast studio, music distribution,
-						video editing, live streaming, EPK builder, collab marketplace, gaming
-						communities, and monetization — keep 90% of your earnings.
-					</p>
 
 					{!user ? (
 						<div className="cta-buttons">
@@ -70,9 +59,6 @@ const Home = () => {
 						</div>
 					) : (
 						<div className="cta-buttons">
-							<h3 className="welcome-text">
-								Welcome back, {user.username || user.display_name}! 🎉
-							</h3>
 						</div>
 					)}
 				</div>
