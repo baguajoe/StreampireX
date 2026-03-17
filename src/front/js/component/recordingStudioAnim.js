@@ -21,22 +21,20 @@ html, body {
 }
 
 .daw-root {
+width: 95%;            /* Fills most of the width */
+  max-width: 1200px;     /* Matches the 'Desktop App' scale in your image */
+  height: 600px;         /* Forces a fixed, professional height */
+  margin: 40px auto;     /* Centers it and adds space at the top/bottom */
+  
+  /* ── THE STYLING ── */
+  background: #06060f;
+  border: 1px solid #1a1a2e; /* The subtle border seen in the screenshot */
+  border-radius: 12px;       /* Rounded corners for the 'App' look */
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6); /* Adds the depth from the image */
+  
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  
-  /* MATCHING THE WIDE UI: */
-  width: 100vw;          /* Fills the full width of the screen */
-  height: 480px;         /* Fixed height to match the "short and wide" DJ deck look */
-  
-  /* REMOVE THE LIMITS: */
-  max-width: none;       
-  max-height: none;
-
-  /* STYLING TO MATCH THE IMAGE: */
-  background: #05070a;   /* Darker background like the DJ studio */
-  border-top: 1px solid #1a2838;
-  overflow: hidden;
-  position: relative;
 }
 
 /* ── Top bar ── */
