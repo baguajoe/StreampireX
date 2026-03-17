@@ -1,4 +1,4 @@
-const recordingStudioSrcDoc = String.raw`<!DOCTYPE html>
+const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -790,5 +790,4 @@ function prevScene() {
 </script>
 </body>
 </html>`;
-
-export default recordingStudioSrcDoc;
+export default html;

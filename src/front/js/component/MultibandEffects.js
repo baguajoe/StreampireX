@@ -7,7 +7,6 @@
 // =============================================================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Knob } from './Knob';
 
 const dbToLin = (db) => Math.pow(10, db / 20);
 
