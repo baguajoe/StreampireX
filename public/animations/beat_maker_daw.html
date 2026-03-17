@@ -189,15 +189,15 @@ html,body{width:100%;height:100vh;background:#0d0f14;font-family:'Inter',system-
 </div>
 
 <!-- MAIN -->
-<div class="main" style="flex:1;min-height:0">
+<div class="main" style="flex:1;min-height:0;overflow:hidden">
 
   <!-- LEFT: PADS + ARRANGE -->
   <div style="display:flex;flex-direction:column;overflow:hidden">
-    <div class="pad-section" style="flex:1">
+    <div class="pad-section" style="flex:1;min-height:0;overflow:hidden">
       <div class="pad-grid" id="padGrid"></div>
     </div>
     <!-- ARRANGE -->
-    <div class="arrange-section" style="height:160px">
+    <div class="arrange-section" style="height:120px;flex-shrink:0">
       <div class="arrange-hd">
         <span class="arrange-lbl">ARRANGEMENT VIEW</span>
         <span style="font-size:9px;color:#2a3040;margin-left:4px">All</span>
