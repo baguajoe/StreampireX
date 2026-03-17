@@ -2,6 +2,11 @@ import React, { useContext } from "react";
 import { Context } from "../store/appContext";
 import { Link } from "react-router-dom";
 import recordingStudioSrcDoc from "../component/recordingStudioSrcDoc";
+import djStudioSrcDoc from "../component/djStudioSrcDoc";
+import beatMakerSrcDoc from "../component/beatMakerSrcDoc";
+import podcastStudioSrcDoc from "../component/podcastStudioSrcDoc";
+import radioStationSrcDoc from "../component/radioStationSrcDoc";
+import videoEditorSrcDoc from "../component/videoEditorSrcDoc";
 import logo from "../../img/StreampireX.png";
 import WaitlistSection from "../component/WaitlistSection";
 import "../../styles/home.css";
@@ -450,7 +455,7 @@ const Home = () => {
 
 				{/* DJ Studio Animation */}
 				<div style={{ maxWidth:"1400px", margin:"2.5rem auto 0 auto", borderRadius:"12px", overflow:"hidden", border:"1px solid rgba(0,255,200,0.15)", boxShadow:"0 8px 40px rgba(0,255,200,0.08)" }}>
-					<iframe src="/animations/dj_studio.html" style={{ width:"100%", height:"500px", border:"none", display:"block" }} title="DJ Studio" loading="lazy"/>
+					<iframe srcDoc={djStudioSrcDoc} style={{ width:"100%", height:"500px", border:"none", display:"block" }} title="DJ Studio" loading="lazy"/>
 					<div style={{ padding:"12px 20px", background:"rgba(0,255,200,0.04)", borderTop:"1px solid rgba(0,255,200,0.1)", color:"#00ffc8", fontSize:"13px", fontWeight:600, letterSpacing:"0.5px" }}>
 						🎛️ DJ Studio — Two decks, crossfader, EQ, waveforms, BPM sync, hot cues.
 					</div>
@@ -551,7 +556,7 @@ const Home = () => {
 					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
 				}}>
 					<iframe
-					        src="/animations/beat_maker_daw.html"
+					        srcDoc={beatMakerSrcDoc}
 					        style={{ width: "100%", height: "480px", border: "none", display: "block" }}
 					        title="StreamPireX Beat Maker & DAW"
 					        loading="lazy"
@@ -820,7 +825,7 @@ const Home = () => {
 					border: "1px solid rgba(0,255,200,0.15)",
 					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
 				}}>
-						<iframe src="/animations/podcast_studio.html" style={{ width:"100%", height:"380px", border:"none", display:"block" }} title="Podcast Studio" loading="lazy"/>
+						<iframe srcDoc={podcastStudioSrcDoc} style={{ width:"100%", height:"380px", border:"none", display:"block" }} title="Podcast Studio" loading="lazy"/>
 					<div style={{
 						padding: "12px 20px",
 						background: "rgba(0,255,200,0.04)",
@@ -1026,7 +1031,7 @@ const Home = () => {
 					border: "1px solid rgba(0,255,200,0.15)",
 					boxShadow: "0 8px 40px rgba(0,255,200,0.08)"
 				}}>
-						<iframe src="/animations/video_editor.html" style={{ width:"100%", height:"540px", border:"none", display:"block" }} title="Video Editor" loading="lazy"/>
+						<iframe srcDoc={videoEditorSrcDoc} style={{ width:"100%", height:"540px", border:"none", display:"block" }} title="Video Editor" loading="lazy"/>
 					<div style={{
 						padding: "12px 20px",
 						background: "rgba(0,255,200,0.04)",
@@ -1090,7 +1095,7 @@ const Home = () => {
 
 				{/* Radio Station Animation */}
 				<div style={{ maxWidth:"1400px", margin:"2.5rem auto 0 auto", borderRadius:"12px", overflow:"hidden", border:"1px solid rgba(0,255,200,0.15)", boxShadow:"0 8px 40px rgba(0,255,200,0.08)" }}>
-					<iframe src="/animations/radio_station.html" style={{ width:"100%", height:"600px", border:"none", display:"block" }} title="Radio Station" loading="lazy"/>
+					<iframe srcDoc={radioStationSrcDoc} style={{ width:"100%", height:"600px", border:"none", display:"block" }} title="Radio Station" loading="lazy"/>
 					<div style={{ padding:"12px 20px", background:"rgba(0,255,200,0.04)", borderTop:"1px solid rgba(0,255,200,0.1)", color:"#00ffc8", fontSize:"13px", fontWeight:600, letterSpacing:"0.5px" }}>
 						📻 24/7 Radio Station — Live listener count, song history, live chat, share & embed.
 					</div>

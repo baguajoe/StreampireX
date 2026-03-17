@@ -1,0 +1,477 @@
+const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;background:#06060f;font-family:'Inter',system-ui,sans-serif;color:#e0eaf0}
+.dj{width:100%;background:#06060f;overflow:hidden}
+
+/* TOP BAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#09090f;border-bottom:1px solid #1a1a2e}
+.logo{font-size:15px;font-weight:800;color:#00ffcc;letter-spacing:1px;font-family:'Courier New',monospace}
+.logo em{color:#fff;font-style:normal}
+.acts{display:flex;gap:8px}
+.btn{padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+.sync{border:1px solid #00ffcc;background:rgba(0,255,200,0.08);color:#00ffcc}
+.sync:hover{background:rgba(0,255,200,0.2)}
+.rec{border:2px solid #ff3366;background:rgba(255,51,102,0.1);color:#ff3366;letter-spacing:.5px}
+.rec.on{background:rgba(255,51,102,0.25);animation:rp 1.5s ease-in-out infinite}
+@keyframes rp{0%,100%{box-shadow:0 0 12px rgba(255,51,102,0.3)}50%{box-shadow:0 0 24px rgba(255,51,102,0.7)}}
+.mst{border:1px solid #333;background:#111;color:#aaa}
+
+/* MAIN 3-COL */
+.main{display:grid;grid-template-columns:1fr 150px 1fr}
+
+/* DECK */
+.deck{padding:16px;display:flex;flex-direction:column;gap:10px;border-right:1px solid #1a1a2e}
+.deck:last-child{border-right:none;border-left:1px solid #1a1a2e}
+
+/* TRACK INFO */
+.dkhd{display:flex;align-items:center;gap:10px}
+.letter{font-size:2rem;font-weight:900;width:36px;flex-shrink:0}
+.tname{font-size:13px;font-weight:700;color:#e0eaf0;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tmeta{display:flex;gap:4px;flex-wrap:wrap}
+.badge{font-size:10px;padding:2px 7px;border-radius:3px;border:1px solid #333;color:#aaa;background:#111}
+.mstbadge{border-color:#00ffcc;color:#00ffcc;background:rgba(0,255,200,0.1)}
+
+/* TURNTABLE */
+.turntable-wrap{display:flex;justify-content:center;align-items:center;padding:10px 0;position:relative}
+.platter-outer{width:180px;height:180px;border-radius:50%;background:#111;border:3px solid #1a1a2e;position:relative;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 6px #0a0a12,0 0 0 7px #1a1a2e,0 8px 30px rgba(0,0,0,0.8)}
+.vinyl{width:160px;height:160px;border-radius:50%;position:relative;transition:transform 0s;flex-shrink:0}
+.vinyl.spin{animation:vspin 1.8s linear infinite}
+.vinyl.slow{animation:vspin 4s linear infinite}
+@keyframes vspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.groove-ring{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,0.03)}
+.label-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;letter-spacing:.5px;text-align:center;line-height:1.3}
+.spindle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:#333;border:1px solid #555;z-index:3}
+/* Tonearm */
+.tonearm{position:absolute;top:10px;right:8px;width:70px;height:70px;pointer-events:none}
+
+/* WAVEFORM */
+.waveform{width:100%;height:72px;border-radius:6px;display:block;background:#06060f;border:1px solid #1a1a2e}
+
+/* PROGRESS */
+.prog{height:4px;background:#1a1a2e;border-radius:2px;overflow:hidden}
+.progf{height:100%;border-radius:2px;transition:width .15s linear}
+.progt{display:flex;justify-content:space-between;font-size:10px;color:#555;font-family:"Courier New",monospace;margin-top:2px}
+
+/* HOTCUES + TRANSPORT */
+.hcues{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.hc{width:30px;height:30px;border-radius:5px;border:1px solid var(--hcc,#555);background:rgba(0,0,0,0.3);color:var(--hcc,#555);font-size:11px;font-weight:800;cursor:pointer;transition:all .12s}
+.hc.set{background:var(--hcc);color:#000;box-shadow:0 0 10px var(--hcc)}
+.hc:hover{transform:scale(1.1)}
+.cbtn{padding:5px 10px;border-radius:4px;border:1px solid #333;background:#111;color:#aaa;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit}
+.cbtn:hover{border-color:#00ffcc;color:#00ffcc}
+
+.transport{display:flex;align-items:center;gap:7px}
+.play{width:46px;height:46px;border-radius:50%;border:2px solid var(--pc,#00ffcc);background:rgba(0,0,0,0.4);color:var(--pc,#00ffcc);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.play.on{background:var(--pc);color:#000;box-shadow:0 0 18px var(--pc)}
+.play:hover{transform:scale(1.08)}
+.lbtn{width:28px;height:28px;border-radius:4px;border:1px solid #222;background:#111;color:#555;font-size:11px;font-weight:700;cursor:pointer;transition:all .12s}
+.lbtn:hover{border-color:#00ffcc;color:#00ffcc}
+.loop-btn{padding:5px 10px;border-radius:4px;border:1px solid #222;background:#111;color:#555;font-size:11px;cursor:pointer;font-family:inherit}
+.loop-btn.on{border-color:#00ffcc;color:#00ffcc;background:rgba(0,255,200,0.1)}
+
+/* EQ */
+.eq-row{display:flex;align-items:center;gap:8px;padding:6px 0}
+.knob-wrap{display:flex;flex-direction:column;align-items:center;gap:2px}
+.knob{width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2a2a3e,#0d0d1a);border:1px solid #2a2a3e;position:relative;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.5)}
+.knob::after{content:'';position:absolute;top:5px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--kc,#00ffcc);box-shadow:0 0 6px var(--kc,#00ffcc)}
+.knob-lbl{font-size:10px;color:#555;letter-spacing:1px}
+.vu{display:block}
+
+/* FADERS */
+.faders{display:flex;flex-direction:column;gap:6px}
+.fg{display:flex;align-items:center;gap:8px}
+.fl{font-size:10px;color:#555;min-width:40px;letter-spacing:.5px}
+.fader{-webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:2px;background:#1a1a2e;outline:none;cursor:pointer}
+.fader::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--fc,#00ffcc);cursor:pointer;box-shadow:0 0 6px var(--fc,#00ffcc)}
+.fv{font-size:10px;color:#777;min-width:34px;text-align:right}
+
+/* CENTER */
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px 10px;background:#080810}
+.xfw{width:100%;display:flex;flex-direction:column;gap:5px}
+.xfl{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700}
+.xft{color:#444;font-size:9px;letter-spacing:1px}
+.xfader{-webkit-appearance:none;appearance:none;width:100%;height:10px;border-radius:5px;background:linear-gradient(90deg,#00ffcc44,#1a1a2e,#ff6b3544);outline:none;cursor:pointer}
+.xfader::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:5px;background:#e0eaf0;border:2px solid #aaa;cursor:grab;box-shadow:0 2px 8px #000}
+.xfc{align-self:center;padding:4px 12px;border-radius:4px;border:1px solid #333;background:#111;color:#666;font-size:10px;cursor:pointer;font-family:inherit}
+.xfc:hover{border-color:#00ffcc;color:#00ffcc}
+.mvol{width:100%;display:flex;flex-direction:column;gap:5px}
+.recl{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:#ff3366;letter-spacing:2px}
+.recdot{width:8px;height:8px;border-radius:50%;background:#ff3366;box-shadow:0 0 8px #ff3366;animation:blink 1s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+
+/* LIBRARY */
+.lib{background:#08080f;border-top:2px solid #1a1a2e;padding:12px 16px}
+.libhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px}
+.libttl{font-size:13px;font-weight:800;color:#ffa726}
+.libsearch{background:#111;border:1px solid #222;border-radius:6px;color:#ccc;font-size:11px;padding:5px 10px;outline:none;width:200px;font-family:inherit}
+.libsearch:focus{border-color:#00ffcc}
+.libfilters{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.ff{padding:4px 13px;border-radius:20px;border:1px solid #1e2330;background:transparent;color:#4a6070;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .13s}
+.ff:hover{border-color:#00ffcc;color:#00ffcc}
+.ff.on{background:rgba(0,255,200,0.12);border-color:#00ffcc;color:#00ffcc;box-shadow:0 0 8px rgba(0,255,200,0.15)}
+.librows{max-height:130px;overflow-y:auto}
+.librow{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:5px;gap:8px;transition:background .12s}
+.librow:hover{background:rgba(255,255,255,0.04)}
+.libname{font-size:12px;font-weight:600;color:#c0d0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.libmeta{font-size:10px;color:#555;display:flex;gap:5px}
+.libtag{padding:1px 5px;border-radius:3px;background:#1a1a2e;color:#ff8800;font-size:9px;font-weight:700;text-transform:uppercase}
+.libbtns{display:flex;gap:4px;flex-shrink:0}
+.liba,.libb{width:30px;height:30px;border-radius:5px;border:none;font-size:12px;font-weight:800;cursor:pointer;transition:all .12s}
+.liba{background:rgba(0,255,200,0.15);color:#00ffcc}
+.liba:hover{background:#00ffcc;color:#000}
+.libb{background:rgba(255,107,53,0.15);color:#ff6b35}
+.libb:hover{background:#ff6b35;color:#000}
+.libempty{padding:18px;text-align:center;color:#333;font-size:11px}
+</style></head>
+<body>
+<div class="dj">
+  <div class="topbar">
+    <div class="logo">🎛 DJ<em>Studio</em></div>
+    <div class="acts">
+      <button class="btn sync" onclick="syncBPM()">⟳ SYNC</button>
+      <button class="btn mst" id="mstbtn" onclick="toggleMaster()">MASTER: A</button>
+      <button class="btn rec" id="recbtn" onclick="toggleRec()">⏺ REC</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- DECK A -->
+    <div class="deck">
+      <div class="dkhd">
+        <div class="letter" style="color:#00ffcc">A</div>
+        <div style="flex:1;min-width:0">
+          <div class="tname" id="tnA">Midnight Drive</div>
+          <div class="tmeta">
+            <span class="badge" id="bpmA">128 BPM</span>
+            <span class="badge" style="border-color:#ffd700;color:#ffd700">Am</span>
+            <span class="badge mstbadge" id="mstA">MASTER</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TURNTABLE A -->
+      <div class="turntable-wrap">
+        <div class="platter-outer">
+          <div class="vinyl spin" id="vinA">
+            <!-- Groove rings -->
+            <svg width="160" height="160" viewBox="0 0 160 160" style="position:absolute;top:0;left:0">
+              <circle cx="80" cy="80" r="75" fill="#0d0d14" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="64" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="58" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="52" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="46" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="40" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="34" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+              <!-- Center label -->
+              <circle cx="80" cy="80" r="28" fill="#00ffcc"/>
+              <text x="80" y="76" text-anchor="middle" fill="#000" font-size="7" font-weight="800" font-family="Courier New">STREAM</text>
+              <text x="80" y="85" text-anchor="middle" fill="#000" font-size="7" font-weight="800" font-family="Courier New">PIREX</text>
+              <!-- Spindle hole -->
+              <circle cx="80" cy="80" r="4" fill="#111" stroke="#333" stroke-width="1"/>
+            </svg>
+          </div>
+        </div>
+        <!-- Tonearm SVG overlay -->
+        <svg width="90" height="90" style="position:absolute;top:2px;right:4px;pointer-events:none">
+          <line x1="75" y1="5" x2="30" y2="70" stroke="#888" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="75" cy="5" r="6" fill="#444" stroke="#666" stroke-width="1"/>
+          <line x1="30" y1="70" x2="20" y2="78" stroke="#aaa" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="20" cy="80" r="4" fill="#00ffcc"/>
+        </svg>
+      </div>
+
+      <canvas class="waveform" id="wfA" width="400" height="72"></canvas>
+      <div class="prog"><div class="progf" id="pfA" style="width:0%;background:#00ffcc"></div></div>
+      <div class="progt"><span id="ctA">0:00</span><span>-3:48</span></div>
+
+      <div class="hcues">
+        <button class="hc set" style="--hcc:#ff4466">1</button>
+        <button class="hc" style="--hcc:#00aaff">2</button>
+        <button class="hc set" style="--hcc:#00ff88">3</button>
+        <button class="hc" style="--hcc:#ff8800">4</button>
+        <button class="cbtn">CUE</button>
+        <button class="cbtn">◀CUE</button>
+      </div>
+
+      <div class="transport">
+        <button class="play" id="playA" style="--pc:#00ffcc" onclick="togglePlay('A')">▶</button>
+        <button class="loop-btn" id="loopA" onclick="this.classList.toggle('on')">🔁 LOOP</button>
+        <button class="lbtn">1</button>
+        <button class="lbtn">2</button>
+        <button class="lbtn">4</button>
+        <button class="lbtn">8</button>
+      </div>
+
+      <div class="eq-row">
+        <div class="knob-wrap"><div class="knob" style="transform:rotate(-30deg);--kc:#00ffcc"></div><span class="knob-lbl">HI</span></div>
+        <div class="knob-wrap"><div class="knob" style="transform:rotate(0deg);--kc:#00ffcc"></div><span class="knob-lbl">MID</span></div>
+        <div class="knob-wrap"><div class="knob" style="transform:rotate(25deg);--kc:#00ffcc"></div><span class="knob-lbl">LOW</span></div>
+        <canvas class="vu" id="vuA" width="20" height="110"></canvas>
+      </div>
+      <div class="faders">
+        <div class="fg"><label class="fl">VOL</label><input type="range" class="fader" min="0" max="150" value="100" style="--fc:#00ffcc" oninput="this.nextElementSibling.textContent=this.value+'%'"><span class="fv">100%</span></div>
+        <div class="fg"><label class="fl">PITCH</label><input type="range" class="fader" min="85" max="115" value="100" style="--fc:#00ffcc" oninput="this.nextElementSibling.textContent=((this.value-100)).toFixed(1)+'%'"><span class="fv">0.0%</span></div>
+      </div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="center">
+      <div class="xfw">
+        <div class="xfl"><span style="color:#00ffcc">A</span><span class="xft">CROSSFADER</span><span style="color:#ff6b35">B</span></div>
+        <input type="range" class="xfader" min="0" max="100" value="50">
+        <button class="xfc" onclick="document.querySelector('.xfader').value=50">⊙ Center</button>
+      </div>
+      <div class="mvol">
+        <label class="fl" style="color:#fff;min-width:0;font-size:10px;text-align:center">MASTER</label>
+        <div class="fg"><input type="range" class="fader" min="0" max="150" value="100" style="--fc:#fff" oninput="this.nextElementSibling.textContent=this.value+'%'"><span class="fv">100%</span></div>
+      </div>
+      <div class="recl" id="recl" style="display:none"><span class="recdot"></span>REC</div>
+      <div style="font-size:10px;color:#333;text-align:center;line-height:1.8">
+        <div id="syncinfo">BPM sync ready</div>
+        <div style="color:#1e2330;font-size:9px;margin-top:4px">StreamPireX DJ Studio</div>
+      </div>
+    </div>
+
+    <!-- DECK B -->
+    <div class="deck">
+      <div class="dkhd">
+        <div class="letter" style="color:#ff6b35">B</div>
+        <div style="flex:1;min-width:0">
+          <div class="tname" id="tnB">City Lights Remix</div>
+          <div class="tmeta">
+            <span class="badge" id="bpmB">135 BPM</span>
+            <span class="badge" style="border-color:#ffd700;color:#ffd700">Cm</span>
+            <span class="badge mstbadge" id="mstB" style="display:none">MASTER</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TURNTABLE B -->
+      <div class="turntable-wrap">
+        <div class="platter-outer">
+          <div class="vinyl slow" id="vinB">
+            <svg width="160" height="160" viewBox="0 0 160 160" style="position:absolute;top:0;left:0">
+              <circle cx="80" cy="80" r="75" fill="#0d0d14" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="64" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="58" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="52" fill="none" stroke="rgba(255,255,255,0.03)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="46" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="40" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+              <circle cx="80" cy="80" r="34" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+              <!-- Orange label for deck B -->
+              <circle cx="80" cy="80" r="28" fill="#ff6b35"/>
+              <text x="80" y="76" text-anchor="middle" fill="#000" font-size="7" font-weight="800" font-family="Courier New">STREAM</text>
+              <text x="80" y="85" text-anchor="middle" fill="#000" font-size="7" font-weight="800" font-family="Courier New">PIREX</text>
+              <circle cx="80" cy="80" r="4" fill="#111" stroke="#333" stroke-width="1"/>
+            </svg>
+          </div>
+        </div>
+        <svg width="90" height="90" style="position:absolute;top:2px;right:4px;pointer-events:none">
+          <line x1="75" y1="5" x2="32" y2="68" stroke="#888" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="75" cy="5" r="6" fill="#444" stroke="#666" stroke-width="1"/>
+          <line x1="32" y1="68" x2="22" y2="76" stroke="#aaa" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="22" cy="78" r="4" fill="#ff6b35"/>
+        </svg>
+      </div>
+
+      <canvas class="waveform" id="wfB" width="400" height="72"></canvas>
+      <div class="prog"><div class="progf" id="pfB" style="width:0%;background:#ff6b35"></div></div>
+      <div class="progt"><span id="ctB">0:00</span><span>-4:12</span></div>
+
+      <div class="hcues">
+        <button class="hc" style="--hcc:#ff4466">1</button>
+        <button class="hc set" style="--hcc:#00aaff">2</button>
+        <button class="hc" style="--hcc:#00ff88">3</button>
+        <button class="hc set" style="--hcc:#ff8800">4</button>
+        <button class="cbtn">CUE</button>
+        <button class="cbtn">◀CUE</button>
+      </div>
+
+      <div class="transport">
+        <button class="play" id="playB" style="--pc:#ff6b35" onclick="togglePlay('B')">▶</button>
+        <button class="loop-btn" id="loopB" onclick="this.classList.toggle('on')">🔁 LOOP</button>
+        <button class="lbtn">1</button>
+        <button class="lbtn">2</button>
+        <button class="lbtn">4</button>
+        <button class="lbtn">8</button>
+      </div>
+
+      <div class="eq-row">
+        <div class="knob-wrap"><div class="knob" style="transform:rotate(15deg);--kc:#ff6b35"></div><span class="knob-lbl">HI</span></div>
+        <div class="knob-wrap"><div class="knob" style="transform:rotate(-20deg);--kc:#ff6b35"></div><span class="knob-lbl">MID</span></div>
+        <div class="knob-wrap"><div class="knob" style="transform:rotate(35deg);--kc:#ff6b35"></div><span class="knob-lbl">LOW</span></div>
+        <canvas class="vu" id="vuB" width="20" height="110"></canvas>
+      </div>
+      <div class="faders">
+        <div class="fg"><label class="fl">VOL</label><input type="range" class="fader" min="0" max="150" value="85" style="--fc:#ff6b35" oninput="this.nextElementSibling.textContent=this.value+'%'"><span class="fv">85%</span></div>
+        <div class="fg"><label class="fl">PITCH</label><input type="range" class="fader" min="85" max="115" value="102" style="--fc:#ff6b35" oninput="this.nextElementSibling.textContent=((this.value-100)).toFixed(1)+'%'"><span class="fv">+2.0%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIBRARY -->
+  <div class="lib">
+    <div class="libhd">
+      <span class="libttl">📂 Library</span>
+      <input class="libsearch" placeholder="Search…" oninput="filterLib(this.value)">
+    </div>
+    <div class="libfilters" id="libf">
+      <button class="ff on" onclick="setFilter('all',this)">All</button>
+      <button class="ff" onclick="setFilter('beat',this)">Beat</button>
+      <button class="ff" onclick="setFilter('acapella',this)">Acapella</button>
+      <button class="ff" onclick="setFilter('stem',this)">Stem</button>
+      <button class="ff" onclick="setFilter('remix',this)">Remix</button>
+      <button class="ff" onclick="setFilter('mix',this)">Mix</button>
+      <button class="ff" onclick="setFilter('sample',this)">Sample</button>
+    </div>
+    <div class="librows" id="librows"></div>
+  </div>
+</div>
+
+<script>
+const S = {
+  A:{playing:false,prog:0,bpm:128,title:'Midnight Drive'},
+  B:{playing:false,prog:0,bpm:135,title:'City Lights Remix'},
+  master:'A', rec:false, lf:'all'
+};
+
+const TRACKS = [
+  {id:1,title:'Midnight Drive',type:'beat',bpm:128,key:'Am'},
+  {id:2,title:'City Lights Remix',type:'remix',bpm:135,key:'Cm'},
+  {id:3,title:'Deep Frequency',type:'beat',bpm:132,key:'Gm'},
+  {id:4,title:'Vocal Take — Bridge',type:'acapella',bpm:null,key:'Em'},
+  {id:5,title:'Bass Stem 01',type:'stem',bpm:128,key:null},
+  {id:6,title:'Club Banger v2',type:'mix',bpm:140,key:'Dm'},
+  {id:7,title:'Snare Loop 808',type:'sample',bpm:null,key:null},
+];
+
+function togglePlay(id) {
+  S[id].playing = !S[id].playing;
+  const btn = document.getElementById('play'+id);
+  const vin = document.getElementById('vin'+id);
+  btn.textContent = S[id].playing ? '⏸' : '▶';
+  btn.classList.toggle('on', S[id].playing);
+  vin.className = 'vinyl' + (S[id].playing ? ' spin' : ' slow');
+  if (!S[id].playing) vin.className = 'vinyl';
+}
+
+function toggleMaster() {
+  S.master = S.master==='A'?'B':'A';
+  document.getElementById('mstbtn').textContent = 'MASTER: '+S.master;
+  document.getElementById('mstA').style.display = S.master==='A'?'inline':'none';
+  document.getElementById('mstB').style.display = S.master==='B'?'inline':'none';
+}
+
+function toggleRec() {
+  S.rec = !S.rec;
+  const b = document.getElementById('recbtn');
+  b.textContent = S.rec ? '⏹ STOP' : '⏺ REC';
+  b.classList.toggle('on', S.rec);
+  document.getElementById('recl').style.display = S.rec ? 'flex' : 'none';
+}
+
+function syncBPM() {
+  document.getElementById('syncinfo').textContent = '✓ Synced at '+S[S.master].bpm+' BPM';
+  setTimeout(()=>document.getElementById('syncinfo').textContent='BPM sync ready', 2500);
+}
+
+function setFilter(f,btn) {
+  S.lf=f;
+  document.querySelectorAll('.ff').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderLib();
+}
+
+function filterLib(q){ renderLib(q); }
+
+function renderLib(q='') {
+  const rows = document.getElementById('librows');
+  const tracks = TRACKS.filter(t=>{
+    const tm = S.lf==='all'||t.type===S.lf;
+    const sm = !q||t.title.toLowerCase().includes(q.toLowerCase());
+    return tm&&sm;
+  });
+  if(!tracks.length){rows.innerHTML='<div class="libempty">No tracks match filter</div>';return;}
+  rows.innerHTML = tracks.map(t=>\`
+    <div class="librow">
+      <div style="flex:1;min-width:0">
+        <div class="libname">\${t.title}</div>
+        <div class="libmeta">
+          <span class="libtag">\${t.type}</span>
+          \${t.bpm?\`<span>\${t.bpm} BPM</span>\`:''}
+          \${t.key?\`<span>· \${t.key}</span>\`:''}
+        </div>
+      </div>
+      <div class="libbtns">
+        <button class="liba" onclick="loadDeck('A','\${t.title}',\${t.bpm||128})">A</button>
+        <button class="libb" onclick="loadDeck('B','\${t.title}',\${t.bpm||128})">B</button>
+      </div>
+    </div>
+  \`).join('');
+}
+
+function loadDeck(id,title,bpm) {
+  S[id].title=title; S[id].bpm=bpm; S[id].prog=0;
+  document.getElementById('tn'+id).textContent=title;
+  document.getElementById('bpm'+id).textContent=bpm+' BPM';
+  if(!S[id].playing) togglePlay(id);
+}
+
+renderLib();
+
+// Waveform + VU animation
+function drawWave(id,color,playing) {
+  const c=document.getElementById('wf'+id);
+  const ctx=c.getContext('2d');
+  const w=c.width,h=c.height;
+  ctx.fillStyle='#06060f';ctx.fillRect(0,0,w,h);
+  const n=90;
+  for(let i=0;i<n;i++){
+    const active=playing&&Math.random()>.35;
+    const bh=active?Math.random()*h*.85+3:Math.random()*h*.15+2;
+    ctx.fillStyle=active?color:'#1a1a2e';
+    ctx.globalAlpha=active?0.6+Math.random()*.4:0.4;
+    ctx.fillRect(i*(w/n),(h-bh)/2,(w/n)-1,bh);
+  }
+  ctx.globalAlpha=1;
+  const p=S[id].prog;
+  ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(p*w,0);ctx.lineTo(p*w,h);ctx.stroke();
+}
+
+function drawVU(id,color,playing) {
+  const c=document.getElementById('vu'+id);
+  const ctx=c.getContext('2d');
+  const w=c.width,h=c.height;
+  ctx.clearRect(0,0,w,h);
+  const n=22,sh=h/n-1;
+  const active=playing?Math.round(Math.random()*n*.75+2):1;
+  for(let i=0;i<n;i++){
+    const y=h-(i+1)*(h/n);
+    ctx.fillStyle=i>=active?'#111122':i>18?'#ff3366':i>15?'#ffcc00':color;
+    ctx.fillRect(1,y,w-2,sh);
+  }
+}
+
+let prA=0.2,prB=0.08;
+setInterval(()=>{
+  if(S.A.playing){prA=(prA+0.0009)%1;S.A.prog=prA;}
+  if(S.B.playing){prB=(prB+0.0011)%1;S.B.prog=prB;}
+  document.getElementById('pfA').style.width=(prA*100)+'%';
+  document.getElementById('pfB').style.width=(prB*100)+'%';
+  const tA=Math.floor(prA*228);
+  document.getElementById('ctA').textContent=Math.floor(tA/60)+':'+(tA%60<10?'0':'')+tA%60;
+  const tB=Math.floor(prB*252);
+  document.getElementById('ctB').textContent=Math.floor(tB/60)+':'+(tB%60<10?'0':'')+tB%60;
+  drawWave('A','#00ffcc',S.A.playing);
+  drawWave('B','#ff6b35',S.B.playing);
+  drawVU('A','#00ffcc',S.A.playing);
+  drawVU('B','#ff6b35',S.B.playing);
+},80);
+</script>
+</body></html>`;
+export default html;
