@@ -1,4 +1,14 @@
-const html = `<!DOCTYPE html>
+import os
+
+path = './src/front/js/component/recordingStudioAnim.js'
+
+# backup
+with open(path, 'r') as f:
+    original = f.read()
+with open(path + '.bak2', 'w') as f:
+    f.write(original)
+
+new_content = r"""const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -13,128 +23,80 @@ const html = `<!DOCTYPE html>
 html, body {
   width: 100%;
   height: 100%;
+  min-width: 100%;
   background: #070b0f;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  font-family: 'Courier New', monospace;
   color: #dde6ef;
-  overflow: auto;
+  overflow: hidden;
   user-select: none;
+  font-size: 11px;
 }
 
 .daw-root {
   display: flex;
   flex-direction: column;
-  
-  /* MATCHING THE WIDE UI: */
-  width: 100vw;          /* Fills the full width of the screen */
-  height: 480px;         /* Fixed height to match the "short and wide" DJ deck look */
-  
-  /* REMOVE THE LIMITS: */
-  max-width: none;       
-  max-height: none;
-
-  /* STYLING TO MATCH THE IMAGE: */
-  background: #05070a;   /* Darker background like the DJ studio */
-  border-top: 1px solid #1a2838;
-  overflow: hidden;
-  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #070b0f;
 }
 
-/* ── Top bar ── */
 .topbar {
   display: flex;
   align-items: center;
-  gap: 0;
   background: #0c1219;
   border-bottom: 1px solid #243548;
-  height: 36px;
-  padding: 0 10px;
-  flex-shrink: 0;
-}
-
-.collab-area {
-  display: flex;
-  align-items: center;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 8px;
   gap: 6px;
-  padding: 0 10px;
-  border-right: 1px solid #243548;
-  height: 36px;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
-.collab-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #4e6a82;
-}
-
-.collab-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #4e6a82;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.session-btns {
-  display: flex;
-  gap: 6px;
-  padding: 0 12px;
-  border-right: 1px solid #243548;
-  align-items: center;
-  height: 36px;
-  flex-shrink: 0;
-}
-
-.sbtn {
-  padding: 5px 12px;
-  border-radius: 5px;
+.sbtn-start {
+  padding: 4px 10px;
+  border-radius: 4px;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   border: none;
   font-family: inherit;
-  letter-spacing: 0.3px;
-}
-
-.sbtn-start {
   background: #00ffc8;
   color: #041014;
+  flex-shrink: 0;
 }
 
 .sbtn-join {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
   background: #111a24;
   color: #8fa8bf;
   border: 1px solid #243548;
+  flex-shrink: 0;
 }
 
-.nav-tabs {
-  display: flex;
-  align-items: center;
-  height: 36px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  flex: 1;
-  padding: 0 4px;
-}
-
-.nav-tabs::-webkit-scrollbar {
-  display: none;
+.tab-sep {
+  width: 1px;
+  height: 20px;
+  background: #243548;
+  flex-shrink: 0;
 }
 
 .ntab {
-  padding: 0 12px;
-  height: 36px;
+  padding: 0 10px;
+  height: 32px;
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
   color: #4e6a82;
   cursor: pointer;
-  border-right: 1px solid #1a2838;
   white-space: nowrap;
-  transition: all 0.12s;
+  transition: color 0.12s;
   flex-shrink: 0;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -142,19 +104,17 @@ html, body {
 
 .ntab:hover {
   color: #8fa8bf;
-  background: rgba(255, 255, 255, 0.03);
 }
 
 .ntab.active {
   color: #00ffc8;
-  background: rgba(0, 255, 200, 0.06);
   border-bottom: 2px solid #00ffc8;
 }
 
 .export-btn {
-  margin-left: 8px;
-  padding: 5px 14px;
-  border-radius: 5px;
+  margin-left: auto;
+  padding: 4px 12px;
+  border-radius: 4px;
   background: #00ffc8;
   color: #041014;
   font-size: 11px;
@@ -163,31 +123,30 @@ html, body {
   cursor: pointer;
   flex-shrink: 0;
   font-family: inherit;
-  letter-spacing: 0.5px;
 }
 
-/* ── Transport ── */
 .transport {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background: #0a0f16;
   border-bottom: 1px solid #243548;
-  padding: 6px 14px;
-  height: 46px;
+  padding: 0 12px;
+  height: 38px;
+  min-height: 38px;
   flex-shrink: 0;
 }
 
 .tport-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 5px;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 12px;
   transition: all 0.12s;
   flex-shrink: 0;
 }
@@ -201,7 +160,7 @@ html, body {
 .tport-play {
   background: #00ffc8;
   color: #041014;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .tport-rec {
@@ -210,124 +169,107 @@ html, body {
   border: 1px solid rgba(255, 69, 58, 0.35);
 }
 
-@keyframes rec-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.4); }
-  50%       { box-shadow: 0 0 0 6px rgba(255, 69, 58, 0); }
-}
-
-.transport-divider {
+.tdiv {
   width: 1px;
-  height: 24px;
+  height: 20px;
   background: #243548;
-  margin: 0 2px;
   flex-shrink: 0;
 }
 
-.bpm-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
+.bpm-val {
+  font-size: 17px;
+  font-weight: 800;
+  color: #dde6ef;
+  min-width: 40px;
+  letter-spacing: 1px;
+  font-family: 'Courier New', monospace;
 }
 
-.bpm-label {
-  font-size: 10px;
+.bpm-lbl {
+  font-size: 9px;
   font-weight: 800;
   color: #4e6a82;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
-.bpm-val {
-  font-size: 18px;
-  font-weight: 800;
-  color: #dde6ef;
-  min-width: 44px;
-  letter-spacing: 1px;
-}
-
 .time-display {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #00ffc8;
   letter-spacing: 2px;
-  min-width: 90px;
-  text-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
+  min-width: 85px;
+  text-shadow: 0 0 10px rgba(0,255,200,0.3);
+  font-family: 'Courier New', monospace;
 }
 
-.snap-select {
+.snap-sel {
   background: #111a24;
   border: 1px solid #243548;
   color: #8fa8bf;
-  font-size: 11px;
-  padding: 4px 7px;
-  border-radius: 4px;
+  font-size: 10px;
+  padding: 3px 6px;
+  border-radius: 3px;
   outline: none;
   font-family: inherit;
   flex-shrink: 0;
 }
 
 .zoom-btn {
-  padding: 4px 10px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border-radius: 3px;
   border: 1px solid #00ffc8;
-  background: rgba(0, 255, 200, 0.1);
+  background: rgba(0,255,200,0.1);
   color: #00ffc8;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   cursor: pointer;
   font-family: inherit;
   flex-shrink: 0;
 }
 
-.rec-ready-btn {
-  padding: 5px 10px;
-  border-radius: 4px;
-  background: rgba(255, 69, 58, 0.15);
-  border: 1px solid rgba(255, 69, 58, 0.35);
+.rec-btn {
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: rgba(255,69,58,0.15);
+  border: 1px solid rgba(255,69,58,0.35);
   color: #ff453a;
   font-size: 10px;
   font-weight: 800;
   cursor: pointer;
   font-family: inherit;
   flex-shrink: 0;
-  letter-spacing: 0.5px;
 }
 
-/* ── Main area ── */
 .main-area {
   display: flex;
   flex: 1;
   overflow: hidden;
   min-height: 0;
+  width: 100%;
 }
 
-/* ── Track headers (% width, no hard px) ── */
 .track-headers {
-  width: 130px;
-  min-width: 130px;
-  max-width: 130px;
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
   flex-shrink: 0;
   background: #0c1219;
   border-right: 1px solid #243548;
-  overflow-y: auto;
-  scrollbar-width: none;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-.track-headers::-webkit-scrollbar {
-  display: none;
-}
-
-.tracks-header-bar {
-  height: 28px;
+.hdr-bar {
+  height: 26px;
+  min-height: 26px;
   background: #0a0f16;
   border-bottom: 1px solid #243548;
   display: flex;
   align-items: center;
-  padding: 0 10px;
-  font-size: 9px;
+  padding: 0 8px;
+  font-size: 8px;
   font-weight: 800;
   color: #4e6a82;
   letter-spacing: 1.5px;
@@ -336,68 +278,67 @@ html, body {
 }
 
 .track-row {
-  height: 48px;
+  flex: 1;
   border-bottom: 1px solid #0d1820;
   display: flex;
   align-items: center;
-  padding: 0 8px;
-  gap: 6px;
+  padding: 0 6px;
+  gap: 5px;
   cursor: pointer;
-  transition: background 0.12s;
-  flex-shrink: 0;
+  transition: background 0.1s;
+  min-height: 0;
 }
 
 .track-row:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255,255,255,0.03);
 }
 
-.track-row.selected {
-  background: rgba(0, 255, 200, 0.05);
+.track-row.sel {
+  background: rgba(0,255,200,0.05);
   border-left: 2px solid #00ffc8;
 }
 
-.track-color-bar {
+.tc-bar {
   width: 3px;
-  height: 32px;
+  height: 28px;
   border-radius: 2px;
   flex-shrink: 0;
 }
 
-.track-info {
+.ti {
   flex: 1;
   min-width: 0;
 }
 
-.track-name {
-  font-size: 12px;
+.tn {
+  font-size: 11px;
   font-weight: 700;
   color: #dde6ef;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.2;
 }
 
-.track-type {
-  font-size: 9px;
+.tt {
+  font-size: 8px;
   color: #4e6a82;
-  margin-top: 2px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-top: 1px;
 }
 
-.track-btns {
+.tbtns {
   display: flex;
   gap: 2px;
   flex-shrink: 0;
 }
 
 .tbtn {
-  width: 18px;
-  height: 18px;
-  border-radius: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
   border: 1px solid #243548;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
   cursor: pointer;
   display: flex;
@@ -411,20 +352,20 @@ html, body {
 
 .tbtn:hover {
   color: #dde6ef;
-  border-color: #4e6a82;
 }
 
-/* ── Timeline ── */
 .timeline-wrap {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+  width: 0;
 }
 
 .ruler {
-  height: 28px;
+  height: 26px;
+  min-height: 26px;
   background: #0a0f16;
   border-bottom: 1px solid #243548;
   position: relative;
@@ -445,22 +386,20 @@ html, body {
   );
 }
 
-.track-lane {
-  height: 48px;
+.tl {
+  flex: 1;
   border-bottom: 1px solid #0d1820;
   position: relative;
-  flex-shrink: 0;
+  min-height: 0;
 }
 
 .clip {
   position: absolute;
-  top: 5px;
-  height: 38px;
-  border-radius: 4px;
+  top: 3px;
+  border-radius: 3px;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 0 8px 5px;
+  align-items: flex-end;
+  padding: 0 6px 4px;
   cursor: pointer;
   overflow: hidden;
   transition: filter 0.1s;
@@ -470,7 +409,7 @@ html, body {
   filter: brightness(1.15);
 }
 
-.clip-label {
+.cl {
   font-size: 10px;
   font-weight: 700;
   white-space: nowrap;
@@ -486,41 +425,42 @@ html, body {
   width: 2px;
   background: #00ffc8;
   z-index: 10;
-  box-shadow: 0 0 8px rgba(0, 255, 200, 0.6);
+  box-shadow: 0 0 8px rgba(0,255,200,0.6);
   pointer-events: none;
 }
 
 .playhead::before {
   content: '';
   position: absolute;
-  top: -2px;
+  top: -1px;
   left: -5px;
   width: 12px;
-  height: 10px;
+  height: 8px;
   background: #00ffc8;
   clip-path: polygon(0 0, 100% 0, 50% 100%);
 }
 
-/* ── FX panel ── */
 .fx-panel {
-  width: 9%;
-  min-width: 75px;
-  max-width: 100px;
+  width: 85px;
+  min-width: 85px;
+  max-width: 85px;
   flex-shrink: 0;
   background: #0c1219;
   border-left: 1px solid #243548;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-.fx-header {
-  height: 28px;
+.fx-hdr {
+  height: 26px;
+  min-height: 26px;
   background: #0a0f16;
   border-bottom: 1px solid #243548;
   display: flex;
   align-items: center;
-  padding: 0 10px;
-  font-size: 9px;
+  padding: 0 8px;
+  font-size: 8px;
   font-weight: 800;
   color: #4e6a82;
   letter-spacing: 1.5px;
@@ -529,9 +469,9 @@ html, body {
 }
 
 .fx-btn {
-  margin: 4px 6px;
-  padding: 5px 6px;
-  border-radius: 4px;
+  margin: 3px 5px;
+  padding: 4px 5px;
+  border-radius: 3px;
   font-size: 10px;
   font-weight: 700;
   border: 1px solid #243548;
@@ -541,26 +481,23 @@ html, body {
   text-align: center;
   font-family: inherit;
   transition: all 0.1s;
-}
-
-.fx-btn:hover {
-  border-color: #4e6a82;
-  color: #8fa8bf;
+  flex-shrink: 0;
 }
 
 .fx-btn.on {
-  background: rgba(0, 255, 200, 0.1);
-  border-color: rgba(0, 255, 200, 0.4);
+  background: rgba(0,255,200,0.1);
+  border-color: rgba(0,255,200,0.4);
   color: #00ffc8;
 }
 
-/* ── Mixer ── */
 .mixer {
-  height: 112px;
-  border-top: 2px solid rgba(0, 255, 200, 0.15);
+  height: 100px;
+  min-height: 100px;
+  border-top: 2px solid rgba(0,255,200,0.15);
   background: #070b0f;
   display: flex;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
   flex-shrink: 0;
 }
@@ -571,13 +508,13 @@ html, body {
 
 .mixer-ch {
   flex: 1;
-  min-width: 52px;
-  max-width: 72px;
+  min-width: 48px;
+  max-width: 80px;
   border-right: 1px solid #0d1820;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 5px 4px 4px;
+  padding: 4px 3px;
   gap: 2px;
 }
 
@@ -589,19 +526,17 @@ html, body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 2px;
 }
 
 .ch-vu {
   display: flex;
   gap: 1px;
-  height: 14px;
+  height: 12px;
   align-items: flex-end;
-  margin-bottom: 1px;
 }
 
 .ch-vu-bar {
-  width: 5px;
+  width: 4px;
   border-radius: 1px;
   background: #1a2838;
   transition: height 0.06s, background 0.06s;
@@ -618,20 +553,18 @@ html, body {
 .ch-fader {
   -webkit-appearance: none;
   appearance: none;
-  width: 46px;
+  width: 40px;
   height: 3px;
   border-radius: 2px;
   background: #1a2838;
   outline: none;
   transform: rotate(-90deg);
-  margin: 8px 0;
   cursor: pointer;
 }
 
 .ch-vol {
   font-size: 8px;
   font-family: 'Courier New', monospace;
-  margin-top: 1px;
 }
 
 </style>
@@ -640,65 +573,54 @@ html, body {
 <div class="daw-root">
 
   <div class="topbar">
-    <div class="collab-area">
-      <div class="collab-dot"></div>
-      <span class="collab-label">Collab</span>
-    </div>
-    <div class="session-btns">
-      <button class="sbtn sbtn-start">+ Start Session</button>
-      <button class="sbtn sbtn-join">Join Session</button>
-    </div>
-    <div class="nav-tabs">
-      <div class="ntab active">&#9654; Arrange</div>
-      <div class="ntab">&#9000; Console</div>
-      <div class="ntab">&#127929; Piano Roll</div>
-      <div class="ntab">&#127929; Piano</div>
-      <div class="ntab">&#129345; Sampler</div>
-      <div class="ntab">&#9889; AI Mix</div>
-      <div class="ntab">&#9889; Synth</div>
-      <div class="ntab">&#129345; Drum Design</div>
-      <div class="ntab">&#10024; Mastering</div>
-    </div>
+    <button class="sbtn-start">+ Start Session</button>
+    <button class="sbtn-join">Join Session</button>
+    <div class="tab-sep"></div>
+    <div class="ntab active">&#9654; Arrange</div>
+    <div class="ntab">&#9000; Console</div>
+    <div class="ntab">&#127929; Piano Roll</div>
+    <div class="ntab">&#129345; Sampler</div>
+    <div class="ntab">&#9889; AI Mix</div>
+    <div class="ntab">&#9889; Synth</div>
+    <div class="ntab">&#10024; Mastering</div>
     <button class="export-btn">&#11014; Export</button>
   </div>
 
   <div class="transport">
     <button class="tport-btn tport-stop">&#9632;</button>
     <button class="tport-btn tport-play" id="playBtn" onclick="togglePlay()">&#9654;</button>
-    <button class="tport-btn tport-rec" id="recBtn">&#9210;</button>
-    <div class="transport-divider"></div>
-    <div class="bpm-group">
-      <span class="bpm-label">BPM</span>
-      <span class="bpm-val">120</span>
-    </div>
-    <div class="transport-divider"></div>
+    <button class="tport-btn tport-rec">&#9210;</button>
+    <div class="tdiv"></div>
+    <span class="bpm-lbl">BPM</span>
+    <span class="bpm-val">120</span>
+    <div class="tdiv"></div>
     <div class="time-display" id="timeDisplay">1 . 1 . 000</div>
-    <div class="transport-divider"></div>
-    <select class="snap-select">
+    <div class="tdiv"></div>
+    <select class="snap-sel">
       <option>1/4</option><option>1/8</option><option>1/16</option>
     </select>
-    <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
       <button class="zoom-btn">100%</button>
-      <button class="rec-ready-btn">&#9210; REC READY</button>
+      <button class="rec-btn">&#9210; REC READY</button>
     </div>
   </div>
 
   <div class="main-area">
 
     <div class="track-headers">
-      <div class="tracks-header-bar">TRACKS</div>
+      <div class="hdr-bar">TRACKS</div>
       <div id="trackList"></div>
     </div>
 
     <div class="timeline-wrap">
       <div class="ruler" id="ruler"></div>
       <div class="clip-area" id="clipArea">
-        <div class="playhead" id="playhead" style="left: 0%;"></div>
+        <div class="playhead" id="playhead" style="left:0%;"></div>
       </div>
     </div>
 
     <div class="fx-panel">
-      <div class="fx-header">FX</div>
+      <div class="fx-hdr">FX</div>
       <button class="fx-btn on">EQ</button>
       <button class="fx-btn on">Comp</button>
       <button class="fx-btn">Reverb</button>
@@ -716,60 +638,61 @@ html, body {
 </div>
 <script>
 
-const TRACKS = [
+var TRACKS = [
   { name: 'Lead Vocals', type: 'Audio', color: '#00ffc8',
-    clips: [{ x: 1, w: 26, label: 'Verse 1' }, { x: 40, w: 20, label: 'Chorus' }, { x: 72, w: 14, label: 'Bridge' }] },
+    clips: [{ x: 2, w: 18, label: 'Verse 1' }, { x: 38, w: 14, label: 'Chorus' }, { x: 67, w: 10, label: 'Bridge' }] },
   { name: 'Harmony',    type: 'Audio', color: '#0a84ff',
-    clips: [{ x: 40, w: 20, label: 'Harmony' }, { x: 72, w: 14, label: 'Harm 2' }] },
+    clips: [{ x: 38, w: 14, label: 'Harmony' }, { x: 67, w: 10, label: 'Harm 2' }] },
   { name: 'Kick 808',   type: 'Beat',  color: '#ff6600',
-    clips: [{ x: 1, w: 89, label: 'Beat Pattern' }] },
+    clips: [{ x: 2, w: 76, label: 'Beat Pattern' }] },
   { name: 'Snare',      type: 'Beat',  color: '#ffd60a',
-    clips: [{ x: 1, w: 89, label: 'Snare Loop' }] },
+    clips: [{ x: 2, w: 76, label: 'Snare Loop' }] },
   { name: 'Hi-Hat',     type: 'Beat',  color: '#bf5af2',
-    clips: [{ x: 1, w: 44, label: 'HH Loop' }, { x: 47, w: 43, label: 'HH Loop 2' }] },
+    clips: [{ x: 2, w: 36, label: 'HH Loop' }, { x: 42, w: 36, label: 'HH Loop 2' }] },
   { name: 'Bass Line',  type: 'MIDI',  color: '#ff453a',
-    clips: [{ x: 1, w: 26, label: 'Bass A' }, { x: 40, w: 30, label: 'Bass B' }] },
+    clips: [{ x: 2, w: 18, label: 'Bass A' }, { x: 38, w: 24, label: 'Bass B' }] },
   { name: 'Chord Pad',  type: 'MIDI',  color: '#30d158',
-    clips: [{ x: 14, w: 62, label: 'Pads' }] },
+    clips: [{ x: 16, w: 52, label: 'Pads' }] },
   { name: 'Lead Synth', type: 'MIDI',  color: '#ff8c00',
-    clips: [{ x: 38, w: 36, label: 'Lead Mel' }] },
+    clips: [{ x: 38, w: 28, label: 'Lead Mel' }] },
 ];
 
-const trackListEl = document.getElementById('trackList');
-const clipAreaEl  = document.getElementById('clipArea');
+var trackListEl = document.getElementById('trackList');
+var clipAreaEl  = document.getElementById('clipArea');
 
-TRACKS.forEach((t, i) => {
-  const row = document.createElement('div');
-  row.className = 'track-row' + (i === 0 ? ' selected' : '');
+TRACKS.forEach(function(t, i) {
+  var row = document.createElement('div');
+  row.className = 'track-row' + (i === 0 ? ' sel' : '');
   row.innerHTML =
-    '<div class="track-color-bar" style="background:' + t.color + ';"></div>' +
-    '<div class="track-info">' +
-      '<div class="track-name">' + t.name + '</div>' +
-      '<div class="track-type">' + t.type + '</div>' +
+    '<div class="tc-bar" style="background:' + t.color + ';"></div>' +
+    '<div class="ti">' +
+      '<div class="tn">' + t.name + '</div>' +
+      '<div class="tt">' + t.type + '</div>' +
     '</div>' +
-    '<div class="track-btns">' +
+    '<div class="tbtns">' +
       '<button class="tbtn">M</button>' +
       '<button class="tbtn">S</button>' +
-      '<button class="tbtn">&#9210;</button>' +
     '</div>';
   row.onclick = function() {
-    document.querySelectorAll('.track-row').forEach(function(r) { r.classList.remove('selected'); });
-    row.classList.add('selected');
+    document.querySelectorAll('.track-row').forEach(function(r) { r.classList.remove('sel'); });
+    row.classList.add('sel');
   };
   trackListEl.appendChild(row);
 
-  const lane = document.createElement('div');
-  lane.className = 'track-lane';
+  var lane = document.createElement('div');
+  lane.className = 'tl';
 
   t.clips.forEach(function(c) {
-    const clip = document.createElement('div');
+    var clip = document.createElement('div');
     clip.className = 'clip';
-    clip.style.left = c.x + '%';
+    clip.style.left  = c.x + '%';
     clip.style.width = c.w + '%';
+    clip.style.bottom = '3px';
+    clip.style.top = '3px';
     clip.style.background = t.color + '22';
     clip.style.border = '1px solid ' + t.color + '55';
-    const lbl = document.createElement('div');
-    lbl.className = 'clip-label';
+    var lbl = document.createElement('div');
+    lbl.className = 'cl';
     lbl.style.color = t.color;
     lbl.textContent = c.label;
     clip.appendChild(lbl);
@@ -779,8 +702,8 @@ TRACKS.forEach((t, i) => {
   clipAreaEl.appendChild(lane);
 });
 
-// Ruler — 9 bar marks using %
-const rulerEl = document.getElementById('ruler');
+// Ruler
+var rulerEl = document.getElementById('ruler');
 var BAR_COUNT = 9;
 for (var i = 0; i < BAR_COUNT; i++) {
   var pct = (i / (BAR_COUNT - 1)) * 100;
@@ -794,8 +717,9 @@ for (var i = 0; i < BAR_COUNT; i++) {
 }
 
 // Mixer
-const mixerEl = document.getElementById('mixer');
+var mixerEl = document.getElementById('mixer');
 var mixTracks = TRACKS.slice(0, 7).concat([{ name: 'Master', color: '#dde6ef' }]);
+
 mixTracks.forEach(function(t, i) {
   var vol = 70 + Math.floor(Math.random() * 25);
   var ch = document.createElement('div');
@@ -811,9 +735,8 @@ mixTracks.forEach(function(t, i) {
       '<input type="range" class="ch-fader" min="0" max="100" value="' + vol + '">' +
     '</div>' +
     '<div class="ch-vol" style="color:' + t.color + ';">' + vol + '%</div>';
-  // thumb color via inline style injected
   var s = document.createElement('style');
-  s.textContent = '#' + vuId + ' ~ .ch-fader-wrap .ch-fader::-webkit-slider-thumb{background:' + t.color + '}';
+  s.textContent = '#' + vuId + ' ~ .ch-fader-wrap .ch-fader::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:' + t.color + ';cursor:pointer;}';
   ch.appendChild(s);
   mixerEl.appendChild(ch);
 });
@@ -851,7 +774,6 @@ function tick() {
   document.getElementById('timeDisplay').textContent =
     bar + ' . ' + beat + ' . ' + ('000' + ticks).slice(-3);
 
-  // VU meters
   for (var i = 0; i < mixTracks.length; i++) {
     var vu = document.getElementById('vu-' + i);
     if (!vu) continue;
@@ -859,7 +781,7 @@ function tick() {
     var bars = vu.querySelectorAll('.ch-vu-bar');
     for (var j = 0; j < bars.length; j++) {
       var active = j < lvl;
-      bars[j].style.height = active ? (6 + j * 2) + 'px' : '3px';
+      bars[j].style.height = active ? (5 + j * 2) + 'px' : '3px';
       bars[j].style.background = active
         ? (j >= 3 ? '#ff453a' : j >= 2 ? '#ffd60a' : (TRACKS[i] ? TRACKS[i].color : '#00ffc8'))
         : '#1a2838';
@@ -887,3 +809,9 @@ setTimeout(togglePlay, 600);
 </html>`;
 
 export default html;
+"""
+
+with open(path, 'w') as f:
+    f.write(new_content)
+
+print("Written: " + str(len(new_content)) + " chars")

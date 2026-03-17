@@ -12,31 +12,20 @@ const html = `<!DOCTYPE html>
 
 html, body {
   width: 100%;
-  height: 100%;
+  height: 100vh;
   background: #070b0f;
   font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
   color: #dde6ef;
-  overflow: auto;
+  overflow: hidden;
   user-select: none;
 }
 
 .daw-root {
   display: flex;
   flex-direction: column;
-  
-  /* MATCHING THE WIDE UI: */
-  width: 100vw;          /* Fills the full width of the screen */
-  height: 480px;         /* Fixed height to match the "short and wide" DJ deck look */
-  
-  /* REMOVE THE LIMITS: */
-  max-width: none;       
-  max-height: none;
-
-  /* STYLING TO MATCH THE IMAGE: */
-  background: #05070a;   /* Darker background like the DJ studio */
-  border-top: 1px solid #1a2838;
-  overflow: hidden;
-  position: relative;
+  width: 100%;
+  height: 100vh;
+  background: #070b0f;
 }
 
 /* ── Top bar ── */
