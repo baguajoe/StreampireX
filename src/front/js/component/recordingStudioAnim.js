@@ -1,2 +1,801 @@
-const html = "<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"UTF-8\">\n<style>\n*{box-sizing:border-box;margin:0;padding:0}\nhtml,body{width:100%;height:100vh;min-width:100%;background:#0d0f14;font-family:'Inter',system-ui,sans-serif;color:#c8d0d8;overflow:hidden;user-select:none}\n.topbar{display:flex;align-items:center;gap:0;background:#141820;border-bottom:1px solid #1e2530;height:36px;padding:0 8px;flex-shrink:0}\n.collab-btn{display:flex;flex-direction:column;align-items:center;padding:0 10px;font-size:9px;color:#4a6070;border-right:1px solid #1e2530;height:36px;justify-content:center;gap:2px}\n.session-btns{display:flex;gap:6px;padding:0 10px;border-right:1px solid #1e2530;align-items:center;height:36px}\n.sbtn{padding:5px 12px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:inherit}\n.sbtn.start{background:#00ffc8;color:#041014}\n.sbtn.join{background:#1e2530;color:#8090a0;border:1px solid #2a3040}\n.nav-tabs{display:flex;align-items:center;height:36px;overflow-x:auto;scrollbar-width:none;flex:1}\n.nav-tabs::-webkit-scrollbar{display:none}\n.ntab{padding:0 12px;height:36px;display:flex;align-items:center;gap:5px;font-size:11px;color:#4a6070;cursor:pointer;border-right:1px solid #1e2530;white-space:nowrap;transition:all .12s;flex-shrink:0}\n.ntab.on{color:#00ffc8;background:rgba(0,255,200,.06)}\n.export-btn{margin-left:auto;padding:5px 14px;border-radius:5px;background:#00ffc8;color:#041014;font-size:11px;font-weight:800;border:none;cursor:pointer;flex-shrink:0}\n.transport{display:flex;align-items:center;gap:8px;background:#0f1218;border-bottom:1px solid #1e2530;padding:6px 12px;height:44px;flex-shrink:0}\n.tport-btn{width:28px;height:28px;border-radius:4px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px}\n.tport-play{background:#00ffc8;color:#041014;font-size:14px}\n.tport-stop{background:#1e2530;color:#8090a0}\n.tport-rec{background:rgba(255,45,85,.15);color:#ff2d55;border:1px solid rgba(255,45,85,.3)}\n.tport-rec.armed{background:#ff2d55;color:#fff;animation:recpulse 1s ease-in-out infinite}\n@keyframes recpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,45,85,.4)}50%{box-shadow:0 0 0 6px rgba(255,45,85,0)}}\n.bpm-val{font-size:17px;font-weight:800;color:#e0eaf0;font-family:'Courier New',monospace;min-width:38px}\n.bpm-lbl{font-size:10px;color:#4a6070;letter-spacing:.5px}\n.divider{width:1px;height:24px;background:#1e2530;margin:0 4px}\n.time-display{font-size:14px;font-weight:700;color:#00ffc8;font-family:'Courier New',monospace;letter-spacing:1px;min-width:80px}\n.main{display:flex;flex:1;overflow:hidden;min-height:0}\n.track-list{width:175px;flex-shrink:0;background:#0a0c12;border-right:1px solid #1e2530;overflow-y:auto;scrollbar-width:none;display:flex;flex-direction:column}\n.track-list::-webkit-scrollbar{display:none}\n.track-hd{height:28px;background:#080a0e;border-bottom:1px solid #1e2530;display:flex;align-items:center;padding:0 10px;font-size:9px;font-weight:700;color:#4a6070;letter-spacing:1px;flex-shrink:0}\n.track-row{height:48px;border-bottom:1px solid #0d1018;display:flex;align-items:center;padding:0 8px;gap:6px;cursor:pointer;transition:background .12s;flex-shrink:0}\n.track-row.selected{background:rgba(0,255,200,.05)}\n.track-color{width:3px;height:32px;border-radius:2px;flex-shrink:0}\n.track-info{flex:1;min-width:0}\n.track-name{font-size:11px;font-weight:600;color:#c0d0e0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.track-type{font-size:9px;color:#4a6070;margin-top:2px}\n.track-btns{display:flex;gap:3px}\n.tbtn{width:16px;height:16px;border-radius:3px;border:none;font-size:8px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;background:#1e2530;color:#4a6070}\n.tbtn.on{background:#00ffc8;color:#000}\n.tbtn.rec-on{background:#ff2d55;color:#fff}\n.timeline-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}\n.ruler{height:28px;background:#080a0e;border-bottom:1px solid #1e2530;position:relative;overflow:hidden;flex-shrink:0}\n.clip-area{flex:1;overflow:hidden;position:relative;background:repeating-linear-gradient(90deg,transparent,transparent 99px,#0d1018 99px,#0d1018 100px)}\n.track-lane{height:48px;border-bottom:1px solid #0d1018;position:relative;flex-shrink:0}\n.clip{position:absolute;top:5px;height:38px;border-radius:4px;display:flex;flex-direction:column;justify-content:flex-end;padding:0 6px 4px;cursor:pointer;overflow:hidden}\n.clip-label{font-size:9px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.playhead{position:absolute;top:0;bottom:0;width:2px;background:#00ffc8;z-index:10;box-shadow:0 0 8px #00ffc8;pointer-events:none}\n.playhead::before{content:'';position:absolute;top:-1px;left:-5px;width:12px;height:10px;background:#00ffc8;clip-path:polygon(0 0,100% 0,50% 100%)}\n.fx-panel{width:90px;flex-shrink:0;background:#0a0c12;border-left:1px solid #1e2530;display:flex;flex-direction:column}\n.fx-btn{margin:3px 6px;padding:4px 6px;border-radius:4px;font-size:9px;font-weight:700;border:1px solid #2a3040;background:#111620;color:#6a8090;cursor:pointer;text-align:center}\n.fx-btn.on{background:rgba(0,255,200,.12);border-color:#00ffc8;color:#00ffc8}\n.mixer{height:110px;border-top:2px solid #00ffc822;background:#07090f;display:flex;overflow-x:auto;scrollbar-width:none;flex-shrink:0}\n.mixer::-webkit-scrollbar{display:none}\n.mixer-ch{width:52px;flex-shrink:0;border-right:1px solid #0d1018;display:flex;flex-direction:column;align-items:center;padding:4px 3px;gap:0}\n.ch-name{font-size:8px;color:#4a6070;text-align:center;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}\n.ch-fader{-webkit-appearance:none;appearance:none;width:44px;height:3px;border-radius:2px;background:#1e2530;outline:none;transform:rotate(-90deg);margin:6px 0}\n.ch-fader::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;border-radius:50%;background:var(--fc,#00ffc8);cursor:pointer}\n.ch-vol{font-size:8px;color:#4a6070;font-family:'Courier New',monospace;margin-top:1px}\n.ch-vu{display:flex;gap:1px;height:14px;align-items:flex-end}\n.ch-vu-bar{width:5px;border-radius:1px;background:#1e2530;transition:height .06s,background .06s}\n</style>\n</head>\n<body style=\"display:flex;flex-direction:column;height:100vh\">\n<div class=\"topbar\">\n  <div class=\"collab-btn\">&#129309;<span style=\"font-size:8px;color:#4a6070\">Collab</span></div>\n  <div class=\"session-btns\">\n    <button class=\"sbtn start\">+ Start Session</button>\n    <button class=\"sbtn join\">Join Session</button>\n  </div>\n  <div class=\"nav-tabs\">\n    <div class=\"ntab on\">&#127897; Arrange</div>\n    <div class=\"ntab\">&#9000; Mixer Console</div>\n    <div class=\"ntab\">&#127929; Piano Roll</div>\n    <div class=\"ntab\">&#129345; Beat Maker</div>\n    <div class=\"ntab\">&#127935; AI Mix</div>\n    <div class=\"ntab\">&#9889; Synth</div>\n    <div class=\"ntab\">&#129345; Drum Design</div>\n    <div class=\"ntab\">&#10024; Mastering</div>\n  </div>\n  <button class=\"export-btn\">&#11014; Export</button>\n</div>\n<div class=\"transport\">\n  <button class=\"tport-btn tport-stop\">&#9632;</button>\n  <button class=\"tport-btn tport-play\" id=\"playBtn\" onclick=\"togglePlay()\">&#9654;</button>\n  <button class=\"tport-btn tport-rec\" id=\"recBtn\">&#9210;</button>\n  <div class=\"divider\"></div>\n  <span class=\"bpm-lbl\">BPM</span>\n  <span class=\"bpm-val\">120</span>\n  <div class=\"divider\"></div>\n  <div class=\"time-display\" id=\"timeDisplay\">1.1.000</div>\n  <div class=\"divider\"></div>\n  <select style=\"background:#1e2530;border:1px solid #2a3040;color:#8090a0;font-size:10px;padding:3px 6px;border-radius:4px;outline:none\"><option>1/4</option><option>1/8</option><option>1/16</option></select>\n  <div style=\"margin-left:auto;display:flex;gap:6px;align-items:center\">\n    <span style=\"font-size:10px;color:#4a6070\">ZOOM</span>\n    <button style=\"padding:3px 8px;border-radius:4px;border:1px solid #00ffc8;background:rgba(0,255,200,.1);color:#00ffc8;font-size:10px;cursor:pointer\">100%</button>\n    <button style=\"padding:5px 10px;border-radius:4px;background:rgba(255,45,85,.15);border:1px solid rgba(255,45,85,.3);color:#ff2d55;font-size:10px;font-weight:700;cursor:pointer\">&#9210; REC READY</button>\n  </div>\n</div>\n<div class=\"main\">\n  <div class=\"track-list\">\n    <div class=\"track-hd\">TRACKS</div>\n    <div id=\"trackList\"></div>\n  </div>\n  <div class=\"timeline-wrap\">\n    <div class=\"ruler\" id=\"ruler\"></div>\n    <div class=\"clip-area\" id=\"clipArea\">\n      <div class=\"playhead\" id=\"playhead\" style=\"left:0\"></div>\n    </div>\n  </div>\n  <div class=\"fx-panel\">\n    <div class=\"track-hd\">FX</div>\n    <div class=\"fx-btn on\">EQ</div>\n    <div class=\"fx-btn on\">Comp</div>\n    <div class=\"fx-btn\">Reverb</div>\n    <div class=\"fx-btn\">Delay</div>\n    <div class=\"fx-btn on\">Limiter</div>\n    <div class=\"fx-btn\">Distort</div>\n    <div class=\"fx-btn\">Chorus</div>\n    <div class=\"fx-btn\">Filter</div>\n  </div>\n</div>\n<div class=\"mixer\" id=\"mixer\"></div>\n<script>\nconst TRACKS=[\n  {name:'Lead Vocals',type:'Audio',color:'#00ffc8',clips:[{x:0,w:150,label:'Verse 1'},{x:190,w:110,label:'Chorus'},{x:340,w:80,label:'Bridge'}]},\n  {name:'Harmony',type:'Audio',color:'#00aaff',clips:[{x:190,w:110,label:'Harmony'},{x:340,w:80,label:'Harm 2'}]},\n  {name:'Kick 808',type:'Beat',color:'#ff6b35',clips:[{x:0,w:390,label:'Beat Pattern'}]},\n  {name:'Snare',type:'Beat',color:'#ffd700',clips:[{x:0,w:390,label:'Snare Loop'}]},\n  {name:'Hi-Hat',type:'Beat',color:'#a78bfa',clips:[{x:0,w:190,label:'HH Loop'},{x:210,w:180,label:'HH Loop 2'}]},\n  {name:'Bass Line',type:'MIDI',color:'#ff4466',clips:[{x:0,w:150,label:'Bass A'},{x:190,w:190,label:'Bass B'}]},\n  {name:'Chord Pad',type:'MIDI',color:'#00ff88',clips:[{x:80,w:270,label:'Pads'}]},\n  {name:'Lead Synth',type:'MIDI',color:'#ff8800',clips:[{x:190,w:150,label:'Lead Mel'}]},\n];\n\nconst trackList=document.getElementById('trackList');\nconst clipArea=document.getElementById('clipArea');\n\nTRACKS.forEach((t,i)=>{\n  const row=document.createElement('div');\n  row.className='track-row'+(i===0?' selected':'');\n  row.innerHTML=`<div class=\"track-color\" style=\"background:${t.color}\"></div><div class=\"track-info\"><div class=\"track-name\">${t.name}</div><div class=\"track-type\">${t.type}</div></div><div class=\"track-btns\"><button class=\"tbtn\">M</button><button class=\"tbtn\">S</button><button class=\"tbtn\">&#9210;</button></div>`;\n  row.onclick=()=>{document.querySelectorAll('.track-row').forEach(r=>r.classList.remove('selected'));row.classList.add('selected');};\n  trackList.appendChild(row);\n\n  const lane=document.createElement('div');\n  lane.className='track-lane';\n  t.clips.forEach(c=>{\n    const clip=document.createElement('div');\n    clip.className='clip';\n    clip.style.cssText=`left:${c.x+4}px;width:${c.w-8}px;background:${t.color}22;border:1px solid ${t.color}55;`;\n    const lbl=document.createElement('div');\n    lbl.className='clip-label';\n    lbl.style.color=t.color;\n    lbl.textContent=c.label;\n    clip.appendChild(lbl);\n    lane.appendChild(clip);\n  });\n  clipArea.appendChild(lane);\n});\n\n// Ruler\nconst ruler=document.getElementById('ruler');\nfor(let i=0;i<20;i++){\n  const m=document.createElement('div');\n  m.style.cssText=`position:absolute;left:${i*20}%;top:0;bottom:0;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:3px`;\n  m.innerHTML=`<span style=\"font-size:9px;color:#4a6070;font-family:'Courier New',monospace;padding-left:3px\">${i+1}</span>`;\n  const line=document.createElement('div');\n  line.style.cssText=`position:absolute;top:0;bottom:0;left:0;width:1px;background:${i===0?'#2a3040':'#1e2530'}`;\n  m.appendChild(line);\n  ruler.appendChild(m);\n}\n\n// Mixer\nconst mixer=document.getElementById('mixer');\n[...TRACKS.slice(0,7),{name:'Master',color:'#fff'}].forEach((t,i)=>{\n  const ch=document.createElement('div');\n  ch.className='mixer-ch';\n  ch.innerHTML=`<div class=\"ch-name\" style=\"color:${t.color}\">${t.name}</div><div class=\"ch-vu\" id=\"vu-${i}\"></div><input type=\"range\" class=\"ch-fader\" min=\"0\" max=\"100\" value=\"${75+Math.random()*20|0}\" style=\"--fc:${t.color}\"><div class=\"ch-vol\" style=\"color:${t.color}\">${75+Math.random()*20|0}%</div>`;\n  mixer.appendChild(ch);\n  const vu=ch.querySelector('.ch-vu');\n  for(let j=0;j<5;j++){const b=document.createElement('div');b.className='ch-vu-bar';b.style.width='5px';vu.appendChild(b);}\n});\n\n// Playback\nlet isPlaying=false,pos=0,frame=0,raf=null;\nfunction togglePlay(){\n  isPlaying=!isPlaying;\n  const btn=document.getElementById('playBtn');\n  btn.textContent=isPlaying?'\u23f8':'\u25b6';\n  btn.style.background=isPlaying?'#ff6b35':'#00ffc8';\n  if(isPlaying)raf=requestAnimationFrame(tick);\n  else cancelAnimationFrame(raf);\n}\nfunction tick(){\n  frame++;\n  pos+=0.1;\n  if(pos>90)pos=0;\n  document.getElementById('playhead').style.left=pos+'%';\n  const bars=Math.floor(pos/20)+1;\n  const beats=Math.floor((pos%20)/5)+1;\n  const ticks=Math.floor((pos%5)*40);\n  document.getElementById('timeDisplay').textContent=`${bars}.${beats}.${String(ticks).padStart(3,'0')}`;\n  // VU meters\n  mixer.querySelectorAll('.ch-vu').forEach((vu,i)=>{\n    const lvl=Math.round(Math.abs(Math.sin(frame/6+i)*3+Math.random()*2));\n    vu.querySelectorAll('.ch-vu-bar').forEach((b,j)=>{\n      const active=j<lvl;\n      b.style.height=active?`${6+j*2}px`:'3px';\n      b.style.background=active?(j>=3?'#ff2d55':j>=2?'#ffd700':TRACKS[i]?.color||'#00ffc8'):'#1e2530';\n    });\n  });\n  if(isPlaying)raf=requestAnimationFrame(tick);\n}\ndocument.querySelectorAll('.ntab').forEach(b=>{b.onclick=()=>{document.querySelectorAll('.ntab').forEach(x=>x.classList.remove('on'));b.classList.add('on');};});\ndocument.querySelectorAll('.fx-btn').forEach(b=>{b.onclick=()=>b.classList.toggle('on');});\nsetTimeout(togglePlay,500);\n</script>\n</body></html>";
+const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+  background: #070b0f;
+  font-family: 'Courier New', monospace;
+  color: #dde6ef;
+  overflow: hidden;
+  user-select: none;
+  font-size: 11px;
+}
+
+.daw-root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #070b0f;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  background: #0c1219;
+  border-bottom: 1px solid #243548;
+  height: 32px;
+  min-height: 32px;
+  padding: 0 8px;
+  gap: 6px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sbtn-start {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  background: #00ffc8;
+  color: #041014;
+  flex-shrink: 0;
+}
+
+.sbtn-join {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  background: #111a24;
+  color: #8fa8bf;
+  border: 1px solid #243548;
+  flex-shrink: 0;
+}
+
+.tab-sep {
+  width: 1px;
+  height: 20px;
+  background: #243548;
+  flex-shrink: 0;
+}
+
+.ntab {
+  padding: 0 10px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #4e6a82;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.ntab:hover {
+  color: #8fa8bf;
+}
+
+.ntab.active {
+  color: #00ffc8;
+  border-bottom: 2px solid #00ffc8;
+}
+
+.export-btn {
+  margin-left: auto;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: #00ffc8;
+  color: #041014;
+  font-size: 11px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0a0f16;
+  border-bottom: 1px solid #243548;
+  padding: 0 12px;
+  height: 38px;
+  min-height: 38px;
+  flex-shrink: 0;
+}
+
+.tport-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+
+.tport-stop {
+  background: #111a24;
+  color: #8fa8bf;
+  border: 1px solid #243548;
+}
+
+.tport-play {
+  background: #00ffc8;
+  color: #041014;
+  font-size: 13px;
+}
+
+.tport-rec {
+  background: rgba(255, 69, 58, 0.15);
+  color: #ff453a;
+  border: 1px solid rgba(255, 69, 58, 0.35);
+}
+
+.tdiv {
+  width: 1px;
+  height: 20px;
+  background: #243548;
+  flex-shrink: 0;
+}
+
+.bpm-val {
+  font-size: 17px;
+  font-weight: 800;
+  color: #dde6ef;
+  min-width: 40px;
+  letter-spacing: 1px;
+  font-family: 'Courier New', monospace;
+}
+
+.bpm-lbl {
+  font-size: 9px;
+  font-weight: 800;
+  color: #4e6a82;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.time-display {
+  font-size: 13px;
+  font-weight: 700;
+  color: #00ffc8;
+  letter-spacing: 2px;
+  min-width: 85px;
+  text-shadow: 0 0 10px rgba(0,255,200,0.3);
+  font-family: 'Courier New', monospace;
+}
+
+.snap-sel {
+  background: #111a24;
+  border: 1px solid #243548;
+  color: #8fa8bf;
+  font-size: 10px;
+  padding: 3px 6px;
+  border-radius: 3px;
+  outline: none;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.zoom-btn {
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid #00ffc8;
+  background: rgba(0,255,200,0.1);
+  color: #00ffc8;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.rec-btn {
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: rgba(255,69,58,0.15);
+  border: 1px solid rgba(255,69,58,0.35);
+  color: #ff453a;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
+.main-area {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+  width: 100%;
+}
+
+.track-headers {
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
+  flex-shrink: 0;
+  background: #0c1219;
+  border-right: 1px solid #243548;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.hdr-bar {
+  height: 26px;
+  min-height: 26px;
+  background: #0a0f16;
+  border-bottom: 1px solid #243548;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 8px;
+  font-weight: 800;
+  color: #4e6a82;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.track-row {
+  flex: 1;
+  border-bottom: 1px solid #0d1820;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  gap: 5px;
+  cursor: pointer;
+  transition: background 0.1s;
+  min-height: 0;
+}
+
+.track-row:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.track-row.sel {
+  background: rgba(0,255,200,0.05);
+  border-left: 2px solid #00ffc8;
+}
+
+.tc-bar {
+  width: 3px;
+  height: 28px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.ti {
+  flex: 1;
+  min-width: 0;
+}
+
+.tn {
+  font-size: 11px;
+  font-weight: 700;
+  color: #dde6ef;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tt {
+  font-size: 8px;
+  color: #4e6a82;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 1px;
+}
+
+.tbtns {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.tbtn {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid #243548;
+  font-size: 8px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111a24;
+  color: #4e6a82;
+  font-family: inherit;
+  transition: all 0.1s;
+}
+
+.tbtn:hover {
+  color: #dde6ef;
+}
+
+.timeline-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  width: 0;
+}
+
+.ruler {
+  height: 26px;
+  min-height: 26px;
+  background: #0a0f16;
+  border-bottom: 1px solid #243548;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.clip-area {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent calc(12.5% - 1px),
+    #0d1820 calc(12.5% - 1px),
+    #0d1820 12.5%
+  );
+}
+
+.tl {
+  flex: 1;
+  border-bottom: 1px solid #0d1820;
+  position: relative;
+  min-height: 0;
+}
+
+.clip {
+  position: absolute;
+  top: 3px;
+  border-radius: 3px;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 6px 4px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: filter 0.1s;
+}
+
+.clip:hover {
+  filter: brightness(1.15);
+}
+
+.cl {
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #00ffc8;
+  z-index: 10;
+  box-shadow: 0 0 8px rgba(0,255,200,0.6);
+  pointer-events: none;
+}
+
+.playhead::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -5px;
+  width: 12px;
+  height: 8px;
+  background: #00ffc8;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.fx-panel {
+  width: 85px;
+  min-width: 85px;
+  max-width: 85px;
+  flex-shrink: 0;
+  background: #0c1219;
+  border-left: 1px solid #243548;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fx-hdr {
+  height: 26px;
+  min-height: 26px;
+  background: #0a0f16;
+  border-bottom: 1px solid #243548;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 8px;
+  font-weight: 800;
+  color: #4e6a82;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.fx-btn {
+  margin: 3px 5px;
+  padding: 4px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid #243548;
+  background: #111a24;
+  color: #4e6a82;
+  cursor: pointer;
+  text-align: center;
+  font-family: inherit;
+  transition: all 0.1s;
+  flex-shrink: 0;
+}
+
+.fx-btn.on {
+  background: rgba(0,255,200,0.1);
+  border-color: rgba(0,255,200,0.4);
+  color: #00ffc8;
+}
+
+.mixer {
+  height: 100px;
+  min-height: 100px;
+  border-top: 2px solid rgba(0,255,200,0.15);
+  background: #070b0f;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+
+.mixer::-webkit-scrollbar {
+  display: none;
+}
+
+.mixer-ch {
+  flex: 1;
+  min-width: 48px;
+  max-width: 80px;
+  border-right: 1px solid #0d1820;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 3px;
+  gap: 2px;
+}
+
+.ch-name {
+  font-size: 8px;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ch-vu {
+  display: flex;
+  gap: 1px;
+  height: 12px;
+  align-items: flex-end;
+}
+
+.ch-vu-bar {
+  width: 4px;
+  border-radius: 1px;
+  background: #1a2838;
+  transition: height 0.06s, background 0.06s;
+}
+
+.ch-fader-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  flex: 1;
+}
+
+.ch-fader {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 40px;
+  height: 3px;
+  border-radius: 2px;
+  background: #1a2838;
+  outline: none;
+  transform: rotate(-90deg);
+  cursor: pointer;
+}
+
+.ch-vol {
+  font-size: 8px;
+  font-family: 'Courier New', monospace;
+}
+
+</style>
+</head>
+<body>
+<div class="daw-root">
+
+  <div class="topbar">
+    <button class="sbtn-start">+ Start Session</button>
+    <button class="sbtn-join">Join Session</button>
+    <div class="tab-sep"></div>
+    <div class="ntab active">&#9654; Arrange</div>
+    <div class="ntab">&#9000; Console</div>
+    <div class="ntab">&#127929; Piano Roll</div>
+    <div class="ntab">&#129345; Sampler</div>
+    <div class="ntab">&#9889; AI Mix</div>
+    <div class="ntab">&#9889; Synth</div>
+    <div class="ntab">&#10024; Mastering</div>
+    <button class="export-btn">&#11014; Export</button>
+  </div>
+
+  <div class="transport">
+    <button class="tport-btn tport-stop">&#9632;</button>
+    <button class="tport-btn tport-play" id="playBtn" onclick="togglePlay()">&#9654;</button>
+    <button class="tport-btn tport-rec">&#9210;</button>
+    <div class="tdiv"></div>
+    <span class="bpm-lbl">BPM</span>
+    <span class="bpm-val">120</span>
+    <div class="tdiv"></div>
+    <div class="time-display" id="timeDisplay">1 . 1 . 000</div>
+    <div class="tdiv"></div>
+    <select class="snap-sel">
+      <option>1/4</option><option>1/8</option><option>1/16</option>
+    </select>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+      <button class="zoom-btn">100%</button>
+      <button class="rec-btn">&#9210; REC READY</button>
+    </div>
+  </div>
+
+  <div class="main-area">
+
+    <div class="track-headers">
+      <div class="hdr-bar">TRACKS</div>
+      <div id="trackList"></div>
+    </div>
+
+    <div class="timeline-wrap">
+      <div class="ruler" id="ruler"></div>
+      <div class="clip-area" id="clipArea">
+        <div class="playhead" id="playhead" style="left:0%;"></div>
+      </div>
+    </div>
+
+    <div class="fx-panel">
+      <div class="fx-hdr">FX</div>
+      <button class="fx-btn on">EQ</button>
+      <button class="fx-btn on">Comp</button>
+      <button class="fx-btn">Reverb</button>
+      <button class="fx-btn">Delay</button>
+      <button class="fx-btn on">Limiter</button>
+      <button class="fx-btn">Distort</button>
+      <button class="fx-btn">Chorus</button>
+      <button class="fx-btn">Filter</button>
+    </div>
+
+  </div>
+
+  <div class="mixer" id="mixer"></div>
+
+</div>
+<script>
+
+var TRACKS = [
+  { name: 'Lead Vocals', type: 'Audio', color: '#00ffc8',
+    clips: [{ x: 2, w: 18, label: 'Verse 1' }, { x: 38, w: 14, label: 'Chorus' }, { x: 67, w: 10, label: 'Bridge' }] },
+  { name: 'Harmony',    type: 'Audio', color: '#0a84ff',
+    clips: [{ x: 38, w: 14, label: 'Harmony' }, { x: 67, w: 10, label: 'Harm 2' }] },
+  { name: 'Kick 808',   type: 'Beat',  color: '#ff6600',
+    clips: [{ x: 2, w: 76, label: 'Beat Pattern' }] },
+  { name: 'Snare',      type: 'Beat',  color: '#ffd60a',
+    clips: [{ x: 2, w: 76, label: 'Snare Loop' }] },
+  { name: 'Hi-Hat',     type: 'Beat',  color: '#bf5af2',
+    clips: [{ x: 2, w: 36, label: 'HH Loop' }, { x: 42, w: 36, label: 'HH Loop 2' }] },
+  { name: 'Bass Line',  type: 'MIDI',  color: '#ff453a',
+    clips: [{ x: 2, w: 18, label: 'Bass A' }, { x: 38, w: 24, label: 'Bass B' }] },
+  { name: 'Chord Pad',  type: 'MIDI',  color: '#30d158',
+    clips: [{ x: 16, w: 52, label: 'Pads' }] },
+  { name: 'Lead Synth', type: 'MIDI',  color: '#ff8c00',
+    clips: [{ x: 38, w: 28, label: 'Lead Mel' }] },
+];
+
+var trackListEl = document.getElementById('trackList');
+var clipAreaEl  = document.getElementById('clipArea');
+
+TRACKS.forEach(function(t, i) {
+  var row = document.createElement('div');
+  row.className = 'track-row' + (i === 0 ? ' sel' : '');
+  row.innerHTML =
+    '<div class="tc-bar" style="background:' + t.color + ';"></div>' +
+    '<div class="ti">' +
+      '<div class="tn">' + t.name + '</div>' +
+      '<div class="tt">' + t.type + '</div>' +
+    '</div>' +
+    '<div class="tbtns">' +
+      '<button class="tbtn">M</button>' +
+      '<button class="tbtn">S</button>' +
+    '</div>';
+  row.onclick = function() {
+    document.querySelectorAll('.track-row').forEach(function(r) { r.classList.remove('sel'); });
+    row.classList.add('sel');
+  };
+  trackListEl.appendChild(row);
+
+  var lane = document.createElement('div');
+  lane.className = 'tl';
+
+  t.clips.forEach(function(c) {
+    var clip = document.createElement('div');
+    clip.className = 'clip';
+    clip.style.left  = c.x + '%';
+    clip.style.width = c.w + '%';
+    clip.style.bottom = '3px';
+    clip.style.top = '3px';
+    clip.style.background = t.color + '22';
+    clip.style.border = '1px solid ' + t.color + '55';
+    var lbl = document.createElement('div');
+    lbl.className = 'cl';
+    lbl.style.color = t.color;
+    lbl.textContent = c.label;
+    clip.appendChild(lbl);
+    lane.appendChild(clip);
+  });
+
+  clipAreaEl.appendChild(lane);
+});
+
+// Ruler
+var rulerEl = document.getElementById('ruler');
+var BAR_COUNT = 9;
+for (var i = 0; i < BAR_COUNT; i++) {
+  var pct = (i / (BAR_COUNT - 1)) * 100;
+  var line = document.createElement('div');
+  line.style.cssText = 'position:absolute;top:0;bottom:0;left:' + pct + '%;width:1px;background:' + (i === 0 ? '#243548' : '#1a2838') + ';';
+  rulerEl.appendChild(line);
+  var lbl = document.createElement('span');
+  lbl.style.cssText = 'position:absolute;bottom:3px;left:calc(' + pct + '% + 3px);font-size:9px;color:#4e6a82;font-family:Courier New,monospace;';
+  lbl.textContent = i + 1;
+  rulerEl.appendChild(lbl);
+}
+
+// Mixer
+var mixerEl = document.getElementById('mixer');
+var mixTracks = TRACKS.slice(0, 7).concat([{ name: 'Master', color: '#dde6ef' }]);
+
+mixTracks.forEach(function(t, i) {
+  var vol = 70 + Math.floor(Math.random() * 25);
+  var ch = document.createElement('div');
+  ch.className = 'mixer-ch';
+  var vuId = 'vu-' + i;
+  ch.innerHTML =
+    '<div class="ch-name" style="color:' + t.color + ';">' + t.name + '</div>' +
+    '<div class="ch-vu" id="' + vuId + '">' +
+      '<div class="ch-vu-bar"></div><div class="ch-vu-bar"></div>' +
+      '<div class="ch-vu-bar"></div><div class="ch-vu-bar"></div><div class="ch-vu-bar"></div>' +
+    '</div>' +
+    '<div class="ch-fader-wrap">' +
+      '<input type="range" class="ch-fader" min="0" max="100" value="' + vol + '">' +
+    '</div>' +
+    '<div class="ch-vol" style="color:' + t.color + ';">' + vol + '%</div>';
+  var s = document.createElement('style');
+  s.textContent = '#' + vuId + ' ~ .ch-fader-wrap .ch-fader::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:' + t.color + ';cursor:pointer;}';
+  ch.appendChild(s);
+  mixerEl.appendChild(ch);
+});
+
+// Playback
+var isPlaying = false;
+var pos = 0;
+var frame = 0;
+var raf = null;
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  var btn = document.getElementById('playBtn');
+  btn.textContent = isPlaying ? '\u23f8' : '\u25b6';
+  btn.style.background = isPlaying ? '#ff6600' : '#00ffc8';
+  btn.style.color = '#041014';
+  if (isPlaying) {
+    raf = requestAnimationFrame(tick);
+  } else {
+    cancelAnimationFrame(raf);
+  }
+}
+
+function tick() {
+  frame++;
+  pos += 0.08;
+  if (pos > 90) pos = 0;
+
+  document.getElementById('playhead').style.left = pos + '%';
+
+  var totalBeats = pos / (100 / 32);
+  var bar   = Math.floor(totalBeats / 4) + 1;
+  var beat  = Math.floor(totalBeats % 4) + 1;
+  var ticks = Math.floor((totalBeats % 1) * 1000);
+  document.getElementById('timeDisplay').textContent =
+    bar + ' . ' + beat + ' . ' + ('000' + ticks).slice(-3);
+
+  for (var i = 0; i < mixTracks.length; i++) {
+    var vu = document.getElementById('vu-' + i);
+    if (!vu) continue;
+    var lvl = Math.round(Math.abs(Math.sin(frame / 6 + i) * 3 + Math.random() * 2));
+    var bars = vu.querySelectorAll('.ch-vu-bar');
+    for (var j = 0; j < bars.length; j++) {
+      var active = j < lvl;
+      bars[j].style.height = active ? (5 + j * 2) + 'px' : '3px';
+      bars[j].style.background = active
+        ? (j >= 3 ? '#ff453a' : j >= 2 ? '#ffd60a' : (TRACKS[i] ? TRACKS[i].color : '#00ffc8'))
+        : '#1a2838';
+    }
+  }
+
+  if (isPlaying) raf = requestAnimationFrame(tick);
+}
+
+document.querySelectorAll('.ntab').forEach(function(tab) {
+  tab.onclick = function() {
+    document.querySelectorAll('.ntab').forEach(function(t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+  };
+});
+
+document.querySelectorAll('.fx-btn').forEach(function(btn) {
+  btn.onclick = function() { btn.classList.toggle('on'); };
+});
+
+setTimeout(togglePlay, 600);
+
+</script>
+</body>
+</html>`;
+
 export default html;
