@@ -14,7 +14,7 @@ html,body{width:100%;background:#050709;font-family:'Inter',system-ui,sans-serif
 .inv{padding:5px 12px;border-radius:8px;border:1px solid rgba(0,180,255,0.3);background:rgba(0,180,255,0.08);color:#00b4ff;font-size:10px;font-weight:700}
 .main{display:grid;grid-template-columns:1fr 200px}
 .va{padding:14px;display:flex;flex-direction:column;gap:10px}
-.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;height:240px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;height:260px}
 .tile{position:relative;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);background:#0d1117}
 .tile.h{border-color:rgba(0,255,200,0.2)}.tile.g{border-color:rgba(255,102,0,0.2)}
 .tile::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);pointer-events:none;z-index:2}
@@ -22,10 +22,10 @@ html,body{width:100%;background:#050709;font-family:'Inter',system-ui,sans-serif
 @keyframes gO{0%,100%{box-shadow:0 0 0 2px rgba(255,102,0,0.1)}50%{box-shadow:0 0 0 3px rgba(255,102,0,0.85),0 0 22px rgba(255,102,0,0.3)}}
 .tile.sh{animation:gT .5s ease-in-out infinite}.tile.sg{animation:gO .5s ease-in-out infinite}
 .timg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 5%;display:block;z-index:0}
-.tov{position:absolute;inset:0;background:linear-gradient(180deg,transparent 42%,rgba(0,0,0,0.92) 100%);z-index:1}
-.wf{position:absolute;bottom:28px;left:0;right:0;height:22px;z-index:3;padding:0 8px;display:flex;align-items:center;gap:2px}
+.tov{position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,0.75) 100%);z-index:1}
+.wf{position:absolute;bottom:0;left:0;right:0;height:18px;z-index:3;padding:0 8px;display:flex;align-items:flex-end;gap:2px;background:rgba(0,0,0,0.5)}
 .wb{border-radius:1px;width:3px;transition:height .07s ease}
-.tl{position:absolute;bottom:0;left:0;right:0;padding:5px 9px;z-index:3}
+.tl{position:absolute;bottom:20px;left:0;right:0;padding:4px 9px;z-index:3}
 .tn{font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.9)}
 .chat{padding:0 14px 8px}
 .cb{background:#0f1320;border-radius:8px;padding:8px 11px;margin-bottom:5px;border-left:2px solid #00ffc8;opacity:0;transform:translateY(4px);transition:opacity .25s ease,transform .25s ease}
