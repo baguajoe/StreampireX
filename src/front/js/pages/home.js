@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import { Context } from "../store/appContext";
 import { Link } from "react-router-dom";
-import recordingStudioSrcDoc from "../component/recordingStudioSrcDoc";
+import recordingStudioSrcDoc from "../component/recordingStudioAnim";
 import djStudioSrcDoc from "../component/djStudioSrcDoc";
 import beatMakerSrcDoc from "../component/beatMakerSrcDoc";
 import podcastStudioSrcDoc from "../component/podcastStudioSrcDoc";
