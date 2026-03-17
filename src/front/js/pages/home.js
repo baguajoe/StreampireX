@@ -98,7 +98,7 @@ const Home = () => {
 
 				{/* Dashboard screenshot — shown in hero */}
 				<div style={{ maxWidth:"1100px", margin:"0 auto", borderRadius:"12px", overflow:"hidden", border:"1px solid rgba(0,255,200,0.15)", boxShadow:"0 8px 40px rgba(0,255,200,0.08)" }}>
-					<iframe srcDoc={recordingStudioSrcDoc} style={{ width:"100%", height:"580px", border:"none", display:"block" }} title="StreamPireX Demo" loading="lazy"/>
+					<iframe srcDoc={recordingStudioSrcDoc} style={{ width:"100%", height:"520px", border:"none", display:"block" }} title="StreamPireX Demo" loading="lazy"/>
 					<div style={{ padding:"12px 20px", background:"rgba(0,255,200,0.04)", borderTop:"1px solid rgba(0,255,200,0.1)", color:"#00ffc8", fontSize:"13px", fontWeight:600, letterSpacing:"0.5px" }}>
 						🚀 StreamPireX — The all-in-one creator platform. Replace 15+ tools. Keep 90%.
 					</div>
