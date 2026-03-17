@@ -710,7 +710,14 @@ width: 95%;            /* Fills most of the width */
   </div>
 
   <div class="mixer" id="mixer"></div>
-
+<div class="lib" style="background: #08080f; border-top: 1px solid #243548; padding: 12px; height: 160px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <span style="color: #ffa726; font-size: 11px; font-weight: 800; letter-spacing: 1px;">📂 LIBRARY</span>
+      <input type="text" placeholder="Search tracks..." style="background: #111; border: 1px solid #333; color: #eee; font-size: 10px; padding: 4px 8px; border-radius: 4px; outline: none; width: 150px;">
+    </div>
+    <div id="libList" style="height: 100px; overflow-y: auto;">
+      </div>
+  </div>
 </div>
 <script>
 
