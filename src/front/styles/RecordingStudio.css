@@ -84,8 +84,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(90, 200, 250, 0.05);
-  border: 1px solid rgba(90, 200, 250, 0.1);
+  background: rgba(0, 255, 200, 0.05);
+  border: 1px solid rgba(0, 255, 200, 0.1);
   border-radius: 3px;
   color: var(--daw-text-dim);
   cursor: pointer;
@@ -93,7 +93,7 @@
 }
 
 .daw-icon-btn:hover {
-  background: rgba(90, 200, 250, 0.12);
+  background: rgba(0, 255, 200, 0.12);
   color: var(--daw-cyan);
 }
 
@@ -109,13 +109,13 @@
 .daw-divider {
   width: 1px;
   height: 20px;
-  background: rgba(90, 200, 250, 0.1);
+  background: rgba(0, 255, 200, 0.1);
   margin: 0 4px;
 }
 
 .daw-project-name {
   background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(90, 200, 250, 0.1);
+  border: 1px solid rgba(0, 255, 200, 0.1);
   border-radius: 3px;
   padding: 4px 10px;
   color: var(--daw-text-bright);
@@ -140,7 +140,7 @@
   align-items: center;
   gap: 3px;
   background: linear-gradient(180deg, #0f1620 0%, #0a0e18 100%);
-  border: 1px solid rgba(90, 200, 250, 0.08);
+  border: 1px solid rgba(0, 255, 200, 0.08);
   border-radius: 6px;
   padding: 3px 6px;
 }
@@ -160,7 +160,7 @@
 }
 
 .daw-transport-btn:hover:not(:disabled) {
-  background: rgba(90, 200, 250, 0.08);
+  background: rgba(0, 255, 200, 0.08);
   color: var(--daw-text);
 }
 
@@ -170,8 +170,8 @@
 }
 
 .daw-play-btn.active {
-  background: rgba(90, 200, 250, 0.15);
-  border-color: rgba(90, 200, 250, 0.4);
+  background: rgba(0, 255, 200, 0.15);
+  border-color: rgba(0, 255, 200, 0.4);
   color: var(--daw-cyan);
 }
 
@@ -210,8 +210,8 @@
 }
 
 .daw-transport-btn.active {
-  background: rgba(90, 200, 250, 0.12);
-  border-color: rgba(90, 200, 250, 0.3);
+  background: rgba(0, 255, 200, 0.12);
+  border-color: rgba(0, 255, 200, 0.3);
   color: var(--daw-cyan);
 }
 
@@ -279,14 +279,14 @@
 }
 
 .daw-view-tab:hover {
-  background: rgba(90, 200, 250, 0.06);
+  background: rgba(0, 255, 200, 0.06);
   color: #ffffff;
 }
 
 .daw-view-tab.active {
-  background: rgba(90, 200, 250, 0.12);
+  background: rgba(0, 255, 200, 0.12);
   color: var(--daw-cyan);
-  box-shadow: 0 0 8px rgba(90, 200, 250, 0.08);
+  box-shadow: 0 0 8px rgba(0, 255, 200, 0.08);
 }
 
 .daw-view-tab.ai-tab.active {
@@ -340,7 +340,7 @@
 .daw-input-select {
   padding: 3px 8px;
   background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(90, 200, 250, 0.1);
+  border: 1px solid rgba(0, 255, 200, 0.1);
   border-radius: 3px;
   color: var(--daw-text-dim);
   font-family: inherit;
@@ -422,7 +422,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  border-left: 1px solid rgba(90, 200, 250, 0.04);
+  border-left: 1px solid rgba(0, 255, 200, 0.04);
 }
 
 .daw-ruler-mark span {
@@ -469,7 +469,7 @@
 }
 
 .daw-track-row:hover {
-  background: rgba(90, 200, 250, 0.015);
+  background: rgba(0, 255, 200, 0.015);
 }
 
 .daw-track-row.armed {
@@ -481,11 +481,11 @@
 }
 
 .daw-track-row.soloed {
-  background: rgba(90, 200, 250, 0.03);
+  background: rgba(0, 255, 200, 0.03);
 }
 
 .daw-track-row.fx-open {
-  background: rgba(90, 200, 250, 0.04);
+  background: rgba(0, 255, 200, 0.04);
 }
 
 /* ── Track Strip (left panel) ── */
@@ -566,9 +566,9 @@
 }
 
 .daw-badge.s.on {
-  background: rgba(90, 200, 250, 0.15);
+  background: rgba(0, 255, 200, 0.15);
   color: var(--daw-cyan);
-  border-color: rgba(90, 200, 250, 0.4);
+  border-color: rgba(0, 255, 200, 0.4);
 }
 
 /* ── Volume / Pan ── */
@@ -634,7 +634,7 @@
 }
 
 .daw-tiny-btn:hover:not(:disabled) {
-  background: rgba(90, 200, 250, 0.08);
+  background: rgba(0, 255, 200, 0.08);
   color: var(--daw-cyan);
 }
 
@@ -692,7 +692,7 @@
   justify-content: center;
   margin: 0 4px;
   border-radius: 3px;
-  border: 1px dashed rgba(90, 200, 250, 0.05);
+  border: 1px dashed rgba(0, 255, 200, 0.05);
   font-size: 0.65rem;
   color: #1e2d3d;
 }
@@ -708,7 +708,7 @@
   bottom: 0;
   width: 1px;
   background: var(--daw-cyan);
-  box-shadow: 0 0 4px rgba(90, 200, 250, 0.4);
+  box-shadow: 0 0 4px rgba(0, 255, 200, 0.4);
   z-index: 5;
   pointer-events: none;
   transition: left 0.05s linear;
@@ -731,8 +731,8 @@
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
-  background: rgba(90, 200, 250, 0.05);
-  border: 1px solid rgba(90, 200, 250, 0.12);
+  background: rgba(0, 255, 200, 0.05);
+  border: 1px solid rgba(0, 255, 200, 0.12);
   border-radius: 4px;
   color: var(--daw-text-dim);
   font-family: inherit;
@@ -742,9 +742,9 @@
 }
 
 .daw-add-track-btn:hover:not(:disabled) {
-  background: rgba(90, 200, 250, 0.1);
+  background: rgba(0, 255, 200, 0.1);
   color: var(--daw-cyan);
-  border-color: rgba(90, 200, 250, 0.3);
+  border-color: rgba(0, 255, 200, 0.3);
 }
 
 .daw-add-track-btn:disabled {
@@ -935,16 +935,16 @@
 }
 
 .daw-channel.selected { background: rgba(0,255,200,0.05); border-color: rgba(0,255,200,0.3);
-  background: linear-gradient(180deg, #2a3e52 0%, #1e3244 100%);
-  border-color: rgba(90, 200, 250, 0.15);
+  background: linear-gradient(180deg, #141c28 0%, #0f1620 100%);
+  border-color: rgba(0, 255, 200, 0.15);
 }
 
 /* ── Master channel: SAME width as track channels ── */
 .daw-channel.master-channel {
   min-width: 100px;
   width: 100px;
-  background: linear-gradient(180deg, #1a2838 0%, #0f1a28 100%);
-  border-left: 2px solid rgba(90, 200, 250, 0.15);
+  background: linear-gradient(180deg, #0f1620 0%, #0a0e18 100%);
+  border-left: 2px solid rgba(0, 255, 200, 0.15);
 }
 
 /* ── Routing Section ── */
@@ -1082,13 +1082,13 @@
 }
 
 .daw-ch-badge.s-on {
-  background: rgba(90, 200, 250, 0.2);
+  background: rgba(0, 255, 200, 0.2);
   color: var(--daw-cyan);
-  border-color: rgba(90, 200, 250, 0.4);
+  border-color: rgba(0, 255, 200, 0.4);
 }
 
 .daw-ch-badge.e-on {
-  background: rgba(90, 200, 250, 0.1);
+  background: rgba(0, 255, 200, 0.1);
   color: var(--daw-cyan);
 }
 
@@ -1116,7 +1116,7 @@
 }
 
 .daw-ch-pan-display:hover {
-  border-color: rgba(90, 200, 250, 0.2);
+  border-color: rgba(0, 255, 200, 0.2);
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
@@ -1127,7 +1127,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 6px 4px 4px;
+  padding: 3px 4px 2px;
   position: relative;
 }
 
@@ -1200,7 +1200,7 @@
 
 .daw-ch-fader input[type="range"]::-webkit-slider-thumb:hover {
   background: linear-gradient(180deg, #ddeeff 0%, #99aacc 30%, #7799bb 50%, #99aacc 70%, #ddeeff 100%);
-  box-shadow: 0 1px 6px rgba(90, 200, 250, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 6px rgba(0, 255, 200, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 /* Center line on fader thumb (Cubase detail) */
@@ -1226,7 +1226,7 @@
   background: rgba(0, 0, 0, 0.4);
   padding: 2px 6px;
   border-radius: 2px;
-  border: 1px solid rgba(90, 200, 250, 0.08);
+  border: 1px solid rgba(0, 255, 200, 0.08);
   text-align: center;
   min-width: 36px;
 }
@@ -1258,13 +1258,13 @@
 }
 
 .daw-ch-rw:hover {
-  background: rgba(90, 200, 250, 0.08);
+  background: rgba(0, 255, 200, 0.08);
 }
 
 .daw-ch-rw.active {
-  background: rgba(90, 200, 250, 0.15);
+  background: rgba(0, 255, 200, 0.15);
   color: var(--daw-cyan);
-  border-color: rgba(90, 200, 250, 0.3);
+  border-color: rgba(0, 255, 200, 0.3);
 }
 
 /* ── Record Enable (console) ── */
@@ -1294,11 +1294,12 @@
 
 /* ── Channel Name (bottom) ── */
 .daw-ch-name {
-  padding: 5px 4px;
+  padding: 3px 4px;
   text-align: center;
   border-top: 1px solid var(--daw-border);
-  background: rgba(0, 0, 0, 0.1);
-  min-height: 28px;
+  background: rgba(0,0,0,0.2);
+  min-height: 20px;
+  margin-top: 0;
 }
 
 .daw-ch-name-input {
@@ -1491,7 +1492,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 7px 16px;
-  background: linear-gradient(180deg, #243444 0%, #1a2838 100%);
+  background: linear-gradient(180deg, #141820 0%, #0f1218 100%);
   border-top: 1px solid var(--daw-border);
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.4);
 }
@@ -1548,7 +1549,7 @@
   letter-spacing: 0.05em;
 }
 
-.daw-tier-badge[data-tier="free"] { background: rgba(90, 200, 250, 0.1); color: var(--daw-cyan); }
+.daw-tier-badge[data-tier="free"] { background: rgba(0, 255, 200, 0.1); color: var(--daw-cyan); }
 .daw-tier-badge[data-tier="starter"] { background: rgba(76, 175, 80, 0.1); color: var(--daw-green); }
 .daw-tier-badge[data-tier="creator"] { background: rgba(255, 152, 0, 0.1); color: var(--daw-orange); }
 .daw-tier-badge[data-tier="pro"] { background: rgba(175, 82, 222, 0.1); color: #af52de; }
@@ -1560,7 +1561,7 @@
 
 .daw-bounce-btn {
   padding: 6px 20px;
-  background: linear-gradient(180deg, #2a3e52 0%, #1e2d3d 100%);
+  background: linear-gradient(180deg, #141820 0%, #0f1218 100%);
   border: 1px solid #2a3a50;
   border-radius: 4px;
   color: var(--daw-text);
@@ -1576,7 +1577,7 @@
   background: linear-gradient(180deg, #2a3a50 0%, #2a3e52 100%);
   border-color: var(--daw-cyan);
   color: var(--daw-cyan);
-  box-shadow: 0 0 12px rgba(90, 200, 250, 0.12);
+  box-shadow: 0 0 12px rgba(0, 255, 200, 0.12);
 }
 
 .daw-bounce-btn:disabled {
@@ -1635,8 +1636,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 12px;
-  background: rgba(90, 200, 250, 0.03);
-  border: 1px solid rgba(90, 200, 250, 0.06);
+  background: rgba(0, 255, 200, 0.03);
+  border: 1px solid rgba(0, 255, 200, 0.06);
   border-radius: 4px;
   cursor: pointer;
   font-family: inherit;
@@ -1648,8 +1649,8 @@
 }
 
 .daw-project-item:hover {
-  background: rgba(90, 200, 250, 0.08);
-  border-color: rgba(90, 200, 250, 0.2);
+  background: rgba(0, 255, 200, 0.08);
+  border-color: rgba(0, 255, 200, 0.2);
 }
 
 .daw-project-meta {
@@ -1659,8 +1660,8 @@
 
 .daw-btn {
   padding: 6px 16px;
-  background: rgba(90, 200, 250, 0.06);
-  border: 1px solid rgba(90, 200, 250, 0.12);
+  background: rgba(0, 255, 200, 0.06);
+  border: 1px solid rgba(0, 255, 200, 0.12);
   border-radius: 4px;
   color: var(--daw-text);
   font-size: 0.8rem;
@@ -1670,7 +1671,7 @@
 }
 
 .daw-btn:hover {
-  background: rgba(90, 200, 250, 0.12);
+  background: rgba(0, 255, 200, 0.12);
   color: var(--daw-text-bright);
 }
 
@@ -1690,17 +1691,17 @@
 
 .daw-main .sampler-beat-maker .bm-pad {
   background: var(--daw-surface-2) !important;
-  border-color: rgba(90, 200, 250, 0.08) !important;
+  border-color: rgba(0, 255, 200, 0.08) !important;
 }
 
 .daw-main .sampler-beat-maker .bm-pad:hover {
-  border-color: rgba(90, 200, 250, 0.2) !important;
+  border-color: rgba(0, 255, 200, 0.2) !important;
   background: var(--daw-surface-3) !important;
 }
 
 .daw-main .sampler-beat-maker .bm-pad.active {
   border-color: var(--daw-cyan) !important;
-  box-shadow: 0 0 12px rgba(90, 200, 250, 0.15) !important;
+  box-shadow: 0 0 12px rgba(0, 255, 200, 0.15) !important;
 }
 
 .daw-main .sampler-beat-maker .bm-pad.loaded {
@@ -1716,11 +1717,11 @@
 
 .daw-main .sampler-beat-maker .seq-step {
   background: var(--daw-surface) !important;
-  border-color: rgba(90, 200, 250, 0.06) !important;
+  border-color: rgba(0, 255, 200, 0.06) !important;
 }
 
 .daw-main .sampler-beat-maker .seq-step.on {
-  background: rgba(90, 200, 250, 0.25) !important;
+  background: rgba(0, 255, 200, 0.25) !important;
   border-color: var(--daw-cyan) !important;
 }
 
@@ -1730,14 +1731,14 @@
 
 .daw-main .sampler-beat-maker .bm-btn,
 .daw-main .sampler-beat-maker .bm-action-btn {
-  background: rgba(90, 200, 250, 0.06) !important;
-  border-color: rgba(90, 200, 250, 0.12) !important;
+  background: rgba(0, 255, 200, 0.06) !important;
+  border-color: rgba(0, 255, 200, 0.12) !important;
   color: var(--daw-text) !important;
 }
 
 .daw-main .sampler-beat-maker .bm-btn:hover,
 .daw-main .sampler-beat-maker .bm-action-btn:hover {
-  background: rgba(90, 200, 250, 0.12) !important;
+  background: rgba(0, 255, 200, 0.12) !important;
   color: var(--daw-cyan) !important;
 }
 
@@ -1748,7 +1749,7 @@
 
 .daw-main .sampler-beat-maker .export-panel {
   background: linear-gradient(180deg, var(--daw-surface-3), var(--daw-surface)) !important;
-  border-color: rgba(90, 200, 250, 0.1) !important;
+  border-color: rgba(0, 255, 200, 0.1) !important;
 }
 
 /* ═════════════════════════════════════════════════════════════════════════════
@@ -1808,7 +1809,7 @@
 
 .daw-fx-panel::-webkit-scrollbar { width: 4px; }
 .daw-fx-panel::-webkit-scrollbar-track { background: transparent; }
-.daw-fx-panel::-webkit-scrollbar-thumb { background: #1a2838; border-radius: 2px; }
+.daw-fx-panel::-webkit-scrollbar-thumb { background: #141820; border-radius: 2px; }
 
 /* =============================================================================
    Track Controls Toolbar (+/- buttons, track type selector)
@@ -1819,7 +1820,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 4px 8px;
-  background: #0d1a26;
+  background: #0a0c12;
   border-bottom: 1px solid #1a2838;
   min-height: 28px;
 }
@@ -1839,7 +1840,7 @@
 }
 
 .daw-track-type-select {
-  background: #131f2e;
+  background: #0f1218;
   color: #a0b8d0;
   border: 1px solid #1a2838;
   border-radius: 3px;
@@ -1860,12 +1861,12 @@
   height: 22px;
   border: 1px solid #1a2838;
   border-radius: 3px;
-  background: #131f2e;
+  background: #0f1218;
   color: #8aa0b8;
   cursor: pointer;
   transition: all 0.12s;
 }
-.daw-tracks-toolbar-btn:hover:not(:disabled) { background: #1a2838; color: #00ffc8; border-color: #00ffc8; }
+.daw-tracks-toolbar-btn:hover:not(:disabled) { background: #141820; color: #00ffc8; border-color: #00ffc8; }
 .daw-tracks-toolbar-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .daw-tracks-toolbar-btn.add:hover:not(:disabled) { color: #00ffc8; border-color: #00ffc8; }
 .daw-tracks-toolbar-btn.remove:hover:not(:disabled) { color: #ff4444; border-color: #ff4444; }
