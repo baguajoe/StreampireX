@@ -1223,7 +1223,7 @@ const Home = () => {
 							<li>✅ Keep 90% of every course sale</li>
 							<li>✅ Works for music production, filmmaking, podcasting, gaming</li>
 						</ul>
-						<a href="#waitlist" className="btn btn-primary" style={{ marginTop: "20px", display: "inline-block" }}>Start Teaching</a>
+		
 					</div>
 					<div className="academy-card student-side">
 						<div className="academy-card-header">
@@ -1237,7 +1237,6 @@ const Home = () => {
 							<li>✅ Free courses available on all plans</li>
 							<li>✅ Paid courses unlock on any paid plan</li>
 						</ul>
-						<Link to="/creator-academy" className="btn btn-outline-light" style={{ marginTop: "20px", display: "inline-block" }}>Browse Courses</Link>
 					</div>
 				</div>
 

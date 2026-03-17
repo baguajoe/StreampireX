@@ -1,4 +1,8 @@
-const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100vh;background:#0d0f14;font-family:'Inter',system-ui,sans-serif;color:#c8d0d8;overflow:hidden;user-select:none}
@@ -73,11 +77,6 @@ html,body{width:100%;height:100vh;background:#0d0f14;font-family:'Inter',system-
 .instr-btn:hover{border-color:#4a6070;color:#c0d0e0}
 .instr-btn.on{background:rgba(0,255,200,.12);border-color:#00ffc8;color:#00ffc8}
 .knob-row{display:flex;align-items:center;gap:14px;padding:10px 14px;border-bottom:1px solid #1e2530;flex-shrink:0}
-.knob-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}
-.knob{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2a3040,#0d1018);border:1px solid #2a3040;position:relative;cursor:pointer}
-.knob-dot{position:absolute;width:4px;height:4px;border-radius:50%;background:var(--kc,#00ffc8);top:4px;left:50%;transform:translateX(-50%);box-shadow:0 0 5px var(--kc,#00ffc8)}
-.knob-lbl{font-size:9px;color:#4a6070;letter-spacing:.5px}
-.knob-val{font-size:10px;color:#00ffc8;font-family:'Courier New',monospace}
 .oct-row{display:flex;align-items:center;gap:8px;padding:0 14px 10px;border-bottom:1px solid #1e2530;flex-shrink:0}
 .oct-lbl{font-size:9px;color:#4a6070;letter-spacing:.5px}
 .oct-btn{width:22px;height:22px;border-radius:4px;border:1px solid #2a3040;background:#111620;color:#8090a0;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -110,7 +109,6 @@ html,body{width:100%;height:100vh;background:#0d0f14;font-family:'Inter',system-
 </head>
 <body style="display:flex;flex-direction:column;height:100vh">
 
-<!-- TOP NAV -->
 <div class="topbar">
   <div class="collab-btn">🤝<span>Collab</span></div>
   <div class="session-btns">
@@ -136,7 +134,6 @@ html,body{width:100%;height:100vh;background:#0d0f14;font-family:'Inter',system-
   <button class="export-btn">⬆ Export</button>
 </div>
 
-<!-- TRANSPORT -->
 <div class="transport">
   <button class="tport-btn tport-stop">■</button>
   <button class="tport-btn tport-play" id="playBtn" onclick="togglePlay()">▶</button>
@@ -168,7 +165,6 @@ html,body{width:100%;height:100vh;background:#0d0f14;font-family:'Inter',system-
   </div>
 </div>
 
-<!-- SUB TABS -->
 <div class="subtabs">
   <button class="stab">🎤 Sampler</button>
   <button class="stab">🥁 Drum Kit</button>
@@ -188,15 +184,13 @@ html,body{width:100%;height:100vh;background:#0d0f14;font-family:'Inter',system-
   </div>
 </div>
 
-<!-- MAIN -->
 <div class="main" style="flex:1;min-height:0;overflow:hidden">
 
-  <!-- LEFT: PADS + ARRANGE -->
   <div style="display:flex;flex-direction:column;overflow:hidden">
     <div class="pad-section" style="flex:1;min-height:0;overflow:hidden">
       <div class="pad-grid" id="padGrid"></div>
     </div>
-    <!-- ARRANGE -->
+
     <div class="arrange-section" style="height:120px;flex-shrink:0">
       <div class="arrange-hd">
         <span class="arrange-lbl">ARRANGEMENT VIEW</span>
@@ -207,7 +201,6 @@ html,body{width:100%;height:100vh;background:#0d0f14;font-family:'Inter',system-
     </div>
   </div>
 
-  <!-- RIGHT: INSTRUMENT PANEL -->
   <div class="instr-panel">
     <div class="instr-section">
       <div class="instr-lbl">Instrument</div>
@@ -249,7 +242,6 @@ html,body{width:100%;height:100vh;background:#0d0f14;font-family:'Inter',system-
       <div class="labels-badge">ON</div>
     </div>
 
-    <!-- PIANO KEYBOARD -->
     <div class="piano-wrap" id="pianoWrap"></div>
   </div>
 
@@ -270,7 +262,7 @@ const PAD_NAMES = [
   'FX Rise','FX Fall','Pad Atm','Noise'
 ];
 
-const LOADED = [0,1,2,4,6,8,9,10,12,14]; // pre-loaded pads
+const LOADED = [0,1,2,4,6,8,9,10,12,14];
 
 // Build pads
 const grid = document.getElementById('padGrid');
@@ -278,7 +270,7 @@ const pads = PAD_NAMES.map((name, i) => {
   const p = document.createElement('div');
   p.className = 'pad' + (LOADED.includes(i) ? ' loaded' : '');
   p.style.setProperty('--pc', PAD_COLORS[i]);
-  p.innerHTML = \`<div class="pad-num">\${i+1}</div><div class="pad-active-dot"></div><div class="pad-label">\${name}</div><div class="pad-sub">\${LOADED.includes(i) ? '●●●●●●' : 'Empty'}</div>\`;
+  p.innerHTML = '<div class="pad-num">' + (i+1) + '</div><div class="pad-active-dot"></div><div class="pad-label">' + name + '</div><div class="pad-sub">' + (LOADED.includes(i) ? '●●●●●●' : 'Empty') + '</div>';
   p.onclick = () => { p.classList.add('hit'); setTimeout(() => p.classList.remove('hit'), 100); };
   grid.appendChild(p);
   return p;
@@ -294,70 +286,107 @@ const TRACK_DATA = [
   {lbl:'LEAD',color:'#ff4466',clips:[{l:120,w:80},{l:320,w:100}]},
   {lbl:'PAD',color:'#00ff88',clips:[{l:0,w:80},{l:280,w:60}]},
 ];
+
 const at = document.getElementById('arrangeTracks');
 TRACK_DATA.forEach(t => {
-  const row = document.createElement('div'); row.className='atrack';
-  const lbl = document.createElement('div'); lbl.className='atrack-lbl'; lbl.textContent=t.lbl;
-  const lane = document.createElement('div'); lane.className='atrack-lane';
+  const row = document.createElement('div');
+  row.className = 'atrack';
+
+  const lbl = document.createElement('div');
+  lbl.className = 'atrack-lbl';
+  lbl.textContent = t.lbl;
+
+  const lane = document.createElement('div');
+  lane.className = 'atrack-lane';
+
   t.clips.forEach(c => {
-    const clip = document.createElement('div'); clip.className='aclip';
-    clip.style.cssText = \`left:\${c.l+54}px;width:\${c.w}px;background:\${t.color}22;border:1px solid \${t.color}44;color:\${t.color}\`;
+    const clip = document.createElement('div');
+    clip.className = 'aclip';
+    clip.style.cssText = 'left:' + (c.l + 54) + 'px;width:' + c.w + 'px;background:' + t.color + '22;border:1px solid ' + t.color + '44;color:' + t.color;
     clip.textContent = t.lbl;
     lane.appendChild(clip);
   });
-  row.appendChild(lbl); row.appendChild(lane);
+
+  row.appendChild(lbl);
+  row.appendChild(lane);
   at.appendChild(row);
 });
 
 // Build piano
 const pianoWrap = document.getElementById('pianoWrap');
 const NOTES = ['C','D','E','F','G','A','B'];
-const BLACK_AFTER = [0,1,3,4,5]; // C D F G A get black keys after
+const BLACK_AFTER = [0,1,3,4,5];
 let xPos = 0;
+
 for (let oct = 4; oct <= 6; oct++) {
   NOTES.forEach((note, ni) => {
-    const wk = document.createElement('div'); wk.className='wkey';
-    const noteLabel = document.createElement('div'); noteLabel.className='wkey-lbl';
+    const wk = document.createElement('div');
+    wk.className = 'wkey';
+
+    const noteLabel = document.createElement('div');
+    noteLabel.className = 'wkey-lbl';
     noteLabel.textContent = note + oct;
+
     wk.appendChild(noteLabel);
-    wk.onclick = () => { wk.classList.add('on'); setTimeout(() => wk.classList.remove('on'), 200); };
+    wk.onclick = () => {
+      wk.classList.add('on');
+      setTimeout(() => wk.classList.remove('on'), 200);
+    };
+
     pianoWrap.appendChild(wk);
+
     if (BLACK_AFTER.includes(ni)) {
-      const bk = document.createElement('div'); bk.className='bkey';
-      bk.style.cssText = \`left:\${xPos+22}px;top:0\`;
-      bk.onclick = e => { e.stopPropagation(); bk.classList.add('on'); setTimeout(() => bk.classList.remove('on'), 200); };
+      const bk = document.createElement('div');
+      bk.className = 'bkey';
+      bk.style.cssText = 'left:' + (xPos + 22) + 'px;top:0';
+      bk.onclick = e => {
+        e.stopPropagation();
+        bk.classList.add('on');
+        setTimeout(() => bk.classList.remove('on'), 200);
+      };
       pianoWrap.appendChild(bk);
     }
+
     xPos += 32;
   });
 }
+
 pianoWrap.style.position = 'relative';
 
 // BPM
 let bpm = 140;
-function changeBPM(d) { bpm = Math.max(60, Math.min(200, bpm+d)); document.getElementById('bpmVal').textContent = bpm; if(isPlaying) resetInterval(); }
+function changeBPM(d) {
+  bpm = Math.max(60, Math.min(200, bpm + d));
+  document.getElementById('bpmVal').textContent = bpm;
+  if (isPlaying) resetInterval();
+}
 
 // Octave
 const OCTS = ['C2','C3','C4','C5','C6'];
 let octIdx = 2;
-function changeOct(d) { octIdx = Math.max(0,Math.min(4,octIdx+d)); document.getElementById('octVal').textContent=OCTS[octIdx]; }
+function changeOct(d) {
+  octIdx = Math.max(0, Math.min(4, octIdx + d));
+  document.getElementById('octVal').textContent = OCTS[octIdx];
+}
 
 // Playback
-let isPlaying = false, step = 0, interval = null;
+let isPlaying = false;
+let step = 0;
+let interval = null;
+
 const SEQ = [
-  [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0], // kick
-  [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0], // snare
-  [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1], // hh
-  [0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0], // bass idx
+  [1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],
+  [0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
+  [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1],
+  [0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0]
 ];
 
 let phX = 54;
+
 function tick() {
-  // advance playhead
   phX += 2.5;
   if (phX > 600) phX = 54;
 
-  // hit pads based on seq
   SEQ.forEach((row, ri) => {
     if (row[step % 16]) {
       const padIdx = ri === 0 ? 0 : ri === 1 ? 1 : ri === 2 ? 2 : 6;
@@ -366,48 +395,68 @@ function tick() {
     }
   });
 
-  // random hi hat
   if (Math.random() > 0.3) {
     pads[2].classList.add('hit');
     setTimeout(() => pads[2].classList.remove('hit'), 60);
   }
 
-  step = (step+1)%16;
+  step = (step + 1) % 16;
 
-  // update playhead in arrange
   document.querySelectorAll('.atrack-lane').forEach(lane => {
     let ph = lane.querySelector('.playhead');
-    if (!ph) { ph = document.createElement('div'); ph.className='playhead'; lane.appendChild(ph); }
+    if (!ph) {
+      ph = document.createElement('div');
+      ph.className = 'playhead';
+      lane.appendChild(ph);
+    }
     ph.style.left = phX + 'px';
   });
 }
 
 function resetInterval() {
   clearInterval(interval);
-  interval = setInterval(tick, 60000/bpm/4);
+  interval = setInterval(tick, 60000 / bpm / 4);
 }
 
 function togglePlay() {
   isPlaying = !isPlaying;
   const btn = document.getElementById('playBtn');
-  if (isPlaying) { btn.textContent='⏸'; btn.style.background='#ff6b35'; resetInterval(); }
-  else { btn.textContent='▶'; btn.style.background='#00ffc8'; clearInterval(interval); }
+
+  if (isPlaying) {
+    btn.textContent = '⏸';
+    btn.style.background = '#ff6b35';
+    resetInterval();
+  } else {
+    btn.textContent = '▶';
+    btn.style.background = '#00ffc8';
+    clearInterval(interval);
+  }
 }
 
-// Instrument tab switching
 document.querySelectorAll('.instr-btn').forEach(b => {
-  b.onclick = () => { document.querySelectorAll('.instr-btn').forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
-});
-document.querySelectorAll('.ntab').forEach(b => {
-  b.onclick = () => { document.querySelectorAll('.ntab').forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
-});
-document.querySelectorAll('.stab').forEach(b => {
-  b.onclick = () => { document.querySelectorAll('.stab').forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
+  b.onclick = () => {
+    document.querySelectorAll('.instr-btn').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+  };
 });
 
-// Auto-start
+document.querySelectorAll('.ntab').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.ntab').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+  };
+});
+
+document.querySelectorAll('.stab').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.stab').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+  };
+});
+
 setTimeout(togglePlay, 400);
 </script>
-</body></html>
-`;
+</body>
+</html>`;
+
 export default html;
