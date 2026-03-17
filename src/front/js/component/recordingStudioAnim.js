@@ -21,20 +21,25 @@ html, body {
 }
 
 .daw-root {
-width: 95%;            /* Fills most of the width */
-  max-width: 1200px;     /* Matches the 'Desktop App' scale in your image */
-  height: 600px;         /* Forces a fixed, professional height */
-  margin: 40px auto;     /* Centers it and adds space at the top/bottom */
-  
-  /* ── THE STYLING ── */
-  background: #06060f;
-  border: 1px solid #1a1a2e; /* The subtle border seen in the screenshot */
-  border-radius: 12px;       /* Rounded corners for the 'App' look */
-  box-shadow: 0 20px 50px rgba(0,0,0,0.6); /* Adds the depth from the image */
-  
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+  
+  /* FORCE WIDER DIMENSIONS */
+  width: 95vw;            /* 95% of screen width */
+  min-width: 1000px;      /* Won't go smaller than 1000px */
+  height: 750px;          /* Increased height to fit Mixer + Library */
+  
+  /* POSITIONING */
+  margin: 20px auto; 
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%); /* This helps center it if the parent is narrow */
+
+  background: #06060f;
+  border: 1px solid #1a1a2e;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+  overflow: hidden;
 }
 
 /* ── Top bar ── */
@@ -710,7 +715,7 @@ width: 95%;            /* Fills most of the width */
   </div>
 
   <div class="mixer" id="mixer"></div>
-<div class="lib" style="background: #08080f; border-top: 1px solid #243548; padding: 12px; height: 160px;">
+<div class="lib" style="background: #08080f; border-top: 1px solid #243548; padding: 12px; height: 160px; flex-shrink: 0;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
       <span style="color: #ffa726; font-size: 11px; font-weight: 800; letter-spacing: 1px;">📂 LIBRARY</span>
       <input type="text" placeholder="Search tracks..." style="background: #111; border: 1px solid #333; color: #eee; font-size: 10px; padding: 4px 8px; border-radius: 4px; outline: none; width: 150px;">
@@ -822,7 +827,33 @@ mixTracks.forEach(function(t, i) {
   ch.appendChild(s);
   mixerEl.appendChild(ch);
 });
+// Function to load track from Library to DAW
+function loadFromLibrary(trackName, color) {
+  const newTrack = { 
+    name: trackName, 
+    type: 'Audio', 
+    color: color, 
+    clips: [{ x: 5, w: 25, label: 'Loaded: ' + trackName }] 
+  };
 
+  TRACKS.push(newTrack);
+
+  // RE-RENDER THE TRACK ROW
+  const row = document.createElement('div');
+  row.className = 'track-row';
+  row.innerHTML = '<div class="track-color-bar" style="background:' + color + ';"></div>' +
+                   '<div class="track-info"><div class="track-name">' + trackName + '</div></div>';
+  trackListEl.appendChild(row);
+
+  // RE-RENDER THE TRACK LANE
+  const lane = document.createElement('div');
+  lane.className = 'track-lane';
+  lane.innerHTML = '<div class="clip" style="left:5%; width:25%; background:' + color + '22; border:1px solid ' + color + '55;">' +
+                      '<div class="clip-label" style="color:' + color + ';">Loaded: ' + trackName + '</div>' +
+                    '</div>';
+  clipAreaEl.appendChild(lane);
+}
+  
 // Playback
 var isPlaying = false;
 var pos = 0;
@@ -884,6 +915,25 @@ document.querySelectorAll('.ntab').forEach(function(tab) {
 document.querySelectorAll('.fx-btn').forEach(function(btn) {
   btn.onclick = function() { btn.classList.toggle('on'); };
 });
+
+// --- LIBRARY INITIALIZATION ---
+const LIB_DATA = [
+  { name: 'Deep Bass 808', color: '#ff453a' },
+  { name: 'Synth Lead 01', color: '#00ffc8' },
+  { name: 'Ambient Pad', color: '#0a84ff' },
+  { name: 'Drum Loop Rock', color: '#ffd60a' }
+];
+
+const libListEl = document.getElementById('libList');
+libListEl.innerHTML = LIB_DATA.map(track => `
+    libListEl.innerHTML = LIB_DATA.map(function(track) {
+      return '<div style="display:flex; align-items:center; justify-content:space-between; padding:8px; border-bottom:1px solid #1a1a2e;">' +
+               '<span style="font-size:12px; color:#c0d0e0;">' + track.name + '</span>' +
+               '<button onclick="loadFromLibrary(\'' + track.name + '\', \'' + track.color + '\')" ' +
+                       'style="background:rgba(0,255,200,0.1); border:1px solid #00ffc8; color:#00ffc8; font-size:9px; padding:3px 8px; border-radius:4px; cursor:pointer;">LOAD</button>' +
+             '</div>';
+    }).join('');
+}
 
 setTimeout(togglePlay, 600);
 
