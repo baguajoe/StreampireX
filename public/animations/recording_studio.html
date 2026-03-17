@@ -50,13 +50,13 @@ html,body{width:100%;height:100vh;background:#0d0f14;font-family:'Inter',system-
 .fx-panel{width:90px;flex-shrink:0;background:#0a0c12;border-left:1px solid #1e2530;display:flex;flex-direction:column}
 .fx-btn{margin:3px 6px;padding:4px 6px;border-radius:4px;font-size:9px;font-weight:700;border:1px solid #2a3040;background:#111620;color:#6a8090;cursor:pointer;text-align:center}
 .fx-btn.on{background:rgba(0,255,200,.12);border-color:#00ffc8;color:#00ffc8}
-.mixer{height:100px;border-top:1px solid #1e2530;background:#080a0e;display:flex;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
+.mixer{height:110px;border-top:2px solid #00ffc822;background:#07090f;display:flex;overflow-x:auto;scrollbar-width:none;flex-shrink:0}
 .mixer::-webkit-scrollbar{display:none}
-.mixer-ch{width:52px;flex-shrink:0;border-right:1px solid #0d1018;display:flex;flex-direction:column;align-items:center;padding:5px 3px;gap:3px}
-.ch-name{font-size:8px;color:#4a6070;text-align:center;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ch-fader{-webkit-appearance:none;appearance:none;width:52px;height:3px;border-radius:2px;background:#1e2530;outline:none;transform:rotate(-90deg);margin:12px 0}
+.mixer-ch{width:52px;flex-shrink:0;border-right:1px solid #0d1018;display:flex;flex-direction:column;align-items:center;padding:4px 3px;gap:0}
+.ch-name{font-size:8px;color:#4a6070;text-align:center;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.ch-fader{-webkit-appearance:none;appearance:none;width:44px;height:3px;border-radius:2px;background:#1e2530;outline:none;transform:rotate(-90deg);margin:6px 0}
 .ch-fader::-webkit-slider-thumb{-webkit-appearance:none;width:9px;height:9px;border-radius:50%;background:var(--fc,#00ffc8);cursor:pointer}
-.ch-vol{font-size:8px;color:#4a6070;font-family:'Courier New',monospace}
+.ch-vol{font-size:8px;color:#4a6070;font-family:'Courier New',monospace;margin-top:1px}
 .ch-vu{display:flex;gap:1px;height:14px;align-items:flex-end}
 .ch-vu-bar{width:5px;border-radius:1px;background:#1e2530;transition:height .06s,background .06s}
 </style>
@@ -70,7 +70,7 @@ html,body{width:100%;height:100vh;background:#0d0f14;font-family:'Inter',system-
   </div>
   <div class="nav-tabs">
     <div class="ntab on">&#127897; Arrange</div>
-    <div class="ntab">&#9000; Console</div>
+    <div class="ntab">&#9000; Mixer Console</div>
     <div class="ntab">&#127929; Piano Roll</div>
     <div class="ntab">&#129345; Beat Maker</div>
     <div class="ntab">&#127935; AI Mix</div>
