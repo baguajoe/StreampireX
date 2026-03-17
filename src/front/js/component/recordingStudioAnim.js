@@ -12,7 +12,7 @@ const html = `<!DOCTYPE html>
 
 html, body {
   width: 100%;
-  height: 100vh;
+  height: 100%;
   background: #070b0f;
   font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
   color: #dde6ef;
@@ -24,7 +24,7 @@ html, body {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100vh;
+  height: 100%;
   background: #070b0f;
 }
 
