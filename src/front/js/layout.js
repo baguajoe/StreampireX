@@ -627,7 +627,7 @@ const Layout = () => {
     const user = store.user;
 
     useEffect(() => {
-        initializeAdvancedPWAFeatures();
+        // // initializeAdvancedPWAFeatures();
     }, []);
 
     useEffect(() => {
