@@ -1,39 +1,36 @@
 /* =============================================================================
    RecordingStudio.css — StreamPireX DAW
-   Style: Dark studio console — teal #00ffc8 accent, orange #FF6600 secondary
-   Matches screenshot aesthetic: console mixer, LED meters, dark chrome
+   Modern dark theme — readable text, high contrast, clean spacing
    ============================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
 
-/* ─── Root Variables ─────────────────────────────────────────────────────────── */
 :root {
-  --daw-bg:           #080c10;
-  --daw-surface:      #0d1117;
-  --daw-surface-2:    #101720;
-  --daw-surface-3:    #141e2c;
-  --daw-surface-4:    #1a2535;
-  --daw-border:       #1e2a38;
-  --daw-border-soft:  #162030;
+  --daw-bg:           #070b0f;
+  --daw-surface:      #0c1219;
+  --daw-surface-2:    #111a24;
+  --daw-surface-3:    #172030;
+  --daw-surface-4:    #1e2d40;
+  --daw-border:       #243548;
+  --daw-border-soft:  #1a2838;
   --daw-teal:         #00ffc8;
-  --daw-teal-dim:     rgba(0, 255, 200, 0.10);
-  --daw-teal-glow:    rgba(0, 255, 200, 0.22);
-  --daw-orange:       #FF6600;
-  --daw-orange-dim:   rgba(255, 102, 0, 0.12);
-  --daw-red:          #ff3b30;
-  --daw-yellow:       #ffcc00;
+  --daw-teal-dim:     rgba(0, 255, 200, 0.12);
+  --daw-teal-glow:    rgba(0, 255, 200, 0.28);
+  --daw-orange:       #ff6600;
+  --daw-orange-dim:   rgba(255, 102, 0, 0.14);
+  --daw-red:          #ff453a;
+  --daw-yellow:       #ffd60a;
   --daw-blue:         #0a84ff;
-  --daw-purple:       #af52de;
+  --daw-purple:       #bf5af2;
   --daw-green:        #30d158;
-  --daw-text:         #c9d1d9;
-  --daw-text-dim:     #6b7c8d;
-  --daw-text-muted:   #374a5a;
-  --daw-font:         'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-  --daw-topbar-h:     48px;
-  --daw-menubar-h:    28px;
+  --daw-text:         #dde6ef;
+  --daw-text-2:       #8fa8bf;
+  --daw-text-3:       #4e6a82;
+  --daw-font:         'JetBrains Mono', 'Fira Code', monospace;
+  --daw-topbar-h:     52px;
+  --daw-menubar-h:    30px;
 }
 
-/* ─── DAW Root ───────────────────────────────────────────────────────────────── */
 .daw {
   display: flex;
   flex-direction: column;
@@ -43,11 +40,10 @@
   background: var(--daw-bg);
   color: var(--daw-text);
   font-family: var(--daw-font);
-  font-size: 0.72rem;
+  font-size: 13px;
   overflow: hidden;
 }
 
-/* ─── Main Area ──────────────────────────────────────────────────────────────── */
 .daw-main {
   flex: 1;
   min-height: 0;
@@ -57,7 +53,7 @@
   background: var(--daw-bg);
 }
 
-/* ─── DAW Menu Bar ───────────────────────────────────────────────────────────── */
+/* ── Menu Bar ── */
 .daw-menubar {
   display: flex;
   align-items: center;
@@ -65,1225 +61,375 @@
   min-height: var(--daw-menubar-h);
   background: var(--daw-surface);
   border-bottom: 1px solid var(--daw-border);
-  padding: 0 6px;
-  gap: 0;
+  padding: 0 8px;
   flex-shrink: 0;
-  font-family: var(--daw-font);
-  font-size: 0.65rem;
+  font-size: 12px;
   z-index: 100;
 }
 
 .daw-menu-item {
   position: relative;
-  padding: 0 8px;
+  padding: 0 10px;
   height: 100%;
   display: flex;
   align-items: center;
-  color: var(--daw-text-dim);
+  color: var(--daw-text-2);
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: 4px;
   transition: background 0.1s, color 0.1s;
-  white-space: nowrap;
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 12px;
 }
 
-.daw-menu-item:hover,
-.daw-menu-item.open {
-  background: var(--daw-surface-3);
-  color: var(--daw-text);
-}
+.daw-menu-item:hover { background: var(--daw-surface-3); color: var(--daw-text); }
+.daw-menu-item.open  { background: var(--daw-teal-dim); color: var(--daw-teal); }
 
-.daw-menu-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background: #111a25;
-  border: 1px solid #2a3a4a;
-  border-radius: 6px;
-  padding: 4px 0;
-  min-width: 180px;
-  z-index: 9999;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
-}
-
-.daw-menu-dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 14px;
-  color: var(--daw-text);
-  font-size: 0.68rem;
-  cursor: pointer;
-  transition: background 0.08s;
-  white-space: nowrap;
-}
-
-.daw-menu-dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.daw-menu-dropdown-item.active {
-  color: var(--daw-teal);
-}
-
-.daw-menu-divider {
-  height: 1px;
-  background: var(--daw-border);
-  margin: 3px 0;
-}
-
-.daw-menu-shortcut {
-  margin-left: auto;
-  font-size: 0.58rem;
-  color: var(--daw-text-muted);
-}
-
-/* ─── Top Bar ────────────────────────────────────────────────────────────────── */
+/* ── Top Bar ── */
 .daw-topbar {
   display: flex;
   align-items: center;
   height: var(--daw-topbar-h);
   min-height: var(--daw-topbar-h);
   background: var(--daw-surface);
-  border-bottom: 1px solid var(--daw-border);
-  padding: 0 10px;
+  border-bottom: 2px solid var(--daw-border);
+  padding: 0 12px;
   gap: 8px;
   flex-shrink: 0;
-  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.5);
   z-index: 50;
 }
 
-.daw-topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
+.daw-topbar-left  { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.daw-topbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
 
-.daw-topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-/* Icon buttons (New, Open, Save) */
 .daw-icon-btn {
-  width: 28px;
-  height: 26px;
+  width: 32px; height: 30px;
   background: var(--daw-surface-2);
   border: 1px solid var(--daw-border);
-  border-radius: 4px;
-  color: var(--daw-text-dim);
+  border-radius: 6px;
+  color: var(--daw-text-2);
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   transition: all 0.12s;
   flex-shrink: 0;
 }
+.daw-icon-btn:hover { background: var(--daw-surface-3); border-color: var(--daw-teal); color: var(--daw-teal); }
 
-.daw-icon-btn:hover {
-  background: var(--daw-surface-3);
-  border-color: var(--daw-teal);
-  color: var(--daw-teal);
-}
+.daw-divider { width: 1px; height: 22px; background: var(--daw-border); flex-shrink: 0; }
 
-.daw-icon-btn.saving {
-  border-color: rgba(255, 204, 0, 0.3);
-  animation: saving-pulse 1s ease-in-out infinite;
-}
-
-@keyframes saving-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.45; }
-}
-
-.daw-divider {
-  width: 1px;
-  height: 20px;
-  background: var(--daw-border);
-  flex-shrink: 0;
-}
-
-/* Project name */
 .daw-project-name {
-  background: transparent;
-  border: none;
+  background: transparent; border: none;
   border-bottom: 1px solid transparent;
   color: var(--daw-text);
   font-family: var(--daw-font);
-  font-size: 0.75rem;
-  font-weight: 600;
-  outline: none;
-  padding: 2px 4px;
-  min-width: 120px;
-  max-width: 200px;
+  font-size: 14px; font-weight: 700;
+  outline: none; padding: 2px 6px;
+  min-width: 140px; max-width: 220px;
   transition: border-color 0.15s;
 }
+.daw-project-name:focus { border-color: var(--daw-teal); }
 
-.daw-project-name:focus {
-  border-color: var(--daw-teal);
-}
-
-/* ─── Transport ──────────────────────────────────────────────────────────────── */
+/* ── Transport ── */
 .daw-transport {
-  display: flex;
-  align-items: center;
-  gap: 3px;
+  display: flex; align-items: center; gap: 4px;
   background: var(--daw-surface-2);
   border: 1px solid var(--daw-border);
-  border-radius: 6px;
-  padding: 3px;
-  flex-shrink: 0;
+  border-radius: 8px; padding: 4px; flex-shrink: 0;
 }
 
 .daw-transport-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 26px;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  color: var(--daw-text-dim);
-  cursor: pointer;
-  font-family: var(--daw-font);
-  font-size: 0.7rem;
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 30px;
+  background: transparent; border: none; border-radius: 5px;
+  color: var(--daw-text-2); cursor: pointer;
+  font-family: var(--daw-font); font-size: 13px;
   transition: background 0.1s, color 0.1s;
 }
-
-.daw-transport-btn:hover:not(:disabled) {
-  background: var(--daw-surface-3);
-  color: var(--daw-text);
-}
-
-.daw-transport-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.daw-play-btn.active {
-  background: var(--daw-teal-dim);
-  color: var(--daw-teal);
-}
-
-.daw-play-btn:hover:not(:disabled) {
-  background: var(--daw-teal-dim);
-  color: var(--daw-teal);
-}
-
-.daw-rec-btn {
-  position: relative;
-}
-
-.daw-rec-btn.active {
-  background: rgba(255, 59, 48, 0.15);
-}
+.daw-transport-btn:hover:not(:disabled) { background: var(--daw-surface-3); color: var(--daw-text); }
+.daw-transport-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.daw-play-btn.active,
+.daw-play-btn:hover:not(:disabled) { background: var(--daw-teal-dim); color: var(--daw-teal); box-shadow: 0 0 10px var(--daw-teal-glow); }
+.daw-rec-btn.active { background: rgba(255,69,58,0.18); }
+.daw-metro-btn.active { background: var(--daw-teal-dim); color: var(--daw-teal); }
 
 .daw-rec-dot {
-  display: block;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--daw-red);
-  box-shadow: 0 0 6px rgba(255, 59, 48, 0.6);
+  display: block; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--daw-red); box-shadow: 0 0 8px rgba(255,69,58,0.7);
 }
-
-.daw-rec-btn.active .daw-rec-dot {
-  animation: rec-blink 0.7s ease-in-out infinite;
-}
-
-@keyframes rec-blink {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.3; }
-}
-
-.daw-metro-btn.active {
-  background: var(--daw-teal-dim);
-  color: var(--daw-teal);
-}
+.daw-rec-btn.active .daw-rec-dot { animation: rec-blink 0.7s ease-in-out infinite; }
+@keyframes rec-blink { 0%,100%{opacity:1} 50%{opacity:0.25} }
 
 /* LCD */
 .daw-lcd {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #030608;
-  border: 1px solid #0c1520;
-  border-radius: 4px;
-  padding: 4px 12px;
-  min-width: 160px;
-  box-shadow: inset 0 1px 5px rgba(0, 0, 0, 0.6);
+  display: flex; align-items: center; gap: 10px;
+  background: #020509;
+  border: 1px solid #0e1820; border-radius: 6px;
+  padding: 5px 14px; min-width: 180px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.7);
   flex-shrink: 0;
 }
+.daw-lcd-time  { color: var(--daw-teal); font-size: 17px; font-weight: 800; letter-spacing: 3px; text-shadow: 0 0 12px var(--daw-teal-glow); min-width: 80px; }
+.daw-lcd-sep   { color: rgba(255,255,255,0.1); font-weight: 200; }
+.daw-lcd-bpm   { color: var(--daw-orange); font-size: 14px; font-weight: 800; letter-spacing: 1px; text-shadow: 0 0 10px rgba(255,102,0,0.4); }
 
-.daw-lcd-time {
-  color: var(--daw-teal);
-  font-size: 0.9rem;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-shadow: 0 0 10px var(--daw-teal-glow);
-  min-width: 70px;
-}
-
-.daw-lcd-sep {
-  color: rgba(255, 255, 255, 0.08);
-  font-weight: 200;
-}
-
-.daw-lcd-bpm {
-  color: var(--daw-orange);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-shadow: 0 0 8px rgba(255, 102, 0, 0.35);
-}
-
-/* ─── View Tabs ──────────────────────────────────────────────────────────────── */
+/* ── View Tabs ── */
 .daw-topbar-center-tabs {
-  display: flex;
-  align-items: center;
-  gap: 1px;
-  overflow-x: auto;
-  flex: 1;
-  padding: 0 8px;
-  scrollbar-width: none;
+  display: flex; align-items: center; gap: 2px;
+  overflow-x: auto; flex: 1; padding: 0 10px; scrollbar-width: none;
 }
-
 .daw-topbar-center-tabs::-webkit-scrollbar { display: none; }
 
 .daw-view-tab {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 26px;
-  padding: 0 9px;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  color: var(--daw-text-muted);
-  font-family: var(--daw-font);
-  font-size: 0.62rem;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+  height: 30px; padding: 0 12px;
+  background: transparent; border: none; border-radius: 6px;
+  color: var(--daw-text-3);
+  font-family: var(--daw-font); font-size: 11px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
   transition: background 0.1s, color 0.1s;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  flex-shrink: 0;
+  text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
 }
+.daw-view-tab:hover  { background: var(--daw-surface-3); color: var(--daw-text-2); }
+.daw-view-tab.active { background: var(--daw-teal-dim); color: var(--daw-teal); border: 1px solid rgba(0,255,200,0.25); }
+.daw-view-tab.ai-tab.active { background: rgba(191,90,242,0.14); color: var(--daw-purple); border-color: rgba(191,90,242,0.3); }
 
-.daw-view-tab:hover {
-  background: var(--daw-surface-3);
-  color: var(--daw-text);
-}
-
-.daw-view-tab.active {
-  background: var(--daw-teal-dim);
-  color: var(--daw-teal);
-  border: 1px solid rgba(0, 255, 200, 0.2);
-}
-
-.daw-view-tab.ai-tab.active {
-  background: rgba(175, 82, 222, 0.12);
-  color: var(--daw-purple);
-  border-color: rgba(175, 82, 222, 0.3);
-}
-
-/* Input devices / status */
 .daw-input-select {
-  background: var(--daw-surface-2);
-  border: 1px solid var(--daw-border);
-  border-radius: var(--arr-radius, 4px);
-  color: var(--daw-text-dim);
-  font-family: var(--daw-font);
-  font-size: 0.62rem;
-  padding: 3px 6px;
-  outline: none;
-  cursor: pointer;
-  max-width: 130px;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
+  background: var(--daw-surface-2); border: 1px solid var(--daw-border); border-radius: 6px;
+  color: var(--daw-text-2); font-family: var(--daw-font); font-size: 12px;
+  padding: 4px 8px; outline: none; cursor: pointer; max-width: 140px;
 }
 
 .daw-input-meter {
-  width: 50px;
-  height: 4px;
-  background: var(--daw-surface-3);
-  border-radius: 2px;
-  overflow: hidden;
-  border: 1px solid var(--daw-border);
-  flex-shrink: 0;
+  width: 54px; height: 5px; background: var(--daw-surface-3);
+  border-radius: 3px; overflow: hidden; border: 1px solid var(--daw-border); flex-shrink: 0;
 }
-
 .daw-input-meter-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--daw-green) 0%, var(--daw-yellow) 70%, var(--daw-red) 100%);
-  transition: width 0.05s linear;
-  border-radius: 2px;
+  transition: width 0.05s linear; border-radius: 3px;
 }
 
-.daw-status {
-  font-size: 0.6rem;
-  color: var(--daw-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 160px;
-  font-weight: 500;
-}
+.daw-status { font-size: 12px; font-weight: 600; color: var(--daw-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
 
-/* ─── Console View ───────────────────────────────────────────────────────────── */
-.daw-console {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  background: var(--daw-bg);
-}
+/* ── Console ── */
+.daw-console { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; background: var(--daw-bg); }
 
 .daw-console-scroll {
-  display: flex;
-  align-items: flex-start;   /* key fix: don't stretch channels to full height */
-  flex: 1;
-  overflow-x: auto;
-  overflow-y: auto;
-  padding: 10px 10px 16px;
-  gap: 3px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--daw-border) transparent;
+  display: flex; align-items: flex-start; flex: 1;
+  overflow-x: auto; overflow-y: auto;
+  padding: 12px 12px 20px; gap: 4px;
+  scrollbar-width: thin; scrollbar-color: var(--daw-border) transparent;
 }
-
 .daw-console-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
 .daw-console-scroll::-webkit-scrollbar-thumb { background: var(--daw-border); border-radius: 3px; }
 
-/* ── Channel strip — fixed width, natural height ── */
 .daw-channel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 76px;
-  min-width: 76px;
-  background: var(--daw-surface);
-  border: 1px solid var(--daw-border);
-  border-radius: 6px;
-  gap: 0;
-  cursor: pointer;
-  transition: border-color 0.12s;
-  overflow: hidden;
-  flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center;
+  width: 80px; min-width: 80px;
+  background: var(--daw-surface); border: 1px solid var(--daw-border); border-radius: 8px;
+  cursor: pointer; transition: border-color 0.12s; overflow: hidden; flex-shrink: 0;
 }
+.daw-channel:hover    { border-color: var(--daw-border-soft); background: var(--daw-surface-2); }
+.daw-channel.selected { border-color: rgba(0,255,200,0.4); background: var(--daw-surface-2); box-shadow: 0 0 0 1px rgba(0,255,200,0.1); }
+.daw-channel.master-channel { border-color: rgba(0,255,200,0.3); background: rgba(0,255,200,0.025); width: 88px; min-width: 88px; }
 
-.daw-channel:hover {
-  border-color: rgba(255, 255, 255, 0.1);
-}
+.daw-ch-routing { width: 100%; padding: 6px 6px 4px; display: flex; flex-direction: column; gap: 3px; border-bottom: 1px solid var(--daw-border-soft); background: var(--daw-surface-2); }
+.daw-ch-routing-label  { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--daw-text-3); line-height: 1; }
+.daw-ch-routing-value  { font-size: 10px; font-weight: 600; color: var(--daw-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
 
-.daw-channel.selected {
-  border-color: rgba(0, 255, 200, 0.35);
-  background: var(--daw-surface-2);
-}
+.daw-ch-inserts { width: 100%; padding: 5px 5px 3px; display: flex; flex-direction: column; gap: 2px; min-height: 56px; border-bottom: 1px solid var(--daw-border-soft); }
+.daw-ch-inserts-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--daw-text-3); margin-bottom: 2px; line-height: 1; }
 
-.daw-channel.master-channel {
-  border-color: rgba(0, 255, 200, 0.25);
-  background: rgba(0, 255, 200, 0.02);
-  width: 84px;
-  min-width: 84px;
-}
-
-/* ── Routing row ── */
-.daw-ch-routing {
-  width: 100%;
-  padding: 5px 6px 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  border-bottom: 1px solid var(--daw-border-soft);
-  background: var(--daw-surface-2);
-}
-
-.daw-ch-routing-label {
-  font-size: 0.45rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--daw-text-muted);
-  line-height: 1;
-}
-
-.daw-ch-routing-value {
-  font-size: 0.5rem;
-  color: var(--daw-text-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.2;
-}
-
-/* ── Inserts ── */
-.daw-ch-inserts {
-  width: 100%;
-  padding: 4px 4px 2px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-height: 52px;
-  border-bottom: 1px solid var(--daw-border-soft);
-}
-
-.daw-ch-inserts-label {
-  font-size: 0.44rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: var(--daw-text-muted);
-  margin-bottom: 1px;
-  line-height: 1;
-}
-
-.daw-ch-insert-slot {
-  width: 100%;
-  padding: 2px 3px;
-  font-size: 0.5rem;
-  font-weight: 600;
-  text-align: center;
-  border-radius: 2px;
-  cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: opacity 0.1s;
-  line-height: 1.4;
-}
-
-.daw-ch-insert-slot.empty {
-  background: var(--daw-surface-3);
-  color: var(--daw-text-muted);
-  border: 1px dashed var(--daw-border);
-}
-
-.daw-ch-insert-slot.empty:hover {
-  border-color: var(--daw-teal);
-  color: var(--daw-teal);
-}
-
+.daw-ch-insert-slot { width: 100%; padding: 3px 4px; font-size: 10px; font-weight: 700; text-align: center; border-radius: 3px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
+.daw-ch-insert-slot.empty { background: var(--daw-surface-3); color: var(--daw-text-3); border: 1px dashed var(--daw-border); }
+.daw-ch-insert-slot.empty:hover { border-color: var(--daw-teal); color: var(--daw-teal); }
 .daw-ch-insert-slot.active { border: 1px solid; }
+.daw-ch-insert-slot.active.eq         { background: rgba(10,132,255,0.12); border-color: rgba(10,132,255,0.4);  color: #5ac8fa; }
+.daw-ch-insert-slot.active.comp       { background: rgba(255,214,10,0.10); border-color: rgba(255,214,10,0.35); color: #ffd60a; }
+.daw-ch-insert-slot.active.reverb     { background: rgba(191,90,242,0.12); border-color: rgba(191,90,242,0.4);  color: #bf5af2; }
+.daw-ch-insert-slot.active.delay      { background: rgba(0,255,200,0.09);  border-color: rgba(0,255,200,0.3);   color: #00ffc8; }
+.daw-ch-insert-slot.active.limit      { background: rgba(255,69,58,0.12);  border-color: rgba(255,69,58,0.4);   color: #ff453a; }
+.daw-ch-insert-slot.active.filter     { background: rgba(48,209,88,0.10);  border-color: rgba(48,209,88,0.35);  color: #30d158; }
+.daw-ch-insert-slot.active.distortion { background: rgba(255,102,0,0.12);  border-color: rgba(255,102,0,0.4);   color: #ff6600; }
 
-.daw-ch-insert-slot.active.eq         { background: rgba(0,132,255,0.1);  border-color: rgba(0,132,255,0.3);  color: #5ac8fa; }
-.daw-ch-insert-slot.active.comp       { background: rgba(255,204,0,0.08); border-color: rgba(255,204,0,0.25); color: #ffcc00; }
-.daw-ch-insert-slot.active.reverb     { background: rgba(175,82,222,0.1); border-color: rgba(175,82,222,0.3); color: var(--daw-purple); }
-.daw-ch-insert-slot.active.delay      { background: rgba(0,255,200,0.07); border-color: rgba(0,255,200,0.2);  color: var(--daw-teal); }
-.daw-ch-insert-slot.active.limit      { background: rgba(255,59,48,0.1);  border-color: rgba(255,59,48,0.3);  color: var(--daw-red); }
-.daw-ch-insert-slot.active.filter     { background: rgba(52,199,89,0.08); border-color: rgba(52,199,89,0.25); color: var(--daw-green); }
-.daw-ch-insert-slot.active.distortion { background: rgba(255,102,0,0.1);  border-color: rgba(255,102,0,0.3);  color: var(--daw-orange); }
+.daw-ch-controls { display: flex; gap: 3px; padding: 5px; width: 100%; box-sizing: border-box; border-bottom: 1px solid var(--daw-border-soft); }
+.daw-ch-badge { flex: 1; height: 20px; background: var(--daw-surface-3); border: 1px solid var(--daw-border); border-radius: 3px; font-size: 11px; font-weight: 800; color: var(--daw-text-3); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.1s; text-transform: uppercase; }
+.daw-ch-badge.m-on { background: rgba(255,214,10,0.14); border-color: rgba(255,214,10,0.4);  color: #ffd60a; }
+.daw-ch-badge.s-on { background: rgba(0,255,200,0.12);  border-color: rgba(0,255,200,0.4);   color: #00ffc8; }
+.daw-ch-badge.e-on { background: rgba(10,132,255,0.14); border-color: rgba(10,132,255,0.4);  color: #0a84ff; }
 
-/* ── M S e badges ── */
-.daw-ch-controls {
-  display: flex;
-  gap: 2px;
-  padding: 4px 5px;
-  width: 100%;
-  box-sizing: border-box;
-  border-bottom: 1px solid var(--daw-border-soft);
-}
+.daw-ch-pan { display: flex; align-items: center; justify-content: center; padding: 5px 0 3px; border-bottom: 1px solid var(--daw-border-soft); width: 100%; }
 
-.daw-ch-badge {
-  flex: 1;
-  height: 16px;
-  background: var(--daw-surface-3);
-  border: 1px solid var(--daw-border);
-  border-radius: 2px;
-  font-size: 0.54rem;
-  font-weight: 700;
-  color: var(--daw-text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.1s;
-  text-transform: uppercase;
-  letter-spacing: 0;
-}
+.daw-ch-fader-area { display: flex; flex-direction: column; align-items: center; width: 100%; padding: 5px 4px 3px; }
+.daw-ch-fader-row  { display: flex; align-items: flex-end; justify-content: center; gap: 5px; width: 100%; height: 180px; }
+.daw-ch-meter      { flex-shrink: 0; display: flex; align-items: flex-end; height: 180px; }
+.daw-ch-fader      { display: flex; align-items: center; justify-content: center; height: 180px; flex-shrink: 0; }
+.daw-ch-fader input[type="range"] { writing-mode: vertical-lr; direction: rtl; width: 20px; height: 160px; accent-color: var(--daw-teal); cursor: pointer; background: transparent; appearance: slider-vertical; -webkit-appearance: slider-vertical; }
 
-.daw-ch-badge.m-on  { background: rgba(255,204,0,0.12); border-color: rgba(255,204,0,0.3); color: var(--daw-yellow); }
-.daw-ch-badge.s-on  { background: rgba(0,255,200,0.1);  border-color: rgba(0,255,200,0.3); color: var(--daw-teal); }
-.daw-ch-badge.e-on  { background: rgba(0,132,255,0.12); border-color: rgba(0,132,255,0.3); color: var(--daw-blue); }
+.daw-ch-vol-display { width: 100%; padding: 3px 5px 4px; border-top: 1px solid var(--daw-border-soft); }
+.daw-ch-vol-val { text-align: center; font-size: 12px; font-weight: 800; color: var(--daw-teal); background: #020509; border: 1px solid var(--daw-border-soft); border-radius: 3px; padding: 3px 4px; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
 
-/* ── Pan knob ── */
-.daw-ch-pan {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 0 2px;
-  border-bottom: 1px solid var(--daw-border-soft);
-  width: 100%;
-}
+.daw-ch-automation { display: flex; gap: 3px; padding: 4px 5px; width: 100%; box-sizing: border-box; border-top: 1px solid var(--daw-border-soft); }
+.daw-ch-rw { flex: 1; height: 16px; background: var(--daw-surface-3); border: 1px solid var(--daw-border); border-radius: 3px; font-size: 11px; font-weight: 800; color: var(--daw-text-3); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.1s; }
+.daw-ch-rw.active { background: var(--daw-orange-dim); border-color: rgba(255,102,0,0.4); color: var(--daw-orange); }
 
-/* ── Fader + Meter area — fixed height, side by side ── */
-.daw-ch-fader-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  padding: 4px 3px 2px;
-}
+.daw-ch-rec { padding: 3px 5px; width: 100%; box-sizing: border-box; }
+.daw-ch-rec-btn { width: 100%; height: 18px; background: var(--daw-surface-3); border: 1px solid var(--daw-border); border-radius: 3px; color: var(--daw-text-3); font-size: 12px; font-weight: 800; cursor: pointer; transition: all 0.1s; display: flex; align-items: center; justify-content: center; }
+.daw-ch-rec-btn.armed { background: rgba(255,69,58,0.18); border-color: rgba(255,69,58,0.5); color: var(--daw-red); animation: rec-blink 0.7s ease-in-out infinite; }
 
-.daw-ch-fader-row {
-  display: flex;
-  align-items: flex-end;     /* align bottoms so 0dB lines up */
-  justify-content: center;
-  gap: 4px;
-  width: 100%;
-  height: 180px;             /* fixed height = matches CubaseMeter height prop */
-}
+.daw-ch-name { width: 100%; background: var(--daw-surface-2); border-top: 1px solid var(--daw-border); padding: 6px 5px 5px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.daw-ch-name-input { background: transparent; border: none; color: var(--daw-text); font-family: var(--daw-font); font-size: 11px; font-weight: 700; text-align: center; outline: none; width: 100%; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.daw-ch-name-input:focus { border-bottom: 1px solid var(--daw-teal); color: var(--daw-teal); }
+.daw-ch-number { display: flex; align-items: center; gap: 3px; font-size: 10px; color: var(--daw-text-3); }
 
-.daw-ch-meter {
-  flex-shrink: 0;
-  display: flex;
-  align-items: flex-end;
-  height: 180px;
-}
+/* ── Track rows ── */
+.daw-tracks-area { flex: 1; min-height: 0; overflow-y: auto; background: var(--daw-bg); }
+.daw-tracks-toolbar { display: flex; align-items: center; justify-content: space-between; height: 38px; padding: 0 14px; background: var(--daw-surface); border-bottom: 1px solid var(--daw-border); position: sticky; top: 0; z-index: 5; }
+.daw-tracks-toolbar-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: var(--daw-text-3); }
+.daw-tracks-toolbar-controls { display: flex; align-items: center; gap: 5px; }
+.daw-track-type-select { background: var(--daw-surface-2); border: 1px solid var(--daw-border); border-radius: 5px; color: var(--daw-text-2); font-family: var(--daw-font); font-size: 12px; padding: 4px 8px; outline: none; cursor: pointer; }
+.daw-tracks-toolbar-btn { width: 28px; height: 26px; background: var(--daw-surface-2); border: 1px solid var(--daw-border); border-radius: 5px; color: var(--daw-text-2); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.1s; font-size: 14px; }
+.daw-tracks-toolbar-btn.add:hover:not(:disabled)    { background: var(--daw-teal-dim); border-color: var(--daw-teal); color: var(--daw-teal); }
+.daw-tracks-toolbar-btn.remove:hover:not(:disabled) { background: rgba(255,69,58,0.12); border-color: rgba(255,69,58,0.4); color: var(--daw-red); }
+.daw-tracks-toolbar-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.daw-tracks-toolbar-count { font-size: 12px; font-weight: 700; color: var(--daw-text-2); min-width: 40px; }
 
-.daw-ch-fader {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 180px;
-  flex-shrink: 0;
-}
+.daw-track-row { display: flex; align-items: stretch; height: 88px; border-bottom: 1px solid var(--daw-border-soft); background: var(--daw-surface); cursor: pointer; transition: background 0.08s; }
+.daw-track-row:hover    { background: var(--daw-surface-2); }
+.daw-track-row.armed    { background: rgba(255,69,58,0.05); border-left: 3px solid var(--daw-red); }
+.daw-track-row.muted    { opacity: 0.45; }
+.daw-track-row.soloed   { background: rgba(255,214,10,0.03); border-left: 3px solid var(--daw-yellow); }
+.daw-track-row.selected { background: var(--daw-surface-3); border-left: 3px solid var(--daw-teal); }
 
-.daw-ch-fader input[type="range"] {
-  writing-mode: vertical-lr;
-  direction: rtl;
-  width: 18px;
-  height: 160px;
-  accent-color: var(--daw-teal);
-  cursor: pointer;
-  background: transparent;
-  appearance: slider-vertical;
-  -webkit-appearance: slider-vertical;
-}
+.daw-track-strip { display: flex; align-items: center; gap: 8px; width: 320px; min-width: 320px; padding: 8px 10px; border-right: 1px solid var(--daw-border); background: var(--daw-surface); flex-shrink: 0; }
+.daw-track-color-bar { width: 4px; height: 100%; border-radius: 2px; flex-shrink: 0; }
+.daw-track-name-input { background: transparent; border: none; border-bottom: 1px solid transparent; color: var(--daw-text); font-family: var(--daw-font); font-size: 13px; font-weight: 700; outline: none; min-width: 0; flex: 1; transition: border-color 0.12s; }
+.daw-track-name-input:focus { border-color: var(--daw-teal); color: var(--daw-teal); }
 
-/* ── dB readout ── */
-.daw-ch-vol-display {
-  width: 100%;
-  padding: 2px 4px 3px;
-  border-top: 1px solid var(--daw-border-soft);
-}
+.daw-track-btns { display: flex; gap: 3px; flex-shrink: 0; }
+.daw-badge { width: 22px; height: 22px; background: var(--daw-surface-3); border: 1px solid var(--daw-border); border-radius: 4px; font-size: 11px; font-weight: 800; color: var(--daw-text-3); cursor: pointer; display: flex; align-items: center; justify-content: center; text-transform: uppercase; transition: all 0.1s; font-family: var(--daw-font); }
+.daw-badge.r.on { background: rgba(255,69,58,0.15);  border-color: rgba(255,69,58,0.4);  color: var(--daw-red); }
+.daw-badge.m.on { background: rgba(255,214,10,0.12); border-color: rgba(255,214,10,0.4); color: var(--daw-yellow); }
+.daw-badge.s.on { background: var(--daw-teal-dim);   border-color: rgba(0,255,200,0.4);  color: var(--daw-teal); }
 
-.daw-ch-vol-val {
-  text-align: center;
-  font-size: 0.6rem;
-  font-weight: 700;
-  color: var(--daw-teal);
-  background: #040810;
-  border: 1px solid var(--daw-border-soft);
-  border-radius: 2px;
-  padding: 2px 4px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.5px;
-}
-
-/* ── Automation R/W ── */
-.daw-ch-automation {
-  display: flex;
-  gap: 2px;
-  padding: 3px 5px;
-  width: 100%;
-  box-sizing: border-box;
-  border-top: 1px solid var(--daw-border-soft);
-}
-
-.daw-ch-rw {
-  flex: 1;
-  height: 14px;
-  background: var(--daw-surface-3);
-  border: 1px solid var(--daw-border);
-  border-radius: 2px;
-  font-size: 0.5rem;
-  font-weight: 700;
-  color: var(--daw-text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.1s;
-}
-
-.daw-ch-rw.active {
-  background: var(--daw-orange-dim);
-  border-color: rgba(255, 102, 0, 0.35);
-  color: var(--daw-orange);
-}
-
-/* ── Record enable ── */
-.daw-ch-rec {
-  padding: 3px 5px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.daw-ch-rec-btn {
-  width: 100%;
-  height: 16px;
-  background: var(--daw-surface-3);
-  border: 1px solid var(--daw-border);
-  border-radius: 2px;
-  color: var(--daw-text-muted);
-  font-size: 0.65rem;
-  cursor: pointer;
-  transition: all 0.1s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.daw-ch-rec-btn.armed {
-  background: rgba(255, 59, 48, 0.15);
-  border-color: rgba(255, 59, 48, 0.4);
-  color: var(--daw-red);
-  animation: rec-blink 0.7s ease-in-out infinite;
-}
-
-/* ── Channel name strip ── */
-.daw-ch-name {
-  width: 100%;
-  background: var(--daw-surface-2);
-  border-top: 1px solid var(--daw-border);
-  padding: 5px 4px 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.daw-ch-name-input {
-  background: transparent;
-  border: none;
-  color: var(--daw-text);
-  font-family: var(--daw-font);
-  font-size: 0.6rem;
-  font-weight: 700;
-  text-align: center;
-  outline: none;
-  width: 100%;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.daw-ch-name-input:focus {
-  border-bottom: 1px solid var(--daw-teal);
-  color: var(--daw-teal);
-}
-
-.daw-ch-number {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 0.52rem;
-  color: var(--daw-text-muted);
-}
-
-.daw-ch-type-icon {
-  font-size: 0.6rem;
-}
-
-/* ─── Track Area (Record/Edit view) ──────────────────────────────────────────── */
-.daw-tracks-area {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  background: var(--daw-bg);
-  scrollbar-width: thin;
-  scrollbar-color: var(--daw-border) transparent;
-}
-
-.daw-tracks-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 34px;
-  padding: 0 12px;
-  background: var(--daw-surface);
-  border-bottom: 1px solid var(--daw-border);
-  position: sticky;
-  top: 0;
-  z-index: 5;
-}
-
-.daw-tracks-toolbar-label {
-  font-size: 0.6rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--daw-text-muted);
-}
-
-.daw-tracks-toolbar-controls {
+.daw-track-vol, .daw-track-pan {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.daw-track-type-select {
-  background: var(--daw-surface-2);
-  border: 1px solid var(--daw-border);
-  border-radius: 4px;
-  color: var(--daw-text-dim);
-  font-family: var(--daw-font);
-  font-size: 0.65rem;
-  padding: 3px 6px;
-  outline: none;
-  cursor: pointer;
-}
-
-.daw-tracks-toolbar-btn {
-  width: 24px;
-  height: 22px;
-  background: var(--daw-surface-2);
-  border: 1px solid var(--daw-border);
-  border-radius: 4px;
-  color: var(--daw-text-dim);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.1s;
-}
-
-.daw-tracks-toolbar-btn.add:hover:not(:disabled) {
-  background: var(--daw-teal-dim);
-  border-color: var(--daw-teal);
-  color: var(--daw-teal);
-}
-
-.daw-tracks-toolbar-btn.remove:hover:not(:disabled) {
-  background: rgba(255, 59, 48, 0.1);
-  border-color: rgba(255, 59, 48, 0.35);
-  color: var(--daw-red);
-}
-
-.daw-tracks-toolbar-btn:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-.daw-tracks-toolbar-count {
-  font-size: 0.6rem;
-  color: var(--daw-text-muted);
-  font-weight: 600;
-  min-width: 36px;
-}
-
-/* Track row */
-.daw-track-row {
-  display: flex;
-  align-items: stretch;
-  height: 80px;
-  border-bottom: 1px solid var(--daw-border-soft);
-  background: var(--daw-surface);
-  cursor: pointer;
-  transition: background 0.08s;
-}
-
-.daw-track-row:hover { background: var(--daw-surface-2); }
-
-.daw-track-row.armed {
-  background: rgba(255, 59, 48, 0.04);
-  border-left: 2px solid var(--daw-red);
-}
-
-.daw-track-row.muted { opacity: 0.45; }
-
-.daw-track-row.soloed {
-  background: rgba(255, 204, 0, 0.03);
-  border-left: 2px solid var(--daw-yellow);
-}
-
-.daw-track-row.selected {
-  background: var(--daw-surface-3);
-  border-left: 2px solid var(--daw-teal);
-}
-
-.daw-track-strip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 300px;
-  min-width: 300px;
-  padding: 6px 8px;
-  border-right: 1px solid var(--daw-border);
-  background: var(--daw-surface);
-  flex-shrink: 0;
-}
-
-.daw-track-color-bar {
-  width: 3px;
-  height: 100%;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-.daw-track-name-input {
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid transparent;
-  color: var(--daw-text);
-  font-family: var(--daw-font);
-  font-size: 0.72rem;
-  font-weight: 600;
-  outline: none;
-  min-width: 0;
-  flex: 1;
-  transition: border-color 0.12s;
-}
-
-.daw-track-name-input:focus {
-  border-color: var(--daw-teal);
-  color: var(--daw-teal);
-}
-
-.daw-track-btns {
-  display: flex;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.daw-badge {
-  width: 18px;
-  height: 18px;
-  background: var(--daw-surface-3);
-  border: 1px solid var(--daw-border);
-  border-radius: 3px;
-  font-size: 0.58rem;
-  font-weight: 700;
-  color: var(--daw-text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-transform: uppercase;
-  transition: all 0.1s;
-  font-family: var(--daw-font);
-}
-
-.daw-badge.r.on  { background: rgba(255,59,48,0.12); border-color: rgba(255,59,48,0.3); color: var(--daw-red); }
-.daw-badge.m.on  { background: rgba(255,204,0,0.1);  border-color: rgba(255,204,0,0.3); color: var(--daw-yellow); }
-.daw-badge.s.on  { background: var(--daw-teal-dim);  border-color: rgba(0,255,200,0.3); color: var(--daw-teal); }
-
-.daw-track-vol,
-.daw-track-pan {
-  display: flex;
-  align-items: center;
-  gap: 3px;
   flex-shrink: 0;
 }
 
 .daw-knob-slider,
 .daw-pan-slider {
-  width: 60px;
-  height: 3px;
-  accent-color: var(--daw-teal);
+  -webkit-appearance: none;
+  appearance: none;
+  width: 68px;
+  height: 4px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    #00ffc8 0%,
+    #00ffc8 75%,
+    #172030 75%,
+    #172030 100%
+  );
   cursor: pointer;
+  outline: none;
+  border: none;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+}
+
+.daw-pan-slider {
+  background: #172030;
+}
+
+.daw-knob-slider::-webkit-slider-thumb,
+.daw-pan-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 16px;
+  border-radius: 3px;
+  background: #c8d8e8;
+  border: 1.5px solid #00ffc8;
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,255,200,0.15);
+  transition: background 0.1s, box-shadow 0.1s;
+}
+
+.daw-knob-slider::-moz-range-thumb,
+.daw-pan-slider::-moz-range-thumb {
+  width: 10px;
+  height: 16px;
+  border-radius: 3px;
+  background: #c8d8e8;
+  border: 1.5px solid #00ffc8;
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+.daw-knob-slider:hover::-webkit-slider-thumb,
+.daw-pan-slider:hover::-webkit-slider-thumb {
+  background: #ffffff;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.6), 0 0 8px rgba(0,255,200,0.4);
+}
+
+.daw-knob-slider:active::-webkit-slider-thumb,
+.daw-pan-slider:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  background: #00ffc8;
+}
+
+.daw-knob-slider::-webkit-slider-runnable-track,
+.daw-pan-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 3px;
+  background: transparent;
 }
 
 .daw-vol-val,
 .daw-pan-val {
-  font-size: 0.55rem;
-  color: var(--daw-text-dim);
-  min-width: 22px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--daw-text-2);
+  min-width: 28px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.daw-track-actions-strip {
-  display: flex;
-  gap: 2px;
-  flex-shrink: 0;
-  margin-left: auto;
-}
+.daw-track-actions-strip { display: flex; gap: 3px; flex-shrink: 0; margin-left: auto; }
+.daw-tiny-btn { background: var(--daw-surface-3); border: 1px solid var(--daw-border); border-radius: 4px; color: var(--daw-text-2); font-family: var(--daw-font); font-size: 11px; font-weight: 600; padding: 3px 7px; cursor: pointer; transition: all 0.1s; }
+.daw-tiny-btn:hover { border-color: var(--daw-teal); color: var(--daw-teal); background: var(--daw-teal-dim); }
 
-.daw-tiny-btn {
-  background: var(--daw-surface-3);
-  border: 1px solid var(--daw-border);
-  border-radius: 3px;
-  color: var(--daw-text-muted);
-  font-family: var(--daw-font);
-  font-size: 0.55rem;
-  padding: 2px 5px;
-  cursor: pointer;
-  transition: all 0.1s;
-}
+.daw-track-region { position: relative; flex: 1; min-width: 0; overflow: hidden; display: flex; align-items: center; background: repeating-linear-gradient(90deg, transparent 0px, transparent 99px, rgba(255,255,255,0.015) 99px, rgba(255,255,255,0.015) 100px); }
+.daw-region-block { position: relative; height: calc(100% - 12px); width: 100%; border-radius: 5px; overflow: hidden; margin: 6px 5px; }
+.daw-region-label { position: absolute; top: 3px; left: 8px; font-size: 12px; font-weight: 700; opacity: 0.95; z-index: 1; text-shadow: 0 1px 4px rgba(0,0,0,0.6); white-space: nowrap; }
+.daw-waveform-canvas { display: block; width: 100%; height: 100%; opacity: 0.7; }
+.daw-region-empty { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--daw-text-3); padding: 0 14px; }
+.daw-armed-label { color: var(--daw-red); font-size: 12px; font-weight: 800; animation: rec-blink 0.7s ease-in-out infinite; }
+.daw-track-playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--daw-teal); box-shadow: 0 0 8px var(--daw-teal-glow); pointer-events: none; z-index: 10; }
 
-.daw-tiny-btn:hover {
-  border-color: var(--daw-teal);
-  color: var(--daw-teal);
-  background: var(--daw-teal-dim);
-}
+/* ── Sub-views ── */
+.daw-pianoroll-view,.daw-chords-view,.daw-piano-view,.daw-freesound-view,.daw-keyfinder-view,
+.daw-aibeat-view,.daw-micsim-view,.daw-aimix-view,.daw-vocal-view,.daw-voicemidi-view,
+.daw-synth-view,.daw-drumdesigner-view,.daw-instrbuilder-view { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
 
-/* Track region / waveform area */
-.daw-track-region {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  background: repeating-linear-gradient(
-    90deg,
-    transparent 0px,
-    transparent 99px,
-    rgba(255,255,255,0.012) 99px,
-    rgba(255,255,255,0.012) 100px
-  );
-}
+/* ── Modal ── */
+.daw-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.daw-modal { background: var(--daw-surface-2); border: 1px solid var(--daw-border); border-radius: 14px; padding: 28px; min-width: 380px; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 28px 70px rgba(0,0,0,0.75); font-family: var(--daw-font); }
+.daw-modal h2 { font-size: 16px; font-weight: 800; color: var(--daw-text); margin: 0 0 18px; text-transform: uppercase; letter-spacing: 1px; }
+.daw-empty { color: var(--daw-text-3); font-size: 13px; text-align: center; padding: 28px; }
+.daw-project-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 18px; max-height: 340px; overflow-y: auto; }
+.daw-project-item { display: flex; flex-direction: column; gap: 3px; background: var(--daw-surface-3); border: 1px solid var(--daw-border); border-radius: 8px; padding: 10px 14px; cursor: pointer; text-align: left; color: var(--daw-text); font-family: var(--daw-font); font-size: 13px; font-weight: 700; transition: all 0.1s; }
+.daw-project-item:hover { background: var(--daw-teal-dim); border-color: rgba(0,255,200,0.3); color: var(--daw-teal); }
+.daw-project-meta { font-size: 11px; color: var(--daw-text-3); font-weight: 500; }
+.daw-btn { background: var(--daw-surface-3); border: 1px solid var(--daw-border); border-radius: 8px; color: var(--daw-text); font-family: var(--daw-font); font-size: 13px; font-weight: 700; padding: 8px 18px; cursor: pointer; transition: all 0.12s; }
+.daw-btn:hover { border-color: var(--daw-teal); color: var(--daw-teal); background: var(--daw-teal-dim); }
 
-.daw-region-block {
-  position: relative;
-  height: calc(100% - 10px);
-  width: 100%;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--region-color, #34c759) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--region-color, #34c759) 40%, transparent);
-  overflow: hidden;
-  margin: 5px 4px;
-}
-
-.daw-region-label {
-  position: absolute;
-  top: 2px;
-  left: 6px;
-  font-size: 0.6rem;
-  font-weight: 600;
-  color: var(--region-color, #34c759);
-  opacity: 0.9;
-  z-index: 1;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
-  white-space: nowrap;
-}
-
-.daw-waveform-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  opacity: 0.7;
-}
-
-.daw-region-empty {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.62rem;
-  color: var(--daw-text-muted);
-  padding: 0 12px;
-}
-
-.daw-armed-label {
-  color: var(--daw-red);
-  font-size: 0.65rem;
-  font-weight: 700;
-  animation: rec-blink 0.7s ease-in-out infinite;
-}
-
-.daw-track-playhead {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--daw-teal);
-  box-shadow: 0 0 6px var(--daw-teal-glow);
-  pointer-events: none;
-  z-index: 10;
-}
-
-/* ─── Piano Roll / Piano / Chords / Sounds views ─────────────────────────────── */
-.daw-pianoroll-view,
-.daw-chords-view,
-.daw-piano-view,
-.daw-freesound-view,
-.daw-keyfinder-view,
-.daw-aibeat-view,
-.daw-micsim-view,
-.daw-aimix-view,
-.daw-vocal-view,
-.daw-voicemidi-view,
-.daw-synth-view,
-.daw-drumdesigner-view,
-.daw-instrbuilder-view {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ─── Modal ──────────────────────────────────────────────────────────────────── */
-.daw-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.daw-modal {
-  background: #111a25;
-  border: 1px solid #2a3a4a;
-  border-radius: 12px;
-  padding: 24px;
-  min-width: 360px;
-  max-width: 480px;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
-  font-family: var(--daw-font);
-}
-
-.daw-modal h2 {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--daw-text);
-  margin: 0 0 16px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.daw-empty {
-  color: var(--daw-text-muted);
-  font-size: 0.72rem;
-  text-align: center;
-  padding: 24px;
-}
-
-.daw-project-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 16px;
-  max-height: 320px;
-  overflow-y: auto;
-}
-
-.daw-project-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  background: var(--daw-surface-3);
-  border: 1px solid var(--daw-border);
-  border-radius: 6px;
-  padding: 8px 12px;
-  cursor: pointer;
-  text-align: left;
-  color: var(--daw-text);
-  font-family: var(--daw-font);
-  font-size: 0.72rem;
-  font-weight: 600;
-  transition: all 0.1s;
-}
-
-.daw-project-item:hover {
-  background: var(--daw-teal-dim);
-  border-color: rgba(0, 255, 200, 0.25);
-  color: var(--daw-teal);
-}
-
-.daw-project-meta {
-  font-size: 0.6rem;
-  color: var(--daw-text-muted);
-  font-weight: 400;
-}
-
-.daw-btn {
-  background: var(--daw-surface-3);
-  border: 1px solid var(--daw-border);
-  border-radius: 6px;
-  color: var(--daw-text);
-  font-family: var(--daw-font);
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 6px 16px;
-  cursor: pointer;
-  transition: all 0.12s;
-}
-
-.daw-btn:hover {
-  border-color: var(--daw-teal);
-  color: var(--daw-teal);
-  background: var(--daw-teal-dim);
-}
-
-/* ─── FX Panel Popup ─────────────────────────────────────────────────────────── */
-.daw-fx-popup {
-  position: fixed;
-  z-index: 999;
-  background: #111a25;
-  border: 1px solid #2a3a4a;
-  border-radius: 10px;
-  padding: 0;
-  width: 320px;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65);
-  font-family: var(--daw-font);
-}
-
-/* ─── Scrollbar global overrides ────────────────────────────────────────────── */
-.daw * {
-  scrollbar-width: thin;
-  scrollbar-color: var(--daw-border) transparent;
-}
-
-.daw *::-webkit-scrollbar { width: 4px; height: 4px; }
-.daw *::-webkit-scrollbar-thumb { background: var(--daw-border); border-radius: 2px; }
+/* ── Scrollbars ── */
+.daw * { scrollbar-width: thin; scrollbar-color: var(--daw-border) transparent; }
+.daw *::-webkit-scrollbar { width: 5px; height: 5px; }
+.daw *::-webkit-scrollbar-thumb { background: var(--daw-border); border-radius: 3px; }
 .daw *::-webkit-scrollbar-track { background: transparent; }
-
-/* ─── Collab components ──────────────────────────────────────────────────────── */
-.collab-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.collab-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--daw-text-muted);
-  flex-shrink: 0;
-}
-
-.collab-status-dot.connected {
-  background: var(--daw-green);
-  box-shadow: 0 0 4px rgba(48, 209, 88, 0.5);
-}
-
-/* ─── Misc panels ─────────────────────────────────────────────────────────────── */
-.daw-fx-open .daw-track-strip {
-  border-color: rgba(0, 132, 255, 0.25);
-}
-
-/* Subtle inset text effect on all inputs */
-.daw input[type="number"],
-.daw input[type="text"],
-.daw select {
-  color-scheme: dark;
-}
-
-/* Ensure embed views fill their containers */
-.daw-console-view-wrap,
-.daw-beatmaker-view {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
+.daw input[type="number"],.daw input[type="text"],.daw select { color-scheme: dark; }
