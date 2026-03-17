@@ -24,13 +24,15 @@ html, body {
   display: flex;
   flex-direction: column;
   
-  /* FLUID DIMENSIONS FOR IFRAME */
+  /* FILL THE IFRAME COMPLETELY */
   width: 100% !important;   
   height: 100vh;           
-  margin: 0; 
+  margin: 0 !important; 
+  
+  /* REMOVE THESE - THEY ARE BREAKING YOUR LAYOUT */
   position: relative;
   left: 0;
-  transform: none; 
+  transform: none !important; 
 
   background: #06060f;
   border: none;
@@ -425,9 +427,18 @@ function tick() {
 }
 
 renderTracks();
-window.addEventListener('load', () => setTimeout(() => { if(!isPlaying) togglePlay(); }, 800));
+
+// This is the "Spark Plug" that starts the animation
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (!isPlaying && typeof togglePlay === 'function') {
+            togglePlay();
+        }
+    }, 500);
+});
+
 </script>
 </body>
-</html>;`
+</html>`;
 
 export default html;
