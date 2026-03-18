@@ -106,27 +106,71 @@ const Home = () => {
 			{/* ================================================================
 			    1. HERO: THE HOOK
 			    ================================================================ */}
-			<header className="hero">
-				<div className="hero-content">
-					<h1>
+			<header className="hero" style={{ padding: "80px 20px 40px", background: "radial-gradient(circle at top, #161b22 0%, #0d1117 100%)" }}>
+				<div className="hero-content" style={{ textAlign: 'center', maxWidth: '1000px', margin: '0 auto' }}>
+					{/* LOGO */}
+					<div style={{ marginBottom: "30px" }}>
 						<img
 							src={logo}
 							alt="StreamPireX"
-							style={{ height: "60px" }}
+							style={{ height: "70px", filter: "drop-shadow(0 0 15px rgba(0,255,200,0.3))" }}
 						/>
+					</div>
+
+					{/* THE SLOGAN */}
+					<h1 style={{
+						fontSize: 'clamp(2.2rem, 5vw, 3.8rem)',
+						fontWeight: '900',
+						color: '#fff',
+						marginBottom: '20px',
+						lineHeight: '1.1',
+						letterSpacing: '-1.5px'
+					}}>
+						Your Creative Empire. <span style={{ color: '#00ffc8', textShadow: '0 0 30px rgba(0,255,200,0.4)' }}>One Login.</span>
 					</h1>
 
+					{/* THE "WHAT & WHO" */}
+					<p style={{
+						fontSize: 'clamp(1rem, 1.8vw, 1.2rem)',
+						color: '#8b949e',
+						maxWidth: '800px',
+						margin: '0 auto 40px',
+						lineHeight: '1.6'
+					}}>
+						The sovereign OS for <strong>Music Producers, Podcasters, Filmmakers, and Gamers</strong>.
+						Replace 15+ subscriptions with one AI-powered workspace to create, distribute, and host—all while
+						keeping <span style={{ color: '#fff', fontWeight: 'bold' }}>90% of your revenue</span>.
+					</p>
+
+					{/* THE CTA BUTTONS */}
 					{!user ? (
-						<div className="cta-buttons">
-							<a href="#waitlist" className="btn btn-primary">Join the Waitlist</a>
-							<a href="#waitlist" className="btn btn-outline-light">Request Access</a>
+						<div className="cta-buttons" style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '60px' }}>
+							<a href="#waitlist" className="btn btn-primary" style={{
+								padding: '16px 40px',
+								fontSize: '18px',
+								fontWeight: '800',
+								borderRadius: '8px',
+								boxShadow: '0 10px 20px rgba(0, 255, 200, 0.2)'
+							}}>
+								Join the Waitlist — Get Early Access
+							</a>
+							<Link to="/compare" className="btn btn-outline-light" style={{
+								padding: '16px 40px',
+								fontSize: '18px',
+								fontWeight: '600',
+								borderRadius: '8px'
+							}}>
+								See How You Save $300/mo
+							</Link>
 						</div>
 					) : (
-						<div className="cta-buttons">
+						<div className="cta-buttons" style={{ marginBottom: '60px' }}>
+							<Link to="/dashboard" className="btn btn-primary">Go to Dashboard</Link>
 						</div>
 					)}
 				</div>
 
+				{/* HERO STATS BAR */}
 				<div className="hero-stats">
 					<div className="stat-item">
 						<span className="stat-number">32</span>
@@ -134,11 +178,11 @@ const Home = () => {
 					</div>
 					<div className="stat-item">
 						<span className="stat-number">150+</span>
-						<span className="stat-label">Distribution Platforms</span>
+						<span className="stat-label">Distro Platforms</span>
 					</div>
 					<div className="stat-item">
 						<span className="stat-number">90%</span>
-						<span className="stat-label">Creator Revenue Share</span>
+						<span className="stat-label">Revenue Share</span>
 					</div>
 					<div className="stat-item">
 						<span className="stat-number">AI</span>
@@ -154,7 +198,7 @@ const Home = () => {
 					</div>
 				</div>
 
-				{/* Dashboard screenshot — shown in hero */}
+				{/* DASHBOARD PREVIEW */}
 				<DemoFrame
 					srcDoc={recordingStudioSrcDoc}
 					title="StreamPireX Demo"
@@ -1223,7 +1267,7 @@ const Home = () => {
 							<li>✅ Keep 90% of every course sale</li>
 							<li>✅ Works for music production, filmmaking, podcasting, gaming</li>
 						</ul>
-		
+
 					</div>
 					<div className="academy-card student-side">
 						<div className="academy-card-header">
