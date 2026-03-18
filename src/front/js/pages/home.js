@@ -37,10 +37,11 @@ import screenshotVideoEditor from "../../img/streampirex-home-video_editor.png";
 // =============================================================================
 
 const demoStageStyle = {
-	width: "100%",
-	maxWidth: "1280px",
-	margin: "0 auto",
-	padding: "0 20px"
+    width: "100%",
+    maxWidth: "1280px",
+    margin: "100px auto", /* ADDED 100px top/bottom margin */
+    padding: "0 20px",
+    display: "block"      /* Ensures it respects the margin */
 };
 
 const demoFrameStyle = {
