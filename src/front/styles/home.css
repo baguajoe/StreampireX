@@ -2582,3 +2582,19 @@
 		height: 32px;
 	}
 }
+/* This adds space ABOVE and BELOW every section block */
+.streampirex-home section {
+    padding-top: 100px !important;
+    padding-bottom: 100px !important;
+}
+
+/* Specifically targets the animation/demo wrappers */
+.demo-stage-wrapper, .demo-frame-container {
+    margin-top: 80px !important;
+    margin-bottom: 80px !important;
+}
+
+/* Ensures the caption text under the animation doesn't touch the next block */
+.demo-caption {
+    margin-bottom: 40px !important;
+}
