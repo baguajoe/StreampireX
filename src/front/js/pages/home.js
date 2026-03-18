@@ -7,7 +7,6 @@ import beatMakerSrcDoc from "../component/beatMakerSrcDoc";
 import podcastStudioSrcDoc from "../component/podcastStudioSrcDoc";
 import radioStationSrcDoc from "../component/radioStationSrcDoc";
 import videoEditorSrcDoc from "../component/videoEditorSrcDoc";
-import logo from "../../img/StreampireX.png";
 import WaitlistSection from "../component/WaitlistSection";
 import "../../styles/home.css";
 
