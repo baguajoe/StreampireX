@@ -2598,3 +2598,19 @@
 .demo-caption {
     margin-bottom: 40px !important;
 }
+
+/* Targeted fix for the Podcast and Video Editor blocks */
+.demo-stage-wrapper, 
+[style*="demoStageStyle"] {
+    margin-top: 120px !important;
+    margin-bottom: 120px !important;
+    display: block !important;
+    clear: both; /* Ensures no floating elements interfere */
+}
+
+/* Adds extra breathing room specifically between the card grids and the demos */
+.feature-grid + div, 
+.ai-features-grid + div,
+.academy-grid + div {
+    padding-top: 80px !important;
+}

@@ -108,20 +108,6 @@ const Home = () => {
 			    ================================================================ */}
 			<header className="hero" style={{ padding: "80px 20px 40px", background: "radial-gradient(circle at top, #161b22 0%, #0d1117 100%)" }}>
 				<div className="hero-content" style={{ textAlign: 'center', maxWidth: '1000px', margin: '0 auto' }}>
-					{/* LOGO */}
-					<div style={{ marginBottom: "30px" }}>
-						<img
-							src={logo}
-							alt="StreamPireX"
-							style={{
-								height: "70px",          /* Slightly smaller makes PNGs look sharper */
-								marginBottom: "25px",    /* Adds space before the headline */
-								filter: "brightness(1.1) drop-shadow(0 0 15px rgba(0, 255, 200, 0.45))",
-								opacity: "0.95"
-							}}
-						/>
-					</div>
-
 					{/* THE SLOGAN */}
 					<h1 style={{
 						fontSize: 'clamp(2.2rem, 5vw, 3.8rem)',
