@@ -17,6 +17,7 @@ from api.printful_routes import printful_bp
 from api.printful_oauth_routes import printful_oauth_bp
 from api.r2_upload_routes import r2_upload_bp
 from api.academy_routes import academy_bp
+from api.academy_ai_routes import academy_ai_bp
 from api.audio_routes import audio_bp
 from api.music_upload import music_upload_bp
 from dotenv import load_dotenv
@@ -574,6 +575,7 @@ app.register_blueprint(rss_bp, url_prefix='/api/podcast')
 
 app.register_blueprint(r2_upload_bp)
 app.register_blueprint(academy_bp, url_prefix='/api/academy')
+app.register_blueprint(academy_ai_bp, url_prefix='/api/academy')
 app.register_blueprint(audio_bp)
 app.register_blueprint(music_upload_bp)
 # app.register_blueprint(printful_bp)  # duplicate removed

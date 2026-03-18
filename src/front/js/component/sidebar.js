@@ -724,6 +724,9 @@ const Sidebar = ({ user }) => {
             🤖 <span className="sidebar-label">AI Video Studio</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
           </MenuItem>
+          <MenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>
+            ✨ <span className="sidebar-label">SPX Motion</span>
+          </MenuItem>
           <MenuItem to="/ai-content-writer" className={isActive("/ai-content-writer") ? "active" : ""}>
             ✍️ <span className="sidebar-label">AI Content Writer</span>
           </MenuItem>

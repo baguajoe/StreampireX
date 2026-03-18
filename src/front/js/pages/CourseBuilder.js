@@ -6,6 +6,7 @@
 // =============================================================================
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import AILessonTools from "../component/AILessonTools";
 import { useParams, useNavigate } from "react-router-dom";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
@@ -259,6 +260,7 @@ const CourseBuilder = () => {
             <div style={CB.lessonHeader}>
               <div>
                 <h3 style={CB.sectionTitle}>Course Curriculum</h3>
+                <AILessonTools token={token} lessons={lessons} onAttached={loadCourse} />
                 <p style={CB.sectionSub}>{lessons.length} lessons · {fmtDuration(totalDuration)} total</p>
               </div>
               <button style={CB.addLessonBtn} onClick={openAddLesson}>+ Add Lesson</button>

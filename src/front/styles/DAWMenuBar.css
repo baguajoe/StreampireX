@@ -1,44 +1,42 @@
 /* =============================================================================
-   DAWMenuBar.css — Professional DAW Menu Bar
-   Matches DAWMenuBar.js
-   StreamPireX modern Cubase/Logic-style theme
+   DAWMenuBar.css — StreamPireX Professional Futuristic Upgrade
+   =============================================================================
+   Goal:
+   - cleaner spacing
+   - less cramped tabs
+   - more premium dark DAW look
+   - stronger hierarchy
+   - better dropdown readability
+   - responsive horizontal overflow support
    ============================================================================= */
 
 :root {
-  --dmb-bg: #0f1720;
-  --dmb-bg-2: #121c27;
-  --dmb-bg-3: #162230;
-  --dmb-bg-4: #1a2636;
+  --dmb-bg-top: rgba(13, 20, 31, 0.97);
+  --dmb-bg-bottom: rgba(8, 13, 21, 0.96);
+  --dmb-panel: rgba(16, 25, 38, 0.98);
+  --dmb-panel-2: rgba(20, 31, 46, 0.98);
 
-  --dmb-line: #243445;
-  --dmb-line-soft: rgba(255, 255, 255, 0.06);
-  --dmb-line-bright: rgba(255, 255, 255, 0.12);
+  --dmb-text: #edf4ff;
+  --dmb-text-soft: #b1c0d6;
+  --dmb-text-dim: #6e8098;
 
-  --dmb-text: #e6f0fa;
-  --dmb-text-soft: #9bb0c6;
-  --dmb-text-dim: #6f8398;
+  --dmb-line: rgba(255, 255, 255, 0.07);
+  --dmb-line-strong: rgba(255, 255, 255, 0.12);
+  --dmb-accent-line: rgba(0, 255, 200, 0.22);
 
-  --dmb-teal: #00ffc8;
-  --dmb-teal-2: #00d6a8;
-  --dmb-blue: #4aa8ff;
-  --dmb-orange: #ff9f0a;
-  --dmb-red: #ff4d6d;
-  --dmb-yellow: #ffd60a;
-  --dmb-purple: #af52de;
+  --dmb-accent: #00ffc8;
+  --dmb-accent-2: #5ac8fa;
+  --dmb-red: #ff617d;
 
   --dmb-shadow-sm: 0 8px 18px rgba(0, 0, 0, 0.22);
-  --dmb-shadow-md: 0 14px 28px rgba(0, 0, 0, 0.3);
-  --dmb-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --dmb-shadow-md: 0 14px 30px rgba(0, 0, 0, 0.34);
+  --dmb-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.44);
 
-  --dmb-radius-xl: 16px;
-  --dmb-radius-lg: 12px;
-  --dmb-radius-md: 10px;
   --dmb-radius-sm: 8px;
-  --dmb-radius-xs: 6px;
+  --dmb-radius: 12px;
+  --dmb-radius-lg: 14px;
 
-  --dmb-transition: 150ms ease;
-  --dmb-font: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --dmb-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  --dmb-height: 40px;
 }
 
 /* =============================================================================
@@ -46,99 +44,150 @@
    ============================================================================= */
 
 .daw-menubar {
+  position: relative;
+  z-index: 110;
   width: 100%;
-  min-height: 36px;
+  min-height: var(--dmb-height);
+  height: var(--dmb-height);
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 0 10px;
-  border-bottom: 1px solid var(--dmb-line);
+  gap: 6px;
+  padding: 0 12px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)),
-    linear-gradient(180deg, #101924 0%, #0d1620 100%);
-  box-shadow: var(--dmb-shadow-sm);
-  position: relative;
-  z-index: 50;
-  user-select: none;
-  font-family: var(--dmb-font);
+    linear-gradient(180deg, var(--dmb-bg-top), var(--dmb-bg-bottom));
+  border-bottom: 1px solid var(--dmb-line);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    var(--dmb-shadow-sm);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--dmb-text);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+
+.daw-menubar::-webkit-scrollbar {
+  height: 8px;
+}
+
+.daw-menubar::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 999px;
+}
+
+.daw-menubar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.daw-menubar,
+.daw-menubar * {
+  box-sizing: border-box;
 }
 
 /* =============================================================================
-   MENU ITEMS
+   TOP-LEVEL MENU ITEMS
    ============================================================================= */
 
 .daw-menubar-item {
   position: relative;
   display: flex;
   align-items: center;
-  height: 32px;
-  padding: 0 2px;
-  border-radius: 8px;
+  height: 100%;
+  flex: 0 0 auto;
 }
 
 .daw-menubar-label {
-  height: 28px;
+  appearance: none;
+  height: 30px;
+  min-width: 52px;
+  padding: 0 13px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 12px;
-  border-radius: 8px;
-  color: var(--dmb-text-soft);
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  transition:
-    color var(--dmb-transition),
-    background var(--dmb-transition),
-    border-color var(--dmb-transition),
-    box-shadow var(--dmb-transition),
-    transform var(--dmb-transition);
+  border-radius: 9px;
   border: 1px solid transparent;
+  background: transparent;
+  color: var(--dmb-text-soft);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+  transition:
+    color 0.16s ease,
+    background 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
 }
 
-.daw-menubar-item:hover .daw-menubar-label {
+.daw-menubar-label:hover,
+.daw-menubar-item.open .daw-menubar-label,
+.daw-menubar-label[aria-expanded="true"] {
   color: var(--dmb-text);
-  background: rgba(255,255,255,0.045);
-  border-color: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(0, 255, 200, 0.14);
+  box-shadow:
+    0 0 0 1px rgba(0,255,200,0.04),
+    0 0 12px rgba(0,255,200,0.05);
 }
 
-.daw-menubar-item.open .daw-menubar-label {
-  color: #071218;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04)),
-    linear-gradient(135deg, var(--dmb-teal), #63ffe0);
-  border-color: rgba(0,255,200,0.32);
-  box-shadow: 0 10px 24px rgba(0,255,200,0.14);
+.daw-menubar-label:focus-visible {
+  outline: none;
+  border-color: rgba(0, 255, 200, 0.24);
+  box-shadow: 0 0 0 2px rgba(0,255,200,0.08);
+}
+
+/* subtle active underline */
+.daw-menubar-item.open::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 2px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(0,255,200,0),
+    rgba(0,255,200,0.72),
+    rgba(90,200,250,0)
+  );
+  opacity: 0.95;
 }
 
 /* =============================================================================
-   DROPDOWN
+   DROPDOWN PANEL
    ============================================================================= */
 
 .daw-menubar-dropdown {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 7px);
   left: 0;
   min-width: 260px;
-  max-width: 320px;
+  max-width: 340px;
   padding: 6px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--dmb-radius-lg);
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)),
-    linear-gradient(180deg, #121c27, #0f1822);
-  box-shadow: var(--dmb-shadow-lg);
+    linear-gradient(180deg, rgba(21, 32, 47, 0.985), rgba(9, 15, 23, 0.985));
+  border: 1px solid var(--dmb-line);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.03),
+    var(--dmb-shadow-lg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  z-index: 200;
-  animation: dmbFadeIn 120ms ease-out;
   overflow: hidden;
+  z-index: 1500;
+  animation: dawMenuFadeIn 0.14s ease;
 }
 
-@keyframes dmbFadeIn {
+@keyframes dawMenuFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-4px) scale(0.985);
+    transform: translateY(5px) scale(0.987);
   }
   to {
     opacity: 1;
@@ -151,73 +200,96 @@
    ============================================================================= */
 
 .daw-menubar-dropdown-item {
-  min-height: 34px;
+  appearance: none;
+  width: 100%;
+  min-height: 36px;
   display: grid;
-  grid-template-columns: 22px 1fr auto;
+  grid-template-columns: 20px 1fr auto;
   align-items: center;
   gap: 10px;
   padding: 0 10px;
-  border-radius: 10px;
-  color: var(--dmb-text);
-  font-size: 0.76rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    background var(--dmb-transition),
-    color var(--dmb-transition),
-    border-color var(--dmb-transition),
-    transform var(--dmb-transition),
-    opacity var(--dmb-transition);
   border: 1px solid transparent;
-  white-space: nowrap;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dmb-text);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.76rem;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease,
+    opacity 0.16s ease;
 }
 
-.daw-menubar-dropdown-item:hover {
-  background: rgba(74,168,255,0.08);
-  border-color: rgba(74,168,255,0.14);
+.daw-menubar-dropdown-item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(0, 255, 200, 0.12);
+}
+
+.daw-menubar-dropdown-item:focus-visible {
+  outline: none;
+  border-color: rgba(0, 255, 200, 0.22);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .daw-menubar-dropdown-item.active {
-  background:
-    linear-gradient(180deg, rgba(0,255,200,0.12), rgba(0,255,200,0.04));
-  border-color: rgba(0,255,200,0.18);
-  color: #f8ffff;
+  color: var(--dmb-accent);
+  border-color: rgba(0, 255, 200, 0.14);
+  background: rgba(0, 255, 200, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
 }
 
-.daw-menubar-dropdown-item.disabled {
+.daw-menubar-dropdown-item.disabled,
+.daw-menubar-dropdown-item:disabled {
   opacity: 0.42;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
-.daw-menubar-dropdown-item.disabled:hover {
+.daw-menubar-dropdown-item.disabled:hover,
+.daw-menubar-dropdown-item:disabled:hover {
   background: transparent;
   border-color: transparent;
+  transform: none;
 }
 
+/* =============================================================================
+   ICON / LABEL / SHORTCUT
+   ============================================================================= */
+
 .daw-menubar-item-icon {
-  width: 18px;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
   color: var(--dmb-text-soft);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   line-height: 1;
 }
 
 .daw-menubar-dropdown-item.active .daw-menubar-item-icon {
-  color: var(--dmb-teal);
+  color: var(--dmb-accent);
 }
 
 .daw-menubar-item-label {
+  min-width: 0;
+  color: inherit;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .daw-menubar-item-shortcut {
   color: var(--dmb-text-dim);
-  font-size: 0.68rem;
-  font-weight: 700;
-  font-family: var(--dmb-mono);
+  font-size: 0.67rem;
+  font-family: "JetBrains Mono", "SF Mono", Consolas, monospace;
   letter-spacing: 0.01em;
-  margin-left: 12px;
+  text-align: right;
+  white-space: nowrap;
+  padding-left: 10px;
 }
 
 /* =============================================================================
@@ -226,89 +298,49 @@
 
 .daw-menubar-separator {
   height: 1px;
-  margin: 6px 6px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255,255,255,0.08),
-    transparent
-  );
+  margin: 6px 4px;
+  background: rgba(255, 255, 255, 0.07);
 }
 
 /* =============================================================================
-   RIGHT SIDE INFO
+   RIGHT INFO AREA
    ============================================================================= */
 
 .daw-menubar-spacer {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 12px;
 }
 
 .daw-menubar-info {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid var(--dmb-line);
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015)),
-    rgba(255,255,255,0.02);
-  color: var(--dmb-text-soft);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  min-width: 0;
+  color: var(--dmb-text-dim);
+  font-size: 0.7rem;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  margin-left: 6px;
 }
 
 .daw-menubar-project {
-  color: var(--dmb-text);
-  font-size: 0.72rem;
-  font-weight: 800;
-  max-width: 180px;
-  white-space: nowrap;
+  color: var(--dmb-text-soft);
+  font-weight: 700;
+  max-width: 190px;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.daw-menubar-divider {
-  color: var(--dmb-text-dim);
-  font-size: 0.72rem;
+  white-space: nowrap;
 }
 
 .daw-menubar-bpm,
 .daw-menubar-tracks {
-  color: var(--dmb-text-soft);
-  font-size: 0.7rem;
-  font-weight: 700;
-  font-family: var(--dmb-mono);
-  white-space: nowrap;
+  color: var(--dmb-text-dim);
+  font-weight: 600;
 }
 
-/* =============================================================================
-   SUBTLE POLISH
-   ============================================================================= */
-
-.daw-menubar::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(0,255,200,0.08),
-    transparent
-  );
-  pointer-events: none;
-}
-
-.daw-menubar-dropdown::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+.daw-menubar-divider {
+  opacity: 0.45;
+  color: var(--dmb-text-dim);
 }
 
 /* =============================================================================
@@ -317,97 +349,61 @@
 
 @media (max-width: 1100px) {
   .daw-menubar {
-    flex-wrap: wrap;
-    row-gap: 4px;
-    padding: 6px 8px;
-  }
-
-  .daw-menubar-spacer {
-    display: none;
-  }
-
-  .daw-menubar-info {
-    width: 100%;
-    justify-content: center;
-    order: 99;
-    border-radius: 12px;
-  }
-
-  .daw-menubar-project {
-    max-width: 240px;
-  }
-}
-
-@media (max-width: 768px) {
-  .daw-menubar {
-    gap: 1px;
-    padding: 6px;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-  }
-
-  .daw-menubar-info {
-    min-width: max-content;
-    width: auto;
+    gap: 4px;
+    padding: 0 10px;
   }
 
   .daw-menubar-label {
+    min-width: 48px;
+    padding: 0 11px;
+    font-size: 0.73rem;
+  }
+
+  .daw-menubar-project {
+    max-width: 130px;
+  }
+}
+
+@media (max-width: 920px) {
+  .daw-menubar-info {
+    display: none;
+  }
+
+  .daw-menubar {
+    padding-right: 8px;
+  }
+
+  .daw-menubar-dropdown {
+    min-width: 236px;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 680px) {
+  .daw-menubar {
+    gap: 2px;
+    padding: 0 8px;
+    height: 38px;
+    min-height: 38px;
+  }
+
+  .daw-menubar-label {
+    min-width: auto;
     padding: 0 10px;
     font-size: 0.72rem;
   }
 
   .daw-menubar-dropdown {
     min-width: 220px;
-    max-width: 280px;
+    max-width: 260px;
   }
 
-  .daw-menubar-project {
-    max-width: 140px;
+  .daw-menubar-dropdown-item {
+    font-size: 0.74rem;
+    min-height: 34px;
   }
-}
 
-@media (max-width: 520px) {
-  .daw-menubar-info {
-    display: none;
+  .daw-menubar-item-shortcut {
+    font-size: 0.63rem;
   }
-}
-
-/* =============================================================================
-   OPTIONAL MENU STATE COLORS
-   ============================================================================= */
-
-.daw-menubar-dropdown-item[data-kind="danger"] {
-  color: #ffb6c1;
-}
-
-.daw-menubar-dropdown-item[data-kind="danger"]:hover {
-  background: rgba(255,77,109,0.12);
-  border-color: rgba(255,77,109,0.16);
-}
-
-.daw-menubar-dropdown-item[data-kind="accent"] {
-  color: var(--dmb-teal);
-}
-
-/* =============================================================================
-   ACCESSIBILITY / FOCUS
-   ============================================================================= */
-
-.daw-menubar-item:focus-within .daw-menubar-label,
-.daw-menubar-dropdown-item:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(0,255,200,0.1);
-}
-
-.daw-menubar-dropdown-item:focus-visible {
-  background: rgba(74,168,255,0.08);
-  border-color: rgba(74,168,255,0.16);
-}
-
-/* =============================================================================
-   SMALL GLOW FOR OPEN MENU
-   ============================================================================= */
-
-.daw-menubar-item.open {
-  z-index: 201;
 }

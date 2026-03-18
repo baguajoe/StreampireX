@@ -7686,3 +7686,17 @@ class MerchOrder(db.Model):
     status = db.Column(db.String(50), default="pending")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+CREDIT_PACKS = {
+    "starter_pack": {"credits": 50, "price": 10},
+    "pro_pack": {"credits": 200, "price": 30},
+    "empire_pack": {"credits": 1000, "price": 100}
+}
+
+TIER_FREE_CREDITS = {
+    "Free": 0,
+    "Starter": 50,
+    "Pro": 200,
+    "Studio": 1000
+}

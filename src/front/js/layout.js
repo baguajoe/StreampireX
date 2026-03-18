@@ -141,6 +141,7 @@ import UserVideoChannelPage from "./pages/UserVideoChannelPage";
 import ArtistProfilePage from "./pages/ArtistProfilePage";
 import CollaboratorSplitPage from "./pages/CollaboratorSplitPage";
 import VideoEditor from "./pages/VideoEditor";
+import MotionStudioPage from "./pages/MotionStudioPage";
 import RecordingStudio from "./pages/RecordingStudio";
 
 import EditGamerProfilePage from "./pages/EditGamerProfilePage";
@@ -524,6 +525,7 @@ const AppShell = ({ user }) => {
                                 <Route path="/video-upload" element={<VideoUpload />} />
                                 <Route path="/video/:id" element={<VideoDetails />} />
                                 <Route path="/video-editor" element={<VideoEditor />} />
+						<Route path="/motion-studio" element={<MotionStudioPage />} />
                                 <Route path="/video-channel/:id" element={<VideoChannelProfile />} />
                                 <Route path="/my-video-channel" element={<MyVideoChannel />} />
                                 <Route path="/user-video-channel/:id" element={<UserVideoChannelPage />} />
