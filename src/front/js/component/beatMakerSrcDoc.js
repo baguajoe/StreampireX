@@ -105,6 +105,10 @@ html,body{width:100%;height:100vh;background:#0d0f14;font-family:'Inter',system-
 .atrack-lane{flex:1;height:100%;position:relative;background:repeating-linear-gradient(90deg,transparent,transparent 49px,#111620 49px,#111620 50px)}
 .aclip{position:absolute;top:3px;height:20px;border-radius:3px;display:flex;align-items:center;padding:0 6px;font-size:7px;font-weight:700;cursor:pointer}
 .playhead{position:absolute;top:0;bottom:0;width:1.5px;background:#00ffc8;z-index:10;box-shadow:0 0 6px #00ffc8}
+/* ADD THESE LINES STARTING AT LINE 108 */
+.pad-section { overflow-y: auto; min-height: 0; }
+.arrange-section { flex-shrink: 0; border-top: 1px solid #1e2530; }
+.pad { min-height: 80px; flex-basis: 80px; }
 </style>
 </head>
 <body style="display:flex;flex-direction:column;height:100vh">

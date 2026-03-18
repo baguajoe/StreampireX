@@ -165,7 +165,7 @@ const Home = () => {
 						</div>
 					) : (
 						<div className="cta-buttons" style={{ marginBottom: '60px' }}>
-							<Link to="/dashboard" className="btn btn-primary">Go to Dashboard</Link>
+					
 						</div>
 					)}
 				</div>
