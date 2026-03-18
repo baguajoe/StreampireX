@@ -113,7 +113,12 @@ const Home = () => {
 						<img
 							src={logo}
 							alt="StreamPireX"
-							style={{ height: "70px", filter: "drop-shadow(0 0 15px rgba(0,255,200,0.3))" }}
+							style={{
+								height: "70px",          /* Slightly smaller makes PNGs look sharper */
+								marginBottom: "25px",    /* Adds space before the headline */
+								filter: "brightness(1.1) drop-shadow(0 0 15px rgba(0, 255, 200, 0.45))",
+								opacity: "0.95"
+							}}
 						/>
 					</div>
 
@@ -165,7 +170,7 @@ const Home = () => {
 						</div>
 					) : (
 						<div className="cta-buttons" style={{ marginBottom: '60px' }}>
-					
+
 						</div>
 					)}
 				</div>
