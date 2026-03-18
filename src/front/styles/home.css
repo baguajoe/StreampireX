@@ -2614,3 +2614,27 @@
 .academy-grid + div {
     padding-top: 80px !important;
 }
+
+/* Targeted Spacing for Interactive Demos */
+.demo-stage-wrapper, 
+.demo-frame-container,
+.dj-mixer-demo, 
+.podcast-studio-demo, 
+.radio-station-demo {
+    margin-top: 120px !important;
+    margin-bottom: 120px !important;
+    display: block !important;
+    width: 100% !important;
+}
+
+/* Specifically ensures space between the 'Join Waitlist' buttons and the demo below */
+.cta-buttons + .demo-stage-wrapper,
+.cta-buttons + .demo-frame-container {
+    margin-top: 100px !important;
+}
+
+/* Specifically ensures space between the feature cards and the demo below */
+.feature-grid + .demo-stage-wrapper,
+.ai-features-grid + .demo-stage-wrapper {
+    margin-top: 100px !important;
+}
