@@ -720,38 +720,35 @@ const Sidebar = ({ user }) => {
             🎬 <span className="sidebar-label">Video Editor</span>
             <MenuHint className="sidebar-hint">FREE</MenuHint>
           </MenuItem>
-        </MenuItem>
-      <MenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>
-        ✨ <span className="sidebar-label">SPX Motion</span>
-      </MenuItem>
-      <MenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>
-        🧩 SPX Compositor
-      </MenuItem>
-      <MenuItem to="/spx-canvas" className={isActive("/spx-canvas") ? "active" : ""}>
-        🎨 SPX Canvas
-      </MenuItem>
-      <MenuItem to="/ai-video-studio" className={isActive("/ai-video-studio") ? "active" : ""}>
-        🤖 <span className="sidebar-label">AI Video Studio</span>
-        <MenuHint className="sidebar-hint">NEW</MenuHint>
-        <MenuItem to="/ai-content-writer" className={isActive("/ai-content-writer") ? "active" : ""}>
-          ✍️ <span className="sidebar-label">AI Content Writer</span>
-        </MenuItem>
-        <MenuItem to="/browse-videos" className={isActive("/browse-videos") ? "active" : ""}>
-          🎞️ <span className="sidebar-label">Browse Videos</span>
-        </MenuItem>
-        <MenuItem to="/video-upload" className={isActive("/video-upload") ? "active" : ""}>
-          📤 <span className="sidebar-label">Upload Video</span>
-        </MenuItem>
-        <MenuItem to="/reels" className={isActive("/reels") ? "active" : ""}>
-          🎞️ <span className="sidebar-label">Reels</span>
-        </MenuItem>
-        <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
-          📡 <span className="sidebar-label">Live Streams</span>
-        </MenuItem>
-        <MenuItem to="/collab-marketplace" className={isActive("/collab-marketplace") ? "active" : ""}>
-          🤝 <span className="sidebar-label">Collab Marketplace</span>
-        </MenuItem>
-      </>
+          <MenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>
+            ✨ <span className="sidebar-label">SPX Motion</span>
+          </MenuItem>
+          <MenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>
+            🧩 SPX Motion
+          </MenuItem>
+          <MenuItem to="/ai-video-studio" className={isActive("/ai-video-studio") ? "active" : ""}>
+            🤖 <span className="sidebar-label">AI Video Studio</span>
+            <MenuHint className="sidebar-hint">NEW</MenuHint>
+          </MenuItem>
+          <MenuItem to="/ai-content-writer" className={isActive("/ai-content-writer") ? "active" : ""}>
+            ✍️ <span className="sidebar-label">AI Content Writer</span>
+          </MenuItem>
+          <MenuItem to="/browse-videos" className={isActive("/browse-videos") ? "active" : ""}>
+            🎞️ <span className="sidebar-label">Browse Videos</span>
+          </MenuItem>
+          <MenuItem to="/video-upload" className={isActive("/video-upload") ? "active" : ""}>
+            📤 <span className="sidebar-label">Upload Video</span>
+          </MenuItem>
+          <MenuItem to="/reels" className={isActive("/reels") ? "active" : ""}>
+            🎞️ <span className="sidebar-label">Reels</span>
+          </MenuItem>
+          <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
+            📡 <span className="sidebar-label">Live Streams</span>
+          </MenuItem>
+          <MenuItem to="/collab-marketplace" className={isActive("/collab-marketplace") ? "active" : ""}>
+            🤝 <span className="sidebar-label">Collab Marketplace</span>
+          </MenuItem>
+        </>
       )}
 
       {/* ============================================================ */}

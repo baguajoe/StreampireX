@@ -24197,3 +24197,14 @@ def spx_canvas_delete_project(project_id):
     db.session.delete(project)
     db.session.commit()
     return jsonify({"success": True}), 200
+
+
+@api.route("/spx-canvas/assets", methods=["GET"])
+@jwt_required(optional=True)
+def spx_canvas_assets():
+    user_id = get_jwt_identity()
+    query = CanvasAsset.query
+    if user_id:
+        query = query.filter_by(user_id=user_id)
+    assets = query.order_by(CanvasAsset.created_at.desc()).limit(100).all()
+    return jsonify({"assets": [a.serialize() for a in assets]}), 200

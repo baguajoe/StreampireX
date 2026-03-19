@@ -186,3 +186,45 @@
   .spx-canvas-shell{grid-template-columns:1fr}
   .spx-canvas-left,.spx-canvas-right{border:none}
 }
+
+
+.spx-motion-btn{
+  background:#ff6600 !important;
+  color:#fff !important;
+  font-weight:800;
+}
+.spx-tools-bar{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-bottom:12px;
+  flex-wrap:wrap;
+}
+.spx-tools-bar button{
+  background:#101a24;
+  color:#d7e3ef;
+  border:1px solid #273241;
+  border-radius:8px;
+  padding:8px 10px;
+  cursor:pointer;
+}
+.spx-tools-bar button.active{
+  border-color:#00ffc8;
+  color:#00ffc8;
+  background:rgba(0,255,200,0.08);
+}
+.spx-brush-svg,
+.spx-drawing-overlay{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  overflow:visible;
+  pointer-events:none;
+}
+.spx-crop-rect{
+  position:absolute;
+  border:2px dashed #ff6600;
+  background:rgba(255,102,0,0.12);
+  pointer-events:none;
+}

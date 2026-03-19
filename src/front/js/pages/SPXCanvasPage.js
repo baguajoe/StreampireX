@@ -1,5 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import "../../styles/SPXCanvas.css";
+import { Context } from "../store/appContext";
+import { sendToMotion } from "../utils/motionHelpers";
 
 const backendURL = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -87,6 +90,28 @@ const createShapeLayer = (shape = "rect") => ({
   radius: 16
 });
 
+const createBrushLayer = (points = []) => ({
+  id: makeId("brush"),
+  type: "brush",
+  name: "Brush Stroke",
+  visible: true,
+  locked: false,
+  x: 0,
+  y: 0,
+  width: 0,
+  height: 0,
+  rotation: 0,
+  opacity: 1,
+  blendMode: "normal",
+  blur: 0,
+  brightness: 100,
+  contrast: 100,
+  saturate: 100,
+  stroke: "#ffffff",
+  strokeWidth: 8,
+  points
+});
+
 const layerFilter = (layer) =>
   [
     `blur(${layer.blur || 0}px)`,
@@ -117,11 +142,20 @@ function NumberInput({ value, onChange, min, max, step = 1 }) {
   );
 }
 
+function brushPath(points = []) {
+  if (!points.length) return "";
+  return points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+}
+
 export default function SPXCanvasPage() {
+  const { actions = {} } = useContext(Context);
+  const navigate = useNavigate();
+
   const [project, setProject] = useState(createBaseProject());
   const [selectedId, setSelectedId] = useState(null);
   const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
   const [recentProjects, setRecentProjects] = useState([]);
+  const [assets, setAssets] = useState([]);
   const [activeLeftTab, setActiveLeftTab] = useState("layers");
   const [zoom, setZoom] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -129,6 +163,9 @@ export default function SPXCanvasPage() {
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
   const [dragState, setDragState] = useState(null);
+  const [activeTool, setActiveTool] = useState("move"); // move | brush | eraser | crop
+  const [cropRect, setCropRect] = useState(null);
+  const [drawingStroke, setDrawingStroke] = useState(null);
 
   const stageWrapRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -177,8 +214,8 @@ export default function SPXCanvasPage() {
     const clone = JSON.parse(JSON.stringify(selectedLayer));
     clone.id = makeId(selectedLayer.type);
     clone.name = `${selectedLayer.name} Copy`;
-    clone.x += 20;
-    clone.y += 20;
+    clone.x = (clone.x || 0) + 20;
+    clone.y = (clone.y || 0) + 20;
     addLayer(clone);
   };
 
@@ -227,9 +264,7 @@ export default function SPXCanvasPage() {
       const res = await fetch(`${backendURL}/api/spx-canvas/templates`);
       if (!res.ok) return;
       const data = await res.json();
-      if (Array.isArray(data.templates) && data.templates.length) {
-        setTemplates(data.templates);
-      }
+      if (Array.isArray(data.templates) && data.templates.length) setTemplates(data.templates);
     } catch (e) {
       console.error(e);
     }
@@ -237,9 +272,7 @@ export default function SPXCanvasPage() {
 
   const loadProjects = async () => {
     try {
-      const res = await fetch(`${backendURL}/api/spx-canvas/projects`, {
-        headers: { ...authHeaders() }
-      });
+      const res = await fetch(`${backendURL}/api/spx-canvas/projects`, { headers: { ...authHeaders() } });
       if (!res.ok) return;
       const data = await res.json();
       setRecentProjects(data.projects || []);
@@ -248,9 +281,21 @@ export default function SPXCanvasPage() {
     }
   };
 
+  const loadAssets = async () => {
+    try {
+      const res = await fetch(`${backendURL}/api/spx-canvas/assets`, { headers: { ...authHeaders() } });
+      if (!res.ok) return;
+      const data = await res.json();
+      setAssets(data.assets || []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     loadTemplates();
     loadProjects();
+    loadAssets();
   }, []);
 
   useEffect(() => {
@@ -289,14 +334,63 @@ export default function SPXCanvasPage() {
           )
         }));
       }
+
+      if (dragState.kind === "crop") {
+        setCropRect({
+          x: Math.min(dragState.startX, px),
+          y: Math.min(dragState.startY, py),
+          width: Math.abs(px - dragState.startX),
+          height: Math.abs(py - dragState.startY)
+        });
+      }
+
+      if (dragState.kind === "brush" || dragState.kind === "eraser") {
+        setDrawingStroke((prev) => {
+          if (!prev) return prev;
+          return { ...prev, points: [...prev.points, { x: px, y: py }] };
+        });
+      }
     };
 
     const onUp = () => {
-      if (dragState) {
+      if (dragState?.kind === "brush" && drawingStroke && drawingStroke.points.length > 1) {
+        const layer = createBrushLayer(drawingStroke.points);
+        layer.stroke = drawingStroke.stroke;
+        layer.strokeWidth = drawingStroke.strokeWidth;
+        addLayer(layer);
+      }
+
+      if (dragState?.kind === "eraser" && drawingStroke && drawingStroke.points.length > 1) {
+        const pts = drawingStroke.points;
+        const first = pts[0];
+        const last = pts[pts.length - 1];
+        updateProject((draft) => {
+          draft.layers = draft.layers.filter((l) => {
+            const lx = l.x || 0;
+            const ly = l.y || 0;
+            const lw = l.width || 0;
+            const lh = l.height || 0;
+            const minX = Math.min(first.x, last.x);
+            const maxX = Math.max(first.x, last.x);
+            const minY = Math.min(first.y, last.y);
+            const maxY = Math.max(first.y, last.y);
+            const intersects = lx < maxX && lx + lw > minX && ly < maxY && ly + lh > minY;
+            return !intersects;
+          });
+        });
+      }
+
+      if (dragState?.kind === "crop") {
+        // just keeps cropRect visible for apply/cancel
+      }
+
+      if (dragState && (dragState.kind === "move" or dragState.kind === "resize")) {
         setHistory((prev) => [...prev.slice(-39), JSON.parse(JSON.stringify(dragState.projectSnapshot))]);
         setFuture([]);
       }
+
       setDragState(null);
+      setDrawingStroke(null);
     };
 
     window.addEventListener("mousemove", onMove);
@@ -305,7 +399,7 @@ export default function SPXCanvasPage() {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [dragState, zoom]);
+  }, [dragState, drawingStroke, zoom]);
 
   const beginDrag = (e, layer, kind = "move") => {
     if (layer.locked) return;
@@ -321,6 +415,58 @@ export default function SPXCanvasPage() {
       offsetY: py - layer.y,
       projectSnapshot: JSON.parse(JSON.stringify(project))
     });
+  };
+
+  const startToolGesture = (e) => {
+    if (!stageWrapRef.current) return;
+    const rect = stageWrapRef.current.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / zoom;
+    const py = (e.clientY - rect.top) / zoom;
+
+    if (activeTool === "brush") {
+      setDragState({ kind: "brush" });
+      setDrawingStroke({
+        points: [{ x: px, y: py }],
+        stroke: "#ffffff",
+        strokeWidth: 8
+      });
+    }
+
+    if (activeTool === "eraser") {
+      setDragState({ kind: "eraser" });
+      setDrawingStroke({
+        points: [{ x: px, y: py }],
+        stroke: "#ff0000",
+        strokeWidth: 24
+      });
+    }
+
+    if (activeTool === "crop") {
+      setDragState({ kind: "crop", startX: px, startY: py });
+      setCropRect({ x: px, y: py, width: 0, height: 0 });
+    }
+  };
+
+  const applyCrop = () => {
+    if (!cropRect || cropRect.width < 2 || cropRect.height < 2) return;
+    updateProject((draft) => {
+      draft.layers = draft.layers.map((l) => ({
+        ...l,
+        x: (l.x || 0) - cropRect.x,
+        y: (l.y || 0) - cropRect.y
+      }));
+      draft.width = Math.round(cropRect.width);
+      draft.height = Math.round(cropRect.height);
+    });
+    setCropRect(null);
+    setActiveTool("move");
+    setStatus("Crop applied");
+  };
+
+  const cancelCrop = () => {
+    setCropRect(null);
+    setActiveTool("move");
+    setStatus("Crop canceled");
   };
 
   const uploadImageLayer = async (file) => {
@@ -362,6 +508,7 @@ export default function SPXCanvasPage() {
           saturate: 100,
           src: data.url
         });
+        loadAssets();
         setStatus("Image uploaded");
       };
       img.src = data.url;
@@ -369,6 +516,32 @@ export default function SPXCanvasPage() {
       console.error(e);
       setStatus("Upload failed");
     }
+  };
+
+  const addAssetToCanvas = (asset) => {
+    const img = new window.Image();
+    img.onload = () => {
+      addLayer({
+        id: makeId("image"),
+        type: "image",
+        name: asset.name || "Asset",
+        visible: true,
+        locked: false,
+        x: 100,
+        y: 100,
+        width: Math.min(img.width, 480),
+        height: Math.min(img.height, 480),
+        rotation: 0,
+        opacity: 1,
+        blendMode: "normal",
+        blur: 0,
+        brightness: 100,
+        contrast: 100,
+        saturate: 100,
+        src: asset.file_url
+      });
+    };
+    img.src = asset.file_url;
   };
 
   const saveProject = async () => {
@@ -437,7 +610,7 @@ export default function SPXCanvasPage() {
     }
   };
 
-  const exportPNG = async () => {
+  const renderToCanvas = async () => {
     const canvas = document.createElement("canvas");
     canvas.width = project.width;
     canvas.height = project.height;
@@ -446,16 +619,14 @@ export default function SPXCanvasPage() {
     ctx.fillStyle = project.background || "#111827";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const sortedLayers = [...project.layers];
-
-    for (const layer of sortedLayers) {
+    for (const layer of project.layers) {
       if (!layer.visible) continue;
       ctx.save();
       ctx.globalAlpha = layer.opacity ?? 1;
       ctx.filter = layerFilter(layer);
-      ctx.translate(layer.x + layer.width / 2, layer.y + layer.height / 2);
-      ctx.rotate((layer.rotation || 0) * Math.PI / 180);
-      ctx.translate(-layer.width / 2, -layer.height / 2);
+      ctx.translate((layer.x || 0) + (layer.width || 0) / 2, (layer.y || 0) + (layer.height || 0) / 2);
+      ctx.rotate(((layer.rotation || 0) * Math.PI) / 180);
+      ctx.translate(-(layer.width || 0) / 2, -(layer.height || 0) / 2);
 
       if (layer.type === "image" && layer.src) {
         const img = await new Promise((resolve, reject) => {
@@ -465,9 +636,7 @@ export default function SPXCanvasPage() {
           i.onerror = reject;
           i.src = layer.src;
         }).catch(() => null);
-        if (img) {
-          ctx.drawImage(img, 0, 0, layer.width, layer.height);
-        }
+        if (img) ctx.drawImage(img, 0, 0, layer.width, layer.height);
       }
 
       if (layer.type === "shape") {
@@ -509,14 +678,55 @@ export default function SPXCanvasPage() {
         });
       }
 
+      if (layer.type === "brush" && Array.isArray(layer.points) && layer.points.length > 1) {
+        ctx.resetTransform();
+        ctx.globalAlpha = layer.opacity ?? 1;
+        ctx.strokeStyle = layer.stroke || "#fff";
+        ctx.lineWidth = layer.strokeWidth || 8;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.beginPath();
+        layer.points.forEach((p, idx) => {
+          if (idx === 0) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+      }
+
       ctx.restore();
     }
 
+    return canvas;
+  };
+
+  const exportPNG = async () => {
+    const canvas = await renderToCanvas();
     const a = document.createElement("a");
     a.href = canvas.toDataURL("image/png");
     a.download = `${project.name || "spx-canvas"}.png`;
     a.click();
     setStatus("PNG exported");
+  };
+
+  const sendCanvasToMotion = async () => {
+    const canvas = await renderToCanvas();
+    const dataUrl = canvas.toDataURL("image/png");
+    if (actions.sendToMotion) {
+      actions.sendToMotion({
+        type: "image",
+        url: dataUrl,
+        name: `${project.name || "SPX Canvas"} Export`,
+        source: "spx-canvas"
+      });
+    } else {
+      sendToMotion(actions, navigate, {
+        type: "image",
+        url: dataUrl,
+        name: `${project.name || "SPX Canvas"} Export`
+      });
+      return;
+    }
+    navigate("/node-compositor");
   };
 
   return (
@@ -543,6 +753,7 @@ export default function SPXCanvasPage() {
           <button onClick={removeSelected} disabled={!selectedLayer}>Delete</button>
           <button onClick={saveProject} disabled={saving}>{saving ? "Saving..." : "Save"}</button>
           <button className="spx-export-btn" onClick={exportPNG}>Export PNG</button>
+          <button className="spx-motion-btn" onClick={sendCanvasToMotion}>Send to Motion</button>
         </div>
       </div>
 
@@ -560,6 +771,7 @@ export default function SPXCanvasPage() {
             <button className={activeLeftTab === "layers" ? "active" : ""} onClick={() => setActiveLeftTab("layers")}>Layers</button>
             <button className={activeLeftTab === "templates" ? "active" : ""} onClick={() => setActiveLeftTab("templates")}>Templates</button>
             <button className={activeLeftTab === "projects" ? "active" : ""} onClick={() => setActiveLeftTab("projects")}>Projects</button>
+            <button className={activeLeftTab === "assets" ? "active" : ""} onClick={() => setActiveLeftTab("assets")}>Assets</button>
           </div>
 
           {activeLeftTab === "layers" && (
@@ -572,7 +784,7 @@ export default function SPXCanvasPage() {
                   onClick={() => setSelectedId(layer.id)}
                 >
                   <div className="spx-layer-main">
-                    <span>{layer.type === "image" ? "🖼" : layer.type === "text" ? "🔤" : "⬛"}</span>
+                    <span>{layer.type === "image" ? "🖼" : layer.type === "text" ? "🔤" : layer.type === "brush" ? "🖌" : "⬛"}</span>
                     <span>{layer.name || `${layer.type} ${i + 1}`}</span>
                   </div>
                   <div className="spx-layer-actions">
@@ -611,6 +823,19 @@ export default function SPXCanvasPage() {
               {!recentProjects.length && <div className="spx-empty">No saved projects yet</div>}
             </div>
           )}
+
+          {activeLeftTab === "assets" && (
+            <div className="spx-panel">
+              <div className="spx-panel-title">Asset Library</div>
+              {assets.map((asset) => (
+                <button key={asset.id} className="spx-template-card" onClick={() => addAssetToCanvas(asset)}>
+                  <strong>{asset.name}</strong>
+                  <span>{asset.file_type || "image"}</span>
+                </button>
+              ))}
+              {!assets.length && <div className="spx-empty">No uploaded assets yet</div>}
+            </div>
+          )}
         </aside>
 
         <main className="spx-canvas-center">
@@ -618,32 +843,26 @@ export default function SPXCanvasPage() {
             <div className="spx-status">{status}</div>
             <div className="spx-stage-controls">
               <label>Canvas</label>
-              <input
-                type="number"
-                value={project.width}
-                onChange={(e) => setProject((p) => ({ ...p, width: parseInt(e.target.value || 1, 10) }))}
-              />
-              <input
-                type="number"
-                value={project.height}
-                onChange={(e) => setProject((p) => ({ ...p, height: parseInt(e.target.value || 1, 10) }))}
-              />
-              <input
-                type="color"
-                value={project.background}
-                onChange={(e) => setProject((p) => ({ ...p, background: e.target.value }))}
-              />
+              <input type="number" value={project.width} onChange={(e) => setProject((p) => ({ ...p, width: parseInt(e.target.value || 1, 10) }))} />
+              <input type="number" value={project.height} onChange={(e) => setProject((p) => ({ ...p, height: parseInt(e.target.value || 1, 10) }))} />
+              <input type="color" value={project.background} onChange={(e) => setProject((p) => ({ ...p, background: e.target.value }))} />
               <label>Zoom</label>
-              <input
-                type="range"
-                min="0.25"
-                max="1.5"
-                step="0.05"
-                value={zoom}
-                onChange={(e) => setZoom(parseFloat(e.target.value))}
-              />
+              <input type="range" min="0.25" max="1.5" step="0.05" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} />
               <span>{Math.round(zoom * 100)}%</span>
             </div>
+          </div>
+
+          <div className="spx-tools-bar">
+            <button className={activeTool === "move" ? "active" : ""} onClick={() => setActiveTool("move")}>Move</button>
+            <button className={activeTool === "brush" ? "active" : ""} onClick={() => setActiveTool("brush")}>Brush</button>
+            <button className={activeTool === "eraser" ? "active" : ""} onClick={() => setActiveTool("eraser")}>Eraser</button>
+            <button className={activeTool === "crop" ? "active" : ""} onClick={() => setActiveTool("crop")}>Crop</button>
+            {activeTool === "crop" && cropRect && (
+              <>
+                <button onClick={applyCrop}>Apply Crop</button>
+                <button onClick={cancelCrop}>Cancel Crop</button>
+              </>
+            )}
           </div>
 
           <div className="spx-stage-wrap" ref={stageWrapRef}>
@@ -656,7 +875,10 @@ export default function SPXCanvasPage() {
                 transform: `scale(${zoom})`,
                 transformOrigin: "top left"
               }}
-              onMouseDown={() => setSelectedId(null)}
+              onMouseDown={(e) => {
+                setSelectedId(null);
+                if (activeTool !== "move") startToolGesture(e);
+              }}
             >
               {project.layers.map((layer) => {
                 if (!layer.visible) return null;
@@ -676,15 +898,15 @@ export default function SPXCanvasPage() {
                       filter: layerFilter(layer),
                       transform: `rotate(${layer.rotation || 0}deg)`
                     }}
-                    onMouseDown={(e) => beginDrag(e, layer, "move")}
+                    onMouseDown={(e) => {
+                      if (activeTool === "move") beginDrag(e, layer, "move");
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedId(layer.id);
                     }}
                   >
-                    {layer.type === "image" && (
-                      <img src={layer.src} alt={layer.name} draggable={false} />
-                    )}
+                    {layer.type === "image" && <img src={layer.src} alt={layer.name} draggable={false} />}
 
                     {layer.type === "shape" && (
                       <div
@@ -714,12 +936,50 @@ export default function SPXCanvasPage() {
                       </div>
                     )}
 
-                    {selected && !layer.locked && (
+                    {layer.type === "brush" && (
+                      <svg className="spx-brush-svg" viewBox={`0 0 ${project.width} ${project.height}`}>
+                        <path
+                          d={brushPath(layer.points)}
+                          fill="none"
+                          stroke={layer.stroke || "#fff"}
+                          strokeWidth={layer.strokeWidth || 8}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+
+                    {selected && !layer.locked && activeTool === "move" && (
                       <div className="spx-resize-handle" onMouseDown={(e) => beginDrag(e, layer, "resize")} />
                     )}
                   </div>
                 );
               })}
+
+              {drawingStroke && (
+                <svg className="spx-drawing-overlay" viewBox={`0 0 ${project.width} ${project.height}`}>
+                  <path
+                    d={brushPath(drawingStroke.points)}
+                    fill="none"
+                    stroke={drawingStroke.stroke}
+                    strokeWidth={drawingStroke.strokeWidth}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+
+              {cropRect && activeTool === "crop" && (
+                <div
+                  className="spx-crop-rect"
+                  style={{
+                    left: cropRect.x,
+                    top: cropRect.y,
+                    width: cropRect.width,
+                    height: cropRect.height
+                  }}
+                />
+              )}
             </div>
           </div>
         </main>
@@ -733,135 +993,54 @@ export default function SPXCanvasPage() {
             {selectedLayer && (
               <>
                 <Field label="Name">
-                  <input
-                    value={selectedLayer.name || ""}
-                    onChange={(e) => updateLayer(selectedLayer.id, { name: e.target.value })}
-                  />
+                  <input value={selectedLayer.name || ""} onChange={(e) => updateLayer(selectedLayer.id, { name: e.target.value })} />
                 </Field>
 
                 <div className="spx-grid-2">
-                  <Field label="X">
-                    <NumberInput value={selectedLayer.x} onChange={(v) => updateLayer(selectedLayer.id, { x: v })} />
-                  </Field>
-                  <Field label="Y">
-                    <NumberInput value={selectedLayer.y} onChange={(v) => updateLayer(selectedLayer.id, { y: v })} />
-                  </Field>
-                  <Field label="W">
-                    <NumberInput value={selectedLayer.width} min={20} onChange={(v) => updateLayer(selectedLayer.id, { width: v })} />
-                  </Field>
-                  <Field label="H">
-                    <NumberInput value={selectedLayer.height} min={20} onChange={(v) => updateLayer(selectedLayer.id, { height: v })} />
-                  </Field>
+                  <Field label="X"><NumberInput value={selectedLayer.x || 0} onChange={(v) => updateLayer(selectedLayer.id, { x: v })} /></Field>
+                  <Field label="Y"><NumberInput value={selectedLayer.y || 0} onChange={(v) => updateLayer(selectedLayer.id, { y: v })} /></Field>
+                  <Field label="W"><NumberInput value={selectedLayer.width || 0} min={20} onChange={(v) => updateLayer(selectedLayer.id, { width: v })} /></Field>
+                  <Field label="H"><NumberInput value={selectedLayer.height || 0} min={20} onChange={(v) => updateLayer(selectedLayer.id, { height: v })} /></Field>
                 </div>
 
                 <div className="spx-grid-2">
-                  <Field label="Rotation">
-                    <NumberInput value={selectedLayer.rotation || 0} onChange={(v) => updateLayer(selectedLayer.id, { rotation: v })} />
-                  </Field>
+                  <Field label="Rotation"><NumberInput value={selectedLayer.rotation || 0} onChange={(v) => updateLayer(selectedLayer.id, { rotation: v })} /></Field>
                   <Field label="Opacity">
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.01"
-                      value={selectedLayer.opacity ?? 1}
-                      onChange={(e) => updateLayer(selectedLayer.id, { opacity: parseFloat(e.target.value) })}
-                    />
+                    <input type="range" min="0" max="1" step="0.01" value={selectedLayer.opacity ?? 1} onChange={(e) => updateLayer(selectedLayer.id, { opacity: parseFloat(e.target.value) })} />
                   </Field>
                 </div>
 
                 <Field label="Blend Mode">
-                  <select
-                    value={selectedLayer.blendMode || "normal"}
-                    onChange={(e) => updateLayer(selectedLayer.id, { blendMode: e.target.value })}
-                  >
-                    {BLEND_MODES.map((mode) => (
-                      <option key={mode} value={mode}>{mode}</option>
-                    ))}
+                  <select value={selectedLayer.blendMode || "normal"} onChange={(e) => updateLayer(selectedLayer.id, { blendMode: e.target.value })}>
+                    {BLEND_MODES.map((mode) => <option key={mode} value={mode}>{mode}</option>)}
                   </select>
                 </Field>
 
                 <Field label={`Blur (${selectedLayer.blur || 0}px)`}>
-                  <input
-                    type="range"
-                    min="0"
-                    max="30"
-                    step="1"
-                    value={selectedLayer.blur || 0}
-                    onChange={(e) => updateLayer(selectedLayer.id, { blur: parseInt(e.target.value, 10) })}
-                  />
+                  <input type="range" min="0" max="30" step="1" value={selectedLayer.blur || 0} onChange={(e) => updateLayer(selectedLayer.id, { blur: parseInt(e.target.value, 10) })} />
                 </Field>
 
                 <Field label={`Brightness (${selectedLayer.brightness || 100}%)`}>
-                  <input
-                    type="range"
-                    min="0"
-                    max="200"
-                    step="1"
-                    value={selectedLayer.brightness || 100}
-                    onChange={(e) => updateLayer(selectedLayer.id, { brightness: parseInt(e.target.value, 10) })}
-                  />
+                  <input type="range" min="0" max="200" step="1" value={selectedLayer.brightness || 100} onChange={(e) => updateLayer(selectedLayer.id, { brightness: parseInt(e.target.value, 10) })} />
                 </Field>
 
                 <Field label={`Contrast (${selectedLayer.contrast || 100}%)`}>
-                  <input
-                    type="range"
-                    min="0"
-                    max="200"
-                    step="1"
-                    value={selectedLayer.contrast || 100}
-                    onChange={(e) => updateLayer(selectedLayer.id, { contrast: parseInt(e.target.value, 10) })}
-                  />
+                  <input type="range" min="0" max="200" step="1" value={selectedLayer.contrast || 100} onChange={(e) => updateLayer(selectedLayer.id, { contrast: parseInt(e.target.value, 10) })} />
                 </Field>
 
                 <Field label={`Saturate (${selectedLayer.saturate || 100}%)`}>
-                  <input
-                    type="range"
-                    min="0"
-                    max="200"
-                    step="1"
-                    value={selectedLayer.saturate || 100}
-                    onChange={(e) => updateLayer(selectedLayer.id, { saturate: parseInt(e.target.value, 10) })}
-                  />
+                  <input type="range" min="0" max="200" step="1" value={selectedLayer.saturate || 100} onChange={(e) => updateLayer(selectedLayer.id, { saturate: parseInt(e.target.value, 10) })} />
                 </Field>
 
                 {selectedLayer.type === "text" && (
                   <>
                     <Field label="Text">
-                      <textarea
-                        rows={4}
-                        value={selectedLayer.text || ""}
-                        onChange={(e) => updateLayer(selectedLayer.id, { text: e.target.value })}
-                      />
+                      <textarea rows={4} value={selectedLayer.text || ""} onChange={(e) => updateLayer(selectedLayer.id, { text: e.target.value })} />
                     </Field>
 
                     <div className="spx-grid-2">
-                      <Field label="Color">
-                        <input
-                          type="color"
-                          value={selectedLayer.color || "#ffffff"}
-                          onChange={(e) => updateLayer(selectedLayer.id, { color: e.target.value })}
-                        />
-                      </Field>
-                      <Field label="Font Size">
-                        <NumberInput value={selectedLayer.fontSize || 42} min={8} onChange={(v) => updateLayer(selectedLayer.id, { fontSize: v })} />
-                      </Field>
-                    </div>
-
-                    <div className="spx-grid-2">
-                      <Field label="Weight">
-                        <NumberInput value={selectedLayer.fontWeight || 700} min={100} max={900} step={100} onChange={(v) => updateLayer(selectedLayer.id, { fontWeight: v })} />
-                      </Field>
-                      <Field label="Align">
-                        <select
-                          value={selectedLayer.textAlign || "left"}
-                          onChange={(e) => updateLayer(selectedLayer.id, { textAlign: e.target.value })}
-                        >
-                          <option value="left">Left</option>
-                          <option value="center">Center</option>
-                          <option value="right">Right</option>
-                        </select>
-                      </Field>
+                      <Field label="Color"><input type="color" value={selectedLayer.color || "#ffffff"} onChange={(e) => updateLayer(selectedLayer.id, { color: e.target.value })} /></Field>
+                      <Field label="Font Size"><NumberInput value={selectedLayer.fontSize || 42} min={8} onChange={(v) => updateLayer(selectedLayer.id, { fontSize: v })} /></Field>
                     </div>
                   </>
                 )}
@@ -869,33 +1048,22 @@ export default function SPXCanvasPage() {
                 {selectedLayer.type === "shape" && (
                   <>
                     <div className="spx-grid-2">
-                      <Field label="Fill">
-                        <input
-                          type="color"
-                          value={selectedLayer.fill || "#00ffc8"}
-                          onChange={(e) => updateLayer(selectedLayer.id, { fill: e.target.value })}
-                        />
-                      </Field>
-                      <Field label="Stroke">
-                        <input
-                          type="color"
-                          value={selectedLayer.stroke || "#ffffff"}
-                          onChange={(e) => updateLayer(selectedLayer.id, { stroke: e.target.value })}
-                        />
-                      </Field>
+                      <Field label="Fill"><input type="color" value={selectedLayer.fill || "#00ffc8"} onChange={(e) => updateLayer(selectedLayer.id, { fill: e.target.value })} /></Field>
+                      <Field label="Stroke"><input type="color" value={selectedLayer.stroke || "#ffffff"} onChange={(e) => updateLayer(selectedLayer.id, { stroke: e.target.value })} /></Field>
                     </div>
 
                     <div className="spx-grid-2">
-                      <Field label="Stroke Width">
-                        <NumberInput value={selectedLayer.strokeWidth || 0} min={0} max={20} onChange={(v) => updateLayer(selectedLayer.id, { strokeWidth: v })} />
-                      </Field>
-                      {selectedLayer.shape !== "circle" && (
-                        <Field label="Radius">
-                          <NumberInput value={selectedLayer.radius || 0} min={0} max={200} onChange={(v) => updateLayer(selectedLayer.id, { radius: v })} />
-                        </Field>
-                      )}
+                      <Field label="Stroke Width"><NumberInput value={selectedLayer.strokeWidth || 0} min={0} max={20} onChange={(v) => updateLayer(selectedLayer.id, { strokeWidth: v })} /></Field>
+                      {selectedLayer.shape !== "circle" && <Field label="Radius"><NumberInput value={selectedLayer.radius || 0} min={0} max={200} onChange={(v) => updateLayer(selectedLayer.id, { radius: v })} /></Field>}
                     </div>
                   </>
+                )}
+
+                {selectedLayer.type === "brush" && (
+                  <div className="spx-grid-2">
+                    <Field label="Stroke"><input type="color" value={selectedLayer.stroke || "#ffffff"} onChange={(e) => updateLayer(selectedLayer.id, { stroke: e.target.value })} /></Field>
+                    <Field label="Stroke Width"><NumberInput value={selectedLayer.strokeWidth || 8} min={1} max={50} onChange={(v) => updateLayer(selectedLayer.id, { strokeWidth: v })} /></Field>
+                  </div>
                 )}
               </>
             )}
