@@ -723,8 +723,13 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>
             ✨ <span className="sidebar-label">SPX Motion</span>
           </MenuItem>
+
           <MenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>
-            🧩 SPX Motion
+            🎛️ <span className="sidebar-label">SPX Compositor</span>
+          </MenuItem>
+
+          <MenuItem to="/spx-canvas" className={isActive("/spx-canvas") ? "active" : ""}>
+            🎨 <span className="sidebar-label">SPX Canvas</span>
           </MenuItem>
           <MenuItem to="/ai-video-studio" className={isActive("/ai-video-studio") ? "active" : ""}>
             🤖 <span className="sidebar-label">AI Video Studio</span>
