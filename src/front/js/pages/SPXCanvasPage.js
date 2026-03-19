@@ -383,7 +383,7 @@ export default function SPXCanvasPage() {
           // just keeps cropRect visible for apply/cancel
         }
 
-        if (dragState && (dragState.kind === "move" or dragState.kind === "resize")) {
+        if (dragState && (dragState.kind === "move" || dragState.kind === "resize")) {
     setHistory((prev) => [...prev.slice(-39), JSON.parse(JSON.stringify(dragState.projectSnapshot))]);
     setFuture([]);
   }

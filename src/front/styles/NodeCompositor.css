@@ -606,3 +606,373 @@
   margin-bottom: 8px;
   color: #c9d1d9;
 }
+
+/* === DROP 3 : SPX COMPOSITOR SHELL === */
+.nc-app-shell{
+  min-height:100vh;
+  background:#0b1118;
+  color:#e6eef5;
+}
+.nc-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 16px;
+  border-bottom:1px solid #1f2b37;
+  background:#0f1720;
+}
+.nc-topbar-left{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.nc-brand{
+  font-weight:800;
+  color:#cfa8ff;
+}
+.nc-project-name{
+  min-width:220px;
+  background:#0b1118;
+  color:#fff;
+  border:1px solid #243344;
+  border-radius:8px;
+  padding:8px 10px;
+}
+.nc-topbar-actions,
+.nc-tool-tabs,
+.nc-node-toolbar,
+.nc-tool-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.nc-topbar-actions button,
+.nc-tool-tabs button,
+.nc-node-toolbar button,
+.nc-tool-actions button{
+  border:1px solid #2a3647;
+  background:#101a24;
+  color:#d7e3ef;
+  border-radius:8px;
+  padding:8px 10px;
+  cursor:pointer;
+}
+.nc-tool-tabs{
+  padding:10px 16px;
+  border-bottom:1px solid #1f2b37;
+  background:#0d141d;
+}
+.nc-tool-tabs button.active{
+  border-color:#7c3aed;
+  background:rgba(124,58,237,0.16);
+  color:#d8b4fe;
+}
+.nc-import-banner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 16px;
+  background:rgba(0,255,200,0.08);
+  border-bottom:1px solid rgba(0,255,200,0.14);
+}
+.nc-btn-primary{
+  background:#7c3aed !important;
+  color:#fff !important;
+  border-color:#7c3aed !important;
+}
+.nc-btn-secondary{
+  background:#182430 !important;
+}
+.nc-main-grid{
+  display:grid;
+  grid-template-columns:1fr 380px;
+  gap:12px;
+  padding:12px;
+}
+.nc-graph-panel,
+.nc-inspector-wrap,
+.nc-tool-panel{
+  background:#0f1720;
+  border:1px solid #1f2b37;
+  border-radius:14px;
+  padding:12px;
+}
+.nc-graph-canvas{
+  position:relative;
+  min-height:520px;
+  margin-top:12px;
+  border:1px dashed #233143;
+  border-radius:14px;
+  background:
+    linear-gradient(45deg,#0d141d 25%,transparent 25%,transparent 75%,#0d141d 75%,#0d141d),
+    linear-gradient(45deg,#0d141d 25%,transparent 25%,transparent 75%,#0d141d 75%,#0d141d);
+  background-size:28px 28px;
+  background-position:0 0,14px 14px;
+}
+.nc-node-card{
+  position:absolute;
+  width:180px;
+  text-align:left;
+  border:1px solid #2a3647;
+  background:#101a24;
+  color:#e6eef5;
+  border-radius:12px;
+  padding:10px;
+  cursor:pointer;
+}
+.nc-node-card.selected{
+  border-color:#7c3aed;
+  box-shadow:0 0 0 1px rgba(124,58,237,0.6);
+}
+.nc-node-type{
+  font-size:.72rem;
+  text-transform:uppercase;
+  opacity:.7;
+}
+.nc-node-name{
+  margin-top:4px;
+  font-weight:700;
+}
+.nc-empty-graph{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  opacity:.72;
+}
+.nc-empty-title{
+  font-weight:800;
+  margin-bottom:6px;
+}
+.nc-side-column{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.nc-tool-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.nc-tool-field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.nc-tool-field-wide{
+  grid-column:1 / -1;
+}
+.nc-tool-field input,
+.nc-tool-field select,
+.nc-tool-field textarea{
+  background:#0b1118;
+  color:#fff;
+  border:1px solid #243344;
+  border-radius:8px;
+  padding:8px 10px;
+}
+.nc-tool-note{
+  margin-top:10px;
+  opacity:.75;
+}
+.nc-tool-check{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  grid-column:1 / -1;
+}
+@media (max-width: 1100px){
+  .nc-main-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+/* === DROP 3 : SPX COMPOSITOR SHELL === */
+.nc-app-shell{
+  min-height:100vh;
+  background:#0b1118;
+  color:#e6eef5;
+}
+.nc-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 16px;
+  border-bottom:1px solid #1f2b37;
+  background:#0f1720;
+}
+.nc-topbar-left{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.nc-brand{
+  font-weight:800;
+  color:#cfa8ff;
+}
+.nc-project-name{
+  min-width:220px;
+  background:#0b1118;
+  color:#fff;
+  border:1px solid #243344;
+  border-radius:8px;
+  padding:8px 10px;
+}
+.nc-topbar-actions,
+.nc-tool-tabs,
+.nc-node-toolbar,
+.nc-tool-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.nc-topbar-actions button,
+.nc-tool-tabs button,
+.nc-node-toolbar button,
+.nc-tool-actions button{
+  border:1px solid #2a3647;
+  background:#101a24;
+  color:#d7e3ef;
+  border-radius:8px;
+  padding:8px 10px;
+  cursor:pointer;
+}
+.nc-tool-tabs{
+  padding:10px 16px;
+  border-bottom:1px solid #1f2b37;
+  background:#0d141d;
+}
+.nc-tool-tabs button.active{
+  border-color:#7c3aed;
+  background:rgba(124,58,237,0.16);
+  color:#d8b4fe;
+}
+.nc-import-banner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 16px;
+  background:rgba(0,255,200,0.08);
+  border-bottom:1px solid rgba(0,255,200,0.14);
+}
+.nc-btn-primary{
+  background:#7c3aed !important;
+  color:#fff !important;
+  border-color:#7c3aed !important;
+}
+.nc-btn-secondary{
+  background:#182430 !important;
+}
+.nc-main-grid{
+  display:grid;
+  grid-template-columns:1fr 380px;
+  gap:12px;
+  padding:12px;
+}
+.nc-graph-panel,
+.nc-inspector-wrap,
+.nc-tool-panel{
+  background:#0f1720;
+  border:1px solid #1f2b37;
+  border-radius:14px;
+  padding:12px;
+}
+.nc-graph-canvas{
+  position:relative;
+  min-height:520px;
+  margin-top:12px;
+  border:1px dashed #233143;
+  border-radius:14px;
+  background:
+    linear-gradient(45deg,#0d141d 25%,transparent 25%,transparent 75%,#0d141d 75%,#0d141d),
+    linear-gradient(45deg,#0d141d 25%,transparent 25%,transparent 75%,#0d141d 75%,#0d141d);
+  background-size:28px 28px;
+  background-position:0 0,14px 14px;
+}
+.nc-node-card{
+  position:absolute;
+  width:180px;
+  text-align:left;
+  border:1px solid #2a3647;
+  background:#101a24;
+  color:#e6eef5;
+  border-radius:12px;
+  padding:10px;
+  cursor:pointer;
+}
+.nc-node-card.selected{
+  border-color:#7c3aed;
+  box-shadow:0 0 0 1px rgba(124,58,237,0.6);
+}
+.nc-node-type{
+  font-size:.72rem;
+  text-transform:uppercase;
+  opacity:.7;
+}
+.nc-node-name{
+  margin-top:4px;
+  font-weight:700;
+}
+.nc-empty-graph{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  opacity:.72;
+}
+.nc-empty-title{
+  font-weight:800;
+  margin-bottom:6px;
+}
+.nc-side-column{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.nc-tool-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.nc-tool-field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.nc-tool-field-wide{
+  grid-column:1 / -1;
+}
+.nc-tool-field input,
+.nc-tool-field select,
+.nc-tool-field textarea{
+  background:#0b1118;
+  color:#fff;
+  border:1px solid #243344;
+  border-radius:8px;
+  padding:8px 10px;
+}
+.nc-tool-note{
+  margin-top:10px;
+  opacity:.75;
+}
+.nc-tool-check{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  grid-column:1 / -1;
+}
+@media (max-width: 1100px){
+  .nc-main-grid{
+    grid-template-columns:1fr;
+  }
+}

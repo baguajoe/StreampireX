@@ -1,276 +1,386 @@
-import React, {useRef, useContext, useEffect, useState} from "react";
-import "../../styles/NodeCompositor.css";
-import VideoExportPanel from "../component/nodecompositor/VideoExportPanel";
-import BeatSyncPanel from "../component/nodecompositor/BeatSyncPanel";
-import AIAutoEditPanel from "../component/nodecompositor/AIAutoEditPanel";
-
+import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Context } from "../store/appContext";
-import useNodeCompositorState from "../component/nodecompositor/useNodeCompositorState";
-import NodeLibraryPanel from "../component/nodecompositor/NodeLibraryPanel";
-import NodeInspectorPanel from "../component/nodecompositor/NodeInspectorPanel";
 import NodePreviewPanel from "../component/nodecompositor/NodePreviewPanel";
-import NodeGraphCanvas from "../component/nodecompositor/NodeGraphCanvas";
-import MinimapPanel from "../component/nodecompositor/MinimapPanel";
-import useKeyboardShortcuts from "../component/nodecompositor/KeyboardShortcuts";
+import NodeInspectorPanel from "../component/nodecompositor/NodeInspectorPanel";
 import NodeTimelinePanel from "../component/nodecompositor/NodeTimelinePanel";
-import { downloadGraphJSON } from "../component/nodecompositor/graphSerializer";
-import { createNodeFromType } from "../component/nodecompositor/nodeTypes";
+import VideoExportToolPanel from "../component/nodecompositor/VideoExportToolPanel";
+import BeatSyncToolPanel from "../component/nodecompositor/BeatSyncToolPanel";
+import AIAutoEditToolPanel from "../component/nodecompositor/AIAutoEditToolPanel";
+import "../../styles/NodeCompositor.css";
+
+const makeNodeId = (type) => `${type}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+const DEFAULT_MEDIA_PROPS = {
+  name: "Media In",
+  label: "Media In",
+  background: "linear-gradient(135deg,#00ffc8,#0044ff)",
+  opacity: 1,
+  xPercent: 50,
+  yPercent: 50,
+  fontSize: 42,
+  fontWeight: 800,
+  color: "#ffffff",
+  text: "Text",
+  mediaUrl: ""
+};
 
 export default function NodeCompositorPage() {
-  const [activeTool, setActiveTool] = useState("export");
-  const state = useNodeCompositorState();
-  const { store, actions } = useContext(Context);
-  const fileInputRef = useRef(null);
-  const importedTimestampRef = useRef(null);
+  const ctx = useContext(Context);
+  const store = ctx?.store || {};
+  const motionPayload = store.motion || store.motionTransfer || null;
 
-  useKeyboardShortcuts({
-    undo: state.undo,
-    redo: state.redo,
-    duplicateSelectedNode: state.duplicateSelectedNode,
-    removeSelectedNode: () => {
-      if (state.selectedNode) state.removeNode(state.selectedNode.id);
-    },
-    togglePlay: () => state.setIsPlaying(!state.isPlaying)
-  });
+  const [projectName, setProjectName] = useState("SPX Compositor");
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(10);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [toolTab, setToolTab] = useState("graph");
 
-  const handleExport = () => {
-    const json = state.exportGraph();
-    downloadGraphJSON("node-compositor-graph.json", json);
-  };
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImportFile = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const text = await file.text();
-    state.importGraph(text);
-    e.target.value = "";
-  };
-
-  // SAFELY SUPPORT BOTH STORE SHAPES:
-  // 1) store.motionTransfer
-  // 2) store.motion
-  const incomingMotion =
-    (store?.motionTransfer && store.motionTransfer.url ? store.motionTransfer : null) ||
-    (store?.motion && store.motion.url ? store.motion : null) ||
-    null;
+  const selectedNode = useMemo(
+    () => nodes.find((n) => n.id === selectedNodeId) || null,
+    [nodes, selectedNodeId]
+  );
 
   useEffect(() => {
-    if (!incomingMotion?.url) return;
+    if (!isPlaying) return;
+    const timer = setInterval(() => {
+      setCurrentTime((t) => {
+        const next = t + 0.033;
+        return next >= duration ? 0 : next;
+      });
+    }, 33);
+    return () => clearInterval(timer);
+  }, [isPlaying, duration]);
 
-    const timestamp = incomingMotion.timestamp || Date.now();
+  const addNode = useCallback((type, x = 120, y = 120) => {
+    const id = makeNodeId(type);
 
-    // Prevent duplicate re-imports
-    if (importedTimestampRef.current === timestamp) return;
-    importedTimestampRef.current = timestamp;
-
-    const mediaNode = createNodeFromType("mediaIn", 120, 140);
-    const outputNode = createNodeFromType("output", 700, 140);
-
-    if (!mediaNode || !outputNode) return;
-
-    mediaNode.properties = {
-      ...mediaNode.properties,
-      mediaUrl: incomingMotion.url,
-      name: incomingMotion.name || "Imported Media"
+    const base = {
+      id,
+      type,
+      x,
+      y,
+      keyframes: [],
+      properties: { ...DEFAULT_MEDIA_PROPS }
     };
 
-    let nodes = [];
-    let edges = [];
+    if (type === "mediaIn") {
+      base.properties = {
+        ...DEFAULT_MEDIA_PROPS,
+        name: "Media In",
+        label: "Media In"
+      };
+    }
 
-    // Video gets a path node by default so it's ready for motion
-    if (incomingMotion.type === "video") {
-      const pathNode = createNodeFromType("path", 400, 140);
+    if (type === "text") {
+      base.properties = {
+        ...DEFAULT_MEDIA_PROPS,
+        name: "Text",
+        label: "Text",
+        text: "SPX Compositor",
+        background: "transparent"
+      };
+    }
 
-      if (pathNode) {
-        pathNode.properties = {
-          ...pathNode.properties,
-          name: "Auto Path"
-        };
+    if (type === "merge") {
+      base.properties = {
+        name: "Merge",
+        blendMode: "normal",
+        opacity: 1
+      };
+    }
 
-        nodes = [mediaNode, pathNode, outputNode];
-        edges = [
-          {
-            id: `edge_${Date.now()}_1`,
-            fromNodeId: mediaNode.id,
-            fromPort: "image",
-            toNodeId: pathNode.id,
-            toPort: "image"
-          },
-          {
-            id: `edge_${Date.now()}_2`,
-            fromNodeId: pathNode.id,
-            fromPort: "image",
-            toNodeId: outputNode.id,
-            toPort: "image"
-          }
-        ];
-      } else {
-        nodes = [mediaNode, outputNode];
-        edges = [
-          {
-            id: `edge_${Date.now()}_1`,
-            fromNodeId: mediaNode.id,
-            fromPort: "image",
-            toNodeId: outputNode.id,
-            toPort: "image"
-          }
-        ];
-      }
-    } else {
-      // Audio / image / fallback
-      nodes = [mediaNode, outputNode];
-      edges = [
-        {
-          id: `edge_${Date.now()}_1`,
-          fromNodeId: mediaNode.id,
-          fromPort: "image",
-          toNodeId: outputNode.id,
-          toPort: "image"
+    if (type === "output") {
+      base.properties = {
+        name: "Output",
+        label: "Output"
+      };
+    }
+
+    setNodes((prev) => [...prev, base]);
+    setSelectedNodeId(id);
+  }, []);
+
+  const updateSelectedNode = useCallback((patch) => {
+    if (!selectedNodeId) return;
+    setNodes((prev) =>
+      prev.map((node) =>
+        node.id === selectedNodeId
+          ? { ...node, properties: { ...(node.properties || {}), ...patch } }
+          : node
+      )
+    );
+  }, [selectedNodeId]);
+
+  const removeSelectedNode = useCallback(() => {
+    if (!selectedNodeId) return;
+    setNodes((prev) => prev.filter((n) => n.id !== selectedNodeId));
+    setEdges((prev) => prev.filter((e) => e.from !== selectedNodeId && e.to !== selectedNodeId));
+    setSelectedNodeId(null);
+  }, [selectedNodeId]);
+
+  const duplicateSelectedNode = useCallback(() => {
+    if (!selectedNode) return;
+    const copyId = makeNodeId(selectedNode.type);
+    const clone = JSON.parse(JSON.stringify(selectedNode));
+    clone.id = copyId;
+    clone.x = (clone.x || 120) + 36;
+    clone.y = (clone.y || 120) + 36;
+    clone.properties.name = `${clone.properties?.name || clone.type} Copy`;
+    setNodes((prev) => [...prev, clone]);
+    setSelectedNodeId(copyId);
+  }, [selectedNode]);
+
+  const importMotionMedia = useCallback(() => {
+    if (!motionPayload?.url) return;
+    const id = makeNodeId("mediaIn");
+    setNodes((prev) => [
+      ...prev,
+      {
+        id,
+        type: "mediaIn",
+        x: 120,
+        y: 120,
+        keyframes: [],
+        properties: {
+          ...DEFAULT_MEDIA_PROPS,
+          name: motionPayload.name || "Motion Import",
+          label: motionPayload.type === "video" ? "Video In" : "Audio/Media In",
+          mediaUrl: motionPayload.url,
+          background: motionPayload.type === "video"
+            ? "linear-gradient(135deg,#1f2937,#111827)"
+            : "linear-gradient(135deg,#7c3aed,#1d4ed8)"
         }
-      ];
-    }
+      }
+    ]);
+    setSelectedNodeId(id);
+  }, [motionPayload]);
 
-    state.importGraph(JSON.stringify({ nodes, edges }));
+  const seedStarterGraph = useCallback(() => {
+    const mediaId = makeNodeId("mediaIn");
+    const textId = makeNodeId("text");
+    const mergeId = makeNodeId("merge");
+    const outId = makeNodeId("output");
 
-    if (typeof actions?.clearMotionTransfer === "function") {
-      actions.clearMotionTransfer();
-    }
-  }, [incomingMotion, state, actions]);
+    setNodes([
+      {
+        id: mediaId,
+        type: "mediaIn",
+        x: 80,
+        y: 120,
+        keyframes: [],
+        properties: { ...DEFAULT_MEDIA_PROPS, name: "Media In", label: "Media In" }
+      },
+      {
+        id: textId,
+        type: "text",
+        x: 80,
+        y: 280,
+        keyframes: [],
+        properties: {
+          ...DEFAULT_MEDIA_PROPS,
+          name: "Text",
+          label: "Text",
+          text: "SPX Compositor",
+          background: "transparent"
+        }
+      },
+      {
+        id: mergeId,
+        type: "merge",
+        x: 360,
+        y: 200,
+        keyframes: [],
+        properties: { name: "Merge", blendMode: "normal", opacity: 1 }
+      },
+      {
+        id: outId,
+        type: "output",
+        x: 620,
+        y: 200,
+        keyframes: [],
+        properties: { name: "Output", label: "Output" }
+      }
+    ]);
+
+    setEdges([
+      { id: `e_${mediaId}_${mergeId}`, from: mediaId, to: mergeId, input: "background" },
+      { id: `e_${textId}_${mergeId}`, from: textId, to: mergeId, input: "foreground" },
+      { id: `e_${mergeId}_${outId}`, from: mergeId, to: outId, input: "image" }
+    ]);
+
+    setSelectedNodeId(mergeId);
+  }, []);
 
   return (
-    <div className="nc-page">
+    <div className="nc-app-shell">
       <div className="nc-topbar">
-        <div>
-          <div className="nc-title">Node Compositor</div>
-          <div className="nc-subtitle">Fusion-style VFX graph foundation</div>
+        <div className="nc-topbar-left">
+          <div className="nc-brand">🎛️ SPX Compositor</div>
+          <input
+            className="nc-project-name"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+          />
         </div>
 
         <div className="nc-topbar-actions">
-          <button onClick={state.undo}>Undo</button>
-          <button onClick={state.redo}>Redo</button>
-          <button onClick={() => state.setIsPlaying(!state.isPlaying)}>
-            {state.isPlaying ? "Pause" : "Play"}
-          </button>
-
-          <input
-            type="range"
-            min="0"
-            max={state.duration}
-            step="0.01"
-            value={state.currentTime}
-            onChange={(e) => state.setCurrentTime(parseFloat(e.target.value))}
-          />
-
-          <span className="nc-time-readout">
-            {state.currentTime.toFixed(2)}s / {state.duration.toFixed(2)}s
-          </span>
-
-          <button onClick={() => state.addNode("mediaIn", 120, 220)}>+ Media</button>
-          <button onClick={() => state.addNode("text", 160, 260)}>+ Text</button>
-          <button onClick={() => state.addNode("transform", 200, 300)}>+ Transform</button>
-          <button onClick={() => state.addNode("path", 220, 320)}>+ Path</button>
-          <button onClick={() => state.addNode("camera", 240, 340)}>+ Camera</button>
-          <button onClick={() => state.addNode("colorCorrect", 260, 360)}>+ Color</button>
-          <button onClick={() => state.addNode("blur", 280, 380)}>+ Blur</button>
-          <button onClick={() => state.addNode("adjustment", 300, 400)}>+ Adjustment</button>
-          <button onClick={() => state.addNode("mask", 320, 420)}>+ Mask</button>
-          <button onClick={() => state.addNode("merge", 340, 440)}>+ Merge</button>
-          <button onClick={state.duplicateSelectedNode} disabled={!state.selectedNode}>
-            Duplicate
-          </button>
-          <button onClick={handleExport}>Export JSON</button>
-          <button onClick={handleImportClick}>Import JSON</button>
-          <button className="nc-danger-btn compact" onClick={state.clearGraph}>
-            Clear
-          </button>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json,application/json"
-            style={{ display: "none" }}
-            onChange={handleImportFile}
-          />
+          <button onClick={seedStarterGraph}>Starter Graph</button>
+          <button onClick={() => addNode("mediaIn", 120, 120)}>+ Media</button>
+          <button onClick={() => addNode("text", 120, 240)}>+ Text</button>
+          <button onClick={() => addNode("merge", 360, 180)}>+ Merge</button>
+          <button onClick={() => addNode("output", 640, 180)}>+ Output</button>
+          <button onClick={duplicateSelectedNode} disabled={!selectedNode}>Duplicate</button>
+          <button onClick={removeSelectedNode} disabled={!selectedNode}>Delete</button>
         </div>
       </div>
 
-      <div className="nc-layout">
-        <div className="nc-left">
-          <NodeLibraryPanel addNode={state.addNode} />
-          <MinimapPanel nodes={state.nodes} selectedNodeId={state.selectedNodeId} />
-        
+      {motionPayload?.url && (
+        <div className="nc-import-banner">
+          <div>
+            Ready to import from Motion: <strong>{motionPayload.name || "Untitled Media"}</strong>
+          </div>
+          <button className="nc-btn-primary" onClick={importMotionMedia}>Add to Graph</button>
+        </div>
+      )}
 
-      <div className="nc-tool-switcher">
-        <button className={activeTool === "export" ? "active" : ""} onClick={() => setActiveTool("export")}>Video Export</button>
-        <button className={activeTool === "beatSync" ? "active" : ""} onClick={() => setActiveTool("beatSync")}>Beat Sync</button>
-        <button className={activeTool === "aiAutoEdit" ? "active" : ""} onClick={() => setActiveTool("aiAutoEdit")}>AI Auto Edit</button>
+      <div className="nc-tool-tabs">
+        <button className={toolTab === "graph" ? "active" : ""} onClick={() => setToolTab("graph")}>Graph</button>
+        <button className={toolTab === "export" ? "active" : ""} onClick={() => setToolTab("export")}>Video Export</button>
+        <button className={toolTab === "beat" ? "active" : ""} onClick={() => setToolTab("beat")}>Beat Sync</button>
+        <button className={toolTab === "auto" ? "active" : ""} onClick={() => setToolTab("auto")}>AI Auto Edit</button>
       </div>
 
-      <div className="nc-tool-host">
-        {activeTool === "export" && (
-          <VideoExportPanel nodes={state.nodes || []} edges={state.edges || []} currentTime={state.currentTime || 0} />
-        )}
-        {activeTool === "beatSync" && (
-          <BeatSyncPanel nodes={state.nodes || []} currentTime={state.currentTime || 0} />
-        )}
-        {activeTool === "aiAutoEdit" && (
-          <AIAutoEditPanel nodes={state.nodes || []} edges={state.edges || []} />
-        )}
-      </div>
+      <div className="nc-main-grid">
+        <div className="nc-graph-column">
+          {toolTab === "graph" ? (
+            <div className="nc-graph-panel">
+              <div className="nc-panel-title">Node Graph</div>
 
-</div>
+              <div className="nc-node-toolbar">
+                <button onClick={() => addNode("mediaIn", 120, 120)}>Media</button>
+                <button onClick={() => addNode("text", 120, 240)}>Text</button>
+                <button onClick={() => addNode("merge", 360, 180)}>Merge</button>
+                <button onClick={() => addNode("output", 640, 180)}>Output</button>
+              </div>
 
-        <div className="nc-center">
-          <NodeGraphCanvas
-            nodes={state.nodes}
-            edges={state.edges}
-            groups={state.groups}
-            selectedNodeId={state.selectedNodeId}
-            setSelectedNodeId={state.setSelectedNodeId}
-            selectedEdgeId={state.selectedEdgeId}
-            setSelectedEdgeId={state.setSelectedEdgeId}
-            updateNodePosition={state.updateNodePosition}
-            addEdge={state.addEdge}
-          />
+              <div className="nc-graph-canvas">
+                {nodes.map((node) => (
+                  <button
+                    key={node.id}
+                    className={`nc-node-card ${selectedNodeId === node.id ? "selected" : ""}`}
+                    style={{ left: node.x || 0, top: node.y || 0 }}
+                    onClick={() => setSelectedNodeId(node.id)}
+                    type="button"
+                  >
+                    <div className="nc-node-type">{node.type}</div>
+                    <div className="nc-node-name">{node.properties?.name || node.type}</div>
+                  </button>
+                ))}
+
+                {!nodes.length && (
+                  <div className="nc-empty-graph">
+                    <div className="nc-empty-title">No nodes yet</div>
+                    <div className="nc-empty-subtitle">Create a starter graph or add nodes above.</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : toolTab === "export" ? (
+            <VideoExportToolPanel projectName={projectName} currentTime={currentTime} duration={duration} />
+          ) : toolTab === "beat" ? (
+            <BeatSyncToolPanel />
+          ) : (
+            <AIAutoEditToolPanel />
+          )}
         </div>
 
-        <div className="nc-right">
-          <NodePreviewPanel
-            nodes={state.nodes}
-            edges={state.edges}
-            currentTime={state.currentTime}
-          />
+        <div className="nc-side-column">
+          <NodePreviewPanel nodes={nodes} edges={edges} currentTime={currentTime} />
 
-          <NodeInspectorPanel
-            selectedNode={state.selectedNode}
-            selectedEdge={state.selectedEdge}
-            selectedGroup={state.selectedGroup}
-            presets={state.presets}
-            updateNodeProperties={state.updateNodeProperties}
-            updateNodeMeta={state.updateNodeMeta}
-            removeNode={state.removeNode}
-            removeEdge={state.removeEdge}
-            currentTime={state.currentTime}
-            addKeyframeToSelectedNode={state.addKeyframeToSelectedNode}
-            removeKeyframeFromSelectedNode={state.removeKeyframeFromSelectedNode}
-            addGroupFromSelectedNode={state.addGroupFromSelectedNode}
-            toggleGroupCollapsed={state.toggleGroupCollapsed}
-            saveSelectedNodePreset={state.saveSelectedNodePreset}
-            applyPresetToSelectedNode={state.applyPresetToSelectedNode}
-          />
+          <div className="nc-panel nc-inspector-wrap">
+            <div className="nc-panel-title">Inspector</div>
+
+            {selectedNode ? (
+              <>
+                <label className="nc-tool-field">
+                  <span>Name</span>
+                  <input
+                    value={selectedNode.properties?.name || ""}
+                    onChange={(e) => updateSelectedNode({ name: e.target.value })}
+                  />
+                </label>
+
+                {selectedNode.type === "text" && (
+                  <>
+                    <label className="nc-tool-field">
+                      <span>Text</span>
+                      <textarea
+                        rows={4}
+                        value={selectedNode.properties?.text || ""}
+                        onChange={(e) => updateSelectedNode({ text: e.target.value })}
+                      />
+                    </label>
+
+                    <label className="nc-tool-field">
+                      <span>Color</span>
+                      <input
+                        type="color"
+                        value={selectedNode.properties?.color || "#ffffff"}
+                        onChange={(e) => updateSelectedNode({ color: e.target.value })}
+                      />
+                    </label>
+
+                    <label className="nc-tool-field">
+                      <span>Font Size</span>
+                      <input
+                        type="number"
+                        value={selectedNode.properties?.fontSize || 42}
+                        onChange={(e) => updateSelectedNode({ fontSize: parseInt(e.target.value || 42, 10) })}
+                      />
+                    </label>
+                  </>
+                )}
+
+                {selectedNode.type === "mediaIn" && (
+                  <label className="nc-tool-field">
+                    <span>Media URL</span>
+                    <input
+                      value={selectedNode.properties?.mediaUrl || ""}
+                      onChange={(e) => updateSelectedNode({ mediaUrl: e.target.value })}
+                    />
+                  </label>
+                )}
+
+                {selectedNode.type === "merge" && (
+                  <label className="nc-tool-field">
+                    <span>Opacity</span>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={selectedNode.properties?.opacity ?? 1}
+                      onChange={(e) => updateSelectedNode({ opacity: parseFloat(e.target.value) })}
+                    />
+                  </label>
+                )}
+              </>
+            ) : (
+              <div className="nc-tool-note">Select a node to edit its properties.</div>
+            )}
+          </div>
         </div>
       </div>
 
       <NodeTimelinePanel
-        currentTime={state.currentTime}
-        duration={state.duration}
-        isPlaying={state.isPlaying}
-        setCurrentTime={state.setCurrentTime}
-        setIsPlaying={state.setIsPlaying}
+        currentTime={currentTime}
+        duration={duration}
+        isPlaying={isPlaying}
+        setCurrentTime={setCurrentTime}
+        setIsPlaying={setIsPlaying}
       />
     </div>
   );

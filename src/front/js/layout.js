@@ -1,6 +1,5 @@
 import React, { useEffect, useContext } from "react";
 import {
-import SPXCanvasPage from "./pages/SPXCanvasPage";
     BrowserRouter as Router,
     Routes,
     Route,
@@ -8,6 +7,8 @@ import SPXCanvasPage from "./pages/SPXCanvasPage";
     useLocation,
     Link
 } from "react-router-dom";
+import SPXCanvasPage from "./pages/SPXCanvasPage";
+import SPXVectorPage from "./pages/SPXVectorPage";
 
 import ScrollToTop from "./component/scrollToTop";
 import injectContext, { Context } from "./store/appContext";
@@ -533,6 +534,7 @@ const AppShell = ({ user }) => {
 						<Route path="/motion-studio" element={<MotionStudioPage />} />
                                             <Route path="/node-compositor" element={<NodeCompositorPage />} />
                                             <Route path="/spx-canvas" element={<SPXCanvasPage />} />
+                                            <Route path="/spx-vector" element={<SPXVectorPage />} />
                                             <Route path="/video-export" element={<VideoExportPage />} />
                                             <Route path="/beat-sync" element={<BeatSyncPage />} />
                                             <Route path="/ai-auto-edit" element={<AIAutoEditPage />} />

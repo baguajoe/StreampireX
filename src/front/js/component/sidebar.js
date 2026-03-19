@@ -731,6 +731,9 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/spx-canvas" className={isActive("/spx-canvas") ? "active" : ""}>
             🎨 <span className="sidebar-label">SPX Canvas</span>
           </MenuItem>
+          <MenuItem to="/spx-vector" className={isActive("/spx-vector") ? "active" : ""}>
+            ✒️ <span className="sidebar-label">SPX Vector</span>
+          </MenuItem>
           <MenuItem to="/ai-video-studio" className={isActive("/ai-video-studio") ? "active" : ""}>
             🤖 <span className="sidebar-label">AI Video Studio</span>
             <MenuHint className="sidebar-hint">NEW</MenuHint>
