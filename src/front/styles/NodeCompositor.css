@@ -1,0 +1,608 @@
+.nc-page {
+  min-height: 100vh;
+  background: #0b0f14;
+  color: #e6edf3;
+  padding: 14px;
+}
+
+.nc-topbar {
+  background: #11161d;
+  border: 1px solid #222b36;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.nc-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #00ffc8;
+}
+
+.nc-subtitle {
+  color: #8aa0b7;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.nc-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 340px;
+  gap: 14px;
+  min-height: 820px;
+}
+
+.nc-left,
+.nc-right {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nc-panel {
+  background: #11161d;
+  border: 1px solid #222b36;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.nc-panel-title {
+  font-weight: 800;
+  color: #00ffc8;
+  margin-bottom: 10px;
+}
+
+.nc-dim {
+  color: #7f92a6;
+  font-size: 12px;
+}
+
+.nc-node-library {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nc-library-btn,
+.nc-danger-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #18212c;
+  color: #e6edf3;
+  border: 1px solid #2b3744;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.nc-library-btn:hover,
+.nc-danger-btn:hover {
+  border-color: #00ffc8;
+}
+
+.nc-library-dot,
+.nc-node-header-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.nc-node-badge {
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 6px 10px;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.nc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.nc-field label {
+  color: #8aa0b7;
+  font-size: 12px;
+}
+
+.nc-field input,
+.nc-field select {
+  width: 100%;
+  background: #18212c;
+  color: #e6edf3;
+  border: 1px solid #2b3744;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.nc-danger-btn {
+  margin-top: 8px;
+  justify-content: center;
+}
+
+.nc-center {
+  background: #11161d;
+  border: 1px solid #222b36;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.nc-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 820px;
+  overflow: auto;
+}
+
+.nc-canvas-grid {
+  position: relative;
+  width: 2400px;
+  height: 1600px;
+  background:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.nc-edge-layer {
+  position: absolute;
+  inset: 0;
+  width: 2400px;
+  height: 1600px;
+  pointer-events: none;
+}
+
+.nc-edge-path {
+  fill: none;
+  stroke: rgba(0,255,200,0.75);
+  stroke-width: 3;
+}
+
+.nc-node {
+  position: absolute;
+  width: 180px;
+  min-height: 88px;
+  background: #161c24;
+  border: 1px solid #2b3744;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  user-select: none;
+  cursor: move;
+}
+
+.nc-node.selected {
+  box-shadow: 0 0 0 2px rgba(0,255,200,0.25), 0 10px 30px rgba(0,0,0,0.35);
+}
+
+.nc-node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-weight: 700;
+}
+
+.nc-node-body {
+  padding: 10px 12px;
+}
+
+.nc-node-ports {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nc-node-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nc-node-side-right {
+  align-items: flex-end;
+}
+
+.nc-port-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nc-port-row.right {
+  justify-content: flex-end;
+}
+
+.nc-port {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #8aa0b7;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.nc-port-in {
+  background: #ff9800;
+}
+
+.nc-port-out {
+  background: #00ffc8;
+}
+
+.nc-port-label {
+  font-size: 11px;
+  color: #9fb2c4;
+}
+
+.nc-preview {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  border: 1px solid #2b3744;
+  background:
+    radial-gradient(circle at top, rgba(0,255,200,0.12), transparent 35%),
+    linear-gradient(180deg, #07111a, #0b0f14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nc-preview-inner {
+  text-align: center;
+  padding: 20px;
+}
+
+.nc-preview-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.nc-preview-subtitle {
+  margin-top: 8px;
+  color: #8aa0b7;
+}
+
+@media (max-width: 1200px) {
+  .nc-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nc-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.nc-topbar-actions button {
+  background: #18212c;
+  color: #e6edf3;
+  border: 1px solid #2b3744;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.nc-topbar-actions button:hover {
+  border-color: #00ffc8;
+}
+
+.nc-danger-btn.compact {
+  margin-top: 0;
+  padding: 8px 10px;
+}
+
+.nc-edge-badge {
+  border-color: #00ffc8;
+  margin-bottom: 10px;
+}
+
+.nc-port {
+  appearance: none;
+  padding: 0;
+  cursor: crosshair;
+}
+
+.nc-edge-path {
+  fill: none;
+  stroke: rgba(0,255,200,0.75);
+  stroke-width: 3;
+  cursor: pointer;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease;
+}
+
+.nc-edge-path:hover {
+  stroke: rgba(255,152,0,0.9);
+}
+
+.nc-edge-path.selected {
+  stroke: #ff9800;
+  stroke-width: 4;
+}
+
+.nc-edge-live {
+  stroke-dasharray: 10 6;
+  animation: ncDash 0.8s linear infinite;
+}
+
+@keyframes ncDash {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+.nc-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.nc-topbar-actions button {
+  background: #18212c;
+  color: #e6edf3;
+  border: 1px solid #2b3744;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.nc-topbar-actions button:hover {
+  border-color: #00ffc8;
+}
+
+.nc-danger-btn.compact {
+  margin-top: 0;
+  padding: 8px 10px;
+}
+
+.nc-edge-badge {
+  border-color: #00ffc8;
+  margin-bottom: 10px;
+}
+
+.nc-port {
+  appearance: none;
+  padding: 0;
+  cursor: crosshair;
+}
+
+.nc-edge-path {
+  fill: none;
+  stroke: rgba(0,255,200,0.75);
+  stroke-width: 3;
+  cursor: pointer;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease;
+}
+
+.nc-edge-path:hover {
+  stroke: rgba(255,152,0,0.9);
+}
+
+.nc-edge-path.selected {
+  stroke: #ff9800;
+  stroke-width: 4;
+}
+
+.nc-edge-live {
+  stroke-dasharray: 10 6;
+  animation: ncDash 0.8s linear infinite;
+}
+
+@keyframes ncDash {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+
+.nc-topbar-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: #2b3744;
+}
+
+.nc-topbar-actions button:disabled:hover {
+  border-color: #2b3744;
+}
+
+
+.nc-preview-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top, rgba(0,255,200,0.12), transparent 35%),
+    linear-gradient(180deg, #07111a, #0b0f14);
+}
+
+.nc-preview-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.nc-preview-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.nc-preview-subtitle {
+  margin-top: 8px;
+  color: #8aa0b7;
+  text-align: center;
+  padding: 0 20px;
+}
+
+
+.nc-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.nc-preview-meta {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+
+.nc-time-readout {
+  color: #8aa0b7;
+  font-size: 12px;
+  min-width: 110px;
+}
+
+.nc-keyframe-panel {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.nc-key-btn {
+  width: 100%;
+  background: #18212c;
+  color: #e6edf3;
+  border: 1px solid #2b3744;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  margin-top: 6px;
+}
+
+.nc-key-btn:hover {
+  border-color: #00ffc8;
+}
+
+.nc-keyframe-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nc-keyframe-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  background: #18212c;
+  border: 1px solid #2b3744;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.nc-keyframe-row button {
+  background: transparent;
+  color: #ff8a8a;
+  border: none;
+  cursor: pointer;
+}
+
+/* === TIMELINE PANEL === */
+.nc-timeline {
+  padding: 10px;
+  border-top: 1px solid #1e2330;
+  background: #07090f;
+}
+
+.nc-timeline-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.nc-timeline-slider {
+  width: 100%;
+}
+
+
+/* internal compositor tools */
+.nc-tool-switcher {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.nc-tool-switcher button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #2a3441;
+  background: #101720;
+  color: #c9d1d9;
+  cursor: pointer;
+}
+
+.nc-tool-switcher button.active {
+  background: rgba(0,255,200,0.12);
+  border-color: #00ffc8;
+  color: #00ffc8;
+}
+
+.nc-tool-host {
+  margin-top: 12px;
+}
+
+.nc-tool-panel {
+  background: #0f141b;
+  border: 1px solid #1f2a36;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.nc-primary-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #00ffc8;
+  color: #06131f;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.nc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.nc-field input,
+.nc-field select {
+  background: #0b1016;
+  color: #c9d1d9;
+  border: 1px solid #2a3441;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.nc-check {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  color: #c9d1d9;
+}

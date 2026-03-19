@@ -4,7 +4,19 @@ const getState = ({ getStore, getActions, setStore }) => {
             message: null,
             token: localStorage.getItem("token") || null,
             user: JSON.parse(localStorage.getItem("user")) || null,
-            error: null
+            error: null, // <--- ADD THIS COMMA
+            motion: {
+                url: null,
+                type: null,
+                name: null,
+                timestamp: null
+            },
+            motionTransfer: {
+                url: null,
+                type: null,
+                name: null,
+                timestamp: null
+            }
         },
         actions: {
             signup: async (formData) => {
@@ -68,16 +80,56 @@ const getState = ({ getStore, getActions, setStore }) => {
             },
 
             logout: () => {
-                // Remove token from localStorage and store
                 localStorage.removeItem("token");
                 localStorage.removeItem("user");
 
                 setStore({
                     token: null,
-                    user: null
+                    user: null,
+                    motion: {
+                        url: null,
+                        type: null,
+                        name: null,
+                        timestamp: null
+                    },
+                    motionTransfer: {
+                        url: null,
+                        type: null,
+                        name: null,
+                        timestamp: null
+                    }
                 });
             },
 
+            sendToMotion: (media) => {
+                const payload = {
+                    ...media,
+                    timestamp: Date.now()
+                };
+
+                setStore({
+                    motion: payload,
+                    motionTransfer: payload
+                });
+            },
+
+            clearMotionTransfer: () => {
+                setStore({
+                    motion: {
+                        url: null,
+                        type: null,
+                        name: null,
+                        timestamp: null
+                    },
+                    motionTransfer: {
+                        url: null,
+                        type: null,
+                        name: null,
+                        timestamp: null
+                    }
+                });
+            },
+            
             // Check if token is valid and fetch user profile
             checkToken: async () => {
                 const token = localStorage.getItem("token");

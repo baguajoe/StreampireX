@@ -16,7 +16,13 @@ const injectContext = PassedComponent => {
 				setStore: updatedStore =>
 					setState({
 						store: Object.assign(state.store, updatedStore),
-						actions: { ...state.actions }
+						actions: {
+            sendToMotion: (payload) => {
+                setStore({ motionTransfer: payload });
+            },
+            clearMotionTransfer: () => {
+                setStore({ motionTransfer: null });
+            }, ...state.actions }
 					})
 			})
 		);

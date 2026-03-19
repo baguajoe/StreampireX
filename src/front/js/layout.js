@@ -142,6 +142,10 @@ import ArtistProfilePage from "./pages/ArtistProfilePage";
 import CollaboratorSplitPage from "./pages/CollaboratorSplitPage";
 import VideoEditor from "./pages/VideoEditor";
 import MotionStudioPage from "./pages/MotionStudioPage";
+import VideoExportPage from "./pages/VideoExportPage";
+import BeatSyncPage from "./pages/BeatSyncPage";
+import AIAutoEditPage from "./pages/AIAutoEditPage";
+import NodeCompositorPage from "./pages/NodeCompositorPage";
 import RecordingStudio from "./pages/RecordingStudio";
 
 import EditGamerProfilePage from "./pages/EditGamerProfilePage";
@@ -526,6 +530,10 @@ const AppShell = ({ user }) => {
                                 <Route path="/video/:id" element={<VideoDetails />} />
                                 <Route path="/video-editor" element={<VideoEditor />} />
 						<Route path="/motion-studio" element={<MotionStudioPage />} />
+                                            <Route path="/node-compositor" element={<NodeCompositorPage />} />
+                                            <Route path="/video-export" element={<VideoExportPage />} />
+                                            <Route path="/beat-sync" element={<BeatSyncPage />} />
+                                            <Route path="/ai-auto-edit" element={<AIAutoEditPage />} />
                                 <Route path="/video-channel/:id" element={<VideoChannelProfile />} />
                                 <Route path="/my-video-channel" element={<MyVideoChannel />} />
                                 <Route path="/user-video-channel/:id" element={<UserVideoChannelPage />} />

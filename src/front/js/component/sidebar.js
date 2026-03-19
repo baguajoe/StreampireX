@@ -727,6 +727,10 @@ const Sidebar = ({ user }) => {
           <MenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>
             ✨ <span className="sidebar-label">SPX Motion</span>
           </MenuItem>
+          <MenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>
+            🧩 SPX Motion
+          </MenuItem>
+
           <MenuItem to="/ai-content-writer" className={isActive("/ai-content-writer") ? "active" : ""}>
             ✍️ <span className="sidebar-label">AI Content Writer</span>
           </MenuItem>

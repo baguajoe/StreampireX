@@ -15,8 +15,12 @@
 // - Simple MIDI export (pianoRollNotes -> .mid download)
 // - InstrumentTrackEngine integration (GM Synth, Samples, External MIDI, Beat Maker → Arrange)
 // =============================================================================
+import React, { useState, useEffect, useRef, useCallback, useMemo, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { Context } from "../store/appContext";
+import SendToMotionButton from "../component/SendToMotionButton";
+import { sendToMotion } from "../utils/motionHelpers";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import ArrangerView from "../component/ArrangerView";
 import AIMixAssistant from "../component/AIMixAssistant";
 import ChannelStripAIMix from "../component/ChannelStripAIMix";
@@ -36,7 +40,6 @@ import { InlineStemSeparation, AudioToMIDIPanel, PitchCorrectionPanel } from "..
 import SaveAsModal from '../component/SaveAsModal';
 import MultibandEffects from '../component/MultibandEffects';
 import '../../styles/VoiceToMIDI.css';
-
 
 // ── Piano Roll / MIDI / Chord imports ──
 import PianoRoll from "../component/PianoRoll";
@@ -363,7 +366,7 @@ const MicModelSelector = React.memo(({ trackIndex, currentModel, onApply }) => {
   // landBufferOnTrack removed — was referencing out-of-scope vars
 
   return (
-    <div style={{ position: "relative" }}>
+    <>
       <div
         onClick={() => setIsOpen(!isOpen)}
         style={{
@@ -403,68 +406,49 @@ const MicModelSelector = React.memo(({ trackIndex, currentModel, onApply }) => {
             minWidth: 200,
             maxHeight: 320,
             overflowY: "auto",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
           }}
-          onClick={(e) => e.stopPropagation()}
         >
           <div
+            onClick={() => {
+              onApply(trackIndex, "none");
+              setIsOpen(false);
+            }}
             style={{
-              padding: "4px 10px",
-              fontSize: "0.55rem",
-              color: "#ff6b9d",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
+              padding: "8px 12px",
+              cursor: "pointer",
+              fontSize: "0.75rem",
+              color: currentModel === "none" || !currentModel ? "#00ffc8" : "#c9d1d9",
+              background: currentModel === "none" || !currentModel ? "rgba(0,255,200,0.08)" : "transparent",
             }}
           >
-            Mic Model
+            None
           </div>
 
           {Object.entries(MIC_MODELS).map(([key, mic]) => (
             <div
               key={key}
-              style={{
-                padding: "5px 12px",
-                fontSize: "0.65rem",
-                color: currentModel === key ? "#ff6b9d" : key === "none" ? "#8899aa" : "#ddeeff",
-                cursor: "pointer",
-                background: currentModel === key ? "rgba(255,107,157,0.08)" : "transparent",
-                transition: "background 0.1s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background =
-                  currentModel === key ? "rgba(255,107,157,0.12)" : "rgba(90,200,250,0.08)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background =
-                  currentModel === key ? "rgba(255,107,157,0.08)" : "transparent";
-              }}
               onClick={() => {
                 onApply(trackIndex, key);
                 setIsOpen(false);
               }}
+              style={{
+                padding: "8px 12px",
+                cursor: "pointer",
+                fontSize: "0.75rem",
+                color: currentModel === key ? "#00ffc8" : "#c9d1d9",
+                background: currentModel === key ? "rgba(0,255,200,0.08)" : "transparent",
+                borderTop: "1px solid rgba(255,255,255,0.04)",
+              }}
+              title={mic?.desc || ""}
             >
-              <div style={{ fontWeight: currentModel === key ? 700 : 400 }}>
-                {currentModel === key ? "✓ " : ""}
-                {mic.name}
-              </div>
-              {mic.desc && (
-                <div style={{ fontSize: "0.5rem", color: "#5a7088", marginTop: 1 }}>
-                  {mic.desc}
-                </div>
-              )}
+              <div style={{ fontWeight: 700 }}>{mic?.name || key}</div>
+              <div style={{ fontSize: "0.65rem", opacity: 0.75 }}>{mic?.desc || ""}</div>
             </div>
           ))}
-
-          <div style={{ borderTop: "1px solid #0f1820", margin: "4px 0" }} />
-          <div
-            style={{ padding: "4px 12px", fontSize: "0.6rem", color: "#5a7088", fontStyle: "italic" }}
-          >
-            Applies EQ curve to track
-          </div>
         </div>
       )}
-    </div>
+    </>
   );
 });
 // ── STEP 8: MidiRegionPreview — mini piano-roll inside region ──
@@ -597,8 +581,9 @@ const RecordingStudio = ({ user }) => {
   const [masterVolume, setMasterVolume] = useState(0.8);
   const [masterPan, setMasterPan] = useState(0); // NEW: master pan state
   const [tracks, setTracks] = useState(Array.from({ length: 1 }, (_, i) => DEFAULT_TRACK(i)));
-  const [trackMicModels, setTrackMicModels] = useState({});
 
+  const motionAudioUrl = tracks?.[selectedTrack]?.audio_url || tracks?.find((t) => t?.audio_url)?.audio_url || null;
+  const [trackMicModels, setTrackMicModels] = useState({});
 
   // ── DAW Collaboration ──
   const collab = useDAWCollaboration({
@@ -3629,8 +3614,6 @@ const RecordingStudio = ({ user }) => {
           </div>
         )}
 
-
-
         {viewMode === "vocal" && (
           <div className="daw-vocal-view">
             <VocalProcessor
@@ -3782,7 +3765,6 @@ const RecordingStudio = ({ user }) => {
             />
           </div>
         )}
-
 
         {viewMode === "voicemidi" && (
           <div className="daw-voicemidi-view">
@@ -4059,3 +4041,23 @@ const RecordingStudio = ({ user }) => {
 };
 
 export default RecordingStudio;
+
+// 🔥 SPX → Motion Button
+const MotionButton = ({ url }) => {
+  const { actions } = useContext(Context);
+  const navigate = useNavigate();
+
+  const handleSend = () => {
+    sendToMotion(actions, navigate, {
+      type: "audio",
+      url,
+      name: "Recording"
+    });
+  };
+
+  return (
+    <button onClick={handleSend} style={{ marginTop: 10 }}>
+      Send to Motion Studio 🎬
+    </button>
+  );
+};
