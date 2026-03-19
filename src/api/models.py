@@ -7700,3 +7700,62 @@ TIER_FREE_CREDITS = {
     "Pro": 200,
     "Studio": 1000
 }
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SPX Canvas
+# ──────────────────────────────────────────────────────────────────────────────
+
+class CanvasProject(db.Model):
+    __tablename__ = "canvas_project"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=True, index=True)
+    name = db.Column(db.String(255), nullable=False, default="Untitled Canvas")
+    width = db.Column(db.Integer, nullable=False, default=1280)
+    height = db.Column(db.Integer, nullable=False, default=720)
+    background = db.Column(db.String(32), nullable=True, default="#111827")
+    data_json = db.Column(db.Text, nullable=False, default="{}")
+    thumbnail_url = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+    def serialize(self):
+        import json
+        try:
+            parsed = json.loads(self.data_json) if self.data_json else {}
+        except Exception:
+            parsed = {}
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "name": self.name,
+            "width": self.width,
+            "height": self.height,
+            "background": self.background,
+            "thumbnail_url": self.thumbnail_url,
+            "data_json": parsed,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class CanvasAsset(db.Model):
+    __tablename__ = "canvas_asset"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=True, index=True)
+    name = db.Column(db.String(255), nullable=False)
+    file_url = db.Column(db.String(500), nullable=False)
+    file_type = db.Column(db.String(50), nullable=True, default="image")
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "name": self.name,
+            "file_url": self.file_url,
+            "file_type": self.file_type,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }

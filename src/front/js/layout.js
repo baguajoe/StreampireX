@@ -1,5 +1,6 @@
 import React, { useEffect, useContext } from "react";
 import {
+import SPXCanvasPage from "./pages/SPXCanvasPage";
     BrowserRouter as Router,
     Routes,
     Route,
@@ -531,6 +532,7 @@ const AppShell = ({ user }) => {
                                 <Route path="/video-editor" element={<VideoEditor />} />
 						<Route path="/motion-studio" element={<MotionStudioPage />} />
                                             <Route path="/node-compositor" element={<NodeCompositorPage />} />
+                                            <Route path="/spx-canvas" element={<SPXCanvasPage />} />
                                             <Route path="/video-export" element={<VideoExportPage />} />
                                             <Route path="/beat-sync" element={<BeatSyncPage />} />
                                             <Route path="/ai-auto-edit" element={<AIAutoEditPage />} />

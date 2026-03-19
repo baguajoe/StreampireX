@@ -320,19 +320,19 @@ const Sidebar = ({ user }) => {
   const [gamingNotifications, setGamingNotifications] = useState({ chatrooms: 0, teamRoom: 0, squads: 0 });
 
   // ── Section collapse states ──
-  const [showProfiles,  setShowProfiles]  = useState(true);
-  const [showFeed,      setShowFeed]      = useState(true);
-  const [showMusic,     setShowMusic]     = useState(true);
-  const [showFilm,      setShowFilm]      = useState(true);
-  const [showPodcast,   setShowPodcast]   = useState(false);
-  const [showGaming,    setShowGaming]    = useState(false);
-  const [showAcademy,   setShowAcademy]   = useState(false);
-  const [showContent,   setShowContent]   = useState(true);
-  const [showStore,     setShowStore]     = useState(false);
-  const [showAI,        setShowAI]        = useState(false);
-  const [showRadio,     setShowRadio]     = useState(false);
+  const [showProfiles, setShowProfiles] = useState(true);
+  const [showFeed, setShowFeed] = useState(true);
+  const [showMusic, setShowMusic] = useState(true);
+  const [showFilm, setShowFilm] = useState(true);
+  const [showPodcast, setShowPodcast] = useState(false);
+  const [showGaming, setShowGaming] = useState(false);
+  const [showAcademy, setShowAcademy] = useState(false);
+  const [showContent, setShowContent] = useState(true);
+  const [showStore, setShowStore] = useState(false);
+  const [showAI, setShowAI] = useState(false);
+  const [showRadio, setShowRadio] = useState(false);
   const [showDashboard, setShowDashboard] = useState(true);
-  const [showAccount,   setShowAccount]   = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
 
   const hasArtistProfile =
     user?.is_artist === true ||
@@ -358,20 +358,20 @@ const Sidebar = ({ user }) => {
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("sidebar_sections") || "{}");
-      if (saved.profiles  !== undefined) setShowProfiles(saved.profiles);
-      if (saved.feed      !== undefined) setShowFeed(saved.feed);
-      if (saved.music     !== undefined) setShowMusic(saved.music);
-      if (saved.film      !== undefined) setShowFilm(saved.film);
-      if (saved.podcast   !== undefined) setShowPodcast(saved.podcast);
-      if (saved.gaming    !== undefined) setShowGaming(saved.gaming);
-      if (saved.academy   !== undefined) setShowAcademy(saved.academy);
-      if (saved.content   !== undefined) setShowContent(saved.content);
-      if (saved.store     !== undefined) setShowStore(saved.store);
-      if (saved.ai        !== undefined) setShowAI(saved.ai);
-      if (saved.radio     !== undefined) setShowRadio(saved.radio);
+      if (saved.profiles !== undefined) setShowProfiles(saved.profiles);
+      if (saved.feed !== undefined) setShowFeed(saved.feed);
+      if (saved.music !== undefined) setShowMusic(saved.music);
+      if (saved.film !== undefined) setShowFilm(saved.film);
+      if (saved.podcast !== undefined) setShowPodcast(saved.podcast);
+      if (saved.gaming !== undefined) setShowGaming(saved.gaming);
+      if (saved.academy !== undefined) setShowAcademy(saved.academy);
+      if (saved.content !== undefined) setShowContent(saved.content);
+      if (saved.store !== undefined) setShowStore(saved.store);
+      if (saved.ai !== undefined) setShowAI(saved.ai);
+      if (saved.radio !== undefined) setShowRadio(saved.radio);
       if (saved.dashboard !== undefined) setShowDashboard(saved.dashboard);
-      if (saved.account   !== undefined) setShowAccount(saved.account);
-    } catch (e) {}
+      if (saved.account !== undefined) setShowAccount(saved.account);
+    } catch (e) { }
   }, []);
 
   useEffect(() => {
@@ -382,7 +382,7 @@ const Sidebar = ({ user }) => {
       ai: showAI, radio: showRadio, dashboard: showDashboard, account: showAccount
     }));
   }, [showProfiles, showFeed, showMusic, showFilm, showPodcast, showGaming,
-      showAcademy, showContent, showStore, showAI, showRadio, showDashboard, showAccount]);
+    showAcademy, showContent, showStore, showAI, showRadio, showDashboard, showAccount]);
 
   return (
     <SidebarContainer className={`sidebar${collapsed ? ' collapsed' : ''}`}>
@@ -479,19 +479,19 @@ const Sidebar = ({ user }) => {
 
       {showFeed && (
         <>
-          <MenuItem to="/home-feed"        className={isActive("/home-feed") ? "active" : ""}>
+          <MenuItem to="/home-feed" className={isActive("/home-feed") ? "active" : ""}>
             🏠 <span className="sidebar-label">Home Feed</span>
           </MenuItem>
-          <MenuItem to="/discover-users"   className={isActive("/discover-users") ? "active" : ""}>
+          <MenuItem to="/discover-users" className={isActive("/discover-users") ? "active" : ""}>
             🔍 <span className="sidebar-label">Discover Users</span>
           </MenuItem>
-          <MenuItem to="/content-library"  className={isActive("/content-library") ? "active" : ""}>
+          <MenuItem to="/content-library" className={isActive("/content-library") ? "active" : ""}>
             📚 <span className="sidebar-label">Content Library</span>
           </MenuItem>
-          <MenuItem to="/search"           className={isActive("/search") ? "active" : ""}>
+          <MenuItem to="/search" className={isActive("/search") ? "active" : ""}>
             🔎 <span className="sidebar-label">Search</span>
           </MenuItem>
-          <MenuItem to="/explore"          className={isActive("/explore") ? "active" : ""}>
+          <MenuItem to="/explore" className={isActive("/explore") ? "active" : ""}>
             🌐 <span className="sidebar-label">Explore</span>
           </MenuItem>
         </>
@@ -720,36 +720,38 @@ const Sidebar = ({ user }) => {
             🎬 <span className="sidebar-label">Video Editor</span>
             <MenuHint className="sidebar-hint">FREE</MenuHint>
           </MenuItem>
-          <MenuItem to="/ai-video-studio" className={isActive("/ai-video-studio") ? "active" : ""}>
-            🤖 <span className="sidebar-label">AI Video Studio</span>
-            <MenuHint className="sidebar-hint">NEW</MenuHint>
-          </MenuItem>
-          <MenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>
-            ✨ <span className="sidebar-label">SPX Motion</span>
-          </MenuItem>
-          <MenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>
-            🧩 SPX Compositor
-          </MenuItem>
-
-          <MenuItem to="/ai-content-writer" className={isActive("/ai-content-writer") ? "active" : ""}>
-            ✍️ <span className="sidebar-label">AI Content Writer</span>
-          </MenuItem>
-          <MenuItem to="/browse-videos" className={isActive("/browse-videos") ? "active" : ""}>
-            🎞️ <span className="sidebar-label">Browse Videos</span>
-          </MenuItem>
-          <MenuItem to="/video-upload" className={isActive("/video-upload") ? "active" : ""}>
-            📤 <span className="sidebar-label">Upload Video</span>
-          </MenuItem>
-          <MenuItem to="/reels" className={isActive("/reels") ? "active" : ""}>
-            🎞️ <span className="sidebar-label">Reels</span>
-          </MenuItem>
-          <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
-            📡 <span className="sidebar-label">Live Streams</span>
-          </MenuItem>
-          <MenuItem to="/collab-marketplace" className={isActive("/collab-marketplace") ? "active" : ""}>
-            🤝 <span className="sidebar-label">Collab Marketplace</span>
-          </MenuItem>
-        </>
+        </MenuItem>
+      <MenuItem to="/motion-studio" className={isActive("/motion-studio") ? "active" : ""}>
+        ✨ <span className="sidebar-label">SPX Motion</span>
+      </MenuItem>
+      <MenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>
+        🧩 SPX Compositor
+      </MenuItem>
+      <MenuItem to="/spx-canvas" className={isActive("/spx-canvas") ? "active" : ""}>
+        🎨 SPX Canvas
+      </MenuItem>
+      <MenuItem to="/ai-video-studio" className={isActive("/ai-video-studio") ? "active" : ""}>
+        🤖 <span className="sidebar-label">AI Video Studio</span>
+        <MenuHint className="sidebar-hint">NEW</MenuHint>
+        <MenuItem to="/ai-content-writer" className={isActive("/ai-content-writer") ? "active" : ""}>
+          ✍️ <span className="sidebar-label">AI Content Writer</span>
+        </MenuItem>
+        <MenuItem to="/browse-videos" className={isActive("/browse-videos") ? "active" : ""}>
+          🎞️ <span className="sidebar-label">Browse Videos</span>
+        </MenuItem>
+        <MenuItem to="/video-upload" className={isActive("/video-upload") ? "active" : ""}>
+          📤 <span className="sidebar-label">Upload Video</span>
+        </MenuItem>
+        <MenuItem to="/reels" className={isActive("/reels") ? "active" : ""}>
+          🎞️ <span className="sidebar-label">Reels</span>
+        </MenuItem>
+        <MenuItem to="/live-streams" className={isActive("/live-streams") ? "active" : ""}>
+          📡 <span className="sidebar-label">Live Streams</span>
+        </MenuItem>
+        <MenuItem to="/collab-marketplace" className={isActive("/collab-marketplace") ? "active" : ""}>
+          🤝 <span className="sidebar-label">Collab Marketplace</span>
+        </MenuItem>
+      </>
       )}
 
       {/* ============================================================ */}

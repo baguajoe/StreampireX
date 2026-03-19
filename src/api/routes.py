@@ -24047,3 +24047,153 @@ def place_merch_order():
     db.session.add(new_o)
     db.session.commit()
     return jsonify({"msg": "Order saved", "id": new_o.id}), 201
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SPX Canvas API
+# ──────────────────────────────────────────────────────────────────────────────
+import os
+import uuid
+import json
+from werkzeug.utils import secure_filename
+from flask import request, jsonify, current_app, send_from_directory
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from api.models import db, CanvasProject, CanvasAsset
+
+SPX_CANVAS_TEMPLATES = [
+    {"id": "youtube_thumb", "name": "YouTube Thumbnail", "width": 1280, "height": 720},
+    {"id": "album_cover", "name": "Album Cover", "width": 3000, "height": 3000},
+    {"id": "podcast_cover", "name": "Podcast Cover", "width": 3000, "height": 3000},
+    {"id": "instagram_post", "name": "Instagram Post", "width": 1080, "height": 1080},
+    {"id": "story", "name": "Story / Reel Cover", "width": 1080, "height": 1920},
+    {"id": "flyer", "name": "Flyer", "width": 1080, "height": 1350},
+]
+
+@api.route("/spx-canvas/templates", methods=["GET"])
+def spx_canvas_templates():
+    return jsonify({"templates": SPX_CANVAS_TEMPLATES}), 200
+
+
+@api.route("/spx-canvas/upload", methods=["POST"])
+@jwt_required(optional=True)
+def spx_canvas_upload():
+    user_id = get_jwt_identity()
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files["file"]
+    if not file or not file.filename:
+        return jsonify({"error": "Invalid file"}), 400
+
+    static_folder = current_app.static_folder or os.path.join(current_app.root_path, "static")
+    upload_dir = os.path.join(static_folder, "uploads", "spx_canvas")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    safe_name = secure_filename(file.filename)
+    ext = os.path.splitext(safe_name)[1].lower() or ".png"
+    final_name = f"{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(upload_dir, final_name)
+    file.save(file_path)
+
+    file_url = f"/api/spx-canvas/assets/{final_name}"
+
+    asset = CanvasAsset(
+        user_id=user_id,
+        name=safe_name,
+        file_url=file_url,
+        file_type="image"
+    )
+    db.session.add(asset)
+    db.session.commit()
+
+    return jsonify({"url": file_url, "asset": asset.serialize()}), 200
+
+
+@api.route("/spx-canvas/assets/<path:filename>", methods=["GET"])
+def spx_canvas_asset_file(filename):
+    static_folder = current_app.static_folder or os.path.join(current_app.root_path, "static")
+    upload_dir = os.path.join(static_folder, "uploads", "spx_canvas")
+    return send_from_directory(upload_dir, filename)
+
+
+@api.route("/spx-canvas/projects", methods=["GET"])
+@jwt_required(optional=True)
+def spx_canvas_projects():
+    user_id = get_jwt_identity()
+    query = CanvasProject.query
+    if user_id:
+        query = query.filter_by(user_id=user_id)
+    projects = query.order_by(CanvasProject.updated_at.desc()).limit(50).all()
+    return jsonify({"projects": [p.serialize() for p in projects]}), 200
+
+
+@api.route("/spx-canvas/projects", methods=["POST"])
+@jwt_required(optional=True)
+def spx_canvas_create_project():
+    user_id = get_jwt_identity()
+    data = request.get_json(silent=True) or {}
+
+    project = CanvasProject(
+        user_id=user_id,
+        name=data.get("name", "Untitled Canvas"),
+        width=int(data.get("width", 1280)),
+        height=int(data.get("height", 720)),
+        background=data.get("background", "#111827"),
+        data_json=json.dumps(data.get("data_json", {})),
+        thumbnail_url=data.get("thumbnail_url")
+    )
+
+    db.session.add(project)
+    db.session.commit()
+    return jsonify({"project": project.serialize()}), 201
+
+
+@api.route("/spx-canvas/projects/<int:project_id>", methods=["GET"])
+@jwt_required(optional=True)
+def spx_canvas_get_project(project_id):
+    user_id = get_jwt_identity()
+    project = CanvasProject.query.get(project_id)
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    if user_id and project.user_id and project.user_id != user_id:
+        return jsonify({"error": "Forbidden"}), 403
+    return jsonify({"project": project.serialize()}), 200
+
+
+@api.route("/spx-canvas/projects/<int:project_id>", methods=["PUT"])
+@jwt_required(optional=True)
+def spx_canvas_update_project(project_id):
+    user_id = get_jwt_identity()
+    project = CanvasProject.query.get(project_id)
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    if user_id and project.user_id and project.user_id != user_id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    data = request.get_json(silent=True) or {}
+    project.name = data.get("name", project.name)
+    project.width = int(data.get("width", project.width))
+    project.height = int(data.get("height", project.height))
+    project.background = data.get("background", project.background)
+    if "data_json" in data:
+        project.data_json = json.dumps(data.get("data_json", {}))
+    if "thumbnail_url" in data:
+        project.thumbnail_url = data.get("thumbnail_url")
+
+    db.session.commit()
+    return jsonify({"project": project.serialize()}), 200
+
+
+@api.route("/spx-canvas/projects/<int:project_id>", methods=["DELETE"])
+@jwt_required(optional=True)
+def spx_canvas_delete_project(project_id):
+    user_id = get_jwt_identity()
+    project = CanvasProject.query.get(project_id)
+    if not project:
+        return jsonify({"error": "Project not found"}), 404
+    if user_id and project.user_id and project.user_id != user_id:
+        return jsonify({"error": "Forbidden"}), 403
+
+    db.session.delete(project)
+    db.session.commit()
+    return jsonify({"success": True}), 200
