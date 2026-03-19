@@ -728,7 +728,7 @@ const Sidebar = ({ user }) => {
             ✨ <span className="sidebar-label">SPX Motion</span>
           </MenuItem>
           <MenuItem to="/node-compositor" className={isActive("/node-compositor") ? "active" : ""}>
-            🧩 SPX Motion
+            🧩 SPX Compositor
           </MenuItem>
 
           <MenuItem to="/ai-content-writer" className={isActive("/ai-content-writer") ? "active" : ""}>
