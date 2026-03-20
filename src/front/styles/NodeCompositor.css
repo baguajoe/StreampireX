@@ -1368,3 +1368,17 @@
   margin-bottom: 6px;
 }
 
+
+/* final node engine */
+.spx-node-engine-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,255,200,0.18);
+  background: rgba(0,255,200,0.08);
+  color: #bfffee;
+  font-size: 12px;
+}
+

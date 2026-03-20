@@ -20,12 +20,19 @@ import MediaIngestPanel from "../component/nodecompositor/pro/MediaIngestPanel";
 import ColorPipelinePanel from "../component/nodecompositor/pro/ColorPipelinePanel";
 import RotoTimelinePanel from "../component/nodecompositor/pro/RotoTimelinePanel";
 import DependencyGraphPanel from "../component/nodecompositor/pro/DependencyGraphPanel";
+import { createGraphRunner } from "../utils/compositor/engine/graphRunner";
+import NodeEnginePanel from "../component/nodecompositor/pro/NodeEnginePanel";
 
 export default function NodeCompositorPage() {
   const [edges, setEdges] = React.useState([]);
   const [currentTime, setCurrentTime] = React.useState(0);
   const [playing, setPlaying] = React.useState(false);
   const [rotoShape, setRotoShape] = React.useState({ id: "roto_start", closed: true, feather: 0, invert: false, points: [] });
+
+  const graphRunnerRef = React.useRef(null);
+  if (!graphRunnerRef.current) {
+    graphRunnerRef.current = createGraphRunner();
+  }
   const duration = 10;
   const nodes = useEditorStore((s) => s.nodes);
   const setNodes = useEditorStore((s) => s.setNodes);
@@ -69,11 +76,16 @@ export default function NodeCompositorPage() {
 
   const graphResult = useMemo(() => evaluateGraph(nodes), [nodes]);
 
+  const engineEvaluation = React.useMemo(() => {
+    return graphRunnerRef.current.runGraph(nodes, edges, Math.floor(currentTime * 30));
+  }, [nodes, edges, currentTime]);
+
   const addMediaNodeFromPanel = (node) => {
     setNodes((prev) => [...prev, node]);
   };
 
   const updateNode = (id, patch) => {
+    graphRunnerRef.current.invalidateNode(nodes, edges, id);
     setNodes(nodes.map((n) => (n.id === id ? { ...n, ...patch } : n)));
   };
 
@@ -248,6 +260,8 @@ export default function NodeCompositorPage() {
 
           <DependencyGraphPanel nodes={nodes} edges={edges} />
 
+          <NodeEnginePanel frame={Math.floor(currentTime * 30)} evaluation={engineEvaluation} />
+
           <div className="motion-panel">
             <div className="motion-panel-title">Graph Output</div>
             <pre
@@ -259,7 +273,7 @@ export default function NodeCompositorPage() {
                 color: "#d9eaff",
               }}
             >
-{JSON.stringify({ currentTime, edges, rotoShape, graphResult }, null, 2)}
+{JSON.stringify({ currentTime, edges, rotoShape, graphResult, engineEvaluation }, null, 2)}
             </pre>
           </div>
         </div>
