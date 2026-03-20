@@ -1,7 +1,7 @@
 // src/front/js/store/useEditorStore.js
 // SPX Motion + Compositor — Unified Editor Store (Zustand)
 
-import create from "zustand";
+import { create } from "zustand";
 
 const uid = () => `${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
 
